@@ -1,0 +1,71 @@
+INIT MASTER(S)  $ delete .MASTER and .DBALL files on exit
+
+$ NAS2CAM op2/op4 files:
+assign output2 = 'no_se_nas2cam.op2', status=new,
+                 unit=29,delete $
+assign output4 = 'no_se_nas2cam.op4', status=new,
+                 unit=30,form=unformatted,delete $
+
+SOL 103
+DIAG 44
+echooff
+include '/loads/nx_dmaps/v9/nas2cam_103.v9'
+include '/loads/nx_dmaps/v9/nas2cam_subdmap.v9'
+INCLUDE '/loads/nx_dmaps/v9/getqpart.v9'
+INCLUDE '/loads/nx_dmaps/v9/dbdalter.v9'
+echoon
+CEND
+
+TITLE = free-free
+ECHO = SORT
+METHOD = 1
+BEGIN BULK
+$-------------------------------------------------------------------
+$ NAS2CAM input:
+PARAM,CSEID,0
+PARAM,DBDICT,0
+$PARAM,RMCSET,1
+PARAM,PRFMODES,1
+$
+$ TO GENERATE GRAVITY FORCE, SET GRAVDIR EQUAL TO GRAVITY DIRECTION
+$  AND SET THE GRAVITY FIELD:
+$
+$PARAM,GRAVDIR,1
+$PARAM,GRAVFELD,-386.1
+$
+$ $ TO GET THE "GOT" MATRIX FOR SPECIFIED SUPERELEMENTS:
+$ DTI,TGOT,1,50  $ WANT GOT FOR SE 50 ONLY
+$
+$ DTI,TMGG,1,50
+$ DTI,TKGG,1,50
+$ DTI,TRBG,1,50
+$
+$
+$DTI,TMAA,1,141,142,143,144,145,0
+$DTI,TKAA,1,141,142,143,144,145,0
+$DTI,TMAA,1,0
+$
+$ DTI,TKAA,1,0
+$ DTI,TGOT,1,100
+$ DTI,TGOQ,1,100
+$ DTI,TGM,1,0
+DTI,TPHG,1,0
+$param,pbaa,1
+$param,pbhh,1
+$
+$-------------------------------------------------------------------
+$ PARAM,POST,-1
+PARAM,OGEOM,NO
+PARAM,AUTOSPC,YES
+PARAM,GRDPNT,0
+$PARAM,COUPMASS,1
+EIGRL          1            100.      10       0                    MASS
+$1111111222222223333333344444444555555556666666677777777888888889999999900000000
+PBEAM          1      2 1.2097-42.286-106.5036-9        6.7323-9
+$PBAR           1      2 1.2097-42.286-106.5036-96.7323-9
+MAT1           2  6.9+10             .33   2700. 1.265-5     70.        
+GRID           1       00.0000000.0000000.000000       0
+GRID           2       00.0787400.0000000.000000       0
+CBEAM         11       1       1       2     0.0     1.0     0.0
+$CBAR          11       1       1       2     0.0     1.0     0.0
+ENDDATA

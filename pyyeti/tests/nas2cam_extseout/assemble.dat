@@ -1,0 +1,112 @@
+NASTRAN SYSTEM(402) = 0  $ AUTOMATICALLY DELETE DUPLICATE CARDS
+NASTRAN NLINES = 10000
+
+ASSIGN INPUTT4='outboard.op4',UNIT=101
+ASSIGN INPUTT4='inboard.op4',UNIT=102
+
+INIT MASTER(S)  $ delete .MASTER and .DBALL files on exit
+
+$ NAS2CAM op2/op4 files:
+assign output2 = 'nas2cam.op2', status=new,
+                 unit=29,delete $
+assign output4 = 'nas2cam.op4', status=new,
+                 unit=30,form=unformatted,delete $
+
+SOL SEMFREQ
+DIAG 44
+echooff
+include '/loads/nx_dmaps/v9/nas2cam_111.v9'
+include '/loads/nx_dmaps/v9/nas2cam_subdmap.v9'
+INCLUDE '/loads/nx_dmaps/v9/getqpart.v9'
+INCLUDE '/loads/nx_dmaps/v9/dbdalter.v9'
+INCLUDE '/loads/nx_dmaps/v9/sysmodes.v9'
+echoon
+CEND
+
+TITLE = System Modes
+ECHO = Sort
+
+METHOD = 1
+FREQ = 1
+MPC = 701
+DISPLACEMENT(PLOT) = ALL
+WEIGHTCHECK(SET=ALL) = YES
+GROUNDCHECK(SET=ALL,DATAREC=YES) = YES
+
+SUBCASE 1
+	LABEL = Modes run with BHH matrix
+	ANALYSIS = MODES
+	SUPER=0
+	FORCE(PLOT) = ALL
+SUBCASE 2
+	SUPER=101
+SUBCASE 3
+	SUPER=102
+SUBCASE 10
+	LABEL = Dummy Case
+	DLOAD = 1
+BEGIN BULK
+$-------------------------------------------------------------------
+$ NAS2CAM input:
+PARAM,DBDICT,0
+$PARAM,RMCSET,1
+PARAM,PRFMODES,1
+$
+$ TO GENERATE GRAVITY FORCE, SET GRAVDIR EQUAL TO GRAVITY DIRECTION
+$  AND SET THE GRAVITY FIELD:
+$
+PARAM,GRAVDIR,1
+PARAM,GRAVFELD,-386.1
+$
+$ $ TO GET THE "GOT" MATRIX FOR SPECIFIED SUPERELEMENTS:
+$ DTI,TGOT,1,50  $ WANT GOT FOR SE 50 ONLY
+$
+$ DTI,TMGG,1,50
+$ DTI,TKGG,1,50
+$ DTI,TRBG,1,50
+$
+$
+DTI,TMAA,1,101,102,0
+DTI,TKAA,1,101,102,0
+$DTI,TMAA,1,0
+$
+$ DTI,TKAA,1,0
+$ DTI,TGOT,1,100
+$ DTI,TGOQ,1,100
+DTI,TGM,1,0
+DTI,TPHG,1,0
+DTI,TPHA,1,0
+$param,pbaa,1
+param,pbhh,1
+$
+$-------------------------------------------------------------------
+PARAM,POST,-1
+PARAM,AUTOSPC,YES
+PARAM,SESDAMP,YES
+
+EIGR           1    AHOU                          100000
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+FREQ           1      2.
+RLOAD2         1       1                       1
+DAREA          1      11       1    1.0
+TABLED1        1
+            0.01     1.0   150.0    1.0     ENDT
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+INCLUDE 'outboard.asm'
+INCLUDE 'inboard.asm'
+
+$$111111122222222333333334444444455555555666666667777777788888888
+$RBE2    1001    330     123456  33
+
+$ Add some stuff for check formtran:
+grid,70,,340.,-630.,110.,10
+RBE2,700,3,1,70
+RBE3,701,,70,26,1.0,123456,11,27
+MPC,702,70,4,1.0,9990002,0,1.0
+
+INCLUDE 'outboard.pch'
+INCLUDE 'inboard.pch'
+
+ENDDATA

@@ -1,0 +1,479 @@
+1
+ 
+ 
+ 
+ 
+                     THIS PROGRAM IS CONFIDENTIAL AND A TRADE SECRET OF MSC.SOFTWARE CORPORATION.  THE RECEIPT OR    
+                  POSSESSION OF THIS PROGRAM DOES NOT CONVEY ANY RIGHTS TO REPRODUCE OR DISCLOSE ITS CONTENTS, OR TO 
+                 MANUFACTURE, USE, OR SELL ANYTHING HEREIN, IN WHOLE OR IN PART, WITHOUT THE SPECIFIC WRITTEN CONSENT
+                                                    OF MSC.SOFTWARE CORPORATION.                                     
+ 
+ 
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * *                                 * *
+                                              * *           MSC.SOFTWARE          * *
+                                              * *               CORP              * *
+                                              * *                                 * *
+                                              * *      M S C . N a s t r a n      * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *        Version 2007.0.0         * *
+                                              * *            2007 R1              * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *          APR  4, 2007           * *
+                                              * *                                 * *
+                                              * *       x86-64 Based System       * *
+                                              * *MODEL Intel 32 /2400.060059MHz/2 * *
+                                              * * Linux 2.6.32-504.3.3.el6.x86_64 * *
+                                              * *       Compiled for x8664        * *
+                                              * *                                 * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+1                                                                               MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN OP2NEW=0 $ MSC.NASTRAN .LCL FILE                                        
+     NASTRAN BUFFSIZE=8193 $(/MNT/RAID1/APPS/MSC/NASTRAN/CONF/NAST2007RC[3])         
+     NASTRAN BUFFSIZE=65537 $(/HOME/LOADS/TWIDRICK/.NAST2007RC[5])                   
+     $                                                                               
+     $ RUN VIA:   NAST2007 WRT_TEST_OP4_FILES.DAT                                    
+     $                                                                               
+     ASSIGN MASTER = 'dummy.master', DELETE, TEMP $                                  
+     ASSIGN DBALL  = 'dummy.dball', DELETE, TEMP $                                   
+     INIT DBALL,LOGICAL=(DBALL(10000)) $                                             
+     $                                                                               
+     ASSIGN INPUTT4 = 'r_c_rc.op4' UNIT=11, FORM=FORMATTED $                         
+     $                                                                               
+     ASSIGN OUTPUT4 = 'double_bigmat_be.op4', STATUS=NEW,                            
+                      UNIT=30,FORM=BIGENDIAN,DELETE $                                
+     ASSIGN OUTPUT4 = 'double_bigmat_le.op4', STATUS=NEW,                            
+                      UNIT=31,FORM=LITTLEENDIAN,DELETE $                             
+     ASSIGN OUTPUT4 = 'double_bigmat_ascii.op4', STATUS=NEW,                         
+                      UNIT=32,FORM=FORMATTED,DELETE $                                
+     $                                                                               
+     ASSIGN OUTPUT4 = 'single_bigmat_be.op4', STATUS=NEW,                            
+                      UNIT=40,FORM=BIGENDIAN,DELETE $                                
+     ASSIGN OUTPUT4 = 'single_bigmat_le.op4', STATUS=NEW,                            
+                      UNIT=41,FORM=LITTLEENDIAN,DELETE $                             
+     ASSIGN OUTPUT4 = 'single_bigmat_ascii.op4', STATUS=NEW,                         
+                      UNIT=42,FORM=FORMATTED,DELETE $                                
+     $                                                                               
+     ASSIGN OUTPUT4 = 'double_nonbigmat_be.op4', STATUS=NEW,                         
+                      UNIT=50,FORM=BIGENDIAN,DELETE $                                
+     ASSIGN OUTPUT4 = 'double_nonbigmat_le.op4', STATUS=NEW,                         
+                      UNIT=51,FORM=LITTLEENDIAN,DELETE $                             
+     ASSIGN OUTPUT4 = 'double_nonbigmat_ascii.op4', STATUS=NEW,                      
+                      UNIT=52,FORM=FORMATTED,DELETE $                                
+     $                                                                               
+     ASSIGN OUTPUT4 = 'single_nonbigmat_be.op4', STATUS=NEW,                         
+                      UNIT=60,FORM=BIGENDIAN,DELETE $                                
+     ASSIGN OUTPUT4 = 'single_nonbigmat_le.op4', STATUS=NEW,                         
+                      UNIT=61,FORM=LITTLEENDIAN,DELETE $                             
+     ASSIGN OUTPUT4 = 'single_nonbigmat_ascii.op4', STATUS=NEW,                      
+                      UNIT=62,FORM=FORMATTED,DELETE $                                
+     $                                                                               
+     ASSIGN OUTPUT4 = 'double_dense_be.op4', STATUS=NEW,                             
+                      UNIT=70,FORM=BIGENDIAN,DELETE $                                
+     ASSIGN OUTPUT4 = 'double_dense_le.op4', STATUS=NEW,                             
+                      UNIT=71,FORM=LITTLEENDIAN,DELETE $                             
+     ASSIGN OUTPUT4 = 'double_dense_ascii.op4', STATUS=NEW,                          
+                      UNIT=72,FORM=FORMATTED,DELETE $                                
+     $                                                                               
+     ASSIGN OUTPUT4 = 'single_dense_be.op4', STATUS=NEW,                             
+                      UNIT=80,FORM=BIGENDIAN,DELETE $                                
+     ASSIGN OUTPUT4 = 'single_dense_le.op4', STATUS=NEW,                             
+1                                                                               MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+                      UNIT=81,FORM=LITTLEENDIAN,DELETE $                             
+     ASSIGN OUTPUT4 = 'single_dense_ascii.op4', STATUS=NEW,                          
+                      UNIT=82,FORM=FORMATTED,DELETE $                                
+     $                                                                               
+1                                                                               MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     3
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     DIAG 8                      $  DIAGNOSTIC OUTPUT                                        
+     SOL 100                     $  USER SOLUTION                                            
+     $                                                                                       
+     COMPILE USERDMAP,LIST,NOREF    $  COMPILE USER SOLUTION                                 
+     ALTER 2 $                                                                               
+     $                                                                                       
+     $ INPUTT4  /RS,,,,/1/11/0/1 $            READ RS (BINARY)                               
+     INPUTT4  /RMAT,CMAT,RCMAT/3/11/0 $        READ RS (ASCII)                               
+     $                                                                                       
+     $ MAKE SINGLE PRECISION VERSIONS:                                                       
+     PUTSYS(1,55) $                                                                          
+     ADD5      RMAT,,,,/RMATS $                                                              
+     ADD5      CMAT,,,,/CMATS $                                                              
+     ADD5      RCMAT,,,,/RCMATS $                                                            
+     PUTSYS(2,55) $                                                                          
+     $                                                                                       
+     $ WRITE DOUBLE, BIGMAT, SPARSE:                                                         
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/-30//TRUE $  OUTPUT4, BINARY                              
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/-31//TRUE $  OUTPUT4, BINARY                              
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/-32//TRUE/9 $  OUTPUT4, ASCII                             
+     $                                                                                       
+     $ WRITE SINGLE, BIGMAT, SPARSE:                                                         
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/-40//TRUE $  OUTPUT4, BINARY                           
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/-41//TRUE $  OUTPUT4, BINARY                           
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/-42//TRUE/8 $  OUTPUT4, ASCII                          
+     $                                                                                       
+     $ WRITE DOUBLE, NON-BIGMAT, SPARSE:                                                     
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/-50//FALSE $  OUTPUT4, BINARY                             
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/-51//FALSE $  OUTPUT4, BINARY                             
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/-52//FALSE/14 $  OUTPUT4, ASCII                           
+     $                                                                                       
+     $ WRITE SINGLE, NON-BIGMAT, SPARSE:                                                     
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/-60//FALSE $  OUTPUT4, BINARY                          
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/-61//FALSE $  OUTPUT4, BINARY                          
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/-62//FALSE/16 $  OUTPUT4, ASCII                        
+     $                                                                                       
+     $ WRITE DOUBLE, DENSE:                                                                  
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/70 $  OUTPUT4, BINARY                                     
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/71 $  OUTPUT4, BINARY                                     
+     OUTPUT4   RMAT,CMAT,RCMAT//-1/72/12 $  OUTPUT4, ASCII                                   
+     $                                                                                       
+     $ WRITE SINGLE, DENSE:                                                                  
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/80 $  OUTPUT4, BINARY                                  
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/81 $  OUTPUT4, BINARY                                  
+     OUTPUT4   RMATS,CMATS,RCMATS//-1/82/14 $  OUTPUT4, ASCII                                
+     $                                                                                       
+     END $                                                                                   
+     $                                                                                       
+     CEND                                                                                    
+1                                                                               MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     4
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+1                                                                               MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+0        N A S T R A N   S O U R C E   P R O G R A M   C O M P I L A T I O N             SUBDMAP  =  USERDMAP                       
+     DMAP-DMAP INSTRUCTION                                                                                                          
+      OLD NO.  NEW NO.   ( *I* = INSERTED,   *D* = DELETED )                                                                        
+       1        1      SUBDMAP USERDMAP $                                                              
+       2        2      $                                                                               
+       2        2      $  THIS SOLUTION SEQUENCE WILL EXECUTE ALL PREFACE MODULES:                     
+       2        2      $  IFP1, XSORT, AND IFP1 IN SUBDMAP PREFACE. OPTIONALLY,                        
+       2        2      $  WITH ALTER 2, A USER'S DMAP MAY FOLLOW THE CALL PREFACE                      
+       2        2      $  STATEMENT.  TYPE STATEMENTS IN A USER'S DMAP MAY                             
+       2        2      $  REFERENCE ITEMS DEFINED IN THE NDDL OF THE STRUCTURED                        
+       2        2      $  SOLUTION SEQUENCES. (SOLS 101-200)                                           
+       2        2      $                                                                               
+       2        2      $  EXECUTIVE DECK CONTENTS:                                                     
+       2        2      $                                                                               
+       2        2      $-----  1. SOL 100 OR SOL USERDMAP                                              
+       2        2      $                                                                               
+       2        2      $-----  2. ALTER 2 $ ONLY IF THE FOLLOWING OPERATIONS ARE DESIRED:              
+       2        2      $                                                                               
+       2        2      $          A. DMIIN AND DTIIN MODULES. (OPTIONAL)                               
+       2        2      $             FOR EXAMPLE, THE FOLLOWING DMAP STATEMENT OUTPUTS                 
+       2        2      $             MATRICES A, B, C, D, AND E FROM BULK DATA INPUT ON                
+       2        2      $             DMI BULK DATA CARDS:                                              
+       2        2      $                                                                               
+       2        2      $             DMIIN       DMI,DMINDX/A,B,C,D,E,,,,,/ $                          
+       2        2      $                                                                               
+       2        2      $             AND TABLES TA, TB, TC, TD, AND TE ON DTI BULK DATA CARDS:         
+       2        2      $                                                                               
+       2        2      $             DTIIN       DTI,DTINDX/TA,TB,TC,TD,TE,,,,,/ $                     
+       2        2      $                                                                               
+       2        2      $             DATA BLOCK NAMES A, B, C, D, E, TA, TB, TC, TD, AND TE            
+       2        2      $             MAY NOW BE REFERENCED IN THE USER'S DMAP.                         
+       2        2      $                                                                               
+       2        2      $          B. INSERT USER'S DMAP. (OPTIONAL)                                    
+       2        2      $                                                                               
+       2        2      $                                                                               
+       2        2      CALL PREFACE /GEOM1,EPT,MPT,EDT,DIT,DYNAMICS,GEOM2,GEOM3,GEOM4,GEOM5,           
+                                     FORCE,MATPOOL,AXIC,DEFUSET,DMI,DMINDX,DTI,DTINDX,PVT,             
+                                     CASECC,PCDB,XYCDB,POSTCDB,BULK,EDOM,DEQATN,DEQINDX,               
+                                     CONTACT,OINT,PCOMPT $MALTER:USERDMAP - AFTER CALL PREFACE         
+       2        3      $   ALTER 2 $                                                                   
+     *I*        3      INPUTT4  /RMAT,CMAT,RCMAT/3/11/0 $        READ RS (ASCII)                       
+ *** USER WARNING MESSAGE 1 (XGPIDG)
+     POSSIBLE ERROR IN DMAP INSTRUCTION INPUTT4    INSTRUCTION NO.   3
+     THE LAST    2 OUTPUT DATA BLOCK(S) ARE NOT SPECIFIED AND WILL BE ASSUMED TO BE PURGED.
+     *I*        4      PUTSYS(1,55) $                                                                  
+     *I*        5      ADD5      RMAT,,,,/RMATS $                                                      
+     *I*        6      ADD5      CMAT,,,,/CMATS $                                                      
+     *I*        7      ADD5      RCMAT,,,,/RCMATS $                                                    
+     *I*        8      PUTSYS(2,55) $                                                                  
+     *I*        9      OUTPUT4   RMAT,CMAT,RCMAT//-1/-30//TRUE $  OUTPUT4, BINARY                      
+     *I*       10      OUTPUT4   RMAT,CMAT,RCMAT//-1/-31//TRUE $  OUTPUT4, BINARY                      
+1                                                                               MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+0        N A S T R A N   S O U R C E   P R O G R A M   C O M P I L A T I O N             SUBDMAP  =  USERDMAP                       
+     DMAP-DMAP INSTRUCTION                                                                                                          
+      OLD NO.  NEW NO.   ( *I* = INSERTED,   *D* = DELETED )                                                                        
+     *I*       11      OUTPUT4   RMAT,CMAT,RCMAT//-1/-32//TRUE/9 $  OUTPUT4, ASCII                     
+     *I*       12      OUTPUT4   RMATS,CMATS,RCMATS//-1/-40//TRUE $  OUTPUT4, BINARY                   
+     *I*       13      OUTPUT4   RMATS,CMATS,RCMATS//-1/-41//TRUE $  OUTPUT4, BINARY                   
+     *I*       14      OUTPUT4   RMATS,CMATS,RCMATS//-1/-42//TRUE/8 $  OUTPUT4, ASCII                  
+     *I*       15      OUTPUT4   RMAT,CMAT,RCMAT//-1/-50//FALSE $  OUTPUT4, BINARY                     
+     *I*       16      OUTPUT4   RMAT,CMAT,RCMAT//-1/-51//FALSE $  OUTPUT4, BINARY                     
+     *I*       17      OUTPUT4   RMAT,CMAT,RCMAT//-1/-52//FALSE/14 $  OUTPUT4, ASCII                   
+     *I*       18      OUTPUT4   RMATS,CMATS,RCMATS//-1/-60//FALSE $  OUTPUT4, BINARY                  
+     *I*       19      OUTPUT4   RMATS,CMATS,RCMATS//-1/-61//FALSE $  OUTPUT4, BINARY                  
+     *I*       20      OUTPUT4   RMATS,CMATS,RCMATS//-1/-62//FALSE/16 $  OUTPUT4, ASCII                
+     *I*       21      OUTPUT4   RMAT,CMAT,RCMAT//-1/70 $  OUTPUT4, BINARY                             
+     *I*       22      OUTPUT4   RMAT,CMAT,RCMAT//-1/71 $  OUTPUT4, BINARY                             
+     *I*       23      OUTPUT4   RMAT,CMAT,RCMAT//-1/72/12 $  OUTPUT4, ASCII                           
+     *I*       24      OUTPUT4   RMATS,CMATS,RCMATS//-1/80 $  OUTPUT4, BINARY                          
+     *I*       25      OUTPUT4   RMATS,CMATS,RCMATS//-1/81 $  OUTPUT4, BINARY                          
+     *I*       26      OUTPUT4   RMATS,CMATS,RCMATS//-1/82/14 $  OUTPUT4, ASCII                        
+     *I*       27      END $                                                                           
+1    DBWRITE                                                                    MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1      TITLE = DBWRITE                                                                         
+                  2      $                                                                                       
+                  3      BEGIN BULK                                                                              
+0                             INPUT BULK DATA ENTRY COUNT =       1
+1    DBWRITE                                                                    MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                              ENDDATA 
+0                       TOTAL COUNT=         1
+ *** USER INFORMATION MESSAGE 4105 (INPTN4)
+     DATA BLOCK RMAT     RETRIEVED FROM FORTRAN UNIT 11
+     NAME OF DATA BLOCK WHEN PLACED ON FORTRAN UNIT WAS R.
+ *** USER INFORMATION MESSAGE 4105 (INPTN4)
+     DATA BLOCK CMAT     RETRIEVED FROM FORTRAN UNIT 11
+     NAME OF DATA BLOCK WHEN PLACED ON FORTRAN UNIT WAS C.
+ *** USER INFORMATION MESSAGE 4105 (INPTN4)
+     DATA BLOCK RCMAT    RETRIEVED FROM FORTRAN UNIT 11
+     NAME OF DATA BLOCK WHEN PLACED ON FORTRAN UNIT WAS RC.
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     101      31      25       2       2       8     413
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     102      31      25       2       4      12     413
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     103      31      25       2       4      20     787
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   31 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     101      31      25       2       2       8     413
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   31 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     102      31      25       2       4      12     413
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   31 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     103      31      25       2       4      20     787
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK RMAT     MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,5E16.9)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   32 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     101      31      25       2       2       8     413
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK CMAT     MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,5E16.9)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   32 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     102      31      25       2       4      12     413
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK RCMAT    MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,5E16.9)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   32 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     103      31      25       2       4      20     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   40 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   40 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   40 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     103      31      25       2       3      10     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   41 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   41 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   41 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     103      31      25       2       3      10     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   42 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E15.8)         
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   42 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E15.8)         
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   42 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E15.8)         
+ TRAILER =     103      31      25       2       3      10     787
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   50 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     101      31      25       2       2       8     413
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   50 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     102      31      25       2       4      12     413
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   50 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     103      31      25       2       4      20     787
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   51 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     101      31      25       2       2       8     413
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   51 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     102      31      25       2       4      12     413
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   51 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     103      31      25       2       4      20     787
+1    DBWRITE                                                                    MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK RMAT     MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,3E21.14)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   52 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,3E21.14)        
+ TRAILER =     101      31      25       2       2       8     413
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK CMAT     MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,3E21.14)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   52 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,3E21.14)        
+ TRAILER =     102      31      25       2       4      12     413
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK RCMAT    MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,3E21.14)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   52 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,3E21.14)        
+ TRAILER =     103      31      25       2       4      20     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   60 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   60 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   60 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     103      31      25       2       3      10     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   61 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   61 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   61 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     103      31      25       2       3      10     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   62 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,3E23.16)        
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   62 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,3E23.16)        
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   62 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,3E23.16)        
+ TRAILER =     103      31      25       2       3      10     787
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   70 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     101      31      25       2       2       8     413
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   70 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     102      31      25       2       4      12     413
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   70 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     103      31      25       2       4      20     787
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   71 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     101      31      25       2       2       8     413
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   71 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     102      31      25       2       4      12     413
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   71 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     103      31      25       2       4      20     787
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK RMAT     MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,5E16.9)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK RMAT    WRITTEN ON FORTRAN UNIT   72 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     101      31      25       2       2       8     413
+1    DBWRITE                                                                    MAY  27, 2015  MSC.NASTRAN  4/ 4/07   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK CMAT     MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,5E16.9)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK CMAT    WRITTEN ON FORTRAN UNIT   72 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     102      31      25       2       4      12     413
+ *** USER WARNING MESSAGE 6450 (OUTPT4)
+     THE SELECTION OF THE  ASCII FORMAT OPTION IN THE OUTPUT4 MODULE FOR DATABLOCK RCMAT    MAY RESULT IN NUMERIC TRUNCATION.
+     USER INFORMATION:
+      1. THE FORTRAN FORMAT BEING USED IS (1P,5E16.9)
+      2. THE DEFAULT FORTRAN FORMAT IS (1P,5E16.9)
+      3. THE FIFTH PARAMETER OF THE OUTPUT4 MODULE CAN BE USED TO INCREASE THE NUMBER OF SIGNIFICANT DIGITS.
+     USER ACTION:
+      1. IF THE NUMBER OF SIGNIFICANT DIGITS IS ACCEPTABLE, THEN NO ACTION IS REQUIRED.
+      2. IF ADDITIONAL SIGNIFICANT DIGITS ARE REQUIRED, THEN INCREASE THE VALUE OF THE FIFTH PARAMETER, AND
+         RERUN THE JOB.
+ DATA BLOCK RCMAT   WRITTEN ON FORTRAN UNIT   72 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     103      31      25       2       4      20     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   80 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   80 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   80 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGEND) FORMAT                     
+ TRAILER =     103      31      25       2       3      10     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   81 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   81 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   81 FROM DMAP MODULE OUTPUT4 IN BINARY (LTLEND) FORMAT                     
+ TRAILER =     103      31      25       2       3      10     787
+ DATA BLOCK RMATS   WRITTEN ON FORTRAN UNIT   82 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     101      31      25       2       1       4     413
+ DATA BLOCK CMATS   WRITTEN ON FORTRAN UNIT   82 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     102      31      25       2       3       6     413
+ DATA BLOCK RCMATS  WRITTEN ON FORTRAN UNIT   82 FROM DMAP MODULE OUTPUT4 IN ASCII FORMAT (1P,5E16.9)         
+ TRAILER =     103      31      25       2       3      10     787
+ 
+ No PARAM values were set in the Control File.
+ 
+1                                        * * * END OF JOB * * *

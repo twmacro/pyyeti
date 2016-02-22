@@ -1,0 +1,50 @@
+$
+$ Run via:   nast2007 wrt_test_op2_files.dat
+$
+assign master = 'dummy.master', delete, temp $
+assign dball  = 'dummy.dball', delete, temp $
+init dball,logical=(dball(10000)) $
+$
+assign inputt4 = '../nastran_op4_data/r_c_rc.op4' unit=11,
+ form=formatted $
+$
+assign output2 = 'double_be.op2', status=new,
+                 unit=30, form=bigendian, delete $
+assign output2 = 'double_le.op2', status=new,
+                 unit=31, form=littleendian, delete $
+$
+assign output2 = 'single_be.op2', status=new,
+                 unit=40, form=bigendian, delete $
+assign output2 = 'single_le.op2', status=new,
+                 unit=41, form=littleendian, delete $
+$
+DIAG 8                      $  DIAGNOSTIC OUTPUT
+SOL 100                     $  USER SOLUTION
+$
+COMPILE USERDMAP,LIST,NOREF    $  COMPILE USER SOLUTION
+ALTER 2 $
+$
+INPUTT4  /ZUZR01,ZUZR02,ZUZR03/3/11/0 $
+$
+$ Make single precision versions:
+PUTSYS(1,55) $
+ADD5      ZUZR01,,,,/ZUZR04 $
+ADD5      ZUZR02,,,,/ZUZR05 $
+ADD5      ZUZR03,,,,/ZUZR06 $
+PUTSYS(2,55) $
+$
+$ Write double:
+OUTPUT2   ZUZR01,CASECC,ZUZR02,ZUZR03,//0/30 $
+OUTPUT2   ZUZR01,CASECC,ZUZR02,ZUZR03,//0/31 $
+$
+$ Write single:
+OUTPUT2   ZUZR04,CASECC,ZUZR05,ZUZR06,//0/40 $
+OUTPUT2   ZUZR04,CASECC,ZUZR05,ZUZR06,//0/41 $
+$
+END $
+$
+CEND
+TITLE = DBWRITE
+$
+BEGIN BULK
+ENDDATA

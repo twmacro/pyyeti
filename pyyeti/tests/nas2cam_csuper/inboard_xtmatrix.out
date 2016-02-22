@@ -1,0 +1,458 @@
+1
+ 
+ 
+ 
+ 
+                                                             
+                 Copyright 2013 Siemens Product Lifecycle    
+                        Management Software Inc.             
+                         All Rights Reserved.                
+                                                             
+               This software and related documentation are   
+                 proprietary to Siemens Product Lifecycle    
+                        Management Software Inc.             
+                                                             
+              Siemens and the Siemens logo are registered    
+             trademarks of Siemens AG. NX is a trademark or  
+                registered trademark of Siemens Product      
+               Lifecycle Management Software Inc. or its     
+             subsidiaries in the United States and in other  
+             countries.  NASTRAN is a registered trademark   
+                 of the National Aeronautics and Space       
+                 Administration.  All other trademarks,      
+              registered trademarks or service marks belong  
+                      to their respective holders.           
+                                                             
+           LIMITATIONS TO U.S. GOVERNMENT RIGHTS. UNPUBLISHED
+           - RIGHTS RESERVED UNDER THE COPYRIGHT LAWS OF THE 
+            UNITED STATES. This computer software and related
+               computer software documentation have been     
+            developed exclusively at private expense and are 
+           provided subject to the following rights:  If this
+               computer software and computer  software      
+            documentation qualify as "commercial items" (as  
+             that term is defined in FAR 2.101), their use,  
+            duplication or disclosure by the U.S. Government 
+           is subject to the protections and restrictions as 
+            set forth in the Siemens commercial license for  
+            software and/or documentation, as prescribed in  
+           FAR 12.212 and FAR 27.405(b)(2)(i) (for civilian  
+             agencies) and in DFARS 227.7202-1(a) and DFARS  
+           227.7202-3(a) (for the Department of Defense), or 
+           any successor or similar regulation, as applicable
+           or as amended from time to time.  If this computer
+           software and computer documentation do not qualify
+            as "commercial items", then they are "restricted 
+           computer software" and are provided with "restric-
+            tive rights", and their use, duplication or dis- 
+            closure by the U.S. Government is subject to the 
+            protections and restrictions as set forth in FAR 
+           27.404(b) and FAR 52-227-14 (for civilian agencies
+           ), and DFARS 227.7203-5(c) and DFARS 252.227-7014 
+           (for the Department of Defense), or any successor 
+           or similar regulation, as applicable or as amended
+              from time to time.  Siemens PLM Software Inc.  
+            5800 Granite Parkway, Suite 600, Plano, TX 75024 
+
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *       N X   N a s t r a n       * *
+                * *                                 * *
+                * *         VERSION -   9.1         * *
+                * *                                 * *
+                * *          MAY  1, 2014           * *
+                * *                                 * *
+                * *                                 * *
+                * *       X86_64 Based System       * *
+                * *                                 * *
+                * *MODEL x86_64 Intel/2400.060059MH * *
+                * *                                 * *
+                * * Linux 2.6.32-504.3.3.el6.x86_64 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+1                                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=8193 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[3])                    
+     NASTRAN DIAGA=160 DIAGB=0 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[6])                
+     NASTRAN SYSTEM(551)=1 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[8])                    
+     NASTRAN BUFFSIZE=65537 $(/HOME/LOADS/TWIDRICK/.NAST9RC[4])                      
+     ASSIGN MASTER = 'inboard_xtmatrix.master', DELETE $                             
+     ASSIGN DBALL  = 'inboard_xtmatrix.dball', DELETE $                              
+     INIT DBALL,LOGICAL=(DBALL(10000)) $                                             
+     $                                                                               
+     $ *** SPACECRAFT MATRICES                                                       
+     ASSIGN INPUTT4 = 'inboard_mk.op4' UNIT=11 FORM=UNFORMATTED $                    
+     $                                                                               
+     $ EXECUTIVE CONTROL                                                             
+     $ -----------------                                                             
+     $                                                                               
+1                                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     DIAG 8,47                     $ DIAGNOSTIC OUTPUT                                       
+     SOL XTMATRX                    $ CREATE EXTERNAL SE DATA BASE                           
+     COMPILE XTMATRX,NOLIST,NOREF   $ COMPILE USER SOLUTION                                  
+     $                                                                                       
+     ECHOOFF                                                                                 
+     (SEE NASTRAN SOURCE PROGRAM COMPILATION FOR LISTING OF DMAP SEQUENCE)
+     END $                                                                                   
+     $                                                                                       
+     CEND                                                                                    
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     3
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1      $                                                                                       
+                  2      $ TITLING                                                                               
+                  3      $ -------                                                                               
+                  4      TITLE = SPACECRAFT - 1 ATTACH POINTS                                                    
+                  5      SUBTITLE = SUPER 102                                                                    
+                  6      $                                                                                       
+                  7      ECHO = UNSORT                                                                           
+                  8      $                                                                                       
+                  9      BEGIN BULK                                                                              
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     4
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0                                             I N P U T   B U L K   D A T A   E C H O                                               
+                                                                                                                                    
+                              .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                              $                                                                               
+                              PARAM,CSEID,102                                                                 
+                              PARAM,DBDICT,2                                                                  
+                              PARAM,USETPRT,0                                                                 
+                              PARAM,MTXUNIT,11                                                                
+                              $                                                                               
+                              $INCLUDE ./exse102.bulk                                                         
+                              GRID           3       0    600.      0.    300.       0                        
+                              CORD2R  10      0       0.0     0.0     0.0     1.0     0.0     0.0             
+                                      0.0     1.0     0.0                                                     
+                              GRID          11       0    600.    300.    300.      10                        
+                              GRID          19       0    600.    300.      0.       0                        
+                              GRID          27       0    600.      0.      0.       0                        
+                              $                                                                               
+                              $  GRID CARDS FOR MODAL DOF                                                     
+                              $  ------------------------                                                     
+                              GRID     9990001                                                                
+                              GRID     9990002                                                                
+                              $END OF INCLUDE FILE ./exse102.bulk                                             
+                              $                                                                               
+                              $  BSET AND/OR QSET D.O.F.                                                      
+                              $  -----------------------                                                      
+                              $                                                                               
+                              $1111111222222223333333344444444555555556666666677777777888888889999999900000000
+                              BSET1,123456,3,11,19,27                                                         
+                              QSET1,123456,9990001                                                            
+                              QSET1,12,9990002                                                                
+                              CSET1,3456,9990002                                                              
+                              $                                                                               
+                              ENDDATA
+0                             INPUT BULK DATA ENTRY COUNT =          30
+0                       TOTAL COUNT=        17
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     5
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0
+0
+0
+ 
+
+
+                                        M O D E L   S U M M A R Y
+
+                                   NUMBER OF GRID     POINTS   =        6
+ 
+ 
+ 
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     6
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ AXIC     MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ DIT      MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ DYNAMICS MASTER   DBALL            -1                          0        0        0        0        0 150610 121106
+ EDT      MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ EPT      MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ GEOM2    MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ GEOM3    MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ GEOM4    MASTER   DBALL                                    21504        0        0        0        0 150610 121106
+ MATPOOL  MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ MPT      MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ PVT      MASTER   DBALL                                       16        0        0        0        0 150610 121106
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     7
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     8
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     9
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0                                        FORMATTED LIST OF TABLE DATA BLOCK  GPL         ( RECORD  1   )                            
+           INTERNAL       EXTERNAL GRID       EXTERNAL GRID       EXTERNAL GRID       EXTERNAL GRID       EXTERNAL GRID             
+              ID          OR SCALAR ID        OR SCALAR ID        OR SCALAR ID        OR SCALAR ID        OR SCALAR ID              
+ 
+                  1                3                  11                  19                  27             9990001
+                  6          9990002
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    10
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0                                        FORMATTED LIST OF TABLE DATA BLOCK  GPL         ( RECORD  2   )                            
+           INTERNAL         EXTERNAL GRID   SEQUENCE         EXTERNAL GRID   SEQUENCE         EXTERNAL GRID   SEQUENCE              
+              ID            OR SCALAR ID     NUMBER          OR SCALAR ID     NUMBER          OR SCALAR ID     NUMBER               
+ 
+                  1                  3              30               11             110               19             190
+                  4                 27             270          9990001        99900010          9990002        99900020
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    11
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0                                        FORMATTED LIST OF TABLE DATA BLOCK  CSTM        ( RECORD  1   )                            
+                                                                                                                                    
+                   N        ID       TYPE         R(I,1)              R(I,2)              R(I,3)                         T(I)       
+ 
+                   1        10         1      0.00000000E+00      0.00000000E+00      1.00000000E+00                0.00000000E+00
+                                              1.00000000E+00      0.00000000E+00      0.00000000E+00                0.00000000E+00
+                                              0.00000000E+00      1.00000000E+00      0.00000000E+00                0.00000000E+00
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    12
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0                                        FORMATTED LIST OF TABLE DATA BLOCK  BGPDT       ( RECORD  1   )                            
+                     INTERNAL     COORDINATE              COORDINATES IN BASIC COORDINATE SYSTEM                                    
+                        ID        SYSTEM ID             X                   Y                   Z                                   
+ 
+                             1            0          6.00000E+02         0.00000E+00         3.00000E+02
+                             2           10          6.00000E+02         3.00000E+02         3.00000E+02
+                             3            0          6.00000E+02         3.00000E+02         0.00000E+00
+                             4            0          6.00000E+02         0.00000E+00         0.00000E+00
+                             5            0          0.00000E+00         0.00000E+00         0.00000E+00
+                             6            0          0.00000E+00         0.00000E+00         0.00000E+00
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    13
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+                U S E T   D E F I N I T I O N   T A B L E   ( I N T E R N A L   S E Q U E N C E ,   R O W   S O R T )
+                                                       L        DISPLACEMENT SET
+0               -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-
+ 
+      1=        3-1        3-2        3-3        3-4        3-5        3-6       11-1       11-2       11-3       11-4    =    10
+     11=       11-5       11-6       19-1       19-2       19-3       19-4       19-5       19-6       27-1       27-2    =    20
+     21=       27-3       27-4       27-5       27-6  9990002-3  9990002-4  9990002-5  9990002-6
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    14
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+                                                       A        DISPLACEMENT SET
+0               -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-
+ 
+      1=        3-1        3-2        3-3        3-4        3-5        3-6       11-1       11-2       11-3       11-4    =    10
+     11=       11-5       11-6       19-1       19-2       19-3       19-4       19-5       19-6       27-1       27-2    =    20
+     21=       27-3       27-4       27-5       27-6  9990001-1  9990001-2  9990001-3  9990001-4  9990001-5  9990001-6    =    30
+     31=  9990002-1  9990002-2  9990002-3  9990002-4  9990002-5  9990002-6
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    15
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+                                                       F        DISPLACEMENT SET
+0               -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-
+ 
+      1=        3-1        3-2        3-3        3-4        3-5        3-6       11-1       11-2       11-3       11-4    =    10
+     11=       11-5       11-6       19-1       19-2       19-3       19-4       19-5       19-6       27-1       27-2    =    20
+     21=       27-3       27-4       27-5       27-6  9990001-1  9990001-2  9990001-3  9990001-4  9990001-5  9990001-6    =    30
+     31=  9990002-1  9990002-2  9990002-3  9990002-4  9990002-5  9990002-6
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    16
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+                                                       N        DISPLACEMENT SET
+0               -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-
+ 
+      1=        3-1        3-2        3-3        3-4        3-5        3-6       11-1       11-2       11-3       11-4    =    10
+     11=       11-5       11-6       19-1       19-2       19-3       19-4       19-5       19-6       27-1       27-2    =    20
+     21=       27-3       27-4       27-5       27-6  9990001-1  9990001-2  9990001-3  9990001-4  9990001-5  9990001-6    =    30
+     31=  9990002-1  9990002-2  9990002-3  9990002-4  9990002-5  9990002-6
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    17
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+                                                       G        DISPLACEMENT SET
+0               -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-
+ 
+      1=        3-1        3-2        3-3        3-4        3-5        3-6       11-1       11-2       11-3       11-4    =    10
+     11=       11-5       11-6       19-1       19-2       19-3       19-4       19-5       19-6       27-1       27-2    =    20
+     21=       27-3       27-4       27-5       27-6  9990001-1  9990001-2  9990001-3  9990001-4  9990001-5  9990001-6    =    30
+     31=  9990002-1  9990002-2  9990002-3  9990002-4  9990002-5  9990002-6
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK XMAA     HAS BEEN RETRIEVED FROM FORTRAN UNIT   11
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK XKAA     HAS BEEN RETRIEVED FROM FORTRAN UNIT   11
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS KXX.
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    18
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0                VACQB                                                                                                              
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+
+ COLUMN           1
+          3 T1  1.00000E+00         3 T2  1.00000E+00         3 T3  1.00000E+00         3 R1  1.00000E+00         3 R2  1.00000E+00
+          3 R3  1.00000E+00        11 T1  1.00000E+00        11 T2  1.00000E+00        11 T3  1.00000E+00        11 R1  1.00000E+00
+         11 R2  1.00000E+00        11 R3  1.00000E+00        19 T1  1.00000E+00        19 T2  1.00000E+00        19 T3  1.00000E+00
+         19 R1  1.00000E+00        19 R2  1.00000E+00        19 R3  1.00000E+00        27 T1  1.00000E+00        27 T2  1.00000E+00
+         27 T3  1.00000E+00        27 R1  1.00000E+00        27 R2  1.00000E+00        27 R3  1.00000E+00   9990001 T1  1.00000E+00
+    9990001 T2  1.00000E+00   9990001 T3  1.00000E+00   9990001 R1  1.00000E+00   9990001 R2  1.00000E+00   9990001 R3  1.00000E+00
+    9990002 T1  1.00000E+00   9990002 T2  1.00000E+00
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    19
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0      MATRIX VQB      (GINO NAME 101 ) IS A DB  PREC           1 COLUMN X          32 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+     11)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+     21)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      24
+0THE DENSITY OF THIS MATRIX IS  75.00 PERCENT.
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    20
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0      MATRIX KAADIAG  (GINO NAME 101 ) IS A DB  PREC           1 COLUMN X          36 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      1 THRU     32     --------------------------------------------------
+    ROW 
+      1)    4.3496D+05  9.5317D+06  9.5317D+06  3.8041D+09  2.1832D+09  2.1832D+09  9.5317D+06  9.5317D+06  4.3496D+05  2.1832D+09
+     11)    2.1832D+09  3.8041D+09  4.3496D+05  9.5317D+06  9.5317D+06  3.8041D+09  2.1832D+09  2.1832D+09  4.3496D+05  9.5317D+06
+     21)    9.5317D+06  3.8041D+09  2.1832D+09  2.1832D+09  1.4832D+03  1.4835D+03  2.2047D+04  1.9628D+05  1.9784D+05  4.3366D+05
+     31)    3.1383D+06  7.1245D+06
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      32
+0THE DENSITY OF THIS MATRIX IS  88.89 PERCENT.
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    21
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0      MATRIX MAADIAG  (GINO NAME 102 ) IS A DB  PREC           1 COLUMN X          36 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      1 THRU     32     --------------------------------------------------
+    ROW 
+      1)    6.3547D+00  2.0770D+00  2.0770D+00  1.5106D+03  1.6010D+04  1.6010D+04  2.0770D+00  2.0770D+00  6.3527D+00  1.6006D+04
+     11)    1.6006D+04  1.5110D+03  6.3547D+00  2.0770D+00  2.0770D+00  1.5106D+03  1.6010D+04  1.6010D+04  6.3527D+00  2.0770D+00
+     21)    2.0770D+00  1.5110D+03  1.6006D+04  1.6006D+04  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+     31)    1.0000D+00  1.0000D+00
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      32
+0THE DENSITY OF THIS MATRIX IS  88.89 PERCENT.
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    22
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0      MATRIX FREQHZ   (GINO NAME 101 ) IS A DB  PREC           1 COLUMN X          36 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      1 THRU     32     --------------------------------------------------
+    ROW 
+      1)    4.1640D+01  3.4095D+02  3.4095D+02  2.5257D+02  5.8775D+01  5.8775D+01  3.4095D+02  3.4095D+02  4.1647D+01  5.8783D+01
+     11)    5.8783D+01  2.5254D+02  4.1640D+01  3.4095D+02  3.4095D+02  2.5257D+02  5.8775D+01  5.8775D+01  4.1647D+01  3.4095D+02
+     21)    3.4095D+02  2.5254D+02  5.8783D+01  5.8783D+01  6.1295D+00  6.1303D+00  2.3633D+01  7.0513D+01  7.0794D+01  1.0481D+02
+     31)    2.8196D+02  4.2483D+02
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      32
+0THE DENSITY OF THIS MATRIX IS  88.89 PERCENT.
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    23
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+0      MATRIX ZETA     (GINO NAME 101 ) IS A DB  PREC           1 COLUMN X          36 ROW RECTANG  MATRIX.
+0COLUMNS       1 THRU       1 ARE NULL.
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =       0
+0THE DENSITY OF THIS MATRIX IS   0.00 PERCENT.
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK VQB              0       102 (TRAILER =          1        32         2         2        48      7500         3     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK VACQB            0       102 (TRAILER =          1        36         2         2        64      8889         3     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    24
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ AXIC     MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ BAA      MASTER   DBALL     102   102     0     0              0        0        0        0        0 150610 121106
+ BGPDTS   MASTER   DBALL           102                          6        0       36        2        0 150610 121106
+ CASES    MASTER   DBALL     102   102                          1        0      600        0        0 150610 121106
+ CSTMS    MASTER   DBALL           102                          6        1        1        2       12 150610 121106
+ DIT      MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ DYNAMICS MASTER   DBALL            -1                          0        0        0        0        0 150610 121106
+ ECTS     MASTER   DBALL           102                          0        0        0        0        0 150610 121106
+ EDT      MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ EPT      MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ EQEXINS  MASTER   DBALL           102                          6        0        0        0        0 150610 121106
+ GEOM1    MASTER   DBALL                                        0     2048        8        0        0 150610 121106
+ GEOM2    MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ GEOM3    MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ GEOM4    MASTER   DBALL                                    21504        0        0        0        0 150610 121106
+ GOQ      MASTER   DBALL           102     0     0     0        0        0        0        0        0 150610 121106
+ GOT      MASTER   DBALL           102     0     0              0        0        0        0        0 150610 121106
+ GPDTS    MASTER   DBALL           102                          6       10        0        2        0 150610 121106
+ GPLS     MASTER   DBALL           102                          6        6        0        0        0 150610 121106
+ KAA      MASTER   DBALL     102   102     0     0             36       36        6        2       48 150610 121106
+ KQQ      MASTER   DBALL     102   102     0     0     0        8        8        6        2        2 150610 121106
+ MAA      MASTER   DBALL     102   102     0     0             36       36        6        2       64 150610 121106
+ MATPOOL  MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ MPT      MASTER   DBALL                                        0        0        0        0        0 150610 121106
+ MQQ      MASTER   DBALL     102   102     0     0     0        8        8        6        2        2 150610 121106
+ MQT      MASTER   DBALL     102   102     0     0     0       28        8        2        2        8 150610 121106
+ PVT      MASTER   DBALL                                       16        0        0        0        0 150610 121106
+ SILS     MASTER   DBALL           102                          6       36        0        0        0 150610 121106
+ USET     MASTER   DBALL           102     0     0              0       36       80        2        0 150610 121106
+ USET0    MASTER   DBALL           102     0     0              0       36       80        2        0 150610 121106
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    25
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ ZUZR11   MASTER   DBALL    'VQB     '     0   102     0        1       32        2        2       48 150610 121106
+ ZUZR11   MASTER   DBALL    'VACQB   '     0   102     0        1       36        2        2       64 150610 121106
+1    SPACECRAFT - 1 ATTACH POINTS                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    26
+      SUPER 102                                                                                                                     
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+1                                        * * * END OF JOB * * *

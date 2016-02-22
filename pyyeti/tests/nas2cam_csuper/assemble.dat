@@ -1,0 +1,148 @@
+ASSIGN se101 ='outboard.MASTER'
+ASSIGN se101a='outboard.DBALL'
+DBLOCATE WHERE (SEID > 0 OR PEID > 0), LOGI=se101
+
+ASSIGN se102 ='inboard_xtmatrix.master'
+ASSIGN se102a='inboard_xtmatrix.dball'
+DBLOCATE WHERE (SEID > 0 OR PEID > 0), LOGI=se102
+
+INIT MASTER(S)  $ delete .MASTER and .DBALL files on exit
+
+$ NAS2CAM op2/op4 files:
+assign output2 = 'nas2cam.op2', status=new,
+                 unit=29,delete $
+assign output4 = 'nas2cam.op4', status=new,
+                 unit=30,form=unformatted,delete $
+
+SOL SEMFREQ
+DIAG 44
+echooff
+include '/loads/nx_dmaps/v9/nas2cam_111.v9'
+include '/loads/nx_dmaps/v9/nas2cam_subdmap.v9'
+INCLUDE '/loads/nx_dmaps/v9/getqpart.v9'
+INCLUDE '/loads/nx_dmaps/v9/dbdalter.v9'
+include '/loads/nx_dmaps/v9/fxphase0.v9'
+echoon
+CEND
+
+TITLE = System Modes
+ECHO = Sort
+
+METHOD = 1
+FREQ = 1
+MPC = 702
+
+WEIGHTCHECK(SET=ALL) = YES
+GROUNDCHECK(SET=ALL,DATAREC=YES) = YES
+
+SUBCASE 1
+	LABEL = Modes run with BHH matrix
+	ANALYSIS = MODES
+	SUPER=0
+	DISPLACEMENT(PLOT) = ALL
+	FORCE(PLOT) = ALL
+SUBCASE 2
+	LABEL = Dummy Case
+	DLOAD = 1
+BEGIN BULK
+$-------------------------------------------------------------------
+$ NAS2CAM input:
+PARAM,DBDICT,0
+$PARAM,RMCSET,1
+PARAM,PRFMODES,1
+$
+$ TO GENERATE GRAVITY FORCE, SET GRAVDIR EQUAL TO GRAVITY DIRECTION
+$  AND SET THE GRAVITY FIELD:
+$
+PARAM,GRAVDIR,1
+PARAM,GRAVFELD,-386.1
+$
+$ $ TO GET THE "GOT" MATRIX FOR SPECIFIED SUPERELEMENTS:
+$ DTI,TGOT,1,50  $ WANT GOT FOR SE 50 ONLY
+$
+$ DTI,TMGG,1,50
+$ DTI,TKGG,1,50
+$ DTI,TRBG,1,50
+$
+$
+DTI,TMAA,1,101,102,0
+DTI,TKAA,1,101,102,0
+$DTI,TMAA,1,0
+$
+$ DTI,TKAA,1,0
+DTI,TGOT,1,101
+DTI,TGOQ,1,101
+DTI,TGM,1,101
+DTI,TPHG,1,0
+$param,pbaa,1
+param,pbhh,1
+$
+$-------------------------------------------------------------------
+PARAM,POST,-1
+PARAM,AUTOSPC,YES
+PARAM,SESDAMP,YES
+
+EIGR           1    AHOU                          100000
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+FREQ           1      2.
+RLOAD2         1       1                       1
+DAREA          1      11       1    1.0
+TABLED1        1
+            0.01     1.0   150.0    1.0     ENDT
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+$--------------------------------------------------------------
+$ SE101 - outboard
+GRID           3       0    600.      0.    300.       0
+CORD2R  10      0       0.0     0.0     0.0     1.0     0.0     0.0
+        0.0     1.0     0.0
+GRID          11       0    600.    300.    300.      10
+GRID          19       0    600.    300.      0.       0
+GRID          27       0    600.      0.      0.       0
+$  MODAL DOF
+$  ---------
+SPOINT   1995001    THRU 1995022
+$
+$  DEFINE THE COMPONENT AS AN EXT. SUPERELEMENT
+$  --------------------------------------------
+$
+CSUPER,101,0,3,11,19,27,1995001,1995002,
+,1995003,THRU,1995022
+$
+$--------------------------------------------------------------
+
+$--------------------------------------------------------------
+$ SE102 - inboard
+GRID         103       0    600.      0.    300.       0
+GRID         111       0    600.    300.    300.      10
+$GRID         119       0    600.    300.      0.       0
+$GRID         127       0    600.      0.      0.       0
+$
+$  GRID CARDS FOR MODAL DOF
+$  ------------------------
+GRID     9990001
+GRID     9990002
+$
+$  DEFINE THE COMPONENT AS AN EXT. SUPERELEMENT
+$  --------------------------------------------
+$
+CSUPER,102,0,103,111,19,27,9990001,9990002
+$--------------------------------------------------------------
+$
+$
+$111111122222222333333334444444455555555666666667777777788888888
+RBE2    1001    3       123456  103
+RBE2    1002    11      123456  111
+$
+PLOTEL,1,9990001,9990002
+$
+$
+$ Add some stuff for check formtran:
+grid,70,,340.,-630.,110.,10
+RBE2,700,3,1,70
+RBE3,701,,70,26,1.0,123456,11,27
+MPC,702,70,4,1.0,9990002,0,1.0
+
+ENDDATA

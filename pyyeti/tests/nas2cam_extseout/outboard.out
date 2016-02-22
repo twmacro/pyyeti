@@ -1,0 +1,857 @@
+1
+ 
+ 
+ 
+ 
+                                                             
+                 Copyright 2013 Siemens Product Lifecycle    
+                        Management Software Inc.             
+                         All Rights Reserved.                
+                                                             
+               This software and related documentation are   
+                 proprietary to Siemens Product Lifecycle    
+                        Management Software Inc.             
+                                                             
+              Siemens and the Siemens logo are registered    
+             trademarks of Siemens AG. NX is a trademark or  
+                registered trademark of Siemens Product      
+               Lifecycle Management Software Inc. or its     
+             subsidiaries in the United States and in other  
+             countries.  NASTRAN is a registered trademark   
+                 of the National Aeronautics and Space       
+                 Administration.  All other trademarks,      
+              registered trademarks or service marks belong  
+                      to their respective holders.           
+                                                             
+           LIMITATIONS TO U.S. GOVERNMENT RIGHTS. UNPUBLISHED
+           - RIGHTS RESERVED UNDER THE COPYRIGHT LAWS OF THE 
+            UNITED STATES. This computer software and related
+               computer software documentation have been     
+            developed exclusively at private expense and are 
+           provided subject to the following rights:  If this
+               computer software and computer  software      
+            documentation qualify as "commercial items" (as  
+             that term is defined in FAR 2.101), their use,  
+            duplication or disclosure by the U.S. Government 
+           is subject to the protections and restrictions as 
+            set forth in the Siemens commercial license for  
+            software and/or documentation, as prescribed in  
+           FAR 12.212 and FAR 27.405(b)(2)(i) (for civilian  
+             agencies) and in DFARS 227.7202-1(a) and DFARS  
+           227.7202-3(a) (for the Department of Defense), or 
+           any successor or similar regulation, as applicable
+           or as amended from time to time.  If this computer
+           software and computer documentation do not qualify
+            as "commercial items", then they are "restricted 
+           computer software" and are provided with "restric-
+            tive rights", and their use, duplication or dis- 
+            closure by the U.S. Government is subject to the 
+            protections and restrictions as set forth in FAR 
+           27.404(b) and FAR 52-227-14 (for civilian agencies
+           ), and DFARS 227.7203-5(c) and DFARS 252.227-7014 
+           (for the Department of Defense), or any successor 
+           or similar regulation, as applicable or as amended
+              from time to time.  Siemens PLM Software Inc.  
+            5800 Granite Parkway, Suite 600, Plano, TX 75024 
+
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *       N X   N a s t r a n       * *
+                * *                                 * *
+                * *         VERSION -   9.1         * *
+                * *                                 * *
+                * *          MAY  1, 2014           * *
+                * *                                 * *
+                * *                                 * *
+                * *       X86_64 Based System       * *
+                * *                                 * *
+                * *MODEL x86_64 Intel/2400.066895MH * *
+                * *                                 * *
+                * * Linux 2.6.32-504.3.3.el6.x86_64 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+1                                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=8193 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[3])                    
+     NASTRAN DIAGA=160 DIAGB=0 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[6])                
+     NASTRAN SYSTEM(551)=1 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[8])                    
+     NASTRAN BUFFSIZE=65537 $(/HOME/LOADS/TWIDRICK/.NAST9RC[4])                      
+     INIT MASTER(S)  $ DELETE .MASTER AND .DBALL FILES ON EXIT                       
+     ASSIGN OUTPUT4='outboard.op4' UNIT=101,DELETE                                   
+1                                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     SOL 103                                                                                 
+     CEND                                                                                    
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1                                                                                              
+                  2      TITLE = OUTBOARD                                                                        
+                  3      ECHO = SORT                                                                             
+                  4                                                                                              
+                  5      WEIGHTCHECK(SET=ALL) = YES                                                              
+                  6      GROUNDCHECK(SET=ALL,DATAREC=YES) = YES                                                  
+                  7                                                                                              
+                  8      METHOD=1                                                                                
+                  9      MPC=602                                                                                 
+                 10                                                                                              
+                 11      SET 1 = 3,45,60,1995002                                                                 
+                 12      DISPLACEMENT(PLOT) = 1                                                                  
+                 13                                                                                              
+                 14      SET 2 = 1,2,7                                                                           
+                 15      FORCE(PLOT) = 2                                                                         
+                 16                                                                                              
+                 17      EXTSEOUT(ASMBULK,EXTBULK,EXTID=101,MATOP4=101)                                          
+                 18                                                                                              
+                 19      BEGIN BULK                                                                              
+ *** USER WARNING MESSAGE 324 (XSORSO)
+     BLANK ENTRIES ENCOUNTERED WILL BE IGNORED.
+0                             INPUT BULK DATA ENTRY COUNT =         110
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        BSET1   123456  3       11      19      27                                      
+                    2-        CBAR    1       100     1       2       10                                      
+                    3-        CBAR    2       100     2       3       10                                      
+                    4-        CBAR    7       100     9       10      2                                       
+                    5-        CBAR    8       100     10      11      2                                       
+                    6-        CBAR    13      100     17      18      26                                      
+                    7-        CBAR    14      100     18      19      26                                      
+                    8-        CBAR    19      100     25      26      18                                      
+                    9-        CBAR    20      100     26      27      18                                      
+                   10-        CBAR    25      100     1       9       150.    150.    300.                    
+                   11-        CBAR    26      100     2       10      150.    150.    300.                    
+                   12-        CBAR    27      100     3       11      150.    150.    300.                    
+                   13-        CBAR    33      100     17      25      150.    150.    0.                      
+                   14-        CBAR    34      100     18      26      150.    150.    0.                      
+                   15-        CBAR    35      100     19      27      150.    150.    0.                      
+                   16-        CBAR    41      100     1       25      150.    0.      150.                    
+                   17-        CBAR    42      100     2       26      150.    0.      150.                    
+                   18-        CBAR    43      100     3       27      150.    0.      150.                    
+                   19-        CBAR    49      100     9       17      150.    300.    150.                    
+                   20-        CBAR    50      100     10      18      150.    300.    150.                    
+                   21-        CBAR    51      100     11      19      150.    300.    150.                    
+                   22-        CBAR    57      100     9       25      17                                      
+                   23-        CBAR    58      100     2       18      26                                      
+                   24-        CBAR    59      100     11      27      19                                      
+                   25-        CBAR    65      100     1       10      9                                       
+                   26-        CBAR    66      100     3       10      11                                      
+                   27-        CBAR    71      100     9       18      17                                      
+                   28-        CBAR    72      100     11      18      19                                      
+                   29-        CBAR    77      100     17      26      18                                      
+                   30-        CBAR    78      100     19      26      18                                      
+                   31-        CBAR    83      100     2       25      26                                      
+                   32-        CBAR    84      100     2       27      26                                      
+                   33-        CBAR    98      200     36      37      41                                      
+                   34-        CBAR    99      200     37      38      41                                      
+                   35-        CBAR    100     200     38      39      41                                      
+                   36-        CBAR    101     200     39      40      41                                      
+                   37-        CBAR    102     201     40      41      39                                      
+                   38-        CBAR    103     201     40      42      39                                      
+                   39-        CBAR    104     200     35      43      48                                      
+                   40-        CBAR    105     200     43      44      48                                      
+                   41-        CBAR    106     200     44      45      48                                      
+                   42-        CBAR    107     200     45      46      48                                      
+                   43-        CBAR    108     201     46      47      45                                      
+                   44-        CBAR    109     201     46      48      45                                      
+                   45-        CBAR    110     102     17      36      150.    0.      150.                    
+                   46-        CBAR    111     102     18      36      150.    0.      150.                    
+                   47-        CBAR    112     102     10      36      150.    0.      150.                    
+                   48-        CBAR    113     102     9       36      150.    0.      150.                    
+                   49-        CBAR    114     102     25      35      150.    0.      150.                    
+                   50-        CBAR    115     102     26      35      150.    0.      150.                    
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                   51-        CBAR    116     102     2       35      150.    0.      150.                    
+                   52-        CBAR    117     102     1       35      150.    0.      150.                    
+                   53-        CORD2R  10      0       0.0     0.0     0.0     1.0     0.0     0.0      0000001
+                   54-        +00000010.0     1.0     0.0                                              0000002
+                   55-        EIGRL   1               50.0                                                    
+                   56-        GRID    1       0       0.      0.      300.    0                               
+                   57-        GRID    2       0       300.    0.      300.    0                               
+                   58-        GRID    3       0       600.    0.      300.    0                               
+                   59-        GRID    9       0       0.      300.    300.    0                               
+                   60-        GRID    10      0       300.    300.    300.    0                               
+                   61-        GRID    11      0       600.    300.    300.    10                              
+                   62-        GRID    17      0       0.      300.    0.      0                               
+                   63-        GRID    18      0       300.    300.    0.      0                               
+                   64-        GRID    19      0       600.    300.    0.      0                               
+                   65-        GRID    25      0       0.      0.      0.      0                               
+                   66-        GRID    26      0       300.    0.      0.      0                               
+                   67-        GRID    27      0       600.    0.      0.      0                               
+                   68-        GRID    35      0       150.    -30.    150.    0                               
+                   69-        GRID    36      0       150.    330.    150.    0                               
+                   70-        GRID    37      0       150.    630.    150.    0                               
+                   71-        GRID    38      0       150.    930.    150.    0                               
+                   72-        GRID    39      0       150.    1230.   150.    0                               
+                   73-        GRID    40      0       150.    1530.   150.    0                               
+                   74-        GRID    41      0       -150.   1530.   150.    0                               
+                   75-        GRID    42      0       450.    1530.   150.    0                               
+                   76-        GRID    43      0       150.    -330.   150.    0                               
+                   77-        GRID    44      0       150.    -630.   150.    0                               
+                   78-        GRID    45      0       150.    -930.   150.    0                               
+                   79-        GRID    46      0       150.    -1230.  150.    0                               
+                   80-        GRID    47      0       -150.   -1230.  150.    0                               
+                   81-        GRID    48      0       450.    -1230.  150.    0                               
+                   82-        GRID    60              450.    -930.   150.    10                              
+                   83-        MAT1    300     6.894+7 2.62+7          2.74-6                                  
+                   84-        MAT1    301     6.894+7 2.62+7          2.74-6                                  
+                   85-        MAT1    302     6.894+7 2.62+7          2.74-6                                  
+                   86-        MAT1    400     6.894+7 2.62+7          2.74-6                                  
+                   87-        MAT1    401     6.894+7 2.62+7          2.74-6                                  
+                   88-        MPC     602     60      4       1.0     1995003 0       1.0                     
+                   89-        PARAM   AUTOSPC YES                                                             
+                   90-        PARAM   COUPMASS1                                                               
+                   91-        PBAR    100     300     12.566  12.566  12.566  25.133                          
+                   92-        PBAR    101     301     201.06  3217.0  3217.0  6434.0                          
+                   93-        PBAR    102     302     201.06  3217.0  3217.0  6434.0                          
+                   94-        PBAR    200     400     28.274  63.617  63.617  127.23                          
+                   95-        PBAR    201     401     28.274  63.617  63.617  127.23                          
+                   96-        QSET1           1995001 THRU    1995022                                         
+                   97-        RBE2    600     45      1       60                                              
+                   98-        RBE3    601             60      26      1.0     123456  48      11              
+                   99-        SPOINT  1995001 THRU    1995022                                                 
+                              ENDDATA 
+0                       TOTAL COUNT=       100
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+0
+0
+0
+ 
+
+
+                                        M O D E L   S U M M A R Y
+
+                                   NUMBER OF GRID     POINTS   =       27
+                                   NUMBER OF SPOINT   ENTRIES  =        1
+ 
+ 
+                                   NUMBER OF CBAR     ELEMENTS =       51
+ 
+                                   NUMBER OF RBE2     ELEMENTS =        1
+                                   NUMBER OF RBE3     ELEMENTS =        1
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KGG      (G-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.631094E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               1.672490E-09          PASS
+             2               4.919542E-09          PASS
+             3               5.639464E-09          PASS
+             4               8.265102E-05          PASS
+             5               9.235470E-04          PASS
+             6               5.307175E-04          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. CELASI ELEMENTS CONNECTING TO ONLY ONE GRID POINT;
+       2. CELASI ELEMENTS CONNECTING TO NON-COINCIDENT POINTS;
+       3. CELASI ELEMENTS CONNECTING TO NON-COLINEAR DOF;
+       4. IMPROPERLY DEFINED DMIG MATRICES;
+ 
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KNN      (N-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.631094E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               1.672490E-09          PASS
+             2               4.919542E-09          PASS
+             3               5.639464E-09          PASS
+             4               8.265102E-05          PASS
+             5               9.235470E-04          PASS
+             6               5.307175E-04          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. MULTIPOINT CONSTRAINT EQUATIONS WHICH DO NOT SATISFY RIGID-BODY MOTION;
+       2. RBE3 ELEMENTS FOR WHICH THE INDEPENDENT DEGREE-OF-FREEDOM CANNOT DESCRIBE
+          ALL POSSIBLE RIGID-BODY MOTIONS.
+ 
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+0                                         G R I D   P O I N T   S I N G U L A R I T Y   T A B L E
+0                             POINT    TYPE   FAILED      STIFFNESS       OLD USET           NEW USET
+                               ID            DIRECTION      RATIO     EXCLUSIVE  UNION   EXCLUSIVE  UNION
+                               60        G      3         0.00E+00          O        O         SB       S    *
+                               60        G      5         0.00E+00          O        O         SB       S    *
+ *** USER INFORMATION MESSAGE - SINGULARITIES FOUND USING EIGENVALUE METHOD
+ ***       2 SINGULARITIES FOUND         2 SINGULARITIES ELIMINATED
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    11
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KNN+AUTO (N+AUTOSPC-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.631094E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               1.672490E-09          PASS
+             2               4.919542E-09          PASS
+             3               5.639464E-09          PASS
+             4               8.265102E-05          PASS
+             5               9.235470E-04          PASS
+             6               5.307175E-04          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. MPC EQUATIONS WHICH DO NOT SATISFY RIGID-BODY MOTION;
+       2. RBE3 ELEMENTS FOR WHICH THE INDEPENDENT DOF CANNOT DESCRIBE ALL POSSIBLE
+          RIGID-BODY MOTIONS;
+       3. PARAM,AUTOSPC HAS OVER-CONSTRAINED THE MODEL.
+ 
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    12
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KFF      (F-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.631094E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               1.672490E-09          PASS
+             2               4.919542E-09          PASS
+             3               5.639464E-09          PASS
+             4               8.265102E-05          PASS
+             5               9.235470E-04          PASS
+             6               5.307175E-04          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. CONSTRAINTS WHICH PREVENT RIGID-BODY MOTION.
+ 
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    13
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KAA1     (A-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   3.830730E-03
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               2.910383E-09          PASS
+             2               2.913652E-09          PASS
+             3               4.542017E-09          PASS
+             4               1.640086E-04          PASS
+             5               1.270002E-03          PASS
+             6               3.347099E-03          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+     IF THE MODEL HAS PASSED THE PREVIOUS CHECKS FOR THE G-SET AND N-SET,
+     THEN:
+       1. THE MODEL IS NOT INTENDED TO BE FREE-FREE WHICH INDICATES THAT THE MODEL IS
+          PROPERLY CONSTRAINED TO GROUND;
+       2. THE REFERENCE GRID POINT (GRID=GID ON THE GROUNDCHECK COMMAND) IS LOCATED
+          TOO FAR FROM THE MODEL'S CENTER OF GRAVITY. IT IS RECOMMENDED THAT THE
+          REFERENCE GRID POINT BE LOCATED AS CLOSE AS POSSIBLE TO THE MODEL'S CENTER
+          OF GRAVITY OF THE MODEL (SEE THE GRID POINT WEIGHT GENERATOR OUTPUT);
+       3. PARAM,AUTOSPC,YES CONSTRAINS NEAR-SINGULAR DEGREES-OF-FREEDOM. WHEN A
+          FINITE ELEMENT MODEL WITH AUTOSPC FAILS THE A-SET CHECK, IT IS NOT EVIDENT
+          THAT GROUNDING HAS OCCURRED. THE USE OF PARAM,SNORM WILL NOT ELIMINATE THE
+          SPURIOUS FAILURE.
+ 
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    14
+                                                                                                                                    
+0                                                                                                                                   
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = G       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.590384E+00  1.301043E-18  7.589415E-18  8.782038E-16  2.385576E+02 -2.385576E+02 *
+                      *  1.301043E-18  1.590384E+00 -3.035766E-18 -2.385576E+02  1.105886E-15  2.936481E+02 *
+                      *  7.806256E-18 -3.035766E-18  1.590384E+00  2.385576E+02 -2.936481E+02 -2.049142E-15 *
+                      *  1.361324E-15 -2.385576E+02  2.385576E+02  4.285000E+05 -4.404722E+04 -4.404722E+04 *
+                      *  2.385576E+02  1.082467E-15 -2.936481E+02 -4.404722E+04  1.351617E+05 -3.589320E+04 *
+                      * -2.385576E+02  2.936481E+02 -2.402158E-15 -4.404722E+04 -3.589320E+04  4.663309E+05 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            1.590384E+00      5.521961E-16  1.500000E+02  1.500000E+02
+                                  Y            1.590384E+00      1.846398E+02  6.953581E-16  1.500000E+02
+                                  Z            1.590384E+00      1.846398E+02  1.500000E+02 -1.288458E-15
+                                                                I(S)
+                                           *  3.569328E+05 -7.275958E-12 -1.455192E-11 *
+                                           * -7.275958E-12  4.515897E+04  1.095583E+02 *
+                                           * -1.455192E-11  1.095583E+02  3.763282E+05 *
+                                                                I(Q)
+                                           *  3.569328E+05                             *
+                                           *                3.763282E+05               *
+                                           *                              4.515893E+04 *
+                                                                 Q
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  3.308226E-04  9.999999E-01 *
+                                           *  0.000000E+00 -9.999999E-01  3.308226E-04 *
+
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    15
+                                                                                                                                    
+0                                                                                                                                   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    16
+                                                                                                                                    
+0                                                                                                                                   
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = N       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.590384E+00  1.301043E-18  7.589415E-18  8.782038E-16  2.385576E+02 -2.385576E+02 *
+                      *  1.301043E-18  1.590384E+00 -3.035766E-18 -2.385576E+02  1.105886E-15  2.936481E+02 *
+                      *  7.806256E-18 -3.035766E-18  1.590384E+00  2.385576E+02 -2.936481E+02 -2.049142E-15 *
+                      *  1.361324E-15 -2.385576E+02  2.385576E+02  4.285000E+05 -4.404722E+04 -4.404722E+04 *
+                      *  2.385576E+02  1.082467E-15 -2.936481E+02 -4.404722E+04  1.351617E+05 -3.589320E+04 *
+                      * -2.385576E+02  2.936481E+02 -2.402158E-15 -4.404722E+04 -3.589320E+04  4.663309E+05 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    17
+                                                                                                                                    
+0                                                                                                                                   
+ *** USER WARNING MESSAGE 2125 (VEC)
+     MODULE VEC - NZ=0, ONE OR MORE COLUMNS OF OUTPUT MATRIX WILL BE NULL.
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    18
+                                                                                                                                    
+0                                                                                                                                   
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = N+AUTO  
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.590384E+00  1.301043E-18  7.589415E-18  8.782038E-16  2.385576E+02 -2.385576E+02 *
+                      *  1.301043E-18  1.590384E+00 -3.035766E-18 -2.385576E+02  1.105886E-15  2.936481E+02 *
+                      *  7.806256E-18 -3.035766E-18  1.590384E+00  2.385576E+02 -2.936481E+02 -2.049142E-15 *
+                      *  1.361324E-15 -2.385576E+02  2.385576E+02  4.285000E+05 -4.404722E+04 -4.404722E+04 *
+                      *  2.385576E+02  1.082467E-15 -2.936481E+02 -4.404722E+04  1.351617E+05 -3.589320E+04 *
+                      * -2.385576E+02  2.936481E+02 -2.402158E-15 -4.404722E+04 -3.589320E+04  4.663309E+05 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    19
+                                                                                                                                    
+0                                                                                                                                   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    20
+                                                                                                                                    
+0                                                                                                                                   
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = F       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.590384E+00  1.301043E-18  7.589415E-18  8.782038E-16  2.385576E+02 -2.385576E+02 *
+                      *  1.301043E-18  1.590384E+00 -3.035766E-18 -2.385576E+02  1.105886E-15  2.936481E+02 *
+                      *  7.806256E-18 -3.035766E-18  1.590384E+00  2.385576E+02 -2.936481E+02 -2.049142E-15 *
+                      *  1.361324E-15 -2.385576E+02  2.385576E+02  4.285000E+05 -4.404722E+04 -4.404722E+04 *
+                      *  2.385576E+02  1.082467E-15 -2.936481E+02 -4.404722E+04  1.351617E+05 -3.589320E+04 *
+                      * -2.385576E+02  2.936481E+02 -2.402158E-15 -4.404722E+04 -3.589320E+04  4.663309E+05 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    21
+                                                                                                                                    
+0                                                                                                                                   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    22
+                                                                                                                                    
+0                                                                                                                                   
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = A       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.590384E+00  5.074717E-15  1.798908E-14 -2.620543E-13  2.385576E+02 -2.385576E+02 *
+                      *  5.107026E-15  1.590384E+00  8.099858E-15 -2.385576E+02 -1.023182E-12  2.936481E+02 *
+                      *  1.842970E-14  7.692957E-15  1.590384E+00  2.385576E+02 -2.936481E+02 -1.236344E-11 *
+                      * -4.547474E-13 -2.385576E+02  2.385576E+02  4.285000E+05 -4.404722E+04 -4.404722E+04 *
+                      *  2.385576E+02 -9.482415E-13 -2.936481E+02 -4.404722E+04  1.351617E+05 -3.589320E+04 *
+                      * -2.385576E+02  2.936481E+02 -1.205391E-11 -4.404722E+04 -3.589320E+04  4.663309E+05 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    23
+                                                                                                                                    
+0                                                                                                                                   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    24
+                                                                                                                                    
+0                                                                                                                                   
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = V       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.474951E+00  1.301043E-18  7.372575E-18  1.982483E-01  2.212426E+02 -2.212426E+02 *
+                      *  1.301043E-18  1.472421E+00  0.000000E+00 -2.208632E+02 -9.912414E-02  2.281863E+02 *
+                      *  7.372575E-18  0.000000E+00  1.472421E+00  2.208632E+02 -2.281863E+02 -9.912414E-02 *
+                      *  1.982483E-01 -2.208632E+02  2.208632E+02  4.195924E+05 -3.418334E+04 -3.427255E+04 *
+                      *  2.212426E+02 -9.912414E-02 -2.281863E+02 -3.418334E+04  9.422115E+04 -3.318640E+04 *
+                      * -2.212426E+02  2.281863E+02 -9.912414E-02 -3.427255E+04 -3.318640E+04  4.253903E+05 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *      -7 %                                                                           *
+                      *                    -7 %                                                             *
+                      *                                  -7 %                                               *
+                      *                                                -2 %                                 *
+                      *                                                             -30 %                   *
+                      *                                                                            -9 %     *
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    25
+                                                                                                                                    
+0                                                                                                                                   
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+ *** USER INFORMATION MESSAGE 5010 (LNCILD)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE =  9.869604D+04, CYCLES =  5.000000D+01 NUMBER OF EIGENVALUES BELOW THIS VALUE =    16
+
+ TABLE OF SHIFTS:  (LNNRIGL)
+ SHIFT #        SHIFT VALUE         FREQUENCY, CYCLES     # EIGENVALUES BELOW    # NEW EIGENVALUES FOUND
+     1.        9.8696039E+04          5.0000000E+01                16                       16
+
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    26
+                                                                                                                                    
+0                                                                                                                                   
+0
+
+
+                          E I G E N V A L U E  A N A L Y S I S   S U M M A R Y   (READ MODULE) 
+
+
+
+                                     BLOCK SIZE USED ......................    7
+
+                                     NUMBER OF DECOMPOSITIONS .............    1
+
+                                     NUMBER OF ROOTS FOUND ................   16
+
+                                     NUMBER OF SOLVES REQUIRED ............   10
+
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    27
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        1.074802E+02        1.036726E+01        1.650001E+00        1.000000E+00        1.074802E+02
+        2         2        1.075125E+02        1.036882E+01        1.650249E+00        1.000000E+00        1.075125E+02
+        3         3        1.106644E+02        1.051972E+01        1.674265E+00        1.000000E+00        1.106644E+02
+        4         4        1.107203E+02        1.052237E+01        1.674687E+00        1.000000E+00        1.107203E+02
+        5         5        1.948479E+03        4.414158E+01        7.025350E+00        1.000000E+00        1.948479E+03
+        6         6        1.948513E+03        4.414196E+01        7.025411E+00        1.000000E+00        1.948513E+03
+        7         7        4.701400E+03        6.856676E+01        1.091274E+01        1.000000E+00        4.701400E+03
+        8         8        4.702955E+03        6.857809E+01        1.091454E+01        1.000000E+00        4.702955E+03
+        9         9        7.722058E+03        8.787524E+01        1.398578E+01        1.000000E+00        7.722058E+03
+       10        10        7.728621E+03        8.791257E+01        1.399172E+01        1.000000E+00        7.728621E+03
+       11        11        2.494068E+04        1.579262E+02        2.513473E+01        1.000000E+00        2.494068E+04
+       12        12        2.495103E+04        1.579589E+02        2.513995E+01        1.000000E+00        2.495103E+04
+       13        13        7.021386E+04        2.649790E+02        4.217271E+01        1.000000E+00        7.021386E+04
+       14        14        7.028270E+04        2.651089E+02        4.219338E+01        1.000000E+00        7.028270E+04
+       15        15        8.615690E+04        2.935250E+02        4.671595E+01        1.000000E+00        8.615690E+04
+       16        16        8.681761E+04        2.946483E+02        4.689473E+01        1.000000E+00        8.681761E+04
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    28
+                                                                                                                                    
+0                                                                                                                                   
+ ^^^ USER INFORMATION MESSAGE 9037 (RESVEC  )    
+ ^^^ CHECKING RESIDUAL VECTORS FOR LINEAR INDEPENDENCE.  
+ *** USER INFORMATION MESSAGE 5458 (REIG)
+     QL HOUSEHOLDER METHOD IS AUTOMATICALLY SELECTED .
+ ^^^     
+ ^^^ FREQUENCY LIST OF RESIDUAL VECTORS FOLLOWS. 
+ ^^^     
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    29
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        1.888997E+05        4.346260E+02        6.917287E+01        1.000000E+00        1.888997E+05
+        2         2        3.022868E+05        5.498062E+02        8.750436E+01        1.000000E+00        3.022868E+05
+        3         3        4.851215E+05        6.965067E+02        1.108525E+02        1.000000E+00        4.851215E+05
+        4         4        7.653503E+05        8.748430E+02        1.392356E+02        1.000000E+00        7.653503E+05
+        5         5        9.148244E+05        9.564645E+02        1.522261E+02        1.000000E+00        9.148244E+05
+        6         6        8.818442E+06        2.969586E+03        4.726243E+02        1.000000E+00        8.818442E+06
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    30
+                                                                                                                                    
+0                                                                                                                                   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    31
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (AFTER AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        1.074802E+02        1.036726E+01        1.650001E+00        1.000000E+00        1.074802E+02
+        2         2        1.075125E+02        1.036882E+01        1.650249E+00        1.000000E+00        1.075125E+02
+        3         3        1.106644E+02        1.051972E+01        1.674265E+00        1.000000E+00        1.106644E+02
+        4         4        1.107203E+02        1.052237E+01        1.674687E+00        1.000000E+00        1.107203E+02
+        5         5        1.948479E+03        4.414158E+01        7.025350E+00        1.000000E+00        1.948479E+03
+        6         6        1.948513E+03        4.414196E+01        7.025411E+00        1.000000E+00        1.948513E+03
+        7         7        4.701400E+03        6.856676E+01        1.091274E+01        1.000000E+00        4.701400E+03
+        8         8        4.702955E+03        6.857809E+01        1.091454E+01        1.000000E+00        4.702955E+03
+        9         9        7.722059E+03        8.787524E+01        1.398578E+01        1.000000E+00        7.722059E+03
+       10        10        7.728621E+03        8.791257E+01        1.399172E+01        1.000000E+00        7.728621E+03
+       11        11        2.494068E+04        1.579262E+02        2.513473E+01        1.000000E+00        2.494068E+04
+       12        12        2.495103E+04        1.579589E+02        2.513995E+01        1.000000E+00        2.495103E+04
+       13        13        7.021386E+04        2.649790E+02        4.217271E+01        1.000000E+00        7.021386E+04
+       14        14        7.028270E+04        2.651089E+02        4.219338E+01        1.000000E+00        7.028270E+04
+       15        15        8.615691E+04        2.935250E+02        4.671595E+01        1.000000E+00        8.615691E+04
+       16        16        8.681761E+04        2.946483E+02        4.689473E+01        1.000000E+00        8.681761E+04
+       17        17        1.888998E+05        4.346260E+02        6.917287E+01        1.000000E+00        1.888998E+05
+       18        18        3.022868E+05        5.498062E+02        8.750436E+01        1.000000E+00        3.022868E+05
+       19        19        4.851215E+05        6.965067E+02        1.108525E+02        1.000000E+00        4.851215E+05
+       20        20        7.653502E+05        8.748430E+02        1.392356E+02        1.000000E+00        7.653502E+05
+       21        21        9.148244E+05        9.564645E+02        1.522261E+02        1.000000E+00        9.148244E+05
+       22        22        8.818442E+06        2.969586E+03        4.726243E+02        1.000000E+00        8.818442E+06
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    32
+                                                                                                                                    
+0                                                                                                                                   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    33
+                                                                                                                                    
+0                                                                                                                                   
+ *****************************************************************
+ SUMMARY OF ACTIONS RESULTING FROM THE EXTSEOUT CASE CONTROL ENTRY
+ *****************************************************************
+
+ MATRIX DATA ACTION
+ ------------------
+
+ THE FOLLOWING MATRICES HAVE BEEN WRITTEN IN MATRIX FORMAT ON FORTRAN UNIT    101
+ VIA THE OUTPUT4 MODULE --
+
+ STIFFNESS
+ MASS
+
+ BULK DATA ACTION
+ ----------------
+
+ BOUNDARY RELATED BULK DATA HAS BEEN WRITTEN ON FORTRAN UNIT    101
+ VIA THE OUTPUT4 MODULE.
+
+ BOUNDARY RELATED BULK DATA HAS BEEN WRITTEN ON THE PUNCH FILE.
+
+ SEBULK, SECONCT, AND GRID BULK DATA EXTRIES HAVE BEEN WRITTEN
+ ON THE *.ASM PUNCH FILE FOR USE IN A SUBSEQUENT ASSEMBLY RUN.
+
+ TYPE OF REDUCTION
+ -----------------
+
+ COMPONENT MODE REDUCTION
+
+ LIST OF BOUNDARY POINTS CONSIDERED FIXED FOR COMPONENT MODE REDUCTION (B-SET)
+ -----------------------------------------------------------------------------
+
+ POINT ID - COMP.    POINT ID - COMP.    POINT ID - COMP.    POINT ID - COMP.
+
+        3 - 123456         11 - 123456         19 - 123456         27 - 123456
+
+ LIST OF BOUNDARY POINTS CONSIDERED FREE FOR COMPONENT MODE REDUCTION (C-SET)
+ ----------------------------------------------------------------------------
+
+     NONE
+
+ LIST OF GENERALIZED COORDINATE POINTS FOR COMPONENT MODE REDUCTION (Q-SET)
+ --------------------------------------------------------------------------
+
+ POINT ID - COMP.    POINT ID - COMP.    POINT ID - COMP.    POINT ID - COMP.
+
+  1995001 -      0    1995002 -      0    1995003 -      0    1995004 -      0
+  1995005 -      0    1995006 -      0    1995007 -      0    1995008 -      0
+  1995009 -      0    1995010 -      0    1995011 -      0    1995012 -      0
+  1995013 -      0    1995014 -      0    1995015 -      0    1995016 -      0
+  1995017 -      0    1995018 -      0    1995019 -      0    1995020 -      0
+  1995021 -      0    1995022 -      0
+
+ DATA BLOCK KXX     WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      46      46       6       2      48    2826
+ DATA BLOCK MXX     WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      46      46       6       2      92    7817
+ DATA BLOCK BXX1    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK K4XX1   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK PX1     WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK GPXX    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK GDXX    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK RVAX    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK VA      WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1      46       2       2      92   10000
+ DATA BLOCK MUG1    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      46      42       2       2      20    2277
+ DATA BLOCK MUG1O   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     102       1       1       6       2       0       0
+ DATA BLOCK MES1    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK MES1O   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     102       1       1       6       2       0       0
+ DATA BLOCK MEE1    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK MEE1O   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     102       1       1       6       2       0       0
+ DATA BLOCK MGPFM   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK MGPFB   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     102       1       1       6       2       0       0
+ DATA BLOCK MGPFK   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     103       1       1       6       2       0       0
+ DATA BLOCK MGPFO   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     104       1       1       6       2       0       0
+ DATA BLOCK MEF1    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      46      24       2       2      48   10000
+ DATA BLOCK MEF1O   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     102       1       1       6       2       0       0
+ DATA BLOCK MQGM    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK MQGB    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     102       1       1       6       2       0       0
+ DATA BLOCK MQGK    WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     103       1       1       6       2       0       0
+ DATA BLOCK MQG1O   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     104       1       1       6       2       0       0
+ DATA BLOCK MQMGM   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ DATA BLOCK MQMGB   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     102       1       1       6       2       0       0
+ DATA BLOCK MQMGK   WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     103       1       1       6       2       0       0
+ DATA BLOCK MQMG1O  WRITTEN ON FORTRAN UNIT  101 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     104       1       1       6       2       0       0
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     UNABLE TO EXECUTE METIS REORDERING BECAUSE THE MATRIX DENSITY IS TOO HIGH: 100 %.
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+  
+ *** USER INFORMATION MESSAGE 4158 (DFMSA)
+ ---- STATISTICS FOR SPARSE DECOMPOSITION OF DATA BLOCK KLL      FOLLOW
+        NUMBER OF NEGATIVE TERMS ON FACTOR DIAGONAL =      2
+        MAXIMUM RATIO OF MATRIX DIAGONAL TO FACTOR DIAGONAL =  5.5E+14 AT ROW NUMBER         14
+ *** USER WARNING MESSAGE 4698 (DCMPD)
+     STATISTICS FOR DECOMPOSITION OF MATRIX KLL     .
+     THE FOLLOWING DEGREES OF FREEDOM HAVE FACTOR DIAGONAL RATIOS GREATER THAN
+      1.00000E+07 OR HAVE NEGATIVE TERMS ON THE FACTOR DIAGONAL.
+     USER INFORMATION:
+     THIS MESSAGE MAY BE IGNORED IF NO GRID POINT IDS OR HIGH RATIO MESSAGES APPEAR IN THE TABLE ON THE NEXT PAGE.
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    34
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+         GRID POINT ID       DEGREE OF FREEDOM   MATRIX/FACTOR DIAGONAL RATIO        MATRIX DIAGONAL                                
+                                                                                                                                    
+              19                    T1                  -1.29449E+14                   7.98820E+05
+              19                    T2                   5.50245E+14                   3.03442E+06
+              19                    T3                   1.03376E+14                   2.88857E+06
+              19                    R1                  -2.91874E+11                   3.01484E+07
+              19                    R2                   9.18958E+09                   3.01352E+07
+              19                    R3                   4.32388E+09                   3.34140E+07
+ ^^^ USER   WARNING MESSAGE 9136 (SEKRRS)    
+ ^^^ ENCOUNTERED EXCESSIVE PIVOT RATIOS IN MATRIX KLL.   
+ ^^^ USER INFORMATION:  AUTO-SUPORT WILL BE PERFORMED ON 
+ ^^^                    STRUCTURAL DEGREES OF FREEDOM.   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    35
+                                                                                                                                    
+0                                                                                                                                   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    36
+                                                                                                                                    
+0                                                                                                                                   
+1    OUTBOARD                                                               JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    37
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     31
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN PVALID SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ --------------------------------------------------------------------------------------------------------------------------
+     0     0    1    1 '        '    T    T    T    T    T     T      T      T      0     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ PVALID = P-DISTRIBUTION ID OF P-VALUE FOR P-ELEMENTS
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+1                                        * * * END OF JOB * * *

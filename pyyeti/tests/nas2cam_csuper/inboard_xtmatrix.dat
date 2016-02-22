@@ -1,0 +1,47 @@
+assign master = 'inboard_xtmatrix.master', delete $
+assign dball  = 'inboard_xtmatrix.dball', delete $
+init dball,logical=(dball(10000)) $
+$
+$ *** SPACECRAFT MATRICES
+ASSIGN INPUTT4 = 'inboard_mk.op4' UNIT=11 FORM=UNFORMATTED $
+$
+$ EXECUTIVE CONTROL
+$ -----------------
+$
+DIAG 8,47                     $ DIAGNOSTIC OUTPUT
+SOL XTMATRX                    $ CREATE EXTERNAL SE DATA BASE
+COMPILE XTMATRX,NOLIST,NOREF   $ COMPILE USER SOLUTION
+$
+echooff
+INCLUDE '/loads/nx_dmaps/v9/xtmatrx.v9'
+INCLUDE '/loads/nx_dmaps/v9/dbdalter.v9'
+echoon
+$
+CEND
+$
+$ TITLING
+$ -------
+TITLE = SPACECRAFT - 4 ATTACH POINTS
+SUBTITLE = SUPER 102
+$
+ECHO = UNSORT
+$
+BEGIN BULK
+$
+PARAM,CSEID,102
+PARAM,DBDICT,2
+PARAM,USETPRT,0
+PARAM,MTXUNIT,11
+$
+include 'exse102.bulk'
+$
+$  BSET AND/OR QSET D.O.F.
+$  -----------------------
+$
+$1111111222222223333333344444444555555556666666677777777888888889999999900000000
+BSET1,123456,3,11,19,27
+QSET1,123456,9990001
+QSET1,12,9990002
+CSET1,3456,9990002
+$
+ENDDATA

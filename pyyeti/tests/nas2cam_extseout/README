@@ -1,0 +1,6 @@
+Steps to run model with upstream superelements brought in via SECONCT:
+        1. Run inboard.dat, outboard.dat
+        2. Run assemble.dat
+        3. Run yeti mk_nas2cam_mat.y
+
+Note: this was run using NX 9.

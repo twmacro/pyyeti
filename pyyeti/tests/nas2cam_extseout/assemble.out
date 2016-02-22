@@ -1,0 +1,1878 @@
+1
+ 
+ 
+ 
+ 
+                                                             
+                 Copyright 2013 Siemens Product Lifecycle    
+                        Management Software Inc.             
+                         All Rights Reserved.                
+                                                             
+               This software and related documentation are   
+                 proprietary to Siemens Product Lifecycle    
+                        Management Software Inc.             
+                                                             
+              Siemens and the Siemens logo are registered    
+             trademarks of Siemens AG. NX is a trademark or  
+                registered trademark of Siemens Product      
+               Lifecycle Management Software Inc. or its     
+             subsidiaries in the United States and in other  
+             countries.  NASTRAN is a registered trademark   
+                 of the National Aeronautics and Space       
+                 Administration.  All other trademarks,      
+              registered trademarks or service marks belong  
+                      to their respective holders.           
+                                                             
+           LIMITATIONS TO U.S. GOVERNMENT RIGHTS. UNPUBLISHED
+           - RIGHTS RESERVED UNDER THE COPYRIGHT LAWS OF THE 
+            UNITED STATES. This computer software and related
+               computer software documentation have been     
+            developed exclusively at private expense and are 
+           provided subject to the following rights:  If this
+               computer software and computer  software      
+            documentation qualify as "commercial items" (as  
+             that term is defined in FAR 2.101), their use,  
+            duplication or disclosure by the U.S. Government 
+           is subject to the protections and restrictions as 
+            set forth in the Siemens commercial license for  
+            software and/or documentation, as prescribed in  
+           FAR 12.212 and FAR 27.405(b)(2)(i) (for civilian  
+             agencies) and in DFARS 227.7202-1(a) and DFARS  
+           227.7202-3(a) (for the Department of Defense), or 
+           any successor or similar regulation, as applicable
+           or as amended from time to time.  If this computer
+           software and computer documentation do not qualify
+            as "commercial items", then they are "restricted 
+           computer software" and are provided with "restric-
+            tive rights", and their use, duplication or dis- 
+            closure by the U.S. Government is subject to the 
+            protections and restrictions as set forth in FAR 
+           27.404(b) and FAR 52-227-14 (for civilian agencies
+           ), and DFARS 227.7203-5(c) and DFARS 252.227-7014 
+           (for the Department of Defense), or any successor 
+           or similar regulation, as applicable or as amended
+              from time to time.  Siemens PLM Software Inc.  
+            5800 Granite Parkway, Suite 600, Plano, TX 75024 
+
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *       N X   N a s t r a n       * *
+                * *                                 * *
+                * *         VERSION -   9.1         * *
+                * *                                 * *
+                * *          MAY  1, 2014           * *
+                * *                                 * *
+                * *                                 * *
+                * *       X86_64 Based System       * *
+                * *                                 * *
+                * *MODEL x86_64 Intel/2400.066895MH * *
+                * *                                 * *
+                * * Linux 2.6.32-504.3.3.el6.x86_64 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+1                                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=8193 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[3])                    
+     NASTRAN DIAGA=160 DIAGB=0 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[6])                
+     NASTRAN SYSTEM(551)=1 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[8])                    
+     NASTRAN BUFFSIZE=65537 $(/HOME/LOADS/TWIDRICK/.NAST9RC[4])                      
+     NASTRAN SYSTEM(402) = 0  $ AUTOMATICALLY DELETE DUPLICATE CARDS                 
+     NASTRAN NLINES = 10000                                                          
+     ASSIGN INPUTT4='outboard.op4',UNIT=101                                          
+     ASSIGN INPUTT4='inboard.op4',UNIT=102                                           
+     INIT MASTER(S)  $ DELETE .MASTER AND .DBALL FILES ON EXIT                       
+     $ NAS2CAM OP2/OP4 FILES:                                                        
+     ASSIGN OUTPUT2 = 'nas2cam.op2', STATUS=NEW,                                     
+                      UNIT=29,DELETE $                                               
+     ASSIGN OUTPUT4 = 'nas2cam.op4', STATUS=NEW,                                     
+                      UNIT=30,FORM=UNFORMATTED,DELETE $                              
+1                                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     SOL SEMFREQ                                                                             
+     DIAG 44                                                                                 
+     ECHOOFF                                                                                 
+     (SEE NASTRAN SOURCE PROGRAM COMPILATION FOR LISTING OF DMAP SEQUENCE)
+     END $                                                                                   
+     (SEE NASTRAN SOURCE PROGRAM COMPILATION FOR LISTING OF DMAP SEQUENCE)
+     END $                                                                                   
+     CEND                                                                                    
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1                                                                                              
+                  2      TITLE = SYSTEM MODES                                                                    
+                  3      ECHO = SORT                                                                             
+                  4                                                                                              
+                  5      METHOD = 1                                                                              
+                  6      FREQ = 1                                                                                
+                  7      MPC = 701                                                                               
+                  8      DISPLACEMENT(PLOT) = ALL                                                                
+                  9      WEIGHTCHECK(SET=ALL) = YES                                                              
+                 10      GROUNDCHECK(SET=ALL,DATAREC=YES) = YES                                                  
+                 11                                                                                              
+                 12      SUBCASE 1                                                                               
+                 13              LABEL = MODES RUN WITH BHH MATRIX                                               
+                 14              ANALYSIS = MODES                                                                
+                 15              SUPER=0                                                                         
+                 16              FORCE(PLOT) = ALL                                                               
+                 17      SUBCASE 2                                                                               
+                 18              SUPER=101                                                                       
+                 19      SUBCASE 3                                                                               
+                 20              SUPER=102                                                                       
+                 21      SUBCASE 10                                                                              
+                 22              LABEL = DUMMY CASE                                                              
+                 23              DLOAD = 1                                                                       
+                 24      BEGIN BULK                                                                              
+ *** USER WARNING MESSAGE 324 (XSORSO)
+     BLANK ENTRIES ENCOUNTERED WILL BE IGNORED.
+0                             INPUT BULK DATA ENTRY COUNT =         144
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        CORD2R *10              0               0.000000000E+00 0.000000000E+00  0000003
+                    2-        *00000030.000000000E+00 0.100000000E+01 0.000000000E+00 0.000000000E+00  0000004
+                    3-        *00000040.000000000E+00 0.100000000E+01 0.000000000E+00                  0000005
+                    4-        CORD2R *10              0               0.000000000E+00 0.000000000E+00  000000M
+                    5-        *000000M0.000000000E+00 0.100000000E+01 0.000000000E+00 0.000000000E+00  000000N
+                    6-        *000000N0.000000000E+00 0.100000000E+01 0.000000000E+00                  000000O
+                    7-        DAREA   1       11      1       1.0                                             
+                    8-        DTI     TGM     1       0                                                       
+                    9-        DTI     TKAA    1       101     102     0                                       
+                   10-        DTI     TMAA    1       101     102     0                                       
+                   11-        DTI     TPHA    1       0                                                       
+                   12-        DTI     TPHG    1       0                                                       
+                   13-        EIGR    1       AHOU                            100000                          
+                   14-        FREQ    1       2.                                                              
+                   15-        GRID   *3               0               0.600000000E+03 0.000000000E+00  000000T
+                   16-        *000000T0.300000000E+03 0               0               0                000000U
+                   17-        GRID   *3               0               0.600000000E+03 0.000000000E+00  000000E
+                   18-        *000000E0.300000000E+03 0               0               0                000000F
+                   19-        GRID   *11              0               0.600000000E+03 0.300000000E+03  000000G
+                   20-        *000000G0.300000000E+03 10              0               0                000000H
+                   21-        GRID   *11              0               0.600000000E+03 0.300000000E+03  000000V
+                   22-        *000000V0.300000000E+03 10              0               0                000000W
+                   23-        GRID   *19              0               0.600000000E+03 0.300000000E+03  000000X
+                   24-        *000000X0.000000000E+00 0               0               0                000000Y
+                   25-        GRID   *19              0               0.600000000E+03 0.300000000E+03  000000I
+                   26-        *000000I0.000000000E+00 0               0               0                000000J
+                   27-        GRID   *27              0               0.600000000E+03 0.000000000E+00  000000K
+                   28-        *000000K0.000000000E+00 0               0               0                000000L
+                   29-        GRID   *27              0               0.600000000E+03 0.000000000E+00  000000Z
+                   30-        *000000Z0.000000000E+00 0               0               0                0000010
+                   31-        GRID    70              340.    -630.   110.    10                              
+                   32-        MPC     702     70      4       1.0     9990002 0       1.0                     
+                   33-        PARAM   AUTOSPC YES                                                             
+                   34-        PARAM   DBDICT  0                                                               
+                   35-        PARAM   GRAVDIR 1                                                               
+                   36-        PARAM   GRAVFELD-386.1                                                          
+                   37-        PARAM   PBHH    1                                                               
+                   38-        PARAM   POST    -1                                                              
+                   39-        PARAM   PRFMODES1                                                               
+                   40-        PARAM   SESDAMP YES                                                             
+                   41-        RBE2    700     3       1       70                                              
+                   42-        RBE3    701             70      26      1.0     123456  11      27              
+                   43-        RLOAD2  1       1                       1                                       
+                   44-        SEBULK  101     EXTOP4          MANUAL                  101                     
+                   45-        SEBULK  102     EXTOP4          MANUAL                  102                     
+                   46-        SECONCT 101     0               NO                                       0000006
+                   47-        +00000063       3       11      11      19      19      27      27       0000007
+                   48-        +00000071995001 1995001 1995002 1995002 1995003 1995003 1995004 1995004  0000008
+                   49-        +00000081995005 1995005 1995006 1995006 1995007 1995007 1995008 1995008  0000009
+                   50-        +00000091995009 1995009 1995010 1995010 1995011 1995011 1995012 1995012  000000A
+                   51-        +000000A1995013 1995013 1995014 1995014 1995015 1995015 1995016 1995016  000000B
+                   52-        +000000B1995017 1995017 1995018 1995018 1995019 1995019 1995020 1995020  000000C
+                   53-        +000000C1995021 1995021 1995022 1995022                                  000000D
+                   54-        SECONCT 102     0               NO                                       000000P
+                   55-        +000000P3       3       11      11      19      19      27      27       000000Q
+                   56-        +000000Q2995001 2995001 2995002 2995002 2995003 2995003 2995004 2995004  000000R
+                   57-        +000000R2995005 2995005 2995006 2995006 2995007 2995007 2995008 2995008  000000S
+                   58-        SPOINT  1995001 1995002 1995003 1995004 1995005 1995006 1995007 1995008         
+                   59-        SPOINT  1995009 1995010 1995011 1995012 1995013 1995014 1995015 1995016         
+                   60-        SPOINT  1995017 1995018 1995019 1995020 1995021 1995022                         
+                   61-        SPOINT  2995001 2995002 2995003 2995004 2995005 2995006 2995007 2995008         
+                   62-        TABLED1 1                                                                0000001
+                   63-        +00000010.01    1.0     150.0   1.0     ENDT                             0000002
+                              ENDDATA 
+0                       TOTAL COUNT=        64
+0                             INPUT BULK DATA ENTRY COUNT =          97
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O          SUPER    =       101           
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        ASET    3       123456  11      123456  19      123456  27      123456          
+                    2-        ASET    1995001 0       1995002 0       1995003 0       1995004 0               
+                    3-        ASET    1995005 0       1995006 0       1995007 0       1995008 0               
+                    4-        ASET    1995009 0       1995010 0       1995011 0       1995012 0               
+                    5-        ASET    1995013 0       1995014 0       1995015 0       1995016 0               
+                    6-        ASET    1995017 0       1995018 0       1995019 0       1995020 0               
+                    7-        ASET    1995021 0       1995022 0                                               
+                    8-        CORD2R *10              0               0.000000000E+00 0.000000000E+00  0000001
+                    9-        *00000010.000000000E+00 0.100000000E+01 0.000000000E+00 0.000000000E+00  0000002
+                   10-        *00000020.000000000E+00 0.100000000E+01 0.000000000E+00                  0000003
+                   11-        DTI     TEF1    0       24      46      32767   0       1004    0        0000013
+                   12-        +0000013TEF             4                       REAL    1       ENDREC   0000014
+                   13-        DTI     TEF1    1       1       0.00000 2       0.00000 3       0.00000  0000015
+                   14-        +00000154       0.00000 5       0.00000 6       0.00000 7       0.00000  0000016
+                   15-        +00000168       0.00000 9       0.00000 10      0.00000 11      0.00000  0000017
+                   16-        +000001712      0.00000 13      0.00000 14      0.00000 15      0.00000  0000018
+                   17-        +000001816      0.00000 17      0.00000 18      0.00000 19      0.00000  0000019
+                   18-        +000001920      0.00000 21      0.00000 22      0.00000 23      0.00000  000001A
+                   19-        +000001A24      0.00000 25      0.00000 26      0.00000 27      0.00000  000001B
+                   20-        +000001B28      0.00000 29      0.00000 30      0.00000 31      0.00000  000001C
+                   21-        +000001C32      0.00000 33      0.00000 34      0.00000 35      0.00000  000001D
+                   22-        +000001D36      0.00000 37      0.00000 38      0.00000 39      0.00000  000001E
+                   23-        +000001E40      0.00000 41      0.00000 42      0.00000 43      0.00000  000001F
+                   24-        +000001F44      0.00000 45      0.00000 46      0.00000 ENDREC           000001G
+                   25-        DTI     TEF1    2                                                        000001H
+                   26-        +000001HTYPE    ID      COMP    ROW     TYPE    ID      COMP    ROW      000001I
+                   27-        +000001I34      1       8       1       34      2       8       9        000001J
+                   28-        +000001J34      7       8       17      ENDREC                           000001K
+                   29-        DTI     TEF1    3                                                        000001L
+                   30-        +000001L34      1                                                        000001M
+                   31-        +000001M34      2                                                        000001N
+                   32-        +000001N34      7                                                        000001O
+                   33-        +000001OENDREC                                                           000001P
+                   34-        DTI     TUG1    0       42      46      32767   0       7       0        000000J
+                   35-        +000000JPHIP            7                       REAL    1       ENDREC   000000K
+                   36-        DTI     TUG1    1       1       0.00000 2       0.00000 3       0.00000  000000L
+                   37-        +000000L4       0.00000 5       0.00000 6       0.00000 7       0.00000  000000M
+                   38-        +000000M8       0.00000 9       0.00000 10      0.00000 11      0.00000  000000N
+                   39-        +000000N12      0.00000 13      0.00000 14      0.00000 15      0.00000  000000O
+                   40-        +000000O16      0.00000 17      0.00000 18      0.00000 19      0.00000  000000P
+                   41-        +000000P20      0.00000 21      0.00000 22      0.00000 23      0.00000  000000Q
+                   42-        +000000Q24      0.00000 25      0.00000 26      0.00000 27      0.00000  000000R
+                   43-        +000000R28      0.00000 29      0.00000 30      0.00000 31      0.00000  000000S
+                   44-        +000000S32      0.00000 33      0.00000 34      0.00000 35      0.00000  000000T
+                   45-        +000000T36      0.00000 37      0.00000 38      0.00000 39      0.00000  000000U
+                   46-        +000000U40      0.00000 41      0.00000 42      0.00000 43      0.00000  000000V
+                   47-        +000000V44      0.00000 45      0.00000 46      0.00000 ENDREC           000000W
+                   48-        DTI     TUG1    2                                                        000000X
+                   49-        +000000XTYPE    ID      COMP    ROW     TYPE    ID      COMP    ROW      000000Y
+                   50-        +000000Y1       3       6       1       1       11      6       7        000000Z
+                   51-        +000000Z1       19      6       13      1       27      6       19       0000010
+                   52-        +00000101       45      6       25      1       60      6       31       0000011
+                   53-        +00000112       1995002 6       37      ENDREC                           0000012
+                   54-        EXTRN   3       123456  11      123456  19      123456  27      123456   0000004
+                   55-        +00000041995001 0       1995002 0       1995003 0       1995004 0        0000005
+                   56-        +00000051995005 0       1995006 0       1995007 0       1995008 0        0000006
+                   57-        +00000061995009 0       1995010 0       1995011 0       1995012 0        0000007
+                   58-        +00000071995013 0       1995014 0       1995015 0       1995016 0        0000008
+                   59-        +00000081995017 0       1995018 0       1995019 0       1995020 0        0000009
+                   60-        +00000091995021 0       1995022 0                                        000000A
+                   61-        GRID   *3               0               0.600000000E+03 0.000000000E+00  000000B
+                   62-        *000000B0.300000000E+03 0               0               0                000000C
+                   63-        GRID   *11              0               0.600000000E+03 0.300000000E+03  000000D
+                   64-        *000000D0.300000000E+03 10              0               0                000000E
+                   65-        GRID   *19              0               0.600000000E+03 0.300000000E+03  000000F
+                   66-        *000000F0.000000000E+00 0               0               0                000000G
+                   67-        GRID   *27              0               0.600000000E+03 0.000000000E+00  000000H
+                   68-        *000000H0.000000000E+00 0               0               0                000000I
+                   69-        SPOINT  1995001 1995002 1995003 1995004 1995005 1995006 1995007 1995008         
+                   70-        SPOINT  1995009 1995010 1995011 1995012 1995013 1995014 1995015 1995016         
+                   71-        SPOINT  1995017 1995018 1995019 1995020 1995021 1995022                         
+                              ENDDATA 
+0                       TOTAL COUNT=        72
+ *** USER WARNING MESSAGE 324 (XSORSO)
+     BLANK ENTRIES ENCOUNTERED WILL BE IGNORED.
+0                             INPUT BULK DATA ENTRY COUNT =         128
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O          SUPER    =       102           
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        ASET    3       123456  11      123456  19      123456  27      123456          
+                    2-        ASET    2995001 0       2995002 0       2995003 0       2995004 0               
+                    3-        ASET    2995005 0       2995006 0       2995007 0       2995008 0               
+                    4-        CORD2R *10              0               0.000000000E+00 0.000000000E+00  0000001
+                    5-        *00000010.000000000E+00 0.100000000E+01 0.000000000E+00 0.000000000E+00  0000002
+                    6-        *00000020.000000000E+00 0.100000000E+01 0.000000000E+00                  0000003
+                    7-        DTI     SELOAD  0       1130    0       0       0       0       0        000000F
+                    8-        +000000FSELO    AD      2                       REAL    1       ENDREC   000000G
+                    9-        DTI     SELOAD  1101    1101    1       SE_LOAD__1101   ENDREC                  
+                   10-        DTI     SELOAD  1102    1102    2       SE_LOAD__1102   ENDREC                  
+                   11-        DTI     SELOAD  1103    1103    3       SE_LOAD__1103   ENDREC                  
+                   12-        DTI     SELOAD  1104    1104    4       SE_LOAD__1104   ENDREC                  
+                   13-        DTI     SELOAD  1105    1105    5       SE_LOAD__1105   ENDREC                  
+                   14-        DTI     SELOAD  1106    1106    6       SE_LOAD__1106   ENDREC                  
+                   15-        DTI     SELOAD  1107    1107    7       SE_LOAD__1107   ENDREC                  
+                   16-        DTI     SELOAD  1108    1108    8       SE_LOAD__1108   ENDREC                  
+                   17-        DTI     SELOAD  1109    1109    9       SE_LOAD__1109   ENDREC                  
+                   18-        DTI     SELOAD  1110    1110    10      SE_LOAD__1110   ENDREC                  
+                   19-        DTI     SELOAD  1111    1111    11      SE_LOAD__1111   ENDREC                  
+                   20-        DTI     SELOAD  1112    1112    12      SE_LOAD__1112   ENDREC                  
+                   21-        DTI     SELOAD  1113    1113    13      SE_LOAD__1113   ENDREC                  
+                   22-        DTI     SELOAD  1114    1114    14      SE_LOAD__1114   ENDREC                  
+                   23-        DTI     SELOAD  1115    1115    15      SE_LOAD__1115   ENDREC                  
+                   24-        DTI     SELOAD  1116    1116    16      SE_LOAD__1116   ENDREC                  
+                   25-        DTI     SELOAD  1117    1117    17      SE_LOAD__1117   ENDREC                  
+                   26-        DTI     SELOAD  1118    1118    18      SE_LOAD__1118   ENDREC                  
+                   27-        DTI     SELOAD  1119    1119    19      SE_LOAD__1119   ENDREC                  
+                   28-        DTI     SELOAD  1120    1120    20      SE_LOAD__1120   ENDREC                  
+                   29-        DTI     SELOAD  1121    1121    21      SE_LOAD__1121   ENDREC                  
+                   30-        DTI     SELOAD  1122    1122    22      SE_LOAD__1122   ENDREC                  
+                   31-        DTI     SELOAD  1123    1123    23      SE_LOAD__1123   ENDREC                  
+                   32-        DTI     SELOAD  1124    1124    24      SE_LOAD__1124   ENDREC                  
+                   33-        DTI     SELOAD  1125    1125    25      SE_LOAD__1125   ENDREC                  
+                   34-        DTI     SELOAD  1126    1126    26      SE_LOAD__1126   ENDREC                  
+                   35-        DTI     SELOAD  1127    1127    27      SE_LOAD__1127   ENDREC                  
+                   36-        DTI     SELOAD  1128    1128    28      SE_LOAD__1128   ENDREC                  
+                   37-        DTI     SELOAD  1129    1129    29      SE_LOAD__1129   ENDREC                  
+                   38-        DTI     SELOAD  1130    1130    30      SE_LOAD__1130   ENDREC                  
+                   39-        DTI     TEF1    0       16      32      32767   0       1004    0        000001I
+                   40-        +000001ITEF             4                       REAL    1       ENDREC   000001J
+                   41-        DTI     TEF1    1       1       0.00000 2       0.00000 3       0.00000  000001K
+                   42-        +000001K4       0.00000 5       0.00000 6       0.00000 7       0.00000  000001L
+                   43-        +000001L8       0.00000 9       0.00000 10      0.00000 11      0.00000  000001M
+                   44-        +000001M12      0.00000 13      0.00000 14      0.00000 15      0.00000  000001N
+                   45-        +000001N16      0.00000 17      0.00000 18      0.00000 19      0.00000  000001O
+                   46-        +000001O20      0.00000 21      0.00000 22      0.00000 23      0.00000  000001P
+                   47-        +000001P24      0.00000 25      0.00000 26      0.00000 27      0.00000  000001Q
+                   48-        +000001Q28      0.00000 29      0.00000 30      0.00000 31      0.00000  000001R
+                   49-        +000001R32      0.00000 ENDREC                                           000001S
+                   50-        DTI     TEF1    2                                                        000001T
+                   51-        +000001TTYPE    ID      COMP    ROW     TYPE    ID      COMP    ROW      000001U
+                   52-        +000001U34      10      8       1       34      97      8       9        000001V
+                   53-        +000001VENDREC                                                           000001W
+                   54-        DTI     TEF1    3                                                        000001X
+                   55-        +000001X34      10                                                       000001Y
+                   56-        +000001Y34      97                                                       000001Z
+                   57-        +000001ZENDREC                                                           0000020
+                   58-        DTI     TES1    0       27      32      32767   0       1005    0        000000Y
+                   59-        +000000YTES             5                       REAL    1       ENDREC   000000Z
+                   60-        DTI     TES1    1       1       0.00000 2       0.00000 3       0.00000  0000010
+                   61-        +00000104       0.00000 5       0.00000 6       0.00000 7       0.00000  0000011
+                   62-        +00000118       0.00000 9       0.00000 10      0.00000 11      0.00000  0000012
+                   63-        +000001212      0.00000 13      0.00000 14      0.00000 15      0.00000  0000013
+                   64-        +000001316      0.00000 17      0.00000 18      0.00000 19      0.00000  0000014
+                   65-        +000001420      0.00000 21      0.00000 22      0.00000 23      0.00000  0000015
+                   66-        +000001524      0.00000 25      0.00000 26      0.00000 27      0.00000  0000016
+                   67-        +000001628      0.00000 29      0.00000 30      0.00000 31      0.00000  0000017
+                   68-        +000001732      0.00000 ENDREC                                           0000018
+                   69-        DTI     TES1    2                                                        0000019
+                   70-        +0000019TYPE    ID      COMP    ROW     TYPE    ID      COMP    ROW      000001A
+                   71-        +000001A34      11      9       1       34      23      9       10       000001B
+                   72-        +000001B34      89      9       19      ENDREC                           000001C
+                   73-        DTI     TES1    3                                                        000001D
+                   74-        +000001D34      11                                                       000001E
+                   75-        +000001E34      23                                                       000001F
+                   76-        +000001F34      89                                                       000001G
+                   77-        +000001GENDREC                                                           000001H
+                   78-        DTI     TUG1    0       36      32      32767   0       7       0        000000H
+                   79-        +000000HPHIP            7                       REAL    1       ENDREC   000000I
+                   80-        DTI     TUG1    1       1       0.00000 2       0.00000 3       0.00000  000000J
+                   81-        +000000J4       0.00000 5       0.00000 6       0.00000 7       0.00000  000000K
+                   82-        +000000K8       0.00000 9       0.00000 10      0.00000 11      0.00000  000000L
+                   83-        +000000L12      0.00000 13      0.00000 14      0.00000 15      0.00000  000000M
+                   84-        +000000M16      0.00000 17      0.00000 18      0.00000 19      0.00000  000000N
+                   85-        +000000N20      0.00000 21      0.00000 22      0.00000 23      0.00000  000000O
+                   86-        +000000O24      0.00000 25      0.00000 26      0.00000 27      0.00000  000000P
+                   87-        +000000P28      0.00000 29      0.00000 30      0.00000 31      0.00000  000000Q
+                   88-        +000000Q32      0.00000 ENDREC                                           000000R
+                   89-        DTI     TUG1    2                                                        000000S
+                   90-        +000000STYPE    ID      COMP    ROW     TYPE    ID      COMP    ROW      000000T
+                   91-        +000000T1       3       6       1       1       4       6       7        000000U
+                   92-        +000000U1       11      6       13      1       16      6       19       000000V
+                   93-        +000000V1       19      6       25      1       27      6       31       000000W
+                   94-        +000000WENDREC                                                           000000X
+                   95-        EXTRN   3       123456  11      123456  19      123456  27      123456   0000004
+                   96-        +00000042995001 0       2995002 0       2995003 0       2995004 0        0000005
+                   97-        +00000052995005 0       2995006 0       2995007 0       2995008 0        0000006
+                   98-        GRID   *3               0               0.600000000E+03 0.000000000E+00  0000007
+                   99-        *00000070.300000000E+03 0               0               0                0000008
+                  100-        GRID   *11              0               0.600000000E+03 0.300000000E+03  0000009
+                  101-        *00000090.300000000E+03 10              0               0                000000A
+                  102-        GRID   *19              0               0.600000000E+03 0.300000000E+03  000000B
+                  103-        *000000B0.000000000E+00 0               0               0                000000C
+                  104-        GRID   *27              0               0.600000000E+03 0.000000000E+00  000000D
+                  105-        *000000D0.000000000E+00 0               0               0                000000E
+                  106-        SPOINT  2995001 2995002 2995003 2995004 2995005 2995006 2995007 2995008         
+                              ENDDATA 
+0                       TOTAL COUNT=       107
+
+
+                                        M O D E L   S U M M A R Y
+
+                                   NUMBER OF GRID     POINTS   =        9
+                                   NUMBER OF SPOINT   ENTRIES  =        4
+ 
+ 
+ 
+                                   NUMBER OF RBE2     ELEMENTS =        1
+                                   NUMBER OF RBE3     ELEMENTS =        1
+ *** USER INFORMATION MESSAGE 2012 (GP1GSM)
+     NUMBER OF DUPLICATE GRIDS ENCOUNTERED AND ELIMINATED =          4
+ *** USER INFORMATION MESSAGE 2012 (GP1CEL)
+     NUMBER OF DUPLICATE COORDINATE SYSTEMS ENCOUNTERED AND ELIMINATED =          1
+ *** USER INFORMATION MESSAGE 7553 (GP1D)
+     A TOTAL OF        1 DAREA BULK DATA ENTRIES FOR GRID AND SCALAR POINTS HAVE BEEN CONVERTED TO EQUIVALENT
+     FORCE / MOMENT / SLOAD ENTRIES (AS APPROPRIATE)
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ BULK     MASTER   SCRATCH    -1    -1                          1        0        0        0        0 160128 153131
+ CASECC   MASTER   MASTER                                       4        0      600        0        0 160128 153128
+ CASECCR  MASTER   MASTER                                       4        0      600        0        0 160128 153131
+ DIT      MASTER   SCRATCH                                     32        0        0        0        0 160128 153131
+ DMI      MASTER   SCRATCH                                      0        0        0        0        0 160128 153131
+ DMINDX   MASTER   SCRATCH                                      0        0        0        0        0 160128 153131
+ DTI      MASTER   SCRATCH                                    200        5        0        0        0 160128 153131
+ DTINDX   MASTER   SCRATCH                                     25        5        0        0        0 160128 153131
+ DYNAMIC  MASTER   SCRATCH                                   8200        0        0     4096        0 160128 153131
+ EDOM     MASTER   SCRATCH                                      0        0        0        0        0 160128 153131
+ EDT      MASTER   SCRATCH                                      0        0        0        0        0 160128 153131
+ EPT      MASTER   SCRATCH                                      0        0        0        0        0 160128 153131
+ GEOM1Q   MASTER   SCRATCH                                   4100     2048        8        0        0 160128 153131
+ GEOM2    MASTER   SCRATCH                                      0        0        0    32768        0 160128 153131
+ GEOM3    MASTER   SCRATCH                                      0        0       64        0        0 160128 153131
+ GEOM4    MASTER   SCRATCH                                      0        0        0    32768     2560 160128 153131
+ IBULK    MASTER   SCRATCH   102   102                          1        0        0        0        0 160128 153130
+ IBULK    MASTER   SCRATCH   101   101                          1        0        0        0        0 160128 153130
+ IBULK    MASTER   SCRATCH    -1    -1                          1        0        0        0        0 160128 153128
+ MATPOOL  MASTER   SCRATCH                                      0        0        0        0        0 160128 153131
+ MPT      MASTER   SCRATCH                                      0        0        0        0        0 160128 153131
+ PCDB     MASTER   SCRATCH                                      0        0        0        0        0 160128 153128
+ PCOMPT   MASTER   SCRATCH                                      0        0        0        0        0 160128 153131
+ XYCDB    MASTER   SCRATCH                                      0        0        0        0        0 160128 153128
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS NX9.1    FOR FORTRAN UNIT 12
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =        8 RECORDS.)
+     (TOTAL DATA WRITTEN FOR TAPE LABEL =       17 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK PVT0     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                34                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       34 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       58 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CASECC   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 4                 0               600                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      600 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       34 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     2436 WORDS.)
+
+
+                                        M O D E L   S U M M A R Y
+
+                                   NUMBER OF GRID     POINTS   =        4
+                                   NUMBER OF SPOINT   ENTRIES  =        3
+ 
+ 
+ 
+
+
+                                        M O D E L   S U M M A R Y
+
+                                   NUMBER OF GRID     POINTS   =        4
+                                   NUMBER OF SPOINT   ENTRIES  =        1
+ 
+ 
+ 
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+ 
+0                                             SUPERELEMENT DEFINITION TABLE (SORTED BY SEID)                                         
+0               PRIMARY    PROCESS  DOWNSTREAM
+ SUPERELEMENT SUPERELEMENT  ORDER  SUPERELEMENT            TYPE                                 LABEL
+ ------------ ------------ ------- ------------ -----------------------------  ------------------------------------------------
+         0            0         3          0    RESIDUAL STRUCTURE                                                                   
+       101          101         1          0    EXTERNAL (SEBULK (A-SET))                                                            
+       102          102         2          0    EXTERNAL (SEBULK (A-SET))                                                            
+ 
+0                                             SUPERELEMENT DEFINITION TABLE (SORTED BY PROCESS ORDER)                                
+0               PRIMARY    PROCESS  DOWNSTREAM
+ SUPERELEMENT SUPERELEMENT  ORDER  SUPERELEMENT            TYPE                                 LABEL
+ ------------ ------------ ------- ------------ -----------------------------  ------------------------------------------------
+       101          101         1          0    EXTERNAL (SEBULK (A-SET))                                                            
+       102          102         2          0    EXTERNAL (SEBULK (A-SET))                                                            
+         0            0         3          0    RESIDUAL STRUCTURE                                                                   
+0
+                            TABLE OF DOWNSTREAM SUPERELEMENTS FOR EACH SUPERELEMENT
+0 SUPERELEMENT                    DOWNSTREAM SUPERELEMENTS IN DOWNSTREAM ORDER
+  ------------  --------------------------------------------------------------------------------
+         101           0
+         102           0
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    11
+                                                                                                                                    
+0                                                                                                                                   
+0                                             S U P E R E L E M E N T   T R E E
+0                              ( CONFIGURATION = SINGLE LEVEL   NO. LEVELS =  1     NO. TIPS =   2 )
+0   TIP     LEVEL     LEVEL     LEVEL     LEVEL     LEVEL     LEVEL     LEVEL     LEVEL     LEVEL     LEVEL     LEVEL     LEVEL
+   INDEX     -1-       -2-       -3-       -4-       -5-       -6-       -7-       -8-       -9-      -10-      -11-      -12-
+
+      1       101                                                                                                                    
+
+      2       102                                                                                                                    
+
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    12
+                                                                                                                                    
+0                                                                                                                                   
+0                                              BOUNDARY SEQUENCE ASSIGNMENT TABLE
+0  BOUNDARY
+ SEQUENCE ID --------------------------------- ASSIGNED TO POINT ID (SUPERELEMENT) ---------------------------------
+
+          5B   1995001 (       0)  1995001 (     101)                                                                                
+          6B   1995002 (       0)  1995002 (     101)                                                                                
+          7B   1995003 (       0)  1995003 (     101)                                                                                
+          8B   1995004 (       0)  1995004 (     101)                                                                                
+          9B   1995005 (       0)  1995005 (     101)                                                                                
+         10B   1995006 (       0)  1995006 (     101)                                                                                
+         11B   1995007 (       0)  1995007 (     101)                                                                                
+         12B   1995008 (       0)  1995008 (     101)                                                                                
+         13B   1995009 (       0)  1995009 (     101)                                                                                
+         14B   1995010 (       0)  1995010 (     101)                                                                                
+         15B   1995011 (       0)  1995011 (     101)                                                                                
+         16B   1995012 (       0)  1995012 (     101)                                                                                
+         17B   1995013 (       0)  1995013 (     101)                                                                                
+         18B   1995014 (       0)  1995014 (     101)                                                                                
+         19B   1995015 (       0)  1995015 (     101)                                                                                
+         20B   1995016 (       0)  1995016 (     101)                                                                                
+         21B   1995017 (       0)  1995017 (     101)                                                                                
+         22B   1995018 (       0)  1995018 (     101)                                                                                
+         23B   1995019 (       0)  1995019 (     101)                                                                                
+         24B   1995020 (       0)  1995020 (     101)                                                                                
+         25B   1995021 (       0)  1995021 (     101)                                                                                
+         26B   1995022 (       0)  1995022 (     101)                                                                                
+         27B         3 (       0)        3 (     101)        3 (     102)                                                            
+         28B        11 (       0)       11 (     101)       11 (     102)                                                            
+         29B        19 (       0)       19 (     101)       19 (     102)                                                            
+         30B        27 (       0)       27 (     101)       27 (     102)                                                            
+         31B   2995001 (       0)  2995001 (     102)                                                                                
+         32B   2995002 (       0)  2995002 (     102)                                                                                
+         33B   2995003 (       0)  2995003 (     102)                                                                                
+         34B   2995004 (       0)  2995004 (     102)                                                                                
+         35B   2995005 (       0)  2995005 (     102)                                                                                
+         36B   2995006 (       0)  2995006 (     102)                                                                                
+         37B   2995007 (       0)  2995007 (     102)                                                                                
+         38B   2995008 (       0)  2995008 (     102)                                                                                
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    13
+                                                                                                                                    
+0                                                                                                                                   
+0                      POINT/SUPERELEMENT CONNECTIVITY LIST (SORTED BY POINT ID  - "B" INDICATES BOUNDARY SEQUENCE ID)               
+0                             INTERIOR TO
+   POINT ID            TYPE  SUPERELEMEMT ------------------------------- CONNECTED TO SUPERELEMENT -------------------------------
+
+         5B             S            0         101                                                                                   
+         6B             S            0         101                                                                                   
+         7B             S            0         101                                                                                   
+         8B             S            0         101                                                                                   
+         9B             S            0         101                                                                                   
+        10B             S            0         101                                                                                   
+        11B             S            0         101                                                                                   
+        12B             S            0         101                                                                                   
+        13B             S            0         101                                                                                   
+        14B             S            0         101                                                                                   
+        15B             S            0         101                                                                                   
+        16B             S            0         101                                                                                   
+        17B             S            0         101                                                                                   
+        18B             S            0         101                                                                                   
+        19B             S            0         101                                                                                   
+        20B             S            0         101                                                                                   
+        21B             S            0         101                                                                                   
+        22B             S            0         101                                                                                   
+        23B             S            0         101                                                                                   
+        24B             S            0         101                                                                                   
+        25B             S            0         101                                                                                   
+        26B             S            0         101                                                                                   
+        27B                          0         101      102                                                                          
+        28B                          0         101      102                                                                          
+        29B                          0         101      102                                                                          
+        30B                          0         101      102                                                                          
+        31B             S            0         102                                                                                   
+        32B             S            0         102                                                                                   
+        33B             S            0         102                                                                                   
+        34B             S            0         102                                                                                   
+        35B             S            0         102                                                                                   
+        36B             S            0         102                                                                                   
+        37B             S            0         102                                                                                   
+        38B             S            0         102                                                                                   
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    14
+                                                                                                                                    
+0                                                                                                                                   
+0                      POINT/SUPERELEMENT CONNECTIVITY LIST (SORTED BY FIRST POINT ID - "B" INDICATES BOUNDARY SEQUENCE ID)          
+0             FIRST           INTERIOR TO
+     COUNT   POINT ID  TYPE  SUPERELEMEMT ------------------------------- CONNECTED TO SUPERELEMENT -------------------------------
+
+        22          5B               0         101                                                                                   
+         4         27B               0         101      102                                                                          
+         8         31B               0         102                                                                                   
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    15
+                                                                                                                                    
+0                                                                                                                                   
+0                      POINT/SUPERELEMENT CONNECTIVITY LIST (SORTED BY COUNT - "B" INDICATES BOUNDARY SEQUENCE ID)                   
+0             FIRST           INTERIOR TO
+     COUNT   POINT ID  TYPE  SUPERELEMEMT ------------------------------- CONNECTED TO SUPERELEMENT -------------------------------
+
+         4         27B               0         101      102                                                                          
+         8         31B               0         102                                                                                   
+        22          5B               0         101                                                                                   
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    16
+                                                                                                                                    
+0                                                                                                                                   
+0                      POINT/SUPERELEMENT CONNECTIVITY LIST (SORTED BY INTERIOR SUPERELEMENT - "B" INDICATES BOUNDARY SEQUENCE ID)   
+0             FIRST           INTERIOR TO
+     COUNT   POINT ID  TYPE  SUPERELEMEMT ------------------------------- CONNECTED TO SUPERELEMENT -------------------------------
+
+         4         27B               0         101      102                                                                          
+         8         31B               0         102                                                                                   
+        22          5B               0         101                                                                                   
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    17
+                                                                                                                                    
+0                                                                                                                                   
+
+0                                             SUPERELEMENT        0
+         TYPE = RESIDUAL STRUCTURE                                                                                                   
+                                              LIST OF  INTERIOR POINTS           ( TOTAL NO. OF INTERIOR POINT =        34 )         
+     INDEX          -1-         -2-         -3-         -4-         -5-         -6-         -7-         -8-         -9-        -10-
+        1            5B          6B          7B          8B          9B         10B         11B         12B         13B         14B  
+       11           15B         16B         17B         18B         19B         20B         21B         22B         23B         24B  
+       21           25B         26B         27B         28B         29B         30B         31B         32B         33B         34B  
+       31           35B         36B         37B         38B                                                                          
+
+0                                             SUPERELEMENT        0
+         TYPE = RESIDUAL STRUCTURE                                                                                                   
+                                              LIST OF  ELEMENTS                  ( TOTAL NO. OF ELEMENTS       =         2 )         
+     INDEX          -1-         -2-         -3-         -4-         -5-         -6-         -7-         -8-         -9-        -10-
+        1           700         701                                                                                                  
+
+0                                             SUPERELEMENT      101
+         TYPE = EXTERNAL (SEBULK (A-SET))                                                                                            
+                                              LIST OF  EXTERIOR POINTS           ( TOTAL NO. OF EXTERIOR POINT =        26 )         
+     INDEX          -1-         -2-         -3-         -4-         -5-         -6-         -7-         -8-         -9-        -10-
+        1            5B          6B          7B          8B          9B         10B         11B         12B         13B         14B  
+       11           15B         16B         17B         18B         19B         20B         21B         22B         23B         24B  
+       21           25B         26B         27B         28B         29B         30B                                                  
+
+0                                             SUPERELEMENT      102
+         TYPE = EXTERNAL (SEBULK (A-SET))                                                                                            
+                                              LIST OF  EXTERIOR POINTS           ( TOTAL NO. OF EXTERIOR POINT =        12 )         
+     INDEX          -1-         -2-         -3-         -4-         -5-         -6-         -7-         -8-         -9-        -10-
+        1           27B         28B         29B         30B         31B         32B         33B         34B         35B         36B  
+       11           37B         38B                                                                                                  
+ ^^^ USER INFORMATION MESSAGE 9044 (PHASE0)  
+ ^^^ BULK DATA AND CASE CONTROL PARTITIONING,    RESTART CHECKING, AND UNDEFORMED PLOTTING IS    
+ ^^^ INITIATED FOR SUPERELEMENT        101 
+ *** USER WARNING MESSAGE 2047 (GP4)
+     UNDEFINED MULTI-POINT CONSTRAINT SET          701
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 1              2048                 8                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       57 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       34 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      147 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102                 0                 0                 0             32768                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       25 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       56 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    104                 0                 0                 0                 0                16                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       55 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       86 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                26                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      104 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      128 WORDS.)
+ ^^^ USER INFORMATION MESSAGE 9044 (PHASE0)  
+ ^^^ BULK DATA AND CASE CONTROL PARTITIONING,    RESTART CHECKING, AND UNDEFORMED PLOTTING IS    
+ ^^^ INITIATED FOR SUPERELEMENT        102 
+ *** USER WARNING MESSAGE 2047 (GP4)
+     UNDEFINED MULTI-POINT CONSTRAINT SET          701
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 1              2048                 8                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       35 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       34 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      119 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102                 0                 0                 0             32768                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       11 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       42 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    104                 0                 0                 0                 0                16                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       27 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       58 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                12                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       48 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       72 WORDS.)
+ ^^^ USER INFORMATION MESSAGE 9044 (PHASE0)  
+ ^^^ BULK DATA AND CASE CONTROL PARTITIONING,    RESTART CHECKING, AND UNDEFORMED PLOTTING IS    
+ ^^^ INITIATED FOR SUPERELEMENT          0 
+ *** USER INFORMATION MESSAGE 2012 (GP1GSM)
+     NUMBER OF DUPLICATE GRIDS ENCOUNTERED AND ELIMINATED =          4
+ *** USER INFORMATION MESSAGE 2012 (GP1CEL)
+     NUMBER OF DUPLICATE COORDINATE SYSTEMS ENCOUNTERED AND ELIMINATED =          1
+ *** USER WARNING MESSAGE 2047 (GP4)
+     UNDEFINED MULTI-POINT CONSTRAINT SET          701
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101              4100              2048                 8                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       99 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       39 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      265 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102                 0                 0                 0             32768                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       33 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       64 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM3S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    103                 0                 0                64                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       10 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       41 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    104                 0                 0                 0             32768              2560                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       13 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       34 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       72 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK DYNAMICS WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102              8200                 0                 0              4096                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       21 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       34 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       80 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                35                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      140 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      164 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                35                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       70 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      168 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK DIT      WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                32                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       17 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       48 WORDS.)
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    18
+                                                                                                        SUPERELEMENT 101            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7325 (SEP2DR)
+     PROCESSING OF SUPERELEMENT      101 IS NOW INITIATED.
+ ^^^ USER INFORMATION MESSAGE 9045 (PHASE1DR)    
+ ^^^ PHASE 1 - SUPERELEMENT GENERATION, ASSEMBLY AND REDUCTION.  
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    19
+                                                                                                        SUPERELEMENT 101            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK KXX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS KXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MXX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK BXX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS BXX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK K4XX1    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS K4XX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK PX1      HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS PX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK GPX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS GPXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK GDX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS GDXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK RVX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS RVAX.
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    20
+                                                                                                        SUPERELEMENT 101            
+0                                                                                                            SUBCASE 2              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = A       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.590384E+00  5.074717E-15  1.798908E-14 -2.620543E-13  2.385576E+02 -2.385576E+02 *
+                      *  5.107026E-15  1.590384E+00  8.099858E-15 -2.385576E+02 -1.037503E-12  2.936481E+02 *
+                      *  1.842970E-14  7.692957E-15  1.590384E+00  2.385576E+02 -2.936481E+02 -1.236342E-11 *
+                      * -4.405365E-13 -2.385576E+02  2.385576E+02  4.285000E+05 -4.404722E+04 -4.404722E+04 *
+                      *  2.385576E+02 -9.482415E-13 -2.936481E+02 -4.404722E+04  1.351617E+05 -3.589320E+04 *
+                      * -2.385576E+02  2.936481E+02 -1.205391E-11 -4.404722E+04 -3.589320E+04  4.663309E+05 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      * .... N/A ....                                                                       *
+                      *               .... N/A ....                                                         *
+                      *                             .... N/A ....                                           *
+                      *                                           .... N/A ....                             *
+                      *                                                         .... N/A ....               *
+                      *                                                                       .... N/A .... *
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    21
+                                                                                                        SUPERELEMENT 101            
+0                                                                                                            SUBCASE 2              
+ *** USER INFORMATION MESSAGE 7528 (OUTPRT)
+     A "=ALL" OUTPUT REQUEST HAS BEEN FOUND FOR DISP, VELO, ACCE, STRESS OR FORCE TYPE OUTPUT.
+     USER INFORMATION:  MORE ECONOMICAL DATA RECOVERY IS POSSIBLE WHEN A LIMITED OUTPUT SET IS SELECTED.
+ ^^^ USER INFORMATION MESSAGE 9303 (SPDR)    
+ ^^^ SPARSE DATA RECOVERY INITIATED  
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    22
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7325 (SEP2DR)
+     PROCESSING OF SUPERELEMENT      102 IS NOW INITIATED.
+ ^^^ USER INFORMATION MESSAGE 9045 (PHASE1DR)    
+ ^^^ PHASE 1 - SUPERELEMENT GENERATION, ASSEMBLY AND REDUCTION.  
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    23
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK KXX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS KXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MXX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK BXX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS BXX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK K4XX1    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS K4XX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK PX1      HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS PX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK GPX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS GPXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK GDX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS GDXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK RVX1     HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS RVAX.
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    24
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 3              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = A       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.755052E+00  1.565414E-13 -1.151745E-12 -1.870148E-10  2.632578E+02 -2.632578E+02 *
+                      *  1.540990E-13  1.755052E+00 -1.935119E-12 -2.632578E+02  2.734623E-09  1.825251E+03 *
+                      * -1.149969E-12 -1.929568E-12  1.755052E+00  2.632578E+02 -1.825251E+03 -1.980709E-09 *
+                      * -1.871285E-10 -2.632578E+02  2.632578E+02  1.148825E+05 -2.737877E+05 -2.737877E+05 *
+                      *  2.632578E+02  2.732577E-09 -1.825251E+03 -2.737877E+05  2.305948E+06 -3.937911E+04 *
+                      * -2.632578E+02  1.825251E+03 -1.983381E-09 -2.737877E+05 -3.937911E+04  2.305948E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      * .... N/A ....                                                                       *
+                      *               .... N/A ....                                                         *
+                      *                             .... N/A ....                                           *
+                      *                                           .... N/A ....                             *
+                      *                                                         .... N/A ....               *
+                      *                                                                       .... N/A .... *
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    25
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 3              
+ *** USER INFORMATION MESSAGE 7528 (OUTPRT)
+     A "=ALL" OUTPUT REQUEST HAS BEEN FOUND FOR DISP, VELO, ACCE, STRESS OR FORCE TYPE OUTPUT.
+     USER INFORMATION:  MORE ECONOMICAL DATA RECOVERY IS POSSIBLE WHEN A LIMITED OUTPUT SET IS SELECTED.
+ ^^^ USER INFORMATION MESSAGE 9303 (SPDR)    
+ ^^^ SPARSE DATA RECOVERY INITIATED  
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    26
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7325 (SEP2DR)
+     PROCESSING OF RESIDUAL STRUCTURE IS NOW INITIATED.
+ ^^^ USER INFORMATION MESSAGE 9045 (PHASE1DR)    
+ ^^^ PHASE 1 - SUPERELEMENT GENERATION, ASSEMBLY AND REDUCTION.  
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    27
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KGG      (G-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   3.842438E-01
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               2.200250E-08          PASS
+             2               2.770685E-08          PASS
+             3               3.539026E-08          PASS
+             4               2.455752E-03          PASS
+             5               2.604907E-02          PASS
+             6               2.857667E-02          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. CELASI ELEMENTS CONNECTING TO ONLY ONE GRID POINT;
+       2. CELASI ELEMENTS CONNECTING TO NON-COINCIDENT POINTS;
+       3. CELASI ELEMENTS CONNECTING TO NON-COLINEAR DOF;
+       4. IMPROPERLY DEFINED DMIG MATRICES;
+ 
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    28
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       1.000000E+00     ----      -3.000000E+02     ----       6.000000E+02                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  1.000000E+00  0.000000E+00 -3.000000E+02  0.000000E+00  6.000000E+02
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    29
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KNN      (N-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   3.842438E-01
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               2.200250E-08          PASS
+             2               2.770685E-08          PASS
+             3               3.539026E-08          PASS
+             4               2.455752E-03          PASS
+             5               2.604907E-02          PASS
+             6               2.857667E-02          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. MULTIPOINT CONSTRAINT EQUATIONS WHICH DO NOT SATISFY RIGID-BODY MOTION;
+       2. RBE3 ELEMENTS FOR WHICH THE INDEPENDENT DEGREE-OF-FREEDOM CANNOT DESCRIBE
+          ALL POSSIBLE RIGID-BODY MOTIONS.
+ 
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    30
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+0                                         G R I D   P O I N T   S I N G U L A R I T Y   T A B L E
+0                             POINT    TYPE   FAILED      STIFFNESS       OLD USET           NEW USET
+                               ID            DIRECTION      RATIO     EXCLUSIVE  UNION   EXCLUSIVE  UNION
+                               70        G      3         0.00E+00          BF       F         SB       S    *
+                               70        G      4         0.00E+00          BF       F         SB       S    *
+                               70        G      5         0.00E+00          BF       F         SB       S    *
+ *** USER INFORMATION MESSAGE - SINGULARITIES FOUND USING EIGENVALUE METHOD
+ ***       3 SINGULARITIES FOUND         3 SINGULARITIES ELIMINATED
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    31
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KNN+AUTO (N+AUTOSPC-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   3.842438E-01
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               2.200250E-08          PASS
+             2               2.770685E-08          PASS
+             3               3.539026E-08          PASS
+             4               2.455752E-03          PASS
+             5               2.604907E-02          PASS
+             6               2.857667E-02          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. MPC EQUATIONS WHICH DO NOT SATISFY RIGID-BODY MOTION;
+       2. RBE3 ELEMENTS FOR WHICH THE INDEPENDENT DOF CANNOT DESCRIBE ALL POSSIBLE
+          RIGID-BODY MOTIONS;
+       3. PARAM,AUTOSPC HAS OVER-CONSTRAINED THE MODEL.
+ 
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    32
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KFF      (F-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   3.842438E-01
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               2.200250E-08          PASS
+             2               2.770685E-08          PASS
+             3               3.539026E-08          PASS
+             4               2.455752E-03          PASS
+             5               2.604907E-02          PASS
+             6               2.857667E-02          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. CONSTRAINTS WHICH PREVENT RIGID-BODY MOTION.
+ 
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    33
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KAA1     (A-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   3.842438E-01
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               2.200250E-08          PASS
+             2               2.770685E-08          PASS
+             3               3.539026E-08          PASS
+             4               2.455752E-03          PASS
+             5               2.604907E-02          PASS
+             6               2.857667E-02          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+     IF THE MODEL HAS PASSED THE PREVIOUS CHECKS FOR THE G-SET AND N-SET,
+     THEN:
+       1. THE MODEL IS NOT INTENDED TO BE FREE-FREE WHICH INDICATES THAT THE MODEL IS
+          PROPERLY CONSTRAINED TO GROUND;
+       2. THE REFERENCE GRID POINT (GRID=GID ON THE GROUNDCHECK COMMAND) IS LOCATED
+          TOO FAR FROM THE MODEL'S CENTER OF GRAVITY. IT IS RECOMMENDED THAT THE
+          REFERENCE GRID POINT BE LOCATED AS CLOSE AS POSSIBLE TO THE MODEL'S CENTER
+          OF GRAVITY OF THE MODEL (SEE THE GRID POINT WEIGHT GENERATOR OUTPUT);
+       3. PARAM,AUTOSPC,YES CONSTRAINS NEAR-SINGULAR DEGREES-OF-FREEDOM. WHEN A
+          FINITE ELEMENT MODEL WITH AUTOSPC FAILS THE A-SET CHECK, IT IS NOT EVIDENT
+          THAT GROUNDING HAS OCCURRED. THE USE OF PARAM,SNORM WILL NOT ELIMINATE THE
+          SPURIOUS FAILURE.
+ 
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    34
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = G       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.598721E-13 -1.132427E-12 -1.873559E-10  5.018153E+02 -5.018153E+02 *
+                      *  1.622036E-13  3.345436E+00 -1.922240E-12 -5.018153E+02  2.731554E-09  2.118899E+03 *
+                      * -1.133316E-12 -1.928013E-12  3.345436E+00  5.018153E+02 -2.118899E+03 -1.996398E-09 *
+                      * -1.874909E-10 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  2.734168E-09 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -1.992703E-09 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            3.345436E+00     -5.600344E-11  1.500000E+02  1.500000E+02
+                                  Y            3.345436E+00      6.333702E+02  8.165016E-10  1.500000E+02
+                                  Z            3.345436E+00      6.333702E+02  1.500000E+02 -5.967527E-10
+                                                                I(S)
+                                           *  3.928379E+05  5.339971E-07  6.432529E-07 *
+                                           *  5.339971E-07  1.023790E+06 -2.849381E-06 *
+                                           *  6.432529E-07 -2.849381E-06  1.354959E+06 *
+                                                                I(Q)
+                                           *  3.928379E+05                             *
+                                           *                1.023790E+06               *
+                                           *                              1.354959E+06 *
+                                                                 Q
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    35
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    36
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = N       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.598721E-13 -1.132427E-12 -1.873559E-10  5.018153E+02 -5.018153E+02 *
+                      *  1.622036E-13  3.345436E+00 -1.922240E-12 -5.018153E+02  2.731554E-09  2.118899E+03 *
+                      * -1.133316E-12 -1.928013E-12  3.345436E+00  5.018153E+02 -2.118899E+03 -1.996398E-09 *
+                      * -1.874909E-10 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  2.734168E-09 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -1.992703E-09 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    37
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+ *** USER WARNING MESSAGE 2125 (VEC)
+     MODULE VEC - NZ=0, ONE OR MORE COLUMNS OF OUTPUT MATRIX WILL BE NULL.
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    38
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = N+AUTO  
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.598721E-13 -1.132427E-12 -1.873559E-10  5.018153E+02 -5.018153E+02 *
+                      *  1.622036E-13  3.345436E+00 -1.922240E-12 -5.018153E+02  2.731554E-09  2.118899E+03 *
+                      * -1.133316E-12 -1.928013E-12  3.345436E+00  5.018153E+02 -2.118899E+03 -1.996398E-09 *
+                      * -1.874909E-10 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  2.734168E-09 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -1.992703E-09 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    39
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    40
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = F       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.598721E-13 -1.132427E-12 -1.873559E-10  5.018153E+02 -5.018153E+02 *
+                      *  1.622036E-13  3.345436E+00 -1.922240E-12 -5.018153E+02  2.731554E-09  2.118899E+03 *
+                      * -1.133316E-12 -1.928013E-12  3.345436E+00  5.018153E+02 -2.118899E+03 -1.996398E-09 *
+                      * -1.874909E-10 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  2.734168E-09 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -1.992703E-09 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    41
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    42
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = A       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.598721E-13 -1.132427E-12 -1.873559E-10  5.018153E+02 -5.018153E+02 *
+                      *  1.622036E-13  3.345436E+00 -1.922240E-12 -5.018153E+02  2.731554E-09  2.118899E+03 *
+                      * -1.133316E-12 -1.928013E-12  3.345436E+00  5.018153E+02 -2.118899E+03 -1.996398E-09 *
+                      * -1.874909E-10 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  2.734168E-09 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -1.992703E-09 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    43
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: BEND
+  
+ *** USER INFORMATION MESSAGE 4158 (DFMSA)
+ ---- STATISTICS FOR SPARSE DECOMPOSITION OF DATA BLOCK KLL      FOLLOW
+        NUMBER OF NEGATIVE TERMS ON FACTOR DIAGONAL =      1
+        MAXIMUM RATIO OF MATRIX DIAGONAL TO FACTOR DIAGONAL =  2.4E+14 AT ROW NUMBER         36
+ *** USER WARNING MESSAGE 4698 (DCMPD)
+     STATISTICS FOR DECOMPOSITION OF MATRIX KLL     .
+     THE FOLLOWING DEGREES OF FREEDOM HAVE FACTOR DIAGONAL RATIOS GREATER THAN
+      1.00000E+07 OR HAVE NEGATIVE TERMS ON THE FACTOR DIAGONAL.
+     USER INFORMATION:
+     THIS MESSAGE MAY BE IGNORED IF NO GRID POINT IDS OR HIGH RATIO MESSAGES APPEAR IN THE TABLE ON THE NEXT PAGE.
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    44
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                            SUBCASE 10             
+0                                                                                                                                   
+         GRID POINT ID       DEGREE OF FREEDOM   MATRIX/FACTOR DIAGONAL RATIO        MATRIX DIAGONAL                                
+                                                                                                                                    
+              19                    T1                  -2.84800E+13                   1.23378E+06
+              19                    T2                   2.42820E+14                   1.25661E+07
+              19                    T3                   1.84862E+14                   1.24203E+07
+              19                    R1                   1.80537E+12                   3.83428E+09
+              19                    R2                   1.65653E+11                   2.21337E+09
+              19                    R3                   1.44189E+11                   2.21665E+09
+ ^^^ USER   WARNING MESSAGE 9136 (SEKRRS)    
+ ^^^ ENCOUNTERED EXCESSIVE PIVOT RATIOS IN MATRIX KLL.   
+ ^^^ USER INFORMATION:  AUTO-SUPORT WILL BE PERFORMED ON 
+ ^^^                    STRUCTURAL DEGREES OF FREEDOM.   
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: BEND
+ *** USER INFORMATION MESSAGE 5458 (REIG)
+     QL HOUSEHOLDER METHOD IS AUTOMATICALLY SELECTED .
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: BEND
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    45
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1       -1.676765E-08        1.294900E-04        2.060897E-05        1.000000E+00       -1.676765E-08
+        2         2       -9.949680E-09        9.974808E-05        1.587540E-05        1.000000E+00       -9.949680E-09
+        3         3        4.698480E-09        6.854546E-05        1.090935E-05        1.000000E+00        4.698480E-09
+        4         4        1.303860E-08        1.141867E-04        1.817337E-05        1.000000E+00        1.303860E-08
+        5         5        1.735777E-08        1.317489E-04        2.096848E-05        1.000000E+00        1.735777E-08
+        6         6        3.670909E-08        1.915961E-04        3.049347E-05        1.000000E+00        3.670909E-08
+        7         7        1.139316E+02        1.067388E+01        1.698800E+00        1.000000E+00        1.139316E+02
+        8         8        1.233310E+02        1.110545E+01        1.767487E+00        1.000000E+00        1.233310E+02
+        9         9        1.362450E+02        1.167240E+01        1.857720E+00        1.000000E+00        1.362450E+02
+       10        10        4.616507E+02        2.148606E+01        3.419612E+00        1.000000E+00        4.616507E+02
+       11        11        1.947847E+03        4.413442E+01        7.024210E+00        1.000000E+00        1.947847E+03
+       12        12        1.948512E+03        4.414195E+01        7.025409E+00        1.000000E+00        1.948512E+03
+       13        13        4.539855E+03        6.737845E+01        1.072361E+01        1.000000E+00        4.539855E+03
+       14        14        4.761744E+03        6.900539E+01        1.098255E+01        1.000000E+00        4.761744E+03
+       15        15        7.591218E+03        8.712759E+01        1.386679E+01        1.000000E+00        7.591218E+03
+       16        16        8.174772E+03        9.041444E+01        1.438990E+01        1.000000E+00        8.174772E+03
+       17        17        8.473940E+03        9.205401E+01        1.465085E+01        1.000000E+00        8.473940E+03
+       18        18        9.112438E+03        9.545909E+01        1.519279E+01        1.000000E+00        9.112438E+03
+       19        19        2.507344E+04        1.583460E+02        2.520154E+01        1.000000E+00        2.507344E+04
+       20        20        2.529670E+04        1.590494E+02        2.531349E+01        1.000000E+00        2.529670E+04
+       21        21        3.349746E+04        1.830231E+02        2.912903E+01        1.000000E+00        3.349746E+04
+       22        22        7.109571E+04        2.666378E+02        4.243672E+01        1.000000E+00        7.109571E+04
+       23        23        7.328991E+04        2.707211E+02        4.308660E+01        1.000000E+00        7.328991E+04
+       24        24        8.681629E+04        2.946460E+02        4.689437E+01        1.000000E+00        8.681629E+04
+       25        25        9.023387E+04        3.003895E+02        4.780848E+01        1.000000E+00        9.023387E+04
+       26        26        1.903895E+05        4.363364E+02        6.944510E+01        1.000000E+00        1.903895E+05
+       27        27        3.019933E+05        5.495392E+02        8.746188E+01        1.000000E+00        3.019933E+05
+       28        28        3.784306E+05        6.151672E+02        9.790689E+01        1.000000E+00        3.784306E+05
+       29        29        4.015598E+05        6.336874E+02        1.008545E+02        1.000000E+00        4.015598E+05
+       30        30        5.061805E+05        7.114636E+02        1.132329E+02        1.000000E+00        5.061805E+05
+       31        31        1.383480E+06        1.176214E+03        1.872003E+02        1.000000E+00        1.383480E+06
+       32        32        1.729764E+06        1.315205E+03        2.093214E+02        1.000000E+00        1.729764E+06
+       33        33        2.208517E+06        1.486108E+03        2.365214E+02        1.000000E+00        2.208517E+06
+       34        34        2.531026E+06        1.590920E+03        2.532028E+02        1.000000E+00        2.531026E+06
+       35        35        6.135422E+06        2.476978E+03        3.942233E+02        1.000000E+00        6.135422E+06
+       36        36        8.827527E+06        2.971115E+03        4.728677E+02        1.000000E+00        8.827527E+06
+       37        37        1.352114E+07        3.677110E+03        5.852302E+02        1.000000E+00        1.352114E+07
+       38        38        1.704599E+07        4.128679E+03        6.570996E+02        1.000000E+00        1.704599E+07
+       39        39        1.731100E+07        4.160649E+03        6.621878E+02        1.000000E+00        1.731100E+07
+       40        40        2.190796E+07        4.680594E+03        7.449397E+02        1.000000E+00        2.190796E+07
+       41        41        2.633251E+07        5.131521E+03        8.167069E+02        1.000000E+00        2.633251E+07
+       42        42        3.026766E+07        5.501605E+03        8.756077E+02        1.000000E+00        3.026766E+07
+       43        43        3.491708E+07        5.909067E+03        9.404573E+02        1.000000E+00        3.491708E+07
+       44        44        3.529053E+07        5.940583E+03        9.454732E+02        1.000000E+00        3.529053E+07
+       45        45        3.992274E+07        6.318444E+03        1.005612E+03        1.000000E+00        3.992274E+07
+       46        46        4.032914E+07        6.350523E+03        1.010717E+03        1.000000E+00        4.032914E+07
+       47        47        4.568350E+07        6.758957E+03        1.075721E+03        1.000000E+00        4.568350E+07
+       48        48        5.321478E+07        7.294846E+03        1.161011E+03        1.000000E+00        5.321478E+07
+       49        49        6.011580E+07        7.753438E+03        1.233998E+03        1.000000E+00        6.011580E+07
+       50        50        7.432439E+07        8.621159E+03        1.372100E+03        1.000000E+00        7.432439E+07
+       51        51        1.023672E+08        1.011767E+04        1.610277E+03        1.000000E+00        1.023672E+08
+       52        52        1.487828E+08        1.219766E+04        1.941317E+03        1.000000E+00        1.487828E+08
+       53        53        2.293323E+08        1.514372E+04        2.410198E+03        1.000000E+00        2.293323E+08
+       54        54        9.623051E+08        3.102104E+04        4.937152E+03        1.000000E+00        9.623051E+08
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    46
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ ^^^ USER INFORMATION MESSAGE 9257 (AUTOSUP) 
+ ^^^ AUTO-SUPORT FOUND           6 RIGID BODY MODES    
+ ^^^ BELOW    1.000000E-03 HZ. 
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: BEND
+  
+ *** USER INFORMATION MESSAGE 4158 (DFMSA)
+ ---- STATISTICS FOR SPARSE DECOMPOSITION OF DATA BLOCK KYY      FOLLOW
+        NUMBER OF NEGATIVE TERMS ON FACTOR DIAGONAL =      6
+        MAXIMUM RATIO OF MATRIX DIAGONAL TO FACTOR DIAGONAL =  6.5E+11 AT ROW NUMBER         38
+ *** USER WARNING MESSAGE 4698 (DCMPD)
+     STATISTICS FOR DECOMPOSITION OF MATRIX KYY     .
+     THE FOLLOWING DEGREES OF FREEDOM HAVE FACTOR DIAGONAL RATIOS GREATER THAN
+      1.00000E+07 OR HAVE NEGATIVE TERMS ON THE FACTOR DIAGONAL.
+     USER INFORMATION:
+     THIS MESSAGE MAY BE IGNORED IF NO GRID POINT IDS OR HIGH RATIO MESSAGES APPEAR IN THE TABLE ON THE NEXT PAGE.
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    47
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                                                                                                                   
+         GRID POINT ID       DEGREE OF FREEDOM   MATRIX/FACTOR DIAGONAL RATIO        MATRIX DIAGONAL                                
+                                                                                                                                    
+              19                    R1                   6.50256E+11                   3.83428E+09
+              19                    R2                   2.46375E+11                   2.21337E+09
+              19                    R3                   1.17047E+11                   2.21665E+09
+ ^^^ USER INFORMATION MESSAGE 9036 (RESVEC  )    
+ ^^^ NO STATIC SHAPES WERE AVAILABLE AFTER FILTERING 
+ *** USER INFORMATION MESSAGE 2012 (GP1GSM)
+     NUMBER OF DUPLICATE GRIDS ENCOUNTERED AND ELIMINATED =          4
+ *** USER INFORMATION MESSAGE 2012 (GP1CEL)
+     NUMBER OF DUPLICATE COORDINATE SYSTEMS ENCOUNTERED AND ELIMINATED =          1
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    48
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT        0 IS NOW INITIATED.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK LAMA     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                54                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      378 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      552 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGV1    WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0             15120                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      280 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      554 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =    23461 WORDS.)
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    49
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK FRL      WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 1                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       26 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK KHH      WRITTEN ON FORTRAN UNIT  12, TRL =
+                    104                54                54                 6                 2                 2               185
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      284 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      400 WORDS.)
+ *** USER INFORMATION MESSAGE 7559 (FRRD1A)
+     THIS FREQUENCY RESPONSE ANALYSIS INVOLVES THE FOLLOWING TYPES OF EXCITATION --
+
+     * APPLIED LOADS
+ *** USER INFORMATION MESSAGE 5222 (SQFREQ)
+     UN COUPLED SOLUTION ALGORITHM USED.
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    50
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT        0 IS NOW INITIATED.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK LAMA     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                54                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      378 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      552 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGV1    WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 1               210                 2                 1                57              2714
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      490 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      664 WORDS.)
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    51
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    52
+                                                                                                        SUPERELEMENT 101            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT      101 IS NOW INITIATED.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK VAX      HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS VA.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MUG1X    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MUG1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MUG1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MUG1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MES1X    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MES1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MES1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MES1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MEE1X    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MEE1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MEE1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MEE1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MGPFMX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MGPFM.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MGPFBX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MGPFB.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MGPFKX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MGPFK.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MGPFOX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MGPFO.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MEF1X    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MEF1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MEF1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MEF1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQGMX    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQGM.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQGBX    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQGB.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQGKX    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQGK.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQG1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQG1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQMGMX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQMGM.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQMGBX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQMGB.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQMGKX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQMGK.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQMG1OX  HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQMG1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS KXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS BXX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS K4XX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS PX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS GPXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS GDXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  101
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS RVAX.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGV1    WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0                 0                 1                28                16                 7
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      277 WORDS.)
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    53
+                                                                                                        SUPERELEMENT 101            
+0                                                                                                                                   
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    54
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT      102 IS NOW INITIATED.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK VAX      HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS VA.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MUG1X    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MUG1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MUG1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MUG1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MES1X    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MES1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MES1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MES1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MEE1X    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MEE1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MEE1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MEE1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MGPFMX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MGPFM.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MGPFBX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MGPFB.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MGPFKX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MGPFK.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MGPFOX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MGPFO.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MEF1X    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MEF1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MEF1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MEF1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQGMX    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQGM.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQGBX    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQGB.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQGKX    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQGK.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQG1OX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQG1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQMGMX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQMGM.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQMGBX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQMGB.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQMGKX   HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQMGK.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK MQMG1OX  HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MQMG1O.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS KXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS MXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS BXX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS K4XX1.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS PX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS GPXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS GDXX.
+ *** USER INFORMATION MESSAGE 4106 (INPTT4)
+     DATA BLOCK DUMMY    HAS BEEN RETRIEVED FROM FORTRAN UNIT  102
+     THE ORIGINAL NAME OF DATA BLOCK ON THE FORTRAN UNIT WAS RVAX.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGV1    WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0                 0                 1                28                16                 7
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      263 WORDS.)
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    55
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT 12
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+1    SYSTEM MODES                                                           JANUARY  28, 2016  NX NASTRAN  5/ 1/14   PAGE    56
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     31
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN PVALID SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ --------------------------------------------------------------------------------------------------------------------------
+     0     0    1    1 '        '    T    T    T    T    T     T      F      T      0     F     -1            0           F
+   101   101    1    1 '        '    T    F    F    T    F     F      F      F      0     F     -1            0           F
+   102   102    1    1 '        '    T    F    F    T    F     F      F      F      0     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ PVALID = P-DISTRIBUTION ID OF P-VALUE FOR P-ELEMENTS
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+ ^^^BEGIN NAS2CAM DMAP   
+ ^^^OUTPUT2 UNIT =          29 
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS DBWRITE  FOR FORTRAN UNIT 29
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =        8 RECORDS.)
+     (TOTAL DATA WRITTEN FOR TAPE LABEL =       17 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK SLIST    WRITTEN ON FORTRAN UNIT  29, TRL =
+                    101                 3                34                 0                 2                 0                 7
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       21 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       50 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EMAP     WRITTEN ON FORTRAN UNIT  29, TRL =
+                    102                 3                34                 0                 2                 0                 7
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       68 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       39 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      232 WORDS.)
+ ^^^NSUPERS =            3 
+ ^^^     
+ ^^^     
+ ^^^PROCESSING SUPERELEMENT        101 
+ ^^^     
+ ^^^     
+ ^^^WARNING:  MAPS NOT FOUND FOR    SUPERELEMENT           101.  CONTINUING.   
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK USETTAB  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    101                 0                46                 0                 2                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       46 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       72 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    102                26                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       52 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      132 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CSTMS    WRITTEN ON FORTRAN UNIT  29, TRL =
+                    103                26                 1                 1                 2                12                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       24 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       56 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  29, TRL =
+                    104                26                26                46                 2                22           1995022
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      312 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       29 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      448 WORDS.)
+ DATA BLOCK SE_STARTWRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       2   10000
+ DATA BLOCK ULVS    WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      54      46       2       2      92   10000
+ DATA BLOCK MAA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      46      46       6       2      92    7817
+ DATA BLOCK KAA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      46      46       6       2      48    2826
+ ^^^NOMPOOL =           -1 
+ ^^^     
+ ^^^     
+ ^^^PROCESSING SUPERELEMENT        102 
+ ^^^     
+ ^^^     
+ ^^^WARNING:  MAPS NOT FOUND FOR    SUPERELEMENT           102.  CONTINUING.   
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK USETTAB  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    101                 0                32                 0                 2                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       32 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       58 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    102                12                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       24 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       76 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CSTMS    WRITTEN ON FORTRAN UNIT  29, TRL =
+                    103                12                 1                 1                 2                12                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       24 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       56 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  29, TRL =
+                    104                12                12                32                 2                 8           2995008
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      144 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       29 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      224 WORDS.)
+ DATA BLOCK SE_STARTWRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       2   10000
+ DATA BLOCK ULVS    WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      54      32       2       2      64   10000
+ DATA BLOCK MAA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      32      32       6       2      64    9453
+ DATA BLOCK KAA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      32      32       6       2      48    5703
+ ^^^NOMPOOL =           -1 
+ ^^^     
+ ^^^     
+ ^^^PROCESSING SUPERELEMENT          0 
+ ^^^     
+ ^^^     
+ ^^^WARNING:  MAPS NOT FOUND FOR    SUPERELEMENT             0.  CONTINUING.   
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK USETTAB  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    101                 0                60                 0              1027                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       60 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       86 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    102                35                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       70 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      168 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CSTMS    WRITTEN ON FORTRAN UNIT  29, TRL =
+                    103                35                 1                 1                 2                12                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       24 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       56 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  29, TRL =
+                    104                35                34                60                 2                30           2995008
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      420 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       29 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      590 WORDS.)
+ DATA BLOCK SE_STARTWRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ ^^^WARNING:  ULVS MISSING  FOR SUPERELEMENT             0 
+ DATA BLOCK LAMBDA  WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1      54       2       1      54   10000
+ DATA BLOCK GM      WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      57       3       2       2       4    1228
+ DATA BLOCK MAA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      54      54       6       2     108    7016
+ DATA BLOCK KAA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      54      54       6       2      48    2078
+ DATA BLOCK PHA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      54      54       1       2     108   10000
+ DATA BLOCK PHG     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      54      60       2       2     114    9500
+ ^^^NOMPOOL =           -1 
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT 29
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+ DATA BLOCK LOOP_ENDWRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+1                                        * * * END OF JOB * * *

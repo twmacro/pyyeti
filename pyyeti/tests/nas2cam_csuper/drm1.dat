@@ -1,0 +1,35 @@
+$
+assign master ='drm1.master', delete
+assign dball  ='drm1.dball', delete
+init dball , logical = (dball(99000))
+$
+ASSIGN se102 ='inboard.MASTER'
+ASSIGN se102a='inboard.DBALL'
+DBLOCATE LOGICAL=se102
+$
+DIAG 8,47
+SOL DRM1
+COMPILE DRM1,NOLIST,NOREF
+$
+echooff
+INCLUDE '/loads/nx_dmaps/v9/drm1.v9'
+include '/loads/nx_dmaps/v9/dbdalter.v9'
+echoon
+$
+CEND
+TITLE    = DATA RECOVERY MATRICES - PHASE 1
+$
+ECHO = NONE             $ DO NOT PRINT BULK DATA DECK
+$
+ACCELERATION(PLOT) = ALL
+$
+$SUBCASE 1
+$  SUPER 102
+$
+SUBCASE 1000
+  LABEL = RESIDUAL STRUCTURE
+$
+BEGIN BULK
+PARAM,DBDICT,2
+PARAM,DRMSEID,0
+ENDDATA

@@ -1,0 +1,741 @@
+1
+ 
+ 
+ 
+ 
+                                                             
+                 Copyright 2013 Siemens Product Lifecycle    
+                        Management Software Inc.             
+                         All Rights Reserved.                
+                                                             
+               This software and related documentation are   
+                 proprietary to Siemens Product Lifecycle    
+                        Management Software Inc.             
+                                                             
+              Siemens and the Siemens logo are registered    
+             trademarks of Siemens AG. NX is a trademark or  
+                registered trademark of Siemens Product      
+               Lifecycle Management Software Inc. or its     
+             subsidiaries in the United States and in other  
+             countries.  NASTRAN is a registered trademark   
+                 of the National Aeronautics and Space       
+                 Administration.  All other trademarks,      
+              registered trademarks or service marks belong  
+                      to their respective holders.           
+                                                             
+           LIMITATIONS TO U.S. GOVERNMENT RIGHTS. UNPUBLISHED
+           - RIGHTS RESERVED UNDER THE COPYRIGHT LAWS OF THE 
+            UNITED STATES. This computer software and related
+               computer software documentation have been     
+            developed exclusively at private expense and are 
+           provided subject to the following rights:  If this
+               computer software and computer  software      
+            documentation qualify as "commercial items" (as  
+             that term is defined in FAR 2.101), their use,  
+            duplication or disclosure by the U.S. Government 
+           is subject to the protections and restrictions as 
+            set forth in the Siemens commercial license for  
+            software and/or documentation, as prescribed in  
+           FAR 12.212 and FAR 27.405(b)(2)(i) (for civilian  
+             agencies) and in DFARS 227.7202-1(a) and DFARS  
+           227.7202-3(a) (for the Department of Defense), or 
+           any successor or similar regulation, as applicable
+           or as amended from time to time.  If this computer
+           software and computer documentation do not qualify
+            as "commercial items", then they are "restricted 
+           computer software" and are provided with "restric-
+            tive rights", and their use, duplication or dis- 
+            closure by the U.S. Government is subject to the 
+            protections and restrictions as set forth in FAR 
+           27.404(b) and FAR 52-227-14 (for civilian agencies
+           ), and DFARS 227.7203-5(c) and DFARS 252.227-7014 
+           (for the Department of Defense), or any successor 
+           or similar regulation, as applicable or as amended
+              from time to time.  Siemens PLM Software Inc.  
+            5800 Granite Parkway, Suite 600, Plano, TX 75024 
+
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *       N X   N a s t r a n       * *
+                * *                                 * *
+                * *         VERSION -   9.1         * *
+                * *                                 * *
+                * *          MAY  1, 2014           * *
+                * *                                 * *
+                * *                                 * *
+                * *       X86_64 Based System       * *
+                * *                                 * *
+                * *MODEL x86_64 Intel/2400.066895MH * *
+                * *                                 * *
+                * * Linux 2.6.32-504.3.3.el6.x86_64 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+1                                                                          FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=8193 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[3])                    
+     NASTRAN DIAGA=160 DIAGB=0 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[6])                
+     NASTRAN SYSTEM(551)=1 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[8])                    
+     NASTRAN BUFFSIZE=65537 $(/HOME/LOADS/TWIDRICK/.NAST9RC[4])                      
+     $                                                                               
+     ASSIGN MASTER ='drm1.master', DELETE                                            
+     ASSIGN DBALL  ='drm1.dball', DELETE                                             
+     INIT DBALL , LOGICAL = (DBALL(99000))                                           
+     $                                                                               
+     ASSIGN SE102 ='inboard.master'                                                  
+     ASSIGN SE102A='inboard.dball'                                                   
+     DBLOCATE LOGICAL=SE102                                                          
+     $                                                                               
+1                                                                          FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     DIAG 8,47                                                                               
+     SOL DRM1                                                                                
+     COMPILE DRM1,NOLIST,NOREF                                                               
+     $                                                                                       
+     ECHOOFF                                                                                 
+     (SEE NASTRAN SOURCE PROGRAM COMPILATION FOR LISTING OF DMAP SEQUENCE)
+     END $                                                                                   
+     $                                                                                       
+     CEND                                                                                    
+1                                                                          FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** SYSTEM INFORMATION MESSAGE 482 (LCDRVR)
+          165 DATABLOCK(S) HAVE BEEN LOCATED ON THE SE102 DATABASE.
+ *** SYSTEM INFORMATION MESSAGE 482 (LCDRVR)
+           57 PARAMETER(S) HAVE BEEN LOCATED ON THE SE102 DATABASE.
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1      TITLE    = DATA RECOVERY MATRICES - PHASE 1                                             
+                  2      $                                                                                       
+                  3      ECHO = NONE             $ DO NOT PRINT BULK DATA DECK                                   
+                  4      $                                                                                       
+                  5      ACCELERATION(PLOT) = ALL                                                                
+                  6      DISPLACEMENT(PLOT) = ALL                                                                
+                  7      $                                                                                       
+                  8      SUBCASE 1                                                                               
+                  9        SUPER 102                                                                             
+                 10      $                                                                                       
+                 11      SUBCASE 1000                                                                            
+                 12        LABEL = RESIDUAL STRUCTURE                                                            
+                 13      $                                                                                       
+                 14      BEGIN BULK                                                                              
+0                             INPUT BULK DATA ENTRY COUNT =           3
+0                       TOTAL COUNT=         3
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ AA       SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ AG       SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ AGG      SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ AXIC     SE102    DBALL                                        0        0        0        0        0 160216 112610
+ BAA      SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ BDICT    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BEC      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BELM     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BFF      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BGG      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BGPDT    SE102    DBALL                                       86        0      216        2       60 160216 112610
+ BGPDTS   SE102    DBALL           102                         86        0      216        2       60 160216 112610
+ BGPDTS   SE102    DBALL             0                         64        0       84        2       60 160216 112610
+ BJJ      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BK4ZZ    SE102    DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ BMG      SE102    DBALL           102           0              0        0        0        0        0 160216 112610
+ BSF      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ BSS      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ BTOPO    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BULK     SE102    DBALL      -1    -1                          1        0        0        0        0 160216 112610
+ CASECCR  SE102    MASTER                                       2        0      613        0        0 160216 112610
+ CASEDR   SE102    DBALL     102   102                          1        0      613        0        0 160216 112610
+ CASEDR   SE102    DBALL       0     0                          1        0      613        0        0 160216 112610
+ CASES    SE102    DBALL       0     0                          1        0      613        0        0 160216 112610
+ CASES    SE102    DBALL     102   102                          1        0      613        0        0 160216 112610
+ CASESX   SE102    DBALL     102   102                          1        0      613        0        0 160216 112610
+ CASESX   SE102    DBALL       0     0                          1        0      613        0        0 160216 112610
+ CEE      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ CMLAMA   SE102    DBALL           102     0     0     1       54        0        0        0        0 160216 112610
+ CMMAT    SE102    DBALL           102     0     0     1        5       60        2        1       60 160216 112610
+ CMMI     SE102    DBALL           102     0     0     1       54       54        6        2        2 160216 112610
+ CMPHA    SE102    DBALL           102     0     0     1       54       84        2        2        0 160216 112610
+ CMPHO    SE102    DBALL           102     0     0     1       54      132        2        2      264 160216 112610
+ CMPHRC   SE102    DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ COMPEST  SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ CSTMS    SE102    DBALL           102                         86        1        1        2       12 160216 112610
+ CSTMS    SE102    DBALL             0                         64        1        1        2       12 160216 112610
+ DIT      SE102    DBALL                                        0        0        0        0        0 160216 112610
+ DITID    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ DITS     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ DITS     SE102    DBALL             0                          0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ DKFF     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ DMFF     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ DRG      SE102    DBALL             0                         84        6        2        2        6 160216 112610
+ DRG      SE102    DBALL           102                        216        6        2        2        6 160216 112610
+ DYNAMIC  SE102    DBALL                                      256        0        0        0        0 160216 112610
+ DYNAMICS SE102    DBALL           102                        256        0        0        0        0 160216 112610
+ DYNAMICS SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ ECTAS    SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ ECTAS    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ ECTS     SE102    DBALL           102                          0      256        0    32768        0 160216 112610
+ ECTS     SE102    DBALL             0                          0        0        0    32768        0 160216 112610
+ EDOM     SE102    DBALL                                        0        0        0        0        0 160216 112610
+ EDT      SE102    DBALL                                        0        0        0        0        0 160216 112610
+ EDTS     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ EDTS     SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ EMAP     SE102    DBALL                                        2       86       60        2        0 160216 112610
+ EPSSEO   SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ EPT      SE102    DBALL                                        0     4096        0        0        0 160216 112610
+ EPTS     SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ EPTS     SE102    DBALL           102                          0     4096        0        0        0 160216 112610
+ EQEXINS  SE102    DBALL             0                         64        0        0        0        0 160216 112610
+ EQEXINS  SE102    DBALL           102                         86        0        0        0        0 160216 112610
+ EST      SE102    DBALL           102                         66        0        0       16        0 160216 112610
+ ESTL     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ ESTNL    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ ETT      SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ ETT      SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ GEOM1    SE102    DBALL                                        0     2048        8      256        2 160216 112610
+ GEOM1Q   SE102    DBALL                                        0     2048        8      256        2 160216 112610
+ GEOM1QS  SE102    DBALL            -1                          0     2048        8      256        2 160216 112610
+ GEOM1S   SE102    DBALL             0                          0     2048        8        0        0 160216 112610
+ GEOM1S   SE102    DBALL           102                          0     2048        8        0        0 160216 112610
+ GEOM2    SE102    DBALL                                        0      256        0    32768        0 160216 112610
+ GEOM2S   SE102    DBALL           102                          0      256        0    32768        0 160216 112610
+ GEOM2S   SE102    DBALL             0                          0        0        0    32768        0 160216 112610
+ GEOM2S   SE102    DBALL            -1                          0      256        0    32768        0 160216 112610
+ GEOM3    SE102    DBALL                                        0        0        0        0        0 160216 112610
+ GEOM3S   SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ GEOM3S   SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ GEOM4    SE102    DBALL                                       16        0        0        0        0 160216 112610
+ GEOM4QS  SE102    DBALL            -1                         16        0        0        0        0 160216 112610
+ GEOM4S   SE102    DBALL           102                       1024        0        0        0       16 160216 112610
+ GEOM4S   SE102    DBALL             0                         16        0        0        0        0 160216 112610
+ GGE      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ GM       SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ GNELM    SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ GOQ      SE102    DBALL           102     0     0     1       60      132        2        2      264 160216 112610
+ GOT      SE102    DBALL           102     0     0             24      132        2        2      264 160216 112610
+ GPDTS    SE102    DBALL             0                         64       10        0        2        0 160216 112610
+ GPDTS    SE102    DBALL           102                         86       10        0        2        0 160216 112610
+ GPECT    SE102    DBALL           102                        323       86        6       12       14 160216 112610
+ GPECTG   SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ GPLS     SE102    DBALL           102                         86        0        0        0        0 160216 112610
+ GPLS     SE102    DBALL             0                         64        0        0        0        0 160216 112610
+ GPSNTS   SE102    DBALL           102                          0        0        0        2        0 160216 112610
+ GPSNTS   SE102    DBALL             0                          0        0        0        2        0 160216 112610
+ INDTA    SE102    DBALL                                        0        0        0        0        0 160216 112610
+ K4AA     SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ K4DICT   SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4ELM    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4FF     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4GG     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4JJ     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4MG     SE102    DBALL           102           0              0        0        0        0        0 160216 112610
+ K4SF     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ K4SS     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KAA      SE102    DBALL     102   102     0     0             84       84        6        2       48 160216 112610
+ KDICT    SE102    DBALL           102                          2       12        0       78        0 160216 112610
+ KELM     SE102    DBALL           102                         66       78        2        2      148 160216 112610
+ KFF      SE102    DBALL           102     0     0            216      216        6        2       72 160216 112610
+ KFS      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KGG      SE102    DBALL           102                        216      216        6        2       72 160216 112610
+ KJJ      SE102    DBALL           102                        216      216        6        2       72 160216 112610
+ KMG      SE102    DBALL           102           0              0        0        0        0        0 160216 112610
+ KNN      SE102    DBALL           102           0            216      216        6        2       72 160216 112610
+ KQQ      SE102    DBALL     102   102     0     0     1       60       60        6        2        2 160216 112610
+ KSF      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KSS      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KTT      SE102    DBALL           102     0     0             24       24        6        2       48 160216 112610
+ LOO      SE102    DBALL           102     0     0            132      132       13        2        8 160216 112610
+ MAA      SE102    DBALL     102   102     0     0             84       84        6        2      168 160216 112610
+ MAPS     SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ MAPS     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ MAR      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MATPOOL  SE102    DBALL                                        0        0        0        0        0 160216 112610
+ MATPOOLS SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ MATPOOLS SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MDICT    SE102    DBALL           102                          2       12        0       78        0 160216 112610
+ MEC      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MEE      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ MELM     SE102    DBALL           102                         66       78        2        2      152 160216 112610
+ MFF      SE102    DBALL           102     0     0            216      216        6        2       72 160216 112610
+ MGG      SE102    DBALL           102                        216      216        6        2       72 160216 112610
+ MJE      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MJJ      SE102    DBALL           102                        216      216        6        2       72 160216 112610
+ MJJ1     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MMG      SE102    DBALL           102           0              0        0        0        0        0 160216 112610
+ MPHVZ    SE102    DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ MPT      SE102    DBALL                                    32768        0        0        0        0 160216 112610
+ MPTS     SE102    DBALL           102                      32768        0        0        0        0 160216 112610
+ MPTS     SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ MQQ      SE102    DBALL     102   102     0     0     1       60       60        6        2        2 160216 112610
+ MQT      SE102    DBALL     102   102     0     0     1       24       60        2        2      120 160216 112610
+ MSF      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ MSS      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ MTT      SE102    DBALL           102     0     0             24       24        6        2       48 160216 112610
+ MVAA     SE102    DBALL     102   102     0     0     1        0        0        0        0        0 160216 112610
+ ORSEQ    SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ PA       SE102    DBALL     102   102     0     0              1       84        2        2        0 160216 112610
+ PBYA     SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PBYG     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ PCOMPT   SE102    DBALL                                        0        0        0        0        0 160216 112610
+ PCOMPTS  SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ PCOMPTS  SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ PG       SE102    DBALL     102   102                          1      216        2        2        0 160216 112610
+ PHG      SE102    DBALL     102   102     0     0     1       54      216        2        2      264 160216 112610
+ PHQG     SE102    DBALL     102   102     0     0     1        0        0        0        0        0 160216 112610
+ PJ       SE102    DBALL     102   102                          1      216        2        2        0 160216 112610
+ PKYA     SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PKYG     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ PMYA     SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PMYG     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ PSS      SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PTELEM   SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ PVT      SE102    DBALL                                     2668        0        0        0        0 160216 112610
+ PVTBC    SE102    DBALL           102     0     0           2668        0        1        1        0 160216 112610
+ PVTBC    SE102    DBALL             0     0     0           2668        0        1        2        0 160216 112610
+ PVTS     SE102    DBALL     102   102                       2668        0        1        1        0 160216 112610
+ PVTS     SE102    DBALL       0     0                       2668        0        1        2        0 160216 112610
+ RMG      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ RMG      SE102    DBALL             0     0     0              0        0        0        0        0 160216 112610
+ RMLM     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ RVA      SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ RVG      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ SCSTM    SE102    DBALL                                        0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ SESUM    SE102    MASTER    102   102                          0        0        0        0        0 160216 112610
+ SETREE   SE102    DBALL                                        0        0        0        0        0 160216 112610
+ SGPDT    SE102    DBALL                                        0        0        0        0        0 160216 112610
+ SGPDTS   SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ SGPDTS   SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ SILS     SE102    DBALL             0                         64       84        0        0        0 160216 112610
+ SILS     SE102    DBALL           102                         86      216        0        0        0 160216 112610
+ SLIST    SE102    DBALL                                        2       86       60        2        0 160216 112610
+ SLT      SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ SLT      SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ SPECSEL  SE102    DBALL                                        0        0        0        0        0 160216 112610
+ UOO      SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ USET     SE102    DBALL           102     0     0              0      216       64        6        0 160216 112610
+ USET0    SE102    DBALL             0     0     0              0       84        0        2        0 160216 112610
+ USET0    SE102    DBALL           102     0     0              0      216       64        6        0 160216 112610
+ VAQ      SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ VAQ      SE102    DBALL           102                          1       84        2        2        0 160216 112610
+ VELEM    SE102    DBALL           102                          1        1        1        1        1 160216 112610
+ VGFD     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ VGFS     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ VGFS     SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ YG       SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ YG       SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ YS       SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ ZUZR11   SE102    DBALL    'RBG     '     0   102     0        6      216        2        2      132 160216 112610
+ ZUZR11   SE102    DBALL    'RBGN    '     0   102     0        6      216        2        2      132 160216 112610
+ ZUZR11   SE102    DBALL    'VQB     '     0   102     0        1       84        2        2       48 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    11
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    12
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT        0 IS NOW INITIATED.
+ ^^^ENDDR =          1 
+ ^^^SEID  =          0 
+ ^^^PEID  =          0 
+ ^^^SEDWN =          0 
+ ^^^NODR  =          1 
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    13
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT      102 IS NOW INITIATED.
+ ^^^ENDDR =         -1 
+ ^^^SEID  =        102 
+ ^^^PEID  =        102 
+ ^^^SEDWN =          0 
+ ^^^NODR  =          1 
+ *** USER WARNING MESSAGE 2125 (VEC)
+     MODULE VEC - NZ=0, ONE OR MORE COLUMNS OF OUTPUT MATRIX WILL BE NULL.
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    14
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                DRMBDOF                                                                                                            
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+
+ COLUMN           1
+          3 T1  1.00000E+00         3 T2  1.00000E+00         3 T3  1.00000E+00         3 R1  1.00000E+00         3 R2  1.00000E+00
+          3 R3  1.00000E+00        11 T1  1.00000E+00        11 T2  1.00000E+00        11 T3  1.00000E+00        11 R1  1.00000E+00
+         11 R2  1.00000E+00        11 R3  1.00000E+00        19 T1  1.00000E+00        19 T2  1.00000E+00        19 T3  1.00000E+00
+         19 R1  1.00000E+00        19 R2  1.00000E+00        19 R3  1.00000E+00        27 T1  1.00000E+00        27 T2  1.00000E+00
+         27 T3  1.00000E+00        27 R1  1.00000E+00        27 R2  1.00000E+00        27 R3  1.00000E+00   2995001  S  1.00000E+00
+    2995002  S  1.00000E+00   2995003  S  1.00000E+00   2995004  S  1.00000E+00   2995005  S  1.00000E+00   2995006  S  1.00000E+00
+    2995007  S  1.00000E+00   2995008  S  1.00000E+00   2995009  S  1.00000E+00   2995010  S  1.00000E+00   2995011  S  1.00000E+00
+    2995012  S  1.00000E+00   2995013  S  1.00000E+00   2995014  S  1.00000E+00   2995015  S  1.00000E+00   2995016  S  1.00000E+00
+    2995017  S  1.00000E+00   2995018  S  1.00000E+00   2995019  S  1.00000E+00   2995020  S  1.00000E+00   2995021  S  1.00000E+00
+    2995022  S  1.00000E+00   2995023  S  1.00000E+00   2995024  S  1.00000E+00   2995025  S  1.00000E+00   2995026  S  1.00000E+00
+    2995027  S  1.00000E+00   2995028  S  1.00000E+00   2995029  S  1.00000E+00   2995030  S  1.00000E+00   2995031  S  1.00000E+00
+    2995032  S  1.00000E+00   2995033  S  1.00000E+00   2995034  S  1.00000E+00   2995035  S  1.00000E+00   2995036  S  1.00000E+00
+    2995037  S  1.00000E+00   2995038  S  1.00000E+00   2995039  S  1.00000E+00   2995040  S  1.00000E+00   2995041  S  1.00000E+00
+    2995042  S  1.00000E+00   2995043  S  1.00000E+00   2995044  S  1.00000E+00   2995045  S  1.00000E+00   2995046  S  1.00000E+00
+    2995047  S  1.00000E+00   2995048  S  1.00000E+00   2995049  S  1.00000E+00   2995050  S  1.00000E+00   2995051  S  1.00000E+00
+    2995052  S  1.00000E+00   2995053  S  1.00000E+00   2995054  S  1.00000E+00   2995055  S  1.00000E+00   2995056  S  1.00000E+00
+    2995057  S  1.00000E+00   2995058  S  1.00000E+00   2995059  S  1.00000E+00   2995060  S  1.00000E+00
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    15
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0      MATRIX VSTATDYN (GINO NAME 101 ) IS A DB  PREC           1 COLUMN X          84 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS     25 THRU     84     --------------------------------------------------
+    ROW 
+     25)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+     35)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+     45)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+     55)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+     65)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+     75)    1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00  1.0000D+00
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      60
+0THE DENSITY OF THIS MATRIX IS  71.43 PERCENT.
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK VSTATDYN         0       102 (TRAILER =          1        84         2         2       120      7143         3     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK DRMLAMA          0       102 (TRAILER =         84         3         2         2         4      6667         1     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK URBT             0       102 (TRAILER =          6        24         2         2        20      2778         3     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK URBA             0       102 (TRAILER =          3        84         2         2         8       476         3     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+ ^^^ SYSTEM INFORMATION MESSAGE 9267 (DBFTCH)    
+ ^^^DRMLAMA          0       102 (TRAILER =         84         3         2         2         4      6667         1                 
+    ) HAS BEEN FETCHED FROM THE DATABASE 
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    16
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ AA       SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ AG       SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ AGG      SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ AXIC     SE102    DBALL                                        0        0        0        0        0 160216 112610
+ BAA      SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ BDICT    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BEC      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BELM     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BFF      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BGG      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BGPDT    SE102    DBALL                                       86        0      216        2       60 160216 112610
+ BGPDTS   SE102    DBALL           102                         86        0      216        2       60 160216 112610
+ BGPDTS   SE102    DBALL             0                         64        0       84        2       60 160216 112610
+ BJJ      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BK4ZZ    SE102    DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ BMG      SE102    DBALL           102           0              0        0        0        0        0 160216 112610
+ BSF      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ BSS      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ BTOPO    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ BULK     SE102    DBALL      -1    -1                          1        0        0        0        0 160216 112610
+ CASECCR  SE102    MASTER                                       2        0      613        0        0 160216 112610
+ CASEDR   SE102    DBALL     102   102                          1        0      613        0        0 160216 112610
+ CASEDR   SE102    DBALL       0     0                          1        0      613        0        0 160216 112610
+ CASES    SE102    DBALL       0     0                          1        0      613        0        0 160216 112610
+ CASES    SE102    DBALL     102   102                          1        0      613        0        0 160216 112610
+ CASESX   SE102    DBALL     102   102                          1        0      613        0        0 160216 112610
+ CASESX   SE102    DBALL       0     0                          1        0      613        0        0 160216 112610
+ CEE      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ CMLAMA   SE102    DBALL           102     0     0     1       54        0        0        0        0 160216 112610
+ CMMAT    SE102    DBALL           102     0     0     1        5       60        2        1       60 160216 112610
+ CMMI     SE102    DBALL           102     0     0     1       54       54        6        2        2 160216 112610
+ CMPHA    SE102    DBALL           102     0     0     1       54       84        2        2        0 160216 112610
+ CMPHO    SE102    DBALL           102     0     0     1       54      132        2        2      264 160216 112610
+ CMPHRC   SE102    DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ COMPEST  SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ CSTMS    SE102    DBALL           102                         86        1        1        2       12 160216 112610
+ CSTMS    SE102    DBALL             0                         64        1        1        2       12 160216 112610
+ DIT      SE102    DBALL                                        0        0        0        0        0 160216 112610
+ DITID    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ DITS     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ DITS     SE102    DBALL             0                          0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    17
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ DKFF     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ DMFF     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ DRG      SE102    DBALL             0                         84        6        2        2        6 160216 112610
+ DRG      SE102    DBALL           102                        216        6        2        2        6 160216 112610
+ DYNAMIC  SE102    DBALL                                      256        0        0        0        0 160216 112610
+ DYNAMICS SE102    DBALL           102                        256        0        0        0        0 160216 112610
+ DYNAMICS SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ ECTAS    SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ ECTAS    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ ECTS     SE102    DBALL           102                          0      256        0    32768        0 160216 112610
+ ECTS     SE102    DBALL             0                          0        0        0    32768        0 160216 112610
+ EDOM     SE102    DBALL                                        0        0        0        0        0 160216 112610
+ EDT      SE102    DBALL                                        0        0        0        0        0 160216 112610
+ EDTS     SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ EDTS     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ EMAP     SE102    DBALL                                        2       86       60        2        0 160216 112610
+ EPSSEO   SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ EPT      SE102    DBALL                                        0     4096        0        0        0 160216 112610
+ EPTS     SE102    DBALL           102                          0     4096        0        0        0 160216 112610
+ EPTS     SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ EQEXINS  SE102    DBALL           102                         86        0        0        0        0 160216 112610
+ EQEXINS  SE102    DBALL             0                         64        0        0        0        0 160216 112610
+ EST      SE102    DBALL           102                         66        0        0       16        0 160216 112610
+ ESTL     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ ESTNL    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ ETT      SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ ETT      SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ GEOM1    SE102    DBALL                                        0     2048        8      256        2 160216 112610
+ GEOM1Q   SE102    DBALL                                        0     2048        8      256        2 160216 112610
+ GEOM1QS  SE102    DBALL            -1                          0     2048        8      256        2 160216 112610
+ GEOM1S   SE102    DBALL             0                          0     2048        8        0        0 160216 112610
+ GEOM1S   SE102    DBALL           102                          0     2048        8        0        0 160216 112610
+ GEOM2    SE102    DBALL                                        0      256        0    32768        0 160216 112610
+ GEOM2S   SE102    DBALL            -1                          0      256        0    32768        0 160216 112610
+ GEOM2S   SE102    DBALL             0                          0        0        0    32768        0 160216 112610
+ GEOM2S   SE102    DBALL           102                          0      256        0    32768        0 160216 112610
+ GEOM3    SE102    DBALL                                        0        0        0        0        0 160216 112610
+ GEOM3S   SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ GEOM3S   SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ GEOM4    SE102    DBALL                                       16        0        0        0        0 160216 112610
+ GEOM4QS  SE102    DBALL            -1                         16        0        0        0        0 160216 112610
+ GEOM4S   SE102    DBALL             0                         16        0        0        0        0 160216 112610
+ GEOM4S   SE102    DBALL           102                       1024        0        0        0       16 160216 112610
+ GGE      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ GM       SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    18
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ GNELM    SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ GOQ      SE102    DBALL           102     0     0     1       60      132        2        2      264 160216 112610
+ GOT      SE102    DBALL           102     0     0             24      132        2        2      264 160216 112610
+ GPDTS    SE102    DBALL             0                         64       10        0        2        0 160216 112610
+ GPDTS    SE102    DBALL           102                         86       10        0        2        0 160216 112610
+ GPECT    SE102    DBALL           102                        323       86        6       12       14 160216 112610
+ GPECTG   SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ GPLS     SE102    DBALL           102                         86        0        0        0        0 160216 112610
+ GPLS     SE102    DBALL             0                         64        0        0        0        0 160216 112610
+ GPSNTS   SE102    DBALL           102                          0        0        0        2        0 160216 112610
+ GPSNTS   SE102    DBALL             0                          0        0        0        2        0 160216 112610
+ INDTA    SE102    DBALL                                        0        0        0        0        0 160216 112610
+ K4AA     SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ K4DICT   SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4ELM    SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4FF     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4GG     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4JJ     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ K4MG     SE102    DBALL           102           0              0        0        0        0        0 160216 112610
+ K4SF     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ K4SS     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KAA      SE102    DBALL     102   102     0     0             84       84        6        2       48 160216 112610
+ KDICT    SE102    DBALL           102                          2       12        0       78        0 160216 112610
+ KELM     SE102    DBALL           102                         66       78        2        2      148 160216 112610
+ KFF      SE102    DBALL           102     0     0            216      216        6        2       72 160216 112610
+ KFS      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KGG      SE102    DBALL           102                        216      216        6        2       72 160216 112610
+ KJJ      SE102    DBALL           102                        216      216        6        2       72 160216 112610
+ KMG      SE102    DBALL           102           0              0        0        0        0        0 160216 112610
+ KNN      SE102    DBALL           102           0            216      216        6        2       72 160216 112610
+ KQQ      SE102    DBALL     102   102     0     0     1       60       60        6        2        2 160216 112610
+ KSF      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KSS      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KTT      SE102    DBALL           102     0     0             24       24        6        2       48 160216 112610
+ LOO      SE102    DBALL           102     0     0            132      132       13        2        8 160216 112610
+ MAA      SE102    DBALL     102   102     0     0             84       84        6        2      168 160216 112610
+ MAPS     SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ MAPS     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ MAR      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MATPOOL  SE102    DBALL                                        0        0        0        0        0 160216 112610
+ MATPOOLS SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ MATPOOLS SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MDICT    SE102    DBALL           102                          2       12        0       78        0 160216 112610
+ MEC      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MEE      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    19
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ MELM     SE102    DBALL           102                         66       78        2        2      152 160216 112610
+ MFF      SE102    DBALL           102     0     0            216      216        6        2       72 160216 112610
+ MGG      SE102    DBALL           102                        216      216        6        2       72 160216 112610
+ MJE      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MJJ      SE102    DBALL           102                        216      216        6        2       72 160216 112610
+ MJJ1     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ MMG      SE102    DBALL           102           0              0        0        0        0        0 160216 112610
+ MPHVZ    SE102    DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ MPT      SE102    DBALL                                    32768        0        0        0        0 160216 112610
+ MPTS     SE102    DBALL           102                      32768        0        0        0        0 160216 112610
+ MPTS     SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ MQQ      SE102    DBALL     102   102     0     0     1       60       60        6        2        2 160216 112610
+ MQT      SE102    DBALL     102   102     0     0     1       24       60        2        2      120 160216 112610
+ MSF      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ MSS      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ MTT      SE102    DBALL           102     0     0             24       24        6        2       48 160216 112610
+ MVAA     SE102    DBALL     102   102     0     0     1        0        0        0        0        0 160216 112610
+ ORSEQ    SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ PA       SE102    DBALL     102   102     0     0              1       84        2        2        0 160216 112610
+ PBYA     SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PBYG     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ PCOMPT   SE102    DBALL                                        0        0        0        0        0 160216 112610
+ PCOMPTS  SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ PCOMPTS  SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ PG       SE102    DBALL     102   102                          1      216        2        2        0 160216 112610
+ PHG      MASTER   DBALL     102   102     0     0     1       84       84        6        2        2 160216 112610
+ PHQG     SE102    DBALL     102   102     0     0     1        0        0        0        0        0 160216 112610
+ PJ       SE102    DBALL     102   102                          1      216        2        2        0 160216 112610
+ PKYA     SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PKYG     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ PMYA     SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PMYG     SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ PSS      SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PTELEM   SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ PVT      SE102    DBALL                                     2668        0        0        0        0 160216 112610
+ PVTBC    SE102    DBALL             0     0     0           2668        0        1        2        0 160216 112610
+ PVTBC    SE102    DBALL           102     0     0           2668        0        1        1        0 160216 112610
+ PVTS     SE102    DBALL     102   102                       2668        0        1        1        0 160216 112610
+ PVTS     SE102    DBALL       0     0                       2668        0        1        2        0 160216 112610
+ RMG      SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ RMG      SE102    DBALL             0     0     0              0        0        0        0        0 160216 112610
+ RMLM     SE102    DBALL           102     0     0              0        0        0        0        0 160216 112610
+ RVA      SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ RVG      SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ SCSTM    SE102    DBALL                                        0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    20
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ SESUM    SE102    MASTER    102   102                          0        0        0        0        0 160216 112610
+ SETREE   SE102    DBALL                                        0        0        0        0        0 160216 112610
+ SGPDT    SE102    DBALL                                        0        0        0        0        0 160216 112610
+ SGPDTS   SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ SGPDTS   SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ SILS     SE102    DBALL           102                         86      216        0        0        0 160216 112610
+ SILS     SE102    DBALL             0                         64       84        0        0        0 160216 112610
+ SLIST    SE102    DBALL                                        2       86       60        2        0 160216 112610
+ SLT      SE102    DBALL     102   102                          0        0        0        0        0 160216 112610
+ SLT      SE102    DBALL       0     0                          0        0        0        0        0 160216 112610
+ SPECSEL  SE102    DBALL                                        0        0        0        0        0 160216 112610
+ UG       MASTER   DBALL     102   102                         84      216        2        2      266 160216 112642
+ UOO      SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ USET     SE102    DBALL           102     0     0              0      216       64        6        0 160216 112610
+ USET0    SE102    DBALL             0     0     0              0       84        0        2        0 160216 112610
+ USET0    SE102    DBALL           102     0     0              0      216       64        6        0 160216 112610
+ VAQ      SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ VAQ      SE102    DBALL           102                          1       84        2        2        0 160216 112610
+ VELEM    SE102    DBALL           102                          1        1        1        1        1 160216 112610
+ VGFD     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ VGFS     SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ VGFS     SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ YG       SE102    DBALL           102                          0        0        0        0        0 160216 112610
+ YG       SE102    DBALL             0                          0        0        0        0        0 160216 112610
+ YS       SE102    DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    21
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ ZUZR11   SE102    DBALL    'RBG     '     0   102     0        6      216        2        2      132 160216 112610
+ ZUZR11   MASTER   DBALL    'URBT    '     0   102     0        6       24        2        2       20 160216 112642
+ ZUZR11   MASTER   DBALL    'DRMLAMA '     0   102     0       84        3        2        2        4 160216 112642
+ ZUZR11   MASTER   DBALL    'VSTATDYN'     0   102     0        1       84        2        2      120 160216 112642
+ ZUZR11   SE102    DBALL    'VQB     '     0   102     0        1       84        2        2       48 160216 112610
+ ZUZR11   SE102    DBALL    'RBGN    '     0   102     0        6      216        2        2      132 160216 112610
+ ZUZR11   MASTER   DBALL    'URBA    '     0   102     0        3       84        2        2        8 160216 112642
+1    DATA RECOVERY MATRICES - PHASE 1                                      FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    22
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+1                                        * * * END OF JOB * * *

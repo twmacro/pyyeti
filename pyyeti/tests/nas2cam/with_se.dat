@@ -1,0 +1,292 @@
+INIT MASTER(S)  $ delete .MASTER and .DBALL files on exit
+
+$ NAS2CAM op2/op4 files:
+assign output2 = 'with_se_nas2cam.op2', status=new,
+                 unit=29,delete $
+assign output4 = 'with_se_nas2cam.op4', status=new,
+                 unit=30,form=unformatted,delete $
+
+SOL 103
+echooff
+include '/loads/nx_dmaps/v9/nas2cam_103.v9'
+include '/loads/nx_dmaps/v9/nas2cam_subdmap.v9'
+INCLUDE '/loads/nx_dmaps/v9/getqpart.v9'
+INCLUDE '/loads/nx_dmaps/v9/dbdalter.v9'
+INCLUDE '/loads/nx_dmaps/v9/sysmodes.v9'
+echoon
+CEND
+TITLE = NORMAL MODES ANALYSIS USING COMPONENT MODE SYNTHESIS
+DISP(PLOT) = ALL
+SUBCASE 1
+ LABEL = OUTBOARD TRUSS SECTION
+ SUPER = 100
+ METHOD = 100
+SUBCASE 2
+ LABEL = 4 BAY TRUSS SECTION
+ SUPER = 200
+ METHOD = 200
+SUBCASE 3
+ LABEL = TOP PV ARRAY
+ SUPER = 300
+ METHOD = 300
+SUBCASE 4
+ LABEL = BOTTOM PV ARRAY
+ SUPER = 400
+ METHOD = 400
+SUBCASE 5
+ LABEL = TOTAL SYSTEM
+ METHOD = 500
+BEGIN BULK
+$-------------------------------------------------------------------
+$ NAS2CAM input:
+PARAM,DBDICT,0
+$PARAM,RMCSET,1
+PARAM,PRFMODES,1
+$
+$ $ TO GET THE "GOT" MATRIX FOR SPECIFIED SUPERELEMENTS:
+$ DTI,TGOT,1,50  $ WANT GOT FOR SE 50 ONLY
+$
+$ DTI,TMGG,1,50
+$ DTI,TKGG,1,50
+$ DTI,TRBG,1,50
+$
+$
+$DTI,TMAA,1,141,142,143,144,145,0
+$DTI,TKAA,1,141,142,143,144,145,0
+$DTI,TMAA,1,0
+$
+$ DTI,TKAA,1,0
+DTI,TGOT,1,100
+DTI,TGOQ,1,100
+DTI,TGM,1,0,100
+DTI,TPHG,1,0
+$param,pbaa,1
+$param,pbhh,1
+$
+$-------------------------------------------------------------------
+PARAM,AUTOSPC,YES
+PARAM,COUPMASS,1
+$*****************************************
+$********** DEFINE GRID POINTS ***********
+$*****************************************
+$
+GRID,1,,0.,0.,300.              $ THESE GRID PTS. DEFINE THE TRUSS
+=,*1,,*300.,==
+=6
+GRID,9,,0.,300.,300.
+=,*1,,*300.,==
+=6
+GRID,17,,0.,300.,0.
+=,*1,,*300.,==
+=6
+GRID,25,,0.,0.,0.
+=,*1,,*300.,==
+=6
+$
+GRID,33,,630.,150.,150.         $ CONNECT POINTS FOR THE ALPHA JOINT
+=,34,,870.,==
+$
+GRID,35,,150.,-30.,150.         $ CONNECT POINTS FOR THE PV ARRAYS
+=,36,,=,330.,==
+=,*1,,=,*300.,==                $ THESE NEXT FOUR GO UP PV ARRAY
+=3
+$
+GRID,41,,-150.,1530.,150.       $ CROSS BAR END PTS OF TOP PV ARRAY
+GRID,42,,450.,1530.,150.
+$
+GRID,43,,150.,-330.,150.        $ BOTTOM PV ARRAY
+=,*1,,=,*-300.,==
+=2
+$
+GRID,47,,-150.,-1230.,150.      $ CROSS BAR ON BOTTOM PV
+GRID,48,,450.,-1230.,150.
+$
+$*****************************************
+$********** DEFINE ELEMENTS **************
+$*****************************************
+$
+CBAR,1,100,1,2,10               $ TRUSS MEMBERS: X-DIRECTION
+=,2,=,2,3,=
+CBAR,3,100,4,5,13
+=,*1,=,*1,*1,=
+=2
+CBAR,7,100,9,10,2
+=,8,=,10,11,=
+CBAR,9,100,12,13,5
+=,*1,=,*1,*1,=
+=2
+CBAR,13,100,17,18,26
+=,14,=,18,19,=
+CBAR,15,100,20,21,29
+=,*1,=,*1,*1,=
+=2
+CBAR,19,100,25,26,18
+=,20,=,26,27,=
+CBAR,21,100,28,29,21
+=,*1,=,*1,*1,=
+=2
+$
+CBAR,25,100,1,9,150.,150.,300.    $ TRUSS MEMBERS: Y-DIRECTION
+=,*1,=,*1,*1,==
+=6
+CBAR,33,100,17,25,150.,150.,0.
+=,*1,=,*1,*1,==
+=6
+$
+CBAR,41,100,1,25,150.,0.,150.     $ TRUSS MEMBERS: Z-DIRECTION
+=,*1,=,*1,*1,==
+=6
+CBAR,49,100,9,17,150.,300.,150.
+=,*1,=,*1,*1,==
+=6
+$
+CBAR,57,100,9,25,17             $ TRUSS MEMBERS: INSIDE DIAGONALS
+=,*2,=,*2,*2,*2
+=2
+CBAR,58,100,2,18,26
+=,*2,=,*2,*2,*2
+=2
+$
+CBAR,65,100,1,10,9              $ TRUSS MEMBERS: FRONT FACING DIAGONALS
+=,66,=,3,10,11
+=,67,=,5,12,13
+=,68,=,5,14,13
+=,69,=,7,14,15
+=,70,=,7,16,15
+$
+CBAR,71,100,9,18,17             $ TRUSS MEMBERS: TOP DIAGONALS
+=,72,=,11,18,19
+=,73,=,13,20,21
+=,74,=,13,22,21
+=,75,=,15,22,23
+=,76,=,15,24,23
+$
+CBAR,77,100,17,26,18            $ TRUSS MEMBERS: REAR DIAGONALS
+=,78,=,19,26,18
+=,79,=,21,28,20
+=,80,=,21,30,22
+=,81,=,23,30,22
+=,82,=,23,32,24
+$
+CBAR,83,100,2,25,26             $ TRUSS MEMBERS: BOTTOM DIAGONALS
+=,84,=,2,27,26
+=,85,=,4,29,5
+=,86,=,6,29,5
+=,87,=,6,31,7
+=,88,=,8,31,7
+$
+CBAR,89,101,33,34,36            $ ALPHA JOINT
+$
+CBAR,90,102,3,33,34             $ BAR CONNECTION OF ALPHA TO TRUSS
+=,*1,=,*8,==
+=2
+CBAR,94,102,4,34,1200.,150.,150.
+=,*1,=,*8,==
+=2
+$
+CBAR,110,102,17,36,150.,0.,150.   $ BAR CONNECTION OF PV TO TRUSS
+=,111,=,18,==
+=,112,=,10,==
+=,113,=,9,==
+CBAR,114,102,25,35,150.,0.,150.
+=,115,=,26,==
+=,116,=,2,==
+=,117,=,1,==
+$
+CBAR,98,200,36,37,41            $ TOP PV ARRAY
+=,*1,=,*1,*1,==
+=2
+$
+CBAR,102,201,40,41,39           $ CROSS BAR ON TOP PV
+=,103,=,=,42,=
+$
+CBAR,104,200,35,43,48           $ BOTTOM PV ARRAY
+=,105,=,43,44,48
+=,*1,=,*1,*1,==
+=1
+$
+CBAR,108,201,46,47,45           $ CROSS BAR ON BOTTOM PV
+=,109,=,=,48,=
+$
+$*****************************************
+$******* DEFINE ELEMENT PROPERTIES *******
+$*****************************************
+PBAR,100,300,12.566,12.566,12.566,25.133      $ TRUSS MEMBERS (4mm)
+PBAR,101,301,201.06,3217.0,3217.0,6434.0      $ ALPHA JOINT (16mm)
+PBAR,102,302,==                               $ CONNECTION BARS (16mm)
+PBAR,200,400,28.274,63.617,63.617,127.23      $ PV MAST (6mm)
+PBAR,201,401,==                               $ BARS ON PV ENDS (6mm)
+$
+MAT1,300,6.894+7,2.62+7,,2.74-6          $ MATERIAL PROPERTIES (ALUMINUM)
+$                                          E    = 6.894e7
+$                                          G    = 2.62e7
+$                                          RHO  = 2.74e-6
+$                                          UNITS: mm,kg,s
+MAT1,301,6.894+7,2.62+7,,2.74-6
+MAT1,302,==
+MAT1,400,==
+MAT1,401,==
+$
+$*****************************************
+$******** DEFINE SUPER ELEMENTS **********
+$*****************************************
+$ 300 -> 100 -> 0
+$ 400 -> 100 -> 0
+$ 200 -> 0
+$
+$ SESET,0,8,16,24,32    $ RESIDUAL STRUCTURE
+$
+SESET,100,1,2,3,9,10,11         $ OUTBOARD TRUSS AND ALPHA JOINT
+=,=,17,18,19,25,26,27,33
+=,=,35,36
+$
+SESET,200,4,5,6,7,12,13         $ 4 BAY TRUSS SECTION
+=,=,14,15,20,21,22,23
+=,=,28,29,30,31
+$
+SESET,300,37,THRU,42            $ TOP PV ARRAY AND CROSS BAR
+$
+SESET,400,43,THRU,48            $ BOTTOM PV AND CROSS BAR
+$
+$*****************************************
+$******* DEFINING SOLUTION METHODS *******
+$*****************************************
+EIGR,100,MGIV,0.001,200.         $ FREQUENCY RANGE FROM 0 TO 500 Hz 
+EIGR,200,MGIV,0.001,200. 
+EIGR,300,MGIV,0.001,200.
+EIGR,400,MGIV,0.001,200.
+EIGRL,500,-2.,15.               $ THE LANCZOS METHOD ON COMBINED SYSTEM
+$
+$*****************************************
+$*** SPECIFYING GENERALIZED COORDINATES **
+$*****************************************
+$
+SPOINT,101,THRU,120             $ OUTBOARD TRUSS SECTION
+SEQSET1,100,0,101,THRU,120
+$
+SPOINT,201,THRU,240             $ 4 BAY TRUSS SECTION
+SEQSET1,200,0,201,THRU,240
+$
+$SPOINT,301,THRU,302             $ TOP PV ARRAY AND CROSS BAR
+$SEQSET1,300,0,301,THRU,302
+GRID,301
+=,*1,==
+=4
+SEQSET1,300,123456,301,THRU,305
+$
+$SPOINT,401,THRU,402             $ BOTTOM PV ARRAY AND CROSS BAR
+$SEQSET1,400,0,401,THRU,402
+GRID,401
+=,*1,==
+=4
+SEQSET1,400,123456,401,THRU,405
+$
+$*****************************************
+$*****   MIXED BOUNDARIES FOR CMS   ******
+$*****   DEFAULT IS CRAIG-BAMPTON   ******  
+$*****************************************
+SECSET1,100,123456,34
+SECSET1,200,123456,34,8,16,24,32
+SEBSET1,300,123456,36
+SEBSET1,400,123456,35
+ENDDATA

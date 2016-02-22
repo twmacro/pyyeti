@@ -1,0 +1,1640 @@
+1
+ 
+ 
+ 
+ 
+                                                             
+                 Copyright 2013 Siemens Product Lifecycle    
+                        Management Software Inc.             
+                         All Rights Reserved.                
+                                                             
+               This software and related documentation are   
+                 proprietary to Siemens Product Lifecycle    
+                        Management Software Inc.             
+                                                             
+              Siemens and the Siemens logo are registered    
+             trademarks of Siemens AG. NX is a trademark or  
+                registered trademark of Siemens Product      
+               Lifecycle Management Software Inc. or its     
+             subsidiaries in the United States and in other  
+             countries.  NASTRAN is a registered trademark   
+                 of the National Aeronautics and Space       
+                 Administration.  All other trademarks,      
+              registered trademarks or service marks belong  
+                      to their respective holders.           
+                                                             
+           LIMITATIONS TO U.S. GOVERNMENT RIGHTS. UNPUBLISHED
+           - RIGHTS RESERVED UNDER THE COPYRIGHT LAWS OF THE 
+            UNITED STATES. This computer software and related
+               computer software documentation have been     
+            developed exclusively at private expense and are 
+           provided subject to the following rights:  If this
+               computer software and computer  software      
+            documentation qualify as "commercial items" (as  
+             that term is defined in FAR 2.101), their use,  
+            duplication or disclosure by the U.S. Government 
+           is subject to the protections and restrictions as 
+            set forth in the Siemens commercial license for  
+            software and/or documentation, as prescribed in  
+           FAR 12.212 and FAR 27.405(b)(2)(i) (for civilian  
+             agencies) and in DFARS 227.7202-1(a) and DFARS  
+           227.7202-3(a) (for the Department of Defense), or 
+           any successor or similar regulation, as applicable
+           or as amended from time to time.  If this computer
+           software and computer documentation do not qualify
+            as "commercial items", then they are "restricted 
+           computer software" and are provided with "restric-
+            tive rights", and their use, duplication or dis- 
+            closure by the U.S. Government is subject to the 
+            protections and restrictions as set forth in FAR 
+           27.404(b) and FAR 52-227-14 (for civilian agencies
+           ), and DFARS 227.7203-5(c) and DFARS 252.227-7014 
+           (for the Department of Defense), or any successor 
+           or similar regulation, as applicable or as amended
+              from time to time.  Siemens PLM Software Inc.  
+            5800 Granite Parkway, Suite 600, Plano, TX 75024 
+
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *       N X   N a s t r a n       * *
+                * *                                 * *
+                * *         VERSION -   9.1         * *
+                * *                                 * *
+                * *          MAY  1, 2014           * *
+                * *                                 * *
+                * *                                 * *
+                * *       X86_64 Based System       * *
+                * *                                 * *
+                * *MODEL x86_64 Intel/2400.066895MH * *
+                * *                                 * *
+                * * Linux 2.6.32-504.3.3.el6.x86_64 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+1                                                                          FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=8193 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[3])                    
+     NASTRAN DIAGA=160 DIAGB=0 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[6])                
+     NASTRAN SYSTEM(551)=1 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[8])                    
+     NASTRAN BUFFSIZE=65537 $(/HOME/LOADS/TWIDRICK/.NAST9RC[4])                      
+     $                                                                               
+     ASSIGN MASTER = 'inboard.master', DELETE $                                      
+     ASSIGN DBALL  = 'inboard.dball', DELETE $                                       
+     INIT DBALL,LOGICAL=(DBALL(100000)) $                                            
+     $                                                                               
+     $ NAS2CAM OP2/OP4 FILES:                                                        
+     ASSIGN OUTPUT2 = 'inboard_nas2cam.op2', STATUS=NEW,                             
+                      UNIT=29,DELETE $                                               
+     ASSIGN OUTPUT4 = 'inboard_nas2cam.op4', STATUS=NEW,                             
+                      UNIT=30,FORM=UNFORMATTED,DELETE $                              
+     $                                                                               
+     $  EXECUTIVE CONTROL                                                            
+     $                                                                               
+1                                                                          FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     DIAG 8,47,56 $                                                                          
+     SOL  103                                                                                
+     ECHOOFF                                                                                 
+     (SEE NASTRAN SOURCE PROGRAM COMPILATION FOR LISTING OF DMAP SEQUENCE)
+     END $                                                                                   
+     (SEE NASTRAN SOURCE PROGRAM COMPILATION FOR LISTING OF DMAP SEQUENCE)
+     END $                                                                                   
+     $                                                                                       
+     CEND                                                                                    
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1      $                                                                                       
+                  2      TITLE    = GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                       
+                  3      $                                                                                       
+                  4      SET 1101 = 102                                                                          
+                  5      SEALL=1101                                                                              
+                  6      SEDR=1101                                                                               
+                  7      ECHO = NONE                                                                             
+                  8      $                                                                                       
+                  9      WEIGHTCHECK(SET=ALL) = YES                                                              
+                 10      GROUNDCHECK(SET=ALL,DATAREC=YES) = YES                                                  
+                 11      $                                                                                       
+                 12      PARAM,FIXEDB,-1                                                                         
+                 13      SUBCASE 1                                                                               
+                 14        SUPER 102                                                                             
+                 15        METHOD = 1                                                                            
+                 16        DISP(PLOT) = ALL                                                                      
+                 17      SUBCASE 2                                                                               
+                 18        LABEL=RESIDUAL                                                                        
+                 19      $                                                                                       
+                 20      BEGIN BULK                                                                              
+ *** USER WARNING MESSAGE 324 (XSORSO)
+     BLANK ENTRIES ENCOUNTERED WILL BE IGNORED.
+0                             INPUT BULK DATA ENTRY COUNT =         144
+0                       TOTAL COUNT=       126
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+0
+0
+0
+ 
+
+
+                                        M O D E L   S U M M A R Y
+
+                                   NUMBER OF GRID     POINTS   =       26
+                                   NUMBER OF SPOINT   ENTRIES  =        1
+ 
+ 
+                                   NUMBER OF CBAR     ELEMENTS =       66
+ 
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ AXIC     MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ BULK     MASTER   DBALL      -1    -1                          1        0        0        0        0 160216 112610
+ CASECCR  MASTER   MASTER                                       2        0      613        0        0 160216 112610
+ DIT      MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ DMI      MASTER   SCRATCH                                      0        0        0        0        0 160216 112610
+ DMINDX   MASTER   SCRATCH                                      0        0        0        0        0 160216 112610
+ DTI      MASTER   SCRATCH                                      0        0        0        0        0 160216 112610
+ DTINDX   MASTER   SCRATCH                                      0        0        0        0        0 160216 112610
+ DYNAMIC  MASTER   DBALL                                      256        0        0        0        0 160216 112610
+ EDOM     MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ EDT      MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ EPT      MASTER   DBALL                                        0     4096        0        0        0 160216 112610
+ GEOM1Q   MASTER   DBALL                                        0     2048        8      256        2 160216 112610
+ GEOM2    MASTER   DBALL                                        0      256        0    32768        0 160216 112610
+ GEOM3    MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ GEOM4    MASTER   DBALL                                       16        0        0        0        0 160216 112610
+ IBULK    MASTER   DBALL      -1    -1                          1        0        0        0        0 160216 112608
+ MATPOOL  MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ MPT      MASTER   DBALL                                    32768        0        0        0        0 160216 112610
+ PCDB     MASTER   SCRATCH                                      0        0        0        0        0 160216 112608
+ PCOMPT   MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ SETMC    MASTER   SCRATCH                                      0        0        0        0        0 160216 112608
+ XYCDB    MASTER   SCRATCH                                      0        0        0        0        0 160216 112608
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS NX9.1    FOR FORTRAN UNIT 12
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =        8 RECORDS.)
+     (TOTAL DATA WRITTEN FOR TAPE LABEL =       17 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK PVT0     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                25                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       25 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       49 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CASECC   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 2                 0               613                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      613 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     1254 WORDS.)
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+0                                              SUPERELEMENT DEFINITION TABLE
+                                                     (SORTED BY SEID)
+0                         INDEX   SUPERELEMENT   PROCESS ORDER   DOWNSTREAM SE       SUPERELEMENT TYPE
+ 
+                             0            0                2               0    RESIDUAL STRUCTURE      
+                             1          102                1               0    PRIMARY SUPERELEMENT    
+0                                              SUPERELEMENT DEFINITION TABLE
+                                                 (SORTED BY PROCESS ORDER)
+0                         INDEX   SUPERELEMENT   PROCESS ORDER   DOWNSTREAM SE       SUPERELEMENT TYPE
+ 
+                             0          102                1               0    PRIMARY SUPERELEMENT    
+                             1            0                2               0    RESIDUAL STRUCTURE      
+0
+                    TABLE OF DOWNSTREAM CONNECTIONS FOR EACH SUPERELEMENT
+0 INDEX          SE ID   ID-S OF DOWNSTREAM CONNECTIONS IN DOWNSTREAM ORDER
+
+     1             102            0
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0                                   S U P E R E L E M E N T   T R E E
+0                    ( NO. LEVELS =  1     NO. TIPS =   1     * = PROCESS ORDER )
+0      TIP                          L E V E L   N U M B E R
+      INDEX
+                  -1-
+
+          1       102
+                   1*
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+0   UNIQUE SUPERELEMENT CONNECTIVITY LIST ------------------------------------ CONNECTED TO ------------------------------------
+         (SORTED BY SE-ID)   
+  COUNT   1ST GRD   TYPE  INT.-TO-SE      SE-ID    SE-ID    SE-ID    SE-ID    SE-ID    SE-ID    SE-ID    SE-ID    SE-ID    SE-ID
+0
+     4          3                 0         102
+    60    2995001     S           0         102
+    21          4               102
+     1         33               102           0
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    11
+                                                                                                                                    
+0                                                                                                                                   
+0                                                  SUPERELEMENT      102
+                                               LIST OF INTERIOR GRID POINTS          ( TOTAL NO. OF INTERIOR POINTS =    22 )
+0        INDEX                  -1-       -2-       -3-       -4-       -5-       -6-       -7-       -8-       -9-      -10-
+ 
+             1                    4         5         6         7         8        12        13        14        15        16
+            11                   20        21        22        23        24        28        29        30        31        32
+            21                   33        34
+0                                                  SUPERELEMENT      102
+                                               LIST OF EXTERIOR POINTS               ( TOTAL NO. OF EXTERIOR POINTS =    64 )
+0        INDEX                  -1-       -2-       -3-       -4-       -5-       -6-       -7-       -8-       -9-      -10-
+ 
+             1                    3        11        19        27   2995001   2995002   2995003   2995004   2995005   2995006
+            11              2995007   2995008   2995009   2995010   2995011   2995012   2995013   2995014   2995015   2995016
+            21              2995017   2995018   2995019   2995020   2995021   2995022   2995023   2995024   2995025   2995026
+            31              2995027   2995028   2995029   2995030   2995031   2995032   2995033   2995034   2995035   2995036
+            41              2995037   2995038   2995039   2995040   2995041   2995042   2995043   2995044   2995045   2995046
+            51              2995047   2995048   2995049   2995050   2995051   2995052   2995053   2995054   2995055   2995056
+            61              2995057   2995058   2995059   2995060
+0                                                  SUPERELEMENT      102
+                                                   LIST OF ELEMENT ID-S              ( TOTAL NO. OF ELEMENTS =     66 )
+0        INDEX                  -1-       -2-       -3-       -4-       -5-       -6-       -7-       -8-       -9-      -10-
+ 
+             1                    3         4         5         6         9        10        11        12        15        16
+            11                   17        18        21        22        23        24        28        29        30        31
+            21                   32        36        37        38        39        40        44        45        46        47
+            31                   48        52        53        54        55        56        60        61        62        63
+            41                   64        67        68        69        70        73        74        75        76        79
+            51                   80        81        82        85        86        87        88        89        90        91
+            61                   92        93        94        95        96        97
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    12
+                                                                                                                                    
+0                                                                                                                                   
+0                                                  SUPERELEMENT        0
+                                               LIST OF INTERIOR GRID POINTS          ( TOTAL NO. OF INTERIOR POINTS =    64 )
+0        INDEX                  -1-       -2-       -3-       -4-       -5-       -6-       -7-       -8-       -9-      -10-
+ 
+             1                    3        11        19        27   2995001   2995002   2995003   2995004   2995005   2995006
+            11              2995007   2995008   2995009   2995010   2995011   2995012   2995013   2995014   2995015   2995016
+            21              2995017   2995018   2995019   2995020   2995021   2995022   2995023   2995024   2995025   2995026
+            31              2995027   2995028   2995029   2995030   2995031   2995032   2995033   2995034   2995035   2995036
+            41              2995037   2995038   2995039   2995040   2995041   2995042   2995043   2995044   2995045   2995046
+            51              2995047   2995048   2995049   2995050   2995051   2995052   2995053   2995054   2995055   2995056
+            61              2995057   2995058   2995059   2995060
+0+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ +                                                                                                                                 +
+ +         R.S. - NP =   64, NS =   60, NE =     0         TD =      0. MIN.,      TF =      0. MIN.                               +
+ +                                                                                                                                 +
+ +         ESTIMATE TOTALS.. (R.S. NOT INCLUDED)       TCPTOT =      0. MIN.,  SPATOT =      8. BLKS,  TWATOT =      0. MIN.       +
+ +                                                                                                                                 +
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ ^^^ USER INFORMATION MESSAGE 9044 (PHASE0)  
+ ^^^ BULK DATA AND CASE CONTROL PARTITIONING,    RESTART CHECKING, AND UNDEFORMED PLOTTING IS    
+ ^^^ INITIATED FOR SUPERELEMENT        102 
+ *** SYSTEM WARNING MESSAGE 6613 (MAKRPL)
+     THE CONTENT OF ROOT DATA BLOCK TYPE GPDT APPEARS TO BE NULL, NO CONVERSION WILL BE PERFORMED.
+ *** SYSTEM WARNING MESSAGE 6613 (MAKRPL)
+     THE CONTENT OF ROOT DATA BLOCK TYPE AXIC APPEARS TO BE NULL, NO CONVERSION WILL BE PERFORMED.
+ *** SYSTEM WARNING MESSAGE 6603 (MAKMSG)
+     AXIC TABLE CONVERSION REQUESTED BUT NO INPUT TABLE SUPPLIED BY PARAMETER LIST SPECIFICATIONS.
+ *** SYSTEM WARNING MESSAGE 6603 (MAKMSG)
+     GPDT TABLE CONVERSION REQUESTED BUT NO INPUT TABLE SUPPLIED BY PARAMETER LIST SPECIFICATIONS.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0              2048                 8                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      211 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      255 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102                 0               256                 0             32768                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =     1059 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     1150 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    104              1024                 0                 0                 0                16                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      131 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       29 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      173 WORDS.)
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    13
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EPTS     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0              4096                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       60 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       91 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK MPTS     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101             32768                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       39 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       70 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK DYNAMICS WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102               256                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       30 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       54 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                86                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      344 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      368 WORDS.)
+ ^^^ USER INFORMATION MESSAGE 9044 (PHASE0)  
+ ^^^ BULK DATA AND CASE CONTROL PARTITIONING,    RESTART CHECKING, AND UNDEFORMED PLOTTING IS    
+ ^^^ INITIATED FOR SUPERELEMENT          0 
+ *** SYSTEM WARNING MESSAGE 6613 (MAKRPL)
+     THE CONTENT OF ROOT DATA BLOCK TYPE GPDT APPEARS TO BE NULL, NO CONVERSION WILL BE PERFORMED.
+ *** SYSTEM WARNING MESSAGE 6613 (MAKRPL)
+     THE CONTENT OF ROOT DATA BLOCK TYPE AXIC APPEARS TO BE NULL, NO CONVERSION WILL BE PERFORMED.
+ *** SYSTEM WARNING MESSAGE 6603 (MAKMSG)
+     AXIC TABLE CONVERSION REQUESTED BUT NO INPUT TABLE SUPPLIED BY PARAMETER LIST SPECIFICATIONS.
+ *** SYSTEM WARNING MESSAGE 6603 (MAKMSG)
+     GPDT TABLE CONVERSION REQUESTED BUT NO INPUT TABLE SUPPLIED BY PARAMETER LIST SPECIFICATIONS.
+ *** SYSTEM WARNING MESSAGE 6613 (MAKRPL)
+     THE CONTENT OF ROOT DATA BLOCK TYPE EPT APPEARS TO BE NULL, NO CONVERSION WILL BE PERFORMED.
+ *** SYSTEM WARNING MESSAGE 6613 (MAKRPL)
+     THE CONTENT OF ROOT DATA BLOCK TYPE MPT APPEARS TO BE NULL, NO CONVERSION WILL BE PERFORMED.
+ *** SYSTEM WARNING MESSAGE 6603 (MAKMSG)
+     EPT TABLE CONVERSION REQUESTED BUT NO INPUT TABLE SUPPLIED BY PARAMETER LIST SPECIFICATIONS.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0              2048                 8                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       35 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       79 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102                 0                 0                 0             32768                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       63 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       87 WORDS.)
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    14
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    104                16                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        8 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       39 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                64                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      256 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      280 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                64                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      128 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      284 WORDS.)
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    15
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7325 (SEP2DR)
+     PROCESSING OF SUPERELEMENT      102 IS NOW INITIATED.
+ ^^^ USER INFORMATION MESSAGE 9045 (PHASE1DR)    
+ ^^^ PHASE 1 - SUPERELEMENT GENERATION, ASSEMBLY AND REDUCTION.  
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    16
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KGG      (G-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.700221E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               1.204796E-08          PASS
+             2               9.991794E-10          PASS
+             3               1.836895E-10          PASS
+             4               9.077010E-04          PASS
+             5               9.464001E-03          PASS
+             6               3.181382E-03          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. CELASI ELEMENTS CONNECTING TO ONLY ONE GRID POINT;
+       2. CELASI ELEMENTS CONNECTING TO NON-COINCIDENT POINTS;
+       3. CELASI ELEMENTS CONNECTING TO NON-COLINEAR DOF;
+       4. IMPROPERLY DEFINED DMIG MATRICES;
+ 
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    17
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00
+ ^^^NSUPERS =            2 
+ ^^^NOGSET =           216 
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    18
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                VQB                                                                                                                
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+
+ COLUMN           1
+          3 T1  1.00000E+00         3 T2  1.00000E+00         3 T3  1.00000E+00         3 R1  1.00000E+00         3 R2  1.00000E+00
+          3 R3  1.00000E+00        11 T1  1.00000E+00        11 T2  1.00000E+00        11 T3  1.00000E+00        11 R1  1.00000E+00
+         11 R2  1.00000E+00        11 R3  1.00000E+00        19 T1  1.00000E+00        19 T2  1.00000E+00        19 T3  1.00000E+00
+         19 R1  1.00000E+00        19 R2  1.00000E+00        19 R3  1.00000E+00        27 T1  1.00000E+00        27 T2  1.00000E+00
+         27 T3  1.00000E+00        27 R1  1.00000E+00        27 R2  1.00000E+00        27 R3  1.00000E+00
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK VQB              0       102 (TRAILER =          1        84         2         2        48      2857         3     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK RBG              0       102 (TRAILER =          6       216         2         2       132      2037         3     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+ ^^^ SYSTEM INFORMATION MESSAGE 9268 (DBSTOR)    
+ ^^^ DATA BLOCK RBGN             0       102 (TRAILER =          6       216         2         2       132      2037         3     
+    ) HAS BEEN STORED IN DBSET  DBALL    
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    19
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                RBFORCEJ                                                                                                           
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+
+ COLUMN           1
+
+ COLUMN           2
+
+ COLUMN           3
+
+ COLUMN           4
+
+ COLUMN           5
+
+ COLUMN           6
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    20
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  RBFORCEJ RESULTANT       
+  SUBCASE/
+  DAREA ID        T1             T2             T3             R1             R2             R3
+0        1  -2.4095925E-08 -9.3137942E-10 -9.3132257E-10  8.9812602E-11 -3.2352959E-06  3.1131979E-06
+0        2  -9.3137942E-10  1.9983588E-09 -2.9103830E-11 -1.8660364E-07 -2.5529403E-07  7.7138811E-06
+0        3  -9.3132257E-10 -2.9103830E-11  3.6737902E-10  2.4865267E-07 -6.8868712E-06  2.5520421E-07
+0        4   6.3626734E-12 -1.9123625E-08  7.1121296E-09  5.2115920E-06 -8.0018999E-06 -1.7391118E-05
+0        5   2.0187281E-10 -3.7138059E-09 -4.2349253E-09  6.4685560E-07  9.6342537E-06 -3.4805103E-06
+0        6   5.6466704E-10  3.2865781E-09  3.7137804E-09 -5.7303350E-07 -3.1091092E-06  9.5028308E-06
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    21
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+                                                  INTERMEDIATE MATRIX ... MOJSET  
+
+
+                                                            COLUMN      1
+     1         1.755052E+00      -4.228388E-18       2.645453E-17       6.749159E-15       2.632578E+02      -2.632578E+02        6
+
+                                                            COLUMN      2
+     1        -4.228388E-18       1.755052E+00       2.385245E-17      -2.632578E+02      -1.922637E-14       1.825251E+03        6
+
+                                                            COLUMN      3
+     1         2.656295E-17       2.385245E-17       1.755052E+00       2.632578E+02      -1.825251E+03       1.228748E-14        6
+
+                                                            COLUMN      4
+     1         6.665675E-15      -2.632578E+02       2.632578E+02       1.148825E+05      -2.737877E+05      -2.737877E+05        6
+
+                                                            COLUMN      5
+     1         2.632578E+02      -1.917390E-14      -1.825251E+03      -2.737877E+05       2.305948E+06      -3.937911E+04        6
+
+                                                            COLUMN      6
+     1        -2.632578E+02       1.825251E+03       1.198000E-14      -2.737877E+05      -3.937911E+04       2.305948E+06        6
+
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    22
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+0                RBFORCEJ                                                                                                           
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KNN      (N-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.700221E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               1.204796E-08          PASS
+             2               9.991794E-10          PASS
+             3               1.836895E-10          PASS
+             4               9.077010E-04          PASS
+             5               9.464001E-03          PASS
+             6               3.181382E-03          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. MULTIPOINT CONSTRAINT EQUATIONS WHICH DO NOT SATISFY RIGID-BODY MOTION;
+       2. RBE3 ELEMENTS FOR WHICH THE INDEPENDENT DEGREE-OF-FREEDOM CANNOT DESCRIBE
+          ALL POSSIBLE RIGID-BODY MOTIONS.
+ 
+ *** USER INFORMATION MESSAGE - SINGULARITIES FOUND USING EIGENVALUE METHOD
+ ***       0 SINGULARITIES FOUND         0 SINGULARITIES ELIMINATED
+ ^^^ SYSTEM INFORMATION MESSAGE 9267 (DBFTCH)    
+ ^^^RBG              0       102 (TRAILER =          6       216         2         2       132      2037         3                 
+    ) HAS BEEN FETCHED FROM THE DATABASE 
+ ^^^ SYSTEM INFORMATION MESSAGE 9267 (DBFTCH)    
+ ^^^RBGN             0       102 (TRAILER =          6       216         2         2       132      2037         3                 
+    ) HAS BEEN FETCHED FROM THE DATABASE 
+ ^^^NOMSET =            -1 
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    23
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+0                RBFORCEN                                                                                                           
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+
+ COLUMN           1
+
+ COLUMN           2
+
+ COLUMN           3
+
+ COLUMN           4
+
+ COLUMN           5
+
+ COLUMN           6
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    24
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  RBFORCEN RESULTANT       
+  SUBCASE/
+  DAREA ID        T1             T2             T3             R1             R2             R3
+0        1  -2.4095925E-08 -9.3137942E-10 -9.3132257E-10  8.9812602E-11 -3.2352959E-06  3.1131979E-06
+0        2  -9.3137942E-10  1.9983588E-09 -2.9103830E-11 -1.8660364E-07 -2.5529403E-07  7.7138811E-06
+0        3  -9.3132257E-10 -2.9103830E-11  3.6737902E-10  2.4865267E-07 -6.8868712E-06  2.5520421E-07
+0        4   6.3626734E-12 -1.9123625E-08  7.1121296E-09  5.2115920E-06 -8.0018999E-06 -1.7391118E-05
+0        5   2.0187281E-10 -3.7138059E-09 -4.2349253E-09  6.4685560E-07  9.6342537E-06 -3.4805103E-06
+0        6   5.6466704E-10  3.2865781E-09  3.7137804E-09 -5.7303350E-07 -3.1091092E-06  9.5028308E-06
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    25
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+0                RBFORCEN                                                                                                           
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KFF      (F-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.700221E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               1.204796E-08          PASS
+             2               9.991794E-10          PASS
+             3               1.836895E-10          PASS
+             4               9.077010E-04          PASS
+             5               9.464001E-03          PASS
+             6               3.181382E-03          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. CONSTRAINTS WHICH PREVENT RIGID-BODY MOTION.
+ 
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     UNABLE TO EXECUTE METIS REORDERING BECAUSE THE MATRIX DENSITY IS TOO HIGH:  30 %.
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    26
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+0                RBFORCEA                                                                                                           
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+
+ COLUMN           1
+
+ COLUMN           2
+
+ COLUMN           3
+
+ COLUMN           4
+
+ COLUMN           5
+
+ COLUMN           6
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    27
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  RBFORCEA RESULTANT       
+  SUBCASE/
+  DAREA ID        T1             T2             T3             R1             R2             R3
+0        1  -3.8126018E-08 -2.3283064E-09  2.3283064E-10  9.4296411E-08 -7.4331183E-06  4.0738378E-06
+0        2  -1.3969839E-09  4.8428774E-08  9.3132257E-09 -9.2736445E-06 -8.5048378E-06  4.5938417E-05
+0        3  -1.1641532E-09  9.3132257E-09  5.7742000E-08  7.5637363E-06 -4.9258582E-05  7.7001750E-06
+0        4  -6.1321770E-10 -1.5956175E-08  2.0491825E-08  1.5727306E-05 -1.6567968E-05 -1.4970623E-05
+0        5  -2.8832687E-09 -3.5215635E-09 -2.3615939E-08 -2.7681672E-06  2.3437608E-05 -2.6028790E-06
+0        6   2.5079316E-09  2.0285370E-08  1.9826984E-09 -3.5227931E-06 -1.8026985E-06  2.1670394E-05
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    28
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+0                RBFORCEA                                                                                                           
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KAA1     (A-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   3.804131E-01
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               1.906301E-08          PASS
+             2               2.421439E-08          PASS
+             3               2.887100E-08          PASS
+             4               2.175879E-03          PASS
+             5               2.449294E-02          PASS
+             6               2.477895E-02          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+     IF THE MODEL HAS PASSED THE PREVIOUS CHECKS FOR THE G-SET AND N-SET,
+     THEN:
+       1. THE MODEL IS NOT INTENDED TO BE FREE-FREE WHICH INDICATES THAT THE MODEL IS
+          PROPERLY CONSTRAINED TO GROUND;
+       2. THE REFERENCE GRID POINT (GRID=GID ON THE GROUNDCHECK COMMAND) IS LOCATED
+          TOO FAR FROM THE MODEL'S CENTER OF GRAVITY. IT IS RECOMMENDED THAT THE
+          REFERENCE GRID POINT BE LOCATED AS CLOSE AS POSSIBLE TO THE MODEL'S CENTER
+          OF GRAVITY OF THE MODEL (SEE THE GRID POINT WEIGHT GENERATOR OUTPUT);
+       3. PARAM,AUTOSPC,YES CONSTRAINS NEAR-SINGULAR DEGREES-OF-FREEDOM. WHEN A
+          FINITE ELEMENT MODEL WITH AUTOSPC FAILS THE A-SET CHECK, IT IS NOT EVIDENT
+          THAT GROUNDING HAS OCCURRED. THE USE OF PARAM,SNORM WILL NOT ELIMINATE THE
+          SPURIOUS FAILURE.
+ 
+ ^^^ SYSTEM INFORMATION MESSAGE 9267 (DBFTCH)    
+ ^^^RBG              0       102 (TRAILER =          6       216         2         2       132      2037         3                 
+    ) HAS BEEN FETCHED FROM THE DATABASE 
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    29
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                                  INTERMEDIATE MATRIX ... MOGSET  
+
+
+                                                            COLUMN      1
+     1         1.755052E+00      -4.228388E-18       2.645453E-17       6.749159E-15       2.632578E+02      -2.632578E+02        6
+
+                                                            COLUMN      2
+     1        -4.228388E-18       1.755052E+00       2.385245E-17      -2.632578E+02      -1.922637E-14       1.825251E+03        6
+
+                                                            COLUMN      3
+     1         2.656295E-17       2.385245E-17       1.755052E+00       2.632578E+02      -1.825251E+03       1.228748E-14        6
+
+                                                            COLUMN      4
+     1         6.665675E-15      -2.632578E+02       2.632578E+02       1.148825E+05      -2.737877E+05      -2.737877E+05        6
+
+                                                            COLUMN      5
+     1         2.632578E+02      -1.917390E-14      -1.825251E+03      -2.737877E+05       2.305948E+06      -3.937911E+04        6
+
+                                                            COLUMN      6
+     1        -2.632578E+02       1.825251E+03       1.198000E-14      -2.737877E+05      -3.937911E+04       2.305948E+06        6
+
+ ^^^ SYSTEM WARNING MESSAGE 9266 (DBFTCH)    
+ ^^^VGPQ             0       102 NOT FOUND IN DATABASE.  PURGED STATUS ASSUMED.  
+ ^^^G-SET MASS TABLE 
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    30
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = G       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.755052E+00 -4.228388E-18  2.645453E-17  6.749159E-15  2.632578E+02 -2.632578E+02 *
+                      * -4.228388E-18  1.755052E+00  2.385245E-17 -2.632578E+02 -1.922637E-14  1.825251E+03 *
+                      *  2.656295E-17  2.385245E-17  1.755052E+00  2.632578E+02 -1.825251E+03  1.228748E-14 *
+                      *  6.665675E-15 -2.632578E+02  2.632578E+02  1.148825E+05 -2.737877E+05 -2.737877E+05 *
+                      *  2.632578E+02 -1.917390E-14 -1.825251E+03 -2.737877E+05  2.305948E+06 -3.937911E+04 *
+                      * -2.632578E+02  1.825251E+03  1.198000E-14 -2.737877E+05 -3.937911E+04  2.305948E+06 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            1.755052E+00      3.845561E-15  1.500000E+02  1.500000E+02
+                                  Y            1.755052E+00      1.039998E+03 -1.095488E-14  1.500000E+02
+                                  Z            1.755052E+00      1.039998E+03  1.500000E+02  7.001206E-15
+                                                                I(S)
+                                           *  3.590520E+04  5.820766E-11  0.000000E+00 *
+                                           *  5.820766E-11  3.682012E+05 -1.095583E+02 *
+                                           *  0.000000E+00 -1.095583E+02  3.682012E+05 *
+                                                                I(Q)
+                                           *  3.590520E+04                             *
+                                           *                3.680917E+05               *
+                                           *                              3.683108E+05 *
+                                                                 Q
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  7.071068E-01  7.071068E-01 *
+                                           *  0.000000E+00 -7.071068E-01  7.071068E-01 *
+
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    31
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    32
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = N       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.755052E+00 -4.228388E-18  2.645453E-17  6.749159E-15  2.632578E+02 -2.632578E+02 *
+                      * -4.228388E-18  1.755052E+00  2.385245E-17 -2.632578E+02 -1.922637E-14  1.825251E+03 *
+                      *  2.656295E-17  2.385245E-17  1.755052E+00  2.632578E+02 -1.825251E+03  1.228748E-14 *
+                      *  6.665675E-15 -2.632578E+02  2.632578E+02  1.148825E+05 -2.737877E+05 -2.737877E+05 *
+                      *  2.632578E+02 -1.917390E-14 -1.825251E+03 -2.737877E+05  2.305948E+06 -3.937911E+04 *
+                      * -2.632578E+02  1.825251E+03  1.198000E-14 -2.737877E+05 -3.937911E+04  2.305948E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    33
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ *** USER WARNING MESSAGE 2125 (VEC)
+     MODULE VEC - NZ=0, ONE OR MORE COLUMNS OF OUTPUT MATRIX WILL BE NULL.
+ *** USER WARNING MESSAGE 2125 (VEC)
+     MODULE VEC - NZ=0, ONE OR MORE COLUMNS OF OUTPUT MATRIX WILL BE NULL.
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    34
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                                  INTERMEDIATE MATRIX ... MOFSET  
+
+
+                                                            COLUMN      1
+     1         1.755052E+00      -4.228388E-18       2.645453E-17       6.749159E-15       2.632578E+02      -2.632578E+02        6
+
+                                                            COLUMN      2
+     1        -4.228388E-18       1.755052E+00       2.385245E-17      -2.632578E+02      -1.922637E-14       1.825251E+03        6
+
+                                                            COLUMN      3
+     1         2.656295E-17       2.385245E-17       1.755052E+00       2.632578E+02      -1.825251E+03       1.228748E-14        6
+
+                                                            COLUMN      4
+     1         6.665675E-15      -2.632578E+02       2.632578E+02       1.148825E+05      -2.737877E+05      -2.737877E+05        6
+
+                                                            COLUMN      5
+     1         2.632578E+02      -1.917390E-14      -1.825251E+03      -2.737877E+05       2.305948E+06      -3.937911E+04        6
+
+                                                            COLUMN      6
+     1        -2.632578E+02       1.825251E+03       1.198000E-14      -2.737877E+05      -3.937911E+04       2.305948E+06        6
+
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    35
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ ^^^F-SET MASS TABLE 
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    36
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = F       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.755052E+00 -4.228388E-18  2.645453E-17  6.749159E-15  2.632578E+02 -2.632578E+02 *
+                      * -4.228388E-18  1.755052E+00  2.385245E-17 -2.632578E+02 -1.922637E-14  1.825251E+03 *
+                      *  2.656295E-17  2.385245E-17  1.755052E+00  2.632578E+02 -1.825251E+03  1.228748E-14 *
+                      *  6.665675E-15 -2.632578E+02  2.632578E+02  1.148825E+05 -2.737877E+05 -2.737877E+05 *
+                      *  2.632578E+02 -1.917390E-14 -1.825251E+03 -2.737877E+05  2.305948E+06 -3.937911E+04 *
+                      * -2.632578E+02  1.825251E+03  1.198000E-14 -2.737877E+05 -3.937911E+04  2.305948E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    37
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    38
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                                  INTERMEDIATE MATRIX ... MOASET  
+
+
+                                                            COLUMN      1
+     1         1.755052E+00       1.565414E-13      -1.151745E-12      -1.870148E-10       2.632578E+02      -2.632578E+02        6
+
+                                                            COLUMN      2
+     1         1.540990E-13       1.755052E+00      -1.935119E-12      -2.632578E+02       2.734623E-09       1.825251E+03        6
+
+                                                            COLUMN      3
+     1        -1.149969E-12      -1.929568E-12       1.755052E+00       2.632578E+02      -1.825251E+03      -1.980709E-09        6
+
+                                                            COLUMN      4
+     1        -1.871285E-10      -2.632578E+02       2.632578E+02       1.148825E+05      -2.737877E+05      -2.737877E+05        6
+
+                                                            COLUMN      5
+     1         2.632578E+02       2.732577E-09      -1.825251E+03      -2.737877E+05       2.305948E+06      -3.937911E+04        6
+
+                                                            COLUMN      6
+     1        -2.632578E+02       1.825251E+03      -1.983381E-09      -2.737877E+05      -3.937911E+04       2.305948E+06        6
+
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    39
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                                  INTERMEDIATE MATRIX ... MOG2ADIF
+
+
+                                                            COLUMN      1
+     1        -6.972201E-14      -1.565457E-13       1.151772E-12       1.870216E-10      -1.881290E-09      -2.409024E-10        6
+
+                                                            COLUMN      2
+     1        -1.541032E-13       1.833644E-11       1.935143E-12      -2.006516E-09      -2.734643E-09       2.648540E-08        6
+
+                                                            COLUMN      3
+     1         1.149996E-12       1.929591E-12       1.595057E-11       1.782951E-09      -2.494198E-08       1.980721E-09        6
+
+                                                            COLUMN      4
+     1         1.871352E-10      -2.008051E-09       1.782098E-09       6.580085E-07      -2.819928E-06      -2.863293E-06        6
+
+                                                            COLUMN      5
+     1        -1.880210E-09      -2.732596E-09      -2.494107E-08      -2.820103E-06       3.905036E-05      -2.602072E-06        6
+
+                                                            COLUMN      6
+     1        -2.393676E-10       2.648608E-08       1.983393E-09      -2.862536E-06      -2.602952E-06       3.780192E-05        6
+
+ ^^^A-SET MASS TABLE 
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    40
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = A       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.755052E+00  1.565414E-13 -1.151745E-12 -1.870148E-10  2.632578E+02 -2.632578E+02 *
+                      *  1.540990E-13  1.755052E+00 -1.935119E-12 -2.632578E+02  2.734623E-09  1.825251E+03 *
+                      * -1.149969E-12 -1.929568E-12  1.755052E+00  2.632578E+02 -1.825251E+03 -1.980709E-09 *
+                      * -1.871285E-10 -2.632578E+02  2.632578E+02  1.148825E+05 -2.737877E+05 -2.737877E+05 *
+                      *  2.632578E+02  2.732577E-09 -1.825251E+03 -2.737877E+05  2.305948E+06 -3.937911E+04 *
+                      * -2.632578E+02  1.825251E+03 -1.983381E-09 -2.737877E+05 -3.937911E+04  2.305948E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    41
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    42
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = V       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  1.458716E+00  3.469447E-18  1.550409E-17  1.805197E-15  2.188074E+02 -2.188074E+02 *
+                      *  3.469447E-18  1.468767E+00  1.561251E-17 -2.203150E+02 -1.259496E-14  1.651231E+03 *
+                      *  1.561251E-17  1.561251E-17  1.468767E+00  2.203150E+02 -1.651231E+03  1.075962E-14 *
+                      *  1.798041E-15 -2.203150E+02  2.203150E+02  9.512040E+04 -2.476847E+05 -2.476847E+05 *
+                      *  2.188074E+02 -1.213786E-14 -1.651231E+03 -2.476847E+05  2.190065E+06 -3.271156E+04 *
+                      * -2.188074E+02  1.651231E+03  1.015681E-14 -2.476847E+05 -3.271156E+04  2.190065E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *     -17 %                                                                           *
+                      *                   -16 %                                                             *
+                      *                                 -16 %                                               *
+                      *                                               -17 %                                 *
+                      *                                                              -5 %                   *
+                      *                                                                            -5 %     *
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    43
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     UNABLE TO EXECUTE METIS REORDERING BECAUSE THE MATRIX DENSITY IS TOO HIGH:  30 %.
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+ *** USER INFORMATION MESSAGE 5010 (LNCILD)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE =  4.836106D+06, CYCLES =  3.500000D+02 NUMBER OF EIGENVALUES BELOW THIS VALUE =    54
+
+ TABLE OF SHIFTS:  (LNNRIGL)
+ SHIFT #        SHIFT VALUE         FREQUENCY, CYCLES     # EIGENVALUES BELOW    # NEW EIGENVALUES FOUND
+     1.        4.8361060E+06          3.4999997E+02                54                       54
+
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    44
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+0
+
+
+                          E I G E N V A L U E  A N A L Y S I S   S U M M A R Y   (READ MODULE) 
+
+
+
+                                     BLOCK SIZE USED ......................    7
+
+                                     NUMBER OF DECOMPOSITIONS .............    1
+
+                                     NUMBER OF ROOTS FOUND ................   54
+
+                                     NUMBER OF SOLVES REQUIRED ............   18
+
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    45
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        1.483160E+03        3.851181E+01        6.129345E+00        1.000000E+00        1.483160E+03
+        2         2        1.483542E+03        3.851677E+01        6.130134E+00        1.000000E+00        1.483542E+03
+        3         3        2.204734E+04        1.484835E+02        2.363188E+01        1.000000E+00        2.204734E+04
+        4         4        1.945354E+05        4.410616E+02        7.019714E+01        1.000000E+00        1.945354E+05
+        5         5        1.969745E+05        4.438181E+02        7.063584E+01        1.000000E+00        1.969745E+05
+        6         6        3.062653E+05        5.534125E+02        8.807833E+01        1.000000E+00        3.062653E+05
+        7         7        3.135695E+05        5.599728E+02        8.912244E+01        1.000000E+00        3.135695E+05
+        8         8        3.344111E+05        5.782829E+02        9.203658E+01        1.000000E+00        3.344111E+05
+        9         9        3.570588E+05        5.975439E+02        9.510207E+01        1.000000E+00        3.570588E+05
+       10        10        3.808538E+05        6.171335E+02        9.821985E+01        1.000000E+00        3.808538E+05
+       11        11        3.924604E+05        6.264666E+02        9.970525E+01        1.000000E+00        3.924604E+05
+       12        12        4.034080E+05        6.351441E+02        1.010863E+02        1.000000E+00        4.034080E+05
+       13        13        4.048868E+05        6.363072E+02        1.012714E+02        1.000000E+00        4.048868E+05
+       14        14        4.078266E+05        6.386130E+02        1.016384E+02        1.000000E+00        4.078266E+05
+       15        15        4.257882E+05        6.525245E+02        1.038525E+02        1.000000E+00        4.257882E+05
+       16        16        4.261984E+05        6.528387E+02        1.039025E+02        1.000000E+00        4.261984E+05
+       17        17        4.555011E+05        6.749082E+02        1.074150E+02        1.000000E+00        4.555011E+05
+       18        18        4.807406E+05        6.933546E+02        1.103508E+02        1.000000E+00        4.807406E+05
+       19        19        5.387104E+05        7.339689E+02        1.168148E+02        1.000000E+00        5.387104E+05
+       20        20        5.524294E+05        7.432560E+02        1.182929E+02        1.000000E+00        5.524294E+05
+       21        21        5.642862E+05        7.511899E+02        1.195556E+02        1.000000E+00        5.642862E+05
+       22        22        5.858009E+05        7.653763E+02        1.218134E+02        1.000000E+00        5.858009E+05
+       23        23        5.915558E+05        7.691266E+02        1.224103E+02        1.000000E+00        5.915558E+05
+       24        24        6.053329E+05        7.780314E+02        1.238275E+02        1.000000E+00        6.053329E+05
+       25        25        6.225578E+05        7.890233E+02        1.255770E+02        1.000000E+00        6.225578E+05
+       26        26        6.477248E+05        8.048135E+02        1.280900E+02        1.000000E+00        6.477248E+05
+       27        27        6.589861E+05        8.117796E+02        1.291987E+02        1.000000E+00        6.589861E+05
+       28        28        7.260814E+05        8.521041E+02        1.356166E+02        1.000000E+00        7.260814E+05
+       29        29        7.672504E+05        8.759283E+02        1.394083E+02        1.000000E+00        7.672504E+05
+       30        30        7.743676E+05        8.799816E+02        1.400534E+02        1.000000E+00        7.743676E+05
+       31        31        8.322936E+05        9.123013E+02        1.451973E+02        1.000000E+00        8.322936E+05
+       32        32        8.329748E+05        9.126746E+02        1.452567E+02        1.000000E+00        8.329748E+05
+       33        33        8.431752E+05        9.182457E+02        1.461433E+02        1.000000E+00        8.431752E+05
+       34        34        8.704858E+05        9.329982E+02        1.484913E+02        1.000000E+00        8.704858E+05
+       35        35        9.405951E+05        9.698428E+02        1.543553E+02        1.000000E+00        9.405951E+05
+       36        36        1.041371E+06        1.020476E+03        1.624138E+02        1.000000E+00        1.041371E+06
+       37        37        1.088109E+06        1.043125E+03        1.660185E+02        1.000000E+00        1.088109E+06
+       38        38        1.129622E+06        1.062837E+03        1.691557E+02        1.000000E+00        1.129622E+06
+       39        39        1.143201E+06        1.069206E+03        1.701694E+02        1.000000E+00        1.143201E+06
+       40        40        1.240128E+06        1.113610E+03        1.772366E+02        1.000000E+00        1.240128E+06
+       41        41        1.312082E+06        1.145461E+03        1.823058E+02        1.000000E+00        1.312082E+06
+       42        42        1.369818E+06        1.170392E+03        1.862737E+02        1.000000E+00        1.369818E+06
+       43        43        1.539682E+06        1.240839E+03        1.974857E+02        1.000000E+00        1.539682E+06
+       44        44        1.576913E+06        1.255752E+03        1.998591E+02        1.000000E+00        1.576913E+06
+       45        45        1.679595E+06        1.295992E+03        2.062635E+02        1.000000E+00        1.679595E+06
+       46        46        1.891408E+06        1.375285E+03        2.188833E+02        1.000000E+00        1.891408E+06
+       47        47        1.904848E+06        1.380162E+03        2.196596E+02        1.000000E+00        1.904848E+06
+       48        48        2.063518E+06        1.436495E+03        2.286253E+02        1.000000E+00        2.063518E+06
+       49        49        2.107662E+06        1.451779E+03        2.310578E+02        1.000000E+00        2.107662E+06
+       50        50        2.323034E+06        1.524150E+03        2.425761E+02        1.000000E+00        2.323034E+06
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    46
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+       51        51        3.285089E+06        1.812482E+03        2.884654E+02        1.000000E+00        3.285089E+06
+       52        52        3.810359E+06        1.952014E+03        3.106727E+02        1.000000E+00        3.810359E+06
+       53        53        3.958250E+06        1.989535E+03        3.166443E+02        1.000000E+00        3.958250E+06
+       54        54        4.758867E+06        2.181483E+03        3.471937E+02        1.000000E+00        4.758867E+06
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    47
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ ^^^ USER INFORMATION MESSAGE 9037 (RESVEC  )    
+ ^^^ CHECKING RESIDUAL VECTORS FOR LINEAR INDEPENDENCE.  
+ *** USER INFORMATION MESSAGE 5458 (REIG)
+     QL HOUSEHOLDER METHOD IS AUTOMATICALLY SELECTED .
+ ^^^     
+ ^^^ FREQUENCY LIST OF RESIDUAL VECTORS FOLLOWS. 
+ ^^^     
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    48
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        1.218342E+07        3.490476E+03        5.555264E+02        1.000000E+00        1.218342E+07
+        2         2        2.305228E+07        4.801279E+03        7.641473E+02        1.000000E+00        2.305228E+07
+        3         3        2.322042E+07        4.818757E+03        7.669290E+02        1.000000E+00        2.322042E+07
+        4         4        7.841881E+07        8.855439E+03        1.409387E+03        1.000000E+00        7.841881E+07
+        5         5        1.343073E+08        1.158910E+04        1.844463E+03        1.000000E+00        1.343073E+08
+        6         6        1.348065E+08        1.161062E+04        1.847888E+03        1.000000E+00        1.348065E+08
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    49
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    50
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (AFTER AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        1.483160E+03        3.851181E+01        6.129345E+00        1.000000E+00        1.483160E+03
+        2         2        1.483542E+03        3.851677E+01        6.130134E+00        1.000000E+00        1.483542E+03
+        3         3        2.204734E+04        1.484835E+02        2.363188E+01        1.000000E+00        2.204734E+04
+        4         4        1.945353E+05        4.410616E+02        7.019714E+01        1.000000E+00        1.945353E+05
+        5         5        1.969745E+05        4.438181E+02        7.063584E+01        1.000000E+00        1.969745E+05
+        6         6        3.062654E+05        5.534125E+02        8.807833E+01        1.000000E+00        3.062654E+05
+        7         7        3.135695E+05        5.599728E+02        8.912244E+01        1.000000E+00        3.135695E+05
+        8         8        3.344111E+05        5.782829E+02        9.203658E+01        1.000000E+00        3.344111E+05
+        9         9        3.570588E+05        5.975439E+02        9.510207E+01        1.000000E+00        3.570588E+05
+       10        10        3.808538E+05        6.171335E+02        9.821985E+01        1.000000E+00        3.808538E+05
+       11        11        3.924604E+05        6.264666E+02        9.970525E+01        1.000000E+00        3.924604E+05
+       12        12        4.034080E+05        6.351441E+02        1.010863E+02        1.000000E+00        4.034080E+05
+       13        13        4.048868E+05        6.363072E+02        1.012714E+02        1.000000E+00        4.048868E+05
+       14        14        4.078266E+05        6.386130E+02        1.016384E+02        1.000000E+00        4.078266E+05
+       15        15        4.257882E+05        6.525245E+02        1.038525E+02        1.000000E+00        4.257882E+05
+       16        16        4.261983E+05        6.528387E+02        1.039025E+02        1.000000E+00        4.261983E+05
+       17        17        4.555011E+05        6.749082E+02        1.074150E+02        1.000000E+00        4.555011E+05
+       18        18        4.807406E+05        6.933546E+02        1.103508E+02        1.000000E+00        4.807406E+05
+       19        19        5.387104E+05        7.339689E+02        1.168148E+02        1.000000E+00        5.387104E+05
+       20        20        5.524294E+05        7.432560E+02        1.182929E+02        1.000000E+00        5.524294E+05
+       21        21        5.642862E+05        7.511899E+02        1.195556E+02        1.000000E+00        5.642862E+05
+       22        22        5.858009E+05        7.653763E+02        1.218134E+02        1.000000E+00        5.858009E+05
+       23        23        5.915558E+05        7.691266E+02        1.224103E+02        1.000000E+00        5.915558E+05
+       24        24        6.053329E+05        7.780314E+02        1.238275E+02        1.000000E+00        6.053329E+05
+       25        25        6.225578E+05        7.890233E+02        1.255770E+02        1.000000E+00        6.225578E+05
+       26        26        6.477248E+05        8.048135E+02        1.280900E+02        1.000000E+00        6.477248E+05
+       27        27        6.589861E+05        8.117796E+02        1.291987E+02        1.000000E+00        6.589861E+05
+       28        28        7.260814E+05        8.521041E+02        1.356166E+02        1.000000E+00        7.260814E+05
+       29        29        7.672504E+05        8.759283E+02        1.394083E+02        1.000000E+00        7.672504E+05
+       30        30        7.743677E+05        8.799816E+02        1.400534E+02        1.000000E+00        7.743677E+05
+       31        31        8.322936E+05        9.123013E+02        1.451973E+02        1.000000E+00        8.322936E+05
+       32        32        8.329749E+05        9.126746E+02        1.452567E+02        1.000000E+00        8.329749E+05
+       33        33        8.431752E+05        9.182457E+02        1.461433E+02        1.000000E+00        8.431752E+05
+       34        34        8.704857E+05        9.329982E+02        1.484913E+02        1.000000E+00        8.704857E+05
+       35        35        9.405950E+05        9.698428E+02        1.543553E+02        1.000000E+00        9.405950E+05
+       36        36        1.041371E+06        1.020476E+03        1.624138E+02        1.000000E+00        1.041371E+06
+       37        37        1.088109E+06        1.043125E+03        1.660185E+02        1.000000E+00        1.088109E+06
+       38        38        1.129622E+06        1.062837E+03        1.691557E+02        1.000000E+00        1.129622E+06
+       39        39        1.143201E+06        1.069206E+03        1.701694E+02        1.000000E+00        1.143201E+06
+       40        40        1.240128E+06        1.113610E+03        1.772366E+02        1.000000E+00        1.240128E+06
+       41        41        1.312082E+06        1.145461E+03        1.823058E+02        1.000000E+00        1.312082E+06
+       42        42        1.369818E+06        1.170392E+03        1.862737E+02        1.000000E+00        1.369818E+06
+       43        43        1.539682E+06        1.240839E+03        1.974857E+02        1.000000E+00        1.539682E+06
+       44        44        1.576913E+06        1.255752E+03        1.998591E+02        1.000000E+00        1.576913E+06
+       45        45        1.679595E+06        1.295992E+03        2.062635E+02        1.000000E+00        1.679595E+06
+       46        46        1.891408E+06        1.375285E+03        2.188833E+02        1.000000E+00        1.891408E+06
+       47        47        1.904848E+06        1.380162E+03        2.196596E+02        1.000000E+00        1.904848E+06
+       48        48        2.063519E+06        1.436495E+03        2.286253E+02        1.000000E+00        2.063519E+06
+       49        49        2.107661E+06        1.451779E+03        2.310578E+02        1.000000E+00        2.107661E+06
+       50        50        2.323034E+06        1.524150E+03        2.425761E+02        1.000000E+00        2.323034E+06
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    51
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (AFTER AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+       51        51        3.285090E+06        1.812482E+03        2.884654E+02        1.000000E+00        3.285090E+06
+       52        52        3.810359E+06        1.952014E+03        3.106727E+02        1.000000E+00        3.810359E+06
+       53        53        3.958250E+06        1.989535E+03        3.166443E+02        1.000000E+00        3.958250E+06
+       54        54        4.758866E+06        2.181483E+03        3.471937E+02        1.000000E+00        4.758866E+06
+       55        55        1.218342E+07        3.490476E+03        5.555264E+02        1.000000E+00        1.218342E+07
+       56        56        2.305228E+07        4.801279E+03        7.641473E+02        1.000000E+00        2.305228E+07
+       57        57        2.322042E+07        4.818757E+03        7.669290E+02        1.000000E+00        2.322042E+07
+       58        58        7.841881E+07        8.855439E+03        1.409387E+03        1.000000E+00        7.841881E+07
+       59        59        1.343073E+08        1.158910E+04        1.844463E+03        1.000000E+00        1.343073E+08
+       60        60        1.348065E+08        1.161062E+04        1.847888E+03        1.000000E+00        1.348065E+08
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    52
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                            SUBCASE 1              
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    53
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT        0 IS NOW INITIATED.
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    54
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER WARNING MESSAGE 4410 (PRTPRN)
+     DATA RECOVERY REQUESTED WHEN USET TABLE NOT PRESENT.
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    55
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT      102 IS NOW INITIATED.
+ *** USER INFORMATION MESSAGE 7528 (OUTPRT)
+     A "=ALL" OUTPUT REQUEST HAS BEEN FOUND FOR DISP, VELO, ACCE, STRESS OR FORCE TYPE OUTPUT.
+     USER INFORMATION:  MORE ECONOMICAL DATA RECOVERY IS POSSIBLE WHEN A LIMITED OUTPUT SET IS SELECTED.
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGV1    WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0             37152                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      688 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      554 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =    45493 WORDS.)
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    56
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT 12
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    57
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     31
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN PVALID SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ --------------------------------------------------------------------------------------------------------------------------
+   102   102    1    1 '        '    T    T    T    T    T     T      T      T      0     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ PVALID = P-DISTRIBUTION ID OF P-VALUE FOR P-ELEMENTS
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+ ^^^BEGIN NAS2CAM DMAP   
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    59
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ AA       MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ AG       MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ AGG      MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ AXIC     MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ BAA      MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ BDICT    MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ BEC      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ BELM     MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ BFF      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ BGG      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ BGPDT    MASTER   DBALL                                       86        0      216        2       60 160216 112610
+ BGPDTS   MASTER   DBALL             0                         64        0       84        2       60 160216 112610
+ BGPDTS   MASTER   DBALL           102                         86        0      216        2       60 160216 112610
+ BJJ      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ BK4ZZ    MASTER   DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ BMG      MASTER   DBALL           102           0              0        0        0        0        0 160216 112610
+ BSF      MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ BSS      MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ BTOPO    MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ BULK     MASTER   DBALL      -1    -1                          1        0        0        0        0 160216 112610
+ CASECCR  MASTER   MASTER                                       2        0      613        0        0 160216 112610
+ CASEDR   MASTER   DBALL       0     0                          1        0      613        0        0 160216 112610
+ CASEDR   MASTER   DBALL     102   102                          1        0      613        0        0 160216 112610
+ CASES    MASTER   DBALL     102   102                          1        0      613        0        0 160216 112610
+ CASES    MASTER   DBALL       0     0                          1        0      613        0        0 160216 112610
+ CASESX   MASTER   DBALL       0     0                          1        0      613        0        0 160216 112610
+ CASESX   MASTER   DBALL     102   102                          1        0      613        0        0 160216 112610
+ CEE      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ CMLAMA   MASTER   DBALL           102     0     0     1       54        0        0        0        0 160216 112610
+ CMMAT    MASTER   DBALL           102     0     0     1        5       60        2        1       60 160216 112610
+ CMMI     MASTER   DBALL           102     0     0     1       54       54        6        2        2 160216 112610
+ CMPHA    MASTER   DBALL           102     0     0     1       54       84        2        2        0 160216 112610
+ CMPHO    MASTER   DBALL           102     0     0     1       54      132        2        2      264 160216 112610
+ CMPHRC   MASTER   DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ COMPEST  MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ CSTMS    MASTER   DBALL           102                         86        1        1        2       12 160216 112610
+ CSTMS    MASTER   DBALL             0                         64        1        1        2       12 160216 112610
+ DIT      MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ DITID    MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ DITS     MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ DITS     MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    60
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ DKFF     MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ DMFF     MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ DRG      MASTER   DBALL             0                         84        6        2        2        6 160216 112610
+ DRG      MASTER   DBALL           102                        216        6        2        2        6 160216 112610
+ DTI      MASTER   SCRATCH                                      0        0        0        0        0 160216 112610
+ DTINDX   MASTER   SCRATCH                                      0        0        0        0        0 160216 112610
+ DYNAMIC  MASTER   DBALL                                      256        0        0        0        0 160216 112610
+ DYNAMICS MASTER   DBALL           102                        256        0        0        0        0 160216 112610
+ DYNAMICS MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ ECTAS    MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ ECTAS    MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ ECTS     MASTER   DBALL           102                          0      256        0    32768        0 160216 112610
+ ECTS     MASTER   DBALL             0                          0        0        0    32768        0 160216 112610
+ EDOM     MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ EDT      MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ EDTS     MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ EDTS     MASTER   DBALL       0     0                          0        0        0        0        0 160216 112610
+ EMAP     MASTER   DBALL                                        2       86       60        2        0 160216 112610
+ EPSSEO   MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ EPT      MASTER   DBALL                                        0     4096        0        0        0 160216 112610
+ EPTS     MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ EPTS     MASTER   DBALL           102                          0     4096        0        0        0 160216 112610
+ EQEXINS  MASTER   DBALL           102                         86        0        0        0        0 160216 112610
+ EQEXINS  MASTER   DBALL             0                         64        0        0        0        0 160216 112610
+ EST      MASTER   DBALL           102                         66        0        0       16        0 160216 112610
+ ESTL     MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ ESTNL    MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ ETT      MASTER   DBALL       0     0                          0        0        0        0        0 160216 112610
+ ETT      MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ GEOM1    MASTER   DBALL                                        0     2048        8      256        2 160216 112610
+ GEOM1Q   MASTER   DBALL                                        0     2048        8      256        2 160216 112610
+ GEOM1QS  MASTER   DBALL            -1                          0     2048        8      256        2 160216 112610
+ GEOM1S   MASTER   DBALL           102                          0     2048        8        0        0 160216 112610
+ GEOM1S   MASTER   DBALL             0                          0     2048        8        0        0 160216 112610
+ GEOM2    MASTER   DBALL                                        0      256        0    32768        0 160216 112610
+ GEOM2S   MASTER   DBALL            -1                          0      256        0    32768        0 160216 112610
+ GEOM2S   MASTER   DBALL           102                          0      256        0    32768        0 160216 112610
+ GEOM2S   MASTER   DBALL             0                          0        0        0    32768        0 160216 112610
+ GEOM3    MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ GEOM3S   MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ GEOM3S   MASTER   DBALL       0     0                          0        0        0        0        0 160216 112610
+ GEOM4    MASTER   DBALL                                       16        0        0        0        0 160216 112610
+ GEOM4QS  MASTER   DBALL            -1                         16        0        0        0        0 160216 112610
+ GEOM4S   MASTER   DBALL           102                       1024        0        0        0       16 160216 112610
+ GEOM4S   MASTER   DBALL             0                         16        0        0        0        0 160216 112610
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    61
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ GGE      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ GM       MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ GNELM    MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ GOQ      MASTER   DBALL           102     0     0     1       60      132        2        2      264 160216 112610
+ GOT      MASTER   DBALL           102     0     0             24      132        2        2      264 160216 112610
+ GPDTS    MASTER   DBALL           102                         86       10        0        2        0 160216 112610
+ GPDTS    MASTER   DBALL             0                         64       10        0        2        0 160216 112610
+ GPECT    MASTER   DBALL           102                        323       86        6       12       14 160216 112610
+ GPECTG   MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ GPLS     MASTER   DBALL             0                         64        0        0        0        0 160216 112610
+ GPLS     MASTER   DBALL           102                         86        0        0        0        0 160216 112610
+ GPSNTS   MASTER   DBALL           102                          0        0        0        2        0 160216 112610
+ GPSNTS   MASTER   DBALL             0                          0        0        0        2        0 160216 112610
+ INDTA    MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ K4AA     MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ K4DICT   MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ K4ELM    MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ K4FF     MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ K4GG     MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ K4JJ     MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ K4MG     MASTER   DBALL           102           0              0        0        0        0        0 160216 112610
+ K4SF     MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ K4SS     MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KAA      MASTER   DBALL     102   102     0     0             84       84        6        2       48 160216 112610
+ KDICT    MASTER   DBALL           102                          2       12        0       78        0 160216 112610
+ KELM     MASTER   DBALL           102                         66       78        2        2      148 160216 112610
+ KFF      MASTER   DBALL           102     0     0            216      216        6        2       72 160216 112610
+ KFS      MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KGG      MASTER   DBALL           102                        216      216        6        2       72 160216 112610
+ KJJ      MASTER   DBALL           102                        216      216        6        2       72 160216 112610
+ KMG      MASTER   DBALL           102           0              0        0        0        0        0 160216 112610
+ KNN      MASTER   DBALL           102           0            216      216        6        2       72 160216 112610
+ KQQ      MASTER   DBALL     102   102     0     0     1       60       60        6        2        2 160216 112610
+ KSF      MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KSS      MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ KTT      MASTER   DBALL           102     0     0             24       24        6        2       48 160216 112610
+ LOO      MASTER   DBALL           102     0     0            132      132       13        2        8 160216 112610
+ MAA      MASTER   DBALL     102   102     0     0             84       84        6        2      168 160216 112610
+ MAPS     MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ MAPS     MASTER   DBALL       0     0                          0        0        0        0        0 160216 112610
+ MAR      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ MATPOOL  MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ MATPOOLS MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ MATPOOLS MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ MDICT    MASTER   DBALL           102                          2       12        0       78        0 160216 112610
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    62
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ MEC      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ MEE      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ MELM     MASTER   DBALL           102                         66       78        2        2      152 160216 112610
+ MFF      MASTER   DBALL           102     0     0            216      216        6        2       72 160216 112610
+ MGG      MASTER   DBALL           102                        216      216        6        2       72 160216 112610
+ MJE      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ MJJ      MASTER   DBALL           102                        216      216        6        2       72 160216 112610
+ MJJ1     MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ MMG      MASTER   DBALL           102           0              0        0        0        0        0 160216 112610
+ MPHVZ    MASTER   DBALL           102     0     0     1        0        0        0        0        0 160216 112610
+ MPT      MASTER   DBALL                                    32768        0        0        0        0 160216 112610
+ MPTS     MASTER   DBALL           102                      32768        0        0        0        0 160216 112610
+ MPTS     MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ MQQ      MASTER   DBALL     102   102     0     0     1       60       60        6        2        2 160216 112610
+ MQT      MASTER   DBALL     102   102     0     0     1       24       60        2        2      120 160216 112610
+ MSF      MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ MSS      MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ MTT      MASTER   DBALL           102     0     0             24       24        6        2       48 160216 112610
+ MVAA     MASTER   DBALL     102   102     0     0     1        0        0        0        0        0 160216 112610
+ ORSEQ    MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ PA       MASTER   DBALL     102   102     0     0              1       84        2        2        0 160216 112610
+ PBYA     MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PBYG     MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ PCDB     MASTER   SCRATCH                                      0        0        0        0        0 160216 112608
+ PCOMPT   MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ PCOMPTS  MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ PCOMPTS  MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ PG       MASTER   DBALL     102   102                          1      216        2        2        0 160216 112610
+ PHG      MASTER   DBALL     102   102     0     0     1       54      216        2        2      264 160216 112610
+ PHQG     MASTER   DBALL     102   102     0     0     1        0        0        0        0        0 160216 112610
+ PJ       MASTER   DBALL     102   102                          1      216        2        2        0 160216 112610
+ PKYA     MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PKYG     MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ PMYA     MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PMYG     MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ PSS      MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ PTELEM   MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ PVT      MASTER   DBALL                                     2668        0        0        0        0 160216 112610
+ PVTBC    MASTER   DBALL             0     0     0           2668        0        1        2        0 160216 112610
+ PVTBC    MASTER   DBALL           102     0     0           2668        0        1        1        0 160216 112610
+ PVTS     MASTER   DBALL     102   102                       2668        0        1        1        0 160216 112610
+ PVTS     MASTER   DBALL       0     0                       2668        0        1        2        0 160216 112610
+ RMG      MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+ RMG      MASTER   DBALL             0     0     0              0        0        0        0        0 160216 112610
+ RMLM     MASTER   DBALL           102     0     0              0        0        0        0        0 160216 112610
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    63
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ RVA      MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ RVG      MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ SCSTM    MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ SESUM    MASTER   MASTER    102   102                          0        0        0        0        0 160216 112610
+ SETREE   MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ SGPDT    MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ SGPDTS   MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ SGPDTS   MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ SILS     MASTER   DBALL             0                         64       84        0        0        0 160216 112610
+ SILS     MASTER   DBALL           102                         86      216        0        0        0 160216 112610
+ SLIST    MASTER   DBALL                                        2       86       60        2        0 160216 112610
+ SLT      MASTER   DBALL     102   102                          0        0        0        0        0 160216 112610
+ SLT      MASTER   DBALL       0     0                          0        0        0        0        0 160216 112610
+ SPECSEL  MASTER   DBALL                                        0        0        0        0        0 160216 112610
+ UOO      MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+ USET     MASTER   DBALL           102     0     0              0      216       64        6        0 160216 112610
+ USET0    MASTER   DBALL           102     0     0              0      216       64        6        0 160216 112610
+ USET0    MASTER   DBALL             0     0     0              0       84        0        2        0 160216 112610
+ VAQ      MASTER   DBALL           102                          1       84        2        2        0 160216 112610
+ VAQ      MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ VELEM    MASTER   DBALL           102                          1        1        1        1        1 160216 112610
+ VGFD     MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ VGFS     MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ VGFS     MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ XYCDB    MASTER   SCRATCH                                      0        0        0        0        0 160216 112608
+ YG       MASTER   DBALL           102                          0        0        0        0        0 160216 112610
+ YG       MASTER   DBALL             0                          0        0        0        0        0 160216 112610
+ YS       MASTER   DBALL     102   102     0     0              0        0        0        0        0 160216 112610
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    64
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ ZUZR11   MASTER   DBALL    'VQB     '     0   102     0        1       84        2        2       48 160216 112610
+ ZUZR11   MASTER   DBALL    'RBG     '     0   102     0        6      216        2        2      132 160216 112610
+ ZUZR11   MASTER   DBALL    'RBGN    '     0   102     0        6      216        2        2      132 160216 112610
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    65
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+ ^^^OUTPUT2 UNIT =          29 
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS DBWRITE  FOR FORTRAN UNIT 29
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =        8 RECORDS.)
+     (TOTAL DATA WRITTEN FOR TAPE LABEL =       17 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK SLIST    WRITTEN ON FORTRAN UNIT  29, TRL =
+                    101                 2                86                60                 2                 0                 7
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       14 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       43 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EMAP     WRITTEN ON FORTRAN UNIT  29, TRL =
+                    102                 2                86                60                 2                 0                 7
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      172 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       34 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      435 WORDS.)
+ ^^^NSUPERS =            2 
+ ^^^     
+ ^^^     
+ ^^^PROCESSING SUPERELEMENT        102 
+ ^^^     
+ ^^^     
+ ^^^WARNING:  MAPS NOT FOUND FOR    SUPERELEMENT           102.  CONTINUING.   
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK USETTAB  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    101                 0               216                64                 6                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      216 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      242 WORDS.)
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    66
+                                                                                                        SUPERELEMENT 102            
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    102                86                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      172 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      372 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CSTMS    WRITTEN ON FORTRAN UNIT  29, TRL =
+                    103                86                 1                 1                 2                12                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       24 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       56 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  29, TRL =
+                    104                86                 0               216                 2                60           2995060
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =     1032 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     1232 WORDS.)
+ DATA BLOCK SE_STARTWRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       2   10000
+ ^^^ SYSTEM WARNING MESSAGE 9266 (DBFTCH)    
+ ^^^AULVS            0       102 NOT FOUND IN DATABASE.  PURGED STATUS ASSUMED.  
+ ^^^WARNING:  ULVS MISSING  FOR SUPERELEMENT           102 
+ DATA BLOCK LAMBDA  WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1      60       2       2     120   10000
+ DATA BLOCK MAA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      84      84       6       2     168    4983
+ DATA BLOCK KAA     WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101      84      84       6       2      48     901
+ ^^^NOMPOOL =           -1 
+ ^^^     
+ ^^^     
+ ^^^PROCESSING SUPERELEMENT          0 
+ ^^^     
+ ^^^     
+ ^^^WARNING:  USET MISSING FOR  SUPERELEMENT             0.  USING USET0.  
+ ^^^WARNING:  MAPS NOT FOUND FOR    SUPERELEMENT             0.  CONTINUING.   
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK USETTAB  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    101                 0                84                 0                 2                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       84 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      110 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  29, TRL =
+                    102                64                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      128 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      284 WORDS.)
+1    GENERATE CRAIG-BAMPTON MODES & PERFORM STANDARD CHECKS                FEBRUARY  16, 2016  NX NASTRAN  5/ 1/14   PAGE    67
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CSTMS    WRITTEN ON FORTRAN UNIT  29, TRL =
+                    103                64                 1                 1                 2                12                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       24 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       56 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  29, TRL =
+                    104                64                 0                84                 2                60           2995060
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      768 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      924 WORDS.)
+ DATA BLOCK SE_STARTWRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+ ^^^ SYSTEM WARNING MESSAGE 9266 (DBFTCH)    
+ ^^^AULVS            0         0 NOT FOUND IN DATABASE.  PURGED STATUS ASSUMED.  
+ ^^^WARNING:  ULVS MISSING  FOR SUPERELEMENT             0 
+ ^^^WARNING:  LAMA (AND THEREFORE LAMBDA) MISSING   FOR SUPERELEMENT             0 
+ ^^^WARNING:  MAA MISSING   FOR SUPERELEMENT             0 
+ ^^^WARNING:  KAA MISSING   FOR SUPERELEMENT             0 
+ ^^^NOMPOOL =           -1 
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT 29
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+ DATA BLOCK LOOP_ENDWRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN  BINARY  FORMAT                     
+ TRAILER =     101       1       1       6       2       0       0
+1                                        * * * END OF JOB * * *

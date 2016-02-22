@@ -1,0 +1,1184 @@
+1
+ 
+ 
+ 
+ 
+                                                             
+                 Copyright 2013 Siemens Product Lifecycle    
+                        Management Software Inc.             
+                         All Rights Reserved.                
+                                                             
+               This software and related documentation are   
+                 proprietary to Siemens Product Lifecycle    
+                        Management Software Inc.             
+                                                             
+              Siemens and the Siemens logo are registered    
+             trademarks of Siemens AG. NX is a trademark or  
+                registered trademark of Siemens Product      
+               Lifecycle Management Software Inc. or its     
+             subsidiaries in the United States and in other  
+             countries.  NASTRAN is a registered trademark   
+                 of the National Aeronautics and Space       
+                 Administration.  All other trademarks,      
+              registered trademarks or service marks belong  
+                      to their respective holders.           
+                                                             
+           LIMITATIONS TO U.S. GOVERNMENT RIGHTS. UNPUBLISHED
+           - RIGHTS RESERVED UNDER THE COPYRIGHT LAWS OF THE 
+            UNITED STATES. This computer software and related
+               computer software documentation have been     
+            developed exclusively at private expense and are 
+           provided subject to the following rights:  If this
+               computer software and computer  software      
+            documentation qualify as "commercial items" (as  
+             that term is defined in FAR 2.101), their use,  
+            duplication or disclosure by the U.S. Government 
+           is subject to the protections and restrictions as 
+            set forth in the Siemens commercial license for  
+            software and/or documentation, as prescribed in  
+           FAR 12.212 and FAR 27.405(b)(2)(i) (for civilian  
+             agencies) and in DFARS 227.7202-1(a) and DFARS  
+           227.7202-3(a) (for the Department of Defense), or 
+           any successor or similar regulation, as applicable
+           or as amended from time to time.  If this computer
+           software and computer documentation do not qualify
+            as "commercial items", then they are "restricted 
+           computer software" and are provided with "restric-
+            tive rights", and their use, duplication or dis- 
+            closure by the U.S. Government is subject to the 
+            protections and restrictions as set forth in FAR 
+           27.404(b) and FAR 52-227-14 (for civilian agencies
+           ), and DFARS 227.7203-5(c) and DFARS 252.227-7014 
+           (for the Department of Defense), or any successor 
+           or similar regulation, as applicable or as amended
+              from time to time.  Siemens PLM Software Inc.  
+            5800 Granite Parkway, Suite 600, Plano, TX 75024 
+
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *       N X   N a s t r a n       * *
+                * *                                 * *
+                * *         VERSION -   9.1         * *
+                * *                                 * *
+                * *          MAY  1, 2014           * *
+                * *                                 * *
+                * *                                 * *
+                * *       X86_64 Based System       * *
+                * *                                 * *
+                * *MODEL x86_64 Intel/2400.060059MH * *
+                * *                                 * *
+                * * Linux 2.6.32-504.3.3.el6.x86_64 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+1                                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=8193 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[3])                    
+     NASTRAN DIAGA=160 DIAGB=0 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[6])                
+     NASTRAN SYSTEM(551)=1 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[8])                    
+     NASTRAN BUFFSIZE=65537 $(/HOME/LOADS/TWIDRICK/.NAST9RC[4])                      
+     INIT MASTER(S)  $ DELETE .MASTER AND .DBALL FILES ON EXIT                       
+1                                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     SOL SEMFREQ                                                                             
+     DIAG 44                                                                                 
+     CEND                                                                                    
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1                                                                                              
+                  2      TITLE = SYSTEM MODES                                                                    
+                  3      ECHO = SORT                                                                             
+                  4                                                                                              
+                  5      METHOD = 1                                                                              
+                  6      FREQ = 1                                                                                
+                  7                                                                                              
+                  8      WEIGHTCHECK(SET=ALL) = YES                                                              
+                  9      GROUNDCHECK(SET=ALL,DATAREC=YES) = YES                                                  
+                 10                                                                                              
+                 11      SUBCASE 1                                                                               
+                 12              LABEL = MODES RUN WITH BHH MATRIX                                               
+                 13              ANALYSIS = MODES                                                                
+                 14              SUPER=0                                                                         
+                 15              DISPLACEMENT(PLOT) = ALL                                                        
+                 16              FORCE(PLOT) = ALL                                                               
+                 17      SUBCASE 2                                                                               
+                 18              LABEL = DUMMY CASE                                                              
+                 19              DLOAD = 1                                                                       
+                 20      BEGIN BULK                                                                              
+ *** USER WARNING MESSAGE 324 (XSORSO)
+     BLANK ENTRIES ENCOUNTERED WILL BE IGNORED.
+0                             INPUT BULK DATA ENTRY COUNT =         214
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                    1-        CBAR    1       100     1       2       10                                      
+                    2-        CBAR    2       100     2       3       10                                      
+                    3-        CBAR    3       100     4       5       13                                      
+                    4-        CBAR    4       100     5       6       13                                      
+                    5-        CBAR    5       100     6       7       13                                      
+                    6-        CBAR    6       100     7       8       13                                      
+                    7-        CBAR    7       100     9       10      2                                       
+                    8-        CBAR    8       100     10      11      2                                       
+                    9-        CBAR    9       100     12      13      5                                       
+                   10-        CBAR    10      100     13      14      5                                       
+                   11-        CBAR    11      100     14      15      5                                       
+                   12-        CBAR    12      100     15      16      5                                       
+                   13-        CBAR    13      100     17      18      26                                      
+                   14-        CBAR    14      100     18      19      26                                      
+                   15-        CBAR    15      100     20      21      29                                      
+                   16-        CBAR    16      100     21      22      29                                      
+                   17-        CBAR    17      100     22      23      29                                      
+                   18-        CBAR    18      100     23      24      29                                      
+                   19-        CBAR    19      100     25      26      18                                      
+                   20-        CBAR    20      100     26      27      18                                      
+                   21-        CBAR    21      100     28      29      21                                      
+                   22-        CBAR    22      100     29      30      21                                      
+                   23-        CBAR    23      100     30      31      21                                      
+                   24-        CBAR    24      100     31      32      21                                      
+                   25-        CBAR    25      100     1       9       150.    150.    300.                    
+                   26-        CBAR    26      100     2       10      150.    150.    300.                    
+                   27-        CBAR    27      100     3       11      150.    150.    300.                    
+                   28-        CBAR    28      100     4       12      150.    150.    300.                    
+                   29-        CBAR    29      100     5       13      150.    150.    300.                    
+                   30-        CBAR    30      100     6       14      150.    150.    300.                    
+                   31-        CBAR    31      100     7       15      150.    150.    300.                    
+                   32-        CBAR    32      100     8       16      150.    150.    300.                    
+                   33-        CBAR    33      100     17      25      150.    150.    0.                      
+                   34-        CBAR    34      100     18      26      150.    150.    0.                      
+                   35-        CBAR    35      100     19      27      150.    150.    0.                      
+                   36-        CBAR    36      100     20      28      150.    150.    0.                      
+                   37-        CBAR    37      100     21      29      150.    150.    0.                      
+                   38-        CBAR    38      100     22      30      150.    150.    0.                      
+                   39-        CBAR    39      100     23      31      150.    150.    0.                      
+                   40-        CBAR    40      100     24      32      150.    150.    0.                      
+                   41-        CBAR    41      100     1       25      150.    0.      150.                    
+                   42-        CBAR    42      100     2       26      150.    0.      150.                    
+                   43-        CBAR    43      100     3       27      150.    0.      150.                    
+                   44-        CBAR    44      100     4       28      150.    0.      150.                    
+                   45-        CBAR    45      100     5       29      150.    0.      150.                    
+                   46-        CBAR    46      100     6       30      150.    0.      150.                    
+                   47-        CBAR    47      100     7       31      150.    0.      150.                    
+                   48-        CBAR    48      100     8       32      150.    0.      150.                    
+                   49-        CBAR    49      100     9       17      150.    300.    150.                    
+                   50-        CBAR    50      100     10      18      150.    300.    150.                    
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                   51-        CBAR    51      100     11      19      150.    300.    150.                    
+                   52-        CBAR    52      100     12      20      150.    300.    150.                    
+                   53-        CBAR    53      100     13      21      150.    300.    150.                    
+                   54-        CBAR    54      100     14      22      150.    300.    150.                    
+                   55-        CBAR    55      100     15      23      150.    300.    150.                    
+                   56-        CBAR    56      100     16      24      150.    300.    150.                    
+                   57-        CBAR    57      100     9       25      17                                      
+                   58-        CBAR    58      100     2       18      26                                      
+                   59-        CBAR    59      100     11      27      19                                      
+                   60-        CBAR    60      100     4       20      28                                      
+                   61-        CBAR    61      100     13      29      21                                      
+                   62-        CBAR    62      100     6       22      30                                      
+                   63-        CBAR    63      100     15      31      23                                      
+                   64-        CBAR    64      100     8       24      32                                      
+                   65-        CBAR    65      100     1       10      9                                       
+                   66-        CBAR    66      100     3       10      11                                      
+                   67-        CBAR    67      100     5       12      13                                      
+                   68-        CBAR    68      100     5       14      13                                      
+                   69-        CBAR    69      100     7       14      15                                      
+                   70-        CBAR    70      100     7       16      15                                      
+                   71-        CBAR    71      100     9       18      17                                      
+                   72-        CBAR    72      100     11      18      19                                      
+                   73-        CBAR    73      100     13      20      21                                      
+                   74-        CBAR    74      100     13      22      21                                      
+                   75-        CBAR    75      100     15      22      23                                      
+                   76-        CBAR    76      100     15      24      23                                      
+                   77-        CBAR    77      100     17      26      18                                      
+                   78-        CBAR    78      100     19      26      18                                      
+                   79-        CBAR    79      100     21      28      20                                      
+                   80-        CBAR    80      100     21      30      22                                      
+                   81-        CBAR    81      100     23      30      22                                      
+                   82-        CBAR    82      100     23      32      24                                      
+                   83-        CBAR    83      100     2       25      26                                      
+                   84-        CBAR    84      100     2       27      26                                      
+                   85-        CBAR    85      100     4       29      5                                       
+                   86-        CBAR    86      100     6       29      5                                       
+                   87-        CBAR    87      100     6       31      7                                       
+                   88-        CBAR    88      100     8       31      7                                       
+                   89-        CBAR    89      101     330     34      36                                      
+                   90-        CBAR    90      102     3       33      34                                      
+                   91-        CBAR    91      102     11      33      34                                      
+                   92-        CBAR    92      102     19      33      34                                      
+                   93-        CBAR    93      102     27      33      34                                      
+                   94-        CBAR    94      102     4       34      1200.   150.    150.                    
+                   95-        CBAR    95      102     12      34      1200.   150.    150.                    
+                   96-        CBAR    96      102     20      34      1200.   150.    150.                    
+                   97-        CBAR    97      102     28      34      1200.   150.    150.                    
+                   98-        CBAR    98      200     36      37      41                                      
+                   99-        CBAR    99      200     37      38      41                                      
+                  100-        CBAR    100     200     38      39      41                                      
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                  101-        CBAR    101     200     39      40      41                                      
+                  102-        CBAR    102     201     40      41      39                                      
+                  103-        CBAR    103     201     40      42      39                                      
+                  104-        CBAR    104     200     35      43      48                                      
+                  105-        CBAR    105     200     43      44      48                                      
+                  106-        CBAR    106     200     44      45      48                                      
+                  107-        CBAR    107     200     45      46      48                                      
+                  108-        CBAR    108     201     46      47      45                                      
+                  109-        CBAR    109     201     46      48      45                                      
+                  110-        CBAR    110     102     17      36      150.    0.      150.                    
+                  111-        CBAR    111     102     18      36      150.    0.      150.                    
+                  112-        CBAR    112     102     10      36      150.    0.      150.                    
+                  113-        CBAR    113     102     9       36      150.    0.      150.                    
+                  114-        CBAR    114     102     25      35      150.    0.      150.                    
+                  115-        CBAR    115     102     26      35      150.    0.      150.                    
+                  116-        CBAR    116     102     2       35      150.    0.      150.                    
+                  117-        CBAR    117     102     1       35      150.    0.      150.                    
+                  118-        DAREA   1       33      1       1.0                                             
+                  119-        EIGR    1       AHOU                            100000                          
+                  120-        FREQ    1       2.                                                              
+                  121-        GRID    1       0       0.      0.      300.    0                               
+                  122-        GRID    2       0       300.    0.      300.    0                               
+                  123-        GRID    3       0       600.    0.      300.    0                               
+                  124-        GRID    4       0       900.    0.      300.    0                               
+                  125-        GRID    5       0       1200.   0.      300.    0                               
+                  126-        GRID    6       0       1500.   0.      300.    0                               
+                  127-        GRID    7       0       1800.   0.      300.    0                               
+                  128-        GRID    8       0       2100.   0.      300.    0                               
+                  129-        GRID    9       0       0.      300.    300.    0                               
+                  130-        GRID    10      0       300.    300.    300.    0                               
+                  131-        GRID    11      0       600.    300.    300.    0                               
+                  132-        GRID    12      0       900.    300.    300.    0                               
+                  133-        GRID    13      0       1200.   300.    300.    0                               
+                  134-        GRID    14      0       1500.   300.    300.    0                               
+                  135-        GRID    15      0       1800.   300.    300.    0                               
+                  136-        GRID    16      0       2100.   300.    300.    0                               
+                  137-        GRID    17      0       0.      300.    0.      0                               
+                  138-        GRID    18      0       300.    300.    0.      0                               
+                  139-        GRID    19      0       600.    300.    0.      0                               
+                  140-        GRID    20      0       900.    300.    0.      0                               
+                  141-        GRID    21      0       1200.   300.    0.      0                               
+                  142-        GRID    22      0       1500.   300.    0.      0                               
+                  143-        GRID    23      0       1800.   300.    0.      0                               
+                  144-        GRID    24      0       2100.   300.    0.      0                               
+                  145-        GRID    25      0       0.      0.      0.      0                               
+                  146-        GRID    26      0       300.    0.      0.      0                               
+                  147-        GRID    27      0       600.    0.      0.      0                               
+                  148-        GRID    28      0       900.    0.      0.      0                               
+                  149-        GRID    29      0       1200.   0.      0.      0                               
+                  150-        GRID    30      0       1500.   0.      0.      0                               
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                  151-        GRID    31      0       1800.   0.      0.      0                               
+                  152-        GRID    32      0       2100.   0.      0.      0                               
+                  153-        GRID    33      0       630.    150.    150.    0                               
+                  154-        GRID    34      0       870.    150.    150.    0                               
+                  155-        GRID    35      0       150.    -30.    150.    0                               
+                  156-        GRID    36      0       150.    330.    150.    0                               
+                  157-        GRID    37      0       150.    630.    150.    0                               
+                  158-        GRID    38      0       150.    930.    150.    0                               
+                  159-        GRID    39      0       150.    1230.   150.    0                               
+                  160-        GRID    40      0       150.    1530.   150.    0                               
+                  161-        GRID    41      0       -150.   1530.   150.    0                               
+                  162-        GRID    42      0       450.    1530.   150.    0                               
+                  163-        GRID    43      0       150.    -330.   150.    0                               
+                  164-        GRID    44      0       150.    -630.   150.    0                               
+                  165-        GRID    45      0       150.    -930.   150.    0                               
+                  166-        GRID    46      0       150.    -1230.  150.    0                               
+                  167-        GRID    47      0       -150.   -1230.  150.    0                               
+                  168-        GRID    48      0       450.    -1230.  150.    0                               
+                  169-        GRID    330     0       630.    150.    150.    0                               
+                  170-        MAT1    300     6.894+7 2.62+7          2.74-6                                  
+                  171-        MAT1    301     6.894+7 2.62+7          2.74-6                                  
+                  172-        MAT1    302     6.894+7 2.62+7          2.74-6                                  
+                  173-        MAT1    400     6.894+7 2.62+7          2.74-6                                  
+                  174-        MAT1    401     6.894+7 2.62+7          2.74-6                                  
+                  175-        PARAM   AUTOSPC YES                                                             
+                  176-        PARAM   COUPMASS1                                                               
+                  177-        PARAM   POST    -1                                                              
+                  178-        PARAM   SESDAMP YES                                                             
+                  179-        PBAR    100     300     12.566  12.566  12.566  25.133                          
+                  180-        PBAR    101     301     201.06  3217.0  3217.0  6434.0                          
+                  181-        PBAR    102     302     201.06  3217.0  3217.0  6434.0                          
+                  182-        PBAR    200     400     28.274  63.617  63.617  127.23                          
+                  183-        PBAR    201     401     28.274  63.617  63.617  127.23                          
+                  184-        RBE2    1001    330     123456  33                                              
+                  185-        RLOAD2  1       1                       1                                       
+                  186-        TABLED1 1                                                                0000001
+                  187-        +00000010.01    1.0     150.0   1.0     ENDT                             0000002
+                              ENDDATA 
+0                       TOTAL COUNT=       188
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+0
+0
+0
+ 
+
+
+                                        M O D E L   S U M M A R Y
+
+                                   NUMBER OF GRID     POINTS   =       49
+ 
+ 
+                                   NUMBER OF CBAR     ELEMENTS =      117
+ 
+                                   NUMBER OF RBE2     ELEMENTS =        1
+ *** USER INFORMATION MESSAGE 7553 (GP1D)
+     A TOTAL OF        1 DAREA BULK DATA ENTRIES FOR GRID AND SCALAR POINTS HAVE BEEN CONVERTED TO EQUIVALENT
+     FORCE / MOMENT / SLOAD ENTRIES (AS APPROPRIATE)
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS NX9.1    FOR FORTRAN UNIT 12
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =        8 RECORDS.)
+     (TOTAL DATA WRITTEN FOR TAPE LABEL =       17 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK PVT0     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                18                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       18 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       42 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK CASECC   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 2                 0               600                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      600 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     1228 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM1S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0                 0                 8                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      395 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      426 WORDS.)
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM2S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102                 0               256                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =     1875 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     1906 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM3S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    103                 0                 0                64                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       10 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       41 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK GEOM4S   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    104                 0                 0                 0                 0              2048                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        8 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       39 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EPTS     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0              4096                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       98 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      129 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK MPTS     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101             32768                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       63 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       94 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK DYNAMICS WRITTEN ON FORTRAN UNIT  12, TRL =
+                    102              8200                 0                 0              4096                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       21 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       34 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       80 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK BGPDTS   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                49                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      196 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      220 WORDS.)
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                49                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       98 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      224 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK DIT      WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                32                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       17 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       48 WORDS.)
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    11
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KGG      (G-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.700221E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               9.696464E-09          PASS
+             2               8.030483E-09          PASS
+             3               6.893998E-09          PASS
+             4               1.191986E-03          PASS
+             5               1.577263E-02          PASS
+             6               3.666656E-04          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. CELASI ELEMENTS CONNECTING TO ONLY ONE GRID POINT;
+       2. CELASI ELEMENTS CONNECTING TO NON-COINCIDENT POINTS;
+       3. CELASI ELEMENTS CONNECTING TO NON-COLINEAR DOF;
+       4. IMPROPERLY DEFINED DMIG MATRICES;
+ 
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    12
+                                                                                                                                    
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7310 (VECPRN)
+     ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM WILL BE USED AS REFERENCE LOCATION.
+     RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    1.000000E+00     ----          ----          ----       1.500000E+02 -1.500000E+02                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  1.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  1.500000E+02 -1.500000E+02
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    13
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KNN      (N-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.700221E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               9.696464E-09          PASS
+             2               8.030483E-09          PASS
+             3               6.893998E-09          PASS
+             4               1.191986E-03          PASS
+             5               1.576369E-02          PASS
+             6               3.577249E-04          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. MULTIPOINT CONSTRAINT EQUATIONS WHICH DO NOT SATISFY RIGID-BODY MOTION;
+       2. RBE3 ELEMENTS FOR WHICH THE INDEPENDENT DEGREE-OF-FREEDOM CANNOT DESCRIBE
+          ALL POSSIBLE RIGID-BODY MOTIONS.
+ 
+ *** USER INFORMATION MESSAGE - SINGULARITIES FOUND USING EIGENVALUE METHOD
+ ***       0 SINGULARITIES FOUND         0 SINGULARITIES ELIMINATED
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    14
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KFF      (F-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.700221E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               9.696464E-09          PASS
+             2               8.030483E-09          PASS
+             3               6.893998E-09          PASS
+             4               1.191986E-03          PASS
+             5               1.576369E-02          PASS
+             6               3.577249E-04          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+       1. CONSTRAINTS WHICH PREVENT RIGID-BODY MOTION.
+ 
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    15
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 7570 (GPWG1D)
+     RESULTS OF RIGID BODY CHECKS OF MATRIX KAA1     (A-SET)  FOLLOW:
+     PRINT RESULTS IN ALL SIX DIRECTIONS AGAINST THE LIMIT OF   1.700221E+00
+           DIRECTION        STRAIN ENERGY        PASS/FAIL
+           ---------        -------------        ---------
+             1               9.696464E-09          PASS
+             2               8.030483E-09          PASS
+             3               6.893998E-09          PASS
+             4               1.191986E-03          PASS
+             5               1.576369E-02          PASS
+             6               3.577249E-04          PASS
+     SOME POSSIBLE REASONS MAY LEAD TO THE FAILURE:
+     IF THE MODEL HAS PASSED THE PREVIOUS CHECKS FOR THE G-SET AND N-SET,
+     THEN:
+       1. THE MODEL IS NOT INTENDED TO BE FREE-FREE WHICH INDICATES THAT THE MODEL IS
+          PROPERLY CONSTRAINED TO GROUND;
+       2. THE REFERENCE GRID POINT (GRID=GID ON THE GROUNDCHECK COMMAND) IS LOCATED
+          TOO FAR FROM THE MODEL'S CENTER OF GRAVITY. IT IS RECOMMENDED THAT THE
+          REFERENCE GRID POINT BE LOCATED AS CLOSE AS POSSIBLE TO THE MODEL'S CENTER
+          OF GRAVITY OF THE MODEL (SEE THE GRID POINT WEIGHT GENERATOR OUTPUT);
+       3. PARAM,AUTOSPC,YES CONSTRAINS NEAR-SINGULAR DEGREES-OF-FREEDOM. WHEN A
+          FINITE ELEMENT MODEL WITH AUTOSPC FAILS THE A-SET CHECK, IT IS NOT EVIDENT
+          THAT GROUNDING HAS OCCURRED. THE USE OF PARAM,SNORM WILL NOT ELIMINATE THE
+          SPURIOUS FAILURE.
+ 
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    16
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = G       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.235990E-17  1.788934E-17  7.643625E-16  5.018153E+02 -5.018153E+02 *
+                      *  1.235990E-17  3.345436E+00 -3.469447E-18 -5.018153E+02  8.972857E-16  2.118899E+03 *
+                      *  1.799776E-17 -3.469447E-18  3.345436E+00  5.018153E+02 -2.118899E+03 -1.677911E-15 *
+                      *  1.180479E-15 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  1.562986E-15 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -2.815456E-15 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            3.345436E+00      2.284792E-16  1.500000E+02  1.500000E+02
+                                  Y            3.345436E+00      6.333702E+02  2.682119E-16  1.500000E+02
+                                  Z            3.345436E+00      6.333702E+02  1.500000E+02 -5.015524E-16
+                                                                I(S)
+                                           *  3.928379E+05  2.328306E-10 -2.910383E-10 *
+                                           *  2.328306E-10  1.023790E+06  0.000000E+00 *
+                                           * -2.910383E-10  0.000000E+00  1.354959E+06 *
+                                                                I(Q)
+                                           *  3.928379E+05                             *
+                                           *                1.023790E+06               *
+                                           *                              1.354959E+06 *
+                                                                 Q
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    17
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    18
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = N       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.235990E-17  1.788934E-17  7.643625E-16  5.018153E+02 -5.018153E+02 *
+                      *  1.235990E-17  3.345436E+00 -3.469447E-18 -5.018153E+02  8.972857E-16  2.118899E+03 *
+                      *  1.799776E-17 -3.469447E-18  3.345436E+00  5.018153E+02 -2.118899E+03 -1.677911E-15 *
+                      *  1.180479E-15 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  1.562986E-15 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -2.815456E-15 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    19
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+ *** USER WARNING MESSAGE 2125 (VEC)
+     MODULE VEC - NZ=0, ONE OR MORE COLUMNS OF OUTPUT MATRIX WILL BE NULL.
+ *** USER WARNING MESSAGE 2125 (VEC)
+     MODULE VEC - NZ=0, ONE OR MORE COLUMNS OF OUTPUT MATRIX WILL BE NULL.
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    20
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = F       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.235990E-17  1.788934E-17  7.643625E-16  5.018153E+02 -5.018153E+02 *
+                      *  1.235990E-17  3.345436E+00 -3.469447E-18 -5.018153E+02  8.972857E-16  2.118899E+03 *
+                      *  1.799776E-17 -3.469447E-18  3.345436E+00  5.018153E+02 -2.118899E+03 -1.677911E-15 *
+                      *  1.180479E-15 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  1.562986E-15 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -2.815456E-15 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    21
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    22
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = A       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  3.345436E+00  1.235990E-17  1.788934E-17  7.643625E-16  5.018153E+02 -5.018153E+02 *
+                      *  1.235990E-17  3.345436E+00 -3.469447E-18 -5.018153E+02  8.972857E-16  2.118899E+03 *
+                      *  1.799776E-17 -3.469447E-18  3.345436E+00  5.018153E+02 -2.118899E+03 -1.677911E-15 *
+                      *  1.180479E-15 -5.018153E+02  5.018153E+02  5.433826E+05 -3.178349E+05 -3.178349E+05 *
+                      *  5.018153E+02  1.562986E-15 -2.118899E+03 -3.178349E+05  2.441110E+06 -7.527230E+04 *
+                      * -5.018153E+02  2.118899E+03 -2.815456E-15 -3.178349E+05 -7.527230E+04  2.772279E+06 *
+
+0                                    CHANGE WITH RESPECT TO G-SET RIGID BODY MASS/WEIGHT
+                      *       0 %                                                                           *
+                      *                     0 %                                                             *
+                      *                                   0 %                                               *
+                      *                                                 0 %                                 *
+                      *                                                               0 %                   *
+                      *                                                                             0 %     *
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    23
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+  
+ *** USER INFORMATION MESSAGE 4158 (DFMSA)
+ ---- STATISTICS FOR SPARSE DECOMPOSITION OF DATA BLOCK KLL      FOLLOW
+        NUMBER OF NEGATIVE TERMS ON FACTOR DIAGONAL =      1
+        MAXIMUM RATIO OF MATRIX DIAGONAL TO FACTOR DIAGONAL =  2.8E+14 AT ROW NUMBER        169
+ *** USER WARNING MESSAGE 4698 (DCMPD)
+     STATISTICS FOR DECOMPOSITION OF MATRIX KLL     .
+     THE FOLLOWING DEGREES OF FREEDOM HAVE FACTOR DIAGONAL RATIOS GREATER THAN
+      1.00000E+07 OR HAVE NEGATIVE TERMS ON THE FACTOR DIAGONAL.
+     USER INFORMATION:
+     THIS MESSAGE MAY BE IGNORED IF NO GRID POINT IDS OR HIGH RATIO MESSAGES APPEAR IN THE TABLE ON THE NEXT PAGE.
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    24
+                                                                                                                                    
+0                                                                                                            SUBCASE 2              
+0                                                                                                                                   
+         GRID POINT ID       DEGREE OF FREEDOM   MATRIX/FACTOR DIAGONAL RATIO        MATRIX DIAGONAL                                
+                                                                                                                                    
+              29                    T1                  -2.79827E+14                   7.81826E+06
+              29                    T2                   9.94996E+13                   3.91011E+06
+              29                    T3                   1.88752E+14                   5.95186E+06
+              29                    R1                   4.37048E+10                   4.53784E+07
+              29                    R2                   7.33566E+09                   5.80419E+07
+              29                    R3                   3.12937E+09                   5.14264E+07
+ ^^^ USER   WARNING MESSAGE 9136 (SEKRRS)    
+ ^^^ ENCOUNTERED EXCESSIVE PIVOT RATIOS IN MATRIX KLL.   
+ ^^^ USER INFORMATION:  AUTO-SUPORT WILL BE PERFORMED ON 
+ ^^^                    STRUCTURAL DEGREES OF FREEDOM.   
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    25
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4415 (PRTPRN)
+     THE FOLLOWING A-SET DEGREES OF FREEDOM HAVE EITHER NULL MASSES OR NULL MASSES AND STIFFNESS.
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    26
+                                                                                                                                    
+0                                                                                                                                   
+0                VAXW                                                                                                               
+     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE     POINT           VALUE  
+                                                                                                                                    
+
+ COLUMN           1
+         37 R2  1.00000E+00        38 R2  1.00000E+00        39 R2  1.00000E+00        41 R1  1.00000E+00        42 R1  1.00000E+00
+         43 R2  1.00000E+00        44 R2  1.00000E+00        45 R2  1.00000E+00        47 R1  1.00000E+00        48 R1  1.00000E+00
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: BEND
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+ *** USER INFORMATION MESSAGE 5458 (REIG)
+     QL HOUSEHOLDER METHOD IS AUTOMATICALLY SELECTED .
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     UNABLE TO EXECUTE METIS REORDERING BECAUSE THE MATRIX DENSITY IS TOO HIGH: 100 %.
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    27
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1       -2.376362E-07        4.874794E-04        7.758476E-05        1.000000E+00       -2.376362E-07
+        2         2       -6.165542E-08        2.483051E-04        3.951898E-05        1.000000E+00       -6.165542E-08
+        3         3       -3.280888E-08        1.811322E-04        2.882809E-05        1.000000E+00       -3.280888E-08
+        4         4        9.030884E-09        9.503096E-05        1.512465E-05        1.000000E+00        9.030884E-09
+        5         5        3.051532E-08        1.746863E-04        2.780219E-05        1.000000E+00        3.051532E-08
+        6         6        1.343564E-07        3.665465E-04        5.833769E-05        1.000000E+00        1.343564E-07
+        7         7        1.139316E+02        1.067388E+01        1.698800E+00        1.000000E+00        1.139316E+02
+        8         8        1.233310E+02        1.110545E+01        1.767487E+00        1.000000E+00        1.233310E+02
+        9         9        1.362449E+02        1.167240E+01        1.857720E+00        1.000000E+00        1.362449E+02
+       10        10        4.616506E+02        2.148606E+01        3.419612E+00        1.000000E+00        4.616506E+02
+       11        11        1.947847E+03        4.413442E+01        7.024210E+00        1.000000E+00        1.947847E+03
+       12        12        1.948511E+03        4.414195E+01        7.025409E+00        1.000000E+00        1.948511E+03
+       13        13        4.539855E+03        6.737845E+01        1.072361E+01        1.000000E+00        4.539855E+03
+       14        14        4.761743E+03        6.900538E+01        1.098255E+01        1.000000E+00        4.761743E+03
+       15        15        7.591209E+03        8.712754E+01        1.386678E+01        1.000000E+00        7.591209E+03
+       16        16        8.174762E+03        9.041439E+01        1.438990E+01        1.000000E+00        8.174762E+03
+       17        17        8.473938E+03        9.205400E+01        1.465085E+01        1.000000E+00        8.473938E+03
+       18        18        9.112411E+03        9.545895E+01        1.519276E+01        1.000000E+00        9.112411E+03
+       19        19        2.507343E+04        1.583459E+02        2.520153E+01        1.000000E+00        2.507343E+04
+       20        20        2.529668E+04        1.590493E+02        2.531348E+01        1.000000E+00        2.529668E+04
+       21        21        3.349689E+04        1.830216E+02        2.912879E+01        1.000000E+00        3.349689E+04
+       22        22        7.109555E+04        2.666375E+02        4.243667E+01        1.000000E+00        7.109555E+04
+       23        23        7.328784E+04        2.707173E+02        4.308599E+01        1.000000E+00        7.328784E+04
+       24        24        8.681629E+04        2.946460E+02        4.689437E+01        1.000000E+00        8.681629E+04
+       25        25        9.021540E+04        3.003588E+02        4.780359E+01        1.000000E+00        9.021540E+04
+       26        26        1.137350E+05        3.372462E+02        5.367440E+01        1.000000E+00        1.137350E+05
+       27        27        1.138642E+05        3.374377E+02        5.370487E+01        1.000000E+00        1.138642E+05
+       28        28        1.841237E+05        4.290964E+02        6.829281E+01        1.000000E+00        1.841237E+05
+       29        29        1.845770E+05        4.296243E+02        6.837682E+01        1.000000E+00        1.845770E+05
+       30        30        3.114309E+05        5.580600E+02        8.881801E+01        1.000000E+00        3.114309E+05
+       31        31        3.151789E+05        5.614080E+02        8.935085E+01        1.000000E+00        3.151789E+05
+       32        32        3.401689E+05        5.832400E+02        9.282552E+01        1.000000E+00        3.401689E+05
+       33        33        3.442452E+05        5.867241E+02        9.338004E+01        1.000000E+00        3.442452E+05
+       34        34        3.479581E+05        5.898797E+02        9.388227E+01        1.000000E+00        3.479581E+05
+       35        35        3.500112E+05        5.916174E+02        9.415884E+01        1.000000E+00        3.500112E+05
+       36        36        3.603189E+05        6.002657E+02        9.553525E+01        1.000000E+00        3.603189E+05
+       37        37        3.778649E+05        6.147072E+02        9.783368E+01        1.000000E+00        3.778649E+05
+       38        38        3.813103E+05        6.175032E+02        9.827869E+01        1.000000E+00        3.813103E+05
+       39        39        4.013708E+05        6.335383E+02        1.008308E+02        1.000000E+00        4.013708E+05
+       40        40        4.020611E+05        6.340828E+02        1.009174E+02        1.000000E+00        4.020611E+05
+       41        41        4.040878E+05        6.356790E+02        1.011715E+02        1.000000E+00        4.040878E+05
+       42        42        4.041856E+05        6.357559E+02        1.011837E+02        1.000000E+00        4.041856E+05
+       43        43        4.148454E+05        6.440850E+02        1.025093E+02        1.000000E+00        4.148454E+05
+       44        44        4.254462E+05        6.522624E+02        1.038108E+02        1.000000E+00        4.254462E+05
+       45        45        4.262340E+05        6.528660E+02        1.039068E+02        1.000000E+00        4.262340E+05
+       46        46        4.309352E+05        6.564565E+02        1.044783E+02        1.000000E+00        4.309352E+05
+       47        47        4.671843E+05        6.835089E+02        1.087838E+02        1.000000E+00        4.671843E+05
+       48        48        4.858643E+05        6.970397E+02        1.109373E+02        1.000000E+00        4.858643E+05
+       49        49        5.443423E+05        7.377956E+02        1.174238E+02        1.000000E+00        5.443423E+05
+       50        50        5.524725E+05        7.432849E+02        1.182975E+02        1.000000E+00        5.524725E+05
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    28
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+       51        51        5.645890E+05        7.513914E+02        1.195876E+02        1.000000E+00        5.645890E+05
+       52        52        5.869060E+05        7.660979E+02        1.219283E+02        1.000000E+00        5.869060E+05
+       53        53        5.915765E+05        7.691401E+02        1.224124E+02        1.000000E+00        5.915765E+05
+       54        54        6.062284E+05        7.786068E+02        1.239191E+02        1.000000E+00        6.062284E+05
+       55        55        6.235239E+05        7.896353E+02        1.256743E+02        1.000000E+00        6.235239E+05
+       56        56        6.484498E+05        8.052638E+02        1.281617E+02        1.000000E+00        6.484498E+05
+       57        57        6.589857E+05        8.117794E+02        1.291987E+02        1.000000E+00        6.589857E+05
+       58        58        7.263068E+05        8.522363E+02        1.356376E+02        1.000000E+00        7.263068E+05
+       59        59        7.675791E+05        8.761159E+02        1.394382E+02        1.000000E+00        7.675791E+05
+       60        60        7.750771E+05        8.803846E+02        1.401176E+02        1.000000E+00        7.750771E+05
+       61        61        8.167065E+05        9.037181E+02        1.438312E+02        1.000000E+00        8.167065E+05
+       62        62        8.338229E+05        9.131390E+02        1.453306E+02        1.000000E+00        8.338229E+05
+       63        63        8.395326E+05        9.162601E+02        1.458273E+02        1.000000E+00        8.395326E+05
+       64        64        8.500251E+05        9.219681E+02        1.467358E+02        1.000000E+00        8.500251E+05
+       65        65        9.407276E+05        9.699111E+02        1.543661E+02        1.000000E+00        9.407276E+05
+       66        66        1.042349E+06        1.020955E+03        1.624901E+02        1.000000E+00        1.042349E+06
+       67        67        1.076028E+06        1.037318E+03        1.650942E+02        1.000000E+00        1.076028E+06
+       68        68        1.090263E+06        1.044157E+03        1.661827E+02        1.000000E+00        1.090263E+06
+       69        69        1.138124E+06        1.066829E+03        1.697911E+02        1.000000E+00        1.138124E+06
+       70        70        1.159289E+06        1.076703E+03        1.713626E+02        1.000000E+00        1.159289E+06
+       71        71        1.161761E+06        1.077850E+03        1.715452E+02        1.000000E+00        1.161761E+06
+       72        72        1.173071E+06        1.083084E+03        1.723781E+02        1.000000E+00        1.173071E+06
+       73        73        1.254056E+06        1.119846E+03        1.782291E+02        1.000000E+00        1.254056E+06
+       74        74        1.310982E+06        1.144981E+03        1.822294E+02        1.000000E+00        1.310982E+06
+       75        75        1.313880E+06        1.146246E+03        1.824307E+02        1.000000E+00        1.313880E+06
+       76        76        1.339510E+06        1.157372E+03        1.842015E+02        1.000000E+00        1.339510E+06
+       77        77        1.484146E+06        1.218255E+03        1.938913E+02        1.000000E+00        1.484146E+06
+       78        78        1.576965E+06        1.255772E+03        1.998624E+02        1.000000E+00        1.576965E+06
+       79        79        1.679627E+06        1.296004E+03        2.062655E+02        1.000000E+00        1.679627E+06
+       80        80        1.739699E+06        1.318977E+03        2.099216E+02        1.000000E+00        1.739699E+06
+       81        81        1.905446E+06        1.380379E+03        2.196941E+02        1.000000E+00        1.905446E+06
+       82        82        2.063886E+06        1.436623E+03        2.286457E+02        1.000000E+00        2.063886E+06
+       83        83        2.100063E+06        1.449160E+03        2.306409E+02        1.000000E+00        2.100063E+06
+       84        84        2.106400E+06        1.451344E+03        2.309886E+02        1.000000E+00        2.106400E+06
+       85        85        2.188637E+06        1.479404E+03        2.354545E+02        1.000000E+00        2.188637E+06
+       86        86        2.188637E+06        1.479404E+03        2.354545E+02        1.000000E+00        2.188637E+06
+       87        87        2.314318E+06        1.521288E+03        2.421205E+02        1.000000E+00        2.314318E+06
+       88        88        2.547288E+06        1.596022E+03        2.540148E+02        1.000000E+00        2.547288E+06
+       89        89        2.549515E+06        1.596720E+03        2.541259E+02        1.000000E+00        2.549515E+06
+       90        90        2.999720E+06        1.731970E+03        2.756516E+02        1.000000E+00        2.999720E+06
+       91        91        3.003630E+06        1.733098E+03        2.758311E+02        1.000000E+00        3.003630E+06
+       92        92        3.278875E+06        1.810766E+03        2.881924E+02        1.000000E+00        3.278875E+06
+       93        93        3.810338E+06        1.952009E+03        3.106718E+02        1.000000E+00        3.810338E+06
+       94        94        3.958220E+06        1.989527E+03        3.166431E+02        1.000000E+00        3.958220E+06
+       95        95        4.130483E+06        2.032359E+03        3.234600E+02        1.000000E+00        4.130483E+06
+       96        96        4.505502E+06        2.122617E+03        3.378249E+02        1.000000E+00        4.505502E+06
+       97        97        4.532520E+06        2.128972E+03        3.388364E+02        1.000000E+00        4.532520E+06
+       98        98        4.763443E+06        2.182531E+03        3.473606E+02        1.000000E+00        4.763443E+06
+       99        99        5.312680E+06        2.304925E+03        3.668402E+02        1.000000E+00        5.312680E+06
+      100       100        5.795184E+06        2.407319E+03        3.831367E+02        1.000000E+00        5.795184E+06
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    29
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+      101       101        6.883053E+06        2.623557E+03        4.175521E+02        1.000000E+00        6.883053E+06
+      102       102        6.972584E+06        2.640565E+03        4.202590E+02        1.000000E+00        6.972584E+06
+      103       103        7.389790E+06        2.718417E+03        4.326495E+02        1.000000E+00        7.389790E+06
+      104       104        7.422482E+06        2.724423E+03        4.336054E+02        1.000000E+00        7.422482E+06
+      105       105        8.323346E+06        2.885021E+03        4.591653E+02        1.000000E+00        8.323346E+06
+      106       106        8.376626E+06        2.894240E+03        4.606326E+02        1.000000E+00        8.376626E+06
+      107       107        8.422797E+06        2.902206E+03        4.619004E+02        1.000000E+00        8.422797E+06
+      108       108        8.609720E+06        2.934232E+03        4.669976E+02        1.000000E+00        8.609720E+06
+      109       109        9.221005E+06        3.036611E+03        4.832916E+02        1.000000E+00        9.221005E+06
+      110       110        9.229846E+06        3.038066E+03        4.835232E+02        1.000000E+00        9.229846E+06
+      111       111        9.722186E+06        3.118042E+03        4.962518E+02        1.000000E+00        9.722186E+06
+      112       112        1.035208E+07        3.217466E+03        5.120756E+02        1.000000E+00        1.035208E+07
+      113       113        1.052031E+07        3.243503E+03        5.162195E+02        1.000000E+00        1.052031E+07
+      114       114        1.056648E+07        3.250613E+03        5.173511E+02        1.000000E+00        1.056648E+07
+      115       115        1.151194E+07        3.392926E+03        5.400009E+02        1.000000E+00        1.151194E+07
+      116       116        1.227208E+07        3.503153E+03        5.575441E+02        1.000000E+00        1.227208E+07
+      117       117        1.227260E+07        3.503227E+03        5.575559E+02        1.000000E+00        1.227260E+07
+      118       118        1.234041E+07        3.512892E+03        5.590941E+02        1.000000E+00        1.234041E+07
+      119       119        1.261138E+07        3.551250E+03        5.651989E+02        1.000000E+00        1.261138E+07
+      120       120        1.274267E+07        3.569688E+03        5.681334E+02        1.000000E+00        1.274267E+07
+      121       121        1.387669E+07        3.725143E+03        5.928749E+02        1.000000E+00        1.387669E+07
+      122       122        1.411089E+07        3.756446E+03        5.978569E+02        1.000000E+00        1.411089E+07
+      123       123        1.573026E+07        3.966140E+03        6.312307E+02        1.000000E+00        1.573026E+07
+      124       124        1.604155E+07        4.005191E+03        6.374459E+02        1.000000E+00        1.604155E+07
+      125       125        1.604763E+07        4.005950E+03        6.375667E+02        1.000000E+00        1.604763E+07
+      126       126        1.636360E+07        4.045194E+03        6.438126E+02        1.000000E+00        1.636360E+07
+      127       127        1.738417E+07        4.169432E+03        6.635857E+02        1.000000E+00        1.738417E+07
+      128       128        1.740113E+07        4.171466E+03        6.639095E+02        1.000000E+00        1.740113E+07
+      129       129        1.918941E+07        4.380572E+03        6.971896E+02        1.000000E+00        1.918941E+07
+      130       130        1.920002E+07        4.381783E+03        6.973824E+02        1.000000E+00        1.920002E+07
+      131       131        2.036875E+07        4.513176E+03        7.182942E+02        1.000000E+00        2.036875E+07
+      132       132        2.120209E+07        4.604572E+03        7.328404E+02        1.000000E+00        2.120209E+07
+      133       133        2.176454E+07        4.665248E+03        7.424972E+02        1.000000E+00        2.176454E+07
+      134       134        2.306756E+07        4.802870E+03        7.644005E+02        1.000000E+00        2.306756E+07
+      135       135        2.446267E+07        4.945975E+03        7.871764E+02        1.000000E+00        2.446267E+07
+      136       136        2.486093E+07        4.986074E+03        7.935583E+02        1.000000E+00        2.486093E+07
+      137       137        2.659232E+07        5.156774E+03        8.207260E+02        1.000000E+00        2.659232E+07
+      138       138        2.676054E+07        5.173060E+03        8.233180E+02        1.000000E+00        2.676054E+07
+      139       139        2.676342E+07        5.173337E+03        8.233622E+02        1.000000E+00        2.676342E+07
+      140       140        2.824969E+07        5.315044E+03        8.459155E+02        1.000000E+00        2.824969E+07
+      141       141        2.832768E+07        5.322375E+03        8.470823E+02        1.000000E+00        2.832768E+07
+      142       142        2.879518E+07        5.366114E+03        8.540436E+02        1.000000E+00        2.879518E+07
+      143       143        2.928729E+07        5.411773E+03        8.613104E+02        1.000000E+00        2.928729E+07
+      144       144        3.079279E+07        5.549125E+03        8.831707E+02        1.000000E+00        3.079279E+07
+      145       145        3.198889E+07        5.655872E+03        9.001599E+02        1.000000E+00        3.198889E+07
+      146       146        3.298389E+07        5.743160E+03        9.140523E+02        1.000000E+00        3.298389E+07
+      147       147        3.422616E+07        5.850313E+03        9.311062E+02        1.000000E+00        3.422616E+07
+      148       148        3.449173E+07        5.872966E+03        9.347115E+02        1.000000E+00        3.449173E+07
+      149       149        3.449175E+07        5.872968E+03        9.347119E+02        1.000000E+00        3.449175E+07
+      150       150        3.461497E+07        5.883449E+03        9.363800E+02        1.000000E+00        3.461497E+07
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    30
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+      151       151        3.494819E+07        5.911700E+03        9.408762E+02        1.000000E+00        3.494819E+07
+      152       152        3.607847E+07        6.006536E+03        9.559698E+02        1.000000E+00        3.607847E+07
+      153       153        3.626330E+07        6.021902E+03        9.584154E+02        1.000000E+00        3.626330E+07
+      154       154        3.638472E+07        6.031975E+03        9.600186E+02        1.000000E+00        3.638472E+07
+      155       155        3.669823E+07        6.057907E+03        9.641458E+02        1.000000E+00        3.669823E+07
+      156       156        4.014526E+07        6.336028E+03        1.008410E+03        1.000000E+00        4.014526E+07
+      157       157        4.044767E+07        6.359849E+03        1.012201E+03        1.000000E+00        4.044767E+07
+      158       158        4.083851E+07        6.390501E+03        1.017080E+03        1.000000E+00        4.083851E+07
+      159       159        4.126450E+07        6.423745E+03        1.022371E+03        1.000000E+00        4.126450E+07
+      160       160        4.443658E+07        6.666077E+03        1.060939E+03        1.000000E+00        4.443658E+07
+      161       161        4.463599E+07        6.681017E+03        1.063317E+03        1.000000E+00        4.463599E+07
+      162       162        4.569510E+07        6.759815E+03        1.075858E+03        1.000000E+00        4.569510E+07
+      163       163        4.681142E+07        6.841888E+03        1.088920E+03        1.000000E+00        4.681142E+07
+      164       164        4.986138E+07        7.061259E+03        1.123834E+03        1.000000E+00        4.986138E+07
+      165       165        5.137402E+07        7.167567E+03        1.140754E+03        1.000000E+00        5.137402E+07
+      166       166        5.220586E+07        7.225362E+03        1.149952E+03        1.000000E+00        5.220586E+07
+      167       167        5.445549E+07        7.379396E+03        1.174467E+03        1.000000E+00        5.445549E+07
+      168       168        5.548038E+07        7.448516E+03        1.185468E+03        1.000000E+00        5.548038E+07
+      169       169        5.606839E+07        7.487883E+03        1.191734E+03        1.000000E+00        5.606839E+07
+      170       170        5.739800E+07        7.576147E+03        1.205781E+03        1.000000E+00        5.739800E+07
+      171       171        5.761561E+07        7.590495E+03        1.208065E+03        1.000000E+00        5.761561E+07
+      172       172        6.057903E+07        7.783253E+03        1.238743E+03        1.000000E+00        6.057903E+07
+      173       173        6.145254E+07        7.839167E+03        1.247642E+03        1.000000E+00        6.145254E+07
+      174       174        6.207704E+07        7.878898E+03        1.253966E+03        1.000000E+00        6.207704E+07
+      175       175        6.316590E+07        7.947698E+03        1.264915E+03        1.000000E+00        6.316590E+07
+      176       176        6.499999E+07        8.062257E+03        1.283148E+03        1.000000E+00        6.499999E+07
+      177       177        6.801074E+07        8.246862E+03        1.312529E+03        1.000000E+00        6.801074E+07
+      178       178        7.064502E+07        8.405060E+03        1.337707E+03        1.000000E+00        7.064502E+07
+      179       179        7.170379E+07        8.467810E+03        1.347694E+03        1.000000E+00        7.170379E+07
+      180       180        7.450444E+07        8.631596E+03        1.373761E+03        1.000000E+00        7.450444E+07
+      181       181        7.587443E+07        8.710593E+03        1.386334E+03        1.000000E+00        7.587443E+07
+      182       182        8.319929E+07        9.121364E+03        1.451710E+03        1.000000E+00        8.319929E+07
+      183       183        8.780372E+07        9.370364E+03        1.491340E+03        1.000000E+00        8.780372E+07
+      184       184        9.415566E+07        9.703384E+03        1.544341E+03        1.000000E+00        9.415566E+07
+      185       185        9.496236E+07        9.744863E+03        1.550943E+03        1.000000E+00        9.496236E+07
+      186       186        9.859252E+07        9.929377E+03        1.580309E+03        1.000000E+00        9.859252E+07
+      187       187        1.019996E+08        1.009948E+04        1.607383E+03        1.000000E+00        1.019996E+08
+      188       188        1.079952E+08        1.039207E+04        1.653950E+03        1.000000E+00        1.079952E+08
+      189       189        1.140458E+08        1.067922E+04        1.699651E+03        1.000000E+00        1.140458E+08
+      190       190        1.161018E+08        1.077505E+04        1.714903E+03        1.000000E+00        1.161018E+08
+      191       191        1.220143E+08        1.104601E+04        1.758027E+03        1.000000E+00        1.220143E+08
+      192       192        1.351011E+08        1.162330E+04        1.849906E+03        1.000000E+00        1.351011E+08
+      193       193        1.390829E+08        1.179334E+04        1.876968E+03        1.000000E+00        1.390829E+08
+      194       194        1.409180E+08        1.187089E+04        1.889311E+03        1.000000E+00        1.409180E+08
+      195       195        1.466497E+08        1.210990E+04        1.927351E+03        1.000000E+00        1.466497E+08
+      196       196        1.469598E+08        1.212270E+04        1.929387E+03        1.000000E+00        1.469598E+08
+      197       197        1.525655E+08        1.235174E+04        1.965841E+03        1.000000E+00        1.525655E+08
+      198       198        1.536704E+08        1.239639E+04        1.972947E+03        1.000000E+00        1.536704E+08
+      199       199        1.579199E+08        1.256662E+04        2.000039E+03        1.000000E+00        1.579199E+08
+      200       200        1.738756E+08        1.318619E+04        2.098647E+03        1.000000E+00        1.738756E+08
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    31
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+      201       201        1.778054E+08        1.333437E+04        2.122231E+03        1.000000E+00        1.778054E+08
+      202       202        1.838170E+08        1.355791E+04        2.157809E+03        1.000000E+00        1.838170E+08
+      203       203        1.909790E+08        1.381952E+04        2.199444E+03        1.000000E+00        1.909790E+08
+      204       204        1.984323E+08        1.408660E+04        2.241952E+03        1.000000E+00        1.984323E+08
+      205       205        2.003916E+08        1.415597E+04        2.252993E+03        1.000000E+00        2.003916E+08
+      206       206        2.004603E+08        1.415840E+04        2.253379E+03        1.000000E+00        2.004603E+08
+      207       207        2.030100E+08        1.424816E+04        2.267665E+03        1.000000E+00        2.030100E+08
+      208       208        2.236896E+08        1.495626E+04        2.380362E+03        1.000000E+00        2.236896E+08
+      209       209        2.259896E+08        1.503295E+04        2.392568E+03        1.000000E+00        2.259896E+08
+      210       210        2.314267E+08        1.521272E+04        2.421179E+03        1.000000E+00        2.314267E+08
+      211       211        2.352417E+08        1.533759E+04        2.441053E+03        1.000000E+00        2.352417E+08
+      212       212        2.432544E+08        1.559661E+04        2.482278E+03        1.000000E+00        2.432544E+08
+      213       213        2.480116E+08        1.574838E+04        2.506433E+03        1.000000E+00        2.480116E+08
+      214       214        2.503080E+08        1.582113E+04        2.518010E+03        1.000000E+00        2.503080E+08
+      215       215        2.523782E+08        1.588642E+04        2.528401E+03        1.000000E+00        2.523782E+08
+      216       216        2.665658E+08        1.632684E+04        2.598498E+03        1.000000E+00        2.665658E+08
+      217       217        2.666430E+08        1.632921E+04        2.598874E+03        1.000000E+00        2.666430E+08
+      218       218        2.693590E+08        1.641216E+04        2.612076E+03        1.000000E+00        2.693590E+08
+      219       219        2.745523E+08        1.656962E+04        2.637137E+03        1.000000E+00        2.745523E+08
+      220       220        2.871506E+08        1.694552E+04        2.696963E+03        1.000000E+00        2.871506E+08
+      221       221        2.889692E+08        1.699909E+04        2.705490E+03        1.000000E+00        2.889692E+08
+      222       222        2.930574E+08        1.711892E+04        2.724561E+03        1.000000E+00        2.930574E+08
+      223       223        2.938239E+08        1.714129E+04        2.728121E+03        1.000000E+00        2.938239E+08
+      224       224        2.947787E+08        1.716912E+04        2.732550E+03        1.000000E+00        2.947787E+08
+      225       225        3.127572E+08        1.768494E+04        2.814646E+03        1.000000E+00        3.127572E+08
+      226       226        3.212846E+08        1.792441E+04        2.852759E+03        1.000000E+00        3.212846E+08
+      227       227        3.231279E+08        1.797576E+04        2.860931E+03        1.000000E+00        3.231279E+08
+      228       228        3.244677E+08        1.801299E+04        2.866856E+03        1.000000E+00        3.244677E+08
+      229       229        3.279486E+08        1.810935E+04        2.882192E+03        1.000000E+00        3.279486E+08
+      230       230        3.292396E+08        1.814496E+04        2.887860E+03        1.000000E+00        3.292396E+08
+      231       231        3.294433E+08        1.815057E+04        2.888753E+03        1.000000E+00        3.294433E+08
+      232       232        3.404396E+08        1.845101E+04        2.936569E+03        1.000000E+00        3.404396E+08
+      233       233        3.426015E+08        1.850950E+04        2.945878E+03        1.000000E+00        3.426015E+08
+      234       234        3.549102E+08        1.883906E+04        2.998330E+03        1.000000E+00        3.549102E+08
+      235       235        3.559433E+08        1.886646E+04        3.002690E+03        1.000000E+00        3.559433E+08
+      236       236        3.600768E+08        1.897569E+04        3.020075E+03        1.000000E+00        3.600768E+08
+      237       237        3.683183E+08        1.919162E+04        3.054441E+03        1.000000E+00        3.683183E+08
+      238       238        3.724075E+08        1.929786E+04        3.071350E+03        1.000000E+00        3.724075E+08
+      239       239        3.898351E+08        1.974424E+04        3.142394E+03        1.000000E+00        3.898351E+08
+      240       240        4.211268E+08        2.052138E+04        3.266078E+03        1.000000E+00        4.211268E+08
+      241       241        4.313064E+08        2.076792E+04        3.305317E+03        1.000000E+00        4.313064E+08
+      242       242        4.612468E+08        2.147666E+04        3.418116E+03        1.000000E+00        4.612468E+08
+      243       243        4.685046E+08        2.164497E+04        3.444904E+03        1.000000E+00        4.685046E+08
+      244       244        4.808355E+08        2.192796E+04        3.489944E+03        1.000000E+00        4.808355E+08
+      245       245        4.853428E+08        2.203050E+04        3.506262E+03        1.000000E+00        4.853428E+08
+      246       246        5.042824E+08        2.245623E+04        3.574020E+03        1.000000E+00        5.042824E+08
+      247       247        5.100359E+08        2.258397E+04        3.594351E+03        1.000000E+00        5.100359E+08
+      248       248        5.445117E+08        2.333478E+04        3.713845E+03        1.000000E+00        5.445117E+08
+      249       249        5.618742E+08        2.370388E+04        3.772590E+03        1.000000E+00        5.618742E+08
+      250       250        6.010701E+08        2.451673E+04        3.901959E+03        1.000000E+00        6.010701E+08
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    32
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+      251       251        6.213231E+08        2.492635E+04        3.967152E+03        1.000000E+00        6.213231E+08
+      252       252        6.266207E+08        2.503239E+04        3.984029E+03        1.000000E+00        6.266207E+08
+      253       253        6.478124E+08        2.545216E+04        4.050837E+03        1.000000E+00        6.478124E+08
+      254       254        6.709489E+08        2.590268E+04        4.122540E+03        1.000000E+00        6.709489E+08
+      255       255        6.709489E+08        2.590268E+04        4.122540E+03        1.000000E+00        6.709489E+08
+      256       256        6.911552E+08        2.628983E+04        4.184156E+03        1.000000E+00        6.911552E+08
+      257       257        8.278022E+08        2.877155E+04        4.579135E+03        1.000000E+00        8.278022E+08
+      258       258        8.278161E+08        2.877179E+04        4.579173E+03        1.000000E+00        8.278161E+08
+      259       259        1.003481E+09        3.167777E+04        5.041674E+03        1.000000E+00        1.003481E+09
+      260       260        1.016249E+09        3.187865E+04        5.073646E+03        1.000000E+00        1.016249E+09
+      261       261        1.052998E+09        3.244994E+04        5.164567E+03        1.000000E+00        1.052998E+09
+      262       262        1.054957E+09        3.248009E+04        5.169367E+03        1.000000E+00        1.054957E+09
+      263       263        1.087275E+09        3.297385E+04        5.247951E+03        1.000000E+00        1.087275E+09
+      264       264        1.093695E+09        3.307106E+04        5.263423E+03        1.000000E+00        1.093695E+09
+      265       265        1.139069E+09        3.375009E+04        5.371494E+03        1.000000E+00        1.139069E+09
+      266       266        1.155009E+09        3.398542E+04        5.408948E+03        1.000000E+00        1.155009E+09
+      267       267        1.404201E+09        3.747266E+04        5.963959E+03        1.000000E+00        1.404201E+09
+      268       268        1.404277E+09        3.747369E+04        5.964123E+03        1.000000E+00        1.404277E+09
+      269       269        1.480534E+09        3.847770E+04        6.123917E+03        1.000000E+00        1.480534E+09
+      270       270        1.480534E+09        3.847771E+04        6.123917E+03        1.000000E+00        1.480534E+09
+      271       271        1.826901E+09        4.274226E+04        6.802642E+03        1.000000E+00        1.826901E+09
+      272       272        1.832123E+09        4.280330E+04        6.812357E+03        1.000000E+00        1.832123E+09
+      273       273        1.859117E+09        4.311748E+04        6.862359E+03        1.000000E+00        1.859117E+09
+      274       274        1.865805E+09        4.319496E+04        6.874692E+03        1.000000E+00        1.865805E+09
+      275       275        1.948845E+09        4.414573E+04        7.026010E+03        1.000000E+00        1.948845E+09
+      276       276        1.950585E+09        4.416543E+04        7.029146E+03        1.000000E+00        1.950585E+09
+      277       277        1.966604E+09        4.434641E+04        7.057950E+03        1.000000E+00        1.966604E+09
+      278       278        1.969185E+09        4.437550E+04        7.062581E+03        1.000000E+00        1.969185E+09
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    33
+                                                                                                                                    
+0                                                                                                                                   
+ ^^^ USER INFORMATION MESSAGE 9257 (AUTOSUP) 
+ ^^^ AUTO-SUPORT FOUND           6 RIGID BODY MODES    
+ ^^^ BELOW    1.000000E-03 HZ. 
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+  
+ *** USER INFORMATION MESSAGE 4158 (DFMSA)
+ ---- STATISTICS FOR SPARSE DECOMPOSITION OF DATA BLOCK KYY      FOLLOW
+        NUMBER OF NEGATIVE TERMS ON FACTOR DIAGONAL =      6
+        MAXIMUM RATIO OF MATRIX DIAGONAL TO FACTOR DIAGONAL =  7.2E+09 AT ROW NUMBER        173
+ *** USER WARNING MESSAGE 4698 (DCMPD)
+     STATISTICS FOR DECOMPOSITION OF MATRIX KYY     .
+     THE FOLLOWING DEGREES OF FREEDOM HAVE FACTOR DIAGONAL RATIOS GREATER THAN
+      1.00000E+07 OR HAVE NEGATIVE TERMS ON THE FACTOR DIAGONAL.
+     USER INFORMATION:
+     THIS MESSAGE MAY BE IGNORED IF NO GRID POINT IDS OR HIGH RATIO MESSAGES APPEAR IN THE TABLE ON THE NEXT PAGE.
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    34
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+         GRID POINT ID       DEGREE OF FREEDOM   MATRIX/FACTOR DIAGONAL RATIO        MATRIX DIAGONAL                                
+                                                                                                                                    
+              29                    R1                   3.75180E+09                   4.53784E+07
+              29                    R2                   7.17667E+09                   5.80419E+07
+              29                    R3                   2.72975E+09                   5.14264E+07
+ ^^^ USER INFORMATION MESSAGE 9036 (RESVEC  )    
+ ^^^ NO STATIC SHAPES WERE AVAILABLE AFTER FILTERING 
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK LAMA     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101               278                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =     1946 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     2120 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGV1    WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 1             43440                 1                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      392 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =     2794 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =   151813 WORDS.)
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    35
+                                                                                                                                    
+0                                                                                                                                   
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    36
+                                                                                                                                    
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OEF1X    WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                63                 6                 1                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =     1053 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =     2794 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =   335571 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK FRL      WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 1                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       26 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK KHH      WRITTEN ON FORTRAN UNIT  12, TRL =
+                    104               278               278                 6                 2                 2                36
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =     1404 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     1968 WORDS.)
+ *** USER INFORMATION MESSAGE 7559 (FRRD1A)
+     THIS FREQUENCY RESPONSE ANALYSIS INVOLVES THE FOLLOWING TYPES OF EXCITATION --
+
+     * APPLIED LOADS
+ *** USER INFORMATION MESSAGE 5222 (SQFREQ)
+     UN COUPLED SOLUTION ALGORITHM USED.
+ *** USER INFORMATION MESSAGE 4110 (OUTPX2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT 12
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+1    SYSTEM MODES                                                              JUNE   1, 2015  NX NASTRAN  5/ 1/14   PAGE    37
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     31
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN PVALID SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ --------------------------------------------------------------------------------------------------------------------------
+     0     0    1    1 '        '    T    T    T    T    T     T      F      T      0     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ PVALID = P-DISTRIBUTION ID OF P-VALUE FOR P-ELEMENTS
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+1                                        * * * END OF JOB * * *

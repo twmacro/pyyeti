@@ -1,0 +1,104 @@
+$
+$ Run via:   nast2007 mode=i8 wrt_test_i64_op4_files.dat
+$
+assign master = 'dummy.master', delete, temp $
+assign dball  = 'dummy.dball', delete, temp $
+init dball,logical=(dball(10000)) $
+$
+assign inputt4 = 'r_c_rc.op4' unit=11, form=formatted $
+$
+assign output4 = 'double_bigmat_be_i64.op4', status=new,
+                 unit=30,form=bigendian,delete $
+assign output4 = 'double_bigmat_le_i64.op4', status=new,
+                 unit=31,form=littleendian,delete $
+assign output4 = 'double_bigmat_ascii_i64.op4', status=new,
+                 unit=32,form=formatted,delete $
+$
+assign output4 = 'single_bigmat_be_i64.op4', status=new,
+                 unit=40,form=bigendian,delete $
+assign output4 = 'single_bigmat_le_i64.op4', status=new,
+                 unit=41,form=littleendian,delete $
+assign output4 = 'single_bigmat_ascii_i64.op4', status=new,
+                 unit=42,form=formatted,delete $
+$
+assign output4 = 'double_nonbigmat_be_i64.op4', status=new,
+                 unit=50,form=bigendian,delete $
+assign output4 = 'double_nonbigmat_le_i64.op4', status=new,
+                 unit=51,form=littleendian,delete $
+assign output4 = 'double_nonbigmat_ascii_i64.op4', status=new,
+                 unit=52,form=formatted,delete $
+$
+assign output4 = 'single_nonbigmat_be_i64.op4', status=new,
+                 unit=60,form=bigendian,delete $
+assign output4 = 'single_nonbigmat_le_i64.op4', status=new,
+                 unit=61,form=littleendian,delete $
+assign output4 = 'single_nonbigmat_ascii_i64.op4', status=new,
+                 unit=62,form=formatted,delete $
+$
+assign output4 = 'double_dense_be_i64.op4', status=new,
+                 unit=70,form=bigendian,delete $
+assign output4 = 'double_dense_le_i64.op4', status=new,
+                 unit=71,form=littleendian,delete $
+assign output4 = 'double_dense_ascii_i64.op4', status=new,
+                 unit=72,form=formatted,delete $
+$
+assign output4 = 'single_dense_be_i64.op4', status=new,
+                 unit=80,form=bigendian,delete $
+assign output4 = 'single_dense_le_i64.op4', status=new,
+                 unit=81,form=littleendian,delete $
+assign output4 = 'single_dense_ascii_i64.op4', status=new,
+                 unit=82,form=formatted,delete $
+$
+DIAG 8                      $  DIAGNOSTIC OUTPUT
+SOL 100                     $  USER SOLUTION
+$
+COMPILE USERDMAP,LIST,NOREF    $  COMPILE USER SOLUTION
+ALTER 2 $
+$
+$ INPUTT4  /RS,,,,/1/11/0/1 $            READ RS (BINARY)
+INPUTT4  /Rmat,Cmat,RCmat/3/11/0 $        READ RS (ASCII)
+$
+$ Make single precision versions:
+PUTSYS(1,55) $
+ADD5      Rmat,,,,/Rmats $
+ADD5      Cmat,,,,/Cmats $
+ADD5      RCmat,,,,/RCmats $
+PUTSYS(2,55) $
+$
+$ Write double, bigmat, sparse:
+OUTPUT4   Rmat,Cmat,RCmat//-1/-30//TRUE $  OUTPUT4, BINARY
+OUTPUT4   Rmat,Cmat,RCmat//-1/-31//TRUE $  OUTPUT4, BINARY
+OUTPUT4   Rmat,Cmat,RCmat//-1/-32//TRUE/9 $  OUTPUT4, ASCII
+$
+$ Write single, bigmat, sparse:
+OUTPUT4   Rmats,Cmats,RCmats//-1/-40//TRUE $  OUTPUT4, BINARY
+OUTPUT4   Rmats,Cmats,RCmats//-1/-41//TRUE $  OUTPUT4, BINARY
+OUTPUT4   Rmats,Cmats,RCmats//-1/-42//TRUE/8 $  OUTPUT4, ASCII
+$
+$ Write double, non-bigmat, sparse:
+OUTPUT4   Rmat,Cmat,RCmat//-1/-50//FALSE $  OUTPUT4, BINARY
+OUTPUT4   Rmat,Cmat,RCmat//-1/-51//FALSE $  OUTPUT4, BINARY
+OUTPUT4   Rmat,Cmat,RCmat//-1/-52//FALSE/14 $  OUTPUT4, ASCII
+$
+$ Write single, non-bigmat, sparse:
+OUTPUT4   Rmats,Cmats,RCmats//-1/-60//FALSE $  OUTPUT4, BINARY
+OUTPUT4   Rmats,Cmats,RCmats//-1/-61//FALSE $  OUTPUT4, BINARY
+OUTPUT4   Rmats,Cmats,RCmats//-1/-62//FALSE/16 $  OUTPUT4, ASCII
+$
+$ Write double, dense:
+OUTPUT4   Rmat,Cmat,RCmat//-1/70 $  OUTPUT4, BINARY
+OUTPUT4   Rmat,Cmat,RCmat//-1/71 $  OUTPUT4, BINARY
+OUTPUT4   Rmat,Cmat,RCmat//-1/72/12 $  OUTPUT4, ASCII
+$
+$ Write single, dense:
+OUTPUT4   Rmats,Cmats,RCmats//-1/80 $  OUTPUT4, BINARY
+OUTPUT4   Rmats,Cmats,RCmats//-1/81 $  OUTPUT4, BINARY
+OUTPUT4   Rmats,Cmats,RCmats//-1/82/14 $  OUTPUT4, ASCII
+$
+END $
+$
+CEND
+TITLE = DBWRITE
+$
+BEGIN BULK
+ENDDATA

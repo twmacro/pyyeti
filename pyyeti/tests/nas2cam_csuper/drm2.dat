@@ -1,0 +1,81 @@
+$
+assign master ='drm2.master', delete, temp
+assign dball  ='drm2.dball', delete, temp
+init dball , logical = (dball(99000))
+$
+ASSIGN se102 ='inboard.MASTER'
+ASSIGN se102a='inboard.DBALL'
+DBLOCATE LOGICAL=se102
+$
+assign d1 ='drm1.master'
+assign d1a='drm1.dball'
+dblocate logical=d1
+$
+assign output2= 'drm2.f11',unit=11,delete
+$
+DIAG 8,47
+SOL DRM2
+COMPILE DRM2,NOLIST,NOREF
+$
+echooff
+INCLUDE '/loads/nx_dmaps/v9/drm2.v9'
+include '/loads/nx_dmaps/v9/dbdalter.v9'
+echoon
+$
+CEND
+TITLE    = DATA RECOVERY MATRICES - PHASE 2
+$
+ECHO = NONE             $ DO NOT PRINT BULK DATA DECK
+SET 1 = 0
+SELG = 1
+SELR = 1
+SUBCASE 400
+$  SUPER 400
+  PARAM,MASSOPT,1
+$SUBCASE 1000
+  LABEL = RESIDUAL STRUCTURE
+OUTPUT(XYPLOT)
+$
+$  START OF OUTPUT REQUESTS S.E. 
+$
+SEPLOT 0
+$
+$ accelerations:
+XYPEAK ACCE /14(3)/14(4)/14(5)
+XYPEAK ACCE /12(3),12(4)/12(5)
+XYPEAK ACCE /32(3)/32(4),32(5)
+$
+$ displacements:
+XYPEAK DISP /14(3)/14(4)/14(5)
+XYPEAK DISP /12(3),12(4)/12(5)
+XYPEAK DISP /32(3)/32(4),32(5)
+$
+$ element forces (cbars):
+XYPEAK ELFOR /23(2)/23(3)/23(4)/23(5)/23(6)/23(7)/23(8)/
+             23(9)
+XYPEAK ELFOR /28(2)/28(3)/28(4)/28(5)/28(6)/28(7)/28(8)/
+             28(9)
+XYPEAK ELFOR /11(2),11(3),11(4),11(5),11(6),11(7),11(8),
+             11(9)
+$
+$ element stresses (cbars):
+XYPEAK ELSTRE /23(2)/23(3)/23(4)/23(5)/23(6)/23(7)/23(8)/
+             23(9)/23(10)/23(11)/23(12)/23(13)/23(14)/
+             23(15)/23(16)
+XYPEAK ELSTRE /28(2)/28(3)/28(4)/28(5)/28(6)/28(7)/28(8)/
+             28(9)/28(10)/28(11)/28(12)/28(13)/28(14)/
+             28(15)/28(16)
+XYPEAK ELSTRE /11(2),11(3),11(4),11(5),11(6),11(7),11(8),
+             11(9),11(10),11(11),11(12),11(13),11(14),
+             11(15),11(16)
+$
+$ interface forces:
+XYPLOT SPCF /3(3)/3(4)/3(5)/3(6)/3(7)/3(8)
+XYPLOT SPCF /11(3)/11(4)/11(5)/11(6)/11(7)/11(8)
+XYPLOT SPCF /19(3)/19(4)/19(5)/19(6)/19(7)/19(8)
+XYPLOT SPCF /27(3),27(4),27(5),27(6),27(7),27(8)
+$
+BEGIN BULK
+PARAM,DBDICT,2
+PARAM,DRMSEID,0
+ENDDATA

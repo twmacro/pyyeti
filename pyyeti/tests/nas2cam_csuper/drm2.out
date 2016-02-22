@@ -1,0 +1,1125 @@
+1
+ 
+ 
+ 
+ 
+                                                             
+                 Copyright 2013 Siemens Product Lifecycle    
+                        Management Software Inc.             
+                         All Rights Reserved.                
+                                                             
+               This software and related documentation are   
+                 proprietary to Siemens Product Lifecycle    
+                        Management Software Inc.             
+                                                             
+              Siemens and the Siemens logo are registered    
+             trademarks of Siemens AG. NX is a trademark or  
+                registered trademark of Siemens Product      
+               Lifecycle Management Software Inc. or its     
+             subsidiaries in the United States and in other  
+             countries.  NASTRAN is a registered trademark   
+                 of the National Aeronautics and Space       
+                 Administration.  All other trademarks,      
+              registered trademarks or service marks belong  
+                      to their respective holders.           
+                                                             
+           LIMITATIONS TO U.S. GOVERNMENT RIGHTS. UNPUBLISHED
+           - RIGHTS RESERVED UNDER THE COPYRIGHT LAWS OF THE 
+            UNITED STATES. This computer software and related
+               computer software documentation have been     
+            developed exclusively at private expense and are 
+           provided subject to the following rights:  If this
+               computer software and computer  software      
+            documentation qualify as "commercial items" (as  
+             that term is defined in FAR 2.101), their use,  
+            duplication or disclosure by the U.S. Government 
+           is subject to the protections and restrictions as 
+            set forth in the Siemens commercial license for  
+            software and/or documentation, as prescribed in  
+           FAR 12.212 and FAR 27.405(b)(2)(i) (for civilian  
+             agencies) and in DFARS 227.7202-1(a) and DFARS  
+           227.7202-3(a) (for the Department of Defense), or 
+           any successor or similar regulation, as applicable
+           or as amended from time to time.  If this computer
+           software and computer documentation do not qualify
+            as "commercial items", then they are "restricted 
+           computer software" and are provided with "restric-
+            tive rights", and their use, duplication or dis- 
+            closure by the U.S. Government is subject to the 
+            protections and restrictions as set forth in FAR 
+           27.404(b) and FAR 52-227-14 (for civilian agencies
+           ), and DFARS 227.7203-5(c) and DFARS 252.227-7014 
+           (for the Department of Defense), or any successor 
+           or similar regulation, as applicable or as amended
+              from time to time.  Siemens PLM Software Inc.  
+            5800 Granite Parkway, Suite 600, Plano, TX 75024 
+
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *       N X   N a s t r a n       * *
+                * *                                 * *
+                * *         VERSION -   9.1         * *
+                * *                                 * *
+                * *          MAY  1, 2014           * *
+                * *                                 * *
+                * *                                 * *
+                * *       X86_64 Based System       * *
+                * *                                 * *
+                * *MODEL x86_64 Intel/2400.060059MH * *
+                * *                                 * *
+                * * Linux 2.6.32-504.3.3.el6.x86_64 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+1                                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=8193 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[3])                    
+     NASTRAN DIAGA=160 DIAGB=0 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[6])                
+     NASTRAN SYSTEM(551)=1 $(/MNT/RAID1/APPS/NXN/CONF/NAST9RC[8])                    
+     NASTRAN BUFFSIZE=65537 $(/HOME/LOADS/TWIDRICK/.NAST9RC[4])                      
+     $                                                                               
+     ASSIGN MASTER ='drm2.master', DELETE, TEMP                                      
+     ASSIGN DBALL  ='drm2.dball', DELETE, TEMP                                       
+     INIT DBALL , LOGICAL = (DBALL(99000))                                           
+     $                                                                               
+     ASSIGN SE102 ='inboard.MASTER'                                                  
+     ASSIGN SE102A='inboard.DBALL'                                                   
+     DBLOCATE LOGICAL=SE102                                                          
+     $                                                                               
+     ASSIGN D1 ='drm1.master'                                                        
+     ASSIGN D1A='drm1.dball'                                                         
+     DBLOCATE LOGICAL=D1                                                             
+     $                                                                               
+     ASSIGN OUTPUT2= 'drm2.f11',UNIT=11,DELETE                                       
+     $                                                                               
+1                                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     DIAG 8,47                                                                               
+     SOL DRM2                                                                                
+     COMPILE DRM2,NOLIST,NOREF                                                               
+     $                                                                                       
+     ECHOOFF                                                                                 
+     (SEE NASTRAN SOURCE PROGRAM COMPILATION FOR LISTING OF DMAP SEQUENCE)
+     END $                                                                                   
+     $                                                                                       
+     CEND                                                                                    
+1                                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** SYSTEM INFORMATION MESSAGE 482 (LCDRVR)
+          171 DATABLOCK(S) HAVE BEEN LOCATED ON THE SE102 DATABASE.
+ *** SYSTEM INFORMATION MESSAGE 482 (LCDRVR)
+           59 PARAMETER(S) HAVE BEEN LOCATED ON THE SE102 DATABASE.
+ *** SYSTEM INFORMATION MESSAGE 482 (LCDRVR)
+          173 DATABLOCK(S) HAVE BEEN LOCATED ON THE D1 DATABASE.
+ *** SYSTEM INFORMATION MESSAGE 482 (LCDRVR)
+           60 PARAMETER(S) HAVE BEEN LOCATED ON THE D1 DATABASE.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1      TITLE    = DATA RECOVERY MATRICES - PHASE 2                                             
+                  2      $                                                                                       
+                  3      ECHO = NONE             $ DO NOT PRINT BULK DATA DECK                                   
+                  4      SET 1 = 0                                                                               
+                  5      SELG = 1                                                                                
+                  6      SELR = 1                                                                                
+                  7      SUBCASE 400                                                                             
+                  8      $  SUPER 400                                                                            
+                  9        PARAM,MASSOPT,1                                                                       
+                 10      $SUBCASE 1000                                                                           
+                 11        LABEL = RESIDUAL STRUCTURE                                                            
+                 12      OUTPUT(XYPLOT)                                                                          
+                 13      $                                                                                       
+                 14      $  START OF OUTPUT REQUESTS S.E.                                                        
+                 15      $                                                                                       
+                 16      SEPLOT 0                                                                                
+                 17      $                                                                                       
+                 18      $ ACCELERATIONS:                                                                        
+                 19      XYPEAK ACCE /14(3)/14(4)/14(5)                                                          
+                 20      XYPEAK ACCE /12(3),12(4)/12(5)                                                          
+                 21      XYPEAK ACCE /32(3)/32(4),32(5)                                                          
+                 22      $                                                                                       
+                 23      $ DISPLACEMENTS:                                                                        
+                 24      XYPEAK DISP /14(3)/14(4)/14(5)                                                          
+                 25      XYPEAK DISP /12(3),12(4)/12(5)                                                          
+                 26      XYPEAK DISP /32(3)/32(4),32(5)                                                          
+                 27      $                                                                                       
+                 28      $ ELEMENT FORCES (CBARS):                                                               
+                 29      XYPEAK ELFOR /23(2)/23(3)/23(4)/23(5)/23(6)/23(7)/23(8)/                                
+                 30                   23(9)                                                                      
+                 31      XYPEAK ELFOR /28(2)/28(3)/28(4)/28(5)/28(6)/28(7)/28(8)/                                
+                 32                   28(9)                                                                      
+                 33      XYPEAK ELFOR /11(2),11(3),11(4),11(5),11(6),11(7),11(8),                                
+                 34                   11(9)                                                                      
+                 35      $                                                                                       
+                 36      $ ELEMENT STRESSES (CBARS):                                                             
+                 37      XYPEAK ELSTRE /23(2)/23(3)/23(4)/23(5)/23(6)/23(7)/23(8)/                               
+                 38                   23(9)/23(10)/23(11)/23(12)/23(13)/23(14)/                                  
+                 39                   23(15)/23(16)                                                              
+                 40      XYPEAK ELSTRE /28(2)/28(3)/28(4)/28(5)/28(6)/28(7)/28(8)/                               
+                 41                   28(9)/28(10)/28(11)/28(12)/28(13)/28(14)/                                  
+                 42                   28(15)/28(16)                                                              
+                 43      XYPEAK ELSTRE /11(2),11(3),11(4),11(5),11(6),11(7),11(8),                               
+                 44                   11(9),11(10),11(11),11(12),11(13),11(14),                                  
+                 45                   11(15),11(16)                                                              
+                 46      $                                                                                       
+                 47      $ INTERFACE FORCES:                                                                     
+                 48      XYPLOT SPCF /3(3)/3(4)/3(5)/3(6)/3(7)/3(8)                                              
+                 49      XYPLOT SPCF /11(3)/11(4)/11(5)/11(6)/11(7)/11(8)                                        
+                 50      XYPLOT SPCF /19(3)/19(4)/19(5)/19(6)/19(7)/19(8)                                        
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                 51      XYPLOT SPCF /27(3),27(4),27(5),27(6),27(7),27(8)                                        
+                 52      $                                                                                       
+                 53      BEGIN BULK                                                                              
+0                             INPUT BULK DATA ENTRY COUNT =           3
+0                       TOTAL COUNT=         3
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ AA       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ AG       SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ AGG      SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ AXIC     SE102    DBALL                                        0        0        0        0        0 150610 121041
+ BAA      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ BDICT    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BEC      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BELM     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BFF      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BGG      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BGPDT    SE102    DBALL                                       34        0      164        2        8 150610 121041
+ BGPDTS   SE102    DBALL             0                         34        0      164        2        8 150610 121041
+ BJJ      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BK4ZZ    SE102    DBALL             0     0     0     1        0        0        0        0        0 150610 121041
+ BMG      SE102    DBALL             0           0              0        0        0        0        0 150610 121041
+ BSF      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ BSS      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ BTOPO    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BULK     SE102    DBALL      -1    -1                          1        0        0        0        0 150610 121041
+ CASECCR  SE102    MASTER                                       1        0      608        0        0 150610 121041
+ CASEDR   SE102    DBALL       0     0                          1        0      608        0        0 150610 121041
+ CASES    SE102    DBALL       0     0                          1        0      608        0        0 150610 121041
+ CASESX   SE102    DBALL       0     0                          1        0      608        0        0 150610 121041
+ CEE      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ CMLAMA   SE102    DBALL             0     0     0     1        3        0        0        0        0 150610 121041
+ CMMAT    SE102    DBALL             0     0     0     1        5        8        2        1        8 150610 121041
+ CMMI     SE102    DBALL             0     0     0     1        3        3        6        2        2 150610 121041
+ CMPHA    SE102    DBALL             0     0     0     1        3       32        2        2        0 150610 121041
+ CMPHO    SE102    DBALL             0     0     0     1        3      132        2        2      264 150610 121041
+ CMPHRC   SE102    DBALL             0     0     0     1        0        0        0        0        0 150610 121041
+ COMPEST  SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ CSTMS    SE102    DBALL             0                         34        1        1        2       12 150610 121041
+ DAR      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ DIT      SE102    DBALL                                        0        0        0        0        0 150610 121041
+ DITID    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ DITS     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ DKFF     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ DMFF     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ DRG      SE102    DBALL             0                        164        6        2        2        6 150610 121041
+ DYNAMIC  SE102    DBALL                                      256        0        0        0        0 150610 121041
+ DYNAMICS SE102    DBALL             0                        256        0        0        0        0 150610 121041
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ DYNAMICS MASTER   DBALL            -1                          0        0        0        0        0 150610 121409
+ ECTAS    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ ECTS     SE102    DBALL             0                          0      256        0    32768        0 150610 121041
+ EDOM     SE102    DBALL                                        0        0        0        0        0 150610 121041
+ EDT      SE102    DBALL                                        0        0        0        0        0 150610 121041
+ EDTS     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ EMAP     SE102    DBALL                                        0        0        0        0        0 150610 121041
+ EPSSEO   SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ EPT      SE102    DBALL                                        0     4096        0        0        0 150610 121041
+ EPTS     SE102    DBALL             0                          0     4096        0        0        0 150610 121041
+ EQEXINS  SE102    DBALL             0                         34        0        0        0        0 150610 121041
+ EST      SE102    DBALL             0                         66        0        0       16        0 150610 121041
+ ESTL     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ ESTNL    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ ETT      SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ GEOM1    SE102    DBALL                                        0     2048        8        0        0 150610 121041
+ GEOM1Q   SE102    DBALL                                        0     2048        8        0        0 150610 121041
+ GEOM1QS  SE102    DBALL            -1                          0     2048        8        0        0 150610 121041
+ GEOM1S   SE102    DBALL             0                          0     2048        8        0        0 150610 121041
+ GEOM2    SE102    DBALL                                        0      256        0    32768        0 150610 121041
+ GEOM2S   SE102    DBALL             0                          0      256        0    32768        0 150610 121041
+ GEOM2S   SE102    DBALL            -1                          0      256        0    32768        0 150610 121041
+ GEOM3    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ GEOM3S   SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ GEOM4    SE102    DBALL                                    17408        0        0        0        0 150610 121041
+ GEOM4QS  SE102    DBALL            -1                      17408        0        0        0        0 150610 121041
+ GEOM4S   SE102    DBALL             0                      17408        0        0        0        0 150610 121041
+ GGE      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ GM       SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ GNELM    SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ GOQ      SE102    DBALL             0     0     0     1        8      132        2        2      264 150610 121041
+ GOT      SE102    DBALL             0     0     0             24      132        2        2      264 150610 121041
+ GPDTS    SE102    DBALL             0                         34       10        0        2        0 150610 121041
+ GPECT    SE102    DBALL             0                        323       34        6       12       14 150610 121041
+ GPECTG   SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ GPLS     SE102    DBALL             0                         34       34        0        0        0 150610 121041
+ GPSNTS   SE102    DBALL             0                          0        0        0        2        0 150610 121041
+ INDTA    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ K4AA     SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ K4DICT   SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4ELM    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4FF     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4GG     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4JJ     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4MG     SE102    DBALL             0           0              0        0        0        0        0 150610 121041
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ K4SF     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ K4SS     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ KAA      SE102    DBALL       0     0     0     0             32       32        6        2       48 150610 121041
+ KDICT    SE102    DBALL             0                          2       12        0       78        0 150610 121041
+ KELM     SE102    DBALL             0                         66       78        2        2      148 150610 121041
+ KFF      SE102    DBALL             0     0     0            164      164        6        2       72 150610 121041
+ KFS      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ KGG      SE102    DBALL             0                        164      164        6        2       72 150610 121041
+ KJJ      SE102    DBALL             0                        164      164        6        2       72 150610 121041
+ KLL      SE102    DBALL       0     0     0     0             24       24        6        2       48 150610 121041
+ KMG      SE102    DBALL             0           0              0        0        0        0        0 150610 121041
+ KNN      SE102    DBALL             0           0            164      164        6        2       72 150610 121041
+ KQQ      SE102    DBALL       0     0     0     0     1        8        8        6        2        2 150610 121041
+ KSF      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ KSS      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ KTT      SE102    DBALL             0     0     0             24       24        6        2       48 150610 121041
+ LAMA1    SE102    DBALL                                        3        0        0        0        0 150610 121041
+ LOO      SE102    DBALL             0     0     0            132      132       13        2        8 150610 121041
+ MAA      SE102    DBALL       0     0     0     0             32       32        6        2       64 150610 121041
+ MAPS     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ MAR      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MATPOOL  SE102    DBALL                                        0        0        0        0        0 150610 121041
+ MATPOOLS SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MDICT    SE102    DBALL             0                          2       12        0       78        0 150610 121041
+ MEC      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MEE      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MELM     SE102    DBALL             0                         66       78        2        2      152 150610 121041
+ MFF      SE102    DBALL             0     0     0            164      164        6        2       72 150610 121041
+ MGG      SE102    DBALL             0                        164      164        6        2       72 150610 121041
+ MJE      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MJJ      SE102    DBALL             0                        164      164        6        2       72 150610 121041
+ MJJ1     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MLL      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ MLR      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ MMG      SE102    DBALL             0           0              0        0        0        0        0 150610 121041
+ MPHVZ    SE102    DBALL             0     0     0     1        0        0        0        0        0 150610 121041
+ MPT      SE102    DBALL                                    32768        0        0        0        0 150610 121041
+ MPTS     SE102    DBALL             0                      32768        0        0        0        0 150610 121041
+ MQQ      SE102    DBALL       0     0     0     0     1        8        8        6        2        2 150610 121041
+ MQT      SE102    DBALL       0     0     0     0     1       24        8        2        2       16 150610 121041
+ MR       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ MRR      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ MSF      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ MSS      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ MTT      SE102    DBALL             0     0     0             24       24        6        2       48 150610 121041
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ MVAA     SE102    DBALL       0     0     0     0     1        0        0        0        0        0 150610 121041
+ ORSEQ    SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ PA       SE102    DBALL       0     0     0     0              1       32        2        2        0 150610 121041
+ PBYA     SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PBYG     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ PCOMPT   SE102    DBALL                                        0        0        0        0        0 150610 121041
+ PCOMPTS  SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ PG       SE102    DBALL       0     0                          1      164        2        2        0 150610 121041
+ PHG      D1       DBALL       0     0     0     0     1       32       32        6        2        2 150610 121041
+ PJ       SE102    DBALL       0     0                          1      164        2        2        0 150610 121041
+ PKYA     SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PKYG     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ PL       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PMYA     SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PMYG     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ PSS      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PTELEM   SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ PVT      SE102    DBALL                                     2660        0        0        0        0 150610 121041
+ PVTBC    SE102    DBALL             0     0     0           2660        0        0        1        0 150610 121041
+ PVTS     SE102    DBALL       0     0                       2660        0        0        1        0 150610 121041
+ QR       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ RMG      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ RMLM     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ RVA      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ SCSTM    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ SESUM    SE102    MASTER      0     0                          0        0        0        0        0 150610 121041
+ SETREE   SE102    DBALL                                        0        0        0        0        0 150610 121041
+ SGPDT    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ SGPDTS   SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ SILS     SE102    DBALL             0                         34      164        0        0        0 150610 121041
+ SLIST    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ SLT      SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ SPECSEL  SE102    DBALL                                        0        0        0        0        0 150610 121041
+ UG       D1       DBALL       0     0                         32      164        2        2      266 150610 121125
+ UOO      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ USET     SE102    DBALL             0     0     0              0      164       64        6        0 150610 121041
+ USET0    SE102    DBALL             0     0     0              0      164       64        6        0 150610 121041
+ VAQ      SE102    DBALL             0                          1       32        2        2        0 150610 121041
+ VELEM    SE102    DBALL             0                          1        1        1        1        1 150610 121041
+ VGFD     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ VGFS     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ YG       SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ YS       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ ZUZR11   D1       DBALL    'DRMLAMA '     0     0     0       32        3        2        2        4 150610 121125
+ ZUZR11   D1       DBALL    'URBA    '     0     0     0        3       32        2        2        8 150610 121125
+ ZUZR11   D1       DBALL    'URBT    '     0     0     0        6       24        2        2       20 150610 121125
+ ZUZR11   D1       DBALL    'VSTATDYN'     0     0     0        1       32        2        2       16 150610 121125
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    11
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+ ^^^DATA TO BE WRITTEN TO OUTPUT FILE TYPE =             2 
+ ^^^ SYSTEM WARNING MESSAGE 9266 (DBFTCH)    
+ ^^^VANULL           0         0 NOT FOUND IN DATABASE.  PURGED STATUS ASSUMED.  
+ ^^^ SYSTEM INFORMATION MESSAGE 9267 (DBFTCH)    
+ ^^^VSTATDYN         0         0 (TRAILER =          1        32         2         2        16      2500         3                 
+    ) HAS BEEN FETCHED FROM THE DATABASE 
+ ^^^ SYSTEM INFORMATION MESSAGE 9267 (DBFTCH)    
+ ^^^DRMLAMA          0         0 (TRAILER =         32         3         2         2         4      6667         1                 
+    ) HAS BEEN FETCHED FROM THE DATABASE 
+ *** USER INFORMATION MESSAGE 4109 (OUTPX2)
+     THE LABEL IS DRM      FOR FORTRAN UNIT 11
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =        8 RECORDS.)
+     (TOTAL DATA WRITTEN FOR TAPE LABEL =       17 WORDS.)
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    12
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 7321 (SEDRDR)
+    DATA RECOVERY FOR SUPERELEMENT        0 IS NOW INITIATED.
+ ^^^***  BEFORE CALL SETQ    
+ ^^^VALUE OF SEID   =            0 
+ ^^^VALUE OF PEID   =            0 
+ ^^^***  AFTER CALL SETQ 
+ ^^^VALUE OF SEID   =            0 
+ ^^^VALUE OF PEID   =            0 
+ ^^^VALUE OF MTEMP  =            0 
+ ^^^VALUE OF K2GG   =            
+ ^^^VALUE OF M2GG   =            
+ ^^^VALUE OF B2GG   =            
+ ^^^VALUE OF MPC    =            0 
+ ^^^VALUE OF SPC    =            0 
+ ^^^VALUE OF LOAD   =            0 
+ ^^^VALUE OF DEFORM =            0 
+ ^^^VALUE OF TEMPLD =            0 
+ ^^^VALUE OF P2G    =            
+ ^^^VALUE OF DYRD   =            0 
+ ^^^VALUE OF METH   =            1 
+ ^^^VALUE OF MFLUID =            0 
+ ^^^VALUE OF SUPORT =            0 
+ *** USER WARNING MESSAGE 2125 (VEC)
+     MODULE VEC - NZ=0, ONE OR MORE COLUMNS OF OUTPUT MATRIX WILL BE NULL.
+ ^^^ SYSTEM INFORMATION MESSAGE 9267 (DBFTCH)    
+ ^^^URBT             0         0 (TRAILER =          6        24         2         2        20      2778         3                 
+    ) HAS BEEN FETCHED FROM THE DATABASE 
+ ^^^ SYSTEM INFORMATION MESSAGE 9267 (DBFTCH)    
+ ^^^URBA             0         0 (TRAILER =          3        32         2         2         8      1250         3                 
+    ) HAS BEEN FETCHED FROM THE DATABASE 
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK XYCDBDRS WRITTEN ON FORTRAN UNIT  11, TRL =
+                    101                 0                 0                 0                 0                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      785 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     1479 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGV1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    102                 0              2304                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      334 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     7257 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGS1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    101                 0              1728                10                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      254 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     5449 WORDS.)
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    13
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OUGD1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    102                 0              2304                10                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      334 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     7257 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OQGS1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    103                 0               768                10                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      254 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     4489 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OQGD1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    104                 0              1024                10                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      334 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     5977 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OESS1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    101                63                 6                10                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      254 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     4873 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OESD1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    102                63                 6                10                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      334 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     6489 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OEFS1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    103                63                 6                10                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      254 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     4369 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPX2)
+     DATA BLOCK OEFD1    WRITTEN ON FORTRAN UNIT  11, TRL =
+                    104                63                 6                10                15                 0                 1
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =   131074 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      334 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     5817 WORDS.)
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    14
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0    TABLE   TOUGV1                      LINES CONTAINING BINARY  ZERO HAVE BEEN DELETED.                                           
+                                                                                                                                    
+                                                                                                                                    
+0RECORD NO.    0
+      1)         PHIP           7                                REAL           1
+                                                                                                     END OF       6 WORD RECORD.
+0RECORD NO.    1
+      1)            1 3.94784E+01           2 1.57914E+02           3 3.55306E+02           4 6.31655E+02           5 9.86961E+02
+     11)            6 1.42122E+03           7 1.93444E+03           8 2.52662E+03           9 3.19775E+03          10 3.94784E+03
+     21)           11 4.77689E+03          12 5.68489E+03          13 6.67185E+03          14 7.73777E+03          15 8.88264E+03
+     31)           16 1.01065E+04          17 1.14093E+04          18 1.27910E+04          19 1.42517E+04          20 1.57914E+04
+     41)           21 1.74100E+04          22 1.91076E+04          23 2.08841E+04          24 2.27396E+04          25 2.46740E+04
+     51)           26 2.66874E+04          27 2.87798E+04          28 3.09511E+04          29 3.32013E+04          30 3.55306E+04
+     61)           31 3.79388E+04          32 4.04259E+04
+                                                                                                     END OF      64 WORD RECORD.
+0RECORD NO.    2
+      1)         TYPE          ID        COMP         ROW                    TYPE          ID        COMP         ROW            
+     11)            1           3           6           1           0           1          11           6           7           0
+     21)            1          12           6          13           0           1          14           6          19           0
+     31)            1          19           6          25           0           1          23           6          31           0
+     41)            1          27           6          37           0           1          28           6          43           0
+     51)            1          32           6          49           0
+                                                                                                     END OF      55 WORD RECORD.
+0RECORD NO.    3
+0END OF FILE
+0TRAILER WORD1 =         54 WORD2 =         32 WORD3 =          0 WORD4 =          0 WORD5 =          0 WORD6 =          0
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    15
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UDDISPL  (GINO NAME 101 ) IS A DB  PREC           6 COLUMN X          54 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      1 THRU     52     --------------------------------------------------
+    ROW 
+      1)    1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     11)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  2.7405D-16  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     21)    0.0000D+00  3.0531D-16  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     31)    1.0000D+00  0.0000D+00  0.0000D+00  3.0184D-16  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     41)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  3.4210D-16  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     51)    0.0000D+00  3.0424D-16
+0COLUMN      2      ROWS      2 THRU     54     --------------------------------------------------
+    ROW 
+      2)    1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     12)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -1.5180D-14  0.0000D+00  1.0000D+00  0.0000D+00
+     22)    0.0000D+00  0.0000D+00 -1.5396D-14  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     32)    1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -1.5402D-14  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     42)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -1.5164D-14  0.0000D+00  1.0000D+00  0.0000D+00
+     52)    0.0000D+00  0.0000D+00 -1.5394D-14
+0COLUMN      3      ROWS      3 THRU     53     --------------------------------------------------
+    ROW 
+      3)    1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     13)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  1.3170D-14  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     23)    1.3431D-14  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     33)    1.0000D+00  0.0000D+00  1.3438D-14  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     43)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  1.3204D-14  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     53)    1.3435D-14
+0COLUMN      4      ROWS      2 THRU     54     --------------------------------------------------
+    ROW 
+      2)   -3.0000D+02  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00 -3.0000D+02  3.0000D+02  0.0000D+00  0.0000D+00  0.0000D+00
+     12)    1.0000D+00 -1.2802D-11 -3.0000D+02  3.0000D+02  1.0000D+00  1.7033D-12  1.6815D-12 -1.2854D-11 -3.0000D+02  3.0000D+02
+     22)    1.0000D+00  1.6518D-12  1.6510D-12  0.0000D+00  0.0000D+00  3.0000D+02  1.0000D+00  0.0000D+00  0.0000D+00 -5.0774D-11
+     32)   -4.4107D-06  3.0000D+02  1.0000D+00  1.6527D-12  1.6491D-12  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     42)    0.0000D+00  1.2645D-11  2.6226D-06 -2.6226D-06  1.0000D+00  1.6695D-12  1.6450D-12  1.2740D-11 -4.4107D-06  4.4107D-06
+     52)    1.0000D+00  1.6514D-12  1.6490D-12
+0COLUMN      5      ROWS      1 THRU     53     --------------------------------------------------
+    ROW 
+      1)    3.0000D+02  0.0000D+00 -6.0000D+02  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00 -6.0000D+02  3.0000D+02  1.0000D+00
+     11)    0.0000D+00  0.0000D+00  3.0000D+02  0.0000D+00 -9.0000D+02 -7.0943D-13  1.0000D+00  0.0000D+00  3.0000D+02  0.0000D+00
+     21)   -1.5000D+03 -9.2049D-13  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -6.0000D+02  0.0000D+00  1.0000D+00  0.0000D+00
+     31)    3.3379D-06  0.0000D+00 -1.8000D+03 -9.1416D-13  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -6.0000D+02  0.0000D+00
+     41)    1.0000D+00  0.0000D+00  3.3379D-06  0.0000D+00 -9.0000D+02 -1.1333D-12  1.0000D+00  0.0000D+00  3.3379D-06  0.0000D+00
+     51)   -2.1000D+03 -9.1638D-13  1.0000D+00
+0COLUMN      6      ROWS      2 THRU     54     --------------------------------------------------
+    ROW 
+      2)    6.0000D+02  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  6.0000D+02  0.0000D+00 -3.0000D+02  0.0000D+00  1.0000D+00
+     12)    0.0000D+00 -3.0000D+02  9.0000D+02  0.0000D+00 -9.2304D-13  0.0000D+00  1.0000D+00 -3.0000D+02  1.5000D+03  0.0000D+00
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    16
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0    MATRIX  UDDISPL     CONTINUED                                                                                                  
+                                                                                                                                    
+                                                                                                                                    
+     22)   -1.1093D-12  0.0000D+00  1.0000D+00 -3.0000D+02  6.0000D+02  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00 -3.0000D+02
+     32)    1.8000D+03  0.0000D+00 -1.1269D-12  0.0000D+00  1.0000D+00  0.0000D+00  6.0000D+02  0.0000D+00  0.0000D+00  0.0000D+00
+     42)    1.0000D+00 -3.3379D-06  9.0000D+02  0.0000D+00 -1.2790D-12  0.0000D+00  1.0000D+00 -3.3379D-06  2.1000D+03  0.0000D+00
+     52)   -1.1313D-12  0.0000D+00  1.0000D+00
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      38
+0THE DENSITY OF THIS MATRIX IS  43.21 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    17
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UADISPL  (GINO NAME 102 ) IS A DB  PREC           3 COLUMN X          54 ROW RECTANG  MATRIX.
+0COLUMNS       1 THRU       3 ARE NULL.
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =       0
+0THE DENSITY OF THIS MATRIX IS   0.00 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    18
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UAACCEL  (GINO NAME 103 ) IS A DB  PREC           3 COLUMN X          54 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      1 THRU     52     --------------------------------------------------
+    ROW 
+      1)    1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     11)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  2.7405D-16  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     21)    0.0000D+00  3.0531D-16  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     31)    1.0000D+00  0.0000D+00  0.0000D+00  3.0184D-16  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     41)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  3.4210D-16  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     51)    0.0000D+00  3.0424D-16
+0COLUMN      2      ROWS      2 THRU     54     --------------------------------------------------
+    ROW 
+      2)    1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     12)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -1.5180D-14  0.0000D+00  1.0000D+00  0.0000D+00
+     22)    0.0000D+00  0.0000D+00 -1.5396D-14  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     32)    1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -1.5402D-14  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     42)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -1.5164D-14  0.0000D+00  1.0000D+00  0.0000D+00
+     52)    0.0000D+00  0.0000D+00 -1.5394D-14
+0COLUMN      3      ROWS      3 THRU     53     --------------------------------------------------
+    ROW 
+      3)    1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     13)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  1.3170D-14  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     23)    1.3431D-14  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     33)    1.0000D+00  0.0000D+00  1.3438D-14  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     43)    0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00  1.3204D-14  0.0000D+00  0.0000D+00  0.0000D+00  1.0000D+00  0.0000D+00
+     53)    1.3435D-14
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      14
+0THE DENSITY OF THIS MATRIX IS  25.93 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    19
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0    TABLE   TOQGS1                      LINES CONTAINING BINARY  ZERO HAVE BEEN DELETED.                                           
+                                                                                                                                    
+                                                                                                                                    
+0RECORD NO.    0
+      1)         TQP            3                                REAL           1
+                                                                                                     END OF       6 WORD RECORD.
+0RECORD NO.    1
+      1)            1 3.94784E+01           2 1.57914E+02           3 3.55306E+02           4 6.31655E+02           5 9.86961E+02
+     11)            6 1.42122E+03           7 1.93444E+03           8 2.52662E+03           9 3.19775E+03          10 3.94784E+03
+     21)           11 4.77689E+03          12 5.68489E+03          13 6.67185E+03          14 7.73777E+03          15 8.88264E+03
+     31)           16 1.01065E+04          17 1.14093E+04          18 1.27910E+04          19 1.42517E+04          20 1.57914E+04
+     41)           21 1.74100E+04          22 1.91076E+04          23 2.08841E+04          24 2.27396E+04
+                                                                                                     END OF      48 WORD RECORD.
+0RECORD NO.    2
+      1)         TYPE          ID        COMP         ROW                    TYPE          ID        COMP         ROW            
+     11)            1           3           6           1           0           1          11           6           7           0
+     21)            1          19           6          13           0           1          27           6          19           0
+                                                                                                     END OF      30 WORD RECORD.
+0RECORD NO.    3
+0END OF FILE
+0TRAILER WORD1 =         24 WORD2 =         24 WORD3 =          0 WORD4 =          0 WORD5 =          0 WORD6 =          0
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    20
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UDSPCF   (GINO NAME 101 ) IS A DB  PREC           6 COLUMN X          24 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    3.1250D-02  0.0000D+00  0.0000D+00 -1.1758D-08 -2.5000D-01 -2.5000D-01  0.0000D+00  0.0000D+00  3.1250D-02 -2.5000D-01
+     11)    2.5000D-01  4.2026D-08  3.1250D-02  0.0000D+00  0.0000D+00  2.2701D-08  2.5000D-01  2.5000D-01  3.1250D-02  0.0000D+00
+     21)    0.0000D+00 -6.0536D-09  2.5000D-01 -2.5000D-01
+0COLUMN      2      ROWS      2 THRU     23     --------------------------------------------------
+    ROW 
+      2)   -5.0000D-01  0.0000D+00  2.5000D-01 -2.0000D+00  0.0000D+00 -5.0000D-01  0.0000D+00  0.0000D+00  2.0000D+00  0.0000D+00
+     12)    2.5000D-01  0.0000D+00 -5.0000D-01  0.0000D+00 -2.5000D-01 -2.0000D+00  0.0000D+00  0.0000D+00 -5.0000D-01  0.0000D+00
+     22)   -2.5000D-01  2.0000D+00
+0COLUMN      3      ROWS      3 THRU     24     --------------------------------------------------
+    ROW 
+      3)   -5.0000D-01  2.5000D-01  0.0000D+00  2.0000D+00  0.0000D+00 -5.0000D-01  0.0000D+00  0.0000D+00 -2.0000D+00 -2.5000D-01
+     13)    0.0000D+00  0.0000D+00 -5.0000D-01 -2.5000D-01  0.0000D+00  2.0000D+00  0.0000D+00  0.0000D+00 -5.0000D-01  2.5000D-01
+     23)    0.0000D+00 -2.0000D+00
+0COLUMN      4      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)   -5.7323D-07  1.9775D+02  4.7750D+01 -1.7300D+02 -1.8000D+02  7.8000D+02  1.9775D+02 -1.9775D+02  3.1199D-08  1.8000D+02
+     11)    1.8000D+02 -2.4800D+02  6.0583D-07 -4.7750D+01 -1.9775D+02 -1.7300D+02  7.8000D+02 -1.8000D+02  8.1491D-09 -4.7750D+01
+     21)    4.7750D+01 -9.8000D+01 -7.8000D+02 -7.8000D+02
+0COLUMN      5      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    5.0000D+00  4.0000D+00  3.0000D+02 -1.4350D+02 -6.8000D+01 -1.3420D+03 -4.0000D+00  3.0000D+02  5.0000D+00 -6.8000D+01
+     11)    1.3420D+03  1.4350D+02  4.3750D+00  4.0000D+00  3.0000D+02  1.4350D+02  7.0000D+00 -1.2670D+03  4.3750D+00 -4.0000D+00
+     21)    3.0000D+02 -1.4350D+02  7.0000D+00  1.2670D+03
+0COLUMN      6      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)   -4.3750D+00 -3.0000D+02 -4.0000D+00  1.4350D+02 -1.2670D+03  7.0000D+00 -3.0000D+02  4.0000D+00 -5.0000D+00  1.3420D+03
+     11)   -6.8000D+01  1.4350D+02 -5.0000D+00 -3.0000D+02 -4.0000D+00 -1.4350D+02 -1.3420D+03 -6.8000D+01 -4.3750D+00 -3.0000D+02
+     21)    4.0000D+00 -1.4350D+02  1.2670D+03  7.0000D+00
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      24
+0THE DENSITY OF THIS MATRIX IS  77.78 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    21
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UASPCF   (GINO NAME 102 ) IS A DB  PREC           3 COLUMN X          24 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    4.3876D-01  1.5637D+00 -1.5637D+00  1.3685D-11 -6.5004D+00 -6.5004D+00 -1.5637D+00 -1.5637D+00  4.3876D-01 -6.5004D+00
+     11)    6.5004D+00 -1.8321D-11  4.3876D-01 -1.5637D+00  1.5637D+00 -1.4253D-11  6.5004D+00  6.5004D+00  4.3876D-01  1.5637D+00
+     21)    1.5637D+00  1.6635D-11  6.5004D+00 -6.5004D+00
+0COLUMN      2      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    1.6090D+00  4.3876D-01 -6.6906D-01 -1.8453D+01 -1.0179D+02 -4.8298D+01  4.3876D-01  6.6906D-01 -1.6090D+00  1.0179D+02
+     11)   -4.8298D+01 -1.8453D+01 -1.6090D+00  4.3876D-01 -6.6906D-01  1.8453D+01 -1.0179D+02 -4.8298D+01  1.6090D+00  4.3876D-01
+     21)    6.6906D-01  1.8453D+01  1.0179D+02 -4.8298D+01
+0COLUMN      3      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)   -1.6090D+00 -6.6906D-01  4.3876D-01 -1.8453D+01  4.8298D+01  1.0179D+02  6.6906D-01  4.3876D-01 -1.6090D+00  4.8298D+01
+     11)   -1.0179D+02  1.8453D+01  1.6090D+00 -6.6906D-01  4.3876D-01  1.8453D+01  4.8298D+01  1.0179D+02  1.6090D+00  6.6906D-01
+     21)    4.3876D-01 -1.8453D+01  4.8298D+01 -1.0179D+02
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      24
+0THE DENSITY OF THIS MATRIX IS 100.00 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    22
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0    TABLE   TOESS1                      LINES CONTAINING BINARY  ZERO HAVE BEEN DELETED.                                           
+                                                                                                                                    
+                                                                                                                                    
+0RECORD NO.    0
+      1)         TES            5                                REAL           1
+                                                                                                     END OF       6 WORD RECORD.
+0RECORD NO.    1
+      1)            1 3.94784E+01           2 1.57914E+02           3 3.55306E+02           4 6.31655E+02           5 9.86961E+02
+     11)            6 1.42122E+03           7 1.93444E+03           8 2.52662E+03           9 3.19775E+03          10 3.94784E+03
+     21)           11 4.77689E+03          12 5.68489E+03          13 6.67185E+03          14 7.73777E+03          15 8.88264E+03
+     31)           16 1.01065E+04          17 1.14093E+04          18 1.27910E+04          19 1.42517E+04          20 1.57914E+04
+     41)           21 1.74100E+04          22 1.91076E+04          23 2.08841E+04          24 2.27396E+04
+                                                                                                     END OF      48 WORD RECORD.
+0RECORD NO.    2
+      1)         TYPE          ID        COMP         ROW                    TYPE          ID        COMP         ROW            
+     11)           34          11          15           1           0          34          23          15          16           0
+     21)           34          28          15          31           0
+                                                                                                     END OF      25 WORD RECORD.
+0RECORD NO.    3
+0END OF FILE
+0TRAILER WORD1 =         45 WORD2 =         24 WORD3 =          0 WORD4 =          0 WORD5 =          0 WORD6 =          0
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    23
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UDSTRES  (GINO NAME 101 ) IS A DB  PREC           6 COLUMN X          45 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      5 THRU     35     --------------------------------------------------
+    ROW 
+      5)    1.2970D-10  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     15)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  2.5940D-10  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     25)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     35)   -1.2970D-09
+0COLUMN      2      ROWS      5 THRU     35     --------------------------------------------------
+    ROW 
+      5)    3.7057D-11  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     15)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  2.2234D-10  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     25)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     35)   -1.8297D-10
+0COLUMN      3      ROWS      5 THRU     35     --------------------------------------------------
+    ROW 
+      5)    2.9646D-10  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     15)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -3.3352D-10  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     25)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     35)    1.0422D-09
+0COLUMN      4      ROWS      5 THRU     35     --------------------------------------------------
+    ROW 
+      5)    4.6135D-08  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     15)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00 -2.0659D-08  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     25)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     35)    1.6049D-07
+0COLUMN      5      ROWS      5 THRU     35     --------------------------------------------------
+    ROW 
+      5)   -5.1398D-07  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     15)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  6.8078D-07  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     25)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     35)   -1.1629D-06
+0COLUMN      6      ROWS      5 THRU     35     --------------------------------------------------
+    ROW 
+      5)    2.1641D-08  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     15)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  2.9694D-07  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     25)    0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00  0.0000D+00
+     35)   -5.9310D-08
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =       3
+0THE DENSITY OF THIS MATRIX IS   6.67 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    24
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UASTRES  (GINO NAME 102 ) IS A DB  PREC           3 COLUMN X          45 ROW RECTANG  MATRIX.
+0COLUMNS       1 THRU       3 ARE NULL.
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =       0
+0THE DENSITY OF THIS MATRIX IS   0.00 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    25
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0    TABLE   TOEFS1                      LINES CONTAINING BINARY  ZERO HAVE BEEN DELETED.                                           
+                                                                                                                                    
+                                                                                                                                    
+0RECORD NO.    0
+      1)         TEF            4                                REAL           1
+                                                                                                     END OF       6 WORD RECORD.
+0RECORD NO.    1
+      1)            1 3.94784E+01           2 1.57914E+02           3 3.55306E+02           4 6.31655E+02           5 9.86961E+02
+     11)            6 1.42122E+03           7 1.93444E+03           8 2.52662E+03           9 3.19775E+03          10 3.94784E+03
+     21)           11 4.77689E+03          12 5.68489E+03          13 6.67185E+03          14 7.73777E+03          15 8.88264E+03
+     31)           16 1.01065E+04          17 1.14093E+04          18 1.27910E+04          19 1.42517E+04          20 1.57914E+04
+     41)           21 1.74100E+04          22 1.91076E+04          23 2.08841E+04          24 2.27396E+04
+                                                                                                     END OF      48 WORD RECORD.
+0RECORD NO.    2
+      1)         TYPE          ID        COMP         ROW                    TYPE          ID        COMP         ROW            
+     11)           34          11           8           1           0          34          23           8           9           0
+     21)           34          28           8          17           0
+                                                                                                     END OF      25 WORD RECORD.
+0RECORD NO.    3
+0END OF FILE
+0TRAILER WORD1 =         24 WORD2 =         24 WORD3 =          0 WORD4 =          0 WORD5 =          0 WORD6 =          0
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    26
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UDELFOR  (GINO NAME 101 ) IS A DB  PREC           6 COLUMN X          24 ROW RECTANG  MATRIX.
+0COLUMN      1      ROWS      2 THRU     24     --------------------------------------------------
+    ROW 
+      2)   -2.9104D-11  6.8212D-11 -6.3210D-11 -2.2737D-13  1.1369D-13  1.6298D-09 -4.3988D-12  2.9104D-11 -5.8208D-11  6.3210D-11
+     12)    1.0004D-11 -1.1369D-13 -2.2737D-13  3.2596D-09 -1.5112D-11  4.6748D-10  1.6516D-09  7.5738D-10  1.6687D-09 -9.6634D-13
+     22)   -5.6843D-14 -1.6298D-08 -4.5475D-11
+0COLUMN      2      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    1.1232D-10  6.9122D-11 -9.4445D-11 -5.0250D-11  6.8923D-13  3.9790D-13  4.6566D-10 -3.6380D-11 -2.0555D-10 -3.6380D-12
+     11)    2.1332D-10 -6.3324D-11 -1.3962D-12  1.9895D-13  2.7940D-09 -5.9117D-12 -1.2960D-09  5.7989D-09  1.5135D-09 -5.2344D-09
+     21)   -9.3650D-12  3.6778D-11 -2.2992D-09  3.6896D-09
+0COLUMN      3      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)   -8.0036D-11  7.5488D-11  2.2283D-11 -3.9620D-11 -3.4106D-13  3.8369D-13  3.7253D-09 -1.7735D-11  1.4188D-10 -1.7599D-10
+     11)   -4.5702D-11  1.4589D-10  6.2528D-13 -1.0729D-12 -4.1910D-09  2.0464D-11  6.4210D-10  4.5911D-09  1.4905D-09  4.0284D-09
+     21)   -2.8280D-12  1.8758D-12  1.3097D-08  8.3768D-11
+0COLUMN      4      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    6.0536D-09  1.7229D-08 -8.0172D-10 -1.7388D-08  2.2851D-11  1.1539D-10  5.7973D-07 -6.3155D-09  2.4454D-08 -1.1367D-08
+     11)   -4.7190D-09  1.5790D-08  9.7245D-11 -9.0523D-11 -2.5960D-07 -4.6948D-09  1.7402D-06 -1.3449D-07 -1.5497D-06  9.5554D-07
+     21)    1.0966D-08 -3.6334D-09  2.0168D-06 -6.4796D-08
+0COLUMN      5      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    1.5792D-07 -1.9512D-07 -8.4918D-08  1.0000D-07  8.0945D-10 -9.8373D-10 -6.4587D-06  1.6230D-08 -2.3065D-07  2.8650D-07
+     11)    1.4097D-07 -2.1576D-07 -1.2387D-09  1.6742D-09  8.5547D-06 -3.8912D-08 -1.2580D-06 -7.5151D-06 -2.4176D-06 -6.9106D-06
+     21)    3.8656D-09 -2.0148D-09 -1.4613D-05 -8.2922D-08
+0COLUMN      6      ROWS      1 THRU     24     --------------------------------------------------
+    ROW 
+      1)    1.9370D-07  1.1703D-07 -1.8315D-07 -7.2467D-08  1.2562D-09  6.3164D-10  2.7195D-07 -5.3186D-08 -3.2985D-07  2.0285D-08
+     11)    3.5503D-07 -7.6235D-08 -2.2829D-09  3.2173D-10  3.7313D-06 -1.8982D-08 -9.6989D-07  7.3301D-06  9.8797D-07 -7.3612D-06
+     21)   -6.5262D-09  4.8971D-08 -7.4529D-07  5.0960D-06
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =      24
+0THE DENSITY OF THIS MATRIX IS  99.31 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    27
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0      MATRIX UAELFOR  (GINO NAME 102 ) IS A DB  PREC           3 COLUMN X          24 ROW RECTANG  MATRIX.
+0COLUMNS       1 THRU       3 ARE NULL.
+0THE NUMBER OF NON-ZERO TERMS IN THE DENSEST COLUMN =       0
+0THE DENSITY OF THIS MATRIX IS   0.00 PERCENT.
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    28
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     12
+
+
+
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ AA       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ AG       SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ AGG      SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ AXIC     SE102    DBALL                                        0        0        0        0        0 150610 121041
+ BAA      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ BDICT    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BEC      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BELM     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BFF      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BGG      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BGPDT    SE102    DBALL                                       34        0      164        2        8 150610 121041
+ BGPDTS   SE102    DBALL             0                         34        0      164        2        8 150610 121041
+ BJJ      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BK4ZZ    SE102    DBALL             0     0     0     1        0        0        0        0        0 150610 121041
+ BMG      SE102    DBALL             0           0              0        0        0        0        0 150610 121041
+ BSF      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ BSS      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ BTOPO    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ BULK     SE102    DBALL      -1    -1                          1        0        0        0        0 150610 121041
+ CASECCR  SE102    MASTER                                       1        0      608        0        0 150610 121041
+ CASEDR   SE102    DBALL       0     0                          1        0      608        0        0 150610 121041
+ CASES    SE102    DBALL       0     0                          1        0      608        0        0 150610 121041
+ CASESX   MASTER   DBALL       0     0                          1        0      608        0        0 150610 121041
+ CEE      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ CMLAMA   SE102    DBALL             0     0     0     1        3        0        0        0        0 150610 121041
+ CMMAT    SE102    DBALL             0     0     0     1        5        8        2        1        8 150610 121041
+ CMMI     SE102    DBALL             0     0     0     1        3        3        6        2        2 150610 121041
+ CMPHA    SE102    DBALL             0     0     0     1        3       32        2        2        0 150610 121041
+ CMPHO    SE102    DBALL             0     0     0     1        3      132        2        2      264 150610 121041
+ CMPHRC   SE102    DBALL             0     0     0     1        0        0        0        0        0 150610 121041
+ COMPEST  SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ CSTMS    SE102    DBALL             0                         34        1        1        2       12 150610 121041
+ DAR      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ DIT      SE102    DBALL                                        0        0        0        0        0 150610 121041
+ DITID    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ DITS     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ DKFF     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ DMFF     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ DRG      SE102    DBALL             0                        164        6        2        2        6 150610 121041
+ DYNAMIC  SE102    DBALL                                      256        0        0        0        0 150610 121041
+ DYNAMICS SE102    DBALL             0                        256        0        0        0        0 150610 121041
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    29
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ DYNAMICS MASTER   DBALL            -1                          0        0        0        0        0 150610 121409
+ ECTAS    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ ECTS     SE102    DBALL             0                          0      256        0    32768        0 150610 121041
+ EDOM     SE102    DBALL                                        0        0        0        0        0 150610 121041
+ EDT      SE102    DBALL                                        0        0        0        0        0 150610 121041
+ EDTS     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ EMAP     SE102    DBALL                                        0        0        0        0        0 150610 121041
+ EPSSEO   SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ EPT      SE102    DBALL                                        0     4096        0        0        0 150610 121041
+ EPTS     SE102    DBALL             0                          0     4096        0        0        0 150610 121041
+ EQEXINS  SE102    DBALL             0                         34        0        0        0        0 150610 121041
+ EST      SE102    DBALL             0                         66        0        0       16        0 150610 121041
+ ESTL     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ ESTNL    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ ETT      SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ GEOM1    SE102    DBALL                                        0     2048        8        0        0 150610 121041
+ GEOM1Q   SE102    DBALL                                        0     2048        8        0        0 150610 121041
+ GEOM1QS  SE102    DBALL            -1                          0     2048        8        0        0 150610 121041
+ GEOM1S   SE102    DBALL             0                          0     2048        8        0        0 150610 121041
+ GEOM2    SE102    DBALL                                        0      256        0    32768        0 150610 121041
+ GEOM2S   SE102    DBALL             0                          0      256        0    32768        0 150610 121041
+ GEOM2S   SE102    DBALL            -1                          0      256        0    32768        0 150610 121041
+ GEOM3    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ GEOM3S   SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ GEOM4    SE102    DBALL                                    17408        0        0        0        0 150610 121041
+ GEOM4QS  SE102    DBALL            -1                      17408        0        0        0        0 150610 121041
+ GEOM4S   SE102    DBALL             0                      17408        0        0        0        0 150610 121041
+ GGE      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ GM       SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ GNELM    SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ GOQ      SE102    DBALL             0     0     0     1        8      132        2        2      264 150610 121041
+ GOT      SE102    DBALL             0     0     0             24      132        2        2      264 150610 121041
+ GPDTS    SE102    DBALL             0                         34       10        0        2        0 150610 121041
+ GPECT    SE102    DBALL             0                        323       34        6       12       14 150610 121041
+ GPECTG   SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ GPLS     SE102    DBALL             0                         34       34        0        0        0 150610 121041
+ GPSNTS   SE102    DBALL             0                          0        0        0        2        0 150610 121041
+ INDTA    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ K4AA     SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ K4DICT   SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4ELM    SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4FF     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4GG     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4JJ     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ K4MG     SE102    DBALL             0           0              0        0        0        0        0 150610 121041
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    30
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ K4SF     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ K4SS     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ KAA      SE102    DBALL       0     0     0     0             32       32        6        2       48 150610 121041
+ KDICT    SE102    DBALL             0                          2       12        0       78        0 150610 121041
+ KELM     SE102    DBALL             0                         66       78        2        2      148 150610 121041
+ KFF      SE102    DBALL             0     0     0            164      164        6        2       72 150610 121041
+ KFS      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ KGG      SE102    DBALL             0                        164      164        6        2       72 150610 121041
+ KJJ      SE102    DBALL             0                        164      164        6        2       72 150610 121041
+ KLL      SE102    DBALL       0     0     0     0             24       24        6        2       48 150610 121041
+ KMG      SE102    DBALL             0           0              0        0        0        0        0 150610 121041
+ KNN      SE102    DBALL             0           0            164      164        6        2       72 150610 121041
+ KQQ      SE102    DBALL       0     0     0     0     1        8        8        6        2        2 150610 121041
+ KSF      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ KSS      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ KTT      SE102    DBALL             0     0     0             24       24        6        2       48 150610 121041
+ LAMA1    SE102    DBALL                                        3        0        0        0        0 150610 121041
+ LOO      SE102    DBALL             0     0     0            132      132       13        2        8 150610 121041
+ MAA      SE102    DBALL       0     0     0     0             32       32        6        2       64 150610 121041
+ MAPS     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ MAR      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MATPOOL  SE102    DBALL                                        0        0        0        0        0 150610 121041
+ MATPOOLS SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MDICT    SE102    DBALL             0                          2       12        0       78        0 150610 121041
+ MEC      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MEE      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MELM     SE102    DBALL             0                         66       78        2        2      152 150610 121041
+ MFF      SE102    DBALL             0     0     0            164      164        6        2       72 150610 121041
+ MGG      SE102    DBALL             0                        164      164        6        2       72 150610 121041
+ MJE      SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MJJ      SE102    DBALL             0                        164      164        6        2       72 150610 121041
+ MJJ1     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ MLL      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ MLR      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ MMG      SE102    DBALL             0           0              0        0        0        0        0 150610 121041
+ MPHVZ    SE102    DBALL             0     0     0     1        0        0        0        0        0 150610 121041
+ MPT      SE102    DBALL                                    32768        0        0        0        0 150610 121041
+ MPTS     SE102    DBALL             0                      32768        0        0        0        0 150610 121041
+ MQQ      SE102    DBALL       0     0     0     0     1        8        8        6        2        2 150610 121041
+ MQT      SE102    DBALL       0     0     0     0     1       24        8        2        2       16 150610 121041
+ MR       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ MRR      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ MSF      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ MSS      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ MTT      SE102    DBALL             0     0     0             24       24        6        2       48 150610 121041
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    31
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+0                                         *DATA BASE DICTIONARY - FORMAT 2 - NON-ZUZR11*
+0NAME     DATABASE DBSET    SEID  PEID   SPC   MPC  METH     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ MVAA     SE102    DBALL       0     0     0     0     1        0        0        0        0        0 150610 121041
+ ORSEQ    SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ PA       MASTER   DBALL       0     0     0     0              0        0        0        0        0 150610 121409
+ PBYA     SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PBYG     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ PCOMPT   SE102    DBALL                                        0        0        0        0        0 150610 121041
+ PCOMPTS  SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ PG       MASTER   DBALL       0     0                         32      164        2        2        0 150610 121041
+ PHG      D1       DBALL       0     0     0     0     1       32       32        6        2        2 150610 121041
+ PJ       MASTER   DBALL       0     0                         32      164        2        2      312 150610 121409
+ PKYA     SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PKYG     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ PL       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PMYA     SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ PMYG     SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ PO       MASTER   DBALL       0     0     0     0              0        0        0        0        0 150610 121409
+ PSS      MASTER   DBALL       0     0     0     0              0        0        0        0        0 150610 121409
+ PTELEM   SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ PVT      SE102    DBALL                                     2660        0        0        0        0 150610 121041
+ PVTBC    SE102    DBALL             0     0     0           2660        0        0        1        0 150610 121041
+ PVTS     SE102    DBALL       0     0                       2660        0        0        1        0 150610 121041
+ QG       MASTER   DBALL       0     0                          0        0        0        0        0 150610 121409
+ QR       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ RMG      SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ RMLM     SE102    DBALL             0     0     0              0        0        0        0        0 150610 121041
+ RVA      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ SCSTM    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ SESUM    SE102    MASTER      0     0                          0        0        0        0        0 150610 121041
+ SETREE   SE102    DBALL                                        0        0        0        0        0 150610 121041
+ SGPDT    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ SGPDTS   SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ SILS     SE102    DBALL             0                         34      164        0        0        0 150610 121041
+ SLIST    SE102    DBALL                                        0        0        0        0        0 150610 121041
+ SLT      SE102    DBALL       0     0                          0        0        0        0        0 150610 121041
+ SPECSEL  SE102    DBALL                                        0        0        0        0        0 150610 121041
+ UG       D1       DBALL       0     0                         32      164        2        2      266 150610 121125
+ UOO      SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+ USET     SE102    DBALL             0     0     0              0      164       64        6        0 150610 121041
+ USET0    SE102    DBALL             0     0     0              0      164       64        6        0 150610 121041
+ VAQ      SE102    DBALL             0                          1       32        2        2        0 150610 121041
+ VELEM    SE102    DBALL             0                          1        1        1        1        1 150610 121041
+ VGFD     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ VGFS     SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ YG       SE102    DBALL             0                          0        0        0        0        0 150610 121041
+ YS       SE102    DBALL       0     0     0     0              0        0        0        0        0 150610 121041
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    32
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     13
+
+
+
+0                                           *DATA BASE DICTIONARY - FORMAT 2 - ZUZR11*
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3     COLS     ROWS     FORM     TYPE    NZWDS CRDATE CRTIME
+ ------------------------------------------------------------------------------------------------------------------
+ ZUZR11   D1       DBALL    'DRMLAMA '     0     0     0       32        3        2        2        4 150610 121125
+ ZUZR11   D1       DBALL    'URBA    '     0     0     0        3       32        2        2        8 150610 121125
+ ZUZR11   D1       DBALL    'URBT    '     0     0     0        6       24        2        2       20 150610 121125
+ ZUZR11   D1       DBALL    'VSTATDYN'     0     0     0        1       32        2        2       16 150610 121125
+1    DATA RECOVERY MATRICES - PHASE 2                                          JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    33
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = DBDICT1 ,  DMAP STATEMENT NO.     14
+
+
+
+0                                        *DATA BASE DICTIONARY - FORMAT 2 - STORED PARAMS
+0NAME     DATABASE DBSET    STO NAME   QUAL1 QUAL2 QUAL3 CRDATE CRTIME
+ ---------------------------------------------------------------------
+1                                        * * * END OF JOB * * *

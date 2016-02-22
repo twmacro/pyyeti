@@ -1,0 +1,16 @@
+Steps to run model with upstream superelements brought in via CSUPER:
+        1. Run inboard.dat, outboard.dat
+        2. Run prep4xtmatrix.py
+        3. Run inboard_xtmatrix.dat (se102)
+        4. Run assemble.dat
+        5. Run yeti mk_nas2cam_mat.y
+
+For DRM2 check:
+        6. Run drm1.dat
+        7. Run drm2.dat
+        8. Run yeti rdf11.y
+
+Finally:
+        9. Delete the masters and dballs.
+
+Note: this was run using NX 9.

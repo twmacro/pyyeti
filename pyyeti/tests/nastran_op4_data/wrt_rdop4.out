@@ -1,0 +1,163 @@
+1
+ 
+ 
+ 
+ 
+                     THIS PROGRAM IS CONFIDENTIAL AND A TRADE SECRET OF MSC.SOFTWARE CORPORATION.  THE RECEIPT OR    
+                  POSSESSION OF THIS PROGRAM DOES NOT CONVEY ANY RIGHTS TO REPRODUCE OR DISCLOSE ITS CONTENTS, OR TO 
+                 MANUFACTURE, USE, OR SELL ANYTHING HEREIN, IN WHOLE OR IN PART, WITHOUT THE SPECIFIC WRITTEN CONSENT
+                                                    OF MSC.SOFTWARE CORPORATION.                                     
+ 
+ 
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * *                                 * *
+                                              * *           MSC.SOFTWARE          * *
+                                              * *               CORP              * *
+                                              * *                                 * *
+                                              * *      M S C . N a s t r a n      * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *        Version 2007.0.0         * *
+                                              * *            2007 R1              * *
+                                              * *                                 * *
+                                              * *                                 * *
+                                              * *          APR  4, 2007           * *
+                                              * *                                 * *
+                                              * *           IBM pSeries           * *
+                                              * *MODEL 9117-MMA,POWER?,4208MHz (m * *
+                                              * *             AIX 6.1             * *
+                                              * *          (SINGLE Mode)          * *
+                                              * *                                 * *
+                                              * * * * * * * * * * * * * * * * * * * *
+                                              * * * * * * * * * * * * * * * * * * * *
+1                                                                          NOVEMBER   7, 2012  MSC.NASTRAN  4/ 4/07   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN OP2NEW=0 $ MSC.NASTRAN .LCL FILE                                        
+     NASTRAN BUFFSIZE=8193 $(/OPT/MSC/NASTRAN/CONF/NAST2007RC[3])                    
+     NASTRAN BUFFSIZE=65537 $(/SAN1/HOME/LOADS/WIDRICKT/.NAST2007RC[4])              
+     ASSIGN MASTER = 'dummy.master', DELETE, TEMP $                                  
+     ASSIGN DBALL  = 'dummy.dball', DELETE, TEMP $                                   
+     INIT DBALL,LOGICAL=(DBALL(10000)) $                                             
+     $                                                                               
+     $ASSIGN INPUTT4 = 'RD.OP4' UNIT=11, FORM=BIGENDIAN $                            
+     $ASSIGN INPUTT4 = 'RD.OP4' UNIT=11, FORM=UNFORMATTED $                          
+     ASSIGN INPUTT4 = 'rd.op4' UNIT=11, FORM=FORMATTED $                             
+     ASSIGN OUTPUT4 = 'rdbin.op4', STATUS=NEW,                                       
+                      UNIT=30,FORM=UNFORMATTED,DELETE $                              
+     $                                                                               
+1                                                                          NOVEMBER   7, 2012  MSC.NASTRAN  4/ 4/07   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     DIAG 8                      $  DIAGNOSTIC OUTPUT                                        
+     SOL 100                     $  USER SOLUTION                                            
+     $                                                                                       
+     COMPILE USERDMAP,LIST,NOREF    $  COMPILE USER SOLUTION                                 
+     ALTER 2 $                                                                               
+     $                                                                                       
+     $ INPUTT4  /RD,,,,/1/11/0/1 $          READ RD (BINARY)                                 
+     INPUTT4  /R1,R2,R3,,/3/11/0/0 $   READ R (ASCII)                                        
+     OUTPUT4    R1,R2,R3,//-1/30/1 $   OUTPUT4, BINARY                                       
+     $ OUTPUT4    RD,,,///30/-1//17 $       OUTPUT4 IN BCD FORMAT, HIGH PRECI        SION    
+     END $                                                                                   
+     $                                                                                       
+     CEND                                                                                    
+1                                                                          NOVEMBER   7, 2012  MSC.NASTRAN  4/ 4/07   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0        N A S T R A N   S O U R C E   P R O G R A M   C O M P I L A T I O N             SUBDMAP  =  USERDMAP                       
+     DMAP-DMAP INSTRUCTION                                                                                                          
+      OLD NO.  NEW NO.   ( *I* = INSERTED,   *D* = DELETED )                                                                        
+       1        1      SUBDMAP USERDMAP $                                                              
+       2        2      $                                                                               
+       2        2      $  THIS SOLUTION SEQUENCE WILL EXECUTE ALL PREFACE MODULES:                     
+       2        2      $  IFP1, XSORT, AND IFP1 IN SUBDMAP PREFACE. OPTIONALLY,                        
+       2        2      $  WITH ALTER 2, A USER'S DMAP MAY FOLLOW THE CALL PREFACE                      
+       2        2      $  STATEMENT.  TYPE STATEMENTS IN A USER'S DMAP MAY                             
+       2        2      $  REFERENCE ITEMS DEFINED IN THE NDDL OF THE STRUCTURED                        
+       2        2      $  SOLUTION SEQUENCES. (SOLS 101-200)                                           
+       2        2      $                                                                               
+       2        2      $  EXECUTIVE DECK CONTENTS:                                                     
+       2        2      $                                                                               
+       2        2      $-----  1. SOL 100 OR SOL USERDMAP                                              
+       2        2      $                                                                               
+       2        2      $-----  2. ALTER 2 $ ONLY IF THE FOLLOWING OPERATIONS ARE DESIRED:              
+       2        2      $                                                                               
+       2        2      $          A. DMIIN AND DTIIN MODULES. (OPTIONAL)                               
+       2        2      $             FOR EXAMPLE, THE FOLLOWING DMAP STATEMENT OUTPUTS                 
+       2        2      $             MATRICES A, B, C, D, AND E FROM BULK DATA INPUT ON                
+       2        2      $             DMI BULK DATA CARDS:                                              
+       2        2      $                                                                               
+       2        2      $             DMIIN       DMI,DMINDX/A,B,C,D,E,,,,,/ $                          
+       2        2      $                                                                               
+       2        2      $             AND TABLES TA, TB, TC, TD, AND TE ON DTI BULK DATA CARDS:         
+       2        2      $                                                                               
+       2        2      $             DTIIN       DTI,DTINDX/TA,TB,TC,TD,TE,,,,,/ $                     
+       2        2      $                                                                               
+       2        2      $             DATA BLOCK NAMES A, B, C, D, E, TA, TB, TC, TD, AND TE            
+       2        2      $             MAY NOW BE REFERENCED IN THE USER'S DMAP.                         
+       2        2      $                                                                               
+       2        2      $          B. INSERT USER'S DMAP. (OPTIONAL)                                    
+       2        2      $                                                                               
+       2        2      $                                                                               
+       2        2      CALL PREFACE /GEOM1,EPT,MPT,EDT,DIT,DYNAMICS,GEOM2,GEOM3,GEOM4,GEOM5,           
+                                     FORCE,MATPOOL,AXIC,DEFUSET,DMI,DMINDX,DTI,DTINDX,PVT,             
+                                     CASECC,PCDB,XYCDB,POSTCDB,BULK,EDOM,DEQATN,DEQINDX,               
+                                     CONTACT,OINT,PCOMPT $MALTER:USERDMAP - AFTER CALL PREFACE         
+       2        3      $   ALTER 2 $                                                                   
+     *I*        3      INPUTT4  /R1,R2,R3,,/3/11/0/0 $   READ R (ASCII)                                
+     *I*        4      OUTPUT4    R1,R2,R3,//-1/30/1 $   OUTPUT4, BINARY                               
+     *I*        5      END $                                                                           
+ *** USER WARNING MESSAGE 6080 (TMALOC)
+     THE TIMING CONSTANTS DATA BLOCK TIMEBLK NOT FOUND ON THE DELIVERY DATABASE FOR:
+     MACHINE =    48 CONFIG =  4316 OPERASYS =     0 OPERALEV =     0 SUBMODEL=     0
+     LOADING DEFAULT TIMING CONSTANTS DATA BLOCK FOR:
+     MACHINE =    48 CONFIG =     5 OPERASYS =     0 OPERALEV =     0 SUBMODEL=     0
+     MODULE TIMING ESTIMATES INACCURATE AND MAY CAUSE INEFFICIENT JOB EXECUTION
+     USER ACTION: ADD TIMEBLK TO DELIVERY FILE OR USE NASTRAN STATEMENT TO SPECIFY THE MACHINE
+     (SEE CONFIGURATION AND OPERATION GUIDE FOR THE MACHINE ).
+1    DBWRITE                                                               NOVEMBER   7, 2012  MSC.NASTRAN  4/ 4/07   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1      TITLE = DBWRITE                                                                         
+                  2      $                                                                                       
+                  3      BEGIN BULK                                                                              
+0                             INPUT BULK DATA ENTRY COUNT =       1
+1    DBWRITE                                                               NOVEMBER   7, 2012  MSC.NASTRAN  4/ 4/07   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+0                                                 S O R T E D   B U L K   D A T A   E C H O                                         
+                 ENTRY                                                                                                              
+                 COUNT        .   1  ..   2  ..   3  ..   4  ..   5  ..   6  ..   7  ..   8  ..   9  ..  10  .                      
+                              ENDDATA 
+0                       TOTAL COUNT=         1
+ *** USER INFORMATION MESSAGE 4105 (INPTN4)
+     DATA BLOCK R1       RETRIEVED FROM FORTRAN UNIT 11
+     NAME OF DATA BLOCK WHEN PLACED ON FORTRAN UNIT WAS R1.
+ *** USER INFORMATION MESSAGE 4105 (INPTN4)
+     DATA BLOCK R2       RETRIEVED FROM FORTRAN UNIT 11
+     NAME OF DATA BLOCK WHEN PLACED ON FORTRAN UNIT WAS R2.
+ *** USER INFORMATION MESSAGE 4105 (INPTN4)
+     DATA BLOCK R3       RETRIEVED FROM FORTRAN UNIT 11
+     NAME OF DATA BLOCK WHEN PLACED ON FORTRAN UNIT WAS R3.
+ DATA BLOCK R1      WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGE64) FORMAT                     
+ TRAILER =     101       6       5       2       1       5    6667
+ DATA BLOCK R2      WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGE64) FORMAT                     
+ TRAILER =     102      19      10       2       1       0       0
+ DATA BLOCK R3      WRITTEN ON FORTRAN UNIT   30 FROM DMAP MODULE OUTPUT4 IN BINARY (BIGE64) FORMAT                     
+ TRAILER =     103       1       1       6       1       1   10000
+ 
+ No PARAM values were set in the Control File.
+ 
+1                                        * * * END OF JOB * * *
