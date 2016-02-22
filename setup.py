@@ -22,7 +22,7 @@ def read(*filenames, **kwargs):
             buf.append(f.read())
     return sep.join(buf)
 
-long_description = read('README.txt')
+long_description = read('README.rst')
 CLASSIFIERS=[
     'Development Status :: 4 - Beta',
     'Programming Language :: C',
