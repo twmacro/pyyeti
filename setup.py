@@ -30,8 +30,8 @@ CLASSIFIERS=[
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: Implementation :: CPython',
     'Natural Language :: English',
-    'Intended Audience :: Scientists/Engineers',
-    'License :: OSI Approved :: BSD',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Topic :: Scientific/Engineering',
 ]
