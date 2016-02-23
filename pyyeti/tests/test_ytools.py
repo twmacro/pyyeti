@@ -456,7 +456,7 @@ def test_fixtime():
     y = [1, 2, 3, 4]
     with assert_warns(RuntimeWarning):
         tn, yn = ytools.fixtime((t, y), sr=1)
-        ty2 = ytools.fixtime(np.vstack([t, y]).T, sr='auto')
+        ty2 = ytools.fixtime(np.vstack([t, y]).T, sr=1)
 
     t2, y2 = ty2.T
     assert np.all(tn == t2)
@@ -467,7 +467,7 @@ def test_fixtime():
     with assert_warns(RuntimeWarning):
         ((t2, y2), pv,
          sr_stats, tp) = ytools.fixtime((t, y), getall=True,
-                                        sr='auto')
+                                        sr=1)
     assert np.all(tn == t2)
     assert np.all(yn == y2)
     assert np.all(pv == [False, False, False, False])
@@ -480,7 +480,7 @@ def test_fixtime():
     y = [1, drop, 2, 3, 4]
 
     with assert_warns(RuntimeWarning):
-        t2, y2 = ytools.fixtime([t, y], sr='auto')
+        t2, y2 = ytools.fixtime([t, y], sr=1)
     assert np.all(tn == t2)
     assert np.all(yn == y2)
 
@@ -594,3 +594,63 @@ def test_fixtime_drift():
         d2 += abs(t2[i2] - t[i])
         d3 += abs(t3[i3] - t[i])
         assert d3 < d2
+
+
+def test_fixtime_too_many_tp():
+    # actual data:
+    fd = np.array([[ 0.91878125,  1.17070317],
+                   [ 0.9226875 ,  1.17070317],
+                   [ 0.9226875 ,  1.17070317],
+                   [ 0.92659375,  1.17070317],
+                   [ 0.92659375,  1.17070317],
+                   [ 0.9305    ,  1.17070317],
+                   [ 0.9305    ,  1.17070317],
+                   [ 0.93440625,  1.17070317],
+                   [ 0.93440625,  1.17070317],
+                   [ 0.9383125 ,  1.17070317],
+                   [ 0.9383125 ,  1.36582029],
+                   [ 0.94221875,  1.29265141],
+                   [ 0.94221875,  0.97558594],
+                   [ 0.946125  ,  1.63410652],
+                   [ 0.946125  ,  0.92680663],
+                   [ 0.95003125,  1.5365479 ],
+                   [ 0.95003125,  1.07314456],
+                   [ 0.9539375 ,  1.26826179],
+                   [ 0.9539375 ,  1.31704104],
+                   [ 0.95784375,  1.1950928 ],
+                   [ 0.95784375,  1.29265141],
+                   [ 0.96175   ,  1.04875493],
+                   [ 0.96175   ,  1.34143066],
+                   [ 0.96565625,  0.92680663],
+                   [ 0.96565625,  1.36582029],
+                   [ 0.9695625 ,  0.87802738],
+                   [ 0.9695625 ,  1.24387205],
+                   [ 0.97346875,  0.97558594],
+                   [ 0.97346875,  1.14631355],
+                   [ 0.977375  ,  0.99997562],
+                   [ 0.977375  ,  1.14631355],
+                   [ 0.98128125,  1.07314456],
+                   [ 0.98128125,  1.07314456],
+                   [ 0.9851875 ,  1.1950928 ],
+                   [ 0.9851875 ,  1.09753418],
+                   [ 0.98909375,  1.1950928 ],
+                   [ 0.98909375,  1.1219238 ],
+                   [ 0.993     ,  1.1950928 ],
+                   [ 0.993     ,  1.17070317],
+                   [ 0.99690625,  1.1950928 ],
+                   [ 0.99690625,  1.14631355],
+                   [ 1.0008125 ,  1.17070317]])
+
+    import sys
+    for v in list(sys.modules.values()):
+        if getattr(v, '__warningregistry__', None):
+            v.__warningregistry__ = {}
+
+    assert_raises(ValueError, ytools.fixtime,
+                  ([1, 2, 3, 4], [1, 2, 3]))
+
+    with assert_warns(RuntimeWarning):
+        t, d = ytools.fixtime((*fd.T,), sr='auto')
+    assert np.all(fd[:, 1] == d)
+    assert np.allclose(np.diff(t), .002)
+    assert np.allclose(t[0], fd[0, 0])

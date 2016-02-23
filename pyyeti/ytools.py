@@ -1319,7 +1319,9 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
            where the step differs by more than 1/4 step from the
            ideal. If `fixdrift` is True, each segment is further
            divided if needed to re-align due to drift (when the
-           sample rate is slightly off from the ideal).
+           sample rate is slightly off from the ideal). If there are
+           too many turning points (more than 50% of total points),
+           this routine basically gives up and skips steps 10 and 11.
 
        10. Shift the new time vector to align with the longest section
            of "good" old time steps.
@@ -1457,10 +1459,13 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
         print('==>       Note: "count" shows most frequent sample rate to')
         print('          nearest {} samples/sec.'.format(dsr))
 
+        if mx > 90 or abs(cnt_sr-ave_sr) < dsr:
+            defsr = round(cnt_sr/dsr)*dsr
+        else:
+            defsr = round(ave_sr/dsr)*dsr
         if sr == 'auto':
-            sr = round(cnt_sr)
+            sr = defsr
         elif not sr:
-            defsr = np.round(cnt_sr)
             ssr = input('==> Enter desired sample rate [{:g}]: '
                         .format(defsr))
             if not ssr:
@@ -1506,29 +1511,54 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
                     break
         return np.sort(np.hstack((tp, tp_drift)))
 
-    def _mk_initial_tnew(told, sr, dt, fixdrift):
+    def _get_turning_points(told, dt, difft):
+        tp = np.nonzero(get_turning_pts(told, atol=dt/4))[0]
+        msg = ('there are too many turning points ({:.2f}%) to '
+               'account for drift. Trying to find only "big" '
+               'turning points. Skipping step 10.',
+               'there are still too many turning points ({:.2f}%) '
+               'to attempt any alignment. Skipping steps 10 and 11.')
+        align = True
+        for i in range(2):
+            if len(tp)-2 > len(told) // 2:  # -2 to ignore ends
+                align = False
+                p = (len(tp)-2)/len(told)*100
+                warn(msg[i].format(p), RuntimeWarning)
+                if i == 1:
+                    tp = tp[[0, -1]]
+                else:
+                    meandt = difft[difft > 0].mean()
+                    a = 1.1*meandt
+                    tp = np.nonzero(get_turning_pts(told, atol=a))[0]
+            else:
+                break
+        return tp, align
+
+    def _mk_initial_tnew(told, sr, dt, difft, fixdrift):
         L = int(np.round((told[-1] - told[0])*sr)) + 1
         tnew = np.arange(L)/sr + told[0]
 
-        # find longest range in told of "good" time steps:
-        tp = np.nonzero(get_turning_pts(told, atol=dt/4))[0]
-        if fixdrift:
-            tp = _add_drift_turning_pts(tp, told, dt)
+        # get turning points and see if we should try to align:
+        tp, align = _get_turning_points(told, dt, difft)
 
-        # align with the "good" range:
-        j = np.argmax(np.diff(tp))
-        t_good = told[tp[j]:tp[j+1]+1]
+        if align:
+            if fixdrift:
+                tp = _add_drift_turning_pts(tp, told, dt)
 
-        p = _get_prev_index(tnew, t_good[0]+dt/2)
-        tnew_good = tnew[p:p+len(t_good)]
+            # align with the "good" range:
+            j = np.argmax(np.diff(tp))
+            t_good = told[tp[j]:tp[j+1]+1]
 
-        delt = np.mean(t_good[:len(tnew_good)] - tnew_good)
-        adelt = abs(delt)
-        if adelt > dt/2:
-            sgn = np.sign(delt)
-            factor = int(adelt/delt)
-            dt = sgn*(adelt-factor*delt)
-        tnew += delt
+            p = _get_prev_index(tnew, t_good[0]+dt/2)
+            tnew_good = tnew[p:p+len(t_good)]
+
+            delt = np.mean(t_good[:len(tnew_good)] - tnew_good)
+            adelt = abs(delt)
+            if adelt > dt/2:
+                sgn = np.sign(delt)
+                factor = int(adelt/delt)
+                dt = sgn*(adelt-factor*delt)
+            tnew += delt
         return tnew, tp
 
     def _best_fit_segments(tnew, tp, told, dt):
@@ -1590,7 +1620,7 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
 
     # make initial new time vector aligned with longest range in
     # told of "good" time steps (tp: turning points):
-    tnew, tp = _mk_initial_tnew(told, sr, dt, fixdrift)
+    tnew, tp = _mk_initial_tnew(told, sr, dt, difft, fixdrift)
 
     # build a best-fit index by segments:
     index = _best_fit_segments(tnew, tp, told, dt)
