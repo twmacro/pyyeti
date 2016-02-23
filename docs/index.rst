@@ -14,9 +14,9 @@ Contents:
    pyyeti
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   tutorial
+   tutorials
 
 Indices and tables
 ==================

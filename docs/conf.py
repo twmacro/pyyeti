@@ -118,7 +118,7 @@ class cd():
     def __exit__(self, *args):
         os.chdir(self.olddir)
 
-with cd('tutorial'):
+with cd('tutorials'):
     sys.path.append('tools')
     from nb_to_doc import convert_nb
     import glob

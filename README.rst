@@ -64,4 +64,4 @@ Tutorials
 The documentation contains several tutorials. These are also available
 (in their original form) as Jupyter notebooks:
 
-    http://github.com/twmacro/pyyeti/docs/tutorial
+    https://github.com/twmacro/pyyeti/tree/master/docs/tutorials
