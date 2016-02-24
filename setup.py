@@ -57,7 +57,7 @@ def check_dependencies():
 
     if os.getenv('READTHEDOCS'):
         install_requires.append('sphinx>=1.3.1')
-        install_requires.append('jupyter>=4')
+        install_requires.append('jupyter-core>=4')
         install_requires.append('notebook>=4')
 
     return install_requires
@@ -101,7 +101,7 @@ def run_setup(with_binary):
         author='Tim Widrick',
         install_requires=install_requires,
         author_email='twmacro@gmail.com',
-        description=('Collection of tools mostly relating '
+        description=('Tools mostly related '
                      'to structural dynamics'),
         long_description=long_description,
         packages=find_packages(),

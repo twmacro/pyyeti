@@ -10,7 +10,7 @@ pyYeti has tools mostly related to structural dynamics:
     * Shock response spectra (SRS)
     * Rainflow cycle counting
     * Fatigue damage equivalent power spectral densities (PSD)
-    * Resample data with the "Lanczos" method
+    * Resample data with the Lanczos method
     * A "vectorized" writing module
     * A data-cursor for interacting with 2D x-y plots
     * Statistics tools for computing k-factors (for tolerance
@@ -36,13 +36,16 @@ The easiest way to install is to try `pip`::
 
   pip install pyyeti
 
-You can also download manually from GitHub (link below) or from PyPi
+You can also download the source distribution from PyPi
 (https://pypi.python.org/pypi/pyyeti), unpack it, and run::
 
   python setup.py install
 
 For the C version of the rainflow cycle counter, you also need a C
 compiler installed.
+
+64-bit Windows users can install by running the executable available
+on PyPi.
 
 
 Development version
