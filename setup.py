@@ -5,10 +5,8 @@ from distutils.errors import CCompilerError, DistutilsExecError, \
 import numpy
 import pyyeti
 import os
-
-# the following would be good, but is soooooo slow!
-# import matplotlib as mpl
-# mpl.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 
 ext_errors = (CCompilerError, DistutilsExecError,
               DistutilsPlatformError, IOError, ValueError)
