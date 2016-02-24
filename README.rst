@@ -1,4 +1,10 @@
 
+.. image:: https://travis-ci.org/twmacro/pyyeti.svg?branch=master
+    :target: https://travis-ci.org/twmacro/pyyeti/
+
+.. image:: https://coveralls.io/repos/twmacro/pyyeti/badge.svg?branch=master&service=github
+    :target: https://coveralls.io/github/twmacro/pyyeti?branch=master
+
 
 pyYeti
 ======
