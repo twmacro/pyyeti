@@ -1,9 +1,5 @@
 
-.. image:: https://travis-ci.org/twmacro/pyyeti.svg?branch=master
-    :target: https://travis-ci.org/twmacro/pyyeti/
-
-.. image:: https://coveralls.io/repos/twmacro/pyyeti/badge.svg?branch=master&service=github
-    :target: https://coveralls.io/github/twmacro/pyyeti?branch=master
+|Build Status| |Coverage Status| |PyPi Status| |Docs Status|
 
 
 pyYeti
@@ -11,9 +7,9 @@ pyYeti
 
 pyYeti has tools mostly related to structural dynamics:
 
-    * Matrix equations of motion solver in the time and frequency
-      domains
-    * Shock response spectra (SRS)
+    * Solve matrix equations of motion in the time and
+      frequency domains
+    * Shock response spectrum (SRS)
     * Rainflow cycle counting
     * Fatigue damage equivalent power spectral densities (PSD)
     * Resample data with the Lanczos method
@@ -50,9 +46,6 @@ You can also download the source distribution from PyPi
 For the C version of the rainflow cycle counter, you also need a C
 compiler installed.
 
-64-bit Windows users can install by running the executable available
-on PyPi.
-
 
 Development version
 -------------------
@@ -74,3 +67,16 @@ The documentation contains several tutorials. These are also available
 (in their original form) as Jupyter notebooks:
 
     https://github.com/twmacro/pyyeti/tree/master/docs/tutorials
+
+
+.. |Build Status| image:: https://travis-ci.org/twmacro/pyyeti.svg?branch=master
+    :target: https://travis-ci.org/twmacro/pyyeti/
+
+.. |Coverage Status| image:: https://coveralls.io/repos/twmacro/pyyeti/badge.svg?branch=master&service=github
+    :target: https://coveralls.io/github/twmacro/pyyeti?branch=master
+
+.. |PyPi Status| image:: https://img.shields.io/pypi/v/pyyeti.svg
+    :target: https://pypi.python.org/pypi/pyyeti
+
+.. |Docs Status| image:: https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat
+    :target: http://pythonhosted.org/pyyeti/
