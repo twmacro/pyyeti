@@ -325,7 +325,7 @@ def test_wtop4_bigmat_ascii():
         os.remove('temp.op4')
 
 
-def test_wtop4_bigmat_ascii():
+def test_wtop4_bigmat_ascii_1():
     filenames = glob('pyyeti/tests/nastran_op4_data/*.op4') +\
                 glob('pyyeti/tests/nastran_op4_data/*.op4.other')
     o4 = op4.OP4()
@@ -447,12 +447,12 @@ def test_wtop4_single_2():
         os.remove(item[0])
 
 
-def test_wtop4_single_2():
+def test_wtop4_single_3():
     matfile = 'pyyeti/tests/nastran_op4_data/r_c_rc.mat'
     assert_raises(ValueError, op4.load, matfile, into='badstring')
 
 
-def test_wtop4_single_3():
+def test_wtop4_single_4():
     matfile = 'pyyeti/tests/nastran_op4_data/r_c_rc.mat'
     o4 = op4.OP4()
     assert_raises(ValueError, o4.load, matfile, into='badstring')

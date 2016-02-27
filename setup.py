@@ -103,10 +103,8 @@ def run_setup(with_binary):
                      'to structural dynamics'),
         long_description=long_description,
         packages=find_packages(),
-        #    packages=['pyyeti', 'pyyeti/rainflow'],
         include_package_data=True,
         platforms='any',
-        #    test_suite='nose.collector',
         tests_require=['nose'],
         classifiers=CLASSIFIERS,
         **kw
