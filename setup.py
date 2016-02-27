@@ -52,12 +52,6 @@ def check_dependencies():
         import pandas
     except ImportError:
         install_requires.append('pandas')
-
-    if os.getenv('READTHEDOCS'):
-        install_requires.append('sphinx>=1.3.1')
-        install_requires.append('jupyter-core>=4')
-        install_requires.append('notebook>=4')
-
     return install_requires
 
 

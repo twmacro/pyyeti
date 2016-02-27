@@ -58,7 +58,7 @@ Documentation
 -------------
 pyYeti documentation is here:
 
-    http://pythonhosted.org/pyyeti
+    http://pyyeti.readthedocs.org/
 
 
 Tutorials
@@ -78,5 +78,5 @@ The documentation contains several tutorials. These are also available
 .. |PyPi Status| image:: https://img.shields.io/pypi/v/pyyeti.svg
     :target: https://pypi.python.org/pypi/pyyeti
 
-.. |Docs Status| image:: https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat
-    :target: http://pythonhosted.org/pyyeti/
+.. |Docs Status| image:: https://readthedocs.org/projects/pyyeti/badge/?version=latest
+    :target: https://readthedocs.org/projects/pyyeti/?badge=latest
