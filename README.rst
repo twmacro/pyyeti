@@ -79,4 +79,4 @@ The documentation contains several tutorials. These are also available
     :target: https://pypi.python.org/pypi/pyyeti
 
 .. |Docs Status| image:: https://readthedocs.org/projects/pyyeti/badge/?version=latest
-    :target: https://readthedocs.org/projects/pyyeti/?badge=latest
+    :target: https://pyyeti/readthedocs.org

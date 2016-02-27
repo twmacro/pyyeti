@@ -1539,7 +1539,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 else:
                     meandt = difft[difft > 0].mean()
                     a = 1.1*meandt
-                    tp = np.nonzero(get_turning_pts(told, atol=a))[0]
+                    tp = np.hstack((True, (difft > a)[:-1], True))
+                    tp = np.nonzero(tp)[0]
             else:
                 break
         return tp, align

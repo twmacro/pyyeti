@@ -654,3 +654,22 @@ def test_fixtime_too_many_tp():
     assert np.all(fd[:, 1] == d)
     assert np.allclose(np.diff(t), .002)
     assert np.allclose(t[0], fd[0, 0])
+
+
+def test_fixtime_naninf():
+    import sys
+    for v in list(sys.modules.values()):
+        if getattr(v, '__warningregistry__', None):
+            v.__warningregistry__ = {}
+
+    t = np.arange(15)
+    y = [1, 2, 3, 4, np.nan, 6, 7, np.inf, 9, 10,
+         -np.inf, 12, -1.40130E-45, 14, 15]
+    
+    with assert_warns(RuntimeWarning):
+        (tn, yn), d, sr, tp = ytools.fixtime((t, y), sr=1, getall=1)
+
+    d = np.nonzero(d)[0]
+    assert np.all(t == tn)
+    assert np.all(yn == [1, 2, 3, 4, 4, 6, 7, 7, 9,
+                         10, 10, 12, 12, 14, 15])
