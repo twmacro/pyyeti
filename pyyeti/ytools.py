@@ -1204,8 +1204,8 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     return RData, tnew
 
 
-def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
-            dropval=-1.40130E-45, leaveoutliers=False, base=None,
+def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
+            dropval=-1.40130E-45, deloutliers=True, base=None,
             fixdrift=False, getall=False):
     """
     Process recorded data to make an even time vector.
@@ -1230,14 +1230,16 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
          "sort"       Sort data
         ===========   ==========
 
-    leavedrops : bool; optional
-        If True, dropouts are left in the data; otherwise, they are
-        deleted.
+    deldrops : bool; optional
+        If True, dropouts are deleted from the data; otherwise, they
+        are left in.
     dropval : scalar; optional
-        The numerical value of drop-outs.
-    leaveoutliers : bool; optional
-        If True, outlier times are left in the data; otherwise, they
-        are deleted.
+        The numerical value of drop-outs. Note that any `np.nan` or
+        `np.inf` values in the data are treated as drop-outs in any
+        case.
+    deloutliers : bool; optional
+        If True, outlier times are deleted from the data; otherwise,
+        they are left in.
     base : scalar or None; optional
         Scalar value that new time vector would hit exactly if within
         range. If None, new time vector is aligned to longest section
@@ -1255,7 +1257,7 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
         `olddata` was ndarray; otherwise it is a tuple:
         ``(time, data)``.
     dropouts : 1d ndarray; optional
-        If `leavedrops` is False (the default), this is a True/False
+        If `deldrops` is True (the default), this is a True/False
         vector into `olddata` where drop-outs occurred. Otherwise,
         it is a True/False vector into `newdata`.
     sr_stats : 1d ndarray or None; optional
@@ -1279,13 +1281,13 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
     -----
     This algorithm works as follows:
 
-       1.  Find and delete drop-outs unless `leavedrops` is True.
+       1.  Find and delete drop-outs if `deldrops` is True.
 
-       2.  Delete outlier times unless `leaveoutliers` is true. These
-           are points with times that are more than 3 standard
-           deviations away from the mean. A warning message is printed
-           if any such times are found.  Note that on a perfect time
-           vector, the end points are at 1.73 sigma (eg, m+1.73s =
+       2.  Delete outlier times if `deloutliers` is True. These are
+           points with times that are more than 3 standard deviations
+           away from the mean. A warning message is printed if any
+           such times are found.  Note that on a perfect time vector,
+           the end points are at 1.73 sigma (eg, m+1.73s =
            .5+1.73*.2887 = 1).
 
        3.  Check for positive time steps, and if there are none, error
@@ -1350,12 +1352,20 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
     array([ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.])
     >>> yn
     array([1, 2, 2, 2, 2, 2, 3, 4])
+
     """
     POOR = ('This may be a poor way to handle the current data, so '
             'please check the results carefully.')
 
+    def _find_drops(d, dropval):
+        dropouts = np.logical_or(np.isnan(d), np.isinf(d))
+        if np.isfinite(dropval):
+            dropouts = np.logical_or(
+                dropouts, abs(d-dropval) < abs(dropval)/100)
+        return dropouts
+
     def _del_drops(told, olddata, dropval):
-        dropouts = abs(olddata/dropval - 1.) < 1e-4
+        dropouts = _find_drops(olddata, dropval)
         if np.any(dropouts):
             keep = ~dropouts
             if np.any(keep):
@@ -1374,28 +1384,28 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
             newdata = (t, data)
         if getall:
             if dropouts is None:
-                dropouts = abs(data/dropval - 1.) < 1e-4
+                dropouts = _find_drops(data, dropval)
             return newdata, dropouts, sr_stats, tp
         return newdata
 
-    def _del_outtimes(told, olddata, leaveoutliers):
+    def _del_outtimes(told, olddata, deloutliers):
         mn = told.mean()
         sig = 3*told.std()
         pv = np.logical_or(told < mn-sig, told > mn+sig)
         if np.any(pv):
-            if leaveoutliers:
-                warn('there are {:d} outlier times that are NOT '
-                     'being deleted because `leaveoutliers` is '
-                     'True. These are times more than 3-sigma '
-                     'away from the mean.'.format(pv.sum()),
-                     RuntimeWarning)
-            else:
+            if deloutliers:
                 warn('there are {:d} outlier times being deleted.'
                      ' These are times more than 3-sigma away '
                      'from the mean. {:s}'.format(pv.sum(), POOR),
                      RuntimeWarning)
                 told = told[~pv]
                 olddata = olddata[~pv]
+            else:
+                warn('there are {:d} outlier times that are NOT '
+                     'being deleted because `leaveoutliers` is '
+                     'True. These are times more than 3-sigma '
+                     'away from the mean.'.format(pv.sum()),
+                     RuntimeWarning)
         return told, olddata
 
     def _chk_negsteps(told, olddata, negmethod):
@@ -1599,14 +1609,14 @@ def fixtime(olddata, sr=None, negmethod='sort', leavedrops=False,
 
     # check for drop outs:
     dropouts = sr_stats = tp = None
-    if not leavedrops:
+    if deldrops:
         told, olddata, dropouts = _del_drops(told, olddata, dropval)
         if len(told) == 0:
             return _return(told, olddata, dropouts, sr_stats, tp,
                            dropval, getall, return_ndarray)
 
     # check for outlier times ... outside 3-sigma
-    told, olddata = _del_outtimes(told, olddata, leaveoutliers)
+    told, olddata = _del_outtimes(told, olddata, deloutliers)
 
     # check for negative steps:
     told, olddata, difft = _chk_negsteps(told, olddata, negmethod)

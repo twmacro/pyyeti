@@ -100,10 +100,11 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None):
         line) as the argument and it must return a string. The return
         string is what gets output. This can be handy for final string
         substitutions, for example. This input must be named and must
-        be the last input; see example.
+        be after the arguments to be printed; see example.
     pfargs : iterable or None
-        If an iterable, contains extra arguments to pass to postfunc
-        after the string argument. Must be named.
+        If an iterable, contains extra arguments to pass to `postfunc`
+        after the string argument. Must be named and after the
+        arguments to be printed.
 
     Returns
     -------
@@ -111,7 +112,7 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None):
 
     Notes
     -----
-    The expected vector length is determined from the last non-scalar
+    The expected vector length is determined from the first non-scalar
     input. Note that scalar values are repeated automatically as
     necessary.
 
@@ -134,16 +135,19 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None):
     >>> writer.vecwrite(sys.stdout, frm, i, r, v, s)
       5,   1.2, short string             , test string
       5,  45.8, a bit longer string      , test string
+
     >>> r = np.array([[1.1, 1.2, 1.3], [10.1, 10.2, 10.3]])
     >>> frm = '{:2}, {:=^25} : ' + '  {:6.2f}'*3 + chr(10)
     >>> writer.vecwrite(sys.stdout, frm, i, v, r)
      5, ======short string======= :     1.10    1.20    1.30
      5, ===a bit longer string=== :    10.10   10.20   10.30
+
     >>> def pf(s):
     ...     return s.replace('0 ', '  ')
     >>> writer.vecwrite(sys.stdout, frm, i, v, r, postfunc=pf)
      5, ======short string======= :     1.1     1.2     1.30
      5, ===a bit longer string=== :    10.1    10.2    10.30
+
     >>> def pf(s, s_old, s_new):
     ...     return s.replace(s_old, s_new)
     >>> writer.vecwrite(1, frm, i, v, r, postfunc=pf,

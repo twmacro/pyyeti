@@ -489,7 +489,7 @@ def test_fixtime():
     assert_warns(RuntimeWarning, ytools.fixtime, (t, y), 'auto')
 
     ((t2, y2), drops,
-     sr_stats, tp) = ytools.fixtime((t, y), 'auto', leavedrops=True,
+     sr_stats, tp) = ytools.fixtime((t, y), 'auto', deldrops=False,
                                     getall=True)
     assert np.all(tp == [0, 2])
     assert np.all(t2 == t)
@@ -505,7 +505,7 @@ def test_fixtime():
     assert np.all(y2 == np.arange(100))
 
     with assert_warns(RuntimeWarning):
-        t2, y2 = ytools.fixtime((t, y), 'auto', leaveoutliers=1)
+        t2, y2 = ytools.fixtime((t, y), 'auto', deloutliers=0)
     assert np.all(t2 == np.arange(200.1))
     sbe = np.ones(201, int)*99
     sbe[:100] = np.arange(100)
