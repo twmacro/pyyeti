@@ -12,6 +12,7 @@ Modules
     modules/cb
     modules/cyclecount
     modules/datacursor
+    modules/dsp
     modules/expmint
     modules/fdepsd
     modules/frclim
@@ -20,6 +21,7 @@ Modules
     modules/nastran
     modules/op2
     modules/op4
+    modules/psd
     modules/srs
     modules/stats
     modules/ssmodel

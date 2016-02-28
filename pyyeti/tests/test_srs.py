@@ -699,7 +699,7 @@ def test_srs_frf():
 
 
 def test_srsmap():
-    from pyyeti import ytools
+    from pyyeti import ytools, dsp
     sig, ts, fs = ytools.gensweep(10, 1, 50, 4)
     sr = 1/ts[1]
     frq = np.arange(1., 50.1)
@@ -714,7 +714,7 @@ def test_srsmap():
     # test segment 63:
     seg = 63
     pv = np.logical_and(ts >= t[seg]-dt, ts < t[seg]+dt)
-    sh = srs.srs(ytools.windowends(sig[pv], .02),
+    sh = srs.srs(dsp.windowends(sig[pv], .02),
                  sr, frq, Q, eqsine=1)
     assert np.allclose(sh, mp[:, seg])
 

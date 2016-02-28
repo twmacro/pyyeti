@@ -100,7 +100,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         'fft'          Use FFT to upsample data as needed.  See
                        :func:`scipy.signal.resample`.
         'lanczos'      Use Lanczos resampling to upsample as
-                       needed. See :func:`ytools.resample`.
+                       needed. See :func:`dsp.resample`.
         'prefilter'    Apply a high freq. gain filter to account
                        for the SRS roll-off. See
                        :func:`srs.preroll` for more information.
@@ -292,7 +292,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
 
     See also
     --------
-    :func:`scipy.signal.welch`, :func:`ytools.psdmod`,
+    :func:`scipy.signal.welch`, :func:`psd.psdmod`,
     :func:`cyclecount.rainflow`, :func:`srs.srs`.
 
     Examples
@@ -314,15 +314,15 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
 
         >>> import numpy as np
         >>> import matplotlib.pyplot as plt
-        >>> from pyyeti import ytools, fdepsd
+        >>> from pyyeti import psd, fdepsd
         >>> import scipy.signal as signal
         >>>
         >>> TF = 60  # make a 60 second signal
         >>> spec = [[20, 1], [50, 1]]
-        >>> sig, sr, t = ytools.psd2time(spec, ppc=10, fstart=20,
-        ...                              fstop=50, df=1/TF,
-        ...                              winends=dict(portion=10),
-        ...                              gettime=True)
+        >>> sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20,
+        ...                           fstop=50, df=1/TF,
+        ...                           winends=dict(portion=10),
+        ...                           gettime=True)
         >>>
         >>> fig = plt.figure('fdepsd example, part 1', figsize=[9, 6])
         >>> _ = plt.subplot(211)
@@ -333,7 +333,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         >>> _ = plt.ylabel('Acceleration (g)')
         >>> _ = plt.subplot(212)
         >>> f, p = signal.welch(sig, sr, nperseg=sr)
-        >>> f2, p2 = ytools.psdmod(4, .5, sig, sr, nperseg=sr)
+        >>> f2, p2 = psd.psdmod(4, .5, sig, sr, nperseg=sr)
         >>> plt.tight_layout()
 
         Calculate G1, G2, and the damage potential PSDs:

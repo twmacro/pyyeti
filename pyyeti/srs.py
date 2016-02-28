@@ -8,7 +8,7 @@ import scipy.signal as signal
 import scipy.interpolate as interp
 import numpy as np
 from math import sin, cos, exp, sqrt, pi
-from pyyeti import ytools
+from pyyeti import dsp, psd
 import itertools as it
 import multiprocessing as mp
 import ctypes
@@ -335,7 +335,7 @@ def fftroll(sig, sr, ppc, frq):
 
 def lanroll(sig, sr, ppc, frq):
     """
-    Increase sample rate using :func:`ytools.resample` for the SRS
+    Increase sample rate using :func:`dsp.resample` for the SRS
     routine.
 
     Parameters
@@ -358,7 +358,7 @@ def lanroll(sig, sr, ppc, frq):
 
     Notes
     -----
-    The `pts` parameter for the :func:`ytools.resample` is set to 65.
+    The `pts` parameter for the :func:`dsp.resample` is set to 65.
     This was determined from trial and error and comparison to the FFT
     method.
     """
@@ -366,7 +366,7 @@ def lanroll(sig, sr, ppc, frq):
     if N > 1:
         curppc = sr/frq
         factor = int(np.ceil(ppc/curppc))
-        sig = ytools.resample(sig.T, factor, 1, pts=65).T
+        sig = dsp.resample(sig.T, factor, 1, pts=65).T
         sr *= factor
     return sig, sr
 
@@ -727,7 +727,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
            'fft'          Use FFT to upsample data as needed.  See
                           :func:`scipy.signal.resample`.
            'lanczos'      Use Lanczos resampling to upsample as
-                          needed. See :func:`ytools.resample`.
+                          needed. See :func:`dsp.resample`.
            'prefilter'    Apply a high freq. gain filter to account
                           for the SRS roll-off. See
                           :func:`preroll` for more information. This
@@ -1164,7 +1164,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
     See also
     --------
-    :func:`srs`, :func:`srs_frf`, :func:`ytools.psdinterp`
+    :func:`srs`, :func:`srs_frf`, :func:`psd.interp`
 
     References
     ----------
@@ -1208,7 +1208,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
         raise ValueError('Q must be > 0.5 since VRS assumes'
                          ' underdamped equations.')
     # expand PSD:
-    psdfull = ytools.psdinterp(spec, freq, linear)
+    psdfull = psd.interp(spec, freq, linear)
 
     # Create delta_f
     df = np.empty(rf, float)
@@ -1420,13 +1420,13 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
 
     Notes
     -----
-    This routine calls :func:`ytools.waterfall` for handling the
+    This routine calls :func:`dsp.waterfall` for handling the
     timeslices and preparing the output.  :func:`srs` and
-    :func:`ytools.windowends` are passed to that function.
+    :func:`dsp.windowends` are passed to that function.
 
     See also
     --------
-    :func:`srs`, :func:`ytools.waterfall`, :func:`ytools.windowends`
+    :func:`srs`, :func:`dsp.waterfall`, :func:`dsp.windowends`
 
     Examples
     --------
@@ -1475,9 +1475,9 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> _ = ax.set_zlabel('Amplitude')
         >>> _ = plt.title(ttl)
     """
-    return ytools.waterfall(timeslice, tsoverlap, sig, sr, srs,
-                            which=None, freq=freq,
-                            kwargs=dict(sr=sr, freq=freq,
-                                        Q=Q, eqsine=1),
-                            slicefunc=ytools.windowends,
-                            slicekwargs=dict(portion=wep))
+    return dsp.waterfall(timeslice, tsoverlap, sig, sr, srs,
+                         which=None, freq=freq,
+                         kwargs=dict(sr=sr, freq=freq,
+                                     Q=Q, eqsine=1),
+                         slicefunc=dsp.windowends,
+                         slicekwargs=dict(portion=wep))

@@ -1,6 +1,6 @@
 import numpy as np
 from nose.tools import *
-from pyyeti import ytools
+from pyyeti import psd
 from pyyeti.fdepsd import fdepsd
 
 
@@ -24,9 +24,9 @@ def test_fdepsd_absacce():
     TF = 60  # make a 60 second signal
     sp = 1.
     spec = [[20, sp], [50, sp]]
-    sig, sr, t = ytools.psd2time(spec, ppc=10, fstart=20, fstop=50,
-                                 df=1/TF, winends=dict(portion=10),
-                                 gettime=True)
+    sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
+                              df=1/TF, winends=dict(portion=10),
+                              gettime=True)
     freq = np.arange(30., 50.1)
     q = 25
     fde_auto = fdepsd(sig, sr, freq, q)
@@ -55,9 +55,9 @@ def test_fdepsd_pvelo():
     TF = 60  # make a 60 second signal
     sp = 1.
     spec = [[20, sp], [50, sp]]
-    sig, sr, t = ytools.psd2time(spec, ppc=10, fstart=20, fstop=50,
-                                 df=1/TF, winends=dict(portion=10),
-                                 gettime=True)
+    sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
+                              df=1/TF, winends=dict(portion=10),
+                              gettime=True)
     freq = np.arange(30., 50.1)
     q = 25
     fde_auto = fdepsd(sig, sr, freq, q, resp='pvelo')

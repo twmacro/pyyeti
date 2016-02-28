@@ -4,41 +4,23 @@ Miscellaneous tools from Yeti (ytools)
 .. automodule:: pyyeti.ytools
 .. currentmodule:: pyyeti.ytools
 
-Miscellaneous tools
--------------------
+Math routines
+-------------
 .. autosummary::
     :toctree: generated/
 
-    calcenv
     eig_si
-    freq_oct
-    fixtime
     gensweep
     isdiag
     mattype
     mkpattvec
-    psd2time
-    psd_rescale
-    psdinterp
-    psdmod
-    resample
-    splpsd
-    waterfall
-    windowends
+    multmd
+    sturm
 
-File input/output helper tools
-------------------------------
+Text I/O helper routines
+------------------------
 .. autosummary::
     :toctree: generated/
 
     rdfile
     wtfile
-
-Occasionally useful tools
--------------------------
-.. autosummary::
-    :toctree: generated/
-
-    get_turning_pts
-    multmd
-    sturm
