@@ -84,7 +84,7 @@ def mkpattvec(start, stop, inc):
     Notes
     -----
     The first element of `start`, `stop`, and `inc` fully determine the
-    number of increments that are generated.  The other elements in
+    number of increments that are generated. The other elements in
     `start` go along for the ride.
 
     Examples
@@ -178,7 +178,7 @@ def mattype(A, mtype=None):
     ----------
     A : 2d array_like or None
         If not square or if number of dimensions does not equal 2, the
-        return type is 0.  If None, just return the `mattypes` output
+        return type is 0. If None, just return the `mattypes` output
         (not a tuple).
     mtype : string or None
         If string, it must be one of the `mattypes` listed below; in
@@ -335,13 +335,13 @@ def sturm(A, lam):
     -------
     count : 1d ndarray
         Contains number of eigenvalues below the cutoff values in
-        `lam`.  That is:  count[i] = number of eigenvalues in `A` below
+        `lam`. That is:  count[i] = number of eigenvalues in `A` below
         value `lam[i]`.
 
     Notes
     -----
     Computes the Hessenberg form of `A` which is tridiagonal if `A` is
-    symmetric.  Then it does a simple Sturm count on the results (code
+    symmetric. Then it does a simple Sturm count on the results (code
     derived from LAPACK routine DLAEBZ).
 
     Examples
@@ -418,17 +418,17 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
     M : ndarray
         The mass (positive definite).
     Xk : ndarray or None
-        Initial guess @ eigenvectors; # columns > `p`.  If None,
+        Initial guess @ eigenvectors; # columns > `p`. If None,
         random vectors are used from ``np.random.rand()-.5``.
     f : scalar or None
-        Desired cutoff frequency in Hz.  `pmax` will override this if
-        set.  Takes precedence over `p` if both are input.
+        Desired cutoff frequency in Hz. `pmax` will override this if
+        set. Takes precedence over `p` if both are input.
     p : scalar or None
         Number of desired eigenpairs (eigenvalues and eigenvectors).
-        `pmax` will limit this if set.  If `f` is input, `p` is
+        `pmax` will limit this if set. If `f` is input, `p` is
         calculated internally (from :func:`sturm`).
     mu : scalar
-        Shift value in (rad/sec)^2 units.  See notes.
+        Shift value in (rad/sec)^2 units. See notes.
     tol : scalar
         Eigenvalue convergence tolerance.
     pmax : scalar or None
@@ -450,23 +450,23 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
 
     Notes
     -----
-    This routine works well for relatively small `p`.  Trying to
-    recover all modes may fail.  Craig-Bampton models with residual
+    This routine works well for relatively small `p`. Trying to
+    recover all modes may fail. Craig-Bampton models with residual
     flexibility modes also cause trouble.
 
-    `mu` must not equal any eigenvalue.  For systems with rigid-body
-    modes, `mu` must be non-zero.  Recommendations:
+    `mu` must not equal any eigenvalue. For systems with rigid-body
+    modes, `mu` must be non-zero. Recommendations:
 
      - If you have eigenvalue estimates, set `mu` to be average of two
-       widely spaced, low frequency eigenvalues.  For example,
+       widely spaced, low frequency eigenvalues. For example,
        ``mu = 5000`` worked well when the actual eigenvalues were:
        [0, 0, 0, 0, .05, 15.8, 27.8, 10745.4, ...]
      - ``mu = -10`` has worked well.
      - ``mu = 1/10`` of the first flexible eigenvalue has worked well.
 
     It may be temping to set `mu` to a higher value so a few higher
-    frequency modes can be calculated.  This might work, especially if
-    you have good estimates for `Xk`.  Otherwise, it is probably
+    frequency modes can be calculated. This might work, especially if
+    you have good estimates for `Xk`. Otherwise, it is probably
     better to set `mu` to a lower value (as recommended above) and
     recover more modes to span the range of interest.
 
@@ -603,20 +603,20 @@ def freq_oct(n, frange=[1., 10000.], exact=False, trim='band',
         for 1/6, etc.
     frange : 1d array_like
         Specifies bounds for the frequency vector; only the first and
-        last elements are used.  If the first element <= 0.0, 1. is used
-        instead.  See also the `trim` input.
+        last elements are used. If the first element <= 0.0, 1. is used
+        instead. See also the `trim` input.
     trim : string
-        Specify how to trim frequency vector to `frange`.  If `trim` is
+        Specify how to trim frequency vector to `frange`. If `trim` is
         "band", trimming is such that the first band includes
-        `frange[0]` and the last band include `frange[1]`.  If `trim`
+        `frange[0]` and the last band include `frange[1]`. If `trim`
         is "center", trimming is such that the `frange` values are just
         outside the range of the returned vector.
     exact : bool
         If False, return an approximate octave scale so that it hits
-        the power of 10s, achored at 1 Hz.  If True, return an exact
+        the power of 10s, achored at 1 Hz. If True, return an exact
         octave scale, anchored at 1000 Hz.
     anchor : scalar or None
-        If scalar, it specifies the anchor.  If None, the anchor used
+        If scalar, it specifies the anchor. If None, the anchor used
         is specified above (1 or 1000).
 
     Returns
@@ -721,20 +721,20 @@ def psd_rescale(P, F, n_oct=3, freq=None, extendends=True):
     Parameters
     ----------
     P : array_like
-        Vector or matrix; PSD(s) to convert.  Works columnwise if
+        Vector or matrix; PSD(s) to convert. Works columnwise if
         matrix.
     F : array_like
-        Vector; input frequency scale.  If steps are not linear,
+        Vector; input frequency scale. If steps are not linear,
         logarithmic spacing is assumed.
     n_oct : scalar; optional
-        Specifies the desired octave scale.  1 means full octave, 3
-        means 1/3rd octave, 6 means 1/6th octave, etc.  The routine
+        Specifies the desired octave scale. 1 means full octave, 3
+        means 1/3rd octave, 6 means 1/6th octave, etc. The routine
         :func:`freq_oct` is used to calculate the frequency vector
-        with the default options.  To change options, call
+        with the default options. To change options, call
         :func:`freq_oct` directly and provide that input via `freq`.
     freq : array_like or None; optional
-        Alternative to `n_oct` and takes precedence.  Specifies
-        desired output frequencies directly.  If steps are not linear,
+        Alternative to `n_oct` and takes precedence. Specifies
+        desired output frequencies directly. If steps are not linear,
         logarithmic spacing is assumed for computing the band
         boundaries.
     extendends : bool; optional
@@ -929,8 +929,8 @@ def splpsd(x, sr, n, overlap=.5, window='hanning',
         Passed to :func:`scipy.signal.welch`; see that routine for
         more information.
     fs : integer
-        Specifies output frequency scale.  Zero means linear scale,
-        anything else is passed to :func:`psd_rescale`.  Example:
+        Specifies output frequency scale. Zero means linear scale,
+        anything else is passed to :func:`psd_rescale`. Example:
 
         ===  ======================================================
           0  linear scale as computed by :func:`scipy.signal.welch`
@@ -940,7 +940,7 @@ def splpsd(x, sr, n, overlap=.5, window='hanning',
         ===  ======================================================
 
     pref : scalar
-        Reference pressure.  2.9e-9 psi is considered to be the
+        Reference pressure. 2.9e-9 psi is considered to be the
         threshhold for human hearing. In Pascals, that value is 2e-5.
 
     Returns
@@ -955,8 +955,8 @@ def splpsd(x, sr, n, overlap=.5, window='hanning',
     Notes
     -----
     This routine calls :func:`scipy.signal.welch` to calculate the
-    PSD.  It then converts that to mean-square values per band (for
-    linear frequency steps, this is just PSD * delta_freq).  Loosely,
+    PSD. It then converts that to mean-square values per band (for
+    linear frequency steps, this is just PSD * delta_freq). Loosely,
     the math is:
 
     .. math::
@@ -1002,7 +1002,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     q : integer
         The downsample factor.
     beta : scalar
-        The beta value for the Kaiser window.  See
+        The beta value for the Kaiser window. See
         :func:`scipy.signal.kaiser`.
     pts : integer
         Number of points in data to average from each side of current
@@ -1022,12 +1022,12 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         samples, the signal(s) in `rdata` have ``ceil(n*p/q)``
         samples.
     tnew : 1d ndarray
-        The resampled positions, same length as `rdata`.  Only
+        The resampled positions, same length as `rdata`. Only
         returned if `t` is input.
     fir : 1d ndarray
         The FIR filter coefficients.
-        ``len(fir) = 2*pts*max(p, q)/gcd(p, q) + 1``.  ``gcd(p, q)`` is
-        the greatest common denominator of `p` and `q`.  `fir` is only
+        ``len(fir) = 2*pts*max(p, q)/gcd(p, q) + 1``. ``gcd(p, q)`` is
+        the greatest common denominator of `p` and `q`. `fir` is only
         returned if `getfir` is True.
 
     Notes
@@ -1046,7 +1046,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         4. Adds the mean value(s) back on to final result.
 
     Using more points in the averaging results in more accuracy at the
-    cost of run-time.  From tests, upsampling with this routine
+    cost of run-time. From tests, upsampling with this routine
     approaches the output of :func:`scipy.signal.resample` as `pts` is
     increased except near the end points, where the periodic nature of
     the FFT (used in :func:`scipy.signal.resample`) becomes evident.
@@ -1286,14 +1286,14 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
        2.  Delete outlier times if `deloutliers` is True. These are
            points with times that are more than 3 standard deviations
            away from the mean. A warning message is printed if any
-           such times are found.  Note that on a perfect time vector,
+           such times are found. Note that on a perfect time vector,
            the end points are at 1.73 sigma (eg, m+1.73s =
            .5+1.73*.2887 = 1).
 
        3.  Check for positive time steps, and if there are none, error
            out.
 
-       4.  Check the time vector for negative steps.  Sort or error
+       4.  Check the time vector for negative steps. Sort or error
            out as specified by `negmethod`. Warnings are printed in any
            case.
 
@@ -1587,7 +1587,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             lastp, lastn = p+n-m, n-1
         if lastp < L:
             # can last point be considered part of a good segment?
-            if n - m == 1 and abs(told[n] - told[m] - dt) > dt/4:  # no
+            if n - m == 1 and abs(told[n] - told[m] - dt) > dt/4:
+                # no, so find index and fill in before moving on
                 p = _get_prev_index(tnew, told[n]+dt/2)
                 index[lastp:p] = lastn
                 lastp = p
@@ -2042,7 +2043,7 @@ def waterfall(timeslice, tsoverlap, sig, sr, func, which, freq,
         This function is called for each time slice and is expected to
         return amplitude values across the frequency range. Can return
         just the amplitudes, or it can return more values (like the
-        frequency vector).  The call is:
+        frequency vector). The call is:
         ``func(sig_slice, *args, **kwargs)``. Note that the
         `sig_slice` input is first passed through `slicefunc` if one
         is provided (see below).
@@ -2062,7 +2063,7 @@ def waterfall(timeslice, tsoverlap, sig, sr, func, which, freq,
         If provided, these are passed to `func`.
     slicefunc : function or None; optional
         If a function, it is called for each time-slice before `func`
-        is called.  This could be for windowing or detrending, for
+        is called. This could be for windowing or detrending, for
         example. The call is:
         ``sig_slice = slicefunc(sig[pv], *sliceargs, **slicekwargs)``.
     sliceargs : tuple or list; optional
@@ -2383,7 +2384,7 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
             makeplot='clear', polycolor=(1, .7, .7), label='data'):
     """
     Returns a curve that envelopes the y data that is allowed to shift
-    in the x-direction by some percentage.  Optionally plots original
+    in the x-direction by some percentage. Optionally plots original
     curve with shaded enveloping polygon.
 
     Parameters
