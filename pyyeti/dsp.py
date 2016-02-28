@@ -1084,9 +1084,9 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         >>> from pyyeti import dsp
         >>> x = np.arange(1.0, 31.0, 1.0)
         >>> y = np.cos(x)
-        >>> fig = plt.figure('calcenv', figsize=[10, 6])
+        >>> fig = plt.figure('calcenv', figsize=[10, 8])
         >>>
-        >>> ax = plt.subplot(311)
+        >>> ax = plt.subplot(411)
         >>> env = dsp.calcenv(x, y, base=None, makeplot='add')
         >>> _ = plt.title('base=None (method="both")')
         >>> _ = ax.legend(handles=env[-1], loc='upper left',
@@ -1094,13 +1094,19 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         ...               borderaxespad=0.)
         >>> _ = ax.set_xticklabels([])
         >>>
-        >>> ax = plt.subplot(312)
+        >>> ax = plt.subplot(412)
+        >>> env = dsp.calcenv(x, y, method='both', makeplot='add')
+        >>> _ = plt.title('method="both"')
+        >>> ax.legend().set_visible(False)
+        >>> _ = ax.set_xticklabels([])
+        >>>
+        >>> ax = plt.subplot(413)
         >>> env = dsp.calcenv(x, y, method='max', makeplot='add')
         >>> _ = plt.title('method="max"')
         >>> ax.legend().set_visible(False)
         >>> _ = ax.set_xticklabels([])
         >>>
-        >>> ax = plt.subplot(313)
+        >>> ax = plt.subplot(414)
         >>> env = dsp.calcenv(x, y, method='min', makeplot='add')
         >>> _ = plt.title('method="min"')
         >>> ax.legend().set_visible(False)

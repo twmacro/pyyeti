@@ -4,6 +4,7 @@
 -  cb.py
 -  cyclecount.py
 -  datacursor.py
+-  dsp.py
 -  expmint.py
 -  fdepsd.py
 -  frclim.py
@@ -12,6 +13,7 @@
 -  nastran.py
 -  op2.py
 -  op4.py
+-  psd.py
 -  rainflow
 -  srs.py
 -  ssmodel.py
@@ -22,4 +24,4 @@
 
 """
 
-__version__ = '0.82.3'
+__version__ = '0.82.4'
