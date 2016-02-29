@@ -444,3 +444,33 @@ def test_fixtime_naninf():
     assert np.all(t == tn)
     assert np.all(yn == [1, 2, 3, 4, 4, 6, 7, 7, 9,
                          10, 10, 12, 12, 14, 15])
+
+
+def test_aligntime():
+    dt = .001
+    t = np.arange(1000)*dt
+    y = np.random.randn(len(t))
+
+    t2 = np.arange(100, 800)*dt
+    y2 = np.random.randn(len(t2))
+
+    t3 = np.arange(200, 850)*dt
+    y3 = np.random.randn(len(t3))
+
+    channels = dict(ax1=(t, y),
+                    ax2=(t2, y2),
+                    ax3=(t3, y3))
+    newdct = dsp.aligntime(channels)
+    assert abs(newdct['t'][0] - t3[0]) < 1e-14
+    print(newdct['t'][-1], t2[-1], abs(newdct['t'][-1] - t2[-1]))
+    assert abs(newdct['t'][-1] - t2[-1]) < 1e-14
+    
+    newdct = dsp.aligntime(channels, ['ax1', 'ax3'])
+    assert abs(newdct['t'][0] - t3[0]) < 1e-14
+    assert abs(newdct['t'][-1] - t3[-1]) < 1e-14
+
+    assert_raises(ValueError, dsp.aligntime, channels, ['ax1', 'ax4'])
+
+    newdct = dsp.aligntime(channels, mode='expand')
+    assert abs(newdct['t'][0] - t[0]) < 1e-14
+    assert abs(newdct['t'][-1] - t[-1]) < 1e-14
