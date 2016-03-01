@@ -1,5 +1,5 @@
 
-|Build Status| |Coverage Status| |PyPi Status| |Docs Status|
+|Build Status| |Coverage Status| |PyPI Status| |Docs Status|
 
 
 pyYeti
@@ -38,7 +38,7 @@ The easiest way to install is to try `pip`::
 
   pip install pyyeti
 
-You can also download the source distribution from PyPi
+You can also download the source distribution from PyPI
 (https://pypi.python.org/pypi/pyyeti), unpack it, and run::
 
   python setup.py install
@@ -75,8 +75,8 @@ The documentation contains several tutorials. These are also available
 .. |Coverage Status| image:: https://coveralls.io/repos/twmacro/pyyeti/badge.svg?branch=master&service=github
     :target: https://coveralls.io/github/twmacro/pyyeti?branch=master
 
-.. |PyPi Status| image:: https://img.shields.io/pypi/v/pyyeti.svg
+.. |PyPI Status| image:: https://img.shields.io/pypi/v/pyyeti.svg
     :target: https://pypi.python.org/pypi/pyyeti
 
 .. |Docs Status| image:: https://readthedocs.org/projects/pyyeti/badge/?version=latest
-    :target: https://pyyeti/readthedocs.org
+    :target: https://pyyeti.readthedocs.org
