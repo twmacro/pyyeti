@@ -202,6 +202,54 @@ def test_rdeigen():
     assert np.allclose(e2[0], e1[0].values)
 
 
+def test_rdeigen2():
+    # hand-crafted example to trip an old error:
+    data = """
+1    SYSTEM MODES                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    72
+                                                                                                        SUPERELEMENT 20              
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1       -3.043520E-08        1.744569E-04        2.776567E-05        1.000000E+00       -3.043520E-08
+        2         2       -1.214641E-08        1.102107E-04        1.754059E-05        1.000000E+00       -1.214641E-08
+        3         3        5.526609E-09        7.434117E-05        1.183176E-05        1.000000E+00        5.526609E-09
+        4         4        1.151707E-08        1.073176E-04        1.708013E-05        1.000000E+00        1.151707E-08
+        5         5        2.087500E-08        1.444818E-04        2.299500E-05        1.000000E+00        2.087500E-08
+        6         6        8.327270E-08        2.885701E-04        4.592735E-05        1.000000E+00        8.327270E-08
+1    SYSTEM MODES                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    73
+                                                                                                        SUPERELEMENT 20              
+0                                                                                                                                   
+1    SYSTEM MODES                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    74
+                                                                                                        SUPERELEMENT 0              
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+                                         (AFTER AUGMENTATION OF RESIDUAL VECTORS)
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1        5.440398E+04        2.332466E+02        3.712235E+01        1.000000E+00        5.440398E+04
+        2         2        5.579406E+04        2.362077E+02        3.759362E+01        1.000000E+00        5.579406E+04
+        3         3        4.037157E+05        6.353862E+02        1.011249E+02        1.000000E+00        4.037157E+05
+        4         4        3.110918E+06        1.763780E+03        2.807142E+02        1.000000E+00        3.110918E+06
+        5         5        4.394972E+06        2.096419E+03        3.336554E+02        1.000000E+00        4.394972E+06
+        6         6        5.312899E+06        2.304973E+03        3.668478E+02        1.000000E+00        5.312899E+06
+        7         7        5.829790E+06        2.414496E+03        3.842789E+02        1.000000E+00        5.829790E+06
+        8         8        6.409046E+06        2.531609E+03        4.029181E+02        1.000000E+00        6.409046E+06
+"""
+    with StringIO(data) as f:
+        e = nastran.rdeigen(f)
+
+    cyc20 = [2.776567E-05, 1.754059E-05, 1.183176E-05,
+             1.708013E-05, 2.299500E-05, 4.592735E-05]
+    cyc0 = [3.712235E+01, 3.759362E+01, 1.011249E+02, 2.807142E+02,
+            3.336554E+02, 3.668478E+02, 3.842789E+02, 4.029181E+02]
+    assert np.allclose(e[20]['cycles'].values, cyc20)
+    assert np.allclose(e[0]['cycles'].values, cyc0)
+
+    
 def test_wtqcset():
     with StringIO() as f:
         nastran.wtqcset(f, 990001, 5)

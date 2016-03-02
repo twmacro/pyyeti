@@ -854,7 +854,8 @@ def rdeigen(f, use_pandas=True):
             if line.startswith('    NO.'):
                 break
         table = []
-        while True:
+        continued = True
+        while continued:
             for line in f:
                 try:
                     row = [float(i) for i in line.split()]
@@ -862,8 +863,11 @@ def rdeigen(f, use_pandas=True):
                     break
                 if len(row) == 7:
                     table.append(row)
-            for i in range(9):
+            for i in range(8):
                 line = f.readline()
+                if line.startswith('1 '):
+                    continued = False
+                    break
                 if line.startswith('    NO.'):
                     break
             else:
@@ -884,6 +888,20 @@ def rdeigen(f, use_pandas=True):
                      'cycles', 'genmass', 'genstif']
                 table = pd.DataFrame(table, index=i, columns=c)
             dct[se] = table
+
+        while True:
+            se = _find_eigen(f)
+            if se is None:
+                break
+            dct[se] = _rd_eigen_table(f)
+        if use_pandas:
+            for se in dct:
+                table = dct[se]
+                i = table[:, 0].astype(int)
+                c = ['Mode #', 'ext #', 'eigenvalue', 'radians',
+                     'cycles', 'genmass', 'genstif']
+                dct[se] = pd.DataFrame(table, index=i, columns=c)
+        return dct
 
     return ytools.rdfile(f, _rdeigen, use_pandas)
 
