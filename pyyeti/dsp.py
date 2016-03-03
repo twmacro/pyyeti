@@ -231,6 +231,35 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     return RData, tnew
 
 
+def _get_timedata(data):
+    """Check for value time/data input for fixtime and aligntime"""
+    if isinstance(data, np.ndarray):
+        if data.ndim != 2 or data.shape[1] != 2:
+            raise ValueError('incorrectly sized ndarray for '
+                             'time/data input (must be 2d with 2 '
+                             'columns)')
+        t = data[:, 0]
+        d = data[:, 1]
+        isndarray = True
+    else:
+        if len(data) != 2:
+            raise ValueError('incorrectly defined time/data input')
+        t, d = np.atleast_1d(*data)
+        if len(t) != len(d):
+            raise ValueError('time and data vectors are incompatibly '
+                             'sized')
+        isndarray = False
+    return t, d, isndarray
+
+
+def _get_prev_index(vec, val):
+    """Finds previous index for scalar `val`"""
+    p = np.searchsorted(vec, val) - 1
+    if p < 0:
+        return 0
+    return p
+
+
 def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             dropval=-1.40130E-45, deloutliers=True, base=None,
             fixdrift=False, getall=False):
@@ -240,7 +269,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     Parameters
     ----------
     olddata : 2d ndarray or 2-element tuple
-        If ndarray, is must have 2 columns: ``[time, signal]``.
+        If ndarray, it must have 2 columns: ``[time, signal]``.
         Otherwise, it must be a 2-element tuple or list, eg:
         ``(time, signal)``
     sr : scalar, string or None; optional
@@ -525,12 +554,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                      'check the sample rate; it might be too {:s}.'
                      .format(n*100, s1, dt, s2), RuntimeWarning)
 
-    def _get_prev_index(vec, val):
-        p = np.searchsorted(vec, val) - 1
-        if p < 0:
-            return 0
-        return p
-
     def _add_drift_turning_pts(tp, told, dt):
         # expand turning points if needed to account for drift
         # (sample rate being slightly off in otherwise good data)
@@ -622,19 +645,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             index[lastp:] = n
         return index
 
-    # main routine
-    if isinstance(olddata, np.ndarray):
-        told = olddata[:, 0]
-        olddata = olddata[:, 1]
-        return_ndarray = True
-    else:
-        if len(olddata) != 2:
-            raise ValueError('incorrectly defined `olddata`')
-        told, olddata = np.atleast_1d(*olddata)
-        if len(told) != len(olddata):
-            raise ValueError('time and data vectors are incompatibly '
-                             'sized')
-        return_ndarray = False
+    # begin main routine
+    told, olddata, return_ndarray = _get_timedata(olddata)
 
     # check for drop outs:
     dropouts = sr_stats = tp = None
@@ -673,6 +685,120 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     newdata = olddata[index]
     return _return(tnew, newdata, dropouts, sr_stats, tp,
                    dropval, getall, return_ndarray)
+
+
+def aligntime(dct, channels=None, mode='truncate', value=0):
+    """Aligns the time vectors for specified channels in dct.
+
+    Parameters
+    ----------
+    dct : dictionary
+        Dictionary of channels where each channel is either 2d ndarray
+        or 2-element tuple. If ndarray, it must have 2 columns:
+        ``[time, signal]``. Otherwise, it must be a 2-element tuple
+        or list, eg: ``(time, signal)``. See notes below.
+    channels : list or None; optional
+        List of names defining which channels to synchronize in time.
+        If None, all channels in `dct` will be synchronized.
+    mode : string; optional
+        Method of aligning:
+
+        ===========  =================================================
+          `mode`     Description
+        ===========  =================================================
+         'truncate'  Keep only data where all channels overlap
+          'expand'   Expand all channels to maximum time range of all
+                     channels. Channels are expanded by stuffing in
+                     `value`'s.
+        ===========  =================================================
+
+    value : scalar; optional
+        Used for the 'expand' mode.
+
+    Returns
+    -------
+    dctout : dictionary
+        Dictionary containing only those channels specified in
+        `channels`. Each channel will be a 1d ndarray. The time vector
+        is also a 1d array and is named 't'.
+
+    Notes
+    -----
+    This routine operates under these assumptions:
+
+        1. The time vector for each channel is perfect (ie, after
+           :func:`fixtime`)
+        2. All the time vectors have the same step size
+        3. They would all hit the same time point if they overlapped
+
+    The first two assumptions are checked. The third is not checked
+    and could cause indexing failures if it is not true.
+    """
+    # check for channels:
+    if channels is not None:
+        err = 0
+        for item in channels:
+            if item not in dct:
+                err = 1
+                print('Channel {} not found in `dct`.'.format(item))
+        if err:
+            raise ValueError('`dct` does not contain all requested'
+                             'channels. See above.')
+        parms = channels
+    else:
+        parms = list(dct.keys())
+
+    # get time step:
+    t, d, isarr = _get_timedata(dct[parms[0]])
+    dt = (t[-1] - t[0])/(len(t) - 1)
+
+    if mode == 'truncate':
+        # loop to determine maximum overlap:
+        tmin = t[0]
+        tmax = t[-1]
+        for key in parms:
+            t, d, isarr = _get_timedata(dct[key])
+            if t[0] > tmax or t[-1] < tmin:
+                raise ValueError('not all inputs overlap in time.')
+            if not np.allclose(np.diff(t), dt):
+                raise ValueError('not all time steps in {} match {}'
+                                 .format(key, dt))
+            tmin = max(tmin, t[0])
+            tmax = min(tmax, t[-1])
+
+        nsteps = int(np.ceil((tmax-tmin)/dt)) + 1
+        pv = np.arange(nsteps)
+        dctout = {}
+        dctout['t'] = pv*dt + tmin
+        start = tmin + dt/2  # so index finds closest point
+        for key in parms:
+            t, d, isarr = _get_timedata(dct[key])
+            i = _get_prev_index(t, start)
+            dctout[key] = d[i+pv]
+    else:
+        # loop to determine maximum range:
+        tmin = t[0]
+        tmax = t[-1]
+        n = len(t)
+        for key in parms:
+            t, d, isarr = _get_timedata(dct[key])
+            if not np.allclose(np.diff(t), dt):
+                raise ValueError('not all time steps in {} match {}'
+                                 .format(key, dt))
+            tmin = min(tmin, t[0])
+            tmax = max(tmax, t[-1])
+            n = max(n, len(t))
+
+        dctout = {}
+        t = dctout['t'] = np.arange(n)*dt + tmin
+        for key in parms:
+            cur_t, d, isarr = _get_timedata(dct[key])
+            i = _get_prev_index(t, cur_t[0]+dt/2)
+            cur_d = np.zeros(n) + value
+            cur_n = len(cur_t) - 1
+            cur_d[i + np.arange(cur_n)] = d
+            dctout[key] = cur_d
+    return dctout
 
 
 def windowends(signal, portion=.01, ends='front', axis=-1):
