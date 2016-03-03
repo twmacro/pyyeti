@@ -72,8 +72,8 @@ The documentation contains several tutorials. These are also available
 .. |Build Status| image:: https://travis-ci.org/twmacro/pyyeti.svg?branch=master
     :target: https://travis-ci.org/twmacro/pyyeti/
 
-.. |Coverage Status| image:: https://coveralls.io/repos/twmacro/pyyeti/badge.svg?branch=master&service=github
-    :target: https://coveralls.io/github/twmacro/pyyeti?branch=master
+.. |Coverage Status| image:: https://coveralls.io/repos/github/twmacro/pyyeti/badge.svg?branch=master
+    :target: https://coveralls.io/github/twmacro/pyyeti?branch=master 
 
 .. |PyPI Status| image:: https://img.shields.io/pypi/v/pyyeti.svg
     :target: https://pypi.python.org/pypi/pyyeti
