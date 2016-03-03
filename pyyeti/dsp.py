@@ -645,7 +645,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             index[lastp:] = n
         return index
 
-    # main routine
+    # begin main routine
     told, olddata, return_ndarray = _get_timedata(olddata)
 
     # check for drop outs:
@@ -688,8 +688,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
 
 def aligntime(dct, channels=None, mode='truncate', value=0):
-    """
-    Aligns the time vectors for specified channels in dct.
+    """Aligns the time vectors for specified channels in dct.
 
     Parameters
     ----------
@@ -697,8 +696,7 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
         Dictionary of channels where each channel is either 2d ndarray
         or 2-element tuple. If ndarray, it must have 2 columns:
         ``[time, signal]``. Otherwise, it must be a 2-element tuple
-        or list, eg: ``(time, signal)``. The time vector for each
-        channel must be even (ie, after :func:`fixtime`).
+        or list, eg: ``(time, signal)``. See notes below.
     channels : list or None; optional
         List of names defining which channels to synchronize in time.
         If None, all channels in `dct` will be synchronized.
@@ -723,6 +721,18 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
         Dictionary containing only those channels specified in
         `channels`. Each channel will be a 1d ndarray. The time vector
         is also a 1d array and is named 't'.
+
+    Notes
+    -----
+    This routine operates under these assumptions:
+
+        1. The time vector for each channel is perfect (ie, after
+           :func:`fixtime`)
+        2. All the time vectors have the same step size
+        3. They would all hit the same time point if they overlapped
+
+    The first two assumptions are checked. The third is not checked
+    and could cause indexing failures if it is not true.
     """
     # check for channels:
     if channels is not None:
@@ -746,17 +756,18 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
         # loop to determine maximum overlap:
         tmin = t[0]
         tmax = t[-1]
-        for key in parms[1:]:
+        for key in parms:
             t, d, isarr = _get_timedata(dct[key])
+            if t[0] > tmax or t[-1] < tmin:
+                raise ValueError('not all inputs overlap in time.')
+            if not np.allclose(np.diff(t), dt):
+                raise ValueError('not all time steps in {} match {}'
+                                 .format(key, dt))
             tmin = max(tmin, t[0])
             tmax = min(tmax, t[-1])
 
-        if tmin > tmax:
-            raise ValueError('not all inputs overlap in time.')
-
         nsteps = int(np.ceil((tmax-tmin)/dt)) + 1
         pv = np.arange(nsteps)
-
         dctout = {}
         dctout['t'] = pv*dt + tmin
         start = tmin + dt/2  # so index finds closest point
@@ -769,8 +780,11 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
         tmin = t[0]
         tmax = t[-1]
         n = len(t)
-        for key in parms[1:]:
+        for key in parms:
             t, d, isarr = _get_timedata(dct[key])
+            if not np.allclose(np.diff(t), dt):
+                raise ValueError('not all time steps in {} match {}'
+                                 .format(key, dt))
             tmin = min(tmin, t[0])
             tmax = max(tmax, t[-1])
             n = max(n, len(t))
@@ -782,10 +796,7 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
             i = _get_prev_index(t, cur_t[0]+dt/2)
             cur_d = np.zeros(n) + value
             cur_n = len(cur_t) - 1
-            if i + cur_n > n:
-                cur_d[i + np.arange(cur_n-1)] = d[:-1]
-            else:
-                cur_d[i + np.arange(cur_n)] = d
+            cur_d[i + np.arange(cur_n)] = d
             dctout[key] = cur_d
     return dctout
 
