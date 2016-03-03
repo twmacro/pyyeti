@@ -9,6 +9,7 @@ Main routines
 .. autosummary::
     :toctree: generated/
 
+    aligntime
     calcenv
     fixtime
     resample
