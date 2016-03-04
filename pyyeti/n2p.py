@@ -1422,7 +1422,7 @@ def get_coordinfo(cord, uset, coordref):
 
     Parameters
     ----------
-    cord : scalar or 4x3 array
+    cord : scalar or 4x3 array_like
         If scalar, it is a coordinate system id (must be 0 or appear
         in either `uset` or `coordref`).  If 4x3 matrix, format is as
         on a Nastran CORD2* card::
@@ -1445,7 +1445,7 @@ def get_coordinfo(cord, uset, coordref):
 
     Returns
     -------
-    cordout : 5x3 matrix
+    cordout : 5x3 ndarray
         Coordinate information in a 5x3 matrix::
 
              [id  type 0]  # output coord. sys. id and type
@@ -1470,6 +1470,7 @@ def get_coordinfo(cord, uset, coordref):
             ci = _get_coordinfo_byid(cord, uset)
             coordref[cord] = ci
             return ci
+    cord = np.atleast_2d(cord)
     cid_type = cord[0, :2].astype(np.int64)
     try:
         refinfo = coordref[cord[0, 2]]
@@ -1561,7 +1562,7 @@ def build_coords(cords):
         duplicates are quietly ignored).
     """
     # resolve coordinate systems, and store them in a dictionary:
-    cords = np.atleast_1d(cords)
+    cords = np.atleast_2d(cords)
     coordref = {}
     if np.size(cords, 0) > 0:
         j = np.argsort(cords[:, 0])
