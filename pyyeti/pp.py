@@ -39,9 +39,9 @@ class PP:
         >>> import numpy as np
         >>> from types import SimpleNamespace
         >>> from pyyeti.pp import PP
-        >>> r = np.arange(4)
+        >>> r = np.arange(4, dtype=np.int16)
         >>> s = np.random.randn(4, 4, 4)
-        >>> t = np.array(9)
+        >>> t = np.array(9, dtype=np.uint8)
         >>> d = {'asdf': 4,
         ...      '34': 'value',
         ...      'r': r,
@@ -65,9 +65,9 @@ class PP:
                 4: namespace[n=4]
                     .a  : 6
                     .b  : [1, 23]
-                    .t  : int64 ndarray 1 elems: ()
+                    .t  : uint8 ndarray 1 elems: ()
                     .var: 'string'
-            'r'          : int64 ndarray 4 elems: (4,)
+            'r'          : int16 ndarray 4 elems: (4,)
         <BLANKLINE>
         <...>
         >>> PP(d, depth=1)       # doctest: +ELLIPSIS
@@ -75,7 +75,7 @@ class PP:
             '34'         : 'value'
             'asdf'       : 4
             'longer name': dict[n=4]
-            'r'          : int64 ndarray 4 elems: (4,)
+            'r'          : int16 ndarray 4 elems: (4,)
         <BLANKLINE>
         <...>
         """
