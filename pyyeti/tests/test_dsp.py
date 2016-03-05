@@ -357,11 +357,11 @@ def test_fixtime_drift():
         d3 = abs(t3[i3] - t[i])
 
         L = len(y)
-        i = L-100 + np.argmax(y[-100:-3])
+        i = L-100 + np.argmax(y[-100:-10])
         L = len(y2)
-        i2 = L-103 + np.nonzero(y2[-103:] == y[i])[0][0]
+        i2 = L-110 + np.nonzero(y2[-110:] == y[i])[0][0]
         L = len(y3)
-        i3 = L-103 + np.nonzero(y3[-103:] == y[i])[0][0]
+        i3 = L-110 + np.nonzero(y3[-110:] == y[i])[0][0]
         d2 += abs(t2[i2] - t[i])
         d3 += abs(t3[i3] - t[i])
         assert d3 < d2

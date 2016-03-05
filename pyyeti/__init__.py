@@ -13,6 +13,7 @@
 -  nastran.py
 -  op2.py
 -  op4.py
+-  pp.py
 -  psd.py
 -  rainflow
 -  srs.py
@@ -24,4 +25,4 @@
 
 """
 
-__version__ = '0.82.7'
+__version__ = '0.82.8'
