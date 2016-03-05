@@ -21,6 +21,7 @@ Modules
     modules/nastran
     modules/op2
     modules/op4
+    modules/pp
     modules/psd
     modules/srs
     modules/stats
