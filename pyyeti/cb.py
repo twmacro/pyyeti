@@ -520,10 +520,10 @@ def cbconvert(M, b, conv='m2e', drm=False):
         raise ValueError('b-set not a multiple of 6.')
 
     if conv == 'm2e':
-        lengthconv = 1/.0254
+        lengthconv = 1/0.0254
         massconv = 0.005710147154735817
     elif conv == 'e2m':
-        lengthconv = .0254
+        lengthconv = 0.0254
         massconv = 175.12683524637913
     else:
         lengthconv, massconv = conv
@@ -532,13 +532,14 @@ def cbconvert(M, b, conv='m2e', drm=False):
     D = np.ones(lt)
     trn = ytools.mkpattvec([0, 1, 2], lb, 6).flatten()
     rot = trn+3
-    C[trn] = 1/lengthconv
-    D[trn] = massconv * lengthconv
-    D[rot] = massconv * lengthconv * lengthconv
+    C[b[trn]] = 1/lengthconv
+    D[b[trn]] = massconv * lengthconv
+    D[b[rot]] = massconv * lengthconv**2
     if lq > 0:
         q = locate.flippv(b, lt)
-        C[q] = 1/(math.sqrt(massconv)*lengthconv)
-        D[q] = 1*(math.sqrt(massconv)*lengthconv)
+        c = math.sqrt(massconv)*lengthconv
+        C[q] = 1/c
+        D[q] = c
     M = ytools.multmd(M, C)
     if not drm:
         M = ytools.multmd(D, M)
@@ -1353,9 +1354,9 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
         m = cbconvert(Mcb, bseto, conv)
         k = cbconvert(Kcb, bseto, conv)
         if conv == 'e2m':
-            lengthconv = .0254
+            lengthconv = 0.0254
         elif conv == 'm2e':
-            lengthconv = 1/.0254
+            lengthconv = 1/0.0254
         else:
             lengthconv = conv[0]
         uset = uset.copy()

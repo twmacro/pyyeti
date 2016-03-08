@@ -21,6 +21,21 @@ def test_cbconvert():
     assert_raises(ValueError, cb.cbconvert, drm, b, 'm2e', drm=True)
 
 
+def test_cbconvert_2():
+    n = 19
+    nb = 12
+    mass = np.random.randn(n, n)
+    b = np.arange(n-nb, n)
+    m1_1 = cb.cbconvert(mass, b, 'm2e')
+    m1_2 = cb.cbreorder(m1_1, b)
+
+    m2_1 = cb.cbreorder(mass, b)
+    bnew = np.arange(nb)
+    m2_2 = cb.cbconvert(m2_1, bnew, 'm2e')
+    assert np.allclose(m1_2, m2_2)
+    assert np.allclose(mass[n-nb, n-nb]*0.005710147154735817, m1_2[0, 0])
+
+
 def test_cbtf():
     nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
     maa = nas['maa'][102]
