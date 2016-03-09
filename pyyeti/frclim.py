@@ -178,15 +178,15 @@ def ntfl(Source, Load, As, freq):
     Notional example::
 
         from pyyeti import frclim, op2, n2p, op4
-        import deepdish as dd
+        import pickle
 
         # Load free acceleration of LV
-        As = dd.io.load('ifresults_free.h5')
+        As = pickle.load('ifresults_free.p')
 
         # Load source free-free model, with residual vectors included
         nas = op2.rdnas2cam('nas2cam')
         m1 = None
-        zeta = .01
+        zeta = 0.01
         k1 = nas['lambda'][0]
         k1[:nas['nrb']] = 0.
         b1 = 2*zeta*np.sqrt(k1)
@@ -199,7 +199,7 @@ def ntfl(Source, Load, As, freq):
         kgen = mk['kgen'][0]
         mgen = mk['mgen'][0]
         kgen[:6, :6] = 0.
-        zeta = .01
+        zeta = 0.01
         bgen = np.diag(2*zeta*np.sqrt(np.diag(kgen)))
         freq = np.arange(.1, 40, .1)
 
@@ -474,7 +474,7 @@ def stdfs(mr, Q):
     Parameters
     ----------
     mr : scalar
-        Mass ratio m2/m1; .0001 to 10 is reasonable.
+        Mass ratio m2/m1; 0.0001 to 10 is reasonable.
     Q : scalar to 2 element array_like
         Dynamic amplification factor, 1/2/zeta. If a scalar, the same
         value is used for both dampers. If a 2 element vector, it is
@@ -545,7 +545,7 @@ def stdfs(mr, Q):
     >>> frclim.stdfs(m2/m1, Q) * m2 * 1.75   # doctest: +ELLIPSIS
     6393.1622...
     """
-    m2 = .1
+    m2 = 0.1
     M = 1e6
     w1 = 1.
     w2 = 1.
@@ -568,7 +568,7 @@ def stdfs(mr, Q):
     w = la.eigh(stif, mass, eigvals_only=True)
 
     # lam = np.sqrt(abs(w))/w2
-    # freq = w2*np.arange(.2, 5, .001)/2/np.pi
+    # freq = w2*np.arange(.2, 5, 0.001)/2/np.pi
     # F = np.zeros((3, len(freq)))
     lam = np.sqrt(abs(w))
     freq = lam[1]/2/np.pi
@@ -589,13 +589,13 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
     Parameters
     ----------
     mmr1 : scalar
-        Modal to residual mass ratio for source; .0001 to 10 is
+        Modal to residual mass ratio for source; 0.0001 to 10 is
         reasonable ``m1/M1``
     mmr2 : scalar
-        Modal to residual mass ratio for load; .0001 to 10 is
+        Modal to residual mass ratio for load; 0.0001 to 10 is
         reasonable ``m2/M2``
     rmr : scalar
-        Residual mass ratio of source over load; .0001 to 10 is
+        Residual mass ratio of source over load; 0.0001 to 10 is
         reasonable ``M2/M1``
     Q : scalar to 2 element array_like
         Dynamic amplification factor, 1/2/zeta. If a scalar, the same
@@ -723,7 +723,7 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
 
     wrange = np.logspace(np.log10(fl), np.log10(fh), 30)
     step = wrange[-1] - wrange[-2]
-    maxstep = .0001
+    maxstep = 0.0001
     tol = 1e-6
     err = 1
     J = 0
@@ -786,13 +786,13 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
     Parameters
     ----------
     mmr1 : scalar
-        Modal to residual mass ratio for source; .0001 to 10 is
+        Modal to residual mass ratio for source; 0.0001 to 10 is
         reasonable ``m1/M1``
     mmr2 : scalar
-        Modal to residual mass ratio for load; .0001 to 10 is
+        Modal to residual mass ratio for load; 0.0001 to 10 is
         reasonable ``m2/M2``
     rmr : scalar
-        Residual mass ratio of source over load; .0001 to 10 is
+        Residual mass ratio of source over load; 0.0001 to 10 is
         reasonable ``M2/M1``
     Q : scalar to 2 element array_like
         Dynamic amplification factor, 1/2/zeta. If a scalar, the same
