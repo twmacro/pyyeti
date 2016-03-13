@@ -244,12 +244,12 @@ def cbreorder(M, b, drm=False, last=False):
     ----------
     M : 2d ndarray
         Craig-Bampton mass or stiffness, or Craig-Bampton data recovery
-        matrix (DRM).  Must be square if `drm` is false.
+        matrix (DRM). Must be square if `drm` is false.
     b : 1d array
         A vector containing the indices of the b-set DOF in the desired
         order (uses zero offset).
     drm : bool
-        If true, `M` is treated as a data recovery matrix.  If false,
+        If true, `M` is treated as a data recovery matrix. If false,
         `M` is treated as mass or stiffness (and `M` must b.
     last : bool
         If true, reorder such that b-set is last; if false, put b-set
@@ -273,7 +273,7 @@ def cbreorder(M, b, drm=False, last=False):
     a warning message is printed.
 
     Note that this routine will also reorder DOF within the b-set.
-    Just specify `b` in the order you want.  See the example below
+    Just specify `b` in the order you want. See the example below
     where, just for demonstration purposes, the order of the b-set is
     reversed (along with putting b-set in front of the q-set).
 
@@ -284,7 +284,7 @@ def cbreorder(M, b, drm=False, last=False):
     Examples
     --------
     For a first example, generate 8x8 dummy matrix with the 2 q-set
-    first, followed by 6 b-set.  Put the b-set first and reverse their
+    first, followed by 6 b-set. Put the b-set first and reverse their
     order:
 
     >>> from pyyeti import cb
@@ -311,7 +311,7 @@ def cbreorder(M, b, drm=False, last=False):
            [18, 16, 14, 12, 10,  8,  4,  6]])
 
     For another example, generate a 3x5 DRM with 4 b-set followed by
-    and 1 q-set.  Put b-set last.
+    and 1 q-set. Put b-set last.
 
     >>> drm = np.arange(1, 16).reshape(3, 5)
     >>> drm
@@ -352,6 +352,18 @@ def cbreorder(M, b, drm=False, last=False):
     return M
 
 
+def _get_conv_factors(conv):
+    if conv == 'm2e':
+        lengthconv = 1/0.0254
+        massconv = 0.005710147154735817
+    elif conv == 'e2m':
+        lengthconv = 0.0254
+        massconv = 175.12683524637913
+    else:
+        lengthconv, massconv = conv
+    return lengthconv, massconv
+
+
 def cbconvert(M, b, conv='m2e', drm=False):
     r"""
     Apply unit conversion transform to either a Craig-Bampton mass or
@@ -361,7 +373,7 @@ def cbconvert(M, b, conv='m2e', drm=False):
     ----------
     M : 2d array
         Craig-Bampton mass or stiffness, or Craig-Bampton data recovery
-        matrix (DRM).  Must be square if `drm` is false.
+        matrix (DRM). Must be square if `drm` is false.
     b : 1d array
         A vector containing the indices of the b-set DOF in the desired
         order (uses zero offset).
@@ -378,7 +390,7 @@ def cbconvert(M, b, conv='m2e', drm=False):
         The string form assumes units of meter & kg, and inch &
         lbf*s**2/inch (slinch).
     drm : bool
-        If true, `M` is treated as a data recovery matrix.  If false,
+        If true, `M` is treated as a data recovery matrix. If false,
         `M` is treated as mass or stiffness (and `M` must be square).
 
     Returns
@@ -398,13 +410,13 @@ def cbconvert(M, b, conv='m2e', drm=False):
         ======    =========================================
 
     If `M` is mass or stiffness, symmetry is maintained and units are
-    converted using two diagonal matrices: C and D.  C converts the
+    converted using two diagonal matrices: C and D. C converts the
     Craig-Bampton (CB) b-set and q-set units from coupled system units
-    to units compatible with `M` as input.  D converts force units in
+    to units compatible with `M` as input. D converts force units in
     the opposite direction (from units compatible with `M` as input to
-    coupled system units).  Conversion of a DRM only uses C.
+    coupled system units). Conversion of a DRM only uses C.
 
-    The units conversion is most easily understood by example.  Assume
+    The units conversion is most easily understood by example. Assume
     `M` is the CB mass in metric (SI) units and let 'x' be the CB
     b-set and q-set degrees of freedom.
 
@@ -429,7 +441,7 @@ def cbconvert(M, b, conv='m2e', drm=False):
     .. math::
         M_{eng} = D \cdot M_{si} \cdot C
 
-    The conversion of units for the DRM is similar.  Data recovery is
+    The conversion of units for the DRM is similar. Data recovery is
     done via:
 
     .. math::
@@ -519,15 +531,7 @@ def cbconvert(M, b, conv='m2e', drm=False):
     if (lb // 6) * 6 != lb:
         raise ValueError('b-set not a multiple of 6.')
 
-    if conv == 'm2e':
-        lengthconv = 1/0.0254
-        massconv = 0.005710147154735817
-    elif conv == 'e2m':
-        lengthconv = 0.0254
-        massconv = 175.12683524637913
-    else:
-        lengthconv, massconv = conv
-
+    lengthconv, massconv = _get_conv_factors(conv)
     C = np.ones(lt)
     D = np.ones(lt)
     trn = ytools.mkpattvec([0, 1, 2], lb, 6).flatten()
@@ -604,7 +608,7 @@ def cgmass(m, all6=False):
     The inertias :math:`I_{ij}` are relative to the CG.
 
     The radius of gyration about the X axis is computed by
-    :math:`\sqrt{I_{xx}/m_x}`.  The others are computed similarly.
+    :math:`\sqrt{I_{xx}/m_x}`. The others are computed similarly.
     Principal axis radii of gyration are also computed if requested.
 
     Raises
@@ -705,9 +709,229 @@ def cgmass(m, all6=False):
     return mcg, dxyz, gyr, princ_gyr, I, princ_I
 
 
+def _uset_convert(uset, uref, conv):
+    lengthconv = _get_conv_factors(conv)[0]
+    uset = uset.copy()
+    pv = uset[:, 1] == 1
+    uset[pv, 3:] *= lengthconv
+    pv = uset[:, 1] == 3
+    uset[pv, 3:] *= lengthconv
+    try:
+        if len(uref) == 3:
+            uref = np.atleast_1d(uref) * lengthconv
+    except TypeError:
+        pass
+    return uset, uref
+
+
+def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
+                sccoord=None, conv=None, reorder=True):
+    """
+    Form common data recovery matrices.
+
+    Parameters
+    ----------
+    Mcb : 2d ndarray
+        Craig-Bampton mass.
+    Kcb : 2d ndarray
+        Craig-Bampton stiffness.
+    bset : 1d ndarray
+        Index partition vector specifying location and order of b-set
+        (boundary) DOF in Mcb and Kcb. Uses zero offset.
+    bref : 1d ndarray
+        6-element subset of `bseto` (or equal to `bseto` if `bseto`
+        only has 6 elements). Defines reference DOF that will be used
+        to compute rigid-body modes and distances from (for the
+        stiffness and eigenvalue based rigid-body modes).
+    uset : 2d ndarray; optional
+        A 6-column matrix as output by :func:`op2.rdn2cop2` or
+        :func:`n2p.addgrid`. For information on the format of this
+        matrix, see :func:`op2.rdn2cop2`. If `uset` is None, a single
+        grid with id 1 will be automatically created at (0, 0, 0) and
+        `uref` will be set to 1. The :func:`n2p.addgrid` call for this
+        is::
+
+           uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+
+    uref : integer or array; optional
+        Defines reference for geometry-based rigid-body modes in a
+        format compatible with :func:`n2p.rbgeom_uset`: either an
+        integer grid id defined in `uset`, or a 3-element vector
+        specifying a location in the basic coordinate system. If a
+        3-element vector, it is in the old units (before `conv` is
+        used to convert units).
+    conv : None or 2-element array_like or string; optional
+        If None, no unit conversion is done. If 2-element array_like,
+        it is::
+
+            (length_conversion, mass_conversion)
+
+        If string, it is one of:
+
+            * 'm2e' (convert from metric to English)
+            * 'e2m' (convert from English to metric)
+
+        The string form assumes units of meter & kg, and inch &
+        lbf*s**2/inch (slinch). See :func:`cbconvert` for more
+        information.
+    em_filt : scalar; optional
+        Effective mass print filter: only modes with percent mass
+        above `em_filt` will be filtered. For example, to filter out
+        modes below 2% modal effective mass, set `em_filt` to 2.0.
+
+    Returns
+    -------
+    M : 2d ndarray
+        Reordered and converted version of Mcb. Will equal Mcb if no
+        reordering or unit conversion is done.
+    K : 2d ndarray
+        Reordered and converted version of Kcb. Will equal Kcb if no
+        reordering or unit conversion is done.
+    bset : 1d ndarray
+        Vector giving location of reordered b-set. This will equal
+        numpy.arange(len(bset)). Will equal `bseto` if `bseto` if
+        there is no reordering.
+    rbs : 2d ndarray
+        The stiffness-based rigid-body modes (b+q x 6).
+    rbg : 2d ndarray
+        The geometry-based rigid-body modes  (b x 6).
+    rbe : 2d ndarray
+        The eigenvalue-based rigid-body modes (b+q x 6).
+    usetconv : 2d ndarray
+        Converted version of `uset`. Will equal `uset` if no unit
+        conversion is done.
+
+    Notes
+    -----
+    This routine performs these checks:
+
+       - Checks symmetry of Mcb and Kcb.
+       - Prints some abs-max values from Mcb and Kcb for visual
+         inspection.
+       - Calculates coordinates of boundary DOF relative to a reference
+         (`bref`) from the stiffness matrix.
+       - Computes the root-sum-squared distances of motion for each
+         boundary grid for each type of rb-mode. These distances
+         should be 1.
+       - Similarly, computes the root-sum-squared rotations for each
+         boundary grid for each type of rb-mode. These distances
+         should be 1.
+       - Does various mass property checks using 3 types of rigid-body
+         modes:  stiffness-, geometry-, and eigensolution-based. The
+         following items are printed for checking:
+
+            - the three 6x6 mass matrices
+            - the CG location relative to respective reference point
+              (`bref` for the stiffness and eigensolution based rb
+              modes and Uref for the geometry-based rb modes ... which
+              means the geometry-based CG will only match the other two
+              if the reference is the same).
+            - the radius of gyration from the CG about the coordinate
+              axes and about the principal axes.
+
+       - Computes stiffness grounding checks against the three types of
+         rb modes.
+       - Computes the free-free modes.
+       - Computes the fixed-base modes and percent modal effective
+         mass.
+
+    `bseto` is used to reorder the matrices via the function
+    :func:`cbreorder`. As a simple example, assume there are 3 modal
+    DOF followed by 12 b-set DOF (two interface grids). Also assume
+    that it is desired to switch the order of these two grids. `bseto`
+    should then be defined as::
+
+       bseto = [9, 10, 11, 12, 13, 14, 3, 4, 5, 6, 7, 8]
+
+    In other words, specify the row/col position as it is within Mcb
+    and Kcb, in the order you wish them to be. In this case, rows 10
+    through 15 are wanted to be first, 4 through 9 next, and finally,
+    1 through 3.
+
+    Pay special attention to any warning messages.
+
+    Example usage::
+
+        import numpy as np
+        from pyyeti import op4
+        from pyyeti import cb
+        from pyyeti import nastran
+        o4 = op4.OP4()
+
+        names, mats, *_ = o4.listload('nas2cam_csuper/inboard_mk.op4')
+        uset, coords = nastran.bulk2uset('nas2cam_csuper/inboard.asm')
+        m, k, *_ = mats[0], mats[1]
+        b = np.arange(24)
+        cb.cbcheck('inboard.cbcheck', m, k, b, b[:6], uset=uset)
+
+    See also
+    --------
+    :func:`rbmultchk`, :func:`rbdispchk`, :func:`cbcoordchk`,
+    :func:`n2p.addgrid`, :func:`cbconvert`, :func:`cbreorder`,
+    :func:`op2.rdn2cop2`
+    """
+    if reorder:
+        Mcb = cbreorder(Mcb, bset)
+        Kcb = cbreorder(Kcb, bset)
+        bset = np.arange(len(bset))
+
+    # make pairs of mass & stiffness to accommodate units AND
+    # coordinate systems:
+    if conv is not None:
+        # output in s/c units:
+        m_sc = cbconvert(Mcb, bset, conv, drm=True)
+        k_sc = cbconvert(Kcb, bset, conv, drm=True)
+        # output in l/v units:
+        m_lv = cbconvert(Mcb, bset, conv)
+        k_lv = cbconvert(Kcb, bset, conv)
+        M = [m_sc, m_lv]
+        K = [k_sc, k_lv]
+    else:
+        M = [Mcb, Mcb]
+        K = [Kcb, Kcb]
+
+    net_ifatm = []
+    net_ifltm = []
+    net_cgatm = []
+    grids = uset[::6, 0]
+    new_id = grids.max() + 1
+
+    if uset.shape[0] > 6:
+        dof_indep = 123
+    else:
+        dof_indep = 123456
+
+    for i in range(2):
+        # rigid-body modes relative to reference:
+        rb = n2p.rbgeom_uset(uset, uref)
+
+        # add center point for RBE3
+        uset2 = n2p.addgrid(uset, new_id, 'b', )
+        rbe3 = n2p.formrbe3(uset2, 123456, [dof_indep, grids])
+
+        # calculate cg location and mass @ cg:
+        bb = np.ix_(b, b)
+        Mif = rb.T @ Mcb[bb] @ rb
+        Mcg, cg = cgmass(Mif)  # cg is relative to uref
+        net_ifltm.append(rb.T @ Mcb[b])
+
+        # form rigid-body modes relative to CG:
+        rbcg = n2p.rbgeom_uset(uset, cg)
+
+        # for net CG acceleration:
+        net_cgatm.append(la.solve(Mcg, rbcg.T @ Mcb[b]))
+
+        if conv is not None:
+            Mcb = cbconvert(Mcb, bset, conv)
+            Kcb = cbconvert(Kcb, bset, conv)
+            uset, uref = _uset_convert(uset, uref, conv)
+
+    return net_ifatm, net_ifltm, net_cgatm
+
+
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     """
-    Routine used by :func:`rbmultchk`.  See documentation for
+    Routine used by :func:`rbmultchk`. See documentation for
     :func:`rbmultchk`.
     """
     fout.write('----------------------------------------------\n')
@@ -897,27 +1121,27 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     Parameters
     ----------
     f : string or file handle or 1
-        If string, name of file to write to.  If file handle, write to
-        that file.  Use 1 to write to the screen.
+        If string, name of file to write to. If file handle, write to
+        that file. Use 1 to write to the screen.
     drm : 2d ndarray
         Data recovery matrix (DRM).
     name : string
         Name of the DRM; used for titling.
     rb : 2d ndarray
         Rigid-body modes; number of rows is either b-set or b+q-set
-        sized.  Number of columns is 6.
+        sized. Number of columns is 6.
     labels : None or list; optional
         If list, it is a list of strings for DRM labeling. Up to first
         15 characters will be used.
     drm2 : None or 2d ndarray; optional
         Optional second DRM; only used in the null rows check to see if
-        `drm` and `drm2` share a common set of null rows.  Useful for
+        `drm` and `drm2` share a common set of null rows. Useful for
         DRMs that are meant to be used together, as in DTMA*a + DTMD*d
         and would be expected to share the same set of null rows (if
         any).
     prtnullrows : bool; optional
         If True, print the null rows in the DRM * rb section; otherwise
-        only print the non-null rows.  (Note that the null rows are
+        only print the non-null rows. (Note that the null rows are
         still listed below that table.)
 
     Returns
@@ -928,17 +1152,17 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     Notes
     -----
     The printout has these 5 sections:
-       1.  A header, with `name` in it.
-       2.  An extreme coordinate table.
-       3.  A potentially large table showing the complete results of
-           the DRM multiplied by the rigid-body modes.
-       4.  A summary table showing only the 6 rows that yielded the
-           maximum response for each of the 6 rigid-body modes.
-       5.  A list of null rows, includes information about DRM2 if
-           input.
+       1. A header, with `name` in it.
+       2. An extreme coordinate table.
+       3. A potentially large table showing the complete results of
+          the DRM multiplied by the rigid-body modes.
+       4. A summary table showing only the 6 rows that yielded the
+          maximum response for each of the 6 rigid-body modes.
+       5. A list of null rows, includes information about DRM2 if
+          input.
 
     If any triplet of rows matches the pattern shown below, the
-    coordinates are included in the printout (sections 2, 3, 4).  For
+    coordinates are included in the printout (sections 2, 3, 4). For
     rows that do not match that pattern, the coordinates are left
     blank.
 
@@ -949,11 +1173,11 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
         0 0 1    Y  -X   0 ]
 
     The pattern shown assumes the node is in the same coordinate
-    system as the reference node.  If this is not the case, the 3x3
+    system as the reference node. If this is not the case, the 3x3
     coordinate transformation matrix (from reference to local) will
-    show up in place of the the 3x3 identity matrix shown above.  This
+    show up in place of the the 3x3 identity matrix shown above. This
     routine will use that 3x3 matrix to convert coordinates to that of
-    the reference before checking for the expected pattern.  This all
+    the reference before checking for the expected pattern. This all
     means is that the use of local coordinate systems is acceptable
     for this routine.
 
@@ -1025,7 +1249,7 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
 
 def _rbdispchk(fout, rbdisp, grids, ttl, verbose):
     """
-    Routine used by :func:`rbdispchk`.  See documentation for
+    Routine used by :func:`rbdispchk`. See documentation for
     :func:`rbdispchk`.
     """
     r = np.size(rbdisp, 0)
@@ -1052,12 +1276,12 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose):
         if verbose and (err > mc*1.e-6 or math.isnan(err)):
             if grids is not None:
                 fout.write('Warning: deviation from standard pattern,'
-                           ' node ID = {} starting at row {}.  '
+                           ' node ID = {} starting at row {}. '
                            'Max deviation = {:.3g} units.\n'.
                            format(grids[j], row+1, err))
             else:
                 fout.write('Warning: deviation from standard pattern,'
-                           ' node #{} starting at row {}.  '
+                           ' node #{} starting at row {}. '
                            '\tMax deviation = {:.3g} units.\n'.
                            format(j+1, row+1, err))
             fout.write('  Rigid-Body Rotations:\n')
@@ -1103,14 +1327,14 @@ def rbdispchk(f, rbdisp, grids=None,
     Parameters
     ----------
     f : string or file handle or 1
-        If string, name of file to write to.  If file handle, write to
-        that file.  Use 1 to write to the screen.
+        If string, name of file to write to. If file handle, write to
+        that file. Use 1 to write to the screen.
     rbdisp : 2d ndarray
         Rigid-body displacements; size is 3*N x 6 where N is the number
-        of nodes.  Rows correspond to X, Y, Z triples for each node (in
+        of nodes. Rows correspond to X, Y, Z triples for each node (in
         any coordinate system).
     grids : 1d array or None; optional
-        Length N array of node IDs or None.  If array, used only in
+        Length N array of node IDs or None. If array, used only in
         diagnostic message printing.
     ttl : string or None; optional
         String to use for title of coordinates listing, or None for no
@@ -1132,7 +1356,7 @@ def rbdispchk(f, rbdisp, grids=None,
     Notes
     -----
     If `verbose` is true, a warning message is printed for each node
-    that does not fit the expected pattern.  The criteria for the
+    that does not fit the expected pattern. The criteria for the
     error message is if the maximum deviation for that node is >
     1e-6*max([X,Y,Z]).
 
@@ -1143,11 +1367,11 @@ def rbdispchk(f, rbdisp, grids=None,
         0 0 1    Y  -X   0 ]
 
     The pattern shown assumes the node is in the same coordinate
-    system as the reference node.  If this is not the case, the 3x3
+    system as the reference node. If this is not the case, the 3x3
     coordinate transformation matrix (from reference to local) will
-    show up in place of the the 3x3 identity matrix shown above.  This
+    show up in place of the the 3x3 identity matrix shown above. This
     routine will use that 3x3 matrix to convert coordinates to that of
-    the reference before checking for the expected pattern.  This all
+    the reference before checking for the expected pattern. This all
     means is that the use of local coordinate systems is acceptable
     for this routine.
 
@@ -1228,7 +1452,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         6-element subset of `bset` representing one node to use as
         reference.
     grids : 1d array or None; optional
-        Length N array of node IDs or None.  If array, used only in
+        Length N array of node IDs or None. If array, used only in
         diagnostic message printing.
     ttl : string or None; optional
         String to use for title of coordinates listing, or None for no
@@ -1237,8 +1461,8 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         If true, print table of coordinates and warnings from
         :func:`rbdispchk`.
     outfile : string or file handle or 1; optional
-        If string, name of file to write to.  If file handle, write to
-        that file.  Use 1 to write to the screen.
+        If string, name of file to write to. If file handle, write to
+        that file. Use 1 to write to the screen.
 
     Returns
     -------
@@ -1247,7 +1471,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         relative to refpoint and in the local coordinate system of
         refpoint.
     rbmodes : ndarray
-        Stiffness-based rigid-body modes (6 columns).  Will have
+        Stiffness-based rigid-body modes (6 columns). Will have
         zeros corresponding to the modal DOF.
     maxerr : float
         Maximum absolute error of any deviation from the expected
@@ -1261,7 +1485,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     If `coords` doesn't fit the expected pattern shown in
     :func:`rbdispchk`, a warning message is printed.
 
-    Note that :func:`rbdispchk` is used to calculate coords.  That
+    Note that :func:`rbdispchk` is used to calculate coords. That
     routine accounts for the possibility of the interface DOF using
     different coordinate systems.
 
@@ -1317,7 +1541,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
 
 def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
     """
-    Routine used by :func:`cbcheck`.  See documentation for
+    Routine used by :func:`cbcheck`. See documentation for
     :func:`cbcheck`.
     """
     n = np.size(Mcb, 0)
@@ -1353,17 +1577,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
     if conv is not None:
         m = cbconvert(Mcb, bseto, conv)
         k = cbconvert(Kcb, bseto, conv)
-        if conv == 'e2m':
-            lengthconv = 0.0254
-        elif conv == 'm2e':
-            lengthconv = 1/0.0254
-        else:
-            lengthconv = conv[0]
-        uset = uset.copy()
-        pv = uset[:, 1] == 1
-        uset[pv, 3:] *= lengthconv
-        pv = uset[:, 1] == 3
-        uset[pv, 3:] *= lengthconv
+        uset = _uset_convert(uset, conv)
+        lengthconv = _get_conv_factors(conv)[0]
         try:
             if len(uref) == 3:
                 uref = np.atleast_1d(uref) * lengthconv
@@ -1412,7 +1627,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
                '  (should be > zero)\n\n'.format(mnkqq))
     if mxkqqerr > 0 or mxmqqerr > 0:
         fout.write('\n\nFATAL: check off-diagonals of MQQ and KQQ'
-                   ' -- they should be zero.  This needs to be resolved'
+                   ' -- they should be zero. This needs to be resolved'
                    ' before CLA.\n')
 
     if nb == 6 and mxkbb > 0:
@@ -1426,9 +1641,9 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
 
     # Three types of rigid-body modes will be calculated:
     #
-    #   1.  Stiffness based
-    #   2.  Geometry based
-    #   3.  From eigensolution
+    #   1. Stiffness based
+    #   2. Geometry based
+    #   3. From eigensolution
     #
     #  These will aid in geometry checking, mass properties checks,
     #  and stiffness grounding checks.
@@ -1669,7 +1884,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     Parameters
     ----------
     f : string, file handle, or 1
-        If a string, it is a filename that gets created.  `f` can
+        If a string, it is a filename that gets created. `f` can
         also be a handle to an open file or just 1 to write to the
         standard output (normally, the screen).
     Mcb : 2d ndarray
@@ -1678,19 +1893,19 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         Craig-Bampton stiffness.
     bseto : 1d ndarray
         Index partition vector specifying location and order of b-set
-        (boundary) DOF in Mcb and Kcb.  Will be used to reorder Mcb and
-        Kcb; see below.  Uses zero offset.
+        (boundary) DOF in Mcb and Kcb. Will be used to reorder Mcb and
+        Kcb; see below. Uses zero offset.
     bref : 1d ndarray
         6-element subset of `bseto` (or equal to `bseto` if `bseto`
-        only has 6 elements).  Defines reference DOF that will be used
+        only has 6 elements). Defines reference DOF that will be used
         to compute rigid-body modes and distances from (for the
         stiffness and eigenvalue based rigid-body modes).
     uset : 2d ndarray; optional
         A 6-column matrix as output by :func:`op2.rdn2cop2` or
-        :func:`n2p.addgrid`.  For information on the format of this
-        matrix, see :func:`op2.rdn2cop2`.  If `uset` is None, a single
+        :func:`n2p.addgrid`. For information on the format of this
+        matrix, see :func:`op2.rdn2cop2`. If `uset` is None, a single
         grid with id 1 will be automatically created at (0, 0, 0) and
-        `uref` will be set to 1.  The :func:`n2p.addgrid` call for this
+        `uref` will be set to 1. The :func:`n2p.addgrid` call for this
         is::
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
@@ -1724,14 +1939,14 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     Returns
     -------
     M : 2d ndarray
-        Reordered and converted version of Mcb.  Will equal Mcb if no
+        Reordered and converted version of Mcb. Will equal Mcb if no
         reordering or unit conversion is done.
     K : 2d ndarray
-        Reordered and converted version of Kcb.  Will equal Kcb if no
+        Reordered and converted version of Kcb. Will equal Kcb if no
         reordering or unit conversion is done.
     bset : 1d ndarray
-        Vector giving location of reordered b-set.  This will equal
-        numpy.arange(len(bset)).  Will equal `bseto` if `bseto` if
+        Vector giving location of reordered b-set. This will equal
+        numpy.arange(len(bset)). Will equal `bseto` if `bseto` if
         there is no reordering.
     rbs : 2d ndarray
         The stiffness-based rigid-body modes (b+q x 6).
@@ -1740,7 +1955,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     rbe : 2d ndarray
         The eigenvalue-based rigid-body modes (b+q x 6).
     usetconv : 2d ndarray
-        Converted version of `uset`.  Will equal `uset` if no unit
+        Converted version of `uset`. Will equal `uset` if no unit
         conversion is done.
 
     Notes
@@ -1753,13 +1968,13 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
        - Calculates coordinates of boundary DOF relative to a reference
          (`bref`) from the stiffness matrix.
        - Computes the root-sum-squared distances of motion for each
-         boundary grid for each type of rb-mode.  These distances
+         boundary grid for each type of rb-mode. These distances
          should be 1.
        - Similarly, computes the root-sum-squared rotations for each
-         boundary grid for each type of rb-mode.  These distances
+         boundary grid for each type of rb-mode. These distances
          should be 1.
        - Does various mass property checks using 3 types of rigid-body
-         modes:  stiffness-, geometry-, and eigensolution-based.  The
+         modes:  stiffness-, geometry-, and eigensolution-based. The
          following items are printed for checking:
 
             - the three 6x6 mass matrices
@@ -1778,15 +1993,15 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
          mass.
 
     `bseto` is used to reorder the matrices via the function
-    :func:`cbreorder`.  As a simple example, assume there are 3 modal
-    DOF followed by 12 b-set DOF (two interface grids).  Also assume
-    that it is desired to switch the order of these two grids.  `bseto`
+    :func:`cbreorder`. As a simple example, assume there are 3 modal
+    DOF followed by 12 b-set DOF (two interface grids). Also assume
+    that it is desired to switch the order of these two grids. `bseto`
     should then be defined as::
 
        bseto = [9, 10, 11, 12, 13, 14, 3, 4, 5, 6, 7, 8]
 
     In other words, specify the row/col position as it is within Mcb
-    and Kcb, in the order you wish them to be.  In this case, rows 10
+    and Kcb, in the order you wish them to be. In this case, rows 10
     through 15 are wanted to be first, 4 through 9 next, and finally,
     1 through 3.
 
