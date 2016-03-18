@@ -3,13 +3,15 @@
 A pretty printer.
 """
 import numpy as np
+import h5py
 from types import SimpleNamespace
 
 class PP:
     """
     A very simple hack for pretty printing data structures.
     """
-    def __init__(self, var=None, depth=5, tab=4):
+    def __init__(self, var=None, depth=5, tab=4,
+                 keylen=40, strlen=80):
         """
         Initializer for `PP`.
 
@@ -65,9 +67,9 @@ class PP:
                 4: namespace[n=4]
                     .a  : 6
                     .b  : [1, 23]
-                    .t  : uint8 ndarray 1 elems: ()
+                    .t  : uint8 ndarray 1 elems: (): [9]
                     .var: 'string'
-            'r'          : int16 ndarray 4 elems: (4,)
+            'r'          : int16 ndarray 4 elems: (4,): [0, 1, 2, 3]
         <BLANKLINE>
         <...>
         >>> PP(d, depth=1)       # doctest: +ELLIPSIS
@@ -75,16 +77,20 @@ class PP:
             '34'         : 'value'
             'asdf'       : 4
             'longer name': dict[n=4]
-            'r'          : int16 ndarray 4 elems: (4,)
+            'r'          : int16 ndarray 4 elems: (4,): [0, 1, 2, 3]
         <BLANKLINE>
         <...>
         """
         self._tab = tab
         self._depth = depth
-        self._functions = {dict: self._dict_string,
-                           SimpleNamespace: self._ns_string,
-                           np.ndarray: self._array_string,
-        }
+        self._keylen = keylen
+        self._strlen = strlen
+        self._functions = {
+            dict: self._dict_string,
+            SimpleNamespace: self._ns_string,
+            np.ndarray: self._array_string,
+            h5py._hl.dataset.Dataset: self._h5data_string,
+            }
         if var is not None:
             self.pp(var)
 
@@ -99,8 +105,8 @@ class PP:
                 s = "'" + val + "'"
         else:
             s = str(val)
-        if len(s) > 14:
-            s = s[:10] + ' ...'
+        if len(s) > self._keylen:
+            s = s[:self._keylen-4] + ' ...'
         return s
 
     def _value_string(self, val):
@@ -108,27 +114,29 @@ class PP:
             s = "'" + val + "'"
         else:
             s = str(val)
-        if len(s) > 45:
-            s = s[:41] + ' ...'
+        if len(s) > self._strlen:
+            s = s[:self._strlen-4] + ' ...'
         return s
 
-    def _print_var(self, var, level):
-        try:
-            self._functions[type(var)](var, level)
-        except KeyError:
-            s = self._value_string(var)
-            self.output = self.output + s + '\n'
-
     def _array_string(self, arr, level):
-        s = (str(arr.dtype) + ' ndarray ' + str(arr.size) +
-             ' elems: ' + str(arr.shape))
+        s = str(arr.dtype) + ' ndarray '
+        s = s + str(arr.size) + ' elems: ' + str(arr.shape)
+        if arr.size <= 10:
+            s = s + ': ['
+            for j in arr.ravel():
+                s = s + '{:.3g}, '.format(j)
+            s = s[:-2] + ']'
         self.output = self.output + s + '\n'
+
+    def _h5data_string(self, arr, level):
+        self.output = self.output + 'H5 '
+        self._array_string(arr.value, level)
 
     def _dict_string(self, dct, level, typename='dict'):
         self.output = (self.output + '{}[n={}]\n'
                        .format(typename, len(dct)))
         if level < self._depth:
-            keys = list(dct.keys())
+            keys = list(dct)
             try:
                 keys = sorted(keys)
             except TypeError:
@@ -147,6 +155,18 @@ class PP:
 
     def _ns_string(self, ns, level):
         self._dict_string(ns.__dict__, level, typename='namespace')
+
+    def _print_var(self, var, level):
+        try:
+            self._functions[type(var)](var, level)
+        except KeyError:
+            typename = str(type(var))
+            if isinstance(var, (h5py._hl.files.File,
+                                h5py._hl.files.Group)):
+                self._dict_string(var, level, typename=typename)
+            else:
+                s = self._value_string(var)
+                self.output = self.output + s + '\n'
 
     def pp(self, var):
         """
