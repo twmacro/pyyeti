@@ -23,6 +23,10 @@ class PP:
             Maximum number of levels to print.
         tab : integer; optional
             Number of additional indent spaces for each level.
+        keylen : integer; optional
+            Maximum length for dictionary (and similar) keys.
+        strlen : integer; optional
+            Maximum length for dictionary (and similar) values.
 
         Notes
         -----
