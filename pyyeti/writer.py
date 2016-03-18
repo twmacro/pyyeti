@@ -123,7 +123,10 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
     ------
     ValueError
         When the lengths of print arguments do not match (for
-        lengths > 1).
+        lengths > 1). Note that the slice object `so` can make
+        otherwise incompatible arguments compatible; for example,
+        arguments of length 10 and length 100 would be compatible if
+        ``so = slice(10)`` (or similar).
 
     Examples
     --------
