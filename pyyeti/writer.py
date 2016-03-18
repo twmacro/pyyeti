@@ -106,8 +106,8 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
         arguments to be printed.
     so : slice object or None
         Allows selection of limited range and custom increment; eg:
-        ``slice(0, 10, 2)``. Must be named and after the arguments to
-        be printed.
+        ``slice(0, 10, 2)``. Scalars are not sliced. Must be named and
+        after the arguments to be printed.
 
     Returns
     -------
