@@ -364,6 +364,21 @@ def _get_conv_factors(conv):
     return lengthconv, massconv
 
 
+def _uset_convert(uset, uref, conv):
+    lengthconv = _get_conv_factors(conv)[0]
+    uset = uset.copy()
+    pv = uset[:, 1] == 1
+    uset[pv, 3:] *= lengthconv
+    pv = uset[:, 1] == 3
+    uset[pv, 3:] *= lengthconv
+    try:
+        if len(uref) == 3:
+            uref = np.atleast_1d(uref) * lengthconv
+    except TypeError:
+        pass
+    return uset, uref
+
+
 def cbconvert(M, b, conv='m2e', drm=False):
     r"""
     Apply unit conversion transform to either a Craig-Bampton mass or
@@ -709,25 +724,27 @@ def cgmass(m, all6=False):
     return mcg, dxyz, gyr, princ_gyr, I, princ_I
 
 
-def _uset_convert(uset, uref, conv):
-    lengthconv = _get_conv_factors(conv)[0]
-    uset = uset.copy()
-    pv = uset[:, 1] == 1
-    uset[pv, 3:] *= lengthconv
-    pv = uset[:, 1] == 3
-    uset[pv, 3:] *= lengthconv
-    try:
-        if len(uref) == 3:
-            uref = np.atleast_1d(uref) * lengthconv
-    except TypeError:
-        pass
-    return uset, uref
+def _get_Tlv2sc(sccoord):
+    if sccoord is None:
+        return np.eye(6)
+
+    sccoord = np.atleast_2d(sccoord)
+    if sccoord.shape[0] == 3:
+        return sccoord
+
+    # get transform from l/v basic to s/c:
+    uset = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
+    return n2p.rbgeom_uset(uset, 1)
 
 
 def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
-                sccoord=None, conv=None, reorder=True):
+                sccoord=None, conv=None, reorder=True,
+                g=9.80665/0.0254):
     """
     Form common data recovery matrices.
+
+    The Craig-Bampton model is referred to as "spacecraft" or
+    "s/c". The system is referred to as "launch vehicle" or "l/v".
 
     Parameters
     ----------
@@ -738,31 +755,42 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
     bset : 1d ndarray
         Index partition vector specifying location and order of b-set
         (boundary) DOF in Mcb and Kcb. Uses zero offset.
-    bref : 1d ndarray
-        6-element subset of `bseto` (or equal to `bseto` if `bseto`
-        only has 6 elements). Defines reference DOF that will be used
-        to compute rigid-body modes and distances from (for the
-        stiffness and eigenvalue based rigid-body modes).
-    uset : 2d ndarray; optional
+    uset : 2d ndarray; optional for single point interface
         A 6-column matrix as output by :func:`op2.rdn2cop2` or
         :func:`n2p.addgrid`. For information on the format of this
         matrix, see :func:`op2.rdn2cop2`. If `uset` is None, a single
-        grid with id 1 will be automatically created at (0, 0, 0) and
-        `uref` will be set to 1. The :func:`n2p.addgrid` call for this
-        is::
+        grid with id 1 will be automatically created at (0, 0, 0). The
+        :func:`n2p.addgrid` call for this is::
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
-    uref : integer or array; optional
+    ref : integer or array; optional
         Defines reference for geometry-based rigid-body modes in a
         format compatible with :func:`n2p.rbgeom_uset`: either an
         integer grid id defined in `uset`, or a 3-element vector
         specifying a location in the basic coordinate system. If a
         3-element vector, it is in the old units (before `conv` is
         used to convert units).
+    sccoord : 3x3 or 4x3 or None; optional
+        If 3x3, it is transform from l/v basic to s/c. If 4x3, it is
+        the CORD2R, CORD2C or CORD2S information specifying the
+        coordinate system of the s/c relative to the l/v basic
+        (reference_id must be 0)::
+
+            [ cid type reference_id ]
+            [ Ax   Ay   Az          ]
+            [ Bx   By   Bz          ]
+            [ Cx   Cy   Cz          ]
+
+        This is further described in :func:`n2p.addgrid`. The
+        transform from l/v basic to s/c is computed from this
+        information.
+
+        If None, the transform is assumed to be identity.
+
     conv : None or 2-element array_like or string; optional
-        If None, no unit conversion is done. If 2-element array_like,
-        it is::
+        If None, no unit conversion is done; otherwise, units are
+        converted from s/c to l/v. If 2-element array_like, it is::
 
             (length_conversion, mass_conversion)
 
@@ -774,159 +802,125 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
         The string form assumes units of meter & kg, and inch &
         lbf*s**2/inch (slinch). See :func:`cbconvert` for more
         information.
-    em_filt : scalar; optional
-        Effective mass print filter: only modes with percent mass
-        above `em_filt` will be filtered. For example, to filter out
-        modes below 2% modal effective mass, set `em_filt` to 2.0.
+
+    reorder : bool; optional
+        If True, reorder the DOF so the b-set are first (uses
+        :func:`cbreorder`).
+    g : scalar; optional
+        Standard gravity in l/v units.
 
     Returns
     -------
-    M : 2d ndarray
-        Reordered and converted version of Mcb. Will equal Mcb if no
-        reordering or unit conversion is done.
-    K : 2d ndarray
-        Reordered and converted version of Kcb. Will equal Kcb if no
-        reordering or unit conversion is done.
-    bset : 1d ndarray
-        Vector giving location of reordered b-set. This will equal
-        numpy.arange(len(bset)). Will equal `bseto` if `bseto` if
-        there is no reordering.
-    rbs : 2d ndarray
-        The stiffness-based rigid-body modes (b+q x 6).
-    rbg : 2d ndarray
-        The geometry-based rigid-body modes  (b x 6).
-    rbe : 2d ndarray
-        The eigenvalue-based rigid-body modes (b+q x 6).
-    usetconv : 2d ndarray
-        Converted version of `uset`. Will equal `uset` if no unit
-        conversion is done.
+    A record (SimpleNamespace class) with these 9 members:
 
-    Notes
-    -----
-    This routine performs these checks:
+    ifltm_sc, ifltm_lv : 2d ndarrays
+        The net interface force data recovery matrices in s/c and l/v
+        units and coordinates, respectively. Recovers the net forces
+        on the s/c. Acceleration-dependent.
+    ifatm_sc, ifatm_lv : 2d ndarrays
+        The net interface acceleration data recovery matrices in s/c
+        and l/v coordinates, respectively. Acceleration-
+        dependent. Units are 'g' and 'rad/sec**2'.
+    cgatm_sc, cgatm_lv : 2d ndarrays
+        The net CG acceleration data recovery matrices in s/c and l/v
+        coordinates, respectively. These are based on interface
+        forces. Acceleration-dependent. Units are 'g' and
+        'rad/sec**2'.
+    weight, height : real scalars
+        Weight and CG height of the s/c in l/v units. Height is
+        relative to `ref`.
+    scaxial : integer
+        0, 1, or 2 depending on which s/c DOF is axial.
 
-       - Checks symmetry of Mcb and Kcb.
-       - Prints some abs-max values from Mcb and Kcb for visual
-         inspection.
-       - Calculates coordinates of boundary DOF relative to a reference
-         (`bref`) from the stiffness matrix.
-       - Computes the root-sum-squared distances of motion for each
-         boundary grid for each type of rb-mode. These distances
-         should be 1.
-       - Similarly, computes the root-sum-squared rotations for each
-         boundary grid for each type of rb-mode. These distances
-         should be 1.
-       - Does various mass property checks using 3 types of rigid-body
-         modes:  stiffness-, geometry-, and eigensolution-based. The
-         following items are printed for checking:
-
-            - the three 6x6 mass matrices
-            - the CG location relative to respective reference point
-              (`bref` for the stiffness and eigensolution based rb
-              modes and Uref for the geometry-based rb modes ... which
-              means the geometry-based CG will only match the other two
-              if the reference is the same).
-            - the radius of gyration from the CG about the coordinate
-              axes and about the principal axes.
-
-       - Computes stiffness grounding checks against the three types of
-         rb modes.
-       - Computes the free-free modes.
-       - Computes the fixed-base modes and percent modal effective
-         mass.
-
-    `bseto` is used to reorder the matrices via the function
-    :func:`cbreorder`. As a simple example, assume there are 3 modal
-    DOF followed by 12 b-set DOF (two interface grids). Also assume
-    that it is desired to switch the order of these two grids. `bseto`
-    should then be defined as::
-
-       bseto = [9, 10, 11, 12, 13, 14, 3, 4, 5, 6, 7, 8]
-
-    In other words, specify the row/col position as it is within Mcb
-    and Kcb, in the order you wish them to be. In this case, rows 10
-    through 15 are wanted to be first, 4 through 9 next, and finally,
-    1 through 3.
-
-    Pay special attention to any warning messages.
-
-    Example usage::
-
-        import numpy as np
-        from pyyeti import op4
-        from pyyeti import cb
-        from pyyeti import nastran
-        o4 = op4.OP4()
-
-        names, mats, *_ = o4.listload('nas2cam_csuper/inboard_mk.op4')
-        uset, coords = nastran.bulk2uset('nas2cam_csuper/inboard.asm')
-        m, k, *_ = mats[0], mats[1]
-        b = np.arange(24)
-        cb.cbcheck('inboard.cbcheck', m, k, b, b[:6], uset=uset)
-
-    See also
-    --------
-    :func:`rbmultchk`, :func:`rbdispchk`, :func:`cbcoordchk`,
-    :func:`n2p.addgrid`, :func:`cbconvert`, :func:`cbreorder`,
-    :func:`op2.rdn2cop2`
+    Raises
+    ------
+    ValueError
+        If the upper-left 3x3 of `ifltm_sc` does not meet the expected
+        pattern: ``mass*eye(3)``.
     """
+    if uset is None:
+        uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
     if reorder:
         Mcb = cbreorder(Mcb, bset)
         Kcb = cbreorder(Kcb, bset)
         bset = np.arange(len(bset))
+    Tsc2lv = _get_Tlv2sc(sccoord).T
 
-    # make pairs of mass & stiffness to accommodate units AND
-    # coordinate systems:
+    # only ifltm needs to be computed for both sets of units
+    # (ifatm and cgatm both output g's and rad/sec^2)
+    # rigid-body modes relative to reference:
+    rb = n2p.rbgeom_uset(uset, ref)
+    ifltm = rb.T @ Mcb[bset]
+    ifltm33 = ifltm[:3, :3]
+    if (not ytools.isdiag(ifltm33, tol=1e-6) or
+            not np.allclose(np.diag(ifltm33), ifltm[0, 0])):
+        print('ifltm[:3, :3] =\n', ifltm33)
+        raise ValueError('ifltm[:3, :3] has incorrect pattern (see '
+                         'above). Make sure basic coordinate system '
+                         'of `uset` is spacecraft basic.')
+
+    ifltmd = rb.T @ Kcb[bset]  # should be zero
+    if (len(bset) > 6 and
+            abs(ifltmd).max() > abs(Kcb[bset]).max()*1e-13):
+        warn('Rigid-body grounding forces need to be checked. '
+             'Correct `uset`?',
+             RuntimeWarning)
+        print('max grounding forces =\n', ifltmd.max(axis=1))
+
     if conv is not None:
-        # output in s/c units:
-        m_sc = cbconvert(Mcb, bset, conv, drm=True)
-        k_sc = cbconvert(Kcb, bset, conv, drm=True)
-        # output in l/v units:
-        m_lv = cbconvert(Mcb, bset, conv)
-        k_lv = cbconvert(Kcb, bset, conv)
-        M = [m_sc, m_lv]
-        K = [k_sc, k_lv]
+        # make s/c version of ifltm compatible with system
+        ifltm = cbconvert(ifltm, bset, conv, drm=True)
+
+        # make new M & K for l/v versions:
+        Mcb = cbconvert(Mcb, bset, conv)
+        Kcb = cbconvert(Kcb, bset, conv)
+        uset, ref = _uset_convert(uset, ref, conv)
+
+        # rigid-body modes relative to reference:
+        rb = n2p.rbgeom_uset(uset, ref)
+        ifltm_lv = rb.T @ Mcb[bset]
     else:
-        M = [Mcb, Mcb]
-        K = [Kcb, Kcb]
+        ifltm_lv = ifltm
 
-    net_ifatm = []
-    net_ifltm = []
-    net_cgatm = []
-    grids = uset[::6, 0]
-    new_id = grids.max() + 1
-
-    if uset.shape[0] > 6:
+    # use RBE3 for net accelerations
+    if len(bset) > 6:
         dof_indep = 123
+        xyz = ytools.mkpattvec([0, 1, 2], len(bset), 6)
     else:
         dof_indep = 123456
+        xyz = np.arange(6)
 
-    for i in range(2):
-        # rigid-body modes relative to reference:
-        rb = n2p.rbgeom_uset(uset, uref)
+    # add center point for RBE3
+    if isinstance(ref, int):
+        i = np.nonzero(uset[:, 0] == ref)[0][0]
+        ref = uset[i, 3:]
+    grids = uset[::6, 0].astype(int)
+    new_id = grids.max() + 1
+    uset2 = n2p.addgrid(uset, new_id, 'b', 0, ref, 0)
+    rbe3 = n2p.formrbe3(uset2, new_id, 123456, [dof_indep, grids])
+    ifatm = np.zeros((len(bset), Mcb.shape[1]))
+    ifatm[:, xyz] = rbe3
 
-        # add center point for RBE3
-        uset2 = n2p.addgrid(uset, new_id, 'b', )
-        rbe3 = n2p.formrbe3(uset2, 123456, [dof_indep, grids])
+    # calculate cg location and mass @ cg (l/v units but s/c coords):
+    bb = np.ix_(bset, bset)
+    Mif = rb.T @ Mcb[bb] @ rb
+    Mcg, cg = cgmass(Mif)  # cg is relative to ref
 
-        # calculate cg location and mass @ cg:
-        bb = np.ix_(b, b)
-        Mif = rb.T @ Mcb[bb] @ rb
-        Mcg, cg = cgmass(Mif)  # cg is relative to uref
-        net_ifltm.append(rb.T @ Mcb[b])
+    # form rigid-body modes relative to CG:
+    rbcg = n2p.rbgeom_uset(uset, cg)
 
-        # form rigid-body modes relative to CG:
-        rbcg = n2p.rbgeom_uset(uset, cg)
-
-        # for net CG acceleration:
-        net_cgatm.append(la.solve(Mcg, rbcg.T @ Mcb[b]))
-
-        if conv is not None:
-            Mcb = cbconvert(Mcb, bset, conv)
-            Kcb = cbconvert(Kcb, bset, conv)
-            uset, uref = _uset_convert(uset, uref, conv)
-
-    return net_ifatm, net_ifltm, net_cgatm
+    # for net CG acceleration:
+    cgatm = la.solve(Mcg, rbcg.T @ Mcb[bset])
+    ifatm[:3] /= g
+    cgatm[:3] /= g
+    weight = Mcg[0, 0]*g
+    height = abs(cg).max()
+    scaxial = np.argmax(abs(cg))
+    return SimpleNamespace(ifltm_sc=ifltm, ifltm_lv=Tsc2lv @ ifltm_lv,
+                           ifatm_sc=ifatm, ifatm_lv=Tsc2lv @ ifatm,
+                           cgatm_sc=cgatm, cgatm_lv=Tsc2lv @ cgatm,
+                           weight=weight, height=height,
+                           scaxial=scaxial)
 
 
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
@@ -1577,13 +1571,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
     if conv is not None:
         m = cbconvert(Mcb, bseto, conv)
         k = cbconvert(Kcb, bseto, conv)
-        uset = _uset_convert(uset, conv)
-        lengthconv = _get_conv_factors(conv)[0]
-        try:
-            if len(uref) == 3:
-                uref = np.atleast_1d(uref) * lengthconv
-        except TypeError:
-            pass
+        uset, uref = _uset_convert(uset, uref, conv)
     else:
         m = Mcb
         k = Kcb

@@ -143,7 +143,7 @@ class PP:
     def _h5data_string(self, arr, level):
         s = 'H5 ' + self._getarrhdr(arr)
         if arr.size <= 10:
-            s = s + self._getarrstr(arr.value)
+            s = s + self._getarrstr(arr[...])
         self.output = self.output + s + '\n'
 
     def _dict_string(self, dct, level, typename='dict'):

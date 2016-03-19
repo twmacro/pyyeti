@@ -674,7 +674,7 @@ def test_rbdispchk():
         s = f.getvalue()
 
     sbe = ['Warning: deviation from standard pattern, node #3 '
-           'starting at row 7.  \tMax deviation = 0.006 units.',
+           'starting at row 7. \tMax deviation = 0.006 units.',
            '  Rigid-Body Rotations:',
            '    0.0000    25.0000     5.0000',
            '  -25.0060     0.0000     4.0000',
@@ -700,7 +700,7 @@ def test_rbdispchk():
         s = f.getvalue()
 
     sbe = ['Warning: deviation from standard pattern, node ID = 300 '
-           'starting at row 7.  Max deviation = 0.006 units.',
+           'starting at row 7. Max deviation = 0.006 units.',
            '  Rigid-Body Rotations:',
            '    0.0000    25.0000     5.0000',
            '  -25.0060     0.0000     4.0000',
