@@ -53,26 +53,25 @@ def getith(i, args, fncs):
     return lst
 
 
-def _vecwrite(fout, string, length, args, fncs, postfunc, pfargs):
+def _vecwrite(fout, string, length, args, fncs, postfunc, pfargs, so):
     """Utility routine for :func:`vecwrite`."""
+    v = range(length)
+    if so is not None:
+        v = v[so]
     if postfunc:
-        if pfargs:
-            for i in range(length):
-                curargs = getith(i, args, fncs)
-                s = postfunc(string.format(*curargs), *pfargs)
-                fout.write(s)
-        else:
-            for i in range(length):
-                curargs = getith(i, args, fncs)
-                s = postfunc(string.format(*curargs))
-                fout.write(s)
+        if pfargs is None:
+            pfargs = []
+        for i in v:
+            curargs = getith(i, args, fncs)
+            s = postfunc(string.format(*curargs), *pfargs)
+            fout.write(s)
     else:
-        for i in range(length):
+        for i in v:
             curargs = getith(i, args, fncs)
             fout.write(string.format(*curargs))
 
 
-def vecwrite(f, string, *args, postfunc=None, pfargs=None):
+def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
     """
     Vectorized write.
 
@@ -105,6 +104,10 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None):
         If an iterable, contains extra arguments to pass to `postfunc`
         after the string argument. Must be named and after the
         arguments to be printed.
+    so : slice object or None
+        Allows selection of limited range and custom increment; eg:
+        ``slice(0, 10, 2)``. Scalars are not sliced. Must be named and
+        after the arguments to be printed.
 
     Returns
     -------
@@ -120,7 +123,10 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None):
     ------
     ValueError
         When the lengths of print arguments do not match (for
-        lengths > 1).
+        lengths > 1). Note that the slice object `so` can make
+        otherwise incompatible arguments compatible; for example,
+        arguments of length 10 and length 100 would be compatible if
+        ``so = slice(10)`` (or similar).
 
     Examples
     --------
@@ -174,15 +180,23 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None):
                 fncs.append(get_itemi)
                 curlen = len(arg)
             if curlen > 1:
-                if length > 1 and curlen != length:
-                    raise ValueError('length mismatch:  arg # {} has '
-                                     'length {}; expected {} or 1.'.
-                                     format(i+1, curlen, length))
+                if length > 1:
+                    if so is not None:
+                        if range(curlen)[so] != range(length)[so]:
+                            msg = ('length mismatch with slice object:'
+                                   ' arg # {} is incompatible with '
+                                   'previous args'.format(i+1))
+                            raise ValueError(msg)
+                    elif curlen != length:
+                        msg = ('length mismatch:  arg # {} has '
+                               'length {}; expected {} or 1.'.
+                               format(i+1, curlen, length))
+                        raise ValueError(msg)
                 length = curlen
         else:
             fncs.append(get_scalar)
     ytools.wtfile(f, _vecwrite, string, length, args, fncs,
-                  postfunc, pfargs)
+                  postfunc, pfargs, so)
 
 
 def formheader(headers, widths, formats,
