@@ -10,7 +10,7 @@ import scipy.sparse.linalg as sp_la
 from pyyeti import n2p, locate, ytools, writer
 from pyyeti.tfsolve import TFSolve
 from types import SimpleNamespace
-import warnings
+from warnings import warn
 
 
 def cbtf(m, b, k, a, freq, bset, save=None):
@@ -332,7 +332,7 @@ def cbreorder(M, b, drm=False, last=False):
     lq = lt - lb
 
     if (lb // 6) * 6 != lb:
-        warnings.warn('b-set not a multiple of 6.', RuntimeWarning)
+        warn('b-set not a multiple of 6.', RuntimeWarning)
 
     if lq == 0:
         if drm:
@@ -831,13 +831,12 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
         relative to `ref`.
     scaxial : integer
         0, 1, or 2 depending on which s/c DOF is axial.
-
-    Raises
-    ------
-    ValueError
-        If the upper-left 3x3 of `ifltm_sc` does not meet the expected
-        pattern: ``mass*eye(3)``.
     """
+#    Raises
+#    ------
+#    ValueError
+#        If the upper-left 3x3 of `ifltm_sc` does not meet the expected
+#        pattern: ``mass*eye(3)``.
     if uset is None:
         uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
     if reorder:
@@ -851,20 +850,20 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
     # rigid-body modes relative to reference:
     rb = n2p.rbgeom_uset(uset, ref)
     ifltm = rb.T @ Mcb[bset]
-    ifltm33 = ifltm[:3, :3]
-    if (not ytools.isdiag(ifltm33, tol=1e-6) or
-            not np.allclose(np.diag(ifltm33), ifltm[0, 0])):
-        print('ifltm[:3, :3] =\n', ifltm33)
-        raise ValueError('ifltm[:3, :3] has incorrect pattern (see '
-                         'above). Make sure basic coordinate system '
-                         'of `uset` is spacecraft basic.')
+#    mass = ifltm[:, bset] @ rb
+#    mass33 = mass[:3, :3]
+#    if (not ytools.isdiag(mass33, tol=1e-6) or
+#            not np.allclose(np.diag(mass33), mass[0, 0])):
+#        print('mass[:3, :3] =\n', mass33)
+#        raise ValueError('mass[:3, :3] has incorrect pattern (see '
+#                         'above). Make sure basic coordinate system '
+#                         'of `uset` is spacecraft basic.')
 
     ifltmd = rb.T @ Kcb[bset]  # should be zero
     if (len(bset) > 6 and
-            abs(ifltmd).max() > abs(Kcb[bset]).max()*1e-13):
+            abs(ifltmd).max() > abs(Kcb[bset]).max()*1e-8):
         warn('Rigid-body grounding forces need to be checked. '
-             'Correct `uset`?',
-             RuntimeWarning)
+             'Correct `uset`?', RuntimeWarning)
         print('max grounding forces =\n', ifltmd.max(axis=1))
 
     if conv is not None:
@@ -885,7 +884,7 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
     # use RBE3 for net accelerations
     if len(bset) > 6:
         dof_indep = 123
-        xyz = ytools.mkpattvec([0, 1, 2], len(bset), 6)
+        xyz = ytools.mkpattvec([0, 1, 2], len(bset), 6).ravel()
     else:
         dof_indep = 123456
         xyz = np.arange(6)
@@ -898,7 +897,7 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
     new_id = grids.max() + 1
     uset2 = n2p.addgrid(uset, new_id, 'b', 0, ref, 0)
     rbe3 = n2p.formrbe3(uset2, new_id, 123456, [dof_indep, grids])
-    ifatm = np.zeros((len(bset), Mcb.shape[1]))
+    ifatm = np.zeros((6, Mcb.shape[1]))
     ifatm[:, xyz] = rbe3
 
     # calculate cg location and mass @ cg (l/v units but s/c coords):
@@ -910,7 +909,7 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
     rbcg = n2p.rbgeom_uset(uset, cg)
 
     # for net CG acceleration:
-    cgatm = la.solve(Mcg, rbcg.T @ Mcb[bset])
+    cgatm = linalg.solve(Mcg, rbcg.T @ Mcb[bset])
     ifatm[:3] /= g
     cgatm[:3] /= g
     weight = Mcg[0, 0]*g
