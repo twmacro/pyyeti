@@ -71,9 +71,9 @@ class PP:
                 4: namespace[n=4]
                     .a  : 6
                     .b  : [1, 23]
-                    .t  : uint8 ndarray 1 elems: (): [9]
+                    .t  : uint8 ndarray 1 elems: () 9
                     .var: 'string'
-            'r'          : int16 ndarray 4 elems: (4,): [0, 1, 2, 3]
+            'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
         <BLANKLINE>
         <...>
         >>> PP(d, depth=1)       # doctest: +ELLIPSIS
@@ -81,7 +81,7 @@ class PP:
             '34'         : 'value'
             'asdf'       : 4
             'longer name': dict[n=4]
-            'r'          : int16 ndarray 4 elems: (4,): [0, 1, 2, 3]
+            'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
         <BLANKLINE>
         <...>
         """
@@ -122,19 +122,29 @@ class PP:
             s = s[:self._strlen-4] + ' ...'
         return s
 
-    def _array_string(self, arr, level):
+    def _getarrhdr(self, arr):
         s = str(arr.dtype) + ' ndarray '
         s = s + str(arr.size) + ' elems: ' + str(arr.shape)
+        return s
+
+    def _getarrstr(self, arr):
+        s = ' ' + str(arr).replace('\n', '')
+        if len(s) > 4*(self._strlen//5):
+            n = self._strlen//3
+            s = s[:n-3] + ' <...> ' + s[-(n+3):]
+        return s
+
+    def _array_string(self, arr, level):
+        s = self._getarrhdr(arr)
         if arr.size <= 10:
-            s = s + ': ['
-            for j in arr.ravel():
-                s = s + '{:.3g}, '.format(j)
-            s = s[:-2] + ']'
+            s = s + self._getarrstr(arr)
         self.output = self.output + s + '\n'
 
     def _h5data_string(self, arr, level):
-        self.output = self.output + 'H5 '
-        self._array_string(arr.value, level)
+        s = 'H5 ' + self._getarrhdr(arr)
+        if arr.size <= 10:
+            s = s + self._getarrstr(arr.value)
+        self.output = self.output + s + '\n'
 
     def _dict_string(self, dct, level, typename='dict'):
         self.output = (self.output + '{}[n={}]\n'
