@@ -781,16 +781,34 @@ def test_mk_net_drms():
     # array([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     #        16, 17, 18, 19, 20, 21, 22, 23])
 
+    # y s/c  z l/v
+    #    \   |   / x s/c
+    #       \|/
+    #        ----- y l/v
     sccoord = [[900, 1, 0],
                [0, 0, 0],
-               [1, 0, 0],
-               [0, 1, 1]]
+               [1, 0, 0],   # z is l/v x
+               [0, 1, 1]]   # x is 45 deg ... between l/v y, z
+    # y ends up 45 deg ... between l/v -y, z
+
     # convert s/c from mm, kg --> m, kg
     ref = [600, 150, 150]
     conv = (0.001, 1.)
     g = 9.80665
+
+    u = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
+    Tsc2lv = np.zeros((6, 6))
+    Tsc2lv[:3, :3] = u[3:, 3:]
+    Tsc2lv[3:, 3:] = u[3:, 3:]
+    c = np.cos(45/180*np.pi)
+    Tl2s = np.array([[0, c, c], [0, -c, c], [1, 0, 0]])
+    assert np.allclose(Tl2s.T, Tsc2lv[:3, :3])
+
     net = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
                          sccoord=sccoord, conv=conv, g=g)
+    net2 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
+                          sccoord=Tl2s, conv=conv, g=g)
+
     # rb modes in system units:
     uset2, ref2 = cb._uset_convert(uset, ref, conv)
     rb = n2p.rbgeom_uset(uset2, ref2)
@@ -803,10 +821,6 @@ def test_mk_net_drms():
     c_sc = net.cgatm_sc[:, :n] @ rb
     c_lv = net.cgatm_lv[:, :n] @ rb
 
-    u = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
-    Tsc2lv = np.zeros((6, 6))
-    Tsc2lv[:3, :3] = u[3:, 3:]
-    Tsc2lv[3:, 3:] = u[3:, 3:]
 
     assert np.allclose(Tsc2lv @ a_sc, a_lv)
     assert np.allclose(Tsc2lv @ c_sc, c_lv)
@@ -824,3 +838,6 @@ def test_mk_net_drms():
     assert abs(net.weight - 1.7551*g) < .001
     assert net.scaxial_sc == 2
     assert net.scaxial_lv == 0
+
+    for name in net.__dict__:
+        assert np.allclose(net.__dict__[name], net2.__dict__[name])

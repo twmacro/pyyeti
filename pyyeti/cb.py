@@ -733,7 +733,7 @@ def _get_Tlv2sc(sccoord):
         T = np.zeros((6, 6))
         T[:3, :3] = sccoord
         T[3:, 3:] = sccoord
-        return sccoord
+        return T
 
     # get transform from l/v basic to s/c:
     uset = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
