@@ -786,16 +786,23 @@ def test_mk_net_drms():
                [1, 0, 0],
                [0, 1, 1]]
     # convert s/c from mm, kg --> m, kg
-    net = cb.mk_net_drms(maa, kaa, b, uset, ref=[600, 150, 150],
-                         sccoord=sccoord, conv=(0.001, 1.), g=9.80665)
-    rb = n2p.rbgeom_uset(uset, [600, 150, 150])
-    l_sc = net.ifltm_sc[:, :n] @ rb
-    l_lv = net.ifltm_lv[:, :n] @ rb
+    ref = [600, 150, 150]
+    conv = (0.001, 1.)
+    g = 9.80665
+    net = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
+                         sccoord=sccoord, conv=conv, g=g)
+    # rb modes in system units:
+    uset2, ref2 = cb._uset_convert(uset, ref, conv)
+    rb = n2p.rbgeom_uset(uset2, ref2)
+    l_sc = net.ifltma_sc[:, :n] @ rb
+    l_lv = net.ifltma_lv[:, :n] @ rb
+    l_scd = net.ifltmd_sc[:, :n] @ rb
+    l_lvd = net.ifltmd_lv[:, :n] @ rb
     a_sc = net.ifatm_sc[:, :n] @ rb
     a_lv = net.ifatm_lv[:, :n] @ rb
     c_sc = net.cgatm_sc[:, :n] @ rb
     c_lv = net.cgatm_lv[:, :n] @ rb
-    
+
     u = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
     Tsc2lv = np.zeros((6, 6))
     Tsc2lv[:3, :3] = u[3:, 3:]
@@ -803,11 +810,17 @@ def test_mk_net_drms():
 
     assert np.allclose(Tsc2lv @ a_sc, a_lv)
     assert np.allclose(Tsc2lv @ c_sc, c_lv)
+    assert abs(l_scd).max() < 1e-6*abs(l_sc).max()
+    assert abs(l_lvd).max() < 1e-6*abs(l_lv).max()
     scale = np.array([[1000],
                       [1000],
                       [1000],
                       [1000000],
                       [1000000],
                       [1000000]])
-    print((1/scale)* (Tsc2lv @ l_sc) - l_lv)
-    assert np.allclose((1/scale)* (Tsc2lv @ l_sc), l_lv)
+    assert np.allclose((1/scale) * (Tsc2lv @ l_sc), l_lv)
+    # height and weight values from cbcheck tutorial:
+    assert abs(net.height - (1.039998351-.6)) < .000001
+    assert abs(net.weight - 1.7551*g) < .001
+    assert net.scaxial_sc == 2
+    assert net.scaxial_lv == 0

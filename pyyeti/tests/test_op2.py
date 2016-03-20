@@ -352,7 +352,7 @@ def test_rdpostop2():
     # mug1 has 24 b-set ... get first 3 modes:
     modes = mug1[:, 24:27]
 
-    pv = locate.get_intersection(tug1, dof)[0]
+    pv = locate.mat_intersect(tug1, dof)[0]
     assert np.allclose(modes[pv], ougv1)
 #    assert np.allclose(o4['mef1'][0][:, 24:27],
 #                       post['mats']['oef1x'][0])

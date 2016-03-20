@@ -6,11 +6,11 @@ Tools for locating elements inside arrays/lists (locate)
 .. autosummary::
     :toctree: generated/
 
-    find2zo
     find_rows
-    find_subsequence
-    findunique
-    findvals
+    find_subseq
+    find_unique
+    find_vals
     flippv
-    get_intersection
-    list_intersection
+    mat_intersect
+    index2bool
+    list_intersect

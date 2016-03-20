@@ -740,14 +740,14 @@ def _get_Tlv2sc(sccoord):
     return n2p.rbgeom_uset(uset, 1)
 
 
-def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
-                sccoord=None, conv=None, reorder=True,
+def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
+                ref=[0, 0, 0], sccoord=None, conv=None, reorder=True,
                 g=9.80665/0.0254):
-    """
-    Form common data recovery matrices.
+    """Form common data recovery matrices.
 
-    The Craig-Bampton model is referred to as "spacecraft" or
-    "s/c". The system is referred to as "launch vehicle" or "l/v".
+    The Craig-Bampton model is referred to as "spacecraft" or "s/c".
+    The system is referred to as "launch vehicle" or "l/v". All
+    arguments after `bset` must be named.
 
     Parameters
     ----------
@@ -755,9 +755,14 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
         Craig-Bampton mass.
     Kcb : 2d ndarray
         Craig-Bampton stiffness.
-    bset : 1d ndarray
+    bset : 1d array_like
         Index partition vector specifying location and order of b-set
         (boundary) DOF in Mcb and Kcb. Uses zero offset.
+    bsubset : 1d array_like
+        Index partition vector into `bset` specifying which b-set DOF
+        to consider. Note the CG acceleration recovery matrix will
+        only consider forces on the subset so is probably not very
+        useful.
     uset : 2d ndarray; optional for single point interface
         A 6-column matrix as output by :func:`op2.rdn2cop2` or
         :func:`n2p.addgrid`. For information on the format of this
@@ -767,14 +772,14 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
-    ref : integer or array; optional
+    ref : integer or 1d array_like; optional
         Defines reference for geometry-based rigid-body modes in a
         format compatible with :func:`n2p.rbgeom_uset`: either an
         integer grid id defined in `uset`, or a 3-element vector
         specifying a location in the basic coordinate system. If a
         3-element vector, it is in the old units (before `conv` is
         used to convert units).
-    sccoord : 3x3 or 4x3 or None; optional
+    sccoord : 3x3 or 4x3 array_like or None; optional
         If 3x3, it is transform from l/v basic to s/c. If 4x3, it is
         the CORD2R, CORD2C or CORD2S information specifying the
         coordinate system of the s/c relative to the l/v basic
@@ -814,12 +819,17 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
 
     Returns
     -------
-    A record (SimpleNamespace class) with these 9 members:
+    A record (SimpleNamespace class) with these 12 members:
 
-    ifltm_sc, ifltm_lv : 2d ndarrays
-        The net interface force data recovery matrices in s/c and l/v
-        units and coordinates, respectively. Recovers the net forces
-        on the s/c. Acceleration-dependent.
+    ifltma_sc, ifltma_lv : 2d ndarrays
+        The acceleration-dependent portion of the net interface force
+        data recovery matrices in s/c and l/v units and coordinates,
+        respectively. Along with `ifltmd_*`, recovers the net forces
+        on the s/c.
+    ifltmd_sc, ifltmd_lv : 2d ndarrays
+        The displacement-dependent portion of the net interface force
+        data recovery matrices. Should be zero unless `bsubset` is
+        used.
     ifatm_sc, ifatm_lv : 2d ndarrays
         The net interface acceleration data recovery matrices in s/c
         and l/v coordinates, respectively. Acceleration-
@@ -832,38 +842,32 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
     weight, height : real scalars
         Weight and CG height of the s/c in l/v units. Height is
         relative to `ref`.
-    scaxial : integer
-        0, 1, or 2 depending on which s/c DOF is axial.
+    scaxial_sc, scaxial_lv : integers
+        0, 1, or 2 depending on which DOF is axial in s/c coordinates
+        and in l/v coordinates, respectively.
     """
-#    Raises
-#    ------
-#    ValueError
-#        If the upper-left 3x3 of `ifltm_sc` does not meet the expected
-#        pattern: ``mass*eye(3)``.
     if uset is None:
         uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
     if reorder:
         Mcb = cbreorder(Mcb, bset)
         Kcb = cbreorder(Kcb, bset)
+        i = np.argsort(bset)
+        uset = uset[i]
+        if bsubset is not None:
+            bsubset = locate.index2bool(bsubset)
+            bsubset = bsubset[i]
         bset = np.arange(len(bset))
+    bset_if = bset if bsubset is None else bset[bsubset]
     Tsc2lv = _get_Tlv2sc(sccoord).T
 
     # only ifltm needs to be computed for both sets of units
     # (ifatm and cgatm both output g's and rad/sec^2)
     # rigid-body modes relative to reference:
-    rb = n2p.rbgeom_uset(uset, ref)
-    ifltm = rb.T @ Mcb[bset]
-#    mass = ifltm[:, bset] @ rb
-#    mass33 = mass[:3, :3]
-#    if (not ytools.isdiag(mass33, tol=1e-6) or
-#            not np.allclose(np.diag(mass33), mass[0, 0])):
-#        print('mass[:3, :3] =\n', mass33)
-#        raise ValueError('mass[:3, :3] has incorrect pattern (see '
-#                         'above). Make sure basic coordinate system '
-#                         'of `uset` is spacecraft basic.')
-
-    ifltmd = rb.T @ Kcb[bset]  # should be zero
-    if (len(bset) > 6 and
+    uset_if = uset[bset_if]
+    rb = n2p.rbgeom_uset(uset_if, ref)
+    ifltma = rb.T @ Mcb[bset_if]
+    ifltmd = rb.T @ Kcb[bset_if]  # should be zero if bsubset is None
+    if (bsubset is None and
             abs(ifltmd).max() > abs(Kcb[bset]).max()*1e-8):
         warn('Rigid-body grounding forces need to be checked. '
              'Correct `uset`?', RuntimeWarning)
@@ -871,58 +875,68 @@ def mk_net_drms(Mcb, Kcb, bset, uset=None, ref=[0, 0, 0],
 
     if conv is not None:
         # make s/c version of ifltm compatible with system
-        ifltm = cbconvert(ifltm, bset, conv, drm=True)
+        ifltma = cbconvert(ifltma, bset, conv, drm=True)
+        ifltmd = cbconvert(ifltmd, bset, conv, drm=True)
 
         # make new M & K for l/v versions:
         Mcb = cbconvert(Mcb, bset, conv)
         Kcb = cbconvert(Kcb, bset, conv)
         uset, ref = _uset_convert(uset, ref, conv)
+        uset_if = uset[bset_if]
 
         # rigid-body modes relative to reference:
-        rb = n2p.rbgeom_uset(uset, ref)
-        ifltm_lv = rb.T @ Mcb[bset]
+        rb = n2p.rbgeom_uset(uset_if, ref)
+        ifltma_lv = rb.T @ Mcb[bset_if]
+        ifltmd_lv = rb.T @ Kcb[bset_if]
     else:
-        ifltm_lv = ifltm
+        ifltma_lv = ifltma
+        ifltmd_lv = ifltmd
 
     # use RBE3 for net accelerations
     if len(bset) > 6:
         dof_indep = 123
-        xyz = ytools.mkpattvec([0, 1, 2], len(bset), 6).ravel()
+        xyz = ytools.mkpattvec([0, 1, 2], len(bset_if), 6).ravel()
+        xyz = bset_if[xyz]
     else:
         dof_indep = 123456
         xyz = np.arange(6)
 
     # add center point for RBE3
     if isinstance(ref, int):
-        i = np.nonzero(uset[:, 0] == ref)[0][0]
+        i = np.nonzero(uset_if[:, 0] == ref)[0][0]
         ref = uset[i, 3:]
-    grids = uset[::6, 0].astype(int)
+    grids = uset_if[::6, 0].astype(int)
     new_id = grids.max() + 1
-    uset2 = n2p.addgrid(uset, new_id, 'b', 0, ref, 0)
+    uset2 = n2p.addgrid(uset_if, new_id, 'b', 0, ref, 0)
     rbe3 = n2p.formrbe3(uset2, new_id, 123456, [dof_indep, grids])
     ifatm = np.zeros((6, Mcb.shape[1]))
     ifatm[:, xyz] = rbe3
 
     # calculate cg location and mass @ cg (l/v units but s/c coords):
     bb = np.ix_(bset, bset)
-    Mif = rb.T @ Mcb[bb] @ rb
+    rb_all = n2p.rbgeom_uset(uset, ref)
+    Mif = rb_all.T @ Mcb[bb] @ rb_all
     Mcg, cg = cgmass(Mif)  # cg is relative to ref
 
     # form rigid-body modes relative to CG:
-    rbcg = n2p.rbgeom_uset(uset, cg)
+    rbcg = n2p.rbgeom_uset(uset_if, cg)
 
     # for net CG acceleration:
-    cgatm = linalg.solve(Mcg, rbcg.T @ Mcb[bset])
+    cgatm = linalg.solve(Mcg, rbcg.T @ Mcb[bset_if])
     ifatm[:3] /= g
     cgatm[:3] /= g
     weight = Mcg[0, 0]*g
     height = abs(cg).max()
-    scaxial = np.argmax(abs(cg))
-    return SimpleNamespace(ifltm_sc=ifltm, ifltm_lv=Tsc2lv @ ifltm_lv,
-                           ifatm_sc=ifatm, ifatm_lv=Tsc2lv @ ifatm,
-                           cgatm_sc=cgatm, cgatm_lv=Tsc2lv @ cgatm,
-                           weight=weight, height=height,
-                           scaxial=scaxial)
+    scaxial_lv = np.argmax(abs(cg))
+    cg_sc = Tsc2lv[:3, :3].T @ cg[:, None]
+    scaxial_sc = np.argmax(abs(cg_sc))
+    return SimpleNamespace(
+        ifltma_sc=ifltma, ifltma_lv=Tsc2lv @ ifltma_lv,
+        ifltmd_sc=ifltmd, ifltmd_lv=Tsc2lv @ ifltmd_lv,
+        ifatm_sc=ifatm, ifatm_lv=Tsc2lv @ ifatm,
+        cgatm_sc=cgatm, cgatm_lv=Tsc2lv @ cgatm,
+        weight=weight, height=height,
+        scaxial_sc=scaxial_sc, scaxial_lv=scaxial_lv)
 
 
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
@@ -1581,9 +1595,11 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
     # reorder mass and stiffness:
     m = cbreorder(m, bseto)
     k = cbreorder(k, bseto)
+    i = np.argsort(bseto)
+    uset = uset[i]
 
     # define "new" order of b-set:
-    b = locate.find2zo(bref, n)
+    b = locate.index2bool(bref, n)
     bref = np.nonzero(b[bseto])[0]  # where ref will be in new bset
     bset = np.arange(nb)
 

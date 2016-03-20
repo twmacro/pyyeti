@@ -2,11 +2,10 @@
 """
 Tools for locating data or subarrays inside other arrays.
 """
-
 import numpy as np
 
 
-def findvals(m, v):
+def find_vals(m, v):
     """
     Get partition vector for all occurrences of all values in `v` in
     `m`.
@@ -39,11 +38,11 @@ def findvals(m, v):
     >>> import numpy as np
     >>> from pyyeti import locate
     >>> m = np.array([[10, 20], [30, 20]])
-    >>> locate.findvals(m, 20)  # doctest: +ELLIPSIS
+    >>> locate.find_vals(m, 20)  # doctest: +ELLIPSIS
     array([2, 3]...)
-    >>> locate.findvals(m, 30)  # doctest: +ELLIPSIS
+    >>> locate.find_vals(m, 30)  # doctest: +ELLIPSIS
     array([1]...)
-    >>> locate.findvals(m, 100)
+    >>> locate.find_vals(m, 100)
     array([], dtype=int64)
     """
     m = np.atleast_1d(m)
@@ -56,7 +55,7 @@ def findvals(m, v):
     return pv.nonzero()[0]
 
 
-def find_subsequence(seq, subseq):
+def find_subseq(seq, subseq):
     """
     Returns indices of where subseq occurs in seq.  Both are 1d numpy
     arrays.
@@ -84,9 +83,9 @@ def find_subsequence(seq, subseq):
     >>> from pyyeti import locate
     >>> a = [1, 2, 3, 4, 5, 6, 2, 3]
     >>> sub = [2, 3]
-    >>> locate.find_subsequence(a, sub)  # doctest: +ELLIPSIS
+    >>> locate.find_subseq(a, sub)  # doctest: +ELLIPSIS
     array([1, 6]...)
-    >>> locate.find_subsequence(a, [6, 5])
+    >>> locate.find_subseq(a, [6, 5])
     array([], dtype=int64)
     """
     seq = np.asarray(seq).reshape(-1)
@@ -139,7 +138,7 @@ def find_rows(matrix, row):
     return np.nonzero(abs(matrix - row).sum(axis=1) == 0)[0]
 
 
-def get_intersection(D1, D2, keep=0):
+def mat_intersect(D1, D2, keep=0):
     """
     Get row intersection partition vectors between two matrices or
     vectors.
@@ -181,21 +180,21 @@ def get_intersection(D1, D2, keep=0):
     >>> from pyyeti import locate
     >>> mat1 = np.array([[7, 3], [6, 8], [4, 0], [9, 2], [1, 5]])
     >>> mat2 = np.array([[9, 2], [1, 5], [7, 3]])
-    >>> pv1, pv2 = locate.get_intersection(mat1, mat2)
+    >>> pv1, pv2 = locate.mat_intersect(mat1, mat2)
     >>> pv1  # doctest: +ELLIPSIS
     array([3, 4, 0]...)
     >>> pv2  # doctest: +ELLIPSIS
     array([0, 1, 2]...)
     >>> np.all(mat1[pv1] == mat2[pv2])
     True
-    >>> locate.get_intersection(mat1, mat2, 1)  # doctest: +ELLIPSIS
+    >>> locate.mat_intersect(mat1, mat2, 1)  # doctest: +ELLIPSIS
     (array([0, 3, 4]...), array([2, 0, 1]...))
-    >>> locate.get_intersection(mat2, mat1, 2)  # doctest: +ELLIPSIS
+    >>> locate.mat_intersect(mat2, mat1, 2)  # doctest: +ELLIPSIS
     (array([2, 0, 1]...), array([0, 3, 4]...))
-    >>> locate.get_intersection(mat2, mat1)     # doctest: +ELLIPSIS
+    >>> locate.mat_intersect(mat2, mat1)     # doctest: +ELLIPSIS
     (array([0, 1, 2]...), array([3, 4, 0]...))
     >>> mat3 = np.array([[1, 2, 3]])
-    >>> locate.get_intersection(mat1, mat3)     # doctest: +ELLIPSIS
+    >>> locate.mat_intersect(mat1, mat3)     # doctest: +ELLIPSIS
     (array([], dtype=int...), array([], dtype=int...)
     """
     D1 = np.array(D1)
@@ -253,7 +252,7 @@ def get_intersection(D1, D2, keep=0):
     return pv1, pv2
 
 
-def find2zo(pv, n):
+def index2bool(pv, n):
     """
     Return a True/False vector of length `n` where the True values are
     located according to `pv`.
@@ -263,7 +262,7 @@ def find2zo(pv, n):
     >>> import numpy as np
     >>> from pyyeti import locate
     >>> pv = np.array([0, 3, 5])
-    >>> locate.find2zo(pv, 8)
+    >>> locate.index2bool(pv, 8)
     array([ True, False, False,  True, False,  True, False, False], dtype=bool)
     """
     tf = np.zeros(n, dtype=bool)
@@ -299,7 +298,7 @@ def flippv(pv, n):
     return tf.nonzero()[0]
 
 
-def findunique(y, tol=1e-6):
+def find_unique(y, tol=1e-6):
     """
     Find values in a vector that differ from previous adjacent value.
 
@@ -319,9 +318,9 @@ def findunique(y, tol=1e-6):
     Examples
     --------
     >>> from pyyeti import locate
-    >>> locate.findunique([1, 1, 1, 1])
+    >>> locate.find_unique([1, 1, 1, 1])
     array([ True, False, False, False], dtype=bool)
-    >>> locate.findunique([4, 4, -2, -2, 0, -2])
+    >>> locate.find_unique([4, 4, -2, -2, 0, -2])
     array([ True, False,  True, False,  True,  True], dtype=bool)
     """
     y = np.atleast_1d(y)
@@ -331,7 +330,7 @@ def findunique(y, tol=1e-6):
     return pv
 
 
-def list_intersection(L1, L2):
+def list_intersect(L1, L2):
     """
     Get list intersection partition vectors between two lists
 
@@ -358,13 +357,13 @@ def list_intersection(L1, L2):
     Examples
     --------
     >>> from pyyeti import locate
-    >>> pv1, pv2 = locate.list_intersection(['a', 3, 'z', 0],
+    >>> pv1, pv2 = locate.list_intersect(['a', 3, 'z', 0],
     ...                                     [0, 'z', 1, 'a'])
     >>> pv1  # doctest: +ELLIPSIS
     array([0, 2, 3]...)
     >>> pv2  # doctest: +ELLIPSIS
     array([3, 1, 0]...)
-    >>> locate.list_intersection(['a', 'b'],
+    >>> locate.list_intersect(['a', 'b'],
     ...                          [1, 2])       # doctest: +ELLIPSIS
     (array([], dtype=int...), array([], dtype=int...))
     """

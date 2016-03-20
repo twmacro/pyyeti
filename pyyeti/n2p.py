@@ -161,9 +161,9 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
                                 qdof.reshape(-1, 1)))
 
             # get partition vector:
-            pvq = locate.get_intersection(uset[:, :2].astype(np.int64),
+            pvq = locate.mat_intersect(uset[:, :2].astype(np.int64),
                                           qgrids, 1)[0]
-            plain_grids = np.logical_not(locate.find2zo(pvq, r))
+            plain_grids = np.logical_not(locate.index2bool(pvq, r))
             grid_rows = np.logical_and(grid_rows, plain_grids)
 
     rbmodes = np.zeros((r, 6))
@@ -883,7 +883,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     else:
         printsets = (''.join(printsets.split())).upper().split(',')
     # keep only columns in table that are printed:
-    printpv, pv2 = locate.list_intersection(allsets, printsets)
+    printpv, pv2 = locate.list_intersect(allsets, printsets)
     # make sure printsets is in order of table:
     printsets = [printsets[i] for i in pv2]
     table = table[:, printpv]
@@ -1587,7 +1587,7 @@ def build_coords(cords):
         selected = np.zeros(n, dtype=np.int64)
         loop = 1
         while np.any(selected == 0):
-            pv = locate.findvals(cords[:, 2], ref_ids)
+            pv = locate.find_vals(cords[:, 2], ref_ids)
             if pv.size == 0:
                 print('Need these coordinate cards:', ref_ids)
                 raise RuntimeError('Could not resolve coordinate '
@@ -2235,7 +2235,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         idof = np.vstack((idof, np.hstack((grids.reshape(-1, 1),
                                            dof.reshape(-1, 1)))))
         # Sort idof according to uset:
-        pv = locate.get_intersection(idof, usetdof, 2)[0]
+        pv = locate.mat_intersect(idof, usetdof, 2)[0]
         idof = idof[pv]
         wtdof = wtdof[pv]
 
@@ -2257,14 +2257,14 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         # The rest of the code uses 'mdof' to sort rows of the output
         # matrix.  We could leave it as input, or sort it according to
         # the uset table.  For now, sort it according to uset:
-        pv = locate.get_intersection(mdof, usetdof, 2)[0]
+        pv = locate.mat_intersect(mdof, usetdof, 2)[0]
         mdof = mdof[pv]
 
     # partition uset table down to needed dof only:
     npids = np.vstack((ddof[0, :1], idof[:, :1]))
     ids = sorted(list(set(npids[:, 0])))
     alldof = mkdofpv(uset, "p", ids)[0]
-    alldof = locate.find2zo(alldof, np.size(uset, 0))
+    alldof = locate.index2bool(alldof, np.size(uset, 0))
     uset = uset[alldof]
 
     # form partition vectors:
@@ -2297,7 +2297,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         return rbe3
 
     # find m-set dof that belong to current dependent set:
-    dpv_m = locate.get_intersection(ddof, mdof, 2)[0]
+    dpv_m = locate.mat_intersect(ddof, mdof, 2)[0]
     # this works when the m-set is a subset of the independent set:
     if not np.any(dpv_m):
         mpv = mkdofpv(uset[ipv], "p", mdof)[0]
@@ -2307,18 +2307,18 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         rbe3 = _solve(rbe3_um, rhs)
         # rearrange columns to uset order:
         curdof = np.vstack((ddof, idof[notmpv]))
-        pv = locate.get_intersection(curdof, usetdof, 2)[0]
+        pv = locate.mat_intersect(curdof, usetdof, 2)[0]
         return rbe3[:, pv]
 
     # some dependent retained, so find m-set dof that belong to current
     # independent set:
-    ipv_m = locate.get_intersection(idof, mdof, 2)[0]
+    ipv_m = locate.mat_intersect(idof, mdof, 2)[0]
 
     if not np.any(ipv_m):
         # already done, except reordering:
         rbe3 = rbe3[dpv_m]
         # rearrange columns to uset order:
-        pv = locate.get_intersection(idof, usetdof, 2)[0]
+        pv = locate.mat_intersect(idof, usetdof, 2)[0]
         return rbe3[:, pv]
 
     # To include UM option:
@@ -2343,10 +2343,10 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
     # partition rbe3 -- taking care NOT to rearrange columns
     nd, ni = np.shape(rbe3)
-    dpv_mzo = locate.find2zo(dpv_m, nd)
+    dpv_mzo = locate.index2bool(dpv_m, nd)
     notdpv_m = np.logical_not(dpv_mzo)
 
-    ipv_mzo = locate.find2zo(ipv_m, ni)
+    ipv_mzo = locate.index2bool(ipv_m, ni)
     notipv_m = np.logical_not(ipv_mzo)
 
     A = rbe3[np.ix_(dpv_mzo, ipv_mzo)]
@@ -2364,12 +2364,12 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     rbe3a = np.vstack((F, E))
 
     didof = np.vstack((ddof[dpv_mzo], idof[ipv_mzo]))
-    pv = locate.get_intersection(didof, mdof, 2)[0]
+    pv = locate.mat_intersect(didof, mdof, 2)[0]
     rbe3 = rbe3a[pv]
 
     # rearrange columns to uset order:
     curdof = np.vstack((ddof[notdpv_m], idof[notipv_m]))
-    pv = locate.get_intersection(curdof, usetdof, 2)[0]
+    pv = locate.mat_intersect(curdof, usetdof, 2)[0]
     return rbe3[:, pv]
 
 
@@ -2442,17 +2442,17 @@ def upasetpv(nas, seup):
     maps = nas['maps'][seup]
 
     # number of rows in pv should equal size of upstream a-set
-    pv = locate.findvals(usetdn[:, 0], dnids)
+    pv = locate.find_vals(usetdn[:, 0], dnids)
 
     if len(pv) < len(dnids):
         # must be an external se, but non-csuper type (the extseout,
         # seconct, etc, type)
         upids = nas['upids'][sedn]
-        pv = locate.findvals(upids, dnids)
+        pv = locate.find_vals(upids, dnids)
         ids = usetdn[usetdn[:, 1] <= 1, 0]
 
         # number of rows should equal size of upstream a-set
-        pv = locate.findvals(usetdn[:, 0], ids[pv])
+        pv = locate.find_vals(usetdn[:, 0], ids[pv])
         if len(pv) < len(dnids):
             raise ValueError('not all upstream DOF could'
                              ' be found in downstream')
@@ -2482,7 +2482,7 @@ def _proc_mset(nas, se, dof):
     m = np.nonzero(mksetpv(uset, "g", "m"))[0]
     pvdofm = gm = None
     if m.size > 0:
-        pvdofm = locate.get_intersection(uset[m, :2].astype(np.int64),
+        pvdofm = locate.mat_intersect(uset[m, :2].astype(np.int64),
                                          dof)[0]
         if pvdofm.size > 0:
             hasm = 1
@@ -2516,7 +2516,7 @@ def _formtran_0(nas, dof, gset):
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
     if o.size > 0:
-        v = locate.get_intersection(uset[o, :2].astype(np.int64),
+        v = locate.mat_intersect(uset[o, :2].astype(np.int64),
                                     dof)[0]
         if v.size > 0:
             raise RuntimeError("some of the DOF of SE 0 go to the"
@@ -2524,7 +2524,7 @@ def _formtran_0(nas, dof, gset):
                                " this.")
 
     a = np.nonzero(mksetpv(uset, "g", "a"))[0]
-    pvdofa = locate.get_intersection(uset[a, :2].astype(np.int64),
+    pvdofa = locate.mat_intersect(uset[a, :2].astype(np.int64),
                                      dof)[0]
     if pvdofa.size > 0:
         a = a[pvdofa]
@@ -2548,7 +2548,7 @@ def _formtran_0(nas, dof, gset):
     hass = 0
     s = np.nonzero(mksetpv(uset, "g", "s"))[0]
     if s.size > 0:
-        pvdofs = locate.get_intersection(uset[s, :2].astype(np.int64),
+        pvdofs = locate.mat_intersect(uset[s, :2].astype(np.int64),
                                          dof)[0]
         if pvdofs.size > 0:
             hass = 1
@@ -2556,7 +2556,7 @@ def _formtran_0(nas, dof, gset):
             sets = np.hstack((sets, s))
 
     fulldof = uset[sets, :2].astype(np.int64)
-    pv, pv2 = locate.get_intersection(fulldof, dof, 2)
+    pv, pv2 = locate.mat_intersect(fulldof, dof, 2)
 
     if len(pv2) != len(pvdof):
         notpv2 = locate.flippv(pv2, len(pvdof))
@@ -2660,7 +2660,7 @@ def formtran(nas, se, dof, gset=False):
 
     sets = np.zeros(0, np.int64)
     t = np.nonzero(mksetpv(uset, "g", "t"))[0]
-    pvdoft = locate.get_intersection(uset[t, :2].astype(np.int64),
+    pvdoft = locate.mat_intersect(uset[t, :2].astype(np.int64),
                                      dof)[0]
     hast = 0
     if pvdoft.size > 0:
@@ -2669,7 +2669,7 @@ def formtran(nas, se, dof, gset=False):
         sets = np.hstack((sets, t))
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
-    pvdofo = locate.get_intersection(uset[o, :2].astype(np.int64),
+    pvdofo = locate.mat_intersect(uset[o, :2].astype(np.int64),
                                      dof)[0]
     haso = 0
     if pvdofo.size > 0:
@@ -2718,7 +2718,7 @@ def formtran(nas, se, dof, gset=False):
     q = np.nonzero(mksetpv(uset, "g", "q"))[0]
     hasq = 0
     if q.size > 0:
-        pvdofq = locate.get_intersection(uset[q, :2].astype(np.int64),
+        pvdofq = locate.mat_intersect(uset[q, :2].astype(np.int64),
                                          dof)[0]
         if pvdofq.size > 0:
             hasq = 1
@@ -2729,7 +2729,7 @@ def formtran(nas, se, dof, gset=False):
     hass = 0
     s = np.nonzero(mksetpv(uset, "g", "s"))[0]
     if s.size > 0:
-        pvdofs = locate.get_intersection(uset[s, :2].astype(np.int64),
+        pvdofs = locate.mat_intersect(uset[s, :2].astype(np.int64),
                                          dof)[0]
         if pvdofs.size > 0:
             hass = 1
@@ -2737,7 +2737,7 @@ def formtran(nas, se, dof, gset=False):
             sets = np.hstack((sets, s))
 
     fulldof = uset[sets, :2].astype(np.int64)
-    pv, pv2 = locate.get_intersection(fulldof, dof, 2)
+    pv, pv2 = locate.mat_intersect(fulldof, dof, 2)
 
     if len(pv2) != len(pvdof):
         notpv2 = locate.flippv(pv2, len(pvdof))

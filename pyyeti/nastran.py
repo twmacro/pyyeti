@@ -1869,7 +1869,7 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         plt.figure('rspline check 2')
         plt.clf()
         ids_with_coords = np.hstack((newids, IDs[1]))
-        pv = locate.get_intersection(ids_with_coords, ids[:, 0], 2)
+        pv = locate.mat_intersect(ids_with_coords, ids[:, 0], 2)
         xy = np.vstack((newpts[:, lat], xyz[1][:, lat]))[pv[0]]
         plt.plot(xy[:, 0], xy[:, 1])
         plt.axis('equal')

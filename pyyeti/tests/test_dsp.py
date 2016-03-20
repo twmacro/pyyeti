@@ -331,11 +331,11 @@ def test_fixtime2():
     told = t+noise
 
     t2, y2 = dsp.fixtime((t+noise, y), 'auto', base=None)
-    pv = locate.find_subsequence(y2, y[1:-1])
+    pv = locate.find_subseq(y2, y[1:-1])
     assert pv.size > 0
 
     t3, y3 = dsp.fixtime((t+noise, y), 'auto', base=0.0)
-    pv = locate.find_subsequence(y2, y[1:-1])
+    pv = locate.find_subseq(y2, y[1:-1])
     assert pv.size > 0
     assert not np.allclose(t2[0], t3[0])
     assert np.allclose(t2-t2[0], t3-t3[0])

@@ -122,7 +122,7 @@ def findap(y, tol=1e-6):
         y-axis data vector
     tol : scalar; optional
         Tolerance value for detecting unique values; see
-        :func:`locate.findunique`
+        :func:`locate.find_unique`
 
     Returns
     -------
@@ -166,7 +166,7 @@ def findap(y, tol=1e-6):
     # example: [1, 2, 3, 4, 4, -2, -2, -2]
 
     # first, find unique values (1st of series is unique)
-    u = locate.findunique(y, tol)
+    u = locate.find_unique(y, tol)
     # [ True,  True,  True,  True, False,  True, False, False]
 
     # work with unique values only:
