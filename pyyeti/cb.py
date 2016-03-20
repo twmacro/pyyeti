@@ -730,6 +730,9 @@ def _get_Tlv2sc(sccoord):
 
     sccoord = np.atleast_2d(sccoord)
     if sccoord.shape[0] == 3:
+        T = np.zeros((6, 6))
+        T[:3, :3] = sccoord
+        T[3:, 3:] = sccoord
         return sccoord
 
     # get transform from l/v basic to s/c:

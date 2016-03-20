@@ -2,7 +2,8 @@ import numpy as np
 from io import StringIO
 import tempfile
 import os
-from pyyeti import cb, op2, n2p, ytools, locate
+import inspect
+from pyyeti import cb, op2, n2p, ytools, locate, op4, nastran
 from pyyeti.tfsolve import TFSolve
 from nose.tools import *
 
@@ -744,3 +745,69 @@ def test_cbcoordchk():
 
     b2 = np.arange(6)
     assert_raises(ValueError, cb.cbcoordchk, k, b2, b)
+
+
+def test_mk_net_drms():
+    pth = os.path.dirname(inspect.getfile(cb))
+    pth = os.path.join(pth, 'tests')
+    pth = os.path.join(pth, 'nas2cam_csuper')
+
+    # Load the mass and stiffness from the .op4 file
+    # This loads the data into a dict:
+    mk = op4.load(os.path.join(pth, 'inboard.op4'))
+    maa = mk['mxx'][0]
+    kaa = mk['kxx'][0]
+
+    # Get the USET table The USET table has the boundary DOF
+    # information (id, location, coordinate system). This is needed
+    # for superelements with an indeterminate interface. The nastran
+    # module has the function bulk2uset which is handy for forming the
+    # USET table from bulk data.
+
+    uset, coords = nastran.bulk2uset(os.path.join(pth, 'inboard.asm'))
+
+    # uset[::6, [0, 3, 4, 5]]
+    # array([[   3.,  600.,    0.,  300.],
+    #        [  11.,  600.,  300.,  300.],
+    #        [  19.,  600.,  300.,    0.],
+    #        [  27.,  600.,    0.,    0.]])
+
+    # Form b-set partition vector into a-set
+    # In this case, we already know the b-set are first:
+
+    n = uset.shape[0]
+    b = np.arange(n)
+
+    # array([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    #        16, 17, 18, 19, 20, 21, 22, 23])
+
+    sccoord = [[900, 1, 0],
+               [0, 0, 0],
+               [1, 0, 0],
+               [0, 1, 1]]
+    # convert s/c from mm, kg --> m, kg
+    net = cb.mk_net_drms(maa, kaa, b, uset, ref=[600, 150, 150],
+                         sccoord=sccoord, conv=(0.001, 1.), g=9.80665)
+    rb = n2p.rbgeom_uset(uset, [600, 150, 150])
+    l_sc = net.ifltm_sc[:, :n] @ rb
+    l_lv = net.ifltm_lv[:, :n] @ rb
+    a_sc = net.ifatm_sc[:, :n] @ rb
+    a_lv = net.ifatm_lv[:, :n] @ rb
+    c_sc = net.cgatm_sc[:, :n] @ rb
+    c_lv = net.cgatm_lv[:, :n] @ rb
+    
+    u = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
+    Tsc2lv = np.zeros((6, 6))
+    Tsc2lv[:3, :3] = u[3:, 3:]
+    Tsc2lv[3:, 3:] = u[3:, 3:]
+
+    assert np.allclose(Tsc2lv @ a_sc, a_lv)
+    assert np.allclose(Tsc2lv @ c_sc, c_lv)
+    scale = np.array([[1000],
+                      [1000],
+                      [1000],
+                      [1000000],
+                      [1000000],
+                      [1000000]])
+    print((1/scale)* (Tsc2lv @ l_sc) - l_lv)
+    assert np.allclose((1/scale)* (Tsc2lv @ l_sc), l_lv)

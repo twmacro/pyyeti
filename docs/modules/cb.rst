@@ -12,5 +12,6 @@ Hurty-Craig-Bampton model checking (cb)
     cbreorder
     cbtf
     cgmass
+    mk_net_drms
     rbdispchk
     rbmultchk
