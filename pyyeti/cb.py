@@ -761,8 +761,9 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     bsubset : 1d array_like
         Index partition vector into `bset` specifying which b-set DOF
         to consider. Note the CG acceleration recovery matrix will
-        only consider forces on the subset so is probably not very
-        useful.
+        only consider forces on this subset so if there are other
+        boundary DOF that are connected to other superelements, the CG
+        recovery transforms are probably not very useful.
     uset : 2d ndarray; optional for single point interface
         A 6-column matrix as output by :func:`op2.rdn2cop2` or
         :func:`n2p.addgrid`. For information on the format of this
@@ -772,13 +773,11 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
-    ref : integer or 1d array_like; optional
-        Defines reference for geometry-based rigid-body modes in a
-        format compatible with :func:`n2p.rbgeom_uset`: either an
-        integer grid id defined in `uset`, or a 3-element vector
-        specifying a location in the basic coordinate system. If a
-        3-element vector, it is in the old units (before `conv` is
-        used to convert units).
+    ref : 1d array_like or integer; optional
+        Defines reference location for the recovery transforms; for
+        example, the center point of a ring of boundary grids. The
+        location is in s/c basic (before any unit conversion). Can
+        also be an integer grid id defined in `uset`.
     sccoord : 3x3 or 4x3 array_like or None; optional
         If 3x3, it is transform from l/v basic to s/c. If 4x3, it is
         the CORD2R, CORD2C or CORD2S information specifying the
@@ -845,6 +844,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     scaxial_sc, scaxial_lv : integers
         0, 1, or 2 depending on which DOF is axial in s/c coordinates
         and in l/v coordinates, respectively.
+
     """
     if uset is None:
         uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
@@ -854,7 +854,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         i = np.argsort(bset)
         uset = uset[i]
         if bsubset is not None:
-            bsubset = locate.index2bool(bsubset)
+            bsubset = locate.index2bool(bsubset, len(bset))
             bsubset = bsubset[i]
         bset = np.arange(len(bset))
     bset_if = bset if bsubset is None else bset[bsubset]
@@ -927,9 +927,9 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     cgatm[:3] /= g
     weight = Mcg[0, 0]*g
     height = abs(cg).max()
-    scaxial_lv = np.argmax(abs(cg))
-    cg_sc = Tsc2lv[:3, :3].T @ cg[:, None]
-    scaxial_sc = np.argmax(abs(cg_sc))
+    scaxial_sc = np.argmax(abs(cg))
+    cg_lv = Tsc2lv[:3, :3] @ cg[:, None]
+    scaxial_lv = np.argmax(abs(cg_lv))
     return SimpleNamespace(
         ifltma_sc=ifltma, ifltma_lv=Tsc2lv @ ifltma_lv,
         ifltmd_sc=ifltmd, ifltmd_lv=Tsc2lv @ ifltmd_lv,

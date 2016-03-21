@@ -772,6 +772,22 @@ def test_mk_net_drms():
     #        [  19.,  600.,  300.,    0.],
     #        [  27.,  600.,    0.,    0.]])
 
+    # x s/c is axial (see figure in cbtf or cbcheck tutorial)
+    # - make z l/v axial, but pointing down
+    
+    # z s/c  ^ y l/v
+    #    \   |   / y s/c
+    #       \|/
+    #  <------
+    # x l/v
+
+    sccoord = [[900, 1, 0],
+               [0, 0, 0],
+               [1, 1, 0],   # z is 45 deg between x & y of l/v
+               [0, 0, -1]]  # x is -z l/v
+    c = np.cos(45/180*np.pi)
+    Tl2s = np.array([[0, 0, -1.], [-c, c, 0], [c, c, 0]])
+
     # Form b-set partition vector into a-set
     # In this case, we already know the b-set are first:
 
@@ -780,16 +796,6 @@ def test_mk_net_drms():
 
     # array([ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     #        16, 17, 18, 19, 20, 21, 22, 23])
-
-    # y s/c  z l/v
-    #    \   |   / x s/c
-    #       \|/
-    #        ----- y l/v
-    sccoord = [[900, 1, 0],
-               [0, 0, 0],
-               [1, 0, 0],   # z is l/v x
-               [0, 1, 1]]   # x is 45 deg ... between l/v y, z
-    # y ends up 45 deg ... between l/v -y, z
 
     # convert s/c from mm, kg --> m, kg
     ref = [600, 150, 150]
@@ -800,8 +806,6 @@ def test_mk_net_drms():
     Tsc2lv = np.zeros((6, 6))
     Tsc2lv[:3, :3] = u[3:, 3:]
     Tsc2lv[3:, 3:] = u[3:, 3:]
-    c = np.cos(45/180*np.pi)
-    Tl2s = np.array([[0, c, c], [0, -c, c], [1, 0, 0]])
     assert np.allclose(Tl2s.T, Tsc2lv[:3, :3])
 
     net = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
@@ -821,6 +825,25 @@ def test_mk_net_drms():
     c_sc = net.cgatm_sc[:, :n] @ rb
     c_lv = net.cgatm_lv[:, :n] @ rb
 
+    sbe = np.eye(6)
+    sbe[:3] *= 1/g
+    assert np.allclose(a_sc, sbe)
+
+    # calc what the interface forces should be:
+    # - acceleration = 1 m/s**2 = 1000 mm/s**2
+    # - the forces should be very similar to the 6x6 mass
+    #   matrix at the reference point ... which, conveniently,
+    #   is provided in the cbtf tutorial:
+    mass = np.array(
+        [[ 1.755,   0.   ,   -0.   ,     0.   ,      0.   ,      0.   ],
+         [ 0.   ,   1.755,   -0.   ,    -0.   ,      0.   ,    772.22 ],
+         [-0.   ,  -0.   ,    1.755,     0.   ,   -772.22 ,     -0.   ],
+         [ 0.   ,  -0.   ,    0.   , 35905.202,     -0.   ,     -0.   ],
+         [ 0.   ,   0.   , -772.22 ,    -0.   , 707976.725,    109.558],
+         [ 0.   , 772.22 ,   -0.   ,    -0.   ,    109.558, 707976.725]])
+    sbe = mass
+    sbe[:, :3] *= 1000  # scale up translations
+    assert abs(sbe-l_sc).max() < .5
 
     assert np.allclose(Tsc2lv @ a_sc, a_lv)
     assert np.allclose(Tsc2lv @ c_sc, c_lv)
@@ -833,10 +856,85 @@ def test_mk_net_drms():
                       [1000000],
                       [1000000]])
     assert np.allclose((1/scale) * (Tsc2lv @ l_sc), l_lv)
-    # height and weight values from cbcheck tutorial:
-    assert abs(net.height - (1.039998351-.6)) < .000001
-    assert abs(net.weight - 1.7551*g) < .001
-    assert net.scaxial_sc == 2
+
+    # height and mass values from cbcheck tutorial:
+    m_kg = 1.7551
+    h_m = 1.039998351 - 0.6
+    assert abs(net.height - h_m) < .000001
+    assert abs(net.weight - m_kg*g) < .001
+    assert net.scaxial_sc == 0
+    assert net.scaxial_lv == 2
+
+    for name in net.__dict__:
+        assert np.allclose(net.__dict__[name], net2.__dict__[name])
+
+
+def test_mk_net_drms_6dof():
+    # same as above, but reduced to single point interface
+    pth = os.path.dirname(inspect.getfile(cb))
+    pth = os.path.join(pth, 'tests')
+    pth = os.path.join(pth, 'nas2cam_csuper')
+    mk = op4.load(os.path.join(pth, 'inboard.op4'))
+    maa = mk['mxx'][0]
+    kaa = mk['kxx'][0]
+    uset, coords = nastran.bulk2uset(os.path.join(pth, 'inboard.asm'))
+    n = uset.shape[0]
+    b = np.arange(n)
+    q = np.arange(n, maa.shape[0])
+    ttl = maa.shape[0]
+
+    # reduce to single point interface:
+    rb = n2p.rbgeom_uset(uset, [600, 150, 150])
+
+    # old = {b_24} = {rb.T @ b_6}  = [rb.T  0_6?] {b_6}
+    #       {q_?}    {q_?}           [0_?6   I??] {q_?}
+    trans = np.zeros((len(q)+6, ttl))
+    trans[:6, :n] = rb.T
+    trans[6:, n:] = np.eye(len(q))
+    maa = trans @ maa @ trans.T
+    kaa = trans @ kaa @ trans.T
+
+    # no conversion, no coordinate change:
+    g = 9.80665
+    n = 6
+    b = np.arange(n)
+    net = cb.mk_net_drms(maa, kaa, b, g=g)
+    net2 = cb.mk_net_drms(maa, kaa, b, g=g, bsubset=b)
+    l_sc = net.ifltma_sc[:, :n]
+    l_lv = net.ifltma_lv[:, :n]
+    l_scd = net.ifltmd_sc[:, :n]
+    l_lvd = net.ifltmd_lv[:, :n]
+    a_sc = net.ifatm_sc[:, :n]
+    a_lv = net.ifatm_lv[:, :n]
+    c_sc = net.cgatm_sc[:, :n]
+    c_lv = net.cgatm_lv[:, :n]
+
+    sbe = np.eye(6)
+    sbe[:3] *= 1/g
+    assert np.allclose(a_sc, sbe)
+    mass = np.array(
+        [[ 1.755,   0.   ,   -0.   ,     0.   ,      0.   ,      0.   ],
+         [ 0.   ,   1.755,   -0.   ,    -0.   ,      0.   ,    772.22 ],
+         [-0.   ,  -0.   ,    1.755,     0.   ,   -772.22 ,     -0.   ],
+         [ 0.   ,  -0.   ,    0.   , 35905.202,     -0.   ,     -0.   ],
+         [ 0.   ,   0.   , -772.22 ,    -0.   , 707976.725,    109.558],
+         [ 0.   , 772.22 ,   -0.   ,    -0.   ,    109.558, 707976.725]])
+    sbe = mass
+    assert abs(sbe-l_sc).max() < .0005
+
+    Tsc2lv = np.eye(6)
+    assert np.allclose(Tsc2lv @ a_sc, a_lv)
+    assert np.allclose(Tsc2lv @ c_sc, c_lv)
+    assert abs(l_scd).max() < 1e-6*abs(l_sc).max()
+    assert abs(l_lvd).max() < 1e-6*abs(l_lv).max()
+    assert np.allclose((Tsc2lv @ l_sc), l_lv)
+
+    # height and mass values from cbcheck tutorial:
+    m_kg = 1.7551
+    h_m = 1039.998351 - 600
+    assert abs(net.height - h_m) < .0001
+    assert abs(net.weight - m_kg*g) < .001
+    assert net.scaxial_sc == 0
     assert net.scaxial_lv == 0
 
     for name in net.__dict__:
