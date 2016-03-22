@@ -743,7 +743,8 @@ def _get_Tlv2sc(sccoord):
 def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
                 ref=[0, 0, 0], sccoord=None, conv=None, reorder=True,
                 g=9.80665/0.0254):
-    """Form common data recovery matrices.
+    """
+    Form common data recovery matrices.
 
     The Craig-Bampton model is referred to as "spacecraft" or "s/c".
     The system is referred to as "launch vehicle" or "l/v". All
@@ -838,9 +839,11 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         coordinates, respectively. These are based on interface
         forces. Acceleration-dependent. Units are 'g' and
         'rad/sec**2'.
-    weight, height : real scalars
-        Weight and CG height of the s/c in l/v units. Height is
-        relative to `ref`.
+    weight_sc, weight_lv : real scalars
+        Weight of the s/c in s/c and l/v units.
+    height_sc, height_lv : real scalars
+        CG height of the s/c in s/c and l/v units. Height is relative
+        to `ref`.
     scaxial_sc, scaxial_lv : integers
         0, 1, or 2 depending on which DOF is axial in s/c coordinates
         and in l/v coordinates, respectively.
@@ -925,8 +928,15 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     cgatm = linalg.solve(Mcg, rbcg.T @ Mcb[bset_if])
     ifatm[:3] /= g
     cgatm[:3] /= g
-    weight = Mcg[0, 0]*g
-    height = abs(cg).max()
+    weight_lv = Mcg[0, 0]*g
+    height_lv = abs(cg).max()
+    if conv is not None:
+        lengthconv, massconv = _get_conv_factors(conv)
+        weight_sc = weight_lv / (massconv * lengthconv)
+        height_sc = height_lv / lengthconv
+    else:
+        weight_sc = weight_lv
+        height_sc = height_lv
     scaxial_sc = np.argmax(abs(cg))
     cg_lv = Tsc2lv[:3, :3] @ cg[:, None]
     scaxial_lv = np.argmax(abs(cg_lv))
@@ -935,7 +945,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         ifltmd_sc=ifltmd, ifltmd_lv=Tsc2lv @ ifltmd_lv,
         ifatm_sc=ifatm, ifatm_lv=Tsc2lv @ ifatm,
         cgatm_sc=cgatm, cgatm_lv=Tsc2lv @ cgatm,
-        weight=weight, height=height,
+        weight_sc=weight_sc, weight_lv=weight_lv,
+        height_sc=height_sc, height_lv=height_lv,
         scaxial_sc=scaxial_sc, scaxial_lv=scaxial_lv)
 
 

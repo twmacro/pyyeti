@@ -857,11 +857,13 @@ def test_mk_net_drms():
                       [1000000]])
     assert np.allclose((1/scale) * (Tsc2lv @ l_sc), l_lv)
 
-    # height and mass values from cbcheck tutorial:
-    m_kg = 1.7551
+    # height and mass values from cbcheck tutorial (and then refined):
+    m_kg = 1.75505183
     h_m = 1.039998351 - 0.6
-    assert abs(net.height - h_m) < .000001
-    assert abs(net.weight - m_kg*g) < .001
+    assert abs(net.height_lv - h_m) < .000001
+    assert abs(net.weight_lv - m_kg*g) < .000001
+    assert abs(net.height_sc - 1000*h_m) < .000001*1000
+    assert abs(net.weight_sc - 1000*m_kg*g) < .000001*1000
     assert net.scaxial_sc == 0
     assert net.scaxial_lv == 2
 
@@ -929,11 +931,13 @@ def test_mk_net_drms_6dof():
     assert abs(l_lvd).max() < 1e-6*abs(l_lv).max()
     assert np.allclose((Tsc2lv @ l_sc), l_lv)
 
-    # height and mass values from cbcheck tutorial:
-    m_kg = 1.7551
+    # height and mass values from cbcheck tutorial (and then refined):
+    m_kg = 1.75505183
     h_m = 1039.998351 - 600
-    assert abs(net.height - h_m) < .0001
-    assert abs(net.weight - m_kg*g) < .001
+    assert abs(net.height_lv - h_m) < .0001
+    assert abs(net.weight_lv - m_kg*g) < .0001
+    assert abs(net.height_sc - h_m) < .0001
+    assert abs(net.weight_sc - m_kg*g) < .0001
     assert net.scaxial_sc == 0
     assert net.scaxial_lv == 0
 
