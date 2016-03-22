@@ -847,10 +847,10 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     scaxial_sc, scaxial_lv : integers
         0, 1, or 2 depending on which DOF is axial in s/c coordinates
         and in l/v coordinates, respectively.
-
     """
     if uset is None:
         uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+
     if reorder:
         Mcb = cbreorder(Mcb, bset)
         Kcb = cbreorder(Kcb, bset)
@@ -868,13 +868,18 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     # rigid-body modes relative to reference:
     uset_if = uset[bset_if]
     rb = n2p.rbgeom_uset(uset_if, ref)
+    bifb = np.ix_(bset_if, bset)
     ifltma = rb.T @ Mcb[bset_if]
-    ifltmd = rb.T @ Kcb[bset_if]  # should be zero if bsubset is None
-    if (bsubset is None and
-            abs(ifltmd).max() > abs(Kcb[bset]).max()*1e-8):
+    ifltmd = rb.T @ Kcb[bifb]  # should be zero if bsubset is None
+
+    # check grounding:
+    rb_all = n2p.rbgeom_uset(uset, ref)
+    bb = np.ix_(bset, bset)
+    grfrc = Kcb[bb] @ rb_all
+    if (abs(grfrc).max() > abs(Kcb[bb]).max()*1e-8):
         warn('Rigid-body grounding forces need to be checked. '
              'Correct `uset`?', RuntimeWarning)
-        print('max grounding forces =\n', ifltmd.max(axis=1))
+        print('max grounding forces =\n', abs(grfrc).max(axis=0))
 
     if conv is not None:
         # make s/c version of ifltm compatible with system
@@ -889,8 +894,9 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
         # rigid-body modes relative to reference:
         rb = n2p.rbgeom_uset(uset_if, ref)
+        rb_all = n2p.rbgeom_uset(uset, ref)
         ifltma_lv = rb.T @ Mcb[bset_if]
-        ifltmd_lv = rb.T @ Kcb[bset_if]
+        ifltmd_lv = rb.T @ Kcb[bifb]
     else:
         ifltma_lv = ifltma
         ifltmd_lv = ifltmd
@@ -916,8 +922,6 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     ifatm[:, xyz] = rbe3
 
     # calculate cg location and mass @ cg (l/v units but s/c coords):
-    bb = np.ix_(bset, bset)
-    rb_all = n2p.rbgeom_uset(uset, ref)
     Mif = rb_all.T @ Mcb[bb] @ rb_all
     Mcg, cg = cgmass(Mif)  # cg is relative to ref
 
