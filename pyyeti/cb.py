@@ -55,7 +55,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         B+Q-set displacements.
     v : complex 2d ndarray
         B+Q-set velocities.
-    f : 1d ndarray
+    freq : 1d ndarray
         The frequency vector (same as `freq`).
 
     Notes
@@ -180,7 +180,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         >>> _ = ax.set_xlabel('Freq (Hz)')
         >>> plt.tight_layout()
     """
-    freq = np.atleast_1d(freq).flatten()
+    freq = np.atleast_1d(freq).ravel()
     Omega = 2*math.pi*freq
     lenf = len(Omega)
     a = np.atleast_1d(a)
@@ -194,7 +194,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         raise ValueError('number of rows in `a` not compatible '
                          'with `bset`.')
     frc = np.zeros((r, lenf), dtype=complex)
-    bset = np.atleast_1d(bset).flatten()
+    bset = np.atleast_1d(bset).ravel()
     lt = m.shape[0]
     qset = locate.flippv(bset, lt)
 
@@ -232,7 +232,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         frc = (m[bset].dot(accel) + b[bset].dot(veloc) +
                k[bb].dot(displ[bset]))
     return SimpleNamespace(frc=frc, a=accel, d=displ,
-                           v=veloc, f=freq)
+                           v=veloc, freq=freq)
 
 
 def cbreorder(M, b, drm=False, last=False):
@@ -327,7 +327,7 @@ def cbreorder(M, b, drm=False, last=False):
     if not drm and lt != np.size(M, 0):
         raise ValueError('`M` must be square when `drm` is false')
 
-    b = np.atleast_1d(b).flatten()
+    b = np.atleast_1d(b).ravel()
     lb = len(b)
     lq = lt - lb
 
@@ -539,7 +539,7 @@ def cbconvert(M, b, conv='m2e', drm=False):
     if not drm and lt != np.size(M, 0):
         raise ValueError('`M` must be square when `drm` is false')
 
-    b = np.array(b).flatten()
+    b = np.array(b).ravel()
     lb = len(b)
     lq = lt - lb
 
@@ -549,7 +549,7 @@ def cbconvert(M, b, conv='m2e', drm=False):
     lengthconv, massconv = _get_conv_factors(conv)
     C = np.ones(lt)
     D = np.ones(lt)
-    trn = ytools.mkpattvec([0, 1, 2], lb, 6).flatten()
+    trn = ytools.mkpattvec([0, 1, 2], lb, 6).ravel()
     rot = trn+3
     C[b[trn]] = 1/lengthconv
     D[b[trn]] = massconv * lengthconv
@@ -973,8 +973,19 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     else:
         drmrb = np.dot(drm[:, :rbr], rb)
 
+    # get rb scale:
+    xrss = np.sqrt(rb[:-2, 0]**2 + rb[1:-1, 0]**2 + rb[2:, 0]**2)
+    pv = np.nonzero(xrss)[0]
+    xrss = xrss[pv]
+    if xrss.size == 0 or not np.allclose(xrss, xrss[0]):
+        raise ValueError('failed to get scale of rb modes ... check `rb`')
+    rbscale = xrss[0]
+
     # attempt to find xyz triples
-    coords = np.zeros((n, 3)) + np.nan
+    coords = np.empty((n, 3))
+    coords[:] = np.nan
+    scales = np.empty(n)
+    scales[:] = np.nan
     j = 0
     while j+2 < n:
         pv = j + np.array([0, 1, 2])
@@ -1001,6 +1012,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
                 coords[pv, 0] = x
                 coords[pv, 1] = y
                 coords[pv, 2] = z
+                scales[pv] = np.sqrt(csqr)/rbscale
                 j += 3
             else:
                 j += 1
@@ -1025,8 +1037,8 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         writer.vecwrite(fout, '  Maximums:'+f, mx)
 
     def pf(s):
-        return s.replace(' nan,        nan,        nan',
-                         '    ,           ,           ')
+        return s.replace(' nan,        nan,        nan         nan',
+                         '    ,           ,                       ')
 
     r = np.arange(1, n+1)
     nonnr = np.any(drm, axis=1)
@@ -1043,7 +1055,9 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     else:
         fout.write('\n{} * RB results:  '
                    '(NOT including NULL rows)\n'.format(name))
-
+    fout.write('  Note: "Unit Scale" is output/input, so is '
+               'independent of\n  current rb scaling which is: {}'
+               '\n\n'.format(rbscale))
     if labels is None:
         labels = [''] * n
         labform = '{:5s}'
@@ -1051,19 +1065,21 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
 
     lablen = max(8, len(max(labels, key=len)))
     headers = ['Row', 'Label', 'Coordinates (x, y, z)',
+               'Unit Scale',
                name+' * RB Responses (x, y, z, rx, ry, rz)']
-    widths = [6, lablen, 10*3+4, 65]
+    widths = [6, lablen, 10*3+4, 10, 65]
     labform = '{{:{}s}}'.format(lablen)
     formats = ['{:6d}', labform,
                '{:10.4f}, '*2+'{:10.4f}',
+               '{:10.6}',
                '{:10.3f} '*5+'{:10.3f}']
-    sep = [2, 2, 2, 4]
+    sep = [2, 2, 2, 2, 2]
     h, u, f = writer.formheader(headers, widths, formats,
                                 sep=sep, just=0)
     fout.write(h)
     fout.write(u)
     if prtnullrows or np.all(nonnr):
-        writer.vecwrite(fout, f, r, labels, coords, drmrb,
+        writer.vecwrite(fout, f, r, labels, coords, scales, drmrb,
                         postfunc=pf)
     else:
         if np.all(nr):
@@ -1071,14 +1087,15 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         else:
             lbls = np.array(labels)
             writer.vecwrite(fout, f, r[nonnr], lbls[nonnr],
-                            coords[nonnr], drmrb[nonnr],
-                            postfunc=pf)
+                            coords[nonnr], scales[nonnr],
+                            drmrb[nonnr], postfunc=pf)
 
     fout.write('\nAbsolute Maximums from {} * RB results:\n'.
                format(name))
     j = np.argmax(np.abs(drmrb), axis=0)
 
     headers = ['Row', 'Label', 'Coordinates (x, y, z)',
+               'Unit Scale',
                'Maximum Responses on Diagonal'
                ' (x, y, z, rx, ry, rz)']
     h, u, f = writer.formheader(headers, widths, formats,
@@ -1088,7 +1105,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     for k in range(6):
         jk = j[k]
         writer.vecwrite(fout, f, r[jk], labels[jk],
-                        coords[jk:jk+1],
+                        coords[jk:jk+1], scales[jk:jk+1],
                         drmrb[jk:jk+1], postfunc=pf)
 
     # null row check:
@@ -1237,30 +1254,33 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     ATM has 12 (100.0%) non-NULL rows and 0 (0.0%) NULL rows.
     <BLANKLINE>
     ATM * RB results:  (NOT including NULL rows)
-       Row     Label          Coordinates (x, y, z)          ...
-      ------  --------  ----------------------------------   ...
-           1                0.0000,     0.0000,     0.0000   ...
-           2                0.0000,     0.0000,     0.0000   ...
-           3                0.0000,     0.0000,     0.0000   ...
-           4                      ,           ,              ...
-           5                      ,           ,              ...
-           6                      ,           ,              ...
-           7               10.0000,    20.0000,    30.0000   ...
-           8               10.0000,    20.0000,    30.0000   ...
-           9               10.0000,    20.0000,    30.0000   ...
-          10                      ,           ,              ...
-          11                      ,           ,              ...
-          12                      ,           ,              ...
+      Note: "Unit Scale" is output/input, so is independent of
+      current rb scaling which is: 1.0
+    <BLANKLINE>
+       Row     Label          Coordinates (x, y, z)         ...
+      ------  --------  ----------------------------------  ...
+           1                0.0000,     0.0000,     0.0000  ...
+           2                0.0000,     0.0000,     0.0000  ...
+           3                0.0000,     0.0000,     0.0000  ...
+           4                      ,           ,             ...
+           5                      ,           ,             ...
+           6                      ,           ,             ...
+           7               10.0000,    20.0000,    30.0000  ...
+           8               10.0000,    20.0000,    30.0000  ...
+           9               10.0000,    20.0000,    30.0000  ...
+          10                      ,           ,             ...
+          11                      ,           ,             ...
+          12                      ,           ,             ...
     <BLANKLINE>
     Absolute Maximums from ATM * RB results:
-       Row     Label          Coordinates (x, y, z)          ...
-      ------  --------  ----------------------------------   ...
-           1                0.0000,     0.0000,     0.0000   ...
-           2                0.0000,     0.0000,     0.0000   ...
-           3                0.0000,     0.0000,     0.0000   ...
-           8               10.0000,    20.0000,    30.0000   ...
-           7               10.0000,    20.0000,    30.0000   ...
-           7               10.0000,    20.0000,    30.0000   ...
+       Row     Label          Coordinates (x, y, z)         ...
+      ------  --------  ----------------------------------  ...
+           1                0.0000,     0.0000,     0.0000  ...
+           2                0.0000,     0.0000,     0.0000  ...
+           3                0.0000,     0.0000,     0.0000  ...
+           8               10.0000,    20.0000,    30.0000  ...
+           7               10.0000,    20.0000,    30.0000  ...
+           7               10.0000,    20.0000,    30.0000  ...
     <BLANKLINE>
     There are no NULL rows in ATM.
     """
@@ -1423,7 +1443,7 @@ def rbdispchk(f, rbdisp, grids=None,
     ...                    [1,  2,  3],
     ...                    [4, -5, 25]])
     >>> rb  = n2p.rbgeom(coords)
-    >>> xyz_pv = ytools.mkpattvec([0, 1, 2], 3*6, 6).flatten()
+    >>> xyz_pv = ytools.mkpattvec([0, 1, 2], 3*6, 6).ravel()
     >>> rbtrimmed = rb[xyz_pv]
     >>> rbtrimmed
     array([[  1.,   0.,   0.,   0.,   0.,   0.],
@@ -1554,7 +1574,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         koo = kbb[np.ix_(o, o)]
         rbmodes[o] = -linalg.solve(koo, kor)
 
-    xyz = ytools.mkpattvec([0, 1, 2], lb, 6).flatten()
+    xyz = ytools.mkpattvec([0, 1, 2], lb, 6).ravel()
     coords, maxerr = rbdispchk(outfile, rbmodes[xyz],
                                grids, ttl, verbose)
     if lq > 0:
@@ -1894,7 +1914,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
     else:
         fout.write('\n\nThere are no modes for the modal-effective-'
                    'mass check.\n')
-    return m, k, bset, rbs, rbg, rbe, uset
+    return SimpleNamespace(m=m, k=k, bset=bset, rbs=rbs, rbg=rbg,
+                           rbe=rbe, uset=uset)
 
 
 def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
@@ -1959,10 +1980,12 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
 
     Returns
     -------
-    M : 2d ndarray
+    A record (SimpleNamespace class) with the members:
+
+    m : 2d ndarray
         Reordered and converted version of Mcb. Will equal Mcb if no
         reordering or unit conversion is done.
-    K : 2d ndarray
+    k : 2d ndarray
         Reordered and converted version of Kcb. Will equal Kcb if no
         reordering or unit conversion is done.
     bset : 1d ndarray
@@ -1975,9 +1998,9 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         The geometry-based rigid-body modes  (b x 6).
     rbe : 2d ndarray
         The eigenvalue-based rigid-body modes (b+q x 6).
-    usetconv : 2d ndarray
-        Converted version of `uset`. Will equal `uset` if no unit
-        conversion is done.
+    uset : 2d ndarray
+        Converted version of then input `uset`. Will equal `uset` if
+        no unit conversion is done.
 
     Notes
     -----

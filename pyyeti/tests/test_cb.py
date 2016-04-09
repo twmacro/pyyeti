@@ -1,4 +1,6 @@
+import math
 import numpy as np
+import scipy.linalg as la
 from io import StringIO
 import tempfile
 import os
@@ -80,6 +82,11 @@ def test_cbtf():
             save = {}
             tf3 = cb.cbtf(m, c, k, a3, freq, b, save)
             tf4 = cb.cbtf(m, c, k, a2, freq, b, save)
+
+            assert np.all(freq == tf.freq)
+            assert np.all(freq == tf2.freq)
+            assert np.all(freq == tf3.freq)
+            assert np.all(freq == tf4.freq)
 
             assert np.allclose(tf.frc, tf2.frc)
             assert np.allclose(tf.a, tf2.a)
@@ -249,6 +256,7 @@ def gettable(lines, j, col=0, label=None, skip=0):
             j += 1
     j += skip
     for line in lines[j:]:
+        line = line.rstrip()
         if len(line) == 0:
             break
         line = line.replace(',',' ')
@@ -327,15 +335,26 @@ def test_cbcheck_indeterminate():
     f = tempfile.NamedTemporaryFile(delete=False)
     name = f.name
     f.close()
-    m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
+    # m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
+    out = cb.cbcheck(
         name, maa, kaa, b, b[:6], usetb, em_filt=2)
     with open(name) as f:
         sfile = f.read()
     os.remove(name)
+    assert (out.m == maa).all()
+    assert (out.k == kaa).all()
+    assert (out.uset == usetb).all()
+
+    rbg = n2p.rbgeom_uset(out.uset)
+    assert np.allclose(rbg, out.rbg)
+    rbg_s = np.vstack((la.solve(rbg[:6].T, rbg.T).T,
+                       np.zeros((q[q].size, 6))))
+    assert abs(out.rbs - rbg_s).max() < 1e-5
+    assert abs(out.rbe - rbg_s).max() < 1e-5
 
     # write to a string:
     with StringIO() as f:
-        m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
+        out = cb.cbcheck(
             f, maa, kaa, b, b[:6], usetb, em_filt=2)
         s = f.getvalue()
 
@@ -353,13 +372,13 @@ def test_cbcheck_indeterminate():
     compare_cbcheck_output(s, sy)
 
     with StringIO() as f:
-        m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
+        out = cb.cbcheck(
             f, maa, kaa, b, b[:6], usetb, em_filt=2, conv='e2m')
-        m, k, bset, rbs, rbg, rbe, usetconv2 = cb.cbcheck(
-            f, m, k, b, b[:6], usetconv, em_filt=2, conv='m2e')
-        assert np.allclose(usetconv2, usetb)
-        assert np.allclose(maa, m)
-        assert np.allclose(kaa, k)
+        out2 = cb.cbcheck(
+            f, out.m, out.k, b, b[:6], out.uset, em_filt=2, conv='m2e')
+        assert np.allclose(out2.uset, usetb)
+        assert np.allclose(maa, out2.m)
+        assert np.allclose(kaa, out2.k)
 
     # check for error catches:
     with StringIO() as f:
@@ -402,7 +421,7 @@ def test_cbcheck_determinate():
 
     # write to a string:
     with StringIO() as f:
-        m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
+        out = cb.cbcheck(
             f, maa, kaa, b, b[:6], em_filt=2)
         s = f.getvalue()
 
@@ -441,7 +460,7 @@ def test_cbcheck_unit_convert():
 
     # write to a string:
     with StringIO() as f:
-        m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
+        out = cb.cbcheck(
             f, maa, kaa, b, b[:6], uset=usetb, em_filt=2,
             conv=[1/25.4, 0.005710147154735817],
             uref=[600, 150, 150])
@@ -479,7 +498,7 @@ def test_cbcheck_reorder():
 
     # write to a string:
     with StringIO() as f:
-        m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
+        out = cb.cbcheck(
             f, maa, kaa, b, b[:6], usetb, em_filt=2)
         s = f.getvalue()
     s = s.splitlines()
@@ -526,6 +545,26 @@ def test_rbmultchk():
         sfile = f.read()
     os.remove(name)
 
+    # test rbscale and unit scale:
+    with StringIO() as f:
+        cb.rbmultchk(f, 0.00259*drm101, 'DRM101', 100*rb)
+        s = f.getvalue()
+
+    pos = s.find(' which is: ')
+    pos2 = s[pos:].find('\n')
+    assert math.isclose(float(s[pos+10:pos+pos2]), 100)
+    s = s.splitlines()
+    table, nj1 = gettable(s, 15, 0, 'Absolute Maximums', 3)
+    sbe = np.array([
+        [600,   300,   300,   0.00259],
+        [600,   300,   300,   0.00259],
+        [600,   300,   300,   0.00259],
+        [150,  -930,   150,   0.00259],
+        [600,   300,   300,   0.00259],
+        [150,  -930,   150,   0.00259]])
+
+    assert np.allclose(table[:, 1:5], sbe)
+
     # write to a string:
     with StringIO() as f:
         cb.rbmultchk(f, drm101, 'DRM101', rb)
@@ -563,7 +602,7 @@ def test_rbmultchk():
 
     j = [2]
     assert comptable(s, sy, j, label='Extreme ', skip=3, col=11)
-    assert comptable(s, sy, j, label=' Row ', skip=2, col=54)
+    assert comptable(s, sy, j, label=' Row ', skip=2, col=66)
     assert comptable(s, sy, j, label=' Row ', skip=2)
     assert comptable(s, sy, j, label=' Row ', skip=2)
 
@@ -602,7 +641,11 @@ def test_rbmultchk2():
         s = f.getvalue()
     assert s.find('different set of NULL rows') > -1
 
-    assert_raises(ValueError, cb.rbmultchk, f, drm, 'drm', 1)
+    with StringIO() as f:
+        assert_raises(ValueError, cb.rbmultchk, f, drm, 'drm', 1)
+    with StringIO() as f:
+        assert_raises(ValueError, cb.rbmultchk, f, drm, 'drm',
+                      np.zeros((6, 6)))
 
 
 def test_rbdispchk():
