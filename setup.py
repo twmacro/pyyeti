@@ -6,6 +6,7 @@ import numpy
 import pyyeti
 import os
 import matplotlib as mpl
+mpl.interactive(False)
 mpl.use('Agg')
 
 ext_errors = (CCompilerError, DistutilsExecError,

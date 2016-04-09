@@ -17,6 +17,7 @@ import sys
 import os
 import shlex
 import matplotlib as mpl
+mpl.interactive(False)
 mpl.use('Agg')
 
 # If extensions (or modules to document with autodoc) are in another directory,
