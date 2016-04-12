@@ -996,7 +996,8 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         try:
             T2 = linalg.inv(T1)
             mx = np.max(np.abs(T1))
-            good = np.max(np.abs(csqr*T2-T1.T)) <= 1e-3*mx
+            good = np.allclose(csqr*T2, T1.T,
+                               rtol=0.001, atol=max(0.001*mx, 1.e-5))
         except linalg.LinAlgError:
             good = False
         if good:
@@ -1007,8 +1008,9 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
             rbrot_ideal = np.array([[0, z, -y],
                                     [-z, 0, x],
                                     [y, -x, 0]])
-            mx = np.max(np.abs(rbrot_ideal))
-            if np.max(np.abs(rbrot-rbrot_ideal)) <= 1e-3*mx:
+            mx = abs(rbrot_ideal).max()
+            if np.allclose(rbrot, rbrot_ideal,
+                           rtol=0.001, atol=max(0.001*mx, 1.e-5)):
                 coords[pv, 0] = x
                 coords[pv, 1] = y
                 coords[pv, 2] = z
