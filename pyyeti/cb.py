@@ -104,7 +104,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         &= \left(-M_{qb} + i B_{qb}/\Omega \right) \ddot{X}_b(\Omega)
         \end{aligned}
 
-    That equation is solve via :func:`tfsolve.TFSolve.fsu`. After
+    That equation is solved via :func:`tfsolve.TFSolve.fsu`. After
     solution, :math:`F_b(\Omega)` is computed from the top equation
     above.
 
