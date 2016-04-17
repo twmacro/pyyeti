@@ -101,7 +101,6 @@ class PP:
                 'variable': [1, 2, 3]
         <BLANKLINE>
         <...>
-
         >>> PP(A, show_hidden=1)       # doctest: +ELLIPSIS
         class[n=6]
             .__dict__   : <attribute '__dict__' of 'A' objects>
