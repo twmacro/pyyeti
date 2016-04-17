@@ -229,7 +229,7 @@ class PP:
 
     def pp(self, var):
         """
-        Pretty print variable `var`.
+        Pretty print variable `var`. See :class:`PP`.
         """
         self.output = ''
         self._print_var(var, 0)
