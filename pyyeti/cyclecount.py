@@ -346,16 +346,17 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
     4  4.5   0.5    0.5
     5  4.0   0.0    0.5
     6  3.0   1.0    0.5
-    >>> cyclecount._binify(rf, 3, 2)
-    Amp              (1.497, 2.500]  (2.500, 3.500]  (3.500, 4.500]
-    Mean                                                           
-    (-1.002, 0.000]               1             0.0             0.5
-    (0.000, 1.000]                1             0.5             1.0
-    >>> cyclecount._binify(rf, 3, 2, right=0)
-    Amp              [1.500, 2.500)  [2.500, 3.500)  [3.500, 4.503)
-    Mean                                                           
-    [-1.000, 0.000)               1             0.0             0.0
-    [0.000, 1.002)                1             0.5             1.5
+    >>> format = lambda x: "{:.1f}".format(x)
+    >>> cyclecount._binify(rf, 3, 2).applymap(format)
+    Amp             (1.497, 2.500] (2.500, 3.500] (3.500, 4.500]
+    Mean                                                        
+    (-1.002, 0.000]            1.0            0.0            0.5
+    (0.000, 1.000]             1.0            0.5            1.0
+    >>> cyclecount._binify(rf, 3, 2, right=0).applymap(format)
+    Amp             [1.500, 2.500) [2.500, 3.500) [3.500, 4.503)
+    Mean                                                        
+    [-1.000, 0.000)            1.0            0.0            0.0
+    [0.000, 1.002)             1.0            0.5            1.5
     """
     ampb = getbins(ampbins, rf['amp'].max(),
                    rf['amp'].min(), right)

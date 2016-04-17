@@ -296,7 +296,7 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
 
     >>> from pyyeti.stats import order_stats
     >>> order_stats('r', p=.99, c=.90, n=700)
-    4.0
+    4
 
     Holding the probability constant at 90%, the portion of the
     population bounded has to be at least 99%. But, what did it turn
@@ -316,7 +316,7 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
     level by selecting the 4th highest?
 
     >>> order_stats('n', p=.99, c=.90, r=4)
-    667.0
+    667
 
     Generate a 90% confidence table showing the number of trials
     needed for: `r` will go from 1 to 12 (defining the rows), and
@@ -355,8 +355,8 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
         r = np.empty(b.shape)
         r.flat = [binom.ppf(1-c, n, 1-p) for (c, n, p) in b]
         if r.ndim == 0:
-            return r[()]
-        return r
+            return int(r[()])
+        return r.astype(int)
     elif which == 'n':
         def func(n, p, s, pr):
             return p-(1-betainc(s+1, n-s, pr))
@@ -375,7 +375,7 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
         b = np.broadcast(c, r, p)
         n = np.empty(b.shape)
         n.flat = [run_brentq(c, r, p) for (c, r, p) in b]
-        return np.ceil(n)
+        return np.ceil(n).astype(int)
     elif which == 'p':
         def func(pr, p, s, n):
             return p-binom.cdf(s, n, pr)

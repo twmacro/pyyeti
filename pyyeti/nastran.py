@@ -414,7 +414,10 @@ def rdgrids(f):
     >>> with StringIO() as f:
     ...     nastran.wtgrids(f, [100, 200], xyz=xyz, cd=10)
     ...     g = nastran.rdgrids(f)
-    >>> DataFrame(g)
+    >>> df = DataFrame(g)
+    >>> intcols = [0, 1, 5, 6, 7]
+    >>> df[intcols] = df[intcols].astype(int)
+    >>> df
          0  1    2    3    4   5  6  7
     0  100  0  0.1  0.2  0.3  10  0  0
     1  200  0  1.1  1.2  1.3  10  0  0
