@@ -11,6 +11,7 @@ Main routines
 
     aligntime
     calcenv
+    fdscale
     fixtime
     resample
     waterfall

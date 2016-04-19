@@ -407,8 +407,8 @@ def ntfl(Source, Load, As, freq):
         Ml = LAM[:, j, :]
         Mr = la.solve(Ms+Ml, Ms)
         R[:, j] = np.diag(Mr)
-        A[:, j] = Mr @ As[:, j:j+1]
-        F[:, j] = Ml @ A[:, j:j+1]
+        A[:, j] = Mr @ As[:, j]
+        F[:, j] = Ml @ A[:, j]
     return SimpleNamespace(R=R, F=F, A=A, LAM=LAM, SAM=SAM,
                            TAM=TAM, freq=freq)
 

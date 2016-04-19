@@ -503,3 +503,28 @@ def test_aligntime2():
                ax2=(t2, y2))
     assert_raises(ValueError, dsp.aligntime, dct)
     assert_raises(ValueError, dsp.aligntime, dct, mode='expand')
+
+
+def test_fdscale():
+    sig, t, f = ytools.gensweep(10, 1, 12, 8)
+    scale = np.array([[0., 1.0],
+                      [4., 1.0],
+                      [5., 0.5],
+                      [8., 0.5],
+                      [9., 1.0],
+                      [100., 1.0]])
+    sig_scaled = dsp.fdscale(sig, 1/t[1], scale)
+    x = np.arange(0, 10, .001)
+    y = 1/np.interp(x, scale[:, 0], scale[:, 1])
+    unscale = np.vstack((x, y)).T
+    sig_unscaled = dsp.fdscale(sig_scaled, 1/t[1], unscale)
+    assert np.allclose(sig, sig_unscaled, atol=1e-6)
+
+    sig_scaled = dsp.fdscale(sig[:-1], 1/t[1], scale)
+    sig_unscaled = dsp.fdscale(sig_scaled, 1/t[1], unscale)
+    assert np.allclose(sig[:-1], sig_unscaled, atol=1e-6)
+
+    sig2 = np.vstack((sig, sig)).T
+    sig_scaled = dsp.fdscale(sig2, 1/t[1], scale)
+    sig_unscaled = dsp.fdscale(sig_scaled, 1/t[1], unscale)
+    assert np.allclose(sig2, sig_unscaled, atol=1e-6)

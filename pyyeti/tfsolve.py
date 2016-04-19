@@ -2108,8 +2108,10 @@ class TFSolve:
         else:
             name = ('damping', 'stiffness')
             mats = (b, k)
+        any_2d = False
         for i, mat in enumerate(mats):
             if mat.ndim == 2:
+                any_2d = True
                 if mat.shape[0] != mat.shape[1]:
                     raise ValueError("{} matrix is non-square!".
                                      format(name[i]))
@@ -2125,16 +2127,21 @@ class TFSolve:
             else:
                 raise ValueError("{} has more than 2 dimensions!".
                                  format(name[i]))
+        return any_2d
 
     def _do_pre_eig(self, m, b, k):
         """Do a "pre" eigensolution to put system in modal space"""
         err = False
+        if k.ndim == 1:
+            k = np.diag(k)
         if m is None:
             w, u = la.eigh(k)
             kdiag = u.T @ k @ u
             if not ytools.isdiag(kdiag):
                 err = True
         else:
+            if m.ndim == 1:
+                m = np.diag(m)
             w, u = la.eigh(k, m)
             kdiag = u.T @ k @ u
             mdiag = u.T @ m @ u
@@ -2169,8 +2176,8 @@ class TFSolve:
                     np.iscomplexobj(k)):
                 systype = complex
         n = k.shape[0]
-        self._assert_square(n, m, b, k)
-        if pre_eig:
+        any_2d = self._assert_square(n, m, b, k)
+        if pre_eig and any_2d:
             m, b, k = self._do_pre_eig(m, b, k)
         else:
             self.pre_eig = False

@@ -1301,3 +1301,88 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
     else:
         h = None
     return xe_max, ye_max, xe_min, ye_min, h
+
+
+def fdscale(y, sr, scale):
+    """
+    Scale a time signal in the frequency domain.
+
+    Parameters
+    ----------
+    y : 1d or 2d array_like
+        Signal(s) to be scaled. If 2d, each column is scaled.
+    sr : scalar
+        Sample rate.
+    scale : 2d array_like
+        A two column matrix of [freq scale]. It is automatically sized
+        to the correct dimensions via linear interpolation (uses
+        :func:`np.interp`).
+
+    Returns
+    -------
+    y_new : 1d or 2d ndarray
+        The scaled version of `y`.
+
+    Notes
+    -----
+    This routine uses FFT to convert `y` to the frequency domain,
+    applies the scale factors, and does an inverse FFT to get back to
+    the time domain. For example, using
+    ``scale = [[1. 1.], [100., 1.]]`` would accomplish nothing.
+
+    The function :func:`scipy.signal.firwin2` can accomplish a similar
+    scaling via a digital filter.
+
+    Examples
+    --------
+    Generate a unit amplitude sine sweep signal and scale down the
+    middle section:
+
+    .. plot::
+        :context: close-figs
+
+        >>> from pyyeti import ytools, dsp
+        >>> import matplotlib.pyplot as plt
+        >>> sig, t, f = ytools.gensweep(10, 1, 12, 8)
+        >>> scale = np.array([[0., 1.0],
+        ...                   [4., 1.0],
+        ...                   [5., 0.5],
+        ...                   [8., 0.5],
+        ...                   [9., 1.0],
+        ...                   [100., 1.0]])
+        >>> sig_scaled = dsp.fdscale(sig, 1/t[1], scale)
+        >>> _ = plt.figure('gensweep2')
+        >>> _ = plt.subplot(211)
+        >>> _ = plt.plot(f, sig)
+        >>> _ = plt.title('Sine Sweep vs Frequency')
+        >>> _ = plt.xlabel('Frequency (Hz)')
+        >>> _ = plt.xlim([f[0], f[-1]])
+        >>> _ = plt.subplot(212)
+        >>> _ = plt.plot(f, sig_scaled)
+        >>> _ = plt.plot(*scale.T, 'k-', lw=2, label='Scale')
+        >>> _ = plt.legend(loc='best')
+        >>> _ = plt.title('Scaled Sine Sweep vs Frequency')
+        >>> _ = plt.xlabel('Time (s)')
+        >>> _ = plt.xlim([f[0], f[-1]])
+        >>> _ = plt.tight_layout()
+    """
+    y = np.atleast_1d(y)
+    scale = np.atleast_2d(scale)
+    if y.ndim == 1:
+        is1d = True
+        y = y[:, None]
+    else:
+        is1d = False
+
+    n = y.shape[0]
+    even = n % 2 == 0
+    m = n//2 + 1 if even else (n+1)//2
+    freq = np.arange(m)*(sr/n)  # positive 1/2 frequency scale
+
+    F = np.fft.rfft(y, axis=0)
+    h = np.interp(freq, scale[:, 0], scale[:, 1])
+    Ynew = np.fft.irfft(F * h[:, None], n=n, axis=0)
+
+    if is1d:
+        return Ynew.ravel()
+    return Ynew
