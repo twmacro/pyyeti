@@ -1362,8 +1362,9 @@ def fdscale(y, sr, scale):
         >>> _ = plt.plot(*scale.T, 'k-', lw=2, label='Scale')
         >>> _ = plt.legend(loc='best')
         >>> _ = plt.title('Scaled Sine Sweep vs Frequency')
-        >>> _ = plt.xlabel('Time (s)')
+        >>> _ = plt.xlabel('Frequency (Hz)')
         >>> _ = plt.xlim([f[0], f[-1]])
+        >>> _ = plt.grid(True)
         >>> _ = plt.tight_layout()
     """
     y = np.atleast_1d(y)
