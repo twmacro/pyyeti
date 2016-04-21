@@ -4,9 +4,8 @@ A pretty printer.
 """
 import numpy as np
 import h5py
-from types import SimpleNamespace
 
-class PP:
+class PP(object):
     """
     A simple class for pretty printing data structures.
     """
