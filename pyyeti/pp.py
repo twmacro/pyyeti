@@ -28,9 +28,10 @@ class PP:
         strlen : integer; optional
             Maximum length for dictionary (and similar) values.
         show_hidden : bool; optional
-            For classes, if `show_hidden` is True, show
-            members that start with '_'. Default is to not
-            show them.
+            Many objects (classes, class instances, namespaces, etc)
+            are printed via looping over the ``.__dict__`` method. For
+            those variables, if `show_hidden` is True, show members
+            that start with '_'. Default is to not show them.
 
         Notes
         -----
@@ -65,14 +66,14 @@ class PP:
         ...      }
         ... }
         >>> PP(d)       # doctest: +ELLIPSIS
-        dict[n=4]
+        <class 'dict'>[n=4]
             '34'         : 'value'
             'asdf'       : 4
-            'longer name': dict[n=4]
+            'longer name': <class 'dict'>[n=4]
                 1: 2
                 2: 3
                 3: float64 ndarray 64 elems: (4, 4, 4)
-                4: namespace[n=4]
+                4: <class 'types.SimpleNamespace'>[n=4]
                     .a  : 6
                     .b  : [1, 23]
                     .t  : uint8 ndarray 1 elems: () 9
@@ -81,34 +82,34 @@ class PP:
         <BLANKLINE>
         <...>
         >>> PP(d, depth=1)       # doctest: +ELLIPSIS
-        dict[n=4]
+        <class 'dict'>[n=4]
             '34'         : 'value'
             'asdf'       : 4
-            'longer name': dict[n=4]
+            'longer name': <class 'dict'>[n=4]
             'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
         <BLANKLINE>
         <...>
 
-        Classes have the `show_hidden` option:
+        To demonstrate the `show_hidden` option:
 
         >>> class A:
         ...     a = 9
         ...     b = {'variable': [1, 2, 3]}
         >>> PP(A)       # doctest: +ELLIPSIS
-        class[n=6]
+        <class 'type'>[n=6]
             .a: 9
-            .b: dict[n=1]
+            .b: <class 'dict'>[n=1]
                 'variable': [1, 2, 3]
         <BLANKLINE>
         <...>
         >>> PP(A, show_hidden=1)       # doctest: +ELLIPSIS
-        class[n=6]
+        <class 'type'>[n=6]
             .__dict__   : <attribute '__dict__' of 'A' objects>
             .__doc__    : None
             .__module__ : 'pyyeti.pp'
             .__weakref__: <attribute '__weakref__' of 'A' objects>
             .a          : 9
-            .b          : dict[n=1]
+            .b          : <class 'dict'>[n=1]
                 'variable': [1, 2, 3]
         <BLANKLINE>
         <...>
@@ -119,9 +120,6 @@ class PP:
         self._strlen = strlen
         self._show_hidden = show_hidden
         self._functions = {
-            dict: self._dict_string,
-            SimpleNamespace: self._ns_string,
-            type: self._class_string,
             np.ndarray: self._array_string,
             h5py._hl.dataset.Dataset: self._h5data_string,
             }
@@ -183,12 +181,12 @@ class PP:
             keys = list(dct.keys())
         return keys
 
-    def _dict_string(self, dct, level, typename='dict', isns=False,
+    def _dict_string(self, dct, level, typename, isns=False,
                      showhidden=True):
         self.output = (self.output + '{}[n={}]\n'
                        .format(typename, len(dct)))
         if level < self._depth:
-            keys = self._get_keys(dct, showhidden)  # list(dct)
+            keys = self._get_keys(dct, showhidden)
             try:
                 keys = sorted(keys)
             except TypeError:
@@ -205,23 +203,19 @@ class PP:
                 self.output = self.output + frm.format(s)
                 self._print_var(dct[k], level)
 
-    def _ns_string(self, ns, level):
-        self._dict_string(ns.__dict__, level,
-                          typename='namespace', isns=True)
-
-    def _class_string(self, ns, level):
-        self._dict_string(ns.__dict__, level,
-                          typename='class', isns=True,
-                          showhidden=self._show_hidden)
-
     def _print_var(self, var, level):
         try:
             self._functions[type(var)](var, level)
         except KeyError:
             typename = str(type(var))
-            if isinstance(var, (h5py._hl.files.File,
+            if isinstance(var, (dict,
+                                h5py._hl.files.File,
                                 h5py._hl.files.Group)):
                 self._dict_string(var, level, typename=typename)
+            elif '__dict__' in dir(var):
+                self._dict_string(var.__dict__, level,
+                                  typename=typename, isns=True,
+                                  showhidden=self._show_hidden)
             else:
                 s = self._value_string(var)
                 self.output = self.output + s + '\n'
