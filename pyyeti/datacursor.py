@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 This small class was inspired by code posted by HappyLeapSecond which
-was derived from code posted by Joe Kington.  See:
+was derived from code posted by Joe Kington. See:
 
 http://stackoverflow.com/questions/13306519/\
 get-data-from-plot-with-matplotlib
@@ -31,25 +31,25 @@ class DataCursor:
     ----------
     ax : axes object(s) or None
         Axes object or list of axes objects as created by
-        :func:`matplotlib.pyplot.subplot`.  If None, all axes on all
+        :func:`matplotlib.pyplot.subplot`. If None, all axes on all
         figures will be automatically included.
     hover : bool
         If True, an annotated large green, semi-transparent dot is
         displayed that follows the mouse as long as the mouse is inside
         the axes.
     form1 : function
-        Function to format the x, y data for the annotation.  This is
-        called for axes that have only one line.  Must accept x, y, n
-        and return a string; eg:  def func(x, y, n).  The argument n is
-        the line number starting at 0.  Defaults to::
+        Function to format the x, y data for the annotation. This is
+        called for axes that have only one line. Must accept x, y, n
+        and return a string; eg:  def func(x, y, n). The argument n is
+        the line number starting at 0. Defaults to::
 
           def form1(x, y, n):
               return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
 
     form2 : function
-        Function to format the x, y data for the annotation.  This is
-        called for axes that have more than one line.  Same signature
-        as `form1`.  Defaults to::
+        Function to format the x, y data for the annotation. This is
+        called for axes that have more than one line. Same signature
+        as `form1`. Defaults to::
 
           def form2(x, y, n):
               return ('x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.
@@ -68,7 +68,7 @@ class DataCursor:
         Same length as `xypoints`.
     pts : list
         Contains the :func:`plt.scatter` object handles for the selected
-        points.  Same length as `xypoints`.
+        points. Same length as `xypoints`.
     notes : list
         Contains the annotation object handles for the selected points.
         Same length as `xypoints`.
@@ -112,24 +112,29 @@ class DataCursor:
     ===========  ======================================================
 
     To get x-y data points from plots from within a script, use
-    :func:`DataCursor.getdata`.  Enter the number of points or press
+    :func:`DataCursor.getdata`. Enter the number of points or press
     't' to end blocking so the script will continue (see
     :func:`getdata`).
 
     Once the DataCursor is toggled off, the annotations become
-    draggable.  Note: due to a bug in matplotlib v1.4.3, dragging
-    annotations connected to points with negative x or y coordinates
-    doesn't work correctly.
+    draggable. Two notes on this:
+
+        1. Due to a bug in matplotlib v1.4.3, dragging annotations
+           connected to points with negative x or y coordinates
+           doesn't work correctly. Newer versions work properly.
+        2. Somehow, annotations sometimes become linked (moving one
+           will move another). When that happens, try dragging
+           a different annotation; this often breaks the link.
 
     Interactively, the member functions :func:`DataCursor.on` and
     :func:`DataCursor.off` can be used to turn the DataCursor on and
-    off.  These functions will update the internal state of the
+    off. These functions will update the internal state of the
     `DataCursor` to account for deleted or added items.
     :func:`DataCursor.getdata` calls :func:`DataCursor.on` internally.
 
     The following example plots some random data, calls :func:`getdata`
     to wait for the user to optionally select data points and
-    then toggle the DataCursor off (with keystroke 't').  It then
+    then toggle the DataCursor off (with keystroke 't'). It then
     prints the selected points.::
 
         import matplotlib.pyplot as plt
@@ -193,12 +198,13 @@ class DataCursor:
 
     def on(self, newax=-1):
         """
-        Toggles on and (re-)inititializes the DataCursor for current
+        Toggles on and (re-)initializes the DataCursor for current
         figures.
 
         If `newax` is -1, the axes that the DataCursor uses remain
-        unchanged.  Other value reset the DataCursor as described in the
-        main help.
+        unchanged (all, if `ax` was originally None). Other value
+        reset the DataCursor as described in the main help for the
+        `ax` input.
         """
         if newax != -1:
             self._ax_input = newax
@@ -370,7 +376,7 @@ class DataCursor:
                            visible=False)
 
     def _setup_annotations(self):
-        """Create the annotation boxes.  The string value and the
+        """Create the annotation boxes. The string value and the
         position will be set for each event."""
         self._annotation = {}
         self._dot = {}
