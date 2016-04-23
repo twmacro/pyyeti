@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Python tools for reading/writing Nastran .op4 files.  Can read and
+Python tools for reading/writing Nastran .op4 files. Can read and
 write all formats (as far as I know) with the restriction that the
 output files created by this class are always double precision. The
 binary files can be in big or little endian format.
@@ -119,7 +119,7 @@ class OP4():
         Sets these class variables:
 
         _fileh : file handle
-            Value returned by open().  File is opened in 'r' mode if
+            Value returned by open(). File is opened in 'r' mode if
             ascii, 'rb' mode if binary.
         _ascii : bool
             True if file is ascii.
@@ -131,7 +131,7 @@ class OP4():
         _endian : string
             Will be '' if no byte-swapping is required; otherwise,
             either '>' or '<' for big-endian and little-endian,
-            respectively.  Only used for binary files.
+            respectively. Only used for binary files.
         _Str_i4 : struct.Struct object
             Precompiled for reading 4 byte integers
         _Str_i : struct.Struct object
@@ -232,7 +232,7 @@ class OP4():
         None
 
         On entry, file is positioned after the title line, but before
-        the first column is printed.  On exit, the file is positioned
+        the first column is printed. On exit, the file is positioned
         so the next readline will get the next title line.
         """
         # read until next matrix:
@@ -294,7 +294,7 @@ class OP4():
         """
         if not (name[0].isalpha() or name[0] == '_'):
             oldname, name = name, '_'+name
-            warnings.warn('Output4 file has matrix name: {}.  '
+            warnings.warn('Output4 file has matrix name: {}. '
                           'Changing to {}.'.format(oldname, name),
                           RuntimeWarning)
         return name
@@ -651,7 +651,7 @@ class OP4():
         Returns
         -------
         ind : ndarray
-            m x 2 ndarray.  m is number of non-zero sequences in v.
+            m x 2 ndarray. m is number of non-zero sequences in v.
             First column contains the indices to the start of each
             sequence and the second column contains the length of
             the sequence.
@@ -1076,14 +1076,14 @@ class OP4():
             Name of op4 file to read.
         namelist : list, string, or None; optional
             List of variable names to read in, or string with name of
-            the single variable to read in, or None.  If None, all
+            the single variable to read in, or None. If None, all
             matrices are read in.
 
         Returns
         -------
         dct : dictionary
             Keys are the lower-case matrix names and the values are a
-            tuple of:  (matrix, form, mtype).
+            tuple of: (matrix, form, mtype).
 
         See also
         --------
@@ -1120,7 +1120,7 @@ class OP4():
             Name of op4 file to read.
         namelist : list, string, or None; optional
             List of variable names to read in, or string with name of
-            the single variable to read in, or None.  If None, all
+            the single variable to read in, or None. If None, all
             matrices are read in.
 
         Returns
@@ -1176,7 +1176,7 @@ class OP4():
             Name of op4 file to read.
         namelist : list, string, or None; optional
             List of variable names to read in, or string with name of
-            the single variable to read in, or None.  If None, all
+            the single variable to read in, or None. If None, all
             matrices are read in.
         into : string; optional
             Either 'dct' or 'list'. Use 'list' if multiple matrices
@@ -1281,20 +1281,20 @@ class OP4():
             Matrix name or list of matrix names or dictionary indexed
             by the names.
         matrices : array or list; optional
-            2d ndarray or list of 2d ndarrays.  Ignored if `names` is
+            2d ndarray or list of 2d ndarrays. Ignored if `names` is
             a dictionary.
         binary : bool; optional
             If true, a double precision binary file is written;
             otherwise an ascii file is created.
         digits : integer; optional
             Number of significant digits after the decimal to include
-            in the ascii output.  Ignored for binary files.
+            in the ascii output. Ignored for binary files.
         endian : string; optional
             Endian setting for binary output:  '' for native, '>' for
             big-endian and '<' for little-endian.
         sparse : string; optional
-            Empty or 'bigmat' or 'nonbigmat'.  If set to 'bigmat' or
-            'nonbigmat', that sparse format is selected.  Note that if
+            Empty or 'bigmat' or 'nonbigmat'. If set to 'bigmat' or
+            'nonbigmat', that sparse format is selected. Note that if
             the number of rows is > 65535, then both the 'bigmat' and
             'nonbigmat' options become 'bigmat'.
 
@@ -1306,7 +1306,7 @@ class OP4():
         -----
         To write multiple matrices that have the same name or to write
         the matrices in a specific order, `names` must be a list, not
-        a dictionary.  If a dictionary, the matrices are written in
+        a dictionary. If a dictionary, the matrices are written in
         alphabetical order.
 
         To write m, k, b, in that order to an ascii file::
@@ -1393,7 +1393,7 @@ def load(filename, namelist=None, into='dct'):
         Name of op4 file to read.
     namelist : list, string, or None; optional
         List of variable names to read in, or string with name of the
-        single variable to read in, or None.  If None, all matrices
+        single variable to read in, or None. If None, all matrices
         are read in.
     into : string; optional
         Either 'dct' or 'list'. Use 'list' if multiple matrices share
@@ -1403,7 +1403,7 @@ def load(filename, namelist=None, into='dct'):
     -------
     dct : dictionary, if ``into == 'dct'``
         Keys are the lower-case matrix names and the values are a
-        tuple of:  (matrix, form, mtype).
+        tuple of: (matrix, form, mtype).
 
     tup : tuple, if ``into == 'list'``
     names : list
@@ -1475,20 +1475,20 @@ def write(filename, names, matrices=None,
         Matrix name or list of matrix names or dictionary indexed
         by the names.
     matrices : array or list; optional
-        2d ndarray or list of 2d ndarrays.  Ignored if `names` is
+        2d ndarray or list of 2d ndarrays. Ignored if `names` is
         a dictionary.
     binary : bool; optional
         If true, a double precision binary file is written;
         otherwise an ascii file is created.
     digits : integer; optional
         Number of significant digits after the decimal to include
-        in the ascii output.  Ignored for binary files.
+        in the ascii output. Ignored for binary files.
     endian : string; optional
         Endian setting for binary output:  '' for native, '>' for
         big-endian and '<' for little-endian.
     sparse : string; optional
-        Empty or 'bigmat' or 'nonbigmat'.  If set to 'bigmat' or
-        'nonbigmat', that sparse format is selected.  Note that if
+        Empty or 'bigmat' or 'nonbigmat'. If set to 'bigmat' or
+        'nonbigmat', that sparse format is selected. Note that if
         the number of rows is > 65535, then both the 'bigmat' and
         'nonbigmat' options become 'bigmat'.
 
@@ -1500,7 +1500,7 @@ def write(filename, names, matrices=None,
     -----
     To write multiple matrices that have the same name or to write
     the matrices in a specific order, `names` must be a list, not
-    a dictionary.  If a dictionary, the matrices are written in
+    a dictionary. If a dictionary, the matrices are written in
     alphabetical order.
 
     `save` is an alias for `write`.

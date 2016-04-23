@@ -51,9 +51,9 @@ help:
 clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf modules/generated/*
-	rm -rf tutorial/*.rst
-	rm -rf tutorial/.ipynb_checkpoints
-	rm -rf tutorial/*_files
+	rm -rf tutorials/*.rst
+	rm -rf tutorials/.ipynb_checkpoints
+	rm -rf tutorials/*_files
 
 notebooks:
 

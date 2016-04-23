@@ -1804,9 +1804,9 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         plt.axis('equal')
         plt.title('Old ring nodes and new ring 1 nodes -- should '
                   'see circles')
-        # plt.legend(loc='best', scatterpoints=1)
-        plt.legend(loc='upper center', bbox_to_anchor=(.5, -.1))
-        fig.subplots_adjust(bottom=.27)
+        plt.xlabel('XYZ'[lat[0]])
+        plt.ylabel('XYZ'[lat[1]])
+        fig.subplots_adjust(bottom=.3)
 
     newpts = np.zeros((n1, 3))
     newpts[:, ax] = xyz[1][0, ax]
@@ -1832,7 +1832,7 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         segments_y[2::3] = np.nan
         plt.plot(segments_x, segments_y, 'r-',
                  label='RBE2s - should be R1 radial')
-        plt.legend(loc='upper center', bbox_to_anchor=(.5, -.15))
+        plt.legend(loc='upper center', bbox_to_anchor=(.5, -.1))
 
     # write new grids
     f.write('$\n$ Grids to RBE2 to Ring 1 grids. These grids line '
@@ -1878,6 +1878,8 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         plt.axis('equal')
         plt.title('Final RSPLINE - should be no sharp direction '
                   'changes')
+        plt.xlabel('XYZ'[lat[0]])
+        plt.ylabel('XYZ'[lat[1]])
 
 
 def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
