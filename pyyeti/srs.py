@@ -264,27 +264,27 @@ def relvelo(Q, dT, wn):
 
 
 def _absmeth(resp):
-    return np.max(np.abs(resp), axis=1)
+    return abs(resp).max(axis=0)
 
 
 def _posmeth(resp):
-    return np.abs(np.max(resp, axis=1))
+    return abs(resp.max(axis=0))
 
 
 def _possmeth(resp):
-    return np.max(resp, axis=1)
+    return resp.max(axis=0)
 
 
 def _negmeth(resp):
-    return np.abs(np.min(resp, axis=1))
+    return abs(resp.min(axis=0))
 
 
 def _negsmeth(resp):
-    return np.min(resp, axis=1)
+    return resp.min(axis=0)
 
 
 def _rmsmeth(resp):
-    return np.sqrt(np.mean(resp**2, axis=1))
+    return np.sqrt((resp**2).mean(axis=0))
 
 
 def fftroll(sig, sr, ppc, frq):
@@ -294,7 +294,7 @@ def fftroll(sig, sr, ppc, frq):
     Parameters
     ----------
     sig : ndarray
-        The signal(s), n x time-steps.
+        The signal(s), time-steps x n.
     sr : scalar
         Sample rate.
     ppc : scalar
@@ -320,15 +320,15 @@ def fftroll(sig, sr, ppc, frq):
     --------
     :func:`scipy.signal.resample`
     """
-    N = np.size(sig, 1)
+    N = sig.shape[0]
     if N > 1:
         curppc = sr/frq
-        factor = np.ceil(ppc/curppc)
+        factor = int(np.ceil(ppc/curppc))
         if N & 1:
-            sig = signal.resample(sig[:, :-1], int(factor)*(N-1),
-                                  axis=1)
+            sig = signal.resample(sig[:-1], factor*(N-1),
+                                  axis=0)
         else:
-            sig = signal.resample(sig, int(factor)*N, axis=1)
+            sig = signal.resample(sig, factor*N, axis=0)
         sr *= factor
     return sig, sr
 
@@ -341,7 +341,7 @@ def lanroll(sig, sr, ppc, frq):
     Parameters
     ----------
     sig : ndarray
-        The signal(s), n x time-steps.
+        The signal(s), time-steps x n.
     sr : scalar
         Sample rate.
     ppc : scalar
@@ -362,11 +362,11 @@ def lanroll(sig, sr, ppc, frq):
     This was determined from trial and error and comparison to the FFT
     method.
     """
-    N = np.size(sig, 1)
+    N = sig.shape[0]
     if N > 1:
         curppc = sr/frq
         factor = int(np.ceil(ppc/curppc))
-        sig = dsp.resample(sig.T, factor, 1, pts=65).T
+        sig = dsp.resample(sig, factor, 1, pts=65)
         sr *= factor
     return sig, sr
 
@@ -379,7 +379,7 @@ def preroll(sig, sr, ppc, frq):
     Parameters
     ----------
     sig : ndarray
-        The signal(s), n x time-steps.
+        The signal(s), time-steps x n.
     sr : scalar
         Sample rate.
     ppc : scalar
@@ -407,7 +407,7 @@ def preroll(sig, sr, ppc, frq):
     """
     b = np.array([.8767, 1.7533, .8767])
     a = np.array([1, 1.6296, .8111, .0659])
-    sig = signal.filtfilt(b, a, sig, axis=1)
+    sig = signal.filtfilt(b, a, sig, axis=0)
     return sig, sr
 
 
@@ -418,7 +418,7 @@ def linroll(sig, sr, ppc, frq):
     Parameters
     ----------
     sig : ndarray
-        The signal(s), n x time-steps.
+        The signal(s), time-steps x n.
     sr : scalar
         Sample rate.
     ppc : scalar
@@ -438,14 +438,14 @@ def linroll(sig, sr, ppc, frq):
     Note that linear interpolation is not recommended for increasing
     sample rate.
     """
-    N = np.size(sig, 1)
+    N = sig.shape[0]
     if N > 1:
         curppc = sr/frq
-        factor = np.ceil(ppc/curppc)
+        factor = int(np.ceil(ppc/curppc))
         told = np.arange(N)/sr
         sr *= factor
-        tnew = np.linspace(0., told[-1], N*int(factor)-1)
-        ifunc = interp.interp1d(told, sig, axis=1)
+        tnew = np.linspace(0., told[-1], N*factor-1)
+        ifunc = interp.interp1d(told, sig, axis=0)
         sig = ifunc(tnew)
     return sig, sr
 
@@ -464,8 +464,8 @@ def _dosrs_nohist(args):
     `getresp` is False"""
     (j, (coeffunc, Q, dT, methfunc, S)) = args
     b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG, axis=1)
-    SRSmax[:, j] = methfunc(resphist[:, S:])
+    resphist = signal.lfilter(b, a, SIG, axis=0)
+    SRSmax[j] = methfunc(resphist[S:])
 
 
 def _dosrs(args):
@@ -473,9 +473,9 @@ def _dosrs(args):
     `getresp` is True"""
     (j, (coeffunc, Q, dT, methfunc, S)) = args
     b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG, axis=1)
-    SRSmax[:, j] = methfunc(resphist[:, S:])
-    HIST[:, :, j] = resphist[:, S:]
+    resphist = signal.lfilter(b, a, SIG, axis=0)
+    SRSmax[j] = methfunc(resphist[S:])
+    HIST[:, :, j] = resphist[S:]
 
 
 def _mk_par_globals_ic(wn, sig, icvals, srsmax, hist):
@@ -493,7 +493,7 @@ def _dosrs_nohist_ic(args):
     `getresp` is False"""
     (j, (coeffunc, Q, dT, methfunc, S, stype)) = args
     b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG, axis=1)
+    resphist = signal.lfilter(b, a, SIG, axis=0)
     if stype == 'reldisp':
         resphist += ICVALS/WN[j]**2
     elif stype == 'pvelo':
@@ -501,7 +501,7 @@ def _dosrs_nohist_ic(args):
     else:
         # stype == 'pacce' or 'absacce'
         resphist += ICVALS
-    SRSmax[:, j] = methfunc(resphist[:, S:])
+    SRSmax[j] = methfunc(resphist[S:])
 
 
 def _dosrs_ic(args):
@@ -509,7 +509,7 @@ def _dosrs_ic(args):
     `getresp` is True"""
     (j, (coeffunc, Q, dT, methfunc, S, stype)) = args
     b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG, axis=1)
+    resphist = signal.lfilter(b, a, SIG, axis=0)
     if stype == 'reldisp':
         resphist += ICVALS/WN[j]**2
     elif stype == 'pvelo':
@@ -517,8 +517,8 @@ def _dosrs_ic(args):
     else:
         # stype == 'pacce' or 'absacce'
         resphist += ICVALS
-    SRSmax[:, j] = methfunc(resphist[:, S:])
-    HIST[:, :, j] = resphist[:, S:]
+    SRSmax[j] = methfunc(resphist[S:])
+    HIST[:, :, j] = resphist[S:]
 
 
 def _process_inputs(stype, peak, rolloff, time):
@@ -591,11 +591,11 @@ def _process_ic(sig, ic, stype):
     """Utility routine for srs"""
     doic = 0
     icvals = None
-    s1 = sig[:, :1]
+    s1 = sig[0]
     if ic == 'shift':
         sig = sig - s1
     elif ic == 'mshift':
-        sig = sig - np.mean(sig, axis=1).reshape(-1, 1)
+        sig = sig - sig.mean(axis=0)
     elif ic == 'steady':
         sig = sig - s1
         if stype == 'absacce':
@@ -614,16 +614,16 @@ def _add_one_cycle(sig, freq, sr, H, ic, s1):
     """Utility routine for srs"""
     # append zeros to allow for one cycle of lowest non-zero
     # frequency
-    pv = np.nonzero(freq > 0)[0]
+    pv = (freq > 0).nonzero()[0]
     if pv.size > 0:
-        minf = np.min(freq[pv])
+        minf = freq[pv].min()
         nzeros = int(np.ceil(sr/minf))
-        z = np.zeros((H, nzeros), dtype=float)
+        z = np.zeros((nzeros, H))
         if ic == 'steady':
-            sig = np.hstack((sig, z-s1))
+            sig = np.vstack((sig, z-s1))
         else:
-            sig = np.hstack((sig, z))
-    return sig, sig.shape[1]
+            sig = np.vstack((sig, z))
+    return sig, sig.shape[0]
 
 
 def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
@@ -635,13 +635,13 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
 
     Parameters
     ----------
-    sig : array_like
-        Base acceleration signal; vector or matrix where each row is
-        a signal. If size is n x 1, that means there are n signals,
+    sig : 1d or 2d array_like
+        Base acceleration signal; vector or matrix where column is a
+        signal. If size is 1 x n (2d), that means there are n signals,
         each with length 1 (only initial conditions are calculated).
     sr : scalar
         Sample rate.
-    freq : array_like
+    freq : 1d array_like
         Frequency vector in Hz. This defines the single DOF systems
         to use.
     Q : scalar > 0.5
@@ -690,12 +690,12 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
            ======    =============================
 
         If a function, it must accept the 2d response ndarray with
-        shape = (nsignals, len(time)) and return a 1d array of "peaks"
+        shape = (len(time), nsignals) and return a 1d array of "peaks"
         with shape = (nsignals,).
         For example, the 'abs' function is::
 
             def _absmeth(resp):
-                return np.max(np.abs(resp), axis=1)
+                return abs(resp).max(axis=0)
 
     ppc : scalar; optional
         Specifies the minimum points per cycle for SRS calculations.
@@ -742,15 +742,15 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
 
         If a function, the call signature is:
         ``sig_new, sr_new = rollfunc(sig, sr, ppc, frq)``. `sig` is
-        ``n x time``. The last three inputs are scalars. For example,
+        ``time x n``. The last three inputs are scalars. For example,
         the 'fft' function is (trimmed of documentation)::
 
             def fftroll(sig, sr, ppc, frq):
-                N = np.size(sig, 1)
+                N = sig.shape[0]
                 if N > 1:
                     curppc = sr/frq
-                    factor = np.ceil(ppc/curppc)
-                    sig = signal.resample(sig, int(factor)*N, axis=1)
+                    factor = int(np.ceil(ppc/curppc))
+                    sig = signal.resample(sig, factor*N, axis=0)
                     sr *= factor
                 return sig, sr
 
@@ -796,7 +796,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     Returns
     -------
     sh : 1d or 2d ndarray
-        The SRS results; ``sh.shape = (nsignals, len(freq))``. If
+        The SRS results; ``sh.shape = (len(freq), nsignals)``. If
         there is 1 signal, ``sh.shape = (len(freq),)``.
     resp : dictionary; optional
         Only returned if `getresp` is True. Members:
@@ -807,7 +807,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         't'      time vector for responses
         'sr'     sample rate associated with 't' (>= the input `sr`;
                  depends on inputs `sr`, `ppc`, and `rolloff`)
-        'hist'   3-D array; shape = ``(nsignals, len(t), len(freq))``
+        'hist'   3-D array; shape = ``(len(t), nsignals, len(freq))``
         ======   =====================================================
 
     Notes
@@ -945,22 +945,22 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     sig = np.atleast_1d(sig)
     if sig.ndim == 1:
         oneD = True
-        sig = sig.reshape(1, -1)
+        sig = sig.reshape(-1, 1)
     else:
         oneD = False
-    H = np.size(sig, 0)  # number of histories
-    N = np.size(sig, 1)  # number of time steps
+    N = sig.shape[0]  # number of time steps
+    H = sig.shape[1]  # number of histories
 
     parallel, ncpu = _process_parallel(parallel, LF, N*H,
                                        maxcpu, getresp)
 
     if parallel == 'yes':
         # global shared vars will be: SRSmax, WN, HIST, SIG, ICVALS
-        SRSmax = (createSharedArray((H, LF)), (H, LF))
+        SRSmax = (createSharedArray((LF, H)), (LF, H))
         WN = (copyToSharedArray(wn), wn.shape)
         HIST = (None, None)
     else:
-        SRSmax = np.empty((H, LF), dtype=float)
+        SRSmax = np.empty((LF, H))
 
     sig, s1, doic, icvals = _process_ic(sig, ic, stype)
 
@@ -971,7 +971,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
 
     if rollfunc and mf != 0 and sr/mf < ppc:
         sig, sr = rollfunc(sig, sr, ppc, mf)
-        N = np.size(sig, 1)
+        N = sig.shape[0]
     rollfunc = None
 
     M = N
@@ -981,20 +981,20 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     if getresp:
         resp = {}
         resp['sr'] = sr
-        # hist is:  nsignals x len(time) x len(freq)
+        # hist is:  len(time) x nsignals x len(freq)
         if ptr == 2:
             # residual
             resp['t'] = np.arange(M, N)/sr
             if parallel == 'yes':
-                HIST = (createSharedArray((H, N-M, LF)), (H, N-M, LF))
+                HIST = (createSharedArray((N-M, H, LF)), (N-M, H, LF))
             else:
-                resp['hist'] = np.empty((H, N-M, LF), dtype=float)
+                resp['hist'] = np.empty((N-M, H, LF))
         else:
             resp['t'] = np.arange(N)/sr
             if parallel == 'yes':
-                HIST = (createSharedArray((H, N, LF)), (H, N, LF))
+                HIST = (createSharedArray((N, H, LF)), (N, H, LF))
             else:
-                resp['hist'] = np.empty((H, N, LF), dtype=float)
+                resp['hist'] = np.empty((N, H, LF))
 
     # S is starting time for calcs; only non-zero if residual only:
     S = M if ptr == 2 else 0
@@ -1020,7 +1020,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
             dT = 1/sr
             for j in range(LF):
                 b, a = coeffunc(Q, dT, wn[j])
-                resphist = signal.lfilter(b, a, sig, axis=1)
+                resphist = signal.lfilter(b, a, sig, axis=0)
                 if stype == 'reldisp':
                     resphist += icvals/wn[j]**2
                 elif stype == 'pvelo':
@@ -1028,9 +1028,9 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
                 else:
                     # stype == 'pacce' or 'absacce'
                     resphist += icvals
-                SRSmax[:, j] = methfunc(resphist[:, S:])
+                SRSmax[j] = methfunc(resphist[S:])
                 if getresp:
-                    resp['hist'][:, :, j] = resphist[:, S:]
+                    resp['hist'][:, :, j] = resphist[S:]
     else:
         # no initial conditions to worry about:
         if parallel == 'yes':
@@ -1052,10 +1052,10 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
             dT = 1/sr
             for j in range(LF):
                 b, a = coeffunc(Q, dT, wn[j])
-                resphist = signal.lfilter(b, a, sig, axis=1)
-                SRSmax[:, j] = methfunc(resphist[:, S:])
+                resphist = signal.lfilter(b, a, sig, axis=0)
+                SRSmax[j] = methfunc(resphist[S:])
                 if getresp:
-                    resp['hist'][:, :, j] = resphist[:, S:]
+                    resp['hist'][:, :, j] = resphist[S:]
     if oneD:
         SRSmax = SRSmax.flatten()
     if getresp:
@@ -1076,11 +1076,11 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
     Parameters
     ----------
-    spec : 2d array
+    spec : 2d array_like
         Matrix containing the PSD specification(s) of the base
         excitation. Columns are: [ Freq PSD1 PSD2 ... PSDn ]. The
         frequency vector must be monotonically increasing.
-    freq : 1d array
+    freq : 1d array_like
         Vector of frequencies to define the integration step; see
         usage note 2 below.
     Q : scalar
@@ -1122,7 +1122,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
          key     value
         ======   =====================================================
         'f'      frequency vector for responses
-        'psd'    3-D array; shape = (n, len(`Fn`), len('freq')), where
+        'psd'    3-D array; shape = ``(len(Fn), n, len(freq))``, where
                  n is the number of input specifications
         ======   =====================================================
 
@@ -1197,7 +1197,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
     array([  6.38,  11.09,  16.06])
     >>> m
     array([  6.47,  11.21,  15.04])
-    >>> np.max(resp['psd'][0], axis=1)
+    >>> resp['psd'][:, 0].max(axis=1)
     array([ 2.69,  4.04,  1.47])
     """
     spec = np.atleast_2d(spec)
@@ -1211,7 +1211,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
     psdfull = psd.interp(spec, freq, linear)
 
     # Create delta_f
-    df = np.empty(rf, float)
+    df = np.empty(rf)
     df[1:-1] = (freq[2:] - freq[:-2])/2
     df[0] = freq[1] - freq[0]
     df[-1] = freq[-1] - freq[-2]
@@ -1237,16 +1237,17 @@ def vrs(spec, freq, Q, linear, Fn=None,
             z_miles = z_miles.flatten()
 
     # Compute VRS at each frequency
-    z_vrs = np.empty((len(Fn), cp-1), float)
+    z_vrs = np.empty((len(Fn), cp-1))
     zeta = 1/2/Q
     if getresp:
         N = spec.shape[1] - 1
-        psd_vrs = np.empty((N, len(Fn), len(freq)), float)
+#        psd_vrs = np.empty((N, len(Fn), len(freq)), float)
+        psd_vrs = np.empty((len(Fn), N, len(freq)))
         for i, fn in enumerate(Fn):
             t = ((1+(2*zeta*freq/fn)**2) /
                  ((1-(freq/fn)**2)**2 +
                   (2*zeta*freq/fn)**2)) * psdfull.T  # N x len(freq)
-            psd_vrs[:, i, :] = t
+            psd_vrs[i] = t
             z_vrs[i] = np.sqrt(np.sum(df*t, axis=1))
         resp = {}
         resp['f'] = freq
