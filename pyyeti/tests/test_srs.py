@@ -164,22 +164,22 @@ def do_comp(stype, ic, sh, resp, sh1, shpos, shneg, shposs, shnegs,
             shrms, sh0, resp0, sh01, sol, comp_time_hist=True):
     rtol = 1e-3
     atol = 1e-3
-    # resp['hist'] is nsignals x time x nfreq
+    # resp['hist'] is time x nsignals x nfreq
     # sol is time x nfreq
     if comp_time_hist:
         lcc = np.array([stats.pearsonr(v1, v2)[0]
-                        for v1, v2 in zip(resp['hist'][0].T, sol.T)])
+                        for v1, v2 in zip(resp['hist'][:, 0].T, sol.T)])
         assert np.allclose(lcc, 1)
-        assert np.allclose(resp['hist'][0], sol,
+        assert np.allclose(resp['hist'][:, 0], sol,
                            rtol=rtol, atol=atol)
 
-    mx = np.abs(np.max(resp['hist'][0], axis=0))
-    mn = np.abs(np.min(resp['hist'][0], axis=0))
-    mxs = np.max(resp['hist'][0], axis=0)
-    mns = np.min(resp['hist'][0], axis=0)
-    av = np.mean(resp['hist'][0], axis=0)
-    amx = np.max(abs(resp['hist'][0]), axis=0)
-    rms = np.sqrt(np.mean(resp['hist'][0]**2, axis=0))
+    mx = np.abs(np.max(resp['hist'][:, 0], axis=0))
+    mn = np.abs(np.min(resp['hist'][:, 0], axis=0))
+    mxs = np.max(resp['hist'][:, 0], axis=0)
+    mns = np.min(resp['hist'][:, 0], axis=0)
+    av = np.mean(resp['hist'][:, 0], axis=0)
+    amx = np.max(abs(resp['hist'][:, 0]), axis=0)
+    rms = np.sqrt(np.mean(resp['hist'][:, 0]**2, axis=0))
     omx = np.max(sol, axis=0)
     omn = np.min(sol, axis=0)
     oav = np.mean(sol, axis=0)
@@ -369,7 +369,7 @@ def test_srs_multiple_signals():
     Q, freq, nfreq, j, k, sr, t, w, B, K, cut, zdd = get_params_2()
     ic = 'zero'
     zdd = zdd[:cut]
-    zddm = np.vstack((zdd, zdd, zdd))
+    zddm = np.vstack((zdd, zdd, zdd)).T
     for stype in ['absacce', 'relacce', 'relvelo',
                   'reldisp', 'pacce', 'pvelo']:
         for time in ['primary', 'total', 'residual']:
@@ -386,18 +386,18 @@ def test_srs_multiple_signals():
                                       getresp=True)
                 assert np.all(sh.shape == (nfreq,))
                 assert np.all(sh.shape == shr.shape)
-                assert np.all(shm.shape == (3, nfreq))
+                assert np.all(shm.shape == (nfreq, 3))
                 assert np.all(shm.shape == shmr.shape)
                 assert np.all(resp['t'] == respm['t'])
                 assert resp['sr'] == respm['sr']
-                resp_sz = 1, len(resp['t']), nfreq
-                respm_sz = 3, len(resp['t']), nfreq
+                resp_sz = len(resp['t']), 1, nfreq
+                respm_sz = len(resp['t']), 3, nfreq
                 assert np.all(resp['hist'].shape == resp_sz)
                 assert np.all(respm['hist'].shape == respm_sz)
                 for i in range(3):
-                    assert np.all(shm[i] == sh)
-                    assert np.all(shmr[i] == shr)
-                    assert np.all(resp['hist'][0] == respm['hist'][i])
+                    assert np.all(shm[:, i] == sh)
+                    assert np.all(shmr[:, i] == shr)
+                    assert np.all(resp['hist'][:, 0] == respm['hist'][:, i])
 
 
 def test_srs_total():
@@ -412,7 +412,7 @@ def test_srs_total():
                        time='total')
         # length of time history should be original + 1 cycle of
         # lowest frequency:
-        assert resp['hist'].shape[1] == int(np.ceil(cut + sr/freq[0]))
+        assert resp['hist'].shape[0] == int(np.ceil(cut + sr/freq[0]))
         # get solution via odeint:
         sol = do_odeint_sol(t, zdd, ic, w, B, K, nfreq)[i]
         do_comp(stype, ic, sh, resp, sh1, shpos, shneg, shposs,
@@ -430,7 +430,7 @@ def test_srs_residual():
             do_srs_sol(zdd[:cut], sr, freq, Q, ic=ic, stype=stype,
                        time='residual', parallel='yes')
         # length of time history should be 1 cycle of lowest frequency:
-        assert resp['hist'].shape[1] == int(np.ceil(sr/freq[0]))
+        assert resp['hist'].shape[0] == int(np.ceil(sr/freq[0]))
         # get solution via odeint:
         sol = do_odeint_sol(t, zdd, ic, w, B, K, nfreq)[i][cut:]
         do_comp(stype, ic, sh, resp, sh1, shpos, shneg, shposs,
@@ -444,7 +444,7 @@ def test_srs_residual():
             do_srs_sol(zdd[:cut], sr, freq, Q, ic=ic, stype=stype,
                        time='residual')
         # length of time history should be 1 cycle of lowest frequency:
-        assert resp['hist'].shape[1] == int(np.ceil(sr/freq[0]))
+        assert resp['hist'].shape[0] == int(np.ceil(sr/freq[0]))
         # get solution via odeint:
         sol = do_odeint_sol(t, zdd, ic, w, B, K, nfreq)[i][cut:]
         do_comp(stype, ic, sh, resp, sh1, shpos, shneg, shposs,
@@ -516,7 +516,7 @@ def test_srs_rolloff():
 
     # test passing in functions
     def rmsmeth(resp):
-        return np.sqrt(np.mean(resp**2, axis=1))
+        return np.sqrt(np.mean(resp**2, axis=0))
     sh1 = srs.srs(sig, sr, frq, Q, rolloff=srs.fftroll,
                   peak=rmsmeth)
     sh2 = srs.srs(sig, sr, frq, Q, rolloff='fft', peak='rms')
@@ -549,7 +549,7 @@ def test_eqsine():
 def test_auto_parallel():
     sr = 1000
     t = np.arange(0, 5, 1/sr)
-    sig = np.ones((11, 1)).dot(np.sin(2*np.pi*15*t)[None, :])
+    sig = np.ones((11, 1)).dot(np.sin(2*np.pi*15*t)[None, :]).T
     # 1000 * 5 * 11 = 75000
     Q = 35
     frq = np.linspace(5, 50, 5)
@@ -597,7 +597,7 @@ def test_vrs():
     assert np.all(resp['f'] == frq)
     assert np.all(np.abs(v - np.array([6.38, 11.09, 16.06])) < .01)
     assert np.all(np.abs(m - np.array([6.47, 11.21, 15.04])) < .01)
-    assert np.all(np.abs(np.max(resp['psd'][0], axis=1) -
+    assert np.all(np.abs(np.max(resp['psd'][:, 0], axis=1) -
                          np.array([2.69, 4.04, 1.47])) < .01)
 
     v2 = srs.vrs(spec, frq, Q, linear=False, Fn=fn)
@@ -628,9 +628,9 @@ def test_vrs():
     assert np.allclose(v4[:, 1], v, rtol, atol)
     assert np.allclose(m4[:, 0], m, rtol, atol)
     assert np.allclose(m4[:, 1], m, rtol, atol)
-    assert np.allclose(resp4['psd'][0], resp['psd'], rtol, atol)
-    assert np.allclose(resp4['psd'][1], resp['psd'], rtol, atol)
-    assert resp4['psd'].shape == (2, 3, len(frq))
+    assert np.allclose(resp4['psd'][:, :1], resp['psd'], rtol, atol)
+    assert np.allclose(resp4['psd'][:, 1:], resp['psd'], rtol, atol)
+    assert resp4['psd'].shape == (3, 2, len(frq))
 
     v5, m5 = srs.vrs(spec[:, :2], frq, Q, linear=True,
                      Fn=fn, getmiles=True)
@@ -730,21 +730,21 @@ def test_zerofreq():
     frq = 0.
     sh, resp = srs.srs(f, 1/dt, frq, 25, stype='relacce',
                        getresp=True)
-    np.allclose(resp['hist'][0, :, 0], -f)
+    np.allclose(resp['hist'][:, 0, 0], -f)
 
     sh, resp = srs.srs(f, 1/dt, frq, 25, stype='relvelo',
                        getresp=True)
-    np.allclose(resp['hist'][0, 110, 0], -1.)
-    np.allclose(resp['hist'][0, 210:400, 0], 0.)
-    np.allclose(resp['hist'][0, 400, 0], 1.)
-    np.allclose(resp['hist'][0, 500:, 0], 0.)
+    np.allclose(resp['hist'][110, 0, 0], -1.)
+    np.allclose(resp['hist'][210:400, 0, 0], 0.)
+    np.allclose(resp['hist'][400, 0, 0], 1.)
+    np.allclose(resp['hist'][500:, 0, 0], 0.)
 
     sh, resp = srs.srs(f, 1/dt, frq, 25, stype='reldisp',
                        getresp=True)
     # area under velo triangle = -1 @ 210
-    np.allclose(resp['hist'][0, 210:300, 0], -1.)
+    np.allclose(resp['hist'][210:300, 0, 0], -1.)
     # comes back to initial position after second velo triangle:
-    np.allclose(resp['hist'][0, 500:, 0], 0.)
+    np.allclose(resp['hist'][500:, 0, 0], 0.)
 
     for stype in ['absacce', 'pvelo', 'pacce']:
         sh, resp = srs.srs(f, 1/dt, frq, 25, stype=stype,

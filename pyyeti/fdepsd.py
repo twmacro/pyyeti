@@ -115,15 +115,15 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
 
         If a function, the call signature is:
         ``sig_new, sr_new = rollfunc(sig, sr, ppc, frq)``. Here, `sig`
-        is 1 x time. The last three inputs are scalars. For example,
-        the 'fft' function is (trimmed of documentation)::
+        is 1d, len(time). The last three inputs are scalars. For
+        example, the 'fft' function is (trimmed of documentation)::
 
             def fftroll(sig, sr, ppc, frq):
-                N = np.size(sig, 1)
+                N = sig.shape[0]
                 if N > 1:
                     curppc = sr/frq
-                    factor = np.ceil(ppc/curppc)
-                    sig = signal.resample(sig, int(factor)*N, axis=1)
+                    factor = int(np.ceil(ppc/curppc))
+                    sig = signal.resample(sig, factor*N, axis=0)
                     sr *= factor
                 return sig, sr
 
@@ -404,8 +404,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
     mxfrq = freq.max()
     curppc = sr/mxfrq
     if rolloff == 'prefilter':
-        sig, sr = rollfunc(sig[None, :], sr, ppc, mxfrq)
-        sig = sig.flatten()
+        sig, sr = rollfunc(sig, sr, ppc, mxfrq)
         rollfunc = None
 
     if curppc < ppc and rollfunc:
@@ -413,8 +412,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
             print('Using {} method to increase sample rate (have '
                   'only {} pts/cycle @ {} Hz'.
                   format(rolloff, curppc, mxfrq))
-        sig, sr = rollfunc(sig[None, :], sr, ppc, mxfrq)
-        sig = sig.flatten()
+        sig, sr = rollfunc(sig, sr, ppc, mxfrq)
         ppc = sr/mxfrq
         if verbose:
             print('After interpolation, have {} pts/cycle @ {} Hz\n'.
