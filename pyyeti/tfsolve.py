@@ -600,7 +600,7 @@ def make_A(M, B, K):
     return A
 
 
-class TFSolve:
+class TFSolve(object):
     """
     Time and frequency domain solvers for equations of motion.
 

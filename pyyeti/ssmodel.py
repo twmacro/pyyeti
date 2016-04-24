@@ -9,7 +9,7 @@ import numpy as np
 from pyyeti import expmint
 
 
-class SSModel:
+class SSModel(object):
     """
     Simple class for storing information about a continuous or
     discrete state-space model with tools for converting from one to

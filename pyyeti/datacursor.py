@@ -22,7 +22,7 @@ def form2(x, y, n):
     return 'x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.format(x=x, y=y, n=n)
 
 
-class DataCursor:
+class DataCursor(object):
     r"""
     Class to show x, y data points and to allow selection of points
     for annotations.

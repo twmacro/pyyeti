@@ -30,7 +30,7 @@ def _view_as_complex(X):
         X.dtype = complex
 
 
-class OP4():
+class OP4(object):
     """
     Class for reading/writing Nastran output4 (.op4) files.
 

@@ -157,6 +157,9 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         'yes'        Use parallel processing. Beware, depending
                      on the particular problem, using parallel
                      processing can be slower than not using it.
+                     On Windows, be sure the :func:`fdepsd` call
+                     is contained within:
+                     ``if __name__ == "__main__":``
         ==========   ============================================
 
     maxcpu : integer or None; optional

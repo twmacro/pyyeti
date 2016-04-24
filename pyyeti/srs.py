@@ -785,7 +785,10 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
            'yes'        Use parallel processing. Beware, depending
                         on the particular problem, using parallel
                         processing can be slower than not using it
-                        (especially if `getresp` is True).
+                        (especially if `getresp` is True). On
+                        Windows, be sure the :func:`srs` call is
+                        contained within:
+                        ``if __name__ == "__main__":``
            ==========   ============================================
 
     maxcpu : integer or None; optional

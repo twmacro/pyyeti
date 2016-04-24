@@ -61,7 +61,7 @@ class PP(object):
         ...                      4: SimpleNamespace(a=6,
         ...                                         b=[1, 23],
         ...                                         var='string',
-        ...                                         t=t)
+        ...                                         t=(s,))
         ...      }
         ... }
         >>> PP(d)       # doctest: +ELLIPSIS
@@ -74,8 +74,8 @@ class PP(object):
                 3: float64 ndarray 64 elems: (4, 4, 4)
                 4: <class 'types.SimpleNamespace'>[n=4]
                     .a  : 6
-                    .b  : [1, 23]
-                    .t  : uint8 ndarray 1 elems: () 9
+                    .b  : [n=2]: [1, 23]
+                    .t  : [n=1]: (float64 ndarray: (4, 4, 4),)
                     .var: 'string'
             'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
         <BLANKLINE>
@@ -98,7 +98,7 @@ class PP(object):
         <class 'type'>[n=6]
             .a: 9
             .b: <class 'dict'>[n=1]
-                'variable': [1, 2, 3]
+                'variable': [n=3]: [1, 2, 3]
         <BLANKLINE>
         <...>
         >>> PP(A, show_hidden=1)       # doctest: +ELLIPSIS
@@ -109,7 +109,7 @@ class PP(object):
             .__weakref__: <attribute '__weakref__' of 'A' objects>
             .a          : 9
             .b          : <class 'dict'>[n=1]
-                'variable': [1, 2, 3]
+                'variable': [n=3]: [1, 2, 3]
         <BLANKLINE>
         <...>
         """
@@ -140,15 +140,36 @@ class PP(object):
             s = s[:self._keylen-4] + ' ...'
         return s
 
-    def _value_string(self, val):
+    def _lst_tup_string(self, lst, level):
+        s = '[n={}]: '.format(len(lst))
+        be = '[]' if isinstance(lst, list) else '()'
+        s = s + be[0]
+        for item in lst:
+            if isinstance(item, np.ndarray):
+                s = s + self._shortarrhdr(item) + ', '
+            else:
+                s = s + self._value_string(item, level+1) + ', '
+        if s.endswith(', '):
+            if len(lst) == 1 and isinstance(lst, tuple):
+                s = s[:-1]
+            else:
+                s = s[:-2]
+        return s + be[1]
+
+    def _value_string(self, val, level):
         if isinstance(val, str):
             s = "'" + val + "'"
+        elif level < self._depth and isinstance(val, (list, tuple)):
+            s = self._lst_tup_string(val, level)
         else:
             s = str(val)
         if len(s) > self._strlen:
             s = s[:self._strlen-4] + ' ...'
         return s
 
+    def _shortarrhdr(self, arr):
+        return str(arr.dtype) + ' ndarray: ' + str(arr.shape)
+        
     def _getarrhdr(self, arr):
         s = str(arr.dtype) + ' ndarray '
         s = s + str(arr.size) + ' elems: ' + str(arr.shape)
@@ -216,7 +237,7 @@ class PP(object):
                                   typename=typename, isns=True,
                                   showhidden=self._show_hidden)
             else:
-                s = self._value_string(var)
+                s = self._value_string(var, level)
                 self.output = self.output + s + '\n'
 
     def pp(self, var):
