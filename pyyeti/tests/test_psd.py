@@ -41,21 +41,26 @@ def test_rescale():
     p, f, ms, mvs = psd.rescale(in_p, in_freq, freq=out_freq)
     assert np.allclose(p, [ 1.,  1.,  1.])
     p, f, ms, mvs = psd.rescale(in_p, in_freq, freq=out_freq,
-                                       extendends=False)
+                                extendends=False)
     assert np.allclose(p, [ 0.525,  1.   ,  0.525])
 
 
 def test_spl():
     x = np.random.randn(100000)
     sr = 4000
-    f, spl, oaspl = psd.spl(x, sr, sr)
+    f, spl, oaspl = psd.spl(x, sr, sr, timeslice=len(x)/sr)
     # oaspl should be around 170.75 (since variance = 1):
     shouldbe = 10*np.log10(1/(2.9e-9)**2)
     abs(oaspl/shouldbe - 1) < .01
+    oaspl1 = oaspl
 
-    f, spl, oaspl = psd.spl(x, sr, sr, fs=0)
+    f, spl, oaspl = psd.spl(x, sr, sr, fs=0, timeslice=len(x)/sr)
     # oaspl should be around 170.75 (since variance = 1):
     abs(oaspl/shouldbe - 1) < .01
+
+    f, spl, oaspl = psd.spl(x, sr, sr)
+    # oaspl should be greater than the one above:
+    assert oaspl > oaspl1*1.01
 
 
 def test_psd2time():
@@ -117,20 +122,22 @@ def test_psdmod():
     # sr = 500
     freq = np.arange(20., 50.1)
     f, p = signal.welch(sig, sr, nperseg=sr)  # 1 second windows, df=1
-    f2, p2 = psd.psdmod(4, .5, sig, sr, nperseg=sr)
+    f2, p2 = psd.psdmod(sig, sr, nperseg=sr, timeslice=4,
+                        tsoverlap=0.5)
     pv = np.logical_and(f2 > 24, f2 < 47)
     assert np.all(p2[pv] > p[pv])
 
     # mimic standard welch:
-    f3, p3 = psd.psdmod(30, .5, sig, sr, nperseg=sr)
+    f3, p3 = psd.psdmod(sig, sr, nperseg=sr, timeslice=30,
+                        tsoverlap=0.5)
     assert np.allclose(p3, p)
 
     # mimic maximax:
-    f4, p4 = psd.psdmod(1, .5, sig, sr, nperseg=sr)
+    f4, p4 = psd.psdmod(sig, sr, nperseg=sr)
     assert np.all(p4[pv] > p2[pv])
 
     # test the map output:
-    f5, p5, pmap, t = psd.psdmod(1, .5, sig, sr, getmap=1)
+    f5, p5, pmap, t = psd.psdmod(sig, sr, getmap=1)
     assert np.allclose(p5, np.max(pmap, axis=1))
     tshouldbe = np.arange(.5, 30.-.25, .5)
     assert np.allclose(t, tshouldbe)

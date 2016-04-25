@@ -336,7 +336,8 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         >>> _ = plt.ylabel('Acceleration (g)')
         >>> _ = plt.subplot(212)
         >>> f, p = signal.welch(sig, sr, nperseg=sr)
-        >>> f2, p2 = psd.psdmod(4, .5, sig, sr, nperseg=sr)
+        >>> f2, p2 = psd.psdmod(sig, sr, nperseg=sr, timeslice=4,
+        ...                     tsoverlap=0.5)
         >>> plt.tight_layout()
 
         Calculate G1, G2, and the damage potential PSDs:

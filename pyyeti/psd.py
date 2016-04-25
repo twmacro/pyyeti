@@ -385,7 +385,8 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
     return psdoct, Wctr, msv, ms
 
 
-def spl(x, sr, n, overlap=.5, window='hanning', fs=3, pref=2.9e-9):
+def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
+        timeslice=1.0, tsoverlap=0.5, fs=3, pref=2.9e-9):
     r"""
     Sound pressure level estimation using PSD.
 
@@ -395,14 +396,19 @@ def spl(x, sr, n, overlap=.5, window='hanning', fs=3, pref=2.9e-9):
         Vector of pressure values.
     sr : scalar
         Sample rate.
-    n : integer
-        Window size for PSD.
-    overlap : scalar
+    nperseg : int, optional
+        Length of each segment for the FFT. Defaults to `sr` for 1 Hz
+        frequency step in PSD. Note: frequency step in Hz = sr/nperseg.
+    overlap : scalar; optional
         Amount of overlap in windows, eg 0.5 would be 50% overlap.
-    window : str or tuple or array like
+    window : str or tuple or array like; optional
         Passed to :func:`scipy.signal.welch`; see that routine for
         more information.
-    fs : integer
+    timeslice : scalar; optional
+        The length in seconds of each time slice.
+    tsoverlap : scalar; optional
+        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
+    fs : integer; optional
         Specifies output frequency scale. Zero means linear scale,
         anything else is passed to :func:`rescale`. Example:
 
@@ -413,7 +419,7 @@ def spl(x, sr, n, overlap=.5, window='hanning', fs=3, pref=2.9e-9):
           6  6th octave scale
         ===  ======================================================
 
-    pref : scalar
+    pref : scalar; optional
         Reference pressure. 2.9e-9 psi is considered to be the
         threshhold for human hearing. In Pascals, that value is 2e-5.
 
@@ -446,15 +452,18 @@ def spl(x, sr, n, overlap=.5, window='hanning', fs=3, pref=2.9e-9):
     >>> from pyyeti import psd
     >>> x = np.random.randn(100000)
     >>> sr = 4000
-    >>> f, spl, oaspl = psd.spl(x, sr, sr)
+    >>> f, spl, oaspl = psd.spl(x, sr, sr, timeslice=len(x)/sr)
     >>> # oaspl should be around 170.75 (since variance = 1):
     >>> shouldbe = 10*np.log10(1/(2.9e-9)**2)
     >>> abs(oaspl/shouldbe - 1) < .01
     True
     """
     # compute psd
-    F, P = signal.welch(x, sr, window=window, nperseg=n,
-                        noverlap=int(overlap*n))
+    F, P = psdmod(x, sr, nperseg=nperseg, window=window,
+                  timeslice=timeslice, tsoverlap=tsoverlap,
+                  noverlap=int(overlap*nperseg))
+    # F, P = signal.welch(x, sr, window=window, nperseg=nperseg,
+    #                     noverlap=int(overlap*n))
     if fs != 0:
         _, F, _, P = rescale(P, F, n_oct=fs)
     else:
@@ -633,17 +642,13 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
     return F_time, sr
 
 
-def psdmod(timeslice, tsoverlap, sig, sr, nperseg=None, getmap=False,
-           **kwargs):
+def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
+           getmap=False, **kwargs):
     """
     Modified method for PSD estimation via FFT.
 
     Parameters
     ----------
-    timeslice : scalar
-        The length in seconds of each time slice.
-    tsoverlap : scalar
-        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
     sig : 1d array_like
         Time series of measurement values.
     sr : scalar
@@ -651,6 +656,10 @@ def psdmod(timeslice, tsoverlap, sig, sr, nperseg=None, getmap=False,
     nperseg : int, optional
         Length of each segment for the FFT. Defaults to `sr` for 1 Hz
         frequency step in PSD. Note: frequency step in Hz = sr/nperseg.
+    timeslice : scalar; optional
+        The length in seconds of each time slice.
+    tsoverlap : scalar; optional
+        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
     getmap : bool, optional
         If True, get the PSD map output (the `Pmap` and `t` variables
         described below).
@@ -703,8 +712,9 @@ def psdmod(timeslice, tsoverlap, sig, sr, nperseg=None, getmap=False,
         ...                           winends=dict(portion=10),
         ...                           gettime=True)
         >>> f, p = signal.welch(sig, sr, nperseg=sr)
-        >>> f2, p2 = psd.psdmod(4, .5, sig, sr, nperseg=sr)
-        >>> f3, p3 = psd.psdmod(sr/sr, .5, sig, sr, nperseg=sr)
+        >>> f2, p2 = psd.psdmod(sig, sr, nperseg=sr, timeslice=4,
+        ...                     tsoverlap=0.5)
+        >>> f3, p3 = psd.psdmod(sig, sr, nperseg=sr)
         >>> spec = np.array(spec).T
         >>> fig = plt.figure('psdmod')
         >>> _ = plt.subplot(211)
@@ -729,7 +739,7 @@ def psdmod(timeslice, tsoverlap, sig, sr, nperseg=None, getmap=False,
     if nperseg is None:
         nperseg = sr
     welch_inputs = dict(fs=sr, nperseg=nperseg, **kwargs)
-    pmap, t, f = dsp.waterfall(timeslice, tsoverlap, sig, sr,
+    pmap, t, f = dsp.waterfall(sig, sr, timeslice, tsoverlap,
                                signal.welch, which=1, freq=0,
                                kwargs=welch_inputs)
     p = pmap.max(axis=1)

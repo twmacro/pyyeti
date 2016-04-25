@@ -882,7 +882,7 @@ def windowends(signal, portion=.01, ends='front', axis=-1):
     return signal*v
 
 
-def waterfall(timeslice, tsoverlap, sig, sr, func, which, freq,
+def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
               t0=0.0, args=None, kwargs=None, slicefunc=None,
               sliceargs=None, slicekwargs=None):
     """
@@ -891,14 +891,14 @@ def waterfall(timeslice, tsoverlap, sig, sr, func, which, freq,
 
     Parameters
     ----------
-    timeslice : scalar
-        The length in seconds of each time slice.
-    tsoverlap : scalar
-        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
     sig : 1d array_like
         Time series of measurement values.
     sr : scalar
         Sample rate.
+    timeslice : scalar
+        The length in seconds of each time slice.
+    tsoverlap : scalar
+        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
     func : function
         This function is called for each time slice and is expected to
         return amplitude values across the frequency range. Can return
@@ -971,7 +971,7 @@ def waterfall(timeslice, tsoverlap, sig, sr, func, which, freq,
         >>> sr = 1/t[1]
         >>> frq = np.arange(1., 50.1)
         >>> Q = 20
-        >>> mp, t, f = dsp.waterfall(2, .5, sig, sr, srs.srs,
+        >>> mp, t, f = dsp.waterfall(sig, sr, 2, .5, srs.srs,
         ...                          which=None, freq=frq,
         ...                          args=(sr, frq, Q),
         ...                          kwargs=dict(eqsine=1),

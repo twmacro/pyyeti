@@ -81,16 +81,16 @@ def test_waterfall():
     sig2 = sig[:int(sr*1.5), None]
     def func(s):
         return srs.srs(s, sr, frq, Q), frq
-    mp, t, f = dsp.waterfall(2, .5, sig, sr, func,
-                                which=0, freq=1)
-    mp, t, f = dsp.waterfall(2, .5, sig2, sr, func,
-                                which=0, freq=1)
-    assert_raises(ValueError, dsp.waterfall, 2, .5, sig, sr, func,
+    mp, t, f = dsp.waterfall(sig, sr, 2, .5, func,
+                             which=0, freq=1)
+    mp, t, f = dsp.waterfall(sig2, sr, 2, .5, func,
+                             which=0, freq=1)
+    assert_raises(ValueError, dsp.waterfall, sig, sr, 2, .5, func,
                   which=None, freq=1)
-    assert_raises(ValueError, dsp.waterfall, 2, 1.5, sig, sr, func,
+    assert_raises(ValueError, dsp.waterfall, sig, sr, 2, 1.5, func,
                   which=None, freq=frq)
     sig = np.hstack((sig2, sig2))
-    assert_raises(ValueError, dsp.waterfall, 2, .5, sig, sr, func,
+    assert_raises(ValueError, dsp.waterfall, sig, sr, 2, .5, func,
                   which=None, freq=frq)
 
 

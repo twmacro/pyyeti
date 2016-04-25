@@ -1479,7 +1479,7 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> _ = ax.set_zlabel('Amplitude')
         >>> _ = plt.title(ttl)
     """
-    return dsp.waterfall(timeslice, tsoverlap, sig, sr, srs,
+    return dsp.waterfall(sig, sr, timeslice, tsoverlap, srs,
                          which=None, freq=freq,
                          kwargs=dict(sr=sr, freq=freq,
                                      Q=Q, eqsine=1),
