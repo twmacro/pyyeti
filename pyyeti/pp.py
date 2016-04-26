@@ -140,15 +140,18 @@ class PP(object):
             s = s[:self._keylen-4] + ' ...'
         return s
 
-    def _lst_tup_string(self, lst, level):
+    def _lst_tup_string(self, lst, list_level):
         s = '[n={}]: '.format(len(lst))
         be = '[]' if isinstance(lst, list) else '()'
         s = s + be[0]
+        if list_level > self._depth:
+            return s + '...' + be[1]
+        list_level += 1
         for item in lst:
             if isinstance(item, np.ndarray):
                 s = s + self._shortarrhdr(item) + ', '
             else:
-                s = s + self._value_string(item, level+1) + ', '
+                s = s + self._value_string(item, list_level) + ', '
         if s.endswith(', '):
             if len(lst) == 1 and isinstance(lst, tuple):
                 s = s[:-1]
@@ -156,11 +159,11 @@ class PP(object):
                 s = s[:-2]
         return s + be[1]
 
-    def _value_string(self, val, level):
+    def _value_string(self, val, list_level):
         if isinstance(val, str):
             s = "'" + val + "'"
-        elif level < self._depth and isinstance(val, (list, tuple)):
-            s = self._lst_tup_string(val, level)
+        elif isinstance(val, (list, tuple)):
+            s = self._lst_tup_string(val, list_level)
         else:
             s = str(val)
         if len(s) > self._strlen:
@@ -237,7 +240,7 @@ class PP(object):
                                   typename=typename, isns=True,
                                   showhidden=self._show_hidden)
             else:
-                s = self._value_string(var, level)
+                s = self._value_string(var, 0)
                 self.output = self.output + s + '\n'
 
     def pp(self, var):
