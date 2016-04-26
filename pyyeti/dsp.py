@@ -446,7 +446,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     def _del_outtimes(told, olddata, deloutliers):
         mn = told.mean()
-        sig = 3*told.std()
+        sig = 3*told.std(ddof=1)
         pv = np.logical_or(told < mn-sig, told > mn+sig)
         if np.any(pv):
             if deloutliers:
