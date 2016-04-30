@@ -271,19 +271,22 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
     the remaining inputs must be broadcast-compatible and must be
     named.
 
-    Reference [#stat4]_ contains the mathematical details of these
-    equations and reference [#stat5]_ has a good definition of the
-    order statistic.
+    The binomial distribution forms the mathematical foundation of
+    this routine; see reference [#stat4]_. [#stat5]_ has a good
+    definition of the order statistic. See also "Bernoulli Trials",
+    reference [#stat6]_, which ties some of these ideas together in
+    the analysis of success/failure probabilities.
 
     References
     ----------
-    .. [#stat4] T. Widrick, "Using order statistics to compute
-            distribution-free tolerance bounds and success/failure
-            probabilities". NASA KSC/LSP, ELVL-2009-0041028, March 12,
-            2009.
+    .. [#stat4] Wikipedia, "Binomial distribution",
+            https://en.wikipedia.org/wiki/Binomial_distribution
 
     .. [#stat5] Wikipedia, "Order statistic",
             https://en.wikipedia.org/wiki/Order_statistic
+
+    .. [#stat6] Wikipedia, "Bernoulli trial",
+            https://en.wikipedia.org/wiki/Bernoulli_trial
 
     Examples
     --------
@@ -292,7 +295,7 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
     published tables, `r` should be 4, meaning the 4-th highest value
     of the 700 is an estimate of the P99/90 level (or higher). Another
     way to look at that result is that 3 failures (or fewer) out of
-    700 demonstrates at least a P99/90 level.
+    700 trials demonstrates at least a P99/90 level.
 
     >>> from pyyeti.stats import order_stats
     >>> order_stats('r', p=.99, c=.90, n=700)
