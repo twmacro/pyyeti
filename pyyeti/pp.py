@@ -5,6 +5,7 @@ A pretty printer.
 import numpy as np
 import h5py
 
+
 class PP(object):
     """
     A simple class for pretty printing data structures.
@@ -235,7 +236,7 @@ class PP(object):
                                 h5py._hl.files.File,
                                 h5py._hl.files.Group)):
                 self._dict_string(var, level, typename=typename)
-            elif '__dict__' in dir(var):
+            elif hasattr(var, '__dict__'):
                 self._dict_string(var.__dict__, level,
                                   typename=typename, isns=True,
                                   showhidden=self._show_hidden)
