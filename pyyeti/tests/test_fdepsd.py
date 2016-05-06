@@ -4,14 +4,14 @@ from pyyeti import psd
 from pyyeti.fdepsd import fdepsd
 
 
-def compare(fde1, fde2):
+def compare(fde1, fde2, rtol=1e-05):
     assert np.allclose(fde1.freq, fde2.freq)
-    assert np.allclose(fde1.psd, fde2.psd)
-    assert np.allclose(fde1.amp, fde2.amp)
-    assert np.allclose(fde1.binamps, fde2.binamps)
-    assert np.allclose(fde1.count, fde2.count)
-    assert np.allclose(fde1.srs, fde2.srs)
-    assert np.allclose(fde1.var, fde2.var)
+    assert np.allclose(fde1.psd, fde2.psd, rtol=rtol)
+    assert np.allclose(fde1.amp, fde2.amp, rtol=rtol)
+    assert np.allclose(fde1.binamps, fde2.binamps, rtol=rtol)
+    assert np.allclose(fde1.count, fde2.count, rtol=rtol)
+    assert np.allclose(fde1.srs, fde2.srs, rtol=rtol)
+    assert np.allclose(fde1.var, fde2.var, rtol=rtol)
     assert fde1.parallel in ('no', 'yes')
     assert fde2.parallel in ('no', 'yes')
     assert fde1.resp in ('absacce', 'pvelo')
@@ -63,10 +63,11 @@ def test_fdepsd_pvelo():
     fde_auto = fdepsd(sig, sr, freq, q, resp='pvelo')
     fde_no = fdepsd(sig, sr, freq, q, resp='pvelo', parallel='no',
                     verbose=True)
-    fde_yes = fdepsd(sig, sr, freq, q, resp='pvelo', parallel='yes')
+    fde_yes = fdepsd(sig, sr, freq, q, resp='pvelo', parallel='yes',
+                     hpfilter=None)
 
     compare(fde_auto, fde_no)
-    compare(fde_auto, fde_yes)
+    compare(fde_auto, fde_yes, .2)
     pv = np.logical_and(freq > 32, freq < 45)
     assert abs(np.mean(fde_auto.psd[pv, :2], axis=0) - sp).max() < .22
     assert abs(np.mean(fde_auto.psd[pv, 2:], axis=0) - sp).max() < .22
