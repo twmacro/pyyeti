@@ -129,12 +129,10 @@ def test_formheader():
     headers = [['The']*3, ['Descriptions', 'Maximum', 'Time']]
     assert_raises(ValueError, writer.formheader, headers, [25, 10],
                   formats, sep=[4, 5, 2], just=0)
-    h, u, f = writer.formheader(headers, widths, formats,
-                                sep=[4, 5, 2], just=0)
+    hu, f = writer.formheader(headers, widths, formats,
+                              sep=[4, 5, 2], just=0)
     with StringIO() as fout:
-        fout.write(h[0])
-        fout.write(h[1])
-        fout.write(u)
+        fout.write(hu)
         writer.vecwrite(fout, f, descs, mx, time)
         s = fout.getvalue()
     sbe = ('               The                   The        The\n'
@@ -145,11 +143,10 @@ def test_formheader():
     assert sbe==s
 
     headers = ['Descriptions', 'Maximum', 'Time']
-    h, u, f = writer.formheader(headers, widths, formats,
-                                sep=[4, 5, 2], just=0)
+    hu, f = writer.formheader(headers, widths, formats,
+                              sep=[4, 5, 2], just=0)
     with StringIO() as fout:
-        fout.write(h)
-        fout.write(u)
+        fout.write(hu)
         writer.vecwrite(fout, f, descs, mx, time)
         s = fout.getvalue()
     sbe = (
@@ -160,11 +157,10 @@ def test_formheader():
     assert sbe==s
     
     headers = ['Descriptions', 'Maximum', 'Time']
-    h, u, f = writer.formheader(headers, widths, formats,
-                                sep=2, just=('l', 'c', 'r'))
+    hu, f = writer.formheader(headers, widths, formats,
+                              sep=2, just=('l', 'c', 'r'))
     with StringIO() as fout:
-        fout.write(h)
-        fout.write(u)
+        fout.write(hu)
         writer.vecwrite(fout, f, descs, mx, time)
         s = fout.getvalue()
     sbe = (

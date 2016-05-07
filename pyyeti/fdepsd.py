@@ -403,7 +403,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         if verbose:
             print('High pass filtering @ {} Hz'.format(hpfilter))
         b, a = signal.butter(3, hpfilter/(sr/2), 'high')
-        sig = signal.filtfilt(b, a, sig)
+        sig = signal.lfilter(b, a, sig)
 
     mxfrq = freq.max()
     curppc = sr/mxfrq

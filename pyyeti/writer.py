@@ -232,7 +232,7 @@ def formheader(headers, widths, formats,
             - if len(sep) < len(headers), the last element is used for
               all remaining elements
 
-    just : string or integer
+    just : string or integer or list
         Justification flag or flags for each header string:
 
             - 'l', 'c', 'r' (or -1, 0, 1) to left, center, or right
@@ -245,10 +245,8 @@ def formheader(headers, widths, formats,
 
     Returns
     -------
-    h : string or lists of strings
-        Formatted header string(s).
-    u : string
-        The underline string.
+    hu : string
+        Contains formatted header string(s) and the underline string.
     f : string
         Final formatting string.
 
@@ -263,13 +261,11 @@ def formheader(headers, widths, formats,
     >>> headers = [['The']*3, ['Descriptions', 'Maximum', 'Time']]
     >>> formats = ['{:<25s}', '{:10.2f}', '{:8.3f}']
     >>> widths  = [25, 10, 8]
-    >>> h, u, f = writer.formheader(headers, widths, formats,
-    ...                             sep=[4, 5, 2], just=0)
+    >>> hu, f = writer.formheader(headers, widths, formats,
+    ...                           sep=[4, 5, 2], just=0)
     >>> fout = sys.stdout
     >>> if 1:   # just so all output is together
-    ...     b = fout.write(h[0])
-    ...     b = fout.write(h[1])
-    ...     b = fout.write(u)
+    ...     b = fout.write(hu)
     ...     writer.vecwrite(fout, f, descs, mx, time)
                    The                   The        The
                Descriptions            Maximum      Time
@@ -346,4 +342,4 @@ def formheader(headers, widths, formats,
         h = h.rstrip() + '\n'
     u = u.rstrip() + '\n'
     f = f.rstrip() + '\n'
-    return h, u, f
+    return ''.join(h)+u, f

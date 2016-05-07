@@ -1026,10 +1026,10 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     widths = [10, 10, 10]
     formats = ['{:10.4f}']*3
     sep = 2
-    h, u, f = writer.formheader(headers, widths, formats,
-                                sep=sep, just=0)
-    fout.write('           '+h)
-    fout.write('           '+u)
+    hu, f = writer.formheader(headers, widths, formats,
+                              sep=sep, just=0)
+    hu = ''.join([' '*11+i+'\n' for i in hu.rstrip().split('\n')])
+    fout.write(hu)
     if np.all(np.isnan(coords[:, 0])):
         fout.write('             -- no coordinates detected --\n')
     else:
@@ -1076,10 +1076,9 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
                '{:10.6}',
                '{:10.3f} '*5+'{:10.3f}']
     sep = [2, 2, 2, 2, 2]
-    h, u, f = writer.formheader(headers, widths, formats,
-                                sep=sep, just=0)
-    fout.write(h)
-    fout.write(u)
+    hu, f = writer.formheader(headers, widths, formats,
+                              sep=sep, just=0)
+    fout.write(hu)
     if prtnullrows or np.all(nonnr):
         writer.vecwrite(fout, f, r, labels, coords, scales, drmrb,
                         postfunc=pf)
@@ -1100,10 +1099,9 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
                'Unit Scale',
                'Maximum Responses on Diagonal'
                ' (x, y, z, rx, ry, rz)']
-    h, u, f = writer.formheader(headers, widths, formats,
-                                sep=sep, just=0)
-    fout.write(h)
-    fout.write(u)
+    hu, f = writer.formheader(headers, widths, formats,
+                              sep=sep, just=0)
+    fout.write(hu)
     for k in range(6):
         jk = j[k]
         writer.vecwrite(fout, f, r[jk], labels[jk],
@@ -1120,12 +1118,11 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         else:
             fout.write('\nThere are {} ({:.1f}%) NULL rows in {}:\n'.
                        format(nr.size, nr.size/n*100, name))
-            h, u, f = writer.formheader(['Row', 'Label'],
-                                        [6, lablen],
-                                        ['{:6d}', labform],
-                                        sep=2, just=0)
-            fout.write(h)
-            fout.write(u)
+            hu, f = writer.formheader(['Row', 'Label'],
+                                      [6, lablen],
+                                      ['{:6d}', labform],
+                                      sep=2, just=0)
+            fout.write(hu)
             for i in nr:
                 fout.write(f.format(i+1, labels[i]))
 
@@ -1344,20 +1341,18 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose):
             formats = ['{:6}', '{:8}',
                        '{:8.2f}', '{:8.2f}', '{:8.2f}']
             sep = [8, 2]
-            h, u, f = writer.formheader(headers, widths, formats,
-                                        sep=sep, just=0)
-            fout.write(h)
-            fout.write(u)
+            hu, f = writer.formheader(headers, widths, formats,
+                                      sep=sep, just=0)
+            fout.write(hu)
             writer.vecwrite(fout, f, np.arange(1, n+1), grids, coords)
         else:
             headers = ['Node', 'X', 'Y', 'Z']
             widths = [6, 8, 8, 8]
             formats = ['{:6}', '{:8.2f}', '{:8.2f}', '{:8.2f}']
             sep = [8, 2]
-            h, u, f = writer.formheader(headers, widths, formats,
-                                        sep=sep, just=0)
-            fout.write(h)
-            fout.write(u)
+            hu, f = writer.formheader(headers, widths, formats,
+                                      sep=sep, just=0)
+            fout.write(hu)
             writer.vecwrite(fout, f, np.arange(1, n+1), coords)
         fout.write('\nMaximum absolute coordinate location error:  '
                    '{:3g} units\n\n'.format(maxerr))
