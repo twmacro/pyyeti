@@ -12,12 +12,12 @@ import matplotlib.offsetbox as offsetbox
 import numpy as np
 
 
-def form1(x, y, n):
+def form1(x, y, n, ind):
     """Default annotation for plots with 1 line"""
     return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
 
 
-def form2(x, y, n):
+def form2(x, y, n, ind):
     """Default annotation for plots with more than 1 line"""
     return 'x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.format(x=x, y=y, n=n)
 
@@ -29,29 +29,30 @@ class DataCursor(object):
 
     Parameters
     ----------
-    ax : axes object(s) or None
+    ax : axes object(s) or None; optional
         Axes object or list of axes objects as created by
         :func:`matplotlib.pyplot.subplot`. If None, all axes on all
         figures will be automatically included.
-    hover : bool
+    hover : bool; optional
         If True, an annotated large green, semi-transparent dot is
         displayed that follows the mouse as long as the mouse is inside
         the axes.
-    form1 : function
+    form1 : function; optional
         Function to format the x, y data for the annotation. This is
-        called for axes that have only one line. Must accept x, y, n
-        and return a string; eg:  def func(x, y, n). The argument n is
-        the line number starting at 0. Defaults to::
+        called for axes that have only one line. Must accept the four
+        inputs listed and and return a string. The argument `n` is the
+        line number starting at 0 and `ind` is the index into the data
+        vectors. `form1` defaults to::
 
-          def form1(x, y, n):
+          def form1(x, y, n, ind):
               return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
 
-    form2 : function
+    form2 : function; optional
         Function to format the x, y data for the annotation. This is
         called for axes that have more than one line. Same signature
         as `form1`. Defaults to::
 
-          def form2(x, y, n):
+          def form2(x, y, n, ind):
               return ('x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.
                      format(x=x, y=y, n=n))
 
@@ -63,6 +64,9 @@ class DataCursor(object):
     ----------
     xypoints : list
         Contains [x, y] data pairs for each (non-deleted) left-click.
+    inds : list
+        Contains index of [x, y] data pairs for each (non-deleted)
+        left-click. Same length as `xypoints`.
     linenums : list
         Contains line number for each [x, y] data pair, starting at 0.
         Same length as `xypoints`.
@@ -139,7 +143,7 @@ class DataCursor(object):
 
         import matplotlib.pyplot as plt
         import numpy as np
-        from datacursor import DC
+        from pyyeti.datacursor import DC
         x = np.arange(500)
         y = np.random.rand(*x.shape)
         fig = plt.figure('demo')
@@ -210,6 +214,7 @@ class DataCursor(object):
             self._ax_input = newax
         self._init_all()
         self.xypoints = []
+        self.inds = []
         self.linenums = []
         self.pts = []
         self.notes = []
@@ -264,13 +269,24 @@ class DataCursor(object):
             self._in_loop = False
 
     def addpt_func(self, func):
+        """
+        Function to call on a left-click.
+
+        Call signature is: ``func(ax, x, y, n, ind)``
+        """
         self.addptfunc = func
 
     def delpt_func(self, func):
+        """
+        Function to call on a right-click.
+
+        Call signature is: ``func()``
+        """
         self.delptfunc = func
 
-    def _add_point(self, ax, x, y, n):
+    def _add_point(self, ax, x, y, n, ind):
         self.xypoints.append([x, y])
+        self.inds.append(ind)
         self.linenums.append(n)
         self.pts.append(ax.scatter(x, y, s=130,
                         color='red', alpha=0.4))
@@ -278,14 +294,24 @@ class DataCursor(object):
         # offsetbox.DraggableAnnotation(self._annotation)
         # make a new annotation box so current one is static
         self._annotation[ax] = self._new_annotation(ax, (x, y))
+        # newann = self._new_annotation(ax, (x, y))
+        # newann.xy = x, y
+        # if len(ax.lines) > 1:
+        #     newann.set_text(self.form2(x, y, n, ind))
+        # else:
+        #     newann.set_text(self.form1(x, y, n, ind))
+        # newann.set_visible(True)
+        # self.notes.append(newann)
+        # self._annotation[ax].set_visible(False) # = self._new_annotation(ax, (x, y))
         if self._in_loop and len(self.xypoints) == self._max_points:
             self.off()
         if self.addptfunc:
-            self.addptfunc(ax, x, y, n)
+            self.addptfunc(ax, x, y, n, ind)
 
     def _del_point(self):
         """Deletes last saved point, if any."""
         self.xypoints.pop()
+        self.inds.pop()
         self.linenums.pop()
         pt = self.pts.pop()
         pt.remove()
@@ -344,22 +370,22 @@ class DataCursor(object):
         if not ax:
             return
         x, y = event.xdata, event.ydata
-        x, y, n = self._snap(ax, x, y)
+        x, y, n, ind = self._snap(ax, x, y)
         if x is None:
             return
         annotation = self._annotation[ax]
         dot = self._dot[ax]
         annotation.xy = x, y
         if len(ax.lines) > 1:
-            annotation.set_text(self.form2(x, y, n))
+            annotation.set_text(self.form2(x, y, n, ind))
         else:
-            annotation.set_text(self.form1(x, y, n))
+            annotation.set_text(self.form1(x, y, n, ind))
         annotation.set_visible(True)
         dot.set_offsets((x, y))
         dot.set_visible(True)
         if event.name == 'button_press_event':
             if event.button == 1:
-                self._add_point(ax, x, y, n)
+                self._add_point(ax, x, y, n, ind)
             elif event.button == 3 and len(self.xypoints) > 0:
                 self._del_point()
         event.canvas.draw()
@@ -407,7 +433,7 @@ class DataCursor(object):
             ind = np.argmin(d)
             if d[ind] < dmin:
                 dmin = d[ind]
-                xyn = xdata[ind], ydata[ind], n
+                xyn = xdata[ind], ydata[ind], n, ind
         return xyn
 
     def getdata(self, maxpoints=-1,
