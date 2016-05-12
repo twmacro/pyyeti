@@ -83,7 +83,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
     hpfilter : scalar or None; optional
         High pass filter frequency; if None, no filtering is done.
         If filtering is done, it is a 3rd order butterworth via
-        :func:`scipy.signal.filtfilt`.
+        :func:`scipy.signal.lfilter`.
     nbins : integer; optional
         The number of amplitude levels at which to count cycles
     T0 : scalar; optional

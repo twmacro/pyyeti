@@ -27,17 +27,13 @@ class DataCursor(object):
     Class to show x, y data points and to allow selection of points
     for annotations.
 
-    Parameters
+    Attributes
     ----------
-    ax : axes object(s) or None; optional
-        Axes object or list of axes objects as created by
-        :func:`matplotlib.pyplot.subplot`. If None, all axes on all
-        figures will be automatically included.
-    hover : bool; optional
+    hover : bool
         If True, an annotated large green, semi-transparent dot is
         displayed that follows the mouse as long as the mouse is inside
         the axes.
-    form1 : function; optional
+    form1 : function
         Function to format the x, y data for the annotation. This is
         called for axes that have only one line. Must accept the four
         inputs listed and and return a string. The argument `n` is the
@@ -47,7 +43,7 @@ class DataCursor(object):
           def form1(x, y, n, ind):
               return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
 
-    form2 : function; optional
+    form2 : function
         Function to format the x, y data for the annotation. This is
         called for axes that have more than one line. Same signature
         as `form1`. Defaults to::
@@ -59,9 +55,6 @@ class DataCursor(object):
     offsets : tuple
         Two element tuple containing x and y offsets in points for the
         annotation.
-
-    Attributes
-    ----------
     xypoints : list
         Contains [x, y] data pairs for each (non-deleted) left-click.
     inds : list
@@ -153,11 +146,44 @@ class DataCursor(object):
         DC.getdata()
         print('points are:', DC.xypoints)
 
+    Settings can be changed after instantiation. Here is an example of
+    defining a new format for the annotation (for both `form1` and
+    `form2`). 3 decimals are used for the x-coordinate and the index
+    is included::
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from pyyeti.datacursor import DC
+
+        def formnew(x, y, n, ind):
+            return ('x: {x:0.3f}\ny: {y:0.2f}\nindex: {ind:}'
+                    .format(x=x, y=y, ind=ind))
+
+        DC.form1 = DC.form2 = formnew
+
     """
+
     def __init__(self, ax=None, hover=True,
                  form1=form1, form2=form2,
                  offsets=(-20, 20)):
-        """Initialize the DataCursor."""
+        """
+        Initialize the DataCursor.
+
+        Parameters
+        ----------
+        ax : axes object(s) or None; optional
+            Axes object or list of axes objects as created by
+            :func:`matplotlib.pyplot.subplot`. If None, all axes on
+            all figures will be automatically included.
+        hover : bool; optional
+            Sets the `hover` attribute.
+        form1 : function; optional
+            Sets the `form1` attribute.
+        form2 : function; optional
+            Sets the `form2` attribute.
+        offsets : tuple; optional
+            Sets the `offsets` attribute.
+        """
         self._ax_input = ax
         self._kid = {}
         self.hover = hover
