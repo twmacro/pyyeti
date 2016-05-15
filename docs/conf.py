@@ -17,6 +17,8 @@ import sys
 import os
 import shlex
 import matplotlib as mpl
+import sphinx
+from distutils.version import LooseVersion
 mpl.interactive(False)
 mpl.use('Agg')
 
@@ -28,7 +30,7 @@ mpl.use('Agg')
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+# needs_sphinx = '1.3.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -39,10 +41,14 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.pngmath',
+    #    'sphinx.ext.mathjax',
     'matplotlib.sphinxext.plot_directive'
 ]
+
+if LooseVersion(sphinx.__version__) <= LooseVersion('1.3.5'):
+    extensions.append('sphinx.ext.pngmath')
+else:
+    extensions.append('sphinx.ext.imgmath')
 
 # Autosummary setting:
 autosummary_generate = True
