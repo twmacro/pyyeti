@@ -551,7 +551,7 @@ def expanddof(dof):
         # does the second column need to be expanded (ie, 123456 type):
         if any(dof[:, 1] > 6):
             O = np.ones((1, 6), dtype=np.int64)
-            gid = np.dot(dof[:, 0:1], O).flatten('C')
+            gid = np.dot(dof[:, 0:1], O).ravel('C')
             dof2 = np.hstack((gid.reshape(-1, 1),
                               _expand_dof1(dof[:, 1])))
             pv = dof2[:, 1] >= 0
@@ -559,9 +559,9 @@ def expanddof(dof):
     else:
         # expand dof to include six dof per grid
         nodes = np.dot(np.ones((6, 1), dtype=np.int64),
-                       dof.T).flatten('F')
+                       dof.T).ravel('F')
         dof = np.dot(np.arange(1, 7).reshape(-1, 1),
-                     np.ones((1, r), dtype=np.int64)).flatten('F')
+                     np.ones((1, r), dtype=np.int64)).ravel('F')
         dof = np.vstack((nodes, dof)).T
     return dof
 
@@ -1817,7 +1817,7 @@ def getcoords(uset, gid, csys, coordref=None):
         pv = mkdofpv(uset, 'p', gid)[0][0]
         xyz_basic = uset[pv, 3:]
     else:
-        xyz_basic = np.asarray(gid).flatten()
+        xyz_basic = np.asarray(gid).ravel()
     if np.size(csys) == 1 and csys == 0:
         return xyz_basic
     # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:

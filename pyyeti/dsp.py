@@ -220,7 +220,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     for j in range(cols):
         RData[:, j] = updata[::q, j] + m[j]
     if ndim == 1:
-        RData = RData.flatten()
+        RData = RData.ravel()
     if t is None:
         if getfir:
             return RData, fir
@@ -1010,7 +1010,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
     if sig.ndim > 1:
         if max(sig.shape) < sig.size:
             raise ValueError('`sig` must be a vector')
-        sig = sig.flatten()
+        sig = sig.ravel()
     if tsoverlap >= 1:
         raise ValueError('`tsoverlap` must be less than 1')
 

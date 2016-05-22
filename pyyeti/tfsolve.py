@@ -991,7 +991,7 @@ class TFSolve(object):
             >>> tout, yout = ss.impulse(T=sol.t)
             >>> ax = plt.plot(tout, yout, label='scipy')
             >>> leg = plt.legend(loc='best')
-            >>> np.allclose(yout, y.flatten())
+            >>> np.allclose(yout, y.ravel())
             True
         """
         force = np.atleast_2d(force)

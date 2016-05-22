@@ -1479,7 +1479,7 @@ def rbdispchk(f, rbdisp, grids=None,
 
 
 def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
-               verbose=True, outfile=1):
+               verbose=True, outfile=1, rb_normalizer=None):
     """
     Check interface coordinates of a Craig-Bampton stiffness matrix.
 
@@ -1491,8 +1491,11 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         Partition vector to the b-set DOF; length must be multiple of
         6.
     refpoint : 1d array
-        6-element subset of `bset` representing one node to use as
-        reference.
+        6-element subset of `bset` representing a statically-
+        determinate set capable of restraining all rigid-body
+        modes (similar to a SUPORT card in Nastran). Typically, this
+        is just all DOF of a single node; however, if this is not
+        possible, you'll also want to define `rb_normalizer`.
     grids : 1d array or None; optional
         Length N array of node IDs or None. If array, used only in
         diagnostic message printing.
@@ -1505,13 +1508,32 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     outfile : string or file handle or 1; optional
         If string, name of file to write to. If file handle, write to
         that file. Use 1 to write to the screen.
+    rb_normalizer : 2d array_like or None
+        If not None, the `rbmodes` output will be normalized via::
+
+            rbmodes = rbmodes @ rb_normalizer
+
+        `rb_normalizer` is 6 x 6. This normalization is necessary when
+        the DOF in `refpoint` are spread out amongst multiple nodes.
+        `rb_normalizer` defines the motion of the `refpoint` DOF
+        relative to some reference location. For example, the
+        following creates an `rb_normalizer` relative to the origin of
+        the basic coordinate system::
+
+            R = [0., 0., 0.]
+            rb_normalizer = n2p.rbgeom_uset(uset[bset], R)[refpoint]
+
+        This would cause the returned coordinates (see `coords` below)
+        to be relative to the basic origin and in the basic coordinate
+        system.
 
     Returns
     -------
     coords : ndarray
         A 3-column matrix of [x, y, z] locations of each node,
-        relative to refpoint and in the local coordinate system of
-        refpoint.
+        relative to `refpoint` (or as defined by `rb_normalizer`) and
+        in the local coordinate system of `refpoint` (again, or as
+        defined by .
     rbmodes : ndarray
         Stiffness-based rigid-body modes (6 columns). Will have
         zeros corresponding to the modal DOF.
@@ -1521,8 +1543,9 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
 
     Notes
     -----
-    If len(`bset`) > 6, this routine will likely fail if the
-    stiffness of any bset DOF is not full rank.
+    This routine will fail if the DOF in `refpoint` do not fully
+    and minimally restrain all rigid-body motion. It must be a
+    statically-determinate set.
 
     If `coords` doesn't fit the expected pattern shown in
     :func:`rbdispchk`, a warning message is printed.
@@ -1571,6 +1594,9 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         koo = kbb[np.ix_(o, o)]
         rbmodes[o] = -linalg.solve(koo, kor)
 
+    if rb_normalizer is not None:
+        rbmodes = rbmodes @ rb_normalizer
+
     xyz = ytools.mkpattvec([0, 1, 2], lb, 6).ravel()
     coords, maxerr = rbdispchk(outfile, rbmodes[xyz],
                                grids, ttl, verbose)
@@ -1581,7 +1607,8 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     return coords, rbmodes, maxerr
 
 
-def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
+def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
+             rb_norm):
     """
     Routine used by :func:`cbcheck`. See documentation for
     :func:`cbcheck`.
@@ -1686,16 +1713,29 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
     #  These will aid in geometry checking, mass properties checks,
     #  and stiffness grounding checks.
 
-    # coordinates of boundary points according to stiffness:
-    ttl = ('Stiffness-based coordinates relative to node starting at '
-           'row/col {} (after any reordering):\n '
-           ' (Note:  locations are in local coordinate system of the '
-           'reference node.)\n'.format(bref[0]+1))
-    coords, rbs, _ = cbcoordchk(k, bset, bref, uset[::6, 0].astype(int),
-                                ttl, True, fout)
-
-    # use geometry to generate another set of rb-modes:
+    # use geometry to generate a set of rb-modes:
     rbg = n2p.rbgeom_uset(uset, uref)
+
+    if rb_norm is None:
+        if np.any(np.diff(bref) != 1):
+            rb_norm = True
+
+    if rb_norm:
+        rb_normalizer = rbg[bref]
+        ttl = ('Stiffness-based coordinates relative to `uref` '
+               'because of normalization (`rb_norm`):\n '
+               ' (Note: locations are in basic coordinate system.)\n'
+               .format(bref[0]+1))
+    else:
+        rb_normalizer = None
+        ttl = ('Stiffness-based coordinates relative to node starting'
+               ' at row/col {} (after any reordering):\n '
+               ' (Note: locations are in local coordinate system of '
+               'the reference node.)\n'.format(bref[0]+1))
+
+    # coordinates of boundary points according to stiffness:
+    coords, rbs, _ = cbcoordchk(k, bset, bref, uset[::6, 0].astype(int),
+                                ttl, True, fout, rb_normalizer)
 
     # calculate free-free modes:
     if mtype & mtypes['posdef'] and ktype & mtypes['symmetric']:
@@ -1732,6 +1772,9 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
 
     # assuming 6 rigid-body modes
     rbe = linalg.solve(v[bref, :6].T, v[:, :6].T).T
+    if rb_norm:
+        rbe = rbe @ rb_normalizer
+
     # distance of motion check:
     nb = len(bset) // 6
     rss_s = np.zeros((nb, 3))
@@ -1916,10 +1959,10 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt):
 
 
 def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
-            uref=[0, 0, 0], conv=None, em_filt=0):
+            uref=[0, 0, 0], conv=None, em_filt=0, rb_norm=None):
     """
     Run model checks on Craig-Bampton mass and stiffness matrices.
-
+ 
     Parameters
     ----------
     f : string, file handle, or 1
@@ -1936,9 +1979,12 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         Kcb; see below. Uses zero offset.
     bref : 1d ndarray
         6-element subset of `bseto` (or equal to `bseto` if `bseto`
-        only has 6 elements). Defines reference DOF that will be used
-        to compute rigid-body modes and distances from (for the
-        stiffness and eigenvalue based rigid-body modes).
+        only has 6 elements). Defines reference DOF that must be a
+        statically-determinate set capable of restraining all
+        rigid-body motion (similar to the SUPORT card in
+        Nastran). These DOF are used for the stiffness and eigenvalue
+        based rigid-body modes. If `bref` is not all 6-DOF of a single
+        node, you'll also want to set `rb_norm` to True.
     uset : 2d ndarray; optional
         A 6-column matrix as output by :func:`op2.rdn2cop2` or
         :func:`n2p.addgrid`. For information on the format of this
@@ -1974,6 +2020,16 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         Effective mass print filter: only modes with percent mass
         above `em_filt` will be filtered. For example, to filter out
         modes below 2% modal effective mass, set `em_filt` to 2.0.
+    rb_norm : bool or None; optional
+        If None, `rb_norm` will be set to True if and only if `bref`
+        represents non-contiguous DOF. If True, the stiffness and
+        eigenvalue-based rigid-body modes will be normalized such that
+        they are relative to `uref` (as the geometry-based modes
+        are). This is needed in cases where a single node cannot
+        restrain all rigid-body motion; see `bref`. This would happen
+        for example if the drilling DOF were not connected for the
+        boundary DOF. For more information, see the related discussion
+        in :func:`cbcoordchk` for the "rb_normalizer" input.
 
     Returns
     -------
@@ -2067,6 +2123,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     :func:`rbmultchk`, :func:`rbdispchk`, :func:`cbcoordchk`,
     :func:`n2p.addgrid`, :func:`cbconvert`, :func:`cbreorder`,
     :func:`op2.rdn2cop2`
+
     """
     return ytools.wtfile(f, _cbcheck, Mcb, Kcb, bseto, bref, uset,
-                         uref, conv, em_filt)
+                         uref, conv, em_filt, rb_norm)

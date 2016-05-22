@@ -701,7 +701,10 @@ class OP2(object):
 
         Returns
         -------
-        rec : 1-d ndarray or, if form=='bytes', a bytes string.
+        rec : 1d ndarray, bytes string, or None
+            Typically returns 1d ndarray or, if ``form == 'bytes'``, a
+            bytes string. None is returned if the end-of-datablock has
+            been reached.
 
         Notes
         -----
@@ -709,6 +712,8 @@ class OP2(object):
         more than one logical record.
         """
         key = self._getkey()
+        if key == 0:
+            return None
         f = self._fileh
         if not form or form == 'int':
             frm = self._intstr
@@ -727,32 +732,19 @@ class OP2(object):
             frmu = self._endian + '%df'
             bytes_per = 4
         elif form == 'bytes':
-            if 0:
-                data = b''
-                if key > 0:
-                    while key > 0:
-                        reclen = self._Str4.unpack(f.read(4))[0]
-                        data += f.read(reclen)
-                        f.read(4)  # endrec
-                        key = self._getkey()
-                    self._skipkey(2)
-            if 1:
-                data = []
-                if key > 0:
-                    while key > 0:
-                        reclen = self._Str4.unpack(f.read(4))[0]
-                        data.append(f.read(reclen))
-                        f.read(4)  # endrec
-                        key = self._getkey()
-                    self._skipkey(2)
-                data = b''.join(data)
+            data = []
+            while key > 0:
+                reclen = self._Str4.unpack(f.read(4))[0]
+                data.append(f.read(reclen))
+                f.read(4)  # endrec
+                key = self._getkey()
+            self._skipkey(2)
+            data = b''.join(data)
             return data
         else:
             raise ValueError("form must be one of:  None, 'int', "
                              "'uint', 'double', 'single' or 'bytes'")
         if N:
-            if key == 0:
-                return np.empty(0, dtype=frm)
             data = np.empty(N, dtype=frm)
             i = 0
             while key > 0:
@@ -768,40 +760,21 @@ class OP2(object):
                 f.read(4)  # endrec
                 key = self._getkey()
         else:
-            if 0:
-                data = np.empty(0, dtype=frm)
-                if key == 0:
-                    return data
-                while key > 0:
-                    reclen = self._Str4.unpack(f.read(4))[0]
-                    # f.read(4)  # reclen
-                    n = reclen // bytes_per
-                    if n < self._rowsCutoff:
-                        b = n * bytes_per
-                        cur = struct.unpack(frmu % n, f.read(b))
-                    else:
-                        cur = np.fromfile(f, frm, n)
-                    data = np.hstack((data, cur))
-                    f.read(4)  # endrec
-                    key = self._getkey()
-            if 1:
-                data = []
-                if key == 0:
-                    return np.array(data, dtype=frm)
-                while key > 0:
-                    reclen = self._Str4.unpack(f.read(4))[0]
-                    # f.read(4)  # reclen
-                    n = reclen // bytes_per
-                    if n < self._rowsCutoff:
-                        b = n * bytes_per
-                        cur = struct.unpack(frmu % n, f.read(b))
-                    else:
-                        cur = np.fromfile(f, frm, n)
-                    data.extend(cur)
-                    # data = np.hstack((data, cur))
-                    f.read(4)  # endrec
-                    key = self._getkey()
-                data = np.array(data, dtype=frm)
+            data = []
+            while key > 0:
+                reclen = self._Str4.unpack(f.read(4))[0]
+                # f.read(4)  # reclen
+                n = reclen // bytes_per
+                if n < self._rowsCutoff:
+                    b = n * bytes_per
+                    cur = struct.unpack(frmu % n, f.read(b))
+                else:
+                    cur = np.fromfile(f, frm, n)
+                data.extend(cur)
+                # data = np.hstack((data, cur))
+                f.read(4)  # endrec
+                key = self._getkey()
+            data = np.array(data, dtype=frm)
         self._skipkey(2)
         return data
 
@@ -1622,7 +1595,7 @@ class OP2(object):
         def _getdrm(pos, e, s, nwords, eids, etypes, ibytes):
             bytes_per_col = pos - s
             nrows = len(eids)
-            ncols = (e - s - 3*ibytes) // bytes_per_col
+            ncols = (e - s) // bytes_per_col
             dtype = np.int32 if ibytes == 4 else np.int64
             drm = np.empty((nrows, ncols), dtype, order='F')
             elem_info = np.column_stack((eids, etypes))
@@ -1648,7 +1621,7 @@ class OP2(object):
         n_data = []
         r = 0
         j = 0
-        while ident.size > 0:
+        while ident is not None:
             elemtype = ident[2]
             mode = ident[4]
             nwords = ident[9]  # number of words/entry

@@ -766,7 +766,7 @@ class OP4(object):
                 e = pv[-1]
                 elems = (e - s + 1) * multiplier
                 f.write('{:8}{:8}{:8}\n'.format(c+1, s+1, elems))
-                v = np.asarray(v[s:e+1]).flatten()
+                v = np.asarray(v[s:e+1]).ravel()
                 v.dtype = float
                 neven = ((elems - 1) // perline) * perline
                 for i in range(0, neven, perline):
@@ -811,7 +811,7 @@ class OP4(object):
         for c in range(cols):
             v = matrix[:, c]
             if np.any(v):
-                v = np.asarray(v).flatten()
+                v = np.asarray(v).ravel()
                 ind = self._sparse_col_stats(v)
                 nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
                 f.write('{:8}{:8}{:8}\n'.format(c+1, 0, nwords))
@@ -858,7 +858,7 @@ class OP4(object):
         for c in range(cols):
             v = matrix[:, c]
             if np.any(v):
-                v = np.asarray(v).flatten()
+                v = np.asarray(v).ravel()
                 ind = self._sparse_col_stats(v)
                 nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
                 f.write('{:8}{:8}{:8}\n'.format(c+1, 0, nwords))
@@ -961,7 +961,7 @@ class OP4(object):
                 elems = (e - s + 1) * multiplier
                 reclen = 3*4 + elems*8
                 f.write(colHeader.pack(reclen, c+1, s+1, 2*elems))
-                v = np.asarray(v[s:e+1]).flatten()
+                v = np.asarray(v[s:e+1]).ravel()
                 v.dtype = float
                 f.write(struct.pack(endian+('%dd' % elems), *v))
                 f.write(colTrailer.pack(reclen))
@@ -1002,7 +1002,7 @@ class OP4(object):
         for c in range(cols):
             v = matrix[:, c]
             if np.any(v):
-                v = np.asarray(v).flatten()
+                v = np.asarray(v).ravel()
                 ind = self._sparse_col_stats(v)
                 nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
                 reclen = (3 + nwords)*4
@@ -1047,7 +1047,7 @@ class OP4(object):
         for c in range(cols):
             v = matrix[:, c]
             if np.any(v):
-                v = np.asarray(v).flatten()
+                v = np.asarray(v).ravel()
                 ind = self._sparse_col_stats(v)
                 nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
                 reclen = (3 + nwords)*4

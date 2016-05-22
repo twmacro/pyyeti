@@ -463,7 +463,7 @@ def test_cbcheck_unit_convert():
         out = cb.cbcheck(
             f, maa, kaa, b, b[:6], uset=usetb, em_filt=2,
             conv=[1/25.4, 0.005710147154735817],
-            uref=[600, 150, 150])
+            uref=[600, 150, 150], rb_norm=False)
         s = f.getvalue()
 
     s = s.splitlines()
@@ -509,6 +509,80 @@ def test_cbcheck_reorder():
     assert s[0] == 'Mass matrix is symmetric.'
     assert s[1] == 'Mass matrix is positive definite.'
     assert s[2] == 'Stiffness matrix is symmetric.'
+    compare_cbcheck_output(s, sy)
+
+
+def test_cbcheck_indeterminate_rb_norm():
+    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    se = 101
+    maa = nas['maa'][se]
+    kaa = nas['kaa'][se]
+    pv = np.any(maa, axis=0)
+    pv = np.ix_(pv, pv)
+    maa = maa[pv]
+    kaa = kaa[pv]
+
+    uset = nas['uset'][se]
+    bset = n2p.mksetpv(uset, 'p', 'b')
+    usetb = nas['uset'][se][bset]
+    b = n2p.mksetpv(uset, 'a', 'b')
+    q = ~b
+    b = np.nonzero(b)[0]
+
+    bref = n2p.mkdofpv(usetb, 'b', [[3, 12356], [19, 3]])[0]
+
+    # write to a string:
+    with StringIO() as f:
+        out = cb.cbcheck(
+            f, maa, kaa, b, bref, usetb, em_filt=2)
+        s = f.getvalue()
+    s = s.splitlines()
+
+    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+              'cbcheck_yeti_101_rbnorm.out') as f:
+        sy = f.read().splitlines()
+
+    assert s[0] == 'Mass matrix is symmetric.'
+    assert s[1] == 'Mass matrix is positive definite.'
+    assert s[2] == 'Stiffness matrix is symmetric.'
+
+    compare_cbcheck_output(s, sy)
+
+
+def test_cbcheck_indeterminate_rb_norm2():
+    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    se = 102
+    maa = nas['maa'][se]
+    kaa = nas['kaa'][se]
+    pv = np.any(maa, axis=0)
+    pv = np.ix_(pv, pv)
+    maa = maa[pv]
+    kaa = kaa[pv]
+
+    uset = nas['uset'][se]
+    bset = n2p.mksetpv(uset, 'p', 'b')
+    usetb = nas['uset'][se][bset]
+    b = n2p.mksetpv(uset, 'a', 'b')
+    q = ~b
+    b = np.nonzero(b)[0]
+
+    bref = n2p.mkdofpv(usetb, 'b', [[3, 12356], [19, 3]])[0]
+
+    # write to a string:
+    with StringIO() as f:
+        out = cb.cbcheck(
+            f, maa, kaa, b, bref, usetb, em_filt=2, rb_norm=True)
+        s = f.getvalue()
+    s = s.splitlines()
+
+    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+              'cbcheck_yeti_102_rbnorm.out') as f:
+        sy = f.read().splitlines()
+
+    assert s[0] == 'Mass matrix is symmetric.'
+    assert s[1] == 'Warning: mass matrix is not positive definite.'
+    assert s[2] == 'Warning: stiffness matrix is not symmetric.'
+
     compare_cbcheck_output(s, sy)
 
 

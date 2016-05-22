@@ -1060,7 +1060,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
                 if getresp:
                     resp['hist'][:, :, j] = resphist[S:]
     if oneD:
-        SRSmax = SRSmax.flatten()
+        SRSmax = SRSmax.ravel()
     if getresp:
         if eqsine:
             SRSmax /= Q
@@ -1237,7 +1237,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
         else:
             z_miles = np.sqrt((np.pi/2*freq*Q) * psdfull.T).T
         if cp == 2:
-            z_miles = z_miles.flatten()
+            z_miles = z_miles.ravel()
 
     # Compute VRS at each frequency
     z_vrs = np.empty((len(Fn), cp-1))
@@ -1256,7 +1256,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
         resp['f'] = freq
         resp['psd'] = psd_vrs
         if cp == 2:
-            z_vrs = z_vrs.flatten()
+            z_vrs = z_vrs.ravel()
         return z_vrs, z_miles, resp
 
     for i, fn in enumerate(Fn):
@@ -1265,7 +1265,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
               (2*zeta*freq/fn)**2) * df) * psdfull.T
         z_vrs[i] = np.sqrt(np.sum(t, axis=1))
     if cp == 2:
-        z_vrs = z_vrs.flatten()
+        z_vrs = z_vrs.ravel()
     if getmiles:
         return z_vrs, z_miles
     return z_vrs

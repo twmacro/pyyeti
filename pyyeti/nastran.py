@@ -480,7 +480,7 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
     GRID         100       0    0.10    0.20    0.30      10
     GRID         200       0    1.10    1.20    1.30      10
     """
-    grids = np.atleast_1d(grids).flatten()
+    grids = np.atleast_1d(grids).ravel()
     if not isinstance(ps, str):
         ps = '{}'.format(ps)
     if not isinstance(seid, str):

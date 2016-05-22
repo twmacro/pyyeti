@@ -162,7 +162,7 @@ def findap(y, tol=1e-6):
     if len(y) == 1:
         return np.array([True])
 
-    y = np.atleast_1d(y).flatten()
+    y = np.atleast_1d(y).ravel()
     # example: [1, 2, 3, 4, 4, -2, -2, -2]
 
     # first, find unique values (1st of series is unique)

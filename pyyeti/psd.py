@@ -168,9 +168,9 @@ def interp(spec, freq, linear=False):
     ...        [2000, .0036]]
     >>> freq = [100, 200, 600, 1200]
     >>> np.set_printoptions(precision=3)
-    >>> psd.interp(spec, freq).flatten()
+    >>> psd.interp(spec, freq).ravel()
     array([ 0.027,  0.04 ,  0.04 ,  0.01 ])
-    >>> psd.interp(spec, freq, linear=True).flatten()
+    >>> psd.interp(spec, freq, linear=True).ravel()
     array([ 0.027,  0.04 ,  0.04 ,  0.024])
     """
     spec = np.atleast_2d(spec)
@@ -379,8 +379,8 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
         ms = psdoct * (FU-FL).reshape(-1, 1)
     msv = np.sum(ms, axis=0)
     if oned:
-        psdoct = psdoct.flatten()
-        ms = ms.flatten()
+        psdoct = psdoct.ravel()
+        ms = ms.ravel()
         msv = msv[0]
     return psdoct, Wctr, msv, ms
 
@@ -545,7 +545,7 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         >>> pv = np.logical_and(f >= 37, f <= 68)
         >>> fi = f[pv]
         >>> psdi = p[pv]
-        >>> speci = psd.interp(spec, fi).flatten()
+        >>> speci = psd.interp(spec, fi).ravel()
         >>> abs(speci - psdi).max() < .05
         True
         >>> abs(np.trapz(psdi, fi) - np.trapz(speci, fi)) < .25
@@ -587,7 +587,7 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
     freq = np.arange(fstart, fstop+df/2, df)
 
     # generate amp(f) vector
-    speclevel = interp(fp, freq).flatten()
+    speclevel = interp(fp, freq).ravel()
     amp = np.sqrt(2*speclevel*df)
 
     m = (N+1)//2 if odd else N//2 + 1

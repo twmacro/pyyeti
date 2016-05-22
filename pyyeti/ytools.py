@@ -80,7 +80,7 @@ def mkpattvec(start, stop, inc):
     --------
     >>> from pyyeti import ytools
     >>> import numpy as np
-    >>> ytools.mkpattvec([0, 1, 2], 24, 6).flatten()
+    >>> ytools.mkpattvec([0, 1, 2], 24, 6).ravel()
     array([ 0,  1,  2,  6,  7,  8, 12, 13, 14, 18, 19, 20])
     >>> x = np.array([[10, 20, 30], [40, 50, 60]])
     >>> ytools.mkpattvec(x, 15, 2)
@@ -94,7 +94,7 @@ def mkpattvec(start, stop, inc):
             [44, 54, 64]]])
     """
     start = np.array(start)
-    s = start.flatten()
+    s = start.ravel()
     xn = np.array([s+i for i in range(0, stop-s[0], inc)])
     return xn.reshape((-1,) + start.shape)
 

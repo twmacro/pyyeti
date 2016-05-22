@@ -47,8 +47,8 @@ def find_vals(m, v):
     """
     m = np.atleast_1d(m)
     v = np.atleast_1d(v)
-    m = m.flatten(order='F')
-    v = v.flatten()
+    m = m.ravel(order='F')
+    v = v.ravel()
     pv = np.zeros(len(m), dtype=bool)
     for i in range(len(v)):
         pv |= m == v[i]
