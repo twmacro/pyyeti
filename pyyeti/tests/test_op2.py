@@ -338,7 +338,7 @@ def test_rdop2tload():
 
 def test_rdpostop2():
     post = op2.rdpostop2('pyyeti/tests/nas2cam_extseout/'
-                         'inboard.op2', 1, 1)
+                         'inboard.op2', 1, 1, 1, 1)
 
     dof = post['mats']['ougv1'][0]['dof']
     lam = post['mats']['ougv1'][0]['lambda']
@@ -348,14 +348,35 @@ def test_rdpostop2():
     mug1 = o4['mug1'][0]
     tug1 = nastran.rddtipch('pyyeti/tests/nas2cam_extseout/'
                             'inboard.pch')
+    tef1 = nastran.rddtipch('pyyeti/tests/nas2cam_extseout/'
+                            'inboard.pch', 'TEF1')
+    tes1 = nastran.rddtipch('pyyeti/tests/nas2cam_extseout/'
+                            'inboard.pch', 'TES1')
 
-    # mug1 has 24 b-set ... get first 3 modes:
+    # ougv1, oef1, oes1 ... they don't have the constraint modes
+    # or the resflex modes! How can they be useful? Anyway, this
+    # checks the values present:
+
+    # mug1 has 24 b-set ... get first 3 modes (rest are resflex):
     modes = mug1[:, 24:27]
 
     pv = locate.mat_intersect(tug1, dof)[0]
     assert np.allclose(modes[pv], ougv1)
-#    assert np.allclose(o4['mef1'][0][:, 24:27],
-#                       post['mats']['oef1x'][0])
+
+    assert np.allclose(o4['mef1'][0][:, 24:27],
+                       post['mats']['oef1'][0][0])
+    assert np.all(post['mats']['oef1'][0][1][:, 0] == tef1[:, 0])
+    assert np.all(post['mats']['oef1'][0][1][:, 1] == 34)
+
+    pv = np.ones(15, bool)
+    pv[5:7] = False
+    pv[11:15] = False
+    pv = np.hstack((pv, pv, pv))
+
+    assert np.allclose(o4['mes1'][0][:, 24:27],
+                       post['mats']['oes1'][0][0][pv])
+    assert np.all(post['mats']['oes1'][0][1][pv, 0] == tes1[:, 0])
+    assert np.all(post['mats']['oes1'][0][1][:, 1] == 34)
 
     with op2.OP2('pyyeti/tests/nas2cam_extseout/'
                  'inboard.op2') as o2:

@@ -11,6 +11,8 @@ import sys
 from pyyeti import n2p, op4
 import struct
 import warnings
+import itertools as it
+# from collections import namedtuple
 
 #  Notes on the op2 format.
 #
@@ -106,7 +108,6 @@ def _expanddof(ids, pvgrids):
            [4, 4],
            [4, 5],
            [4, 6]])
-
     """
     ids, pvgrids = np.atleast_1d(ids, pvgrids)
     n = len(ids)
@@ -116,9 +117,9 @@ def _expanddof(ids, pvgrids):
     V[:, 0] = True
     V[pvgrids, 1:] = True
     expids = np.reshape(ids, (-1, 1)) * V
-    V = V.flatten()
-    expids = expids.flatten()
-    dof = dof.flatten()
+    V = V.ravel()
+    expids = expids.ravel()
+    dof = dof.ravel()
     return np.vstack((expids[V], dof[V])).T
 
 
@@ -330,7 +331,8 @@ class OP2(object):
               47 < c < 58 or 64 < c < 91 or c == 95 or 96 < c < 123))
 
     def _rdop2eot(self):
-        """Read Nastran output2 end-of-table marker.
+        """
+        Read Nastran output2 end-of-table marker.
 
         Returns
         -------
@@ -351,7 +353,8 @@ class OP2(object):
         return 0, key
 
     def _rdop2nt(self):
-        """Read Nastran output2 datablock name and trailer.
+        """
+        Read Nastran output2 datablock name and trailer.
 
         Returns
         -------
@@ -613,7 +616,7 @@ class OP2(object):
         header_Str = struct.Struct(self._endian + self._i*3)
         hbytes = 3*self._ibytes
         eot = 0
-        data = np.zeros(0, dtype=self._intstr)
+        data = np.empty(0, dtype=self._intstr)
         while not eot:
             while key > 0:
                 self._fileh.read(4)  # reclen
@@ -724,19 +727,33 @@ class OP2(object):
             frmu = self._endian + '%df'
             bytes_per = 4
         elif form == 'bytes':
-            data = b''
-            while key > 0:
-                reclen = self._Str4.unpack(f.read(4))[0]
-                data += f.read(reclen)
-                f.read(4)  # endrec
-                key = self._getkey()
-            self._skipkey(2)
+            if 0:
+                data = b''
+                if key > 0:
+                    while key > 0:
+                        reclen = self._Str4.unpack(f.read(4))[0]
+                        data += f.read(reclen)
+                        f.read(4)  # endrec
+                        key = self._getkey()
+                    self._skipkey(2)
+            if 1:
+                data = []
+                if key > 0:
+                    while key > 0:
+                        reclen = self._Str4.unpack(f.read(4))[0]
+                        data.append(f.read(reclen))
+                        f.read(4)  # endrec
+                        key = self._getkey()
+                    self._skipkey(2)
+                data = b''.join(data)
             return data
         else:
             raise ValueError("form must be one of:  None, 'int', "
                              "'uint', 'double', 'single' or 'bytes'")
         if N:
-            data = np.zeros(N, dtype=frm)
+            if key == 0:
+                return np.empty(0, dtype=frm)
+            data = np.empty(N, dtype=frm)
             i = 0
             while key > 0:
                 reclen = self._Str4.unpack(f.read(4))[0]
@@ -751,19 +768,40 @@ class OP2(object):
                 f.read(4)  # endrec
                 key = self._getkey()
         else:
-            data = np.zeros(0, dtype=frm)
-            while key > 0:
-                reclen = self._Str4.unpack(f.read(4))[0]
-                # f.read(4)  # reclen
-                n = reclen // bytes_per
-                if n < self._rowsCutoff:
-                    b = n * bytes_per
-                    cur = struct.unpack(frmu % n, f.read(b))
-                else:
-                    cur = np.fromfile(f, frm, n)
-                data = np.hstack((data, cur))
-                f.read(4)  # endrec
-                key = self._getkey()
+            if 0:
+                data = np.empty(0, dtype=frm)
+                if key == 0:
+                    return data
+                while key > 0:
+                    reclen = self._Str4.unpack(f.read(4))[0]
+                    # f.read(4)  # reclen
+                    n = reclen // bytes_per
+                    if n < self._rowsCutoff:
+                        b = n * bytes_per
+                        cur = struct.unpack(frmu % n, f.read(b))
+                    else:
+                        cur = np.fromfile(f, frm, n)
+                    data = np.hstack((data, cur))
+                    f.read(4)  # endrec
+                    key = self._getkey()
+            if 1:
+                data = []
+                if key == 0:
+                    return np.array(data, dtype=frm)
+                while key > 0:
+                    reclen = self._Str4.unpack(f.read(4))[0]
+                    # f.read(4)  # reclen
+                    n = reclen // bytes_per
+                    if n < self._rowsCutoff:
+                        b = n * bytes_per
+                        cur = struct.unpack(frmu % n, f.read(b))
+                    else:
+                        cur = np.fromfile(f, frm, n)
+                    data.extend(cur)
+                    # data = np.hstack((data, cur))
+                    f.read(4)  # endrec
+                    key = self._getkey()
+                data = np.array(data, dtype=frm)
         self._skipkey(2)
         return data
 
@@ -885,6 +923,31 @@ class OP2(object):
                                  format(func))
         return True
 
+    def _get_block_bytes(self, name, pos):
+        """
+        Get start/stop bytes of datablock
+
+        Parameters
+        ----------
+        name : string
+            Name of data block.
+        pos : integer
+            Position in file within data block (including start of
+            data block)
+
+        Returns
+        -------
+        start, stop : integers
+            Start and stop byte positions of data block. `stop` is
+            the start of the next block.
+        """
+        dbdir = self.dbnames[name]
+        for i in range(len(dbdir)):
+            start = dbdir[i][0][0]
+            stop = dbdir[i][0][1]
+            if start <= pos < stop:
+                return start, stop
+
     def _rdop2ougv1(self, name):
         """
         Read op2 OUGV1 mode shape data block.
@@ -916,7 +979,7 @@ class OP2(object):
         i4_bytes = 4*self._ibytes
         pos = self._fileh.tell()
         key = self._getkey()
-        lam = np.zeros(1, float)
+        lam = np.empty(1, float)
         ougv1 = None
         J = 0
         eot = 0
@@ -925,19 +988,16 @@ class OP2(object):
                 # compute number of modes by files bytes:
                 startpos = pos + 8 + self._ibytes
                 bytes_per_mode = self._fileh.tell() - startpos
-                dbdir = self.dbnames[name]
-                for i in range(len(dbdir)):
-                    if dbdir[i][0][0] < startpos < dbdir[i][0][1]:
-                        endpos = dbdir[i][0][1]
-                        break
+                _, endpos = self._get_block_bytes(name, startpos)
                 nmodes = (endpos - startpos) // bytes_per_mode
                 keep = lam
-                lam = np.zeros(nmodes, float)
+                lam = np.empty(nmodes, float)
                 lam[0] = keep
                 keep = ougv1
-                ougv1 = np.zeros((keep.shape[0], nmodes), float,
+                ougv1 = np.empty((keep.shape[0], nmodes), float,
                                  order='F')
                 ougv1[:, 0] = keep[:, 0]
+
             # IDENT record:
             reclen = self._Str4.unpack(self._fileh.read(4))[0]
             header = i4_Str.unpack(self._fileh.read(i4_bytes))
@@ -972,7 +1032,7 @@ class OP2(object):
                 V = np.zeros((n, 8), bool)
                 V[:, 2] = True          # all nodes have 'x'
                 V[pvgrids, 3:] = True   # only grids have all 6
-                V = V.flatten()
+                V = V.ravel()
                 # initialize ougv1 with first mode shape:
                 data.dtype = np.float32  # reinterpret as floats
                 ougv1 = data[V].reshape(-1, 1)
@@ -1009,7 +1069,7 @@ class OP2(object):
 
         # read 2nd record:
         key = self._getkey()
-        data2 = np.zeros(0, dtype='u4')
+        data2 = np.empty(0, dtype='u4')
         frm = self._endian + 'u4'
         frmu = self._endian + '%dI'
         mult = self._ibytes // 4
@@ -1025,7 +1085,7 @@ class OP2(object):
             key = self._getkey()
         if self._ibytes == 8:
             data2 = np.reshape(data2, (4, -1))
-            data2 = data2[[0, 3], :].flatten()
+            data2 = data2[[0, 3], :].ravel()
         self._skipkey(2)
 
         # [ grid_id [bitmap] ]
@@ -1073,8 +1133,9 @@ class OP2(object):
                           ('xyz', (self._endian + 'f8', 3))])
         data = self.rdop2record('bytes')
         n = len(data) // nbytes
-        assert n*nbytes == len(data), \
-            "incorrect record length for _rdop2bgpdt"
+        if n*nbytes != len(data):
+            raise ValueError("incorrect record length for"
+                             " _rdop2bgpdt")
         data = np.fromstring(data, dtype=dtype)
         return data
 
@@ -1097,8 +1158,9 @@ class OP2(object):
                           ('xyz', (self._endian + 'f4', 3))])
         data = self.rdop2record('bytes')
         n = len(data) // nbytes
-        assert n*nbytes == len(data), \
-            "incorrect record length for _rdop2bgpdt68"
+        if n*nbytes != len(data):
+            raise ValueError("incorrect record length for"
+                             " _rdop2bgpdt68")
         data = np.fromstring(data, dtype=dtype)
         return data
 
@@ -1153,83 +1215,11 @@ class OP2(object):
 #                           ('xyzT', (self._endian + 'f4', 12))])
 #         data = self.rdop2record('bytes')
 #         n = len(data) // nbytes
-#         assert n*nbytes == len(data), \
-#             "incorrect record length for _rdop2cstm68"
+#         if n*nbytes != len(data):
+#             raise ValueError("incorrect record length for"
+#                              " _rdop2cstm68")
 #         data = np.fromstring(data, dtype=dtype)
 #         return data
-#
-# #        Str = struct.Struct(self._endian + 'ii' + 'f'*12)
-# #        Sbytes = 4*14
-# #        wpg = 14   # words per grid
-# #        wpd = 1    # words per single
-# #        key = self._getkey()
-# #        rfrm = self._endian + '%df'
-# #        datarec = []
-# #        ileft = 0    # integers to read that are left over
-# #        dleft = 0    # singles left
-# #
-# #        a = np.arange(2)
-# #        b = np.arange(2, 14)
-# #        v = np.arange(14)
-# #        A = grids = 0
-# #        while key > 0:
-# #            self._fileh.read(4)  # reclen
-# #            if ileft > 0:
-# #                i = A + a[2-ileft:] + grids*14
-# #                # datarec[i] = np.fromfile(self._fileh,
-# #                #                          self._int32str, ileft)
-# #                bytes = 4 * ileft
-# #                datarec[i] = struct.unpack(self._int32stru % ileft,
-# #                                           self._fileh.read(bytes))
-# #            if dleft > 0:
-# #                i = A + b[12-dleft:] + grids*14
-# #                # datarec[i] = np.fromfile(self._fileh, rfrm, dleft)
-# #                datarec[i] = struct.unpack(rfrm % dleft,
-# #                                           self._fileh.read(4*dleft))
-# #
-# #            key = key - ileft - dleft*wpd
-# #            # number of complete grids remaining in this record
-# #            grids = key // wpg
-# #            A = len(datarec)
-# #            # round up for memory allocation (for possible partial):
-# #            n = (key + wpg - 1) // wpg
-# #            datarec = np.hstack((datarec, np.zeros(n*14)))
-# #
-# #            Av = A + v
-# #            for i in range(grids):
-# #                datarec[Av + i*14] = Str.unpack(self._fileh.read(Sbytes))
-# #
-# #            # read in remainder of record if any
-# #            ileft = 0
-# #            dleft = 0
-# #            if key > grids*wpg:
-# #                # number of words left (1 word/int, 2 words/single)
-# #                n = key - grids*wpg
-# #                if n >= 2:
-# #                    i = A + a + grids*14
-# #                    # datarec[i] = np.fromfile(self._fileh,
-# #                    #                          self._int32str, 2)
-# #                    datarec[i] = struct.unpack(self._int32stru % 2,
-# #                                               self._fileh.read(8))
-# #                    # divide by wpd to get number of singles
-# #                    n = (n - 2) // wpd
-# #                    dleft = 12-n
-# #                    if n >= 1:
-# #                        i = A + b[:n] + grids*14
-# #                        # datarec[i] = np.fromfile(self._fileh, rfrm, n)
-# #                        datarec[i] = struct.unpack(rfrm % n,
-# #                                                   self._fileh.read(4*n))
-# #                else:
-# #                    # n must be 1 here
-# #                    i = A + grids*14
-# #                    datarec[i] = self._Str4.unpack(self._fileh.read(4))[0]
-# #                    ileft = 2-n
-# #                    dleft = 12
-# #            self._fileh.read(4)  # endrec
-# #            key = self._getkey()
-# #        self._skipkey(2)
-# #        self._rdop2eot()
-# #        return datarec
 
     def _rdop2geom1cord2(self):
         e = self._endian
@@ -1263,20 +1253,20 @@ class OP2(object):
                 head = header_Str.unpack(self._fileh.read(hbytes))
                 if head == CORD2R or head == CORD2C or head == CORD2S:
                     n = (key-3) // 13
-                    data = np.zeros((n, 13))
+                    data = np.empty((n, 13))
                     for i in range(n):
                         data[i] = cord2_Str.unpack(self._fileh.read(cbytes))
                     cord2 = np.vstack((cord2, data))
                 elif head == SEBULK:
                     n = (key-3) // 8
-                    sebulk = np.zeros((n, 8))
+                    sebulk = np.empty((n, 8))
                     for i in range(n):
                         sebulk[i] = sebulk_Str.unpack(self._fileh.read(bbytes))
                 elif head == SECONCT:
                     n = key - 3
                     if n < self._rowsCutoff:
                         nbytes = n * ib
-                        seconct = np.zeros(n, int)
+                        seconct = np.empty(n, int)
                         seconct[:] = struct.unpack(self._intstru % n,
                                                    self._fileh.read(nbytes))
                     else:
@@ -1404,7 +1394,7 @@ class OP2(object):
             cstm = np.zeros((n, 14))
             for i, key in enumerate(cstm2):
                 cstm[i, :2] = cstm2[key][0, :2]
-                cstm[i, 2:] = (cstm2[key].flatten())[3:]
+                cstm[i, 2:] = (cstm2[key].ravel())[3:]
         cref = cstm[:, 0].astype(int)
         c_all = cid
         i = np.argsort(cref)
@@ -1418,11 +1408,11 @@ class OP2(object):
         nongrids = rd - ngrids
         doflist = np.zeros((rd, 6)) - 1
         if ngrids > 0:
-            doflist[grids, :] = np.arange(1, 7)
+            doflist[grids] = np.arange(1, 7)
         if nongrids > 0:
             doflist[~grids, 0] = 0
-        doflist = doflist.flatten()
-        idlist = np.dot(nid.reshape(-1, 1), np.ones((1, 6))).flatten()
+        doflist = doflist.ravel()
+        idlist = np.dot(nid.reshape(-1, 1), np.ones((1, 6))).ravel()
         coordinfo = coordinfo.reshape((rd*6, 3))
 
         # partition out -1s:
@@ -1467,148 +1457,238 @@ class OP2(object):
         maps[:, 0] -= 1
         return maps
 
-#    def _rdop2drm(self):
-#        """
-#        Read Nastran output2 DRM data block (table).
-#
-#        Returns
-#        -------
-#        drm : ndarray
-#            The drm matrix.
-#        iddof : ndarray
-#            2-column matrix of [id, dof].
-#
-#        This routine is beta -- check output carefully.
-#        """
-#        def getStr(iprev, elemtype, ir_Str, ir_bytes):
-#            if np.any(elemtype == np.array([4, 5])):
-#                ints_rec2 = 1
-#            else:
-#                ints_rec2 = 2
-#            if ints_rec2 != iprev:
-#                ir_Str = struct.Struct(self._endian + self._i*ints_rec2)
-#                ir_bytes = self._ibytes*ints_rec2
-#            return ir_Str, ir_bytes, ints_rec2
-#
-#        rfrm = self._rfrm
-#        rfrmu = self._rfrmu
-#        rsize = self._fbytes
-#        u1 = self.rdop2record()
-#        elemtype = u1[1]
-#        elemid = u1[2]
-#        ir_Str, ir_bytes, ints_rec2 = getStr(0, elemtype, None, None)
-#        nwords = u1[9]
-#        key = self._getkey()
-#        block = 7*4+3*self._ibytes
-#
-#        # determine records/column by scanning first column:
-#        rpc = 0
-#        fp = self._fileh
-#        pos = fp.tell()
-#        id1 = -1
-#        drmrow = 0
-#        blocksize = 500   # number of rows or cols to grow iddof and drm
-#        drmrows = blocksize
-#        iddof = np.zeros((drmrows, 2), int)
-#        KN = key, nwords
-#        while key >= nwords:
-#            L = nwords - ints_rec2
-#            fp.read(4)   # reclen
-#            dataint = ir_Str.unpack(fp.read(ir_bytes))
-#            id_cur = dataint[0] // 10
-#            if id1 == -1:
-#                id1 = id_cur
-#            elif id1 == id_cur:
-#                break
-#            rpc += 1
-#            if drmrow+L >= drmrows:
-#                iddof = np.vstack((iddof,
-#                                   np.zeros((blocksize, 2), int)))
-#                drmrows += blocksize
-#            iddof[drmrow:drmrow+L, 0] = id_cur
-#            iddof[drmrow:drmrow+L, 1] = elemid
-#            fp.seek(self._ibytes*L, 1)
-#            drmrow += L
-#
-#            # read rest of record:
-#            for i in range(1, key // nwords):
-#                dataint = ir_Str.unpack(fp.read(ir_bytes))
-#                id_cur = dataint[0] // 10
-#                if drmrow+L >= drmrows:
-#                    iddof = np.vstack((iddof,
-#                                       np.zeros((blocksize, 2), int)))
-#                    drmrows += blocksize
-#                iddof[drmrow:drmrow+L, 0] = id_cur
-#                iddof[drmrow:drmrow+L, 1] = elemid
-#                fp.seek(self._ibytes*L, 1)
-#                drmrow += L
-#            fp.seek(block, 1)
-#            key = self._getkey()
-#            if key > 0:
-#                fp.read(4)   # reclen
-#                if key < self._rowsCutoff:
-#                    u1 = struct.unpack(self._intstru % key,
-#                                       fp.read(key*self._ibytes))
-#                else:
-#                    u1 = np.fromfile(fp, self._intstr, key)
-#                if u1[1] != elemtype:
-#                    raise ValueError('u1[1] != elemtype')
-#                # above check precludes next two lines:
-#                # elemtype = u1[1]
-#                # ir_Str, ir_bytes, ints_rec2 = getStr(ints_rec2,
-#                #                                      elemtype,
-#                #                                      ir_Str, ir_bytes)
-#                # if u1[2] != elemid:
-#                #     raise ValueError('u1[2] != elemid ... should it?')
-#                elemid = u1[2]
-#                if u1[9] != nwords:
-#                    raise ValueError('u1[9] != nwords ... should it?')
-#                # nwords = u1[9]
-#                fp.seek(block, 1)
-#                key = self._getkey()
-#
-#        drmrows = drmrow
-#        iddof = iddof[:drmrows]
-#        drmcols = blocksize
-#        fp.seek(pos)
-#        B = np.zeros((drmrows, drmcols), order='F')
-#        drm = B.copy()
-#        drmcol = 0
-#        key, nwords = KN
-#        while key >= nwords:
-#            drmrow = 0
-#            if drmcol == drmcols:
-#                drm = np.asfortranarray(np.hstack((drm, B)))
-#                drmcols += blocksize
-#            for _ in it.repeat(None, rpc):
-#                L = nwords - ints_rec2
-#                fp.read(4)   # reclen
-#                for i in range(key // nwords):
-#                    # dataint = ir_Str.unpack(fp.read(ir_bytes))
-#                    fp.read(ir_bytes)
-#                    if L < self._rowsCutoff:
-#                        drm[drmrow:drmrow+L,
-#                            drmcol] = struct.unpack(rfrmu % L,
-#                                                    fp.read(rsize*L))
-#                    else:
-#                        drm[drmrow:drmrow+L,
-#                            drmcol] = np.fromfile(fp, rfrm, L)
-#                    drmrow += L
-#                fp.seek(block, 1)
-#                key = self._getkey()
-#                if key > 0:
-#                    fp.read(4)   # reclen
-#                    if key < self._rowsCutoff:
-#                        u1 = struct.unpack(self._intstru % key,
-#                                           fp.read(key*self._ibytes))
-#                    else:
-#                        u1 = np.fromfile(fp, self._intstr, key)
-#                else:
-#                    break
-#                fp.seek(block, 1)
-#                key = self._getkey()
-#            drmcol += 1
-#        return drm[:, :drmcol], iddof
+#     # appears to work, but so confusing ...
+#     def _rdop2drm_old(self):
+#         """
+#         Read Nastran output2 DRM data block (table).
+# 
+#         Returns
+#         -------
+#         drm : ndarray
+#             The drm matrix.
+#         iddof : ndarray
+#             2-column matrix of [id, dof].
+# 
+#         This routine is beta -- check output carefully.
+#         """
+#         def getStr(iprev, elemtype, ir_Str, ir_bytes):
+#             if np.any(elemtype == np.array([4, 5])):
+#                 ints_rec2 = 1
+#             else:
+#                 ints_rec2 = 2
+#             if ints_rec2 != iprev:
+#                 ir_Str = struct.Struct(self._endian + self._i*ints_rec2)
+#                 ir_bytes = self._ibytes*ints_rec2
+#             return ir_Str, ir_bytes, ints_rec2
+# 
+#         rfrm = self._rfrm
+#         rfrmu = self._rfrmu
+#         rsize = self._fbytes
+#         u1 = self.rdop2record()
+#         elemtype = u1[1]
+#         elemid = u1[2]
+#         ir_Str, ir_bytes, ints_rec2 = getStr(0, elemtype, None, None)
+#         nwords = u1[9]
+#         key = self._getkey()
+#         block = 7*4+3*self._ibytes
+# 
+#         # determine records/column by scanning first column:
+#         rpc = 0
+#         fp = self._fileh
+#         pos = fp.tell()
+#         id1 = -1
+#         drmrow = 0
+#         blocksize = 500   # number of rows or cols to grow iddof and drm
+#         drmrows = blocksize
+#         iddof = np.zeros((drmrows, 2), int)
+#         KN = key, nwords
+#         while key >= nwords:
+#             L = nwords - ints_rec2
+#             fp.read(4)   # reclen
+#             dataint = ir_Str.unpack(fp.read(ir_bytes))
+#             id_cur = dataint[0] // 10
+#             if id1 == -1:
+#                 id1 = id_cur
+#             elif id1 == id_cur:
+#                 break
+#             rpc += 1
+#             if drmrow+L >= drmrows:
+#                 iddof = np.vstack((iddof,
+#                                    np.zeros((blocksize, 2), int)))
+#                 drmrows += blocksize
+#             iddof[drmrow:drmrow+L, 0] = id_cur
+#             iddof[drmrow:drmrow+L, 1] = elemid
+#             fp.seek(self._ibytes*L, 1)
+#             drmrow += L
+# 
+#             # read rest of record:
+#             for i in range(1, key // nwords):
+#                 dataint = ir_Str.unpack(fp.read(ir_bytes))
+#                 id_cur = dataint[0] // 10
+#                 if drmrow+L >= drmrows:
+#                     iddof = np.vstack((iddof,
+#                                        np.zeros((blocksize, 2), int)))
+#                     drmrows += blocksize
+#                 iddof[drmrow:drmrow+L, 0] = id_cur
+#                 iddof[drmrow:drmrow+L, 1] = elemid
+#                 fp.seek(self._ibytes*L, 1)
+#                 drmrow += L
+#             fp.seek(block, 1)
+#             key = self._getkey()
+#             if key > 0:
+#                 fp.read(4)   # reclen
+#                 if key < self._rowsCutoff:
+#                     u1 = struct.unpack(self._intstru % key,
+#                                        fp.read(key*self._ibytes))
+#                 else:
+#                     u1 = np.fromfile(fp, self._intstr, key)
+#                 if u1[1] != elemtype:
+#                     raise ValueError('u1[1] != elemtype')
+#                 elemid = u1[2]
+#                 nwords = u1[9]
+#                 fp.seek(block, 1)
+#                 key = self._getkey()
+# 
+#         drmrows = drmrow
+#         iddof = iddof[:drmrows]
+#         drmcols = blocksize
+#         fp.seek(pos)
+#         B = np.zeros((drmrows, drmcols), order='F')
+#         drm = B.copy()
+#         drmcol = 0
+#         key, nwords = KN
+#         while key >= nwords:
+#             drmrow = 0
+#             if drmcol == drmcols:
+#                 drm = np.asfortranarray(np.hstack((drm, B)))
+#                 drmcols += blocksize
+#             for _ in it.repeat(None, rpc):
+#                 L = nwords - ints_rec2
+#                 fp.read(4)   # reclen
+#                 for i in range(key // nwords):
+#                     # dataint = ir_Str.unpack(fp.read(ir_bytes))
+#                     fp.read(ir_bytes)
+#                     if L < self._rowsCutoff:
+#                         drm[drmrow:drmrow+L,
+#                             drmcol] = struct.unpack(rfrmu % L,
+#                                                     fp.read(rsize*L))
+#                     else:
+#                         drm[drmrow:drmrow+L,
+#                             drmcol] = np.fromfile(fp, rfrm, L)
+#                     drmrow += L
+# 
+#                 fp.seek(block, 1)
+#                 key = self._getkey()
+#                 if key > 0:
+#                     fp.read(4)   # reclen
+#                     if key < self._rowsCutoff:
+#                         u1 = struct.unpack(self._intstru % key,
+#                                            fp.read(key*self._ibytes))
+#                     else:
+#                         u1 = np.fromfile(fp, self._intstr, key)
+#                     nwords = u1[9]
+#                 else:
+#                     break
+#                 fp.seek(block, 1)
+#                 key = self._getkey()
+#             drmcol += 1
+#         return drm[:, :drmcol], iddof
+
+    def _rdop2drm(self, name):
+        """
+        Read Nastran output2 DRM SORT1 data block (table).
+
+        Parameters
+        ----------
+        name : string
+            Name of data block.
+
+        Returns
+        -------
+        drm : ndarray
+            The drm matrix.
+        elem_info : ndarray
+            2-column matrix of [id, element_type].
+
+        Notes
+        -----
+        Reads OEF1 and OES1 type data blocks. This routine is beta --
+        check output carefully.
+        """
+        # Expect IDENT/DATA record pairs. They repeat for each element
+        # type for each mode.
+        # This routine assumes all values are written, even the zeros.
+
+        def _getdrm(pos, e, s, nwords, eids, etypes, ibytes):
+            bytes_per_col = pos - s
+            nrows = len(eids)
+            ncols = (e - s - 3*ibytes) // bytes_per_col
+            dtype = np.int32 if ibytes == 4 else np.int64
+            drm = np.empty((nrows, ncols), dtype, order='F')
+            elem_info = np.column_stack((eids, etypes))
+            elem_info[:, 0] //= 10
+            return drm, elem_info
+
+        s = self._fileh.tell()
+        _, e = self._get_block_bytes(name, s)
+
+        # read first IDENT above loop & check ACODE/TCODE:
+        ident = self.rdop2record()
+        n_ident = len(ident)
+        achk = self._check_code(ident[0], [4], [[2]], 'ACODE')
+        tchk = self._check_code(ident[1], [1, 7], [[1], [0, 2]],
+                                'TCODE')
+        if not (achk and tchk):
+            raise ValueError('invalid ACODE and/or TCODE value')
+
+        eids = []
+        etypes = []
+        column = []
+        drm = None
+        n_data = []
+        r = 0
+        j = 0
+        while ident.size > 0:
+            elemtype = ident[2]
+            mode = ident[4]
+            nwords = ident[9]  # number of words/entry
+
+            if mode == 1:
+                # DATA record:
+                data = self.rdop2record().reshape(-1, nwords).T
+                n_data.append(data.size)
+                pos = self._fileh.tell()
+                z = np.zeros((nwords-1, 1), data.dtype)
+                eids.extend((data[0]+z).T.ravel())
+                etypes.extend([elemtype]*data.shape[1]*(nwords-1))
+                column.extend(data[1:].T.ravel())
+            else:
+                # DATA record:
+                data = self.rdop2record(N=n_data[j])
+                data = data.reshape(-1, nwords).T
+                if drm is None:
+                    drm, elem_info = _getdrm(
+                        pos, e, s, nwords, eids, etypes, self._ibytes)
+                    drm[:, mode-2] = column
+                n = (nwords-1) * data.shape[1]
+                drm[r:r+n, mode-1] = data[1:].T.ravel()
+                j += 1
+                r += n
+                if r == drm.shape[0]:
+                    j = 0
+                    r = 0
+
+            # IDENT record:
+            ident = self.rdop2record(N=n_ident)
+
+        if drm is None:
+            drm, elem_info = _getdrm(
+                pos, e, s, eids, etypes, self._ibytes)
+            drm[:, mode-1] = column
+        drm.dtype = np.float32 if self._ibytes == 4 else np.float64
+        return drm, elem_info
+#        DRM = namedtuple('DRM', ['drm', 'elem_info'])
+#        return DRM(drm=drm, elem_info=elem_info)
 
     def rddrm2op2(self, verbose=False):
         """
@@ -1998,9 +2078,9 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
                 # count number of rigid body modes
                 nrb = sum(op4vars[j] < .005)[0]
                 nas['nrb'] = nrb
-                nas['lambda'][0] = abs(op4vars[j].flatten())
+                nas['lambda'][0] = abs(op4vars[j].ravel())
             elif name == 'lambda':
-                nas[name][se] = op4vars[j].flatten()
+                nas[name][se] = op4vars[j].ravel()
             elif name == 'rfmodes':
                 nas[name][se] = np.nonzero(op4vars[j])[0]
             else:
@@ -2771,7 +2851,8 @@ def procdrm12(op2file, op4file=None, dosort=True):
     return otm
 
 
-def rdpostop2(op2file, verbose=False, getougv1=False):
+def rdpostop2(op2file, verbose=False, getougv1=False, getoef1=False,
+              getoes1=False):
     """
     Reads PARAM,POST,-1 op2 file and returns dictionary of data.
 
@@ -2780,9 +2861,13 @@ def rdpostop2(op2file, verbose=False, getougv1=False):
     op2file : string
         Name of op2 file.
     verbose : bool
-        If true, echo names of tables and matrices to screen
+        If True, echo names of tables and matrices to screen
     getougv1 : bool
-        If true, read the OUGV1 matrices, if any.
+        If True, read the OUGV1 or BOPHIG matrices, if any
+    getoef1 : bool
+        If True, read the OEF1* matrices, if any
+    getoes1 : bool
+        If True, read the OES1* matrices, if any
 
     Returns
     -------
@@ -2801,20 +2886,20 @@ def rdpostop2(op2file, verbose=False, getougv1=False):
         See description in class OP2, member function :func:`rdn2cop2`.
     'mats' : dictionary
         Dictionary of matrices read from op2 file and indexed by the
-        name.  The 'tload' entry is a typical entry.  If `getougv1` is
-        true, `mats` will contain a list of all 'OUGV1' and 'BOPHIG'
-        matrices.
+        name.  The 'tload' entry is a typical entry.  Will also
+        contain lists of 'OUGV1', 'EOF1*', and 'EOS1*' matrices if
+        the respective `get*` flag is set and those entries are
+        present.
     """
     # read op2 file:
     with OP2(op2file) as o2:
         mats = {}
         selist = uset = cstm2 = sebulk = None
         se = 0
-        if getougv1:
-            mats['ougv1'] = []
         o2._fileh.seek(o2._postheaderpos)
 
-        eqexin1 = None
+        eqexin1 = eqexin = None
+        bgpdt_rec1 = None
         dof = None
         Uset = None
         cstm = None
@@ -2881,24 +2966,48 @@ def rdpostop2(op2file, verbose=False, getougv1=False):
                                  name.find('BOPHIG') == 0):
                     if verbose:
                         print("Reading table {}...".format(name))
-                    mats['ougv1'] += [o2._rdop2ougv1(name)]
+                    try:
+                        mo = mats['ougv1']
+                    except KeyError:
+                        mo = mats['ougv1'] = []
+                    mo += [o2._rdop2ougv1(name)]
                     continue
 
-#                if getoef1 and name.find('OEF1X') == 0:
-#                    if verbose:
-#                        print("Reading table {}...\n".format(name))
-#                    mats['oef1x'] = o2._rdop2drm()
-#                    continue
+                if getoef1 and name.startswith('OEF1'):
+                    if verbose:
+                        print("Reading table {}...".format(name))
+                    try:
+                        mo = mats['oef1']
+                    except KeyError:
+                        mo = mats['oef1'] = []
+                    # mo += [o2._rdop2drm_old()]
+                    mo += [o2._rdop2drm(name)]
+                    continue
+
+                if getoes1 and name.startswith('OES1'):
+                    if verbose:
+                        print("Reading table {}...".format(name))
+                    try:
+                        mo = mats['oes1']
+                    except KeyError:
+                        mo = mats['oes1'] = []
+                    # mo += [o2._rdop2drm_old()]
+                    mo += [o2._rdop2drm(name)]
+                    continue
 
                 if verbose:
                     print("Skipping table {}...".format(name))
                 o2.skipop2table()
 
-        (xyz, cid, dof,
-         doftype, nid, upids) = o2._proc_bgpdt(eqexin1, eqexin,
-                                               True, bgpdt_rec1)
-        Uset, cstm, cstm2 = o2._buildUset(se, dof, doftype, nid,
-                                          uset, xyz, cid, None, cstm2)
+        if (eqexin1 is not None and
+            eqexin is not None and
+            bgpdt_rec1 is not None):
+            (xyz, cid, dof,
+             doftype, nid, upids) = o2._proc_bgpdt(
+                 eqexin1, eqexin, True, bgpdt_rec1)
+            Uset, cstm, cstm2 = o2._buildUset(
+                se, dof, doftype, nid, uset, xyz, cid, None, cstm2)
+
     return {'uset': Uset,
             'cstm': cstm,
             'cstm2': cstm2,
