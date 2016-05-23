@@ -234,7 +234,7 @@ def test_cgmass():
     assert np.all(mcg == mcg1)
     assert np.all(dcg == dcg1)
     assert np.all(abs(gyr - [18.4391, 31.6649, 31.6228]) < 1e-3)
-    assert np.all(abs(pgyr - [18.4204, 31.7693, 31.5288]) < 1e-3)
+    assert np.all(abs(pgyr - [18.4204, 31.5288, 31.7693]) < 1e-3)
 
     sbe = np.array([[ 1020.,   -60.,    22.],
                     [  -60.,  3008.,    23.],
@@ -264,11 +264,13 @@ def gettable(lines, j, col=0, label=None, skip=0):
     return np.array(table), j+len(table)
 
 
-def comptable(s1, s2, j, col=0, label=None, skip=0):
+def comptable(s1, s2, j, col=0, label=None, skip=0, sort2=0):
     table1, nj1 = gettable(s1, j[0], col, label, skip)
     table2, nj2 = gettable(s2, j[0], col, label, skip)
+    if sort2:
+        table2 = np.sort(table2, axis=1)
     j[0] = min(nj1, nj2)
-    return np.allclose(table1, table2, atol=1e-4)
+    return np.allclose(table1, table2, atol=1e-2)
 
 
 def compare_cbcheck_output(s, sy):
@@ -282,7 +284,8 @@ def compare_cbcheck_output(s, sy):
 
     assert comptable(s, sy, j, label='Distance to CG', skip=4, col=23)
     assert comptable(s, sy, j, label=' gyration', skip=4, col=23)
-    assert comptable(s, sy, j, label=' gyration', skip=4, col=23)
+    assert comptable(s, sy, j, label=' gyration', skip=4, col=23,
+                     sort2=True)
 
     assert comptable(s, sy, j, label='Inertia ', skip=2)
     assert comptable(s, sy, j, label='Principal ', skip=2)

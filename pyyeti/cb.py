@@ -592,7 +592,7 @@ def cgmass(m, all6=False):
     I : 2d ndarray
         3x3 inertia matrix at CG in X, Y, Z axes.
     princ_I : 2d ndarray
-        Same as I, but in principal axes.
+        Same as I, but in principal axes (smallest to biggest).
 
     Notes
     -----
@@ -664,7 +664,7 @@ def cgmass(m, all6=False):
     >>> gyr
     array([ 18.4391,  31.6649,  31.6228])
     >>> pgyr
-    array([ 18.4204,  31.7693,  31.5288])
+    array([ 18.4204,  31.5288,  31.7693])
     >>> I
     array([[ 1020.,   -60.,    22.],
            [  -60.,  3008.,    23.],
@@ -715,11 +715,11 @@ def cgmass(m, all6=False):
         princ_gyr = np.sqrt(w/np.diag(m2))
         if np.iscomplexobj(princ_gyr):
             princ_gyr = -np.abs(princ_gyr)
-        else:
-            # try to order them like above:
-            n = np.diag(np.dot(np.dot(v.T, np.diag([1, 2, 3])), v))
-            i = np.argsort(n)
-            princ_gyr = princ_gyr[i]
+#        else:
+#            # try to order them like above:
+#            n = np.diag(np.dot(np.dot(v.T, np.diag([1, 2, 3])), v))
+#            i = np.argsort(n)
+#            princ_gyr = princ_gyr[i]
 
     return mcg, dxyz, gyr, princ_gyr, I, princ_I
 
