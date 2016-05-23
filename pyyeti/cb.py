@@ -710,16 +710,11 @@ def cgmass(m, all6=False):
         princ_I = I
     else:
         w, v = linalg.eigh(I)
-        m2 = np.dot(np.dot(v.T, mcg[:3, :3]), v)
+        m2 = v.T @ mcg[:3, :3]) @ v
         princ_I = np.diag(w)
         princ_gyr = np.sqrt(w/np.diag(m2))
         if np.iscomplexobj(princ_gyr):
             princ_gyr = -np.abs(princ_gyr)
-#        else:
-#            # try to order them like above:
-#            n = np.diag(np.dot(np.dot(v.T, np.diag([1, 2, 3])), v))
-#            i = np.argsort(n)
-#            princ_gyr = princ_gyr[i]
 
     return mcg, dxyz, gyr, princ_gyr, I, princ_I
 

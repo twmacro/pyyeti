@@ -1144,7 +1144,7 @@ def mkdofpv(uset, nasset, dof):
     ----------
     uset : ndarray
         A 6-column matrix as output by :func:`op2.rdn2cop2`.  Can have
-        only the first two columns.
+        only the first two columns if ``nasset == 'p'``.
     nasset : string or integer
         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
         Can also be integer bitmask (see :func:`mkusetmask` for more
