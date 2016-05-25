@@ -710,7 +710,7 @@ def cgmass(m, all6=False):
         princ_I = I
     else:
         w, v = linalg.eigh(I)
-        m2 = v.T @ mcg[:3, :3]) @ v
+        m2 = v.T @ mcg[:3, :3] @ v
         princ_I = np.diag(w)
         princ_gyr = np.sqrt(w/np.diag(m2))
         if np.iscomplexobj(princ_gyr):
