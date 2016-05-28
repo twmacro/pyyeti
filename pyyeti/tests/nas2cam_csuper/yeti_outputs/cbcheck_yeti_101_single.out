@@ -29,7 +29,7 @@ Stiffness-based coordinates relative to node starting at row/col 1 (after any re
 
         Node     ID        X         Y         Z    
         ----  --------  --------  --------  --------
-           1         1      0.00      0.00      0.00
+           1         1      0.00      0.00      0.00   0
 
 Maximum absolute coordinate location error:  0 units
 

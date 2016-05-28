@@ -270,6 +270,8 @@ def comptable(s1, s2, j, col=0, label=None, skip=0, sort2=0):
     if sort2:
         table2 = np.sort(table2, axis=1)
     j[0] = min(nj1, nj2)
+    print('table1 =\n', table1)
+    print('table2 =\n', table2)
     return np.allclose(table1, table2, atol=1e-2)
 
 
@@ -748,11 +750,11 @@ def test_rbdispchk():
 
     sbe = ['',
            'Coordinates Determined from Rigid-Body Displacements:',
-           '         Node      X         Y         Z',
-           '        ------  --------  --------  --------',
-           '             1      0.00      0.00      0.00',
-           '             2      1.00      2.00      3.00',
-           '             3      4.00     -5.00     25.00',
+           '         Node      X         Y         Z         Error',
+           '        ------  --------  --------  --------   ----------',
+           '             1      0.00      0.00      0.00   0.0000e+00',
+           '             2      1.00      2.00      3.00   0.0000e+00',
+           '             3      4.00     -5.00     25.00   0.0000e+00',
            '',
            'Maximum absolute coordinate location error:    0 units',
            '',
@@ -767,11 +769,11 @@ def test_rbdispchk():
 
     sbe = ['',
            'Coordinates Determined from Rigid-Body Displacements:',
-           '         Node      ID        X         Y         Z',
-           '        ------  --------  --------  --------  --------',
-           '             1       100      0.00      0.00      0.00',
-           '             2       200      1.00      2.00      3.00',
-           '             3       300      4.00     -5.00     25.00',
+           '         Node      ID        X         Y         Z         Error',
+           '        ------  --------  --------  --------  --------   ----------',
+           '             1       100      0.00      0.00      0.00   0.0000e+00',
+           '             2       200      1.00      2.00      3.00   0.0000e+00',
+           '             3       300      4.00     -5.00     25.00   0.0000e+00',
            '',
            'Maximum absolute coordinate location error:    0 units',
            '',
@@ -803,11 +805,11 @@ def test_rbdispchk():
            '',
            '',
            'Coordinates Determined from Rigid-Body Displacements:',
-           '         Node      X         Y         Z',
-           '        ------  --------  --------  --------',
-           '             1      0.00      0.00      0.00',
-           '             2      1.00      2.00      3.00',
-           '             3      4.00     -5.00     25.00',
+           '         Node      X         Y         Z         Error',
+           '        ------  --------  --------  --------   ----------',
+           '             1      0.00      0.00      0.00   0.0000e+00',
+           '             2      1.00      2.00      3.00   0.0000e+00',
+           '             3      4.00     -5.00     25.00   6.0000e-03',
            '',
            'Maximum absolute coordinate location error:  0.006 units',
            '',
@@ -829,11 +831,11 @@ def test_rbdispchk():
            '',
            '',
            'Coordinates Determined from Rigid-Body Displacements:',
-           '         Node      ID        X         Y         Z',
-           '        ------  --------  --------  --------  --------',
-           '             1       100      0.00      0.00      0.00',
-           '             2       200      1.00      2.00      3.00',
-           '             3       300      4.00     -5.00     25.00',
+           '         Node      ID        X         Y         Z         Error',
+           '        ------  --------  --------  --------  --------   ----------',
+           '             1       100      0.00      0.00      0.00   0.0000e+00',
+           '             2       200      1.00      2.00      3.00   0.0000e+00',
+           '             3       300      4.00     -5.00     25.00   6.0000e-03',
            '',
            'Maximum absolute coordinate location error:  0.006 units',
            '',

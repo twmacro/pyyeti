@@ -1286,14 +1286,15 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
                          prtnullrows)
 
 
-def _rbdispchk(fout, rbdisp, grids, ttl, verbose):
+def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
     """
     Routine used by :func:`rbdispchk`. See documentation for
     :func:`rbdispchk`.
     """
-    r = np.size(rbdisp, 0)
+    r = rbdisp.shape[0]
     n = r // 3
-    coords = np.zeros((n, 3))
+    coords = np.empty((n, 3))
+    errs = np.empty(n)
     maxerr = 0
     for j in range(n):
         row = j*3
@@ -1305,14 +1306,15 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose):
         deltax2 = -rb[2, 1]
         deltay2 = -rb[0, 2]
         deltaz2 = -rb[1, 0]
-        err = max(np.max(np.abs(np.diag(rb))),
+        err = max(abs(np.diag(rb)).max(),
                   abs(deltax-deltax2),
                   abs(deltay-deltay2),
                   abs(deltaz-deltaz2))
         maxerr = max(maxerr, err)
         coords[j] = [deltax, deltay, deltaz]
-        mc = np.max(np.abs(coords[j]))
-        if verbose and (err > mc*1.e-6 or math.isnan(err)):
+        errs[j] = err
+        mc = abs(coords[j]).max()
+        if verbose and (err > mc*tol or np.isnan(err)):
             if grids is not None:
                 fout.write('Warning: deviation from standard pattern,'
                            ' node ID = {} starting at row {}. '
@@ -1330,34 +1332,35 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose):
     if verbose:
         if ttl:
             fout.write('\n{}\n'.format(ttl))
+        headers = ['Node']
+        widths = [6]
+        formats = ['{:6}']
+        seps = [8]
+        args = [np.arange(1, n+1)]
         if grids is not None:
-            headers = ['Node', 'ID', 'X', 'Y', 'Z']
-            widths = [6, 8, 8, 8, 8]
-            formats = ['{:6}', '{:8}',
-                       '{:8.2f}', '{:8.2f}', '{:8.2f}']
-            sep = [8, 2]
-            hu, f = writer.formheader(headers, widths, formats,
-                                      sep=sep, just=0)
-            fout.write(hu)
-            writer.vecwrite(fout, f, np.arange(1, n+1), grids, coords)
-        else:
-            headers = ['Node', 'X', 'Y', 'Z']
-            widths = [6, 8, 8, 8]
-            formats = ['{:6}', '{:8.2f}', '{:8.2f}', '{:8.2f}']
-            sep = [8, 2]
-            hu, f = writer.formheader(headers, widths, formats,
-                                      sep=sep, just=0)
-            fout.write(hu)
-            writer.vecwrite(fout, f, np.arange(1, n+1), coords)
+            headers.append('ID')
+            widths.append(8)
+            formats.append('{:8}')
+            seps.append(2)
+            args.append(grids)
+        headers.extend(['X', 'Y', 'Z', 'Error'])
+        widths.extend([8, 8, 8, 10])
+        formats.extend(['{:8.2f}', '{:8.2f}', '{:8.2f}', '{:10.4e}'])
+        seps.extend([2, 2, 2, 3])
+        args.extend([coords, errs])
+        hu, f = writer.formheader(headers, widths, formats,
+                                  sep=seps, just=0)
+        fout.write(hu)
+        writer.vecwrite(fout, f, *args)
         fout.write('\nMaximum absolute coordinate location error:  '
                    '{:3g} units\n\n'.format(maxerr))
-    return coords, maxerr
+    return coords, errs
 
 
 def rbdispchk(f, rbdisp, grids=None,
               ttl='Coordinates Determined from '
               'Rigid-Body Displacements:',
-              verbose=True):
+              verbose=True, tol=1.e-4):
     """
     Rigid-body displacement check.
 
@@ -1379,24 +1382,24 @@ def rbdispchk(f, rbdisp, grids=None,
     verbose : bool; optional
         If true, print table of coordinates or any warnings about not
         matching the pattern
+    tol : float; optional
+        Sets the error tolerance level. If `verbose` is true, a
+        warning message is printed for each node that does not fit the
+        expected pattern. The criteria for the error message is if the
+        maximum deviation for that node is > ``tol*max(node_coords)``.
 
     Returns
     -------
-    coords : ndarray
+    coords : 2d ndarray
         A 3-column matrix of [x, y, z] locations of each node,
         relative to refpoint and in the local coordinate system of
         refpoint.
-    maxerr : float
-        Maximum absolute error of any deviation from the expected
-        pattern (see below).
+    errs : 1d ndarray
+        Vector of maximum absolute deviations from the expected
+        pattern for each node (see below).
 
     Notes
     -----
-    If `verbose` is true, a warning message is printed for each node
-    that does not fit the expected pattern. The criteria for the
-    error message is if the maximum deviation for that node is >
-    1e-6*max([X,Y,Z]).
-
     The expected pattern for rigid-body displacements for each node is::
 
       [ 1 0 0    0   Z  -Y
@@ -1447,20 +1450,20 @@ def rbdispchk(f, rbdisp, grids=None,
            [  1.,   0.,   0.,   0.,  25.,   5.],
            [  0.,   1.,   0., -25.,   0.,   4.],
            [  0.,   0.,   1.,  -5.,  -4.,   0.]])
-    >>> coords_out, maxerr = cb.rbdispchk(1, rbtrimmed)
+    >>> coords_out, errs = cb.rbdispchk(1, rbtrimmed)
     <BLANKLINE>
     Coordinates Determined from Rigid-Body Displacements:
-             Node      X         Y         Z
-            ------  --------  --------  --------
-                 1      0.00      0.00      0.00
-                 2      1.00      2.00      3.00
-                 3      4.00     -5.00     25.00
+             Node      X         Y         Z         Error
+            ------  --------  --------  --------   ----------
+                 1      0.00      0.00      0.00   0.0000e+00
+                 2      1.00      2.00      3.00   0.0000e+00
+                 3      4.00     -5.00     25.00   0.0000e+00
     <BLANKLINE>
     Maximum absolute coordinate location error:    0 units
     <BLANKLINE>
     >>> np.allclose(coords, coords_out)
     True
-    >>> maxerr < 1e-9
+    >>> errs.max() < 1e-9
     True
     """
     r, c = np.shape(rbdisp)
@@ -1470,7 +1473,8 @@ def rbdispchk(f, rbdisp, grids=None,
     if (r // 3) * 3 != r:
         raise ValueError('number of rows in `rbdisp` must be '
                          'a multiple of 3.')
-    return ytools.wtfile(f, _rbdispchk, rbdisp, grids, ttl, verbose)
+    return ytools.wtfile(f, _rbdispchk, rbdisp, grids, ttl,
+                         verbose, tol)
 
 
 def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
