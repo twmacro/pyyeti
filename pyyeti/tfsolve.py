@@ -902,7 +902,8 @@ class TFSolve(object):
         self.n = A.shape[0]
 
     def se1(self, force, d0=None):
-        """1st order ODE time domain solver based on the matrix
+        """
+        1st order ODE time domain solver based on the matrix
         exponential.
 
         Parameters
@@ -2535,9 +2536,7 @@ class TFSolve(object):
             v[kdof] = V
 
     def _solve_complex_unc(self, d, v, a, force):
-        """
-        Solve the complex uncoupled equations for :func:`su`
-        """
+        """Solve the complex uncoupled equations for :func:`su`"""
         nt = force.shape[1]
         pc = self.pc
         if self.rbsize:
@@ -2878,7 +2877,8 @@ def solvepsd(ts, forcepsd, t_frc, freq, drmlist, incrb=2, forcephi=None,
 
 def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
                 ylog=False, auto=None, idlabel='', frf_ttl=''):
-    """Get modal participation from frequency response plots.
+    """
+    Get modal participation from frequency response plots.
 
     Parameters
     ----------
