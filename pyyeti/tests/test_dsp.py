@@ -528,3 +528,47 @@ def test_fdscale():
     sig_scaled = dsp.fdscale(sig2, 1/t[1], scale)
     sig_unscaled = dsp.fdscale(sig_scaled, 1/t[1], unscale)
     assert np.allclose(sig2, sig_unscaled, atol=1e-6)
+
+
+def test_fftfilt():
+    # make a signal of sinusoids for testing:
+    h = 0.001
+    t = np.arange(0, 3.0 + h/2, h)
+    y1 = 10 + 3.1*np.sin(2*np.pi*3*t)
+    y2 = 5*np.sin(2*np.pi*10*t)
+    y3 = 2*np.sin(2*np.pi*30*t)
+    y4 = 3*np.sin(2*np.pi*60*t)
+    y = y1 + y2 + y3 + y4
+
+    sr = 1/h
+    nyq = sr/2
+    for j, (w, pz, yj) in enumerate(((7, None, y1),
+                                     ([7, 18], None, y2),
+                                     ([18, 45], None, y3),
+                                     (45, False, y4))):
+        yf = dsp.fftfilt(y, w, bw=None, pass_zero=pz, nyq=nyq)[0]
+        assert 1-stats.pearsonr(yf, yj)[0] < 0.01
+
+    yf = dsp.fftfilt(y, [7, 45], pass_zero=True, nyq=nyq)[0]
+    assert 1-stats.pearsonr(yf, y1+y4)[0] < 0.01
+
+    yf = dsp.fftfilt(y, [7, 18, 45], nyq=nyq)[0]
+    assert 1-stats.pearsonr(yf, y1+y3)[0] < 0.01
+    assert yf.ndim == 1
+    
+    assert_raises(ValueError, dsp.fftfilt, y, 2)
+    assert_raises(ValueError, dsp.fftfilt, y, [.1, .3], bw=[.2, .2, .2])
+
+    y2 = np.column_stack((y, y))
+    yf2 = dsp.fftfilt(y2, np.array([7, 18, 45])/nyq)[0]
+    # yf2 = dsp.fftfilt(y2, np.array([7, 18, 45]), nyq=nyq)[0]
+    assert np.allclose(yf2[:, 0], yf2[:, 1])
+    assert np.allclose(yf2[:, 0], yf)
+    assert yf2.shape[0] == y1.shape[0]
+
+    yf, freq, H = dsp.fftfilt(y, [7, 18, 45], nyq=nyq)
+    assert freq.shape == H.shape
+    t_end = t[-1] + h
+    assert freq[0] == 0.0
+    assert np.allclose(freq[1], 1/t_end)
+    assert nyq - freq[-1] < freq[1]

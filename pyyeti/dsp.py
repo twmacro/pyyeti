@@ -5,6 +5,7 @@ Digital signal processing tools.
 
 import numpy as np
 import scipy.signal as signal
+import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from warnings import warn
@@ -1387,3 +1388,201 @@ def fdscale(y, sr, scale):
     if is1d:
         return Ynew.ravel()
     return Ynew
+
+
+def nextpow2(x):
+    """
+    Return next power of two that is >= `x`
+
+    Examples
+    --------
+    >>> nextpow2(4)
+    4
+    >>> nextpow2(5)
+    8
+    """
+    return 1 << (x-1).bit_length()
+
+
+def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
+            makeplot='no'):
+    """
+    Filter time-domain signals using FFT with Gaussian ramps.
+
+    Parameters
+    ----------
+    sig : 1d or 2d array_like
+        Signal(s) to filter. If 2d, each column is filtered
+    w : scalar or 1d array_like
+        Edge (cutoff) frequencies where ``0.0 < w[i] < nyq`` for all
+        ``i`` (`w` must not include 0.0 or `nyq`). Units are relative
+        to the `nyq` input; so, for example, if `nyq` is the Nyquist
+        frequency in Hz, `w` would be in Hz.
+    bw : scalar, 1d array_like, or None; optional
+        Width of each transition region (each up or down ramp). If
+        None, ``bw = 0.01 * nyq``.
+    pass_zero : bool or None; optional
+        Specifies whether or not the zero frequency will be in a pass
+        band. If None, `pass_zero` is set to True unless `w` has two
+        elements. (So the default is low pass and band pass for `w`
+        with one or two elements.)
+    nyq : scalar; optional
+        Specifies the Nyquist frequency: sample_rate/2.0
+    mag : scalar; optional
+        Specifies the target filter magnitude at each `w`
+    makeplot : string; optional
+        Specifies if and how to plot filter function:
+
+        ==========   =============================================
+        `makeplot`   Description
+        ==========   =============================================
+            'no'      do not plot filter function
+         'clear'      plot after clearing figure
+           'add'      plot without clearing figure
+           'new'      plot in new figure
+        ==========   =============================================
+
+    Returns
+    -------
+    fsig : 1d or 2d ndarray
+        Filtered version of `sig`
+    freq : 1d ndarray
+        Frequency vector from 0.0 to `nyq`
+    h : 1d ndarray
+        The frequency domain filter function
+
+    Examples
+    --------
+    Make a signal composed of 4 sinusoids, then use :func:`fftfilt` to
+    try and recover those sinusoids:
+
+    .. plot::
+        :context: close-figs
+
+        >>> from pyyeti import dsp
+        >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
+        >>> h = 0.001
+        >>> t = np.arange(0, 3.0, h)
+        >>> y1 = 10 + 3.1*np.sin(2*np.pi*3*t)
+        >>> y2 = 5*np.sin(2*np.pi*10*t)
+        >>> y3 = 2*np.sin(2*np.pi*30*t)
+        >>> y4 = 3*np.sin(2*np.pi*60*t)
+        >>> y = y1 + y2 + y3 + y4
+        >>> _ = plt.plot(t, y)
+        >>> _ = plt.title('Signal of 4 sinusoids')
+
+    .. plot::
+        :context: close-figs
+
+        >>> sr = 1/h
+        >>> nyq = sr/2
+        >>> for j, (w, pz, yj) in enumerate(((7, None, y1),
+        ...                                 ([7, 18], None, y2),
+        ...                                 ([18, 45], None, y3),
+        ...                                 (45, False, y4))):
+        ...     _ = plt.figure('filters')
+        ...     _ = plt.subplot(4, 1, j+1)
+        ...     yf = dsp.fftfilt(y, w, pass_zero=pz, nyq=nyq,
+        ...                      makeplot='add')[0]
+        ...     _ = plt.xlim(0, 75)
+        ...     _ = plt.figure('compare')
+        ...     _ = plt.subplot(4, 1, j+1)
+        ...     _ = plt.plot(t, yj, t, yf)
+        >>> _ = plt.figure('filters')
+        >>> _ = plt.tight_layout()
+        >>> _ = plt.figure('compare')
+        >>> _ = plt.tight_layout()
+    """
+    def _make_h(freq, w, bw, pass_zero, mag):
+        def _get_ramp(df, bw, on):
+            # form gaussian ramp from 1.0 to near zero:
+            #      exp(-freq ** 2 / den)
+            # - to determine 'den', need number of points and how
+            #   close to zero to get
+            # - number of points:
+            npts = int(bw / df) + 1
+            # - how close to zero:
+            #     nearzero = exp(-(df*(npts-1)) ** 2 / den)
+            #     -log(nearzero) = (df*(npts-1)) ** 2 / den
+            #     den = (df*(npts-1)) ** 2 / (-log(nearzero))
+            nearzero = 1/npts/4
+            den = -(df*(npts-1)) ** 2 / np.log(nearzero)
+            ramp = np.exp(-(np.arange(npts+1)*df) ** 2 / den)
+            ramp[-1] = 0.0
+            if not on:
+                ramp = ramp[::-1]
+            return ramp
+
+        df = freq[1] - freq[0]
+        if bw is None:
+            bw = 0.01 * nyq
+        bw = np.atleast_1d(bw)
+        if bw.shape[0] != w.shape[0]:
+            if bw.shape[0] != 1:
+                raise ValueError(
+                    '`bw` must be either a scalar or'
+                    ' compatibly sized with `w`')
+            _bw = np.empty(w.shape[0])
+            _bw[:] = bw
+            bw = _bw
+
+        H = np.empty(freq.shape[0])
+        on = pass_zero
+        # position ramps; try to have "mag" point closest to each value
+        # in w:
+        I = 0
+        for (_w, _bw) in zip(w, bw):
+            j = np.argmin(abs(freq - _w))
+            ramp = _get_ramp(df, _bw, on)
+            n = ramp.shape[0]
+            i = np.argmin(abs(ramp - mag))
+            H[I:j-i] = ramp[0]
+            I = j-i+n
+            H[j-i:I] = ramp
+            on = not on
+        H[I:] = ramp[-1]
+        return H
+
+    # main routine:
+    sig, w = np.atleast_1d(sig, w)
+    if pass_zero is None:
+        pass_zero = True if len(w) != 2 else False
+    if sig.ndim == 1:
+        is1d = True
+        sig = sig[:, None]
+    else:
+        is1d = False
+
+    if np.any(w > nyq):
+        raise ValueError('value(s) in `w` exceed `nyq`')
+
+    n = sig.shape[0]
+    freq = np.fft.rfftfreq(n, 0.5/nyq)
+    h = _make_h(freq, w, bw, pass_zero, mag)
+    t = np.arange(n)
+    ylines = interp.interp1d(t[[0, -1]],
+                             sig[[0, -1], :],
+                             axis=0)(t)
+    y2 = sig - ylines
+    n2 = nextpow2(n)
+    Y = np.fft.rfft(y2, n2, axis=0)
+    nf = freq.shape[0]
+    Y[:nf] *= h[:, None]
+    y_h = np.fft.irfft(Y, n2, axis=0)[:n]
+    if pass_zero:
+        y_h += ylines
+    if is1d:
+        y_h = y_h.ravel()
+    if makeplot != 'no':
+        if makeplot == 'new':
+            plt.figure()
+            makeplot = 'add'
+        if makeplot == 'clear':
+            plt.clf()
+        plt.plot(freq, h)
+        style = dict(color='k', lw=2, ls='--')
+        for x in w:
+            plt.axvline(x, **style)
+        plt.axhline(mag, **style)
+    return y_h, freq, h
