@@ -127,7 +127,7 @@ class PP(object):
             self.pp(var)
 
     def _lead_string(self, level):
-        self.output = self.output + ' '*self._tab*level
+        return ' '*self._tab*level
 
     def _key_string(self, val, isns):
         if isinstance(val, str):
@@ -142,41 +142,48 @@ class PP(object):
         return s
 
     def _lst_tup_string(self, lst, list_level):
-        s = '[n={}]: '.format(len(lst))
+        s = ['[n={}]: '.format(len(lst))]
         be = '[]' if isinstance(lst, list) else '()'
-        s = s + be[0]
+        s.append(be[0])
         if list_level > self._depth:
-            return s + '...' + be[1]
+            s.append('...' + be[1])
+            return s
         list_level += 1
-        for item in lst:
+        for i, item in enumerate(lst):
+            if i > 25:
+                s.append(' ...')
+                break
             if isinstance(item, np.ndarray):
-                s = s + self._shortarrhdr(item) + ', '
+                s.extend(self._shortarrhdr(item))
             else:
-                s = s + self._value_string(item, list_level) + ', '
-        if s.endswith(', '):
+                s.extend(self._value_string(item, list_level))
+            s.append(', ')
+        if s[-1] == ', ':
             if len(lst) == 1 and isinstance(lst, tuple):
-                s = s[:-1]
+                s[-1] = ','
             else:
-                s = s[:-2]
-        return s + be[1]
+                s = s[:-1]
+        s.append(be[1])
+        return s
 
     def _value_string(self, val, list_level):
         if isinstance(val, str):
-            s = "'" + val + "'"
+            s = ["'" + val + "'"]
         elif isinstance(val, (list, tuple)):
             s = self._lst_tup_string(val, list_level)
         else:
-            s = str(val)
+            s = [str(val)]
+        s = ''.join(s)
         if len(s) > self._strlen:
             s = s[:self._strlen-4] + ' ...'
-        return s
+        return [s]
 
     def _shortarrhdr(self, arr):
-        return str(arr.dtype) + ' ndarray: ' + str(arr.shape)
-        
+        return [str(arr.dtype) + ' ndarray: ' + str(arr.shape)]
+
     def _getarrhdr(self, arr):
-        s = str(arr.dtype) + ' ndarray '
-        s = s + str(arr.size) + ' elems: ' + str(arr.shape)
+        s = [str(arr.dtype) + ' ndarray ']
+        s.append(str(arr.size) + ' elems: ' + str(arr.shape))
         return s
 
     def _getarrstr(self, arr):
@@ -184,19 +191,21 @@ class PP(object):
         if len(s) > 4*(self._strlen//5):
             n = self._strlen//3
             s = s[:n-3] + ' <...> ' + s[-(n+3):]
-        return s
+        return [s]
 
     def _array_string(self, arr, level):
         s = self._getarrhdr(arr)
         if arr.size <= 10:
-            s = s + self._getarrstr(arr)
-        self.output = self.output + s + '\n'
+            s.extend(self._getarrstr(arr))
+        s.append('\n')
+        return s
 
     def _h5data_string(self, arr, level):
-        s = 'H5 ' + self._getarrhdr(arr)
+        s = ['H5 ' + self._getarrhdr(arr)]
         if arr.size <= 10:
-            s = s + self._getarrstr(arr[...])
-        self.output = self.output + s + '\n'
+            s.extend(self._getarrstr(arr[...]))
+        s.append('\n')
+        return s
 
     def _get_keys(self, dct, showhidden):
         if not showhidden:
@@ -207,8 +216,7 @@ class PP(object):
 
     def _dict_string(self, dct, level, typename, isns=False,
                      showhidden=True):
-        self.output = (self.output + '{}[n={}]\n'
-                       .format(typename, len(dct)))
+        s = ['{}[n={}]\n'.format(typename, len(dct))]
         if level < self._depth:
             keys = self._get_keys(dct, showhidden)
             try:
@@ -222,32 +230,33 @@ class PP(object):
                 n = max(n, len(self._key_string(k, isns)))
             frm = '{:<' + str(n) + 's}: '
             for k in keys:
-                self._lead_string(level)
-                s = self._key_string(k, isns)
-                self.output = self.output + frm.format(s)
-                self._print_var(dct[k], level)
+                s.append(self._lead_string(level))
+                s.append(frm.format(self._key_string(k, isns)))
+                s.extend(self._print_var(dct[k], level))
+        return s
 
     def _print_var(self, var, level):
         try:
-            self._functions[type(var)](var, level)
+            s = self._functions[type(var)](var, level)
         except KeyError:
             typename = str(type(var))
             if isinstance(var, (dict,
                                 h5py._hl.files.File,
                                 h5py._hl.files.Group)):
-                self._dict_string(var, level, typename=typename)
+                s = self._dict_string(var, level, typename=typename)
             elif hasattr(var, '__dict__'):
-                self._dict_string(var.__dict__, level,
-                                  typename=typename, isns=True,
-                                  showhidden=self._show_hidden)
+                s = self._dict_string(var.__dict__, level,
+                                      typename=typename, isns=True,
+                                      showhidden=self._show_hidden)
             else:
                 s = self._value_string(var, 0)
-                self.output = self.output + s + '\n'
+                s.append('\n')
+        return s
 
     def pp(self, var):
         """
         Pretty print variable `var`. See :class:`PP`.
         """
-        self.output = ''
-        self._print_var(var, 0)
+        s = self._print_var(var, 0)
+        self.output = ''.join(s)
         print(self.output)
