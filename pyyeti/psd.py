@@ -298,7 +298,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
     >>> p
     array([ 0.525,  1.   ,  0.525])
 
-    The 0.525 value is from: ``area/width = 1*(2.5-(-.125))/5 = .525``
+    The 0.525 value is from: ``area/width = 1*(2.5-(-0.125))/5 = 0.525``
 
     """
     F = np.atleast_1d(F)

@@ -150,7 +150,8 @@ class PP(object):
             return s
         list_level += 1
         for i, item in enumerate(lst):
-            if i > 25:
+            if i > self._strlen // 3:
+                # each entry is at least 3 chars: "1, "
                 s.append(' ...')
                 break
             if isinstance(item, np.ndarray):
