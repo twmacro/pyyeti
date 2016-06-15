@@ -290,7 +290,7 @@ class SSModel(object):
         For ``method='foh'``, the conversion is::
 
             z.A = E
-            Q = I1 - I2/2
+            Q = I1 - I2/h
             P = I1 - Q
             z.B = (P+E*Q)*s.B
             z.C = s.C
