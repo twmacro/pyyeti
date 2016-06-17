@@ -19,6 +19,8 @@ Time domain solvers:
     TFSolve.se1
     TFSolve.se2
     TFSolve.su
+    TFSolve.su_generator
+    TFSolve.su_finalize
 
 Frequency domain solvers:
 
