@@ -2501,3 +2501,122 @@ def test_getmodepart():
     assert_raises(ValueError, tfsolve.getmodepart, freq, sols, mfreq,
                  ylog=1, idlabel='getmodepart demo 1',
                  factor=.1, auto=[1, 0])
+
+
+def test_TFSolve_ic_generator():
+    # uncoupled equations
+    m = np.array([10., 30., 30., 30.])     # diagonal of mass
+    k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
+    zeta = np.array([0., .05, 1., 1.2])    # percent damping
+    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+
+    h = .001                               # time step
+    t = np.arange(0, .3001, h)             # time vector
+    c = 2*np.pi
+    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
+                   4*(np.cos(np.sqrt(6e5/30)*t)),
+                   5*(np.cos(np.sqrt(6e5/30)*t)),
+                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+
+    d0 = np.random.randn(4)
+    v0 = np.random.randn(4)
+
+    for get_force in (True, False):
+        for order in (0, 1):
+            su = tfsolve.TFSolve('su', m, b, k, h, order=order)
+            solu = su.tsolve(f, d0, v0)
+    
+            su = tfsolve.TFSolve('su', m, b, k, h, order=order)
+            nt = len(t)
+            gen, d, v = su.tsolve_generator(nt, f[:, 0], d0, v0)
+            for i in range(1, nt):
+                gen.send(f[:, i])
+            solu2 = su.tsolve_finalize(get_force)
+    
+            assert np.allclose(solu2.a, solu.a)
+            assert np.allclose(solu2.v, solu.v)
+            assert np.allclose(solu2.d, solu.d)
+    
+            if get_force:
+                assert np.all(solu2.force == f)
+
+            assert np.allclose(v0, solu.v[:, 0])
+            assert np.allclose(d0, solu.d[:, 0])
+
+
+def test_TFSolve_uncoupled_generator():
+    # uncoupled equations
+    m = np.array([10., 30., 30., 30.])     # diagonal of mass
+    k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
+    zeta = np.array([0., .05, 1., 2.])     # percent damping
+    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+
+    h = .001                               # time step
+    t = np.arange(0, .3001, h)             # time vector
+    c = 2*np.pi
+    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
+                   4*(np.cos(np.sqrt(6e5/30)*t)),
+                   5*(np.cos(np.sqrt(6e5/30)*t)),
+                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+
+    for order in (0, 1, 1, 0):
+        m = np.diag(m)
+        k = np.diag(k)
+        b = np.diag(b)
+        for rf in (None, 3, np.array([1, 2, 3])):
+            for static_ic in (0, 1):
+                tsu = tfsolve.TFSolve('su', m, b, k, h,
+                                    order=order, rf=rf)
+                solu = tsu.tsolve(f, static_ic=static_ic)
+
+                nt = f.shape[1]
+                gen, d, v = tsu.tsolve_generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send(f[:, i])
+                solu2 = tsu.tsolve_finalize()
+
+                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
+                                       order=order, rf=rf)
+                solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
+
+                nt = 1
+                gen, d, v = tsu0.tsolve_generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send(f[:, i])
+                solu20 = tsu0.tsolve_finalize()
+
+                assert np.allclose(solu2.a, solu.a)
+                assert np.allclose(solu2.v, solu.v)
+                assert np.allclose(solu2.d, solu.d)
+
+                assert np.allclose(solu0.a, solu.a[:, :1])
+                assert np.allclose(solu0.v, solu.v[:, :1])
+                assert np.allclose(solu0.d, solu.d[:, :1])
+
+                assert np.allclose(solu20.a, solu2.a[:, :1])
+                assert np.allclose(solu20.v, solu2.v[:, :1])
+                assert np.allclose(solu20.d, solu2.d[:, :1])
+
+
+    nt = f.shape[1]
+    tsu = tfsolve.TFSolve('su', m, b, k, h, order=order, rf=2)
+    assert_raises(NotImplementedError, tsu.tsolve_generator,
+                  nt, f[:, 0], static_ic=static_ic)
+
+    tsu = tfsolve.TFSolve('su', m, b, k, h, order=order)
+    assert_raises(ValueError, tsu.tsolve_generator,
+                  nt, f[:-1, 0], static_ic=static_ic)
+
+    tsu = tfsolve.TFSolve('eigsu', m, b, np.diag(k), h, order=order)
+    assert_raises(NotImplementedError, tsu.tsolve_generator,
+                  nt, f[:, 0], static_ic=static_ic)
+
+    # temporary:
+    kcoup = np.diag(k)
+    kcoup[1, 3] = -4000
+    kcoup[3, 1] = -4000
+    tsu = tfsolve.TFSolve('su', m, b, kcoup, h, order=order)
+    assert_raises(NotImplementedError, tsu.tsolve_generator,
+                  nt, f[:, 0], static_ic=static_ic)
