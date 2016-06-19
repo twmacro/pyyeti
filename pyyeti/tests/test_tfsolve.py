@@ -2025,10 +2025,10 @@ def test_tfsolve_complex_coefficients():
 
         # test the generator solver:
         nt = len(sol.t)
-        gen, d, v = ts.tsolve_generator(nt, f[:, 0])
+        gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
             gen.send((i, f[:, i]))
-        sol2 = ts.tsolve_finalize(1)
+        sol2 = ts.finalize(1)
         assert np.allclose(f, sol2.force)
         assert np.allclose(sol.a, sol2.a)
         assert np.allclose(sol.v, sol2.v)
@@ -2089,10 +2089,10 @@ def test_tfsolve_complex_coefficients_with_rf():
 
         # test the generator solver:
         nt = len(sol.t)
-        gen, d, v = ts.tsolve_generator(nt, f[:, 0])
+        gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
             gen.send((i, f[:, i]))
-        sol2 = ts.tsolve_finalize(1)
+        sol2 = ts.finalize(1)
         assert np.allclose(f, sol2.force)
         assert np.allclose(sol.a, sol2.a)
         assert np.allclose(sol.v, sol2.v)
@@ -2129,10 +2129,10 @@ def test_tfsolve_complex_coefficients_mNone():
 
         # test the generator solver:
         nt = len(sol.t)
-        gen, d, v = ts.tsolve_generator(nt, f[:, 0])
+        gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
             gen.send((i, f[:, i]))
-        sol2 = ts.tsolve_finalize(1)
+        sol2 = ts.finalize(1)
         assert np.allclose(f, sol2.force)
         assert np.allclose(sol.a, sol2.a)
         assert np.allclose(sol.v, sol2.v)
@@ -2191,10 +2191,10 @@ def test_tfsolve_complex_coefficients_rb():
 
         # test the generator solver:
         nt = len(sol.t)
-        gen, d, v = ts.tsolve_generator(nt, f[:, 0])
+        gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
             gen.send((i, f[:, i]))
-        sol2 = ts.tsolve_finalize(1)
+        sol2 = ts.finalize(1)
         assert np.allclose(f, sol2.force)
         assert np.allclose(sol.a, sol2.a)
         assert np.allclose(sol.v, sol2.v)
@@ -2337,6 +2337,14 @@ def test_tfsolve_pre_eig():
     assert np.allclose(sol1.v, sol2.v)
     assert np.allclose(sol1.a, sol2.a)
 
+    STIF2 = np.diag(STIF)
+    sol1 = TFSolve('eigsu', MASS, DAMP, STIF2, h).tsolve(F)
+    sol2 = TFSolve('se2', MASS, DAMP, STIF2, h).tsolve(F)
+
+    assert np.allclose(sol1.d, sol2.d)
+    assert np.allclose(sol1.v, sol2.v)
+    assert np.allclose(sol1.a, sol2.a)
+    
     F[0] = 0.
     pv = np.where(time < .8)[0]
     F[0][pv] = 10.
@@ -2623,19 +2631,32 @@ def test_TFSolve_ic_generator():
             su = tfsolve.TFSolve('su', m, b, k, h, order=order)
             solu = su.tsolve(f, d0, v0)
 
-            su = tfsolve.TFSolve('su', m, b, k, h, order=order)
+            se = tfsolve.TFSolve('se2', m, b, k, h, order=order)
+            sole = se.tsolve(f, d0, v0)
+
             nt = len(t)
-            gen, d, v = su.tsolve_generator(nt, f[:, 0], d0, v0)
+            gen, d, v = su.generator(nt, f[:, 0], d0, v0)
             for i in range(1, nt):
                 gen.send((i, f[:, i]))
-            solu2 = su.tsolve_finalize(get_force)
+            solu2 = su.finalize(get_force)
+
+            nt = len(t)
+            gen, d, v = se.generator(nt, f[:, 0], d0, v0)
+            for i in range(1, nt):
+                gen.send((i, f[:, i]))
+            sole2 = se.finalize(get_force)
 
             assert np.allclose(solu2.a, solu.a)
             assert np.allclose(solu2.v, solu.v)
             assert np.allclose(solu2.d, solu.d)
 
+            assert np.allclose(sole2.a, solu.a)
+            assert np.allclose(sole2.v, solu.v)
+            assert np.allclose(sole2.d, solu.d)
+
             if get_force:
                 assert np.all(solu2.force == f)
+                assert np.all(sole2.force == f)
 
             assert np.allclose(v0, solu.v[:, 0])
             assert np.allclose(d0, solu.d[:, 0])
@@ -2662,28 +2683,29 @@ def test_TFSolve_uncoupled_generator():
         b = np.diag(b)
         for rf in (None, 3, np.array([1, 2, 3])):
             for static_ic in (0, 1):
+                get_force = not get_force
+                # su
                 tsu = tfsolve.TFSolve('su', m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
-                gen, d, v = tsu.tsolve_generator(
+                gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
-                get_force = not get_force
-                solu2 = tsu.tsolve_finalize(get_force)
+                solu2 = tsu.finalize(get_force)
 
                 tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
                                        order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 nt = 1
-                gen, d, v = tsu0.tsolve_generator(
+                gen, d, v = tsu0.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
-                solu20 = tsu0.tsolve_finalize(get_force)
+                solu20 = tsu0.finalize(get_force)
 
                 assert np.allclose(solu2.a, solu.a)
                 assert np.allclose(solu2.v, solu.v)
@@ -2696,22 +2718,63 @@ def test_TFSolve_uncoupled_generator():
                 assert np.allclose(solu20.a, solu2.a[:, :1])
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
-                
+
+                # se2
+                tse = tfsolve.TFSolve('se2', m, b, k, h,
+                                    order=order, rf=rf)
+                sole = tse.tsolve(f, static_ic=static_ic)
+
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send((i, f[:, i]))
+                sole2 = tse.finalize(get_force)
+
+                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
+                                       order=order, rf=rf)
+                sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
+
+                nt = 1
+                gen, d, v = tse0.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send((i, f[:, i]))
+                sole20 = tse0.finalize(get_force)
+
+                assert np.allclose(solu.a, sole.a)
+                assert np.allclose(solu.v, sole.v)
+                assert np.allclose(solu.d, sole.d)
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
+
+                assert np.allclose(sole0.a, sole.a[:, :1])
+                assert np.allclose(sole0.v, sole.v[:, :1])
+                assert np.allclose(sole0.d, sole.d[:, :1])
+
+                assert np.allclose(sole20.a, sole2.a[:, :1])
+                assert np.allclose(sole20.v, sole2.v[:, :1])
+                assert np.allclose(sole20.d, sole2.d[:, :1])
+
                 if get_force:
                     assert np.allclose(solu2.force, f)
                     assert np.allclose(solu20.force, f[:, :1])
+                    assert np.allclose(sole2.force, f)
+                    assert np.allclose(sole20.force, f[:, :1])
 
     nt = f.shape[1]
     tsu = tfsolve.TFSolve('su', m, b, k, h, order=order, rf=2)
-    assert_raises(NotImplementedError, tsu.tsolve_generator,
+    assert_raises(NotImplementedError, tsu.generator,
                   nt, f[:, 0], static_ic=static_ic)
 
     tsu = tfsolve.TFSolve('su', m, b, k, h, order=order)
-    assert_raises(ValueError, tsu.tsolve_generator,
+    assert_raises(ValueError, tsu.generator,
                   nt, f[:-1, 0], static_ic=static_ic)
 
     tsu = tfsolve.TFSolve('eigsu', m, b, np.diag(k), h, order=order)
-    assert_raises(NotImplementedError, tsu.tsolve_generator,
+    assert_raises(NotImplementedError, tsu.generator,
                   nt, f[:, 0], static_ic=static_ic)
 
 
@@ -2740,24 +2803,25 @@ def test_TFSolve_uncoupled_2_generator():
             k = k_*kmult
             b = b_*kmult
             for static_ic in (0, 1):
+                get_force = not get_force
+                # su
                 tsu = tfsolve.TFSolve('su', m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
-                gen, d, v = tsu.tsolve_generator(
+                gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
-                get_force = not get_force
-                solu2 = tsu.tsolve_finalize(get_force)
+                solu2 = tsu.finalize(get_force)
 
                 tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
                                      order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
-                gen, d, v = tsu0.tsolve_generator(
+                gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
-                solu20 = tsu0.tsolve_finalize(get_force)
+                solu20 = tsu0.finalize(get_force)
 
                 assert np.allclose(solu2.a, solu.a)
                 assert np.allclose(solu2.v, solu.v)
@@ -2770,10 +2834,49 @@ def test_TFSolve_uncoupled_2_generator():
                 assert np.allclose(solu20.a, solu2.a[:, :1])
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
-                
+
                 if get_force:
                     assert np.allclose(solu2.force, f)
                     assert np.allclose(solu20.force, f[:, :1])
+
+                # se2
+                tse = tfsolve.TFSolve('se2', m, b, k, h,
+                                      order=order, rf=rf)
+                sole = tse.tsolve(f, static_ic=static_ic)
+
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send((i, f[:, i]))
+                sole2 = tse.finalize(get_force)
+
+                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
+                                       order=order, rf=rf)
+                sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
+                gen, d, v = tse0.generator(
+                    1, f[:, 0], static_ic=static_ic)
+                sole20 = tse0.finalize(get_force)
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
+
+                assert np.allclose(solu.a, sole.a)
+                assert np.allclose(solu.v, sole.v)
+                assert np.allclose(solu.d, sole.d)
+
+                assert np.allclose(sole0.a, sole.a[:, :1])
+                assert np.allclose(sole0.v, sole.v[:, :1])
+                assert np.allclose(sole0.d, sole.d[:, :1])
+
+                assert np.allclose(sole20.a, sole2.a[:, :1])
+                assert np.allclose(sole20.v, sole2.v[:, :1])
+                assert np.allclose(sole20.d, sole2.d[:, :1])
+
+                if get_force:
+                    assert np.allclose(sole2.force, f)
+                    assert np.allclose(sole20.force, f[:, :1])
 
 
 def test_TFSolve_coupled_generator():
@@ -2804,23 +2907,24 @@ def test_TFSolve_coupled_generator():
                 m = np.diag(m)
                 b = np.diag(b)
             for static_ic in (0, 1):
+                # su
                 tsu = tfsolve.TFSolve('su', m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
-                gen, d, v = tsu.tsolve_generator(
+                gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
-                solu2 = tsu.tsolve_finalize()
+                solu2 = tsu.finalize()
 
                 tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
                                      order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
-                gen, d, v = tsu0.tsolve_generator(
+                gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
-                solu20 = tsu0.tsolve_finalize()
+                solu20 = tsu0.finalize()
 
                 assert np.allclose(solu2.a, solu.a)
                 assert np.allclose(solu2.v, solu.v)
@@ -2833,6 +2937,41 @@ def test_TFSolve_coupled_generator():
                 assert np.allclose(solu20.a, solu2.a[:, :1])
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
+
+                # se
+                tse = tfsolve.TFSolve('se2', m, b, k, h,
+                                    order=order, rf=rf)
+                sole = tse.tsolve(f, static_ic=static_ic)
+
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send((i, f[:, i]))
+                sole2 = tse.finalize()
+
+                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
+                                     order=order, rf=rf)
+                sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
+                gen, d, v = tse0.generator(
+                    1, f[:, 0], static_ic=static_ic)
+                sole20 = tse0.finalize()
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
+
+                assert np.allclose(solu.a, sole.a)
+                assert np.allclose(solu.v, sole.v)
+                assert np.allclose(solu.d, sole.d)
+
+                assert np.allclose(sole0.a, sole.a[:, :1])
+                assert np.allclose(sole0.v, sole.v[:, :1])
+                assert np.allclose(sole0.d, sole.d[:, :1])
+
+                assert np.allclose(sole20.a, sole2.a[:, :1])
+                assert np.allclose(sole20.v, sole2.v[:, :1])
+                assert np.allclose(sole20.d, sole2.d[:, :1])
 
 
 def test_TFSolve_coupled_2_generator():
@@ -2864,24 +3003,25 @@ def test_TFSolve_coupled_2_generator():
             k = k_*kmult
             b = b_*kmult
             for static_ic in (0, 1):
+                get_force = not get_force
+                # su
                 tsu = tfsolve.TFSolve('su', m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
-                gen, d, v = tsu.tsolve_generator(
+                gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
-                get_force = not get_force
-                solu2 = tsu.tsolve_finalize(get_force)
+                solu2 = tsu.finalize(get_force)
 
                 tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
                                      order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
-                gen, d, v = tsu0.tsolve_generator(
+                gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
-                solu20 = tsu0.tsolve_finalize(get_force)
+                solu20 = tsu0.finalize(get_force)
 
                 assert np.allclose(solu2.a, solu.a)
                 assert np.allclose(solu2.v, solu.v)
@@ -2894,10 +3034,49 @@ def test_TFSolve_coupled_2_generator():
                 assert np.allclose(solu20.a, solu2.a[:, :1])
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
-                
+
                 if get_force:
                     assert np.allclose(solu2.force, f)
                     assert np.allclose(solu20.force, f[:, :1])
+
+                # se
+                tse = tfsolve.TFSolve('se2', m, b, k, h,
+                                    order=order, rf=rf)
+                sole = tse.tsolve(f, static_ic=static_ic)
+
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send((i, f[:, i]))
+                sole2 = tse.finalize(get_force)
+
+                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
+                                     order=order, rf=rf)
+                sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
+                gen, d, v = tse0.generator(
+                    1, f[:, 0], static_ic=static_ic)
+                sole20 = tse0.finalize(get_force)
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
+
+                assert np.allclose(solu.a, sole.a)
+                assert np.allclose(solu.v, sole.v)
+                assert np.allclose(solu.d, sole.d)
+
+                assert np.allclose(sole0.a, sole.a[:, :1])
+                assert np.allclose(sole0.v, sole.v[:, :1])
+                assert np.allclose(sole0.d, sole.d[:, :1])
+
+                assert np.allclose(sole20.a, sole2.a[:, :1])
+                assert np.allclose(sole20.v, sole2.v[:, :1])
+                assert np.allclose(sole20.d, sole2.d[:, :1])
+
+                if get_force:
+                    assert np.allclose(sole2.force, f)
+                    assert np.allclose(sole20.force, f[:, :1])
 
 
 def test_TFSolve_coupled_mNone_generator():
@@ -2923,23 +3102,24 @@ def test_TFSolve_coupled_mNone_generator():
     for order in (0, 1):
         for rf in (None, 3, np.array([1, 2, 3])):
             for static_ic in (0, 1):
+                # su
                 tsu = tfsolve.TFSolve('su', m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
-                gen, d, v = tsu.tsolve_generator(
+                gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
-                solu2 = tsu.tsolve_finalize()
+                solu2 = tsu.finalize()
 
                 tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
                                      order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
-                gen, d, v = tsu0.tsolve_generator(
+                gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
-                solu20 = tsu0.tsolve_finalize()
+                solu20 = tsu0.finalize()
 
                 assert np.allclose(solu2.a, solu.a)
                 assert np.allclose(solu2.v, solu.v)
@@ -2952,6 +3132,41 @@ def test_TFSolve_coupled_mNone_generator():
                 assert np.allclose(solu20.a, solu2.a[:, :1])
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
+
+                # se
+                tse = tfsolve.TFSolve('se2', m, b, k, h,
+                                    order=order, rf=rf)
+                sole = tse.tsolve(f, static_ic=static_ic)
+
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send((i, f[:, i]))
+                sole2 = tse.finalize()
+
+                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
+                                     order=order, rf=rf)
+                sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
+                gen, d, v = tse0.generator(
+                    1, f[:, 0], static_ic=static_ic)
+                sole20 = tse0.finalize()
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
+
+                assert np.allclose(solu.a, sole.a)
+                assert np.allclose(solu.v, sole.v)
+                assert np.allclose(solu.d, sole.d)
+
+                assert np.allclose(sole0.a, sole.a[:, :1])
+                assert np.allclose(sole0.v, sole.v[:, :1])
+                assert np.allclose(sole0.d, sole.d[:, :1])
+
+                assert np.allclose(sole20.a, sole2.a[:, :1])
+                assert np.allclose(sole20.v, sole2.v[:, :1])
+                assert np.allclose(sole20.d, sole2.d[:, :1])
 
 
 def test_TFSolve_coupled_2_mNone_generator():
@@ -2980,23 +3195,24 @@ def test_TFSolve_coupled_2_mNone_generator():
             k = k_*kmult
             b = b_*kmult
             for static_ic in (0, 1):
+                # su
                 tsu = tfsolve.TFSolve('su', m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
-                gen, d, v = tsu.tsolve_generator(
+                gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
-                solu2 = tsu.tsolve_finalize()
+                solu2 = tsu.finalize()
 
                 tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
                                      order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
-                gen, d, v = tsu0.tsolve_generator(
+                gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
-                solu20 = tsu0.tsolve_finalize()
+                solu20 = tsu0.finalize()
 
                 assert np.allclose(solu2.a, solu.a)
                 assert np.allclose(solu2.v, solu.v)
@@ -3009,4 +3225,38 @@ def test_TFSolve_coupled_2_mNone_generator():
                 assert np.allclose(solu20.a, solu2.a[:, :1])
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
-                
+
+                # se
+                tse = tfsolve.TFSolve('se2', m, b, k, h,
+                                    order=order, rf=rf)
+                sole = tse.tsolve(f, static_ic=static_ic)
+
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    gen.send((i, f[:, i]))
+                sole2 = tse.finalize()
+
+                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
+                                     order=order, rf=rf)
+                sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
+                gen, d, v = tse0.generator(
+                    1, f[:, 0], static_ic=static_ic)
+                sole20 = tse0.finalize()
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
+
+                assert np.allclose(solu.a, sole.a)
+                assert np.allclose(solu.v, sole.v)
+                assert np.allclose(solu.d, sole.d)
+
+                assert np.allclose(sole0.a, sole.a[:, :1])
+                assert np.allclose(sole0.v, sole.v[:, :1])
+                assert np.allclose(sole0.d, sole.d[:, :1])
+
+                assert np.allclose(sole20.a, sole2.a[:, :1])
+                assert np.allclose(sole20.v, sole2.v[:, :1])
+                assert np.allclose(sole20.d, sole2.d[:, :1])

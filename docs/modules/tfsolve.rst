@@ -19,8 +19,15 @@ Time domain solvers:
     TFSolve.se1
     TFSolve.se2
     TFSolve.su
+
+Generator time domain solvers:
+
+.. autosummary::
+    :toctree: generated/
+
+    TFSolve.se2_generator
     TFSolve.su_generator
-    TFSolve.su_finalize
+    TFSolve.finalize
 
 Frequency domain solvers:
 

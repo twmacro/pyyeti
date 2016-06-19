@@ -359,7 +359,7 @@ def eigss(A, delcc):
     For underdamped modes, the complex eigenvalues and modes come in
     complex conjugate pairs. Each mode of a pair yields the same
     solution for real time-domain problems. This routine takes
-    advantage of this fact (if `delcc` is true) by chopping out one of
+    advantage of this fact (if `delcc` is True) by chopping out one of
     the pair and multiplying the other one by 2.0 (in `ur`). Then, if
     all modes are underdamped: ``len(lam) = M.shape[0]`` and if no
     modes are underdamped: ``len(lam) = 2*M.shape[0]``.
@@ -878,8 +878,8 @@ class TFSolve(object):
            order     order of solver (0 or 1; see above)
            E, P, Q   output of :func:`expmint.getEPQ`; they are
                      matrices used to solve the ODE
-           pc        true if E, P, and Q member have been calculated;
-                     false otherwise
+           pc        True if E, P, and Q member have been calculated;
+                     False otherwise
            tsolve    :func:`se1`
         ==========   ================================================
 
@@ -1084,44 +1084,46 @@ class TFSolve(object):
         The instance of TFSolve class is populated with the following
         members:
 
-        ========   ===================================================
-         Member    Description
-        ========   ===================================================
-         m         mass for the non-rf modes
-         b         damping for the non-rf modes
-         k         stiffness for the non-rf modes
-         h         time step
-         rb        index vector or slice for the rb modes
-         el        index vector or slice for the el modes
-         rf        index vector or slice for the rf modes
-         _rb       index vector or slice for the rb modes relative to
+        =========  ===================================================
+        Member     Description
+        =========  ===================================================
+        m          mass for the non-rf modes
+        b          damping for the non-rf modes
+        k          stiffness for the non-rf modes
+        h          time step
+        rb         index vector or slice for the rb modes
+        el         index vector or slice for the el modes
+        rf         index vector or slice for the rf modes
+        _rb        index vector or slice for the rb modes relative to
                    the non-rf modes
-         _el       index vector or slice for the el modes relative to
+        _el        index vector or slice for the el modes relative to
                    the non-rf modes
-         nonrf     index vector or slice for the non-rf modes
-         kdof      index vector or slice for the non-rf modes
-         n         number of total DOF
-         rbsize    number of rb modes
-         elsize    number of el modes
-         rfsize    number of rf modes
-         nonrfsz   number of non-rf modes
-         ksize     number of non-rf modes
-         invm      decomposition of m for the non-rf, non-rb modes
-         krf       stiffness for the rf modes
-         ikrf      inverse of stiffness for the rf modes
-         unc       true if there are no off-diagonal terms in any
-                   matrix; false otherwise
-         order     order of solver (0 or 1; see above)
-         E, P, Q   output of :func:`expmint.getEPQ`; they are
-                   matrices used to solve the ODE
-         pc        true if E, P, and Q member have been calculated;
-                   false otherwise
-         pre_eig   true if the "pre" eigensolution was done; false
+        nonrf      index vector or slice for the non-rf modes
+        kdof       index vector or slice for the non-rf modes
+        n          number of total DOF
+        rbsize     number of rb modes
+        elsize     number of el modes
+        rfsize     number of rf modes
+        nonrfsz    number of non-rf modes
+        ksize      number of non-rf modes
+        invm       decomposition of m for the non-rf, non-rb modes
+        krf        stiffness for the rf modes
+        ikrf       inverse of stiffness for the rf modes
+        unc        True if there are no off-diagonal terms in any
+                   matrix; False otherwise
+        order      order of solver (0 or 1; see above)
+        E, P, Q    output of :func:`expmint.getEPQ`; they are matrices
+                   used to solve the ODE
+        pc         True if E, P, and Q member have been calculated;
+                   False otherwise
+        pre_eig    True if the "pre" eigensolution was done; False
                    otherwise
-         phi       the mode shape matrix from the "pre" eigensolution;
-                   only present if `pre_eig` is True
-         tsolve    :func:`se2`
-        ========   ===================================================
+        phi        the mode shape matrix from the "pre"
+                   eigensolution; only present if `pre_eig` is True
+        tsolve     :func:`se2`
+        generator  :func:`TFSolve.se2_generator`
+        finalize   :func:`TFSolve.finalize`
+        =========  ===================================================
 
         The E, P, and Q entries are used to solve the ODE::
 
@@ -1161,6 +1163,10 @@ class TFSolve(object):
             self.pc = False
         self._mk_slices(False)
         self.tsolve = self.se2
+
+        # for the generator solvers:
+        self.generator = self.se2_generator
+        self.finalize = self.finalize
 
     def se2(self, force, d0=None, v0=None, static_ic=False):
         """
@@ -1307,7 +1313,8 @@ class TFSolve(object):
                 if self.unc:
                     imf = self.invm * force[kdof]
                 else:
-                    imf = la.lu_solve(self.invm, force[kdof])
+                    imf = la.lu_solve(self.invm, force[kdof],
+                                      check_finite=False)
             else:
                 imf = force[kdof]
 
@@ -1326,6 +1333,152 @@ class TFSolve(object):
             v[kdof] = y[:n]
             self._calc_acce_kdof(d, v, a, force)
         return self._solution(d, v, a)
+
+    def se2_generator(self, nt, F0, d0=None, v0=None,
+                      static_ic=False):
+        """
+        Python "generator" version of :func:`TFSolve.se2`;
+        interactively solve (or re-solve) one step at a time.
+
+        Parameters
+        ----------
+        nt : integer
+            Number of time steps
+        F0 : 1d ndarray
+            Initial force vector
+        d0 : 1d ndarray or None; optional
+            Displacement initial conditions; if None, zero ic's are
+            used.
+        v0 : 1d ndarray or None; optional
+            Velocity initial conditions; if None, zero ic's are used.
+        static_ic : bool; optional
+            If True and `d0` is None, then `d0` is calculated such
+            that static (steady-state) initial conditions are
+            used. Uses the pseudo-inverse in case there are rigid-body
+            modes. `static_ic` is ignored if `d0` is not None.
+
+        Returns
+        -------
+        gen : generator function
+            Generator function for solving equations one step at a
+            time
+        d, v, a : 2d ndarrays
+            The displacement, velocity and acceleration arrays. Only
+            the first column of `d` and `v` are set; other values are
+            all zero.
+
+        Notes
+        -----
+        See :func:`TFSolve.se2` for more information on the solver.
+
+        To use the generator:
+
+            1. Instantiate a :class:`TFSolve` instance::
+
+                   ts = TFSolve('se2', m, b, k, h)
+
+            2. Retrieve a generator and the arrays for holding the
+               solution (here, :func:`TFSolve.generator` is an alias
+               for :func:`TFSolve.se2_generator`). The initial force
+               vector and any initial conditions are input here (see
+               Parameters above)::
+
+                   gen, d, v = ts.generator(len(time), f0)
+
+            3. Use :func:`gen.send` to send a tuple of the next index
+               and corresponding force vector in a loop. Re-do
+               time-steps as necessary (note that index zero cannot be
+               redone)::
+
+                   for i in range(1, len(time)):
+                       # Do whatever to get i'th force
+                       # - note: d[:, :i] and v[:, :i] are available
+                       gen.send((i, fi))
+
+               The class instance will have the attributes `_d`, `_v`
+               (same objects as `d` and `v`), `_a`, and `_force`. `d`,
+               `v` and `ts._force` are updated on every
+               :func:`gen.send`. (`ts._a` is not used until step 4.)
+
+            4. Call :func:`ts.finalize` to get final solution
+               in standard form::
+
+                   sol = ts.finalize()
+
+               The internal references `_d`, `_v`, `_a`, and `_force`
+               are deleted.
+
+        The generator solver currently has these limitations:
+
+            1. Unlike the normal solver, equations cannot be
+               interspersed. That is, each type of equation
+               (rigid-body, elastic, residual-flexibility) must be
+               contained in a contiguous group (so that `self.slices`
+               is True).
+            2. Unlike the normal solver, the `pre_eig` option is not
+               available.
+            3. The first time step cannot be redone.
+
+        From one timing test, the generator solver took longer than
+        the normal solver by a factor of 3.7 for diagonal equations.
+        For coupled equations, the factor was 2.7.
+
+        Examples
+        --------
+        Set up some equations and solve both the normal way and via
+        the generator:
+
+        >>> from pyyeti import tfsolve
+        >>> import numpy as np
+        >>> m = np.array([10., 30., 30., 30.])    # diag mass
+        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
+        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
+        >>> h = .001                              # time step
+        >>> t = np.arange(0, .3001, h)            # time vector
+        >>> c = 2*np.pi
+        >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
+        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
+        >>> f *= 1.e4
+        >>> ts = tfsolve.TFSolve('se2', m, b, k, h)
+
+        Solve the normal way:
+
+        >>> sol = ts.tsolve(f, static_ic=1)
+
+        Solve via the generator:
+
+        >>> nt = f.shape[1]
+        >>> gen, d, v = ts.generator(nt, f[:, 0], static_ic=1)
+        >>> for i in range(1, nt):
+        ...     # Could do stuff here using d[:, :i] & v[:, :i] to
+        ...     # get next force
+        ...     gen.send((i, f[:, i]))
+        >>> sol2 = ts.finalize()
+
+        Confirm results:
+
+        >>> np.allclose(sol2.a, sol.a)
+        True
+        >>> np.allclose(sol2.v, sol.v)
+        True
+        >>> np.allclose(sol2.d, sol.d)
+        True
+        """
+        if not self.slices:
+            raise NotImplementedError(
+                '"se2" generator not yet implemented for the case'
+                ' when different types of equations are interspersed'
+                ' (eg, a res-flex DOF in the middle of the elastic'
+                ' DOFs)')
+        d, v, a, force = self._init_dva_part(
+            nt, F0, d0, v0, static_ic, 'mkse2params')
+        self._d, self._v, self._a, self._force = d, v, a, force
+        generator = self._solve_se2_generator(d, v, a, F0)
+        next(generator)
+        return generator, d, v
 
     def mksuparams(self, m, b, k, h=None, rb=None, rf=None, order=1,
                    delcc=True, pre_eig=False):
@@ -1399,52 +1552,49 @@ class TFSolve(object):
         `elastic` for coupled -- the difference is whether or not the
         rigid-body modes are included: they are for uncoupled.
 
-        ================  ============================================
-        Member            Description
-        ================  ============================================
-        m                 mass for the non-rf/elastic modes
-        b                 damping for the non-rf/elastic modes
-        k                 stiffness for the non-rf/elastic modes
-        h                 time step
-        rb                index vector or slice for the rb modes
-        el                index vector or slice for the el modes
-        rf                index vector or slice for the rf modes
-        _rb               index vector or slice for the rb modes
-                          relative to the non-rf modes
-        _el               index vector or slice for the el modes
-                          relative to the non-rf modes
-        nonrf             index vector or slice for the non-rf modes
-        kdof              index vector or slice for the non-rf/elastic
-                          modes
-        n                 number of total DOF
-        rbsize            number of rb modes
-        elsize            number of el modes
-        rfsize            number of rf modes
-        nonrfsz           number of non-rf modes
-        ksize             number of non-rf/elastic modes
-        invm              decomposition of m for the non-rf/elastic
-                          modes
-        imrb              decomposition of m for the rb modes
-        krf               stiffness for the rf modes
-        ikrf              inverse of stiffness for the rf modes
-        unc               true if there are no off-diagonal terms in
-                          any matrix; false otherwise
-        order             order of solver (0 or 1; see above)
-        pc                None or record (SimpleNamespace) of
-                          integration coefficients; if uncoupled, this
-                          is populated by :func:`get_su_coef`;
-                          otherwise by :func:`TFSolve.get_su_eig`
-        pre_eig           true if the "pre" eigensolution was done;
-                          false otherwise
-        phi               the mode shape matrix from the "pre"
-                          eigensolution; only present if `pre_eig` is
-                          True
-        systype           float or complex; determined by `m` `b` `k`
-        tsolve            :func:`TFSolve.su`
-        fsolve            :func:`TFSolve.fsu`
-        tsolve_generator  :func:`TFSolve.su_generator`
-        tsolve_finalize   :func:`TFSolve.su_finalize`
-        ================  ============================================
+        =========  ===================================================
+        Member     Description
+        =========  ===================================================
+        m          mass for the non-rf/elastic modes
+        b          damping for the non-rf/elastic modes
+        k          stiffness for the non-rf/elastic modes
+        h          time step
+        rb         index vector or slice for the rb modes
+        el         index vector or slice for the el modes
+        rf         index vector or slice for the rf modes
+        _rb        index vector or slice for the rb modes relative to
+                   the non-rf modes
+        _el        index vector or slice for the el modes relative to
+                   the non-rf modes
+        nonrf      index vector or slice for the non-rf modes
+        kdof       index vector or slice for the non-rf/elastic modes
+        n          number of total DOF
+        rbsize     number of rb modes
+        elsize     number of el modes
+        rfsize     number of rf modes
+        nonrfsz    number of non-rf modes
+        ksize      number of non-rf/elastic modes
+        invm       decomposition of m for the non-rf/elastic modes
+        imrb       decomposition of m for the rb modes
+        krf        stiffness for the rf modes
+        ikrf       inverse of stiffness for the rf modes
+        unc        True if there are no off-diagonal terms in any
+                   matrix; False otherwise
+        order      order of solver (0 or 1; see above)
+        pc         None or record (SimpleNamespace) of integration
+                   coefficients; if uncoupled, this is populated by
+                   :func:`get_su_coef`; otherwise by
+                   :func:`TFSolve.get_su_eig`
+        pre_eig    True if the "pre" eigensolution was done; False
+                   otherwise
+        phi        the mode shape matrix from the "pre" eigensolution;
+                   only present if `pre_eig` is True
+        systype    float or complex; determined by `m` `b` `k`
+        tsolve     :func:`TFSolve.su`
+        fsolve     :func:`TFSolve.fsu`
+        generator  :func:`TFSolve.su_generator`
+        finalize   :func:`TFSolve.finalize`
+        =========  ===================================================
 
         Unlike for :func:`mkse2params`, `order` is not used until the
         solver is called. In other words, this routine prepares the
@@ -1474,8 +1624,8 @@ class TFSolve(object):
         self.fsolve = self.fsu
 
         # for the generator solvers:
-        self.tsolve_generator = self.su_generator
-        self.tsolve_finalize = self.su_finalize
+        self.generator = self.su_generator
+        self.finalize = self.finalize
 
     def su(self, force, d0=None, v0=None, static_ic=False):
         """
@@ -1670,12 +1820,12 @@ class TFSolve(object):
                    ts = TFSolve('su', m, b, k, h)
 
             2. Retrieve a generator and the arrays for holding the
-               solution (here, :func:`TFSolve.tsolve_generator` is an
-               alias for :func:`TFSolve.su_generator`). The initial
-               force vector and any initial conditions are input
-               here (see Parameters above)::
+               solution (here, :func:`TFSolve.generator` is an alias
+               for :func:`TFSolve.su_generator`). The initial force
+               vector and any initial conditions are input here (see
+               Parameters above)::
 
-                   gen, d, v = ts.tsolve_generator(len(time), f0)
+                   gen, d, v = ts.generator(len(time), f0)
 
             3. Use :func:`gen.send` to send a tuple of the next index
                and corresponding force vector in a loop. Re-do
@@ -1692,11 +1842,10 @@ class TFSolve(object):
                `v` and `ts._force` are updated on every
                :func:`gen.send`. (`ts._a` is not used until step 4.)
 
-            4. Call :func:`ts.tsolve_finalize` to get final solution
-               in standard form (here, :func:`TFSolve.tsolve_finalize`
-               is an alias for :func:`TFSolve.su_finalize`)::
+            4. Call :func:`ts.finalize` to get final solution
+               in standard form::
 
-                   sol = ts.tsolve_finalize()
+                   sol = ts.finalize()
 
                The internal references `_d`, `_v`, `_a`, and `_force`
                are deleted.
@@ -1714,7 +1863,7 @@ class TFSolve(object):
 
         From one timing test, the generator solver took longer than
         the normal solver by a factor of 2.3 for diagonal equations.
-        For coupled equations the factor was 3.5.
+        For coupled equations, the factor was 4.1.
 
         Examples
         --------
@@ -1744,12 +1893,12 @@ class TFSolve(object):
         Solve via the generator:
 
         >>> nt = f.shape[1]
-        >>> gen, d, v = ts.tsolve_generator(nt, f[:, 0], static_ic=1)
+        >>> gen, d, v = ts.generator(nt, f[:, 0], static_ic=1)
         >>> for i in range(1, nt):
         ...     # Could do stuff here using d[:, :i] & v[:, :i] to
         ...     # get next force
         ...     gen.send((i, f[:, i]))
-        >>> sol2 = ts.tsolve_finalize()
+        >>> sol2 = ts.finalize()
 
         Confirm results:
 
@@ -1770,20 +1919,18 @@ class TFSolve(object):
         self._d, self._v, self._a, self._force = d, v, a, force
         if self.unc and self.systype is float:
             # for uncoupled, m, b, k have rb+el (all nonrf)
-            generator = self._solve_real_unc_generator(
-                d, v, a, F0)
+            generator = self._solve_real_unc_generator(d, v, a, F0)
             next(generator)
             return generator, d, v
         else:
             # for coupled, m, b, k are only el only
-            generator = self._solve_complex_unc_generator(
-                d, v, a, F0)
+            generator = self._solve_complex_unc_generator(d, v, a, F0)
             next(generator)
             return generator, d, v
 
-    def su_finalize(self, get_force=False):
+    def finalize(self, get_force=False):
         """
-        Finalize generator solution.
+        Finalize "su" or "se2" generator solution.
 
         Parameters
         ----------
@@ -1808,10 +1955,9 @@ class TFSolve(object):
         force : 2d ndarray; optional
             Force; ndof x time. Only included if `get_force` is True.
 
-        Notes
-        -----
-        See :func:`TFSolve.su_generator` and
-        :func:`TFSolve.su_finalize`.
+        See also
+        --------
+        :func:`TFSolve.su_generator`, :func:`TFSolve.se2_generator`
         """
         d, v, a, f = self._d, self._v, self._a, self._force
         del self._d, self._v, self._a, self._force
@@ -2004,8 +2150,8 @@ class TFSolve(object):
          ksize     number of non-rf/elastic modes
          krf       stiffness for the rf modes
          ikrf      inverse of stiffness for the rf modes
-         unc       true if there are no off-diagonal terms in any
-                   matrix; false otherwise
+         unc       True if there are no off-diagonal terms in any
+                   matrix; False otherwise
          systype   float or complex; determined by `m`, `b`, and `k`
          fsolve    :func:`TFSolve.fsd`
         ========   ==================================================
@@ -2469,7 +2615,8 @@ class TFSolve(object):
             if self.unc:
                 A[:n] *= self.invm
             else:
-                A[:n] = la.lu_solve(self.invm, A[:n])
+                A[:n] = la.lu_solve(self.invm, A[:n],
+                                    check_finite=False)
         return A
 
     def _alloc_dva(self, nt, name, istime):
@@ -2520,7 +2667,8 @@ class TFSolve(object):
             if self.unc:
                 d[self.rf, 0] = self.ikrf.ravel() * F0[self.rf]
             else:
-                d[self.rf, 0] = la.lu_solve(self.ikrf, F0[self.rf])
+                d[self.rf, 0] = la.lu_solve(self.ikrf, F0[self.rf],
+                                            check_finite=False)
         return d, v, a, f
 
     def _init_dva(self, force, d0, v0, static_ic, name, istime=True):
@@ -2540,7 +2688,8 @@ class TFSolve(object):
             if self.unc:
                 d[self.rf] = self.ikrf * force[self.rf]
             else:
-                d[self.rf] = la.lu_solve(self.ikrf, force[self.rf])
+                d[self.rf] = la.lu_solve(self.ikrf, force[self.rf],
+                                         check_finite=False)
         return d, v, a, force
 
     def _get_su_eig(self, delcc):
@@ -2722,7 +2871,8 @@ class TFSolve(object):
                 B = self.b.dot(v[kdof])
                 K = self.k.dot(d[kdof])
                 if self.m is not None:
-                    a[kdof] = la.lu_solve(self.invm, F - B - K)
+                    a[kdof] = la.lu_solve(self.invm, F - B - K,
+                                          check_finite=False)
                 else:
                     a[kdof] = F - B - K
 
@@ -2767,6 +2917,110 @@ class TFSolve(object):
             d[kdof] = D
             v[kdof] = V
 
+    def _solve_se2_generator(self, d, v, a, F0):
+        """Solve ODE equations for :func:`se2`"""
+        nt = d.shape[1]
+        if nt == 1:
+            yield
+        Force = self._force
+        unc = self.unc
+        rfsize = self.rfsize
+        if self.rfsize:
+            rf = self.rf
+            ikrf = self.ikrf
+            if unc:
+                ikrf = ikrf.ravel()
+            else:
+                ikrf = la.lu_solve(ikrf, np.eye(rfsize),
+                                   check_finite=False)
+            drf = d[rf]
+
+        ksize = self.ksize
+        if not ksize:
+            i, F1 = yield
+            if unc:
+                while True:
+                    Force[:, i] = F1
+                    d[:, i] = ikrf * F1[rf]
+                    i, F1 = yield
+            else:
+                while True:
+                    Force[:, i] = F1
+                    d[:, i] = ikrf @ F1[rf]
+                    i, F1 = yield
+
+        # there are rb/el modes if here
+        pc = self.pc
+        kdof = self.kdof
+        E = self.E
+        P = self.P
+        Q = self.Q
+        order = self.order
+        if self.m is not None:
+            if unc:
+                invm = self.invm.ravel()
+                P = P * invm
+                if order == 1:
+                    Q = Q * invm
+            else:
+                # P @ invm = (invm.T @ P.T).T
+                P = la.lu_solve(self.invm, P.T, trans=1,
+                                check_finite=False).T
+                if order == 1:
+                    Q = la.lu_solve(self.invm, Q.T, trans=1,
+                                    check_finite=False).T
+
+        # In state-space, the solution is:
+        #   y[n+1] = E @ y[n] + pqf[n, n+1]
+        # Put in terms of `d` and `v`:
+        #   y = [v; d]
+        #   [v[n+1]; d[n+1]] = [E_v, E_d] @ [v[n]; d[n]] + pqf[n, n+1]
+        #   v[n+1] = [E_vv, E_vd] @ [v[n]; d[n]] + pqf_v[n, n+1]
+        #          = E_vv @ v[n] + E_vd @ d[n] + pqf_v[n, n+1]
+        #   d[n+1] = [E_dv, E_dd] @ [v[n]; d[n]] + pqf_v[n, n+1]
+        #          = E_dv @ v[n] + E_dd @ d[n] + pqf_d[n, n+1]
+        E_vv = E[:ksize, :ksize]
+        E_vd = E[:ksize, ksize:]
+        E_dv = E[ksize:, :ksize]
+        E_dd = E[ksize:, ksize:]
+
+        i, F1 = yield
+        if rfsize:
+            # both rf and non-rf modes present
+            D = d[kdof]
+            V = v[kdof]
+            drf = d[rf]
+            while True:
+                Force[:, i] = F1
+                F0 = Force[:, i-1]
+                if self.order == 1:
+                    PQF = P @ F0[kdof] + Q @ F1[kdof]
+                else:
+                    PQF = P @ F0[kdof]
+                d0 = D[:, i-1]
+                v0 = V[:, i-1]
+                D[:, i] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:]
+                V[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
+                if unc:
+                    drf[:, i] = ikrf * F1[rf]
+                else:
+                    drf[:, i] = ikrf @ F1[rf]
+                i, F1 = yield
+        else:
+            # only non-rf modes present
+            while True:
+                Force[:, i] = F1
+                F0 = Force[:, i-1]
+                if self.order == 1:
+                    PQF = P @ F0 + Q @ F1
+                else:
+                    PQF = P @ F0
+                d0 = d[:, i-1]
+                v0 = v[:, i-1]
+                d[:, i] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:]
+                v[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
+                i, F1 = yield
+
     def _solve_real_unc_generator(self, d, v, a, F0):
         """Solve the real uncoupled equations for :func:`su`"""
         # solve:
@@ -2778,8 +3032,6 @@ class TFSolve(object):
         nt = d.shape[1]
         if nt == 1:
             yield
-        pc = self.pc
-        kdof = self.kdof
         Force = self._force
 
         if self.rfsize:
@@ -2794,6 +3046,8 @@ class TFSolve(object):
                 i, F1 = yield
 
         # there are rb/el modes if here
+        pc = self.pc
+        kdof = self.kdof
         F = pc.F
         G = pc.G
         A = pc.A
@@ -2887,7 +3141,8 @@ class TFSolve(object):
                 if self.unc:
                     rbforce = self.imrb * force[rb]
                 else:
-                    rbforce = la.lu_solve(self.imrb, force[rb])
+                    rbforce = la.lu_solve(self.imrb, force[rb],
+                                          check_finite=False)
             else:
                 rbforce = force[rb]
             if nt > 1:
@@ -2928,7 +3183,8 @@ class TFSolve(object):
                 if self.unc:
                     imf = self.invm * force[kdof]
                 else:
-                    imf = la.lu_solve(self.invm, force[kdof])
+                    imf = la.lu_solve(self.invm, force[kdof],
+                                      check_finite=False)
             else:
                 imf = force[kdof]
             w = uri[:, :n].dot(imf)
@@ -2965,7 +3221,6 @@ class TFSolve(object):
 
         # need to handle up to 3 types of equations every loop:
         # - rb, el, rf
-        pc = self.pc
         unc = self.unc
         rbsize = self.rbsize
         m = self.m
@@ -2977,7 +3232,8 @@ class TFSolve(object):
                     imrb = imrb.ravel()
                     rbforce = imrb * F0[rb]
                 else:
-                    imrb = la.lu_solve(imrb, np.eye(rbsize))
+                    imrb = la.lu_solve(imrb, np.eye(rbsize),
+                                       check_finite=False)
                     rbforce = imrb @ F0[rb]
             else:
                 rbforce = F0[rb]
@@ -2986,6 +3242,7 @@ class TFSolve(object):
         if nt == 1:
             yield
 
+        pc = self.pc
         if rbsize:
             G = pc.G
             A = pc.A
@@ -3022,7 +3279,8 @@ class TFSolve(object):
                 if self.unc:
                     invm = invm.ravel()
                 else:
-                    invm = la.lu_solve(invm, np.eye(ksize))
+                    invm = la.lu_solve(invm, np.eye(ksize),
+                                       check_finite=False)
             D = d[kdof]
             V = v[kdof]
 
@@ -3032,7 +3290,8 @@ class TFSolve(object):
             if unc:
                 ikrf = ikrf.ravel()
             else:
-                ikrf = la.lu_solve(ikrf, np.eye(rfsize))
+                ikrf = la.lu_solve(ikrf, np.eye(rfsize),
+                                   check_finite=False)
             drf = d[rf]
 
         order = self.order
@@ -3116,7 +3375,8 @@ class TFSolve(object):
                 if unc:
                     a[rb] = self.invm[self._rb] * force[rb]
                 else:
-                    a[rb] = la.lu_solve(self.imrb, force[rb])
+                    a[rb] = la.lu_solve(self.imrb, force[rb],
+                                        check_finite=False)
             else:
                 a[rb] = force[rb]
             pvnz = freqw != 0
@@ -3173,7 +3433,8 @@ class TFSolve(object):
             kdof = self.kdof
             # form complex state-space generalized force:
             if self.m is not None:
-                imf = la.lu_solve(self.invm, force[kdof])
+                imf = la.lu_solve(self.invm, force[kdof],
+                                  check_finite=False)
             else:
                 imf = force[kdof]
             nc = imf.shape[0]
@@ -3405,10 +3666,10 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
         modes: if mode participation of secondary mode(s) >= `factor`
         * max_participation, include it.
     helpmsg : bool; optional
-        If true, print brief message explaining the mouse buttons
+        If True, print brief message explaining the mouse buttons
         before plotting anything
     ylog : bool; optional
-        If true, y-axis will be log
+        If True, y-axis will be log
     auto : list/tuple or None; optional
 
         - If None, operate interactively.
@@ -3746,10 +4007,10 @@ def modeselect(name, ts, force, freq, Trcv, labelrcv, mfreq,
         modes: if mode participation of secondary mode(s) >= `factor`
         * max_participation, include it.
     helpmsg : bool; optional
-        If true, print brief message explaining the mouse buttons
+        If True, print brief message explaining the mouse buttons
         before plotting anything
     ylog : bool; optional
-        If true, y-axis will be log
+        If True, y-axis will be log
     auto : integer or None; optional
 
         - If None, operate interactively.
