@@ -302,6 +302,71 @@ def mattype(A, mtype=None):
     raise ValueError('invalid `mtype`')
 
 
+def diagmat(*args):
+    """
+    Assemble matrices on the diagonal
+
+    Parameters
+    ----------
+    *args : 2d array_like variables
+        Any number of matrices (2d arrays) to assemble on the diagonal
+        of new, larger matrix. Any ``None`` entries are quietly
+        skipped.
+
+    Returns
+    -------
+    mat : 2d ndarray
+        The assembled matrix.
+
+    Examples
+    --------
+    >>> from pyyeti import ytools
+    >>> a = [[1, 1], [2, 2]]
+    >>> b = 40
+    >>> c = None
+    >>> d = [10, 20, 30]
+    >>> e = [[10], [11]]
+    >>> f = 100
+    >>> ytools.diagmat(a, b, c, d, e, f)
+    array([[  1,   1,   0,   0,   0,   0,   0,   0],
+           [  2,   2,   0,   0,   0,   0,   0,   0],
+           [  0,   0,  40,   0,   0,   0,   0,   0],
+           [  0,   0,   0,  10,  20,  30,   0,   0],
+           [  0,   0,   0,   0,   0,   0,  10,   0],
+           [  0,   0,   0,   0,   0,   0,  11,   0],
+           [  0,   0,   0,   0,   0,   0,   0, 100]])
+
+    >>> ytools.diagmat(None, None)
+    array([], shape=(0, 0), dtype=float64)
+    """
+    R = C = 0
+    dtype = None
+    args2d = []
+    for i, arg in enumerate(args):
+        if arg is not None:
+            arg = np.atleast_2d(arg)
+            args2d.append(arg)
+            r, c = arg.shape
+            R += r
+            C += c
+            if dtype is None:
+                dtype = arg.dtype
+            else:
+                dtype = np.promote_types(dtype, arg.dtype)
+
+    if dtype is None:
+        return np.zeros((R, C))
+
+    M = np.zeros((R, C), dtype)
+    R = C = 0
+    for i, arg in enumerate(args2d):
+        r, c = arg.shape
+        M[R:R+r, C:C+c] = arg
+        R += r
+        C += c
+    return M
+
+
 def sturm(A, lam):
     """
     Count number of eigenvalues <= `lam` of symmetric matrix `A`.

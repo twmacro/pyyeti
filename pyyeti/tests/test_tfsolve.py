@@ -3205,6 +3205,11 @@ def test_TFSolve_coupled_2_mNone_generator():
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
+
+                # resolve some time steps for test:
+                for i in range(nt-5, nt):
+                    gen.send((i, f[:, i]))
+                
                 solu2 = tsu.finalize()
 
                 tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
@@ -3236,6 +3241,11 @@ def test_TFSolve_coupled_2_mNone_generator():
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
+
+                # resolve some time steps for test:
+                for i in range(nt-5, nt):
+                    gen.send((i, f[:, i]))
+
                 sole2 = tse.finalize()
 
                 tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
