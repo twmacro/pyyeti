@@ -45,10 +45,10 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     -----
     All entries in `coefs` are 1d ndarrays. Except for `pvrb`, the
     outputs are the integration coefficients from the algorithm in the
-    Nastran Theoretical Manual (sec 11.4).  It can handle rigid-body,
-    under-damped, critically-damped, and over-damped equations.  The
+    Nastran Theoretical Manual (sec 11.4). It can handle rigid-body,
+    under-damped, critically-damped, and over-damped equations. The
     solver is exact with the assumption that the forces vary linearly
-    during a time step (1st order hold).  `pvrb` is a boolean vector
+    during a time step (1st order hold). `pvrb` is a boolean vector
     with True specifying where rigid-body modes are).
 
     The coefficients are used as follows::
@@ -347,20 +347,20 @@ def eigss(A, delcc):
 
     When the `M`, `B` and `K` are assembled into the `A` matrix, they
     must not contain any rigid-body modes since the inverse of `ur`
-    may not exist, causing the method to fail.  If you seen any
+    may not exist, causing the method to fail. If you seen any
     warning messages about a matrix being singular or near singular,
-    the method has likely failed.  Duplicate roots can also cause
+    the method has likely failed. Duplicate roots can also cause
     trouble, so if there are duplicates, check to see if uri*ur and
     uri*A*ur are diagonal matrices (if ``not delcc``, these would be
     identity and the eigenvalues, but if `delcc` is True, the factor
-    of 2.0 discussed next has the chance to modify that).  If method
+    of 2.0 discussed next has the chance to modify that). If method
     fails, see :func:`TFSolve.se1` or :func:`TFSolve.se2`.
 
     For underdamped modes, the complex eigenvalues and modes come in
-    complex conjugate pairs.  Each mode of a pair yields the same
-    solution for real time-domain problems.  This routine takes
+    complex conjugate pairs. Each mode of a pair yields the same
+    solution for real time-domain problems. This routine takes
     advantage of this fact (if `delcc` is true) by chopping out one of
-    the pair and multiplying the other one by 2.0 (in `ur`).  Then, if
+    the pair and multiplying the other one by 2.0 (in `ur`). Then, if
     all modes are underdamped: ``len(lam) = M.shape[0]`` and if no
     modes are underdamped: ``len(lam) = 2*M.shape[0]``.
 
@@ -482,7 +482,7 @@ def addconj(lam, ur, uri):
 
     Though unlikely, :func:`addconj` could be fooled into adding
     inappropriate modes if modes were deleted in a different manner
-    than how :func:`eigss` does it.  This routine does some checks to
+    than how :func:`eigss` does it. This routine does some checks to
     try to ensure that the inputs have been processed as expected:
 
     - checks for all positive imaginary parts in lam (:func:`eigss`
@@ -1180,7 +1180,7 @@ class TFSolve(object):
             If True and `d0` is None, then `d0` is calculated such
             that static (steady-state) initial conditions are
             used. Uses the pseudo-inverse in case there are rigid-body
-            modes.  `static_ic` is ignored if `d0` is not None.
+            modes. `static_ic` is ignored if `d0` is not None.
 
         Returns
         -------
@@ -1369,7 +1369,7 @@ class TFSolve(object):
         delcc : bool; optional
             Set to True if you want to keep only one of each pair of
             complex-conjugate eigensolutions when solving coupled
-            equations. This is good for time-domain problems.  For
+            equations. This is good for time-domain problems. For
             efficiency, set to False for frequency-domain (otherwise,
             the :func:`fsu` solver will add the deleted
             conjugate back in before solving). If solving both time-
@@ -1496,7 +1496,7 @@ class TFSolve(object):
             If True and `d0` is None, then `d0` is calculated such
             that static (steady-state) initial conditions are
             used. Uses the pseudo-inverse in case there are rigid-body
-            modes.  `static_ic` is ignored if `d0` is not None.
+            modes. `static_ic` is ignored if `d0` is not None.
 
         Returns
         -------
@@ -1630,7 +1630,7 @@ class TFSolve(object):
     def su_generator(self, nt, F0, d0=None, v0=None, static_ic=False):
         """
         Python "generator" version of :func:`TFSolve.su`;
-        interactively solve one step at a time.
+        interactively solve (or re-solve) one step at a time.
 
         Parameters
         ----------
@@ -1647,7 +1647,7 @@ class TFSolve(object):
             If True and `d0` is None, then `d0` is calculated such
             that static (steady-state) initial conditions are
             used. Uses the pseudo-inverse in case there are rigid-body
-            modes.  `static_ic` is ignored if `d0` is not None.
+            modes. `static_ic` is ignored if `d0` is not None.
 
         Returns
         -------
@@ -1671,23 +1671,26 @@ class TFSolve(object):
 
             2. Retrieve a generator and the arrays for holding the
                solution (here, :func:`TFSolve.tsolve_generator` is an
-               alias for :func:`TFSolve.su_generator`)::
+               alias for :func:`TFSolve.su_generator`). The initial
+               force vector and any initial conditions are input
+               here (see Parameters above)::
 
-                   gen, d, v = ts.tsolve_generator(len(time), f[:, 0])
+                   gen, d, v = ts.tsolve_generator(len(time), f0)
 
-            3. Use :func:`gen.send` to send the next force vector in a
-               loop (`d` and `v` are updated on each :func:`gen.send`
-               call)::
+            3. Use :func:`gen.send` to send a tuple of the next index
+               and corresponding force vector in a loop. Re-do
+               time-steps as necessary (note that index zero cannot be
+               redone)::
 
                    for i in range(1, len(time)):
                        # Do whatever to get i'th force
                        # - note: d[:, :i] and v[:, :i] are available
-                       gen.send(f[:, i])
+                       gen.send((i, fi))
 
                The class instance will have the attributes `_d`, `_v`
-               (same objects as `d` and `v`), `_a`, and `_force`. `_a`
-               is not used until step 4 below, but `_force` is updated
-               on every :func:`gen.send` (like `d` and `v`).
+               (same objects as `d` and `v`), `_a`, and `_force`. `d`,
+               `v` and `ts._force` are updated on every
+               :func:`gen.send`. (`ts._a` is not used until step 4.)
 
             4. Call :func:`ts.tsolve_finalize` to get final solution
                in standard form (here, :func:`TFSolve.tsolve_finalize`
@@ -1698,18 +1701,20 @@ class TFSolve(object):
                The internal references `_d`, `_v`, `_a`, and `_force`
                are deleted.
 
-        The generator currently has some limitations as compared to
-        the normal solver:
+        The generator solver currently has these limitations:
 
-            1. Equations cannot be interspersed. That is, each type
-               of equation (rigid-body, elastic, residual-flexibility)
-               must be contained in a contiguous group (so that
-               `self.slices` is True).
-            2. The `pre_eig` option is not available.
-            3. Only uncoupled equations can be solved.
+            1. Unlike the normal solver, equations cannot be
+               interspersed. That is, each type of equation
+               (rigid-body, elastic, residual-flexibility) must be
+               contained in a contiguous group (so that `self.slices`
+               is True).
+            2. Unlike the normal solver, the `pre_eig` option is not
+               available.
+            3. The first time step cannot be redone.
 
-        Of those limitations, only 3 will be fixed in the near term
-        (in fact, there are currently no plans to fix 1 & 2).
+        From one timing test, the generator solver took longer than
+        the normal solver by a factor of 2.3 for diagonal equations.
+        For coupled equations the factor was 3.5.
 
         Examples
         --------
@@ -1743,7 +1748,7 @@ class TFSolve(object):
         >>> for i in range(1, nt):
         ...     # Could do stuff here using d[:, :i] & v[:, :i] to
         ...     # get next force
-        ...     gen.send(f[:, i])
+        ...     gen.send((i, f[:, i]))
         >>> sol2 = ts.tsolve_finalize()
 
         Confirm results:
@@ -1767,13 +1772,14 @@ class TFSolve(object):
             # for uncoupled, m, b, k have rb+el (all nonrf)
             generator = self._solve_real_unc_generator(
                 d, v, a, F0)
-            generator.send(None)
+            next(generator)
             return generator, d, v
         else:
             # for coupled, m, b, k are only el only
-            raise NotImplementedError(
-                '"su" generator not yet implemented for the '
-                'complex eigenvalue solver')
+            generator = self._solve_complex_unc_generator(
+                d, v, a, F0)
+            next(generator)
+            return generator, d, v
 
     def su_finalize(self, get_force=False):
         """
@@ -1858,7 +1864,7 @@ class TFSolve(object):
             m xdd + b xd + k x = f
 
         in the frequency domain. For uncoupled equations, the solution
-        is direct and very efficient.  For coupled equations, the
+        is direct and very efficient. For coupled equations, the
         elastic modes part of the equation is transformed (by
         :func:`mksuparams`) into::
 
@@ -2053,9 +2059,9 @@ class TFSolve(object):
 
         Notes
         -----
-        Each frequency is solved via complex matrix inversion.  There
+        Each frequency is solved via complex matrix inversion. There
         is no partitioning for rigid-body modes or residual-
-        flexibility modes.  Note that the solution will be fast if all
+        flexibility modes. Note that the solution will be fast if all
         matrices are diagonal.
 
         Unlike :func:`fsu`, since this routine makes no special
@@ -2774,10 +2780,20 @@ class TFSolve(object):
             yield
         pc = self.pc
         kdof = self.kdof
+        Force = self._force
+
         if self.rfsize:
             rf = self.rf
             ikrf = self.ikrf.ravel()
 
+        if not self.ksize:
+            i, F1 = yield
+            while True:
+                Force[:, i] = F1
+                d[:, i] = ikrf * F1[rf]
+                i, F1 = yield
+
+        # there are rb/el modes if here
         F = pc.F
         G = pc.G
         A = pc.A
@@ -2786,42 +2802,40 @@ class TFSolve(object):
         Gp = pc.Gp
         Ap = pc.Ap
         Bp = pc.Bp
-        Force = self._force
 
-        F1 = Force[:, 1] = yield
+        i, F1 = yield
         if self.order == 1:
             if self.rfsize:
                 # rigid-body and elastic equations:
                 D = d[kdof]
                 V = v[kdof]
-                F0k = F0[kdof]
-                di = D[:, 0]
-                vi = V[:, 0]
                 # resflex equations:
                 drf = d[rf]
-                for i in range(nt-1):
+                # for i in range(nt-1):
+                while True:
+                    Force[:, i] = F1
                     # rb + el:
+                    F0k = Force[kdof, i-1]
                     F1k = F1[kdof]
-                    din = F*di + G*vi + A*F0k + B*F1k
-                    vi = V[:, i+1] = Fp*di + Gp*vi + Ap*F0k + Bp*F1k
-                    D[:, i+1] = di = din
+                    di = D[:, i-1]
+                    vi = V[:, i-1]
+                    D[:, i] = F*di + G*vi + A*F0k + B*F1k
+                    V[:, i] = Fp*di + Gp*vi + Ap*F0k + Bp*F1k
 
                     # rf:
-                    drf[:, i+1] = ikrf * F1[rf]
-
-                    F0k = F1k
-                    F1 = Force[:, i+2] = yield
+                    drf[:, i] = ikrf * F1[rf]
+                    i, F1 = yield
             else:
-                # rigid-body and elastic equations:
-                di = d[:, 0]
-                vi = v[:, 0]
-                for i in range(nt-1):
+                # only rigid-body and elastic equations:
+                while True:
+                    Force[:, i] = F1
                     # rb + el:
-                    din = F*di + G*vi + A*F0 + B*F1
-                    vi = v[:, i+1] = Fp*di + Gp*vi + Ap*F0 + Bp*F1
-                    d[:, i+1] = di = din
-                    F0 = F1
-                    F1 = Force[:, i+2] = yield
+                    F0 = Force[:, i-1]
+                    di = d[:, i-1]
+                    vi = v[:, i-1]
+                    d[:, i] = F*di + G*vi + A*F0 + B*F1
+                    v[:, i] = Fp*di + Gp*vi + Ap*F0 + Bp*F1
+                    i, F1 = yield
         else:
             # order == 0
             AB = A + B
@@ -2830,34 +2844,32 @@ class TFSolve(object):
                 # rigid-body and elastic equations:
                 D = d[kdof]
                 V = v[kdof]
-                F0k = F0[kdof]
-                di = D[:, 0]
-                vi = V[:, 0]
                 # resflex equations:
                 drf = d[rf]
-                for i in range(nt-1):
+                # for i in range(nt-1):
+                while True:
+                    Force[:, i] = F1
                     # rb + el:
-                    F1k = F1[kdof]
-                    din = F*di + G*vi + AB*F0k
-                    vi = V[:, i+1] = Fp*di + Gp*vi + ABp*F0k
-                    D[:, i+1] = di = din
+                    F0k = Force[kdof, i-1]
+                    di = D[:, i-1]
+                    vi = V[:, i-1]
+                    D[:, i] = F*di + G*vi + AB*F0k
+                    V[:, i] = Fp*di + Gp*vi + ABp*F0k
 
                     # rf:
-                    drf[:, i+1] = ikrf * F1[rf]
-
-                    F0k = F1k
-                    F1 = Force[:, i+2] = yield
+                    drf[:, i] = ikrf * F1[rf]
+                    i, F1 = yield
             else:
-                # rigid-body and elastic equations:
-                di = d[:, 0]
-                vi = v[:, 0]
-                for i in range(nt-1):
+                # only rigid-body and elastic equations:
+                while True:
+                    Force[:, i] = F1
                     # rb + el:
-                    din = F*di + G*vi + AB*F0
-                    vi = v[:, i+1] = Fp*di + Gp*vi + ABp*F0
-                    d[:, i+1] = di = din
-                    F0 = F1
-                    F1 = Force[:, i+2] = yield
+                    F0 = Force[:, i-1]
+                    di = d[:, i-1]
+                    vi = v[:, i-1]
+                    d[:, i] = F*di + G*vi + AB*F0
+                    v[:, i] = Fp*di + Gp*vi + ABp*F0
+                    i, F1 = yield
 
     def _solve_complex_unc(self, d, v, a, force):
         """Solve the complex uncoupled equations for :func:`su`"""
@@ -2921,7 +2933,7 @@ class TFSolve(object):
                 imf = force[kdof]
             w = uri[:, :n].dot(imf)
             n2 = uri.shape[0]
-            u = np.zeros((n2, nt), complex)
+            u = np.empty((n2, nt), complex)
             ivd = np.hstack((v[kdof, 0], d[kdof, 0]))
             di = u[:, 0] = uri.dot(ivd)
             if self.order == 1:
@@ -2946,6 +2958,154 @@ class TFSolve(object):
             else:
                 d[kdof, 1:] = ur[n:, :].dot(u[:, 1:])
                 v[kdof, 1:] = ur[:n, :].dot(u[:, 1:])
+
+    def _solve_complex_unc_generator(self, d, v, a, F0):
+        """Solve the complex uncoupled equations for :func:`su`"""
+        nt = d.shape[1]
+
+        # need to handle up to 3 types of equations every loop:
+        # - rb, el, rf
+        pc = self.pc
+        unc = self.unc
+        rbsize = self.rbsize
+        m = self.m
+        if rbsize:
+            rb = self.rb
+            if m is not None:
+                imrb = self.imrb
+                if unc:
+                    imrb = imrb.ravel()
+                    rbforce = imrb * F0[rb]
+                else:
+                    imrb = la.lu_solve(imrb, np.eye(rbsize))
+                    rbforce = imrb @ F0[rb]
+            else:
+                rbforce = F0[rb]
+            a[rb, 0] = rbforce
+
+        if nt == 1:
+            yield
+
+        if rbsize:
+            G = pc.G
+            A = pc.A
+            Ap = pc.Ap
+            drb = d[rb]
+            vrb = v[rb]
+            arb = a[rb]
+
+        Force = self._force
+        ksize = self.ksize
+        rfsize = self.rfsize
+        systype = self.systype
+
+        if ksize:
+            self._delconj()
+            Fe = pc.Fe
+            Ae = pc.Ae
+            Be = pc.Be
+            ur = pc.ur
+            ur_d = ur[ksize:]
+            ur_v = ur[:ksize]
+            rur_d = ur_d.real
+            iur_d = ur_d.imag
+            rur_v = ur_v.real
+            iur_v = ur_v.imag
+
+            uri = pc.uri
+            uri_v = uri[:, :ksize]
+            uri_d = uri[:, ksize:]
+
+            kdof = self.kdof
+            if m is not None:
+                invm = self.invm
+                if self.unc:
+                    invm = invm.ravel()
+                else:
+                    invm = la.lu_solve(invm, np.eye(ksize))
+            D = d[kdof]
+            V = v[kdof]
+
+        if rfsize:
+            rf = self.rf
+            ikrf = self.ikrf
+            if unc:
+                ikrf = ikrf.ravel()
+            else:
+                ikrf = la.lu_solve(ikrf, np.eye(rfsize))
+            drf = d[rf]
+
+        order = self.order
+        i, F1 = yield
+        while True:
+            Force[:, i] = F1
+            F0 = Force[:, i-1]
+            if rbsize:
+                if m is not None:
+                    if unc:
+                        F0rb = imrb * F0[rb]
+                        F1rb = imrb * F1[rb]
+                    else:
+                        F0rb = imrb @ F0[rb]
+                        F1rb = imrb @ F1[rb]
+                else:
+                    F0rb = F0[rb]
+                    F1rb = F1[rb]
+                if order == 1:
+                    AF = A*(F0rb + 0.5*F1rb)
+                    AFp = Ap*(F0rb + F1rb)
+                else:
+                    AF = (1.5*A)*F0rb
+                    AFp = (2.0*Ap)*F0rb
+                vi = vrb[:, i-1]
+                drb[:, i] = drb[:, i-1] + G*vi + AF
+                vrb[:, i] = vi + AFp
+                arb[:, i] = F1rb
+
+            if ksize:
+                F0k = Force[kdof, i-1]
+                F1k = F1[kdof]
+
+                if m is not None:
+                    if unc:
+                        F0k = invm * F0k
+                        F1k = invm * F1k
+                    else:
+                        F0k = invm @ F0k
+                        F1k = invm @ F1k
+                w0 = uri_v @ F0k
+                w1 = uri_v @ F1k
+                if self.order == 1:
+                    ABF = Ae*w0 + Be*w1
+                else:
+                    ABF = (Ae+Be)*w0
+                # [V; D] = ur @ y
+                # y = uri @ [V; D] = [uri_v, uri_d] @ [V; D]
+                y = uri_v @ V[:, i-1] + uri_d @ D[:, i-1]
+                yn = Fe * y + ABF
+                if systype is float:
+                    # Can do real math for recovery. Note that the
+                    # imaginary part of 'd' and 'v' would be zero if no
+                    # modes were deleted of the complex conjugate
+                    # pairs. The real part is correct however, and that's
+                    # all we need.
+                    ry = yn.real
+                    iy = yn.imag
+                    D[:, i] = rur_d @ ry - iur_d @ iy
+                    V[:, i] = rur_v @ ry - iur_v @ iy
+                else:
+                    # [V; D] = ur @ y
+                    # V = ur[:ksize] @ yn
+                    # D = ur[ksize:] @ yn
+                    D[:, i] = ur_d @ yn
+                    V[:, i] = ur_v @ yn
+
+            if rfsize:
+                if unc:
+                    drf[:, i] = ikrf * F1[rf]
+                else:
+                    drf[:, i] = ikrf @ F1[rf]
+            i, F1 = yield
 
     def _solve_freq_rb(self, d, v, a, force, freqw, freqw2, incrb,
                        unc):
@@ -3264,9 +3424,9 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
           [2, 11].
 
     idlabel : string; optional If not '', it will be
-          used in the figure name.  This allows multiple
+          used in the figure name. This allows multiple
           getmodepart()'s to be run with the same model, each using
-          its own FRF and MP windows.  The figure names will be::
+          its own FRF and MP windows. The figure names will be::
 
                  'FRF - '+idlabel   <-- used only if h_or_frq is freq
                  'MP - '+idlabel
@@ -3602,9 +3762,9 @@ def modeselect(name, ts, force, freq, Trcv, labelrcv, mfreq,
           choose the 12th row of `Tcvr`, set `auto` to 11.
 
     idlabel : string; optional If not '', it will be
-          used in the figure name.  This allows multiple
+          used in the figure name. This allows multiple
           getmodepart()'s to be run with the same model, each using
-          its own FRF and MP windows.  The figure names will be::
+          its own FRF and MP windows. The figure names will be::
 
                  'FRF - '+idlabel
                  'MP - '+idlabel
