@@ -233,7 +233,10 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
 
 
 def _get_timedata(data):
-    """Check for value time/data input for fixtime and aligntime"""
+    """
+    Check for value time/data input for :func:`fixtime` and
+    :func:`aligntime`
+    """
     if isinstance(data, np.ndarray):
         if data.ndim != 2 or data.shape[1] != 2:
             raise ValueError('incorrectly sized ndarray for '
@@ -767,8 +770,10 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
             tmin = max(tmin, t[0])
             tmax = min(tmax, t[-1])
 
-        nsteps = int(np.ceil((tmax-tmin)/dt)) + 1
-        pv = np.arange(nsteps)
+        n = int(np.ceil((tmax-tmin)/dt))
+        if (dt*n + tmin) < (tmax + dt/2):
+            n += 1
+        pv = np.arange(n)
         dctout = {}
         dctout['t'] = pv*dt + tmin
         start = tmin + dt/2  # so index finds closest point
@@ -780,7 +785,6 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
         # loop to determine maximum range:
         tmin = t[0]
         tmax = t[-1]
-        n = len(t)
         for key in parms:
             t, d, isarr = _get_timedata(dct[key])
             if not np.allclose(np.diff(t), dt):
@@ -788,17 +792,22 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
                                  .format(key, dt))
             tmin = min(tmin, t[0])
             tmax = max(tmax, t[-1])
-            n = max(n, len(t))
 
+        n = int(np.ceil((tmax-tmin)/dt))
+        if (dt*n + tmin) < (tmax + dt/2):
+            n += 1
         dctout = {}
         t = dctout['t'] = np.arange(n)*dt + tmin
         for key in parms:
-            cur_t, d, isarr = _get_timedata(dct[key])
-            i = _get_prev_index(t, cur_t[0]+dt/2)
-            cur_d = np.zeros(n) + value
-            cur_n = len(cur_t) - 1
-            cur_d[i + np.arange(cur_n)] = d
-            dctout[key] = cur_d
+            old_t, old_d, isarr = _get_timedata(dct[key])
+            i = _get_prev_index(t, old_t[0]+dt/2)
+            new_d = np.empty(n)
+            new_d[:] = value
+            old_n = len(old_t)
+            if i + old_n > n:
+                old_n = n - i
+            new_d[i:i+old_n] = old_d[:old_n]
+            dctout[key] = new_d
     return dctout
 
 
