@@ -202,7 +202,8 @@ class PP(object):
         return s
 
     def _h5data_string(self, arr, level):
-        s = ['H5 ' + self._getarrhdr(arr)]
+        s = ['H5 ']
+        s.extend(self._getarrhdr(arr))
         if arr.size <= 10:
             s.extend(self._getarrstr(arr[...]))
         s.append('\n')
