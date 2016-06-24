@@ -3,14 +3,16 @@
 A pretty printer.
 """
 import numpy as np
+import collections
 import h5py
+#import pandas as pd
 
 
 class PP(object):
     """
     A simple class for pretty printing data structures.
     """
-    def __init__(self, var=None, depth=5, tab=4,
+    def __init__(self, var=None, depth=1, tab=4,
                  keylen=40, strlen=80, show_hidden=False):
         """
         Initializer for `PP`.
@@ -70,6 +72,14 @@ class PP(object):
             '34'         : 'value'
             'asdf'       : 4
             'longer name': <class 'dict'>[n=4]
+            'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
+        <BLANKLINE>
+        <...>
+        >>> PP(d, 5)    # doctest: +ELLIPSIS
+        <class 'dict'>[n=4]
+            '34'         : 'value'
+            'asdf'       : 4
+            'longer name': <class 'dict'>[n=4]
                 1: 2
                 2: 3
                 3: float64 ndarray 64 elems: (4, 4, 4)
@@ -81,28 +91,20 @@ class PP(object):
             'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
         <BLANKLINE>
         <...>
-        >>> PP(d, depth=1)       # doctest: +ELLIPSIS
-        <class 'dict'>[n=4]
-            '34'         : 'value'
-            'asdf'       : 4
-            'longer name': <class 'dict'>[n=4]
-            'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
-        <BLANKLINE>
-        <...>
 
         To demonstrate the `show_hidden` option:
 
         >>> class A:
         ...     a = 9
         ...     b = {'variable': [1, 2, 3]}
-        >>> PP(A)       # doctest: +ELLIPSIS
+        >>> PP(A, 2)       # doctest: +ELLIPSIS
         <class 'type'>[n=6]
             .a: 9
             .b: <class 'dict'>[n=1]
                 'variable': [n=3]: [1, 2, 3]
         <BLANKLINE>
         <...>
-        >>> PP(A, show_hidden=1)       # doctest: +ELLIPSIS
+        >>> PP(A, 2, show_hidden=1)       # doctest: +ELLIPSIS
         <class 'type'>[n=6]
             .__dict__   : <attribute '__dict__' of 'A' objects>
             .__doc__    : None
@@ -173,10 +175,12 @@ class PP(object):
         elif isinstance(val, (list, tuple)):
             s = self._lst_tup_string(val, list_level)
         else:
-            s = [str(val)]
+            s = [str(val).replace('\n', ' ')]
         s = ''.join(s)
         if len(s) > self._strlen:
-            s = s[:self._strlen-4] + ' ...'
+            #            s = s[:self._strlen-4] + ' ...'
+            n = self._strlen // 2 - 3
+            s = (s[:n] + ' ... ' + s[-n:])
         return [s]
 
     def _shortarrhdr(self, arr):
@@ -242,11 +246,10 @@ class PP(object):
             s = self._functions[type(var)](var, level)
         except KeyError:
             typename = str(type(var))
-            if isinstance(var, (dict,
-                                h5py._hl.files.File,
-                                h5py._hl.files.Group)):
+            if isinstance(var, collections.Mapping):
                 s = self._dict_string(var, level, typename=typename)
-            elif hasattr(var, '__dict__'):
+            elif (hasattr(var, '__dict__') and
+                    not hasattr(var, 'keys')):
                 s = self._dict_string(var.__dict__, level,
                                       typename=typename, isns=True,
                                       showhidden=self._show_hidden)

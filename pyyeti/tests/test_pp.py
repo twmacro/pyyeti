@@ -32,15 +32,13 @@ def test_h5py():
 
 def test_long_list():
     o = PP(['val {}'.format(i) for i in range(1000)])
-    assert o.output == ("[n=1000]: ['val 0', 'val 1', 'val 2',"
-                        " 'val 3', 'val 4', 'val 5', 'val 6', "
-                        "'v ...\n")
-
+    assert o.output == ("[n=1000]: ['val 0', 'val 1', 'val 2', "
+                        "... , 'val 24', 'val 25', 'val 26',  ...]\n")
 
 def test_long_string():
     o = PP('a'*100)
-    assert o.output == ("'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ...\n")
+    assert o.output == ("'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ... "
+                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'\n")
 
 
 def test_array():
