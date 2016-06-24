@@ -60,6 +60,9 @@ class DataCursor(object):
     inds : list
         Contains index of [x, y] data pairs for each (non-deleted)
         left-click. Same length as `xypoints`.
+    lines : list
+        Contains line object handles for the selected lines. Same
+        length as `xypoints`.
     linenums : list
         Contains line number for each [x, y] data pair, starting at 0.
         Same length as `xypoints`.
@@ -106,12 +109,15 @@ class DataCursor(object):
                  on will reset the `xypoints` data member. Note that
                  toggling on will only work if the DataCursor was on
                  previously for current figure.
+    typing 'D'   Deletes last point AND removes the line from the plot
+                 via ``line_handle.remove()``. Any older annotations
+                 are not deleted.
     ===========  ======================================================
 
     To get x-y data points from plots from within a script, use
     :func:`DataCursor.getdata`. Enter the number of points or press
     't' to end blocking so the script will continue (see
-    :func:`getdata`).
+    :func:`DataCursor.getdata`).
 
     Once the DataCursor is toggled off, the annotations become
     draggable. Two notes on this:
@@ -129,10 +135,10 @@ class DataCursor(object):
     `DataCursor` to account for deleted or added items.
     :func:`DataCursor.getdata` calls :func:`DataCursor.on` internally.
 
-    The following example plots some random data, calls :func:`getdata`
-    to wait for the user to optionally select data points and
-    then toggle the DataCursor off (with keystroke 't'). It then
-    prints the selected points.::
+    The following example plots some random data, calls
+    :func:`DataCursor.getdata` to wait for the user to optionally
+    select data points and then toggle the DataCursor off (with
+    keystroke 't'). It then prints the selected points.::
 
         import matplotlib.pyplot as plt
         import numpy as np
@@ -241,6 +247,7 @@ class DataCursor(object):
         self._init_all()
         self.xypoints = []
         self.inds = []
+        self.lines = []
         self.linenums = []
         self.pts = []
         self.notes = []
@@ -310,9 +317,10 @@ class DataCursor(object):
         """
         self.delptfunc = func
 
-    def _add_point(self, ax, x, y, n, ind):
+    def _add_point(self, ax, x, y, n, ind, lineh):
         self.xypoints.append([x, y])
         self.inds.append(ind)
+        self.lines.append(lineh)
         self.linenums.append(n)
         self.pts.append(ax.scatter(x, y, s=130,
                         color='red', alpha=0.4))
@@ -320,24 +328,24 @@ class DataCursor(object):
         # offsetbox.DraggableAnnotation(self._annotation)
         # make a new annotation box so current one is static
         self._annotation[ax] = self._new_annotation(ax, (x, y))
-        # newann = self._new_annotation(ax, (x, y))
-        # newann.xy = x, y
-        # if len(ax.lines) > 1:
-        #     newann.set_text(self.form2(x, y, n, ind))
-        # else:
-        #     newann.set_text(self.form1(x, y, n, ind))
-        # newann.set_visible(True)
-        # self.notes.append(newann)
-        # self._annotation[ax].set_visible(False) # = self._new_annotation(ax, (x, y))
         if self._in_loop and len(self.xypoints) == self._max_points:
             self.off()
         if self.addptfunc:
             self.addptfunc(ax, x, y, n, ind)
 
-    def _del_point(self):
+    def _del_point(self, delete_line=False):
         """Deletes last saved point, if any."""
+        if len(self.xypoints) == 0:
+            return
         self.xypoints.pop()
         self.inds.pop()
+        h = self.lines.pop()
+        if delete_line:
+            # line may have been deleted already, so catch exception:
+            try:
+                h.remove()
+            except ValueError:
+                pass
         self.linenums.pop()
         pt = self.pts.pop()
         pt.remove()
@@ -379,6 +387,9 @@ class DataCursor(object):
                 self.off()
             else:
                 self.on()
+        elif event.key == 'D':
+            self._del_point(delete_line=True)
+            event.canvas.draw()
 
     def _leave(self, event):
         """Event handler for when mouse leaves axes."""
@@ -396,7 +407,7 @@ class DataCursor(object):
         if not ax:
             return
         x, y = event.xdata, event.ydata
-        x, y, n, ind = self._snap(ax, x, y)
+        x, y, n, ind, lineh = self._snap(ax, x, y)
         if x is None:
             return
         annotation = self._annotation[ax]
@@ -411,7 +422,7 @@ class DataCursor(object):
         dot.set_visible(True)
         if event.name == 'button_press_event':
             if event.button == 1:
-                self._add_point(ax, x, y, n, ind)
+                self._add_point(ax, x, y, n, ind, lineh)
             elif event.button == 3 and len(self.xypoints) > 0:
                 self._del_point()
         event.canvas.draw()
@@ -459,7 +470,7 @@ class DataCursor(object):
             ind = np.argmin(d)
             if d[ind] < dmin:
                 dmin = d[ind]
-                xyn = xdata[ind], ydata[ind], n, ind
+                xyn = xdata[ind], ydata[ind], n, ind, ln
         return xyn
 
     def getdata(self, maxpoints=-1,

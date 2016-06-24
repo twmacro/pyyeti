@@ -24,16 +24,27 @@ def convert_nb(nbname):
 
     d, b = os.path.split(nbname)
     tmp = os.path.join(d, 'temp_'+b)
+    tmp2 = 'temp_' + rst
 
     # Execute the notebook:
     sh(["jupyter", "nbconvert", "--to", "notebook",
         "--execute", nbname, "--output", tmp])
 
     # Convert to .rst for Sphinx:
-    sh(["jupyter", "nbconvert", "--to", "rst", tmp, "--output", rst])
+    sh(["jupyter", "nbconvert", "--to", "rst", tmp, "--output", tmp2])
 
-    # Remove the temporary notebook:
+    with open(tmp2) as fin:
+        with open(rst, 'wt') as fout:
+            for line in fin:
+                fout.write(line.replace('.. parsed-literal::',
+#                                        '::'))
+#                                        '.. code::'))
+                                        '.. code-block:: none'))
+#                                        '.. literal::'))
+
+    # Remove the temporary notebooks:
     os.remove(tmp)
+    os.remove(tmp2)
 
 
 if __name__ == "__main__":

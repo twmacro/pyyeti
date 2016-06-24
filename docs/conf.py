@@ -50,6 +50,8 @@ if LooseVersion(sphinx.__version__) <= LooseVersion('1.3.5'):
 else:
     extensions.append('sphinx.ext.imgmath')
 
+highlight_language = "python3"
+
 # Autosummary setting:
 autosummary_generate = True
 

@@ -52,6 +52,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf modules/generated/*
 	rm -rf tutorials/*.rst
+	rm -rf tutorials/temp_*
 	rm -rf tutorials/.ipynb_checkpoints
 	rm -rf tutorials/*_files
 

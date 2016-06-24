@@ -54,13 +54,13 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     The coefficients are used as follows::
 
         for j in range(1, nt):
-            d[:, j+1] = F * d[:, j] + G * v[:, j] +
-                           A * P[:, j] + B * P[:, j+1]
-            v[:, j+1] = Fp * d[:, j] + Gp * v[:, j] +
-                           Ap * P[:, j] + Bp * P[:, j+1]
+            d[:, j+1] = (F * d[:, j] + G * v[:, j] +
+                           A * P[:, j] + B * P[:, j+1])
+            v[:, j+1] = (Fp * d[:, j] + Gp * v[:, j] +
+                           Ap * P[:, j] + Bp * P[:, j+1])
 
-        where `d` is the displacement, `v` is the velocity, and
-        `P` is the applied force.
+    where `d` is the displacement, `v` is the velocity, and `P` is the
+    applied force.
 
     See also
     --------

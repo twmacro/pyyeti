@@ -21,18 +21,18 @@ def rainflow(peaks, getoffsets=False):
     Returns
     -------
     rf : 2d ndarray
-        n x 3 matrix with the rainflow cycle count information::
+        n x 3 matrix with the rainflow cycle count information
+        ``[amp, mean, count]``:
 
-           [amp, mean, count]
             - amp is the cycle amplitude (half the peak-to-peak range)
             - mean is mean of the cycle
             - count is either 0.5 or 1.0 depending on whether it's
               half or full cycle
 
-    os : 2d ndarray; only returned if `getoffsets` is True
-        n x 2 matrix of cycle offsets::
+    os : 2d ndarray; optional
+        n x 2 matrix of cycle offsets ``[start, stop]``. Only returned
+        if `getoffsets` is True. The start and stop values are:
 
-           [start, stop]
             - start is the offset into `peaks` for start of cycle
             - stop is the offset into `peaks` for end of cycle
 

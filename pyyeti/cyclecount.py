@@ -36,7 +36,7 @@ def rainflow(peaks, getoffsets=False):
 
         n x 3 matrix with the rainflow cycle count information with
         the index going from 0 to n-1 and the columns being ['amp',
-        'mean', 'count']::
+        'mean', 'count']:
 
             - amp is the cycle amplitude (half the peak-to-peak range)
             - mean is mean of the cycle
@@ -47,7 +47,7 @@ def rainflow(peaks, getoffsets=False):
 
         Only returned if `getoffsets` is True. n x 2 matrix of cycle
         offsets with index going from 0 to n-1 and the columns being
-        ['start', 'stop']::
+        ['start', 'stop']:
 
             - start is the offset into `peaks` for start of cycle
             - stop is the offset into `peaks` for end of cycle
