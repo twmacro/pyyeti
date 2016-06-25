@@ -27,7 +27,7 @@ def test_h5py():
            "    'varB': H5 int64 ndarray 3 elems: (3,) [0 1 2]",
            ]
 
-    assert o.output == '\n'.join(sbe)+'\n'
+    assert o.output.replace('int32', 'int64') == '\n'.join(sbe)+'\n'
 
 
 def test_long_list():
