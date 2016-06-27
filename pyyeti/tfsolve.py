@@ -1000,7 +1000,7 @@ class TFSolve(object):
             raise ValueError('Force matrix has {} rows; {} rows are '
                              'expected'.format(force.shape[0], self.n))
         nt = force.shape[1]
-        d = np.zeros((self.n, nt), float, order='F')
+        d = np.zeros((self.n, nt))  # , float, order='F')
         if d0 is not None:
             d[:, 0] = d0
         else:
@@ -1010,14 +1010,18 @@ class TFSolve(object):
                 raise RuntimeError('rerun `mkse1params` with a valid '
                                    'time step.')
             # calc force term outside loop:
+            # if self.order == 1:
+            #     PQF = np.copy(self.P.dot(force[:, :-1]) +
+            #                   self.Q.dot(force[:, 1:]), order='F')
+            # else:
+            #     PQF = np.copy(self.P.dot(force[:, :-1]), order='F')
             if self.order == 1:
-                PQF = np.copy(self.P.dot(force[:, :-1]) +
-                              self.Q.dot(force[:, 1:]), order='F')
+                PQF = self.P @ force[:, :-1] + self.Q @ force[:, 1:]
             else:
-                PQF = np.copy(self.P.dot(force[:, :-1]), order='F')
+                PQF = self.P @ force[:, :-1]
             E = self.E
             for j in range(1, nt):
-                d0 = d[:, j] = E.dot(d0) + PQF[:, j-1]
+                d0 = d[:, j] = E @ d0 + PQF[:, j-1]
             t = self.h * np.arange(nt)
         else:
             t = 0.
@@ -1112,9 +1116,14 @@ class TFSolve(object):
         unc        True if there are no off-diagonal terms in any
                    matrix; False otherwise
         order      order of solver (0 or 1; see above)
-        E, P, Q    output of :func:`expmint.getEPQ`; they are matrices
+        E_vv       partition of "E" which is output of
+                   :func:`expmint.getEPQ`
+        E_vd       another partition of "E"
+        E_dv       another partition of "E"
+        E_dd       another partition of "E"
+        P, Q       output of :func:`expmint.getEPQ`; they are matrices
                    used to solve the ODE
-        pc         True if E, P, and Q member have been calculated;
+        pc         True if E*, P, and Q member have been calculated;
                    False otherwise
         pre_eig    True if the "pre" eigensolution was done; False
                    otherwise
@@ -1436,10 +1445,6 @@ class TFSolve(object):
             2. Unlike the normal solver, the `pre_eig` option is not
                available.
             3. The first time step cannot be redone.
-
-        From just a few timing tests, there is only a small penalty
-        (around 10%) for using the generator solver versus the normal
-        solver.
 
         Examples
         --------
@@ -1878,10 +1883,6 @@ class TFSolve(object):
             2. Unlike the normal solver, the `pre_eig` option is not
                available.
             3. The first time step cannot be redone.
-
-        From just a few timing tests, there is only a small penalty
-        (around 10-20%) for using the generator solver versus the
-        normal solver.
 
         Examples
         --------
@@ -2751,6 +2752,14 @@ class TFSolve(object):
             The complex eigenvalues.
         ur, uri : 2d ndarrays
             The complex right-eigenvectors and inverse.
+        ur_d, ur_v : 2d ndarrays
+            Partitions of `ur`
+        uri_v, uri_d : 2d ndarrays
+            Partitions of `uri`
+        rur_d, iur_d : 2d ndarrays
+            Real and imaginary parts of `ur_d`
+        rur_v, iur_v : 2d ndarrays
+            Real and imaginary parts of `ur_v`
         invm : 2d ndarray or None
             Decomposition of the elastic part of the mass matrix; None
             if `self.m` is None (identity mass)
@@ -2813,7 +2822,7 @@ class TFSolve(object):
         self.k = self.k[pv]
         self.b = self.b[pv]
         self.kdof = self.nonrf[self._el]
-        self.ksize = self.kdof.size
+        self.ksize = ksize = self.kdof.size
         if self.elsize:
             self._inv_m()
             A = self._build_A()
@@ -2854,7 +2863,19 @@ class TFSolve(object):
             pc.lam = lam
             pc.ur = ur
             pc.uri = uri
+            self._add_partition_copies(pc)
         return pc
+
+    def _add_partition_copies(self, pc):
+        ksize = self.ksize
+        pc.ur_d = pc.ur[ksize:]
+        pc.ur_v = pc.ur[:ksize]
+        pc.uri_v = pc.uri[:, :ksize].copy()
+        pc.uri_d = pc.uri[:, ksize:].copy()
+        pc.rur_d = pc.ur_d.real.copy()
+        pc.iur_d = pc.ur_d.imag.copy()
+        pc.rur_v = pc.ur_v.real.copy()
+        pc.iur_v = pc.ur_v.imag.copy()
 
     def _addconj(self):
         pc = self.pc
@@ -2863,6 +2884,7 @@ class TFSolve(object):
             pc.lam = lam
             pc.ur = ur
             pc.uri = uri
+            self._add_partition_copies(pc)
 
     def _delconj(self):
         pc = self.pc
@@ -2872,6 +2894,7 @@ class TFSolve(object):
             pc.lam = lam
             pc.ur = ur
             pc.uri = uri
+            self._add_partition_copies(pc)
 
     def _calc_acce_kdof(self, d, v, a, force):
         """Calculate the `kdof` part of the acceleration"""
@@ -3182,10 +3205,19 @@ class TFSolve(object):
             Fe = pc.Fe
             Ae = pc.Ae
             Be = pc.Be
-            ur = pc.ur
-            uri = pc.uri
+            #            ur = pc.ur
+            #            uri = pc.uri
+            ur_d = pc.ur_d
+            ur_v = pc.ur_v
+            rur_d = pc.rur_d
+            iur_d = pc.iur_d
+            rur_v = pc.rur_v
+            iur_v = pc.iur_v
+            uri_d = pc.uri_d
+            uri_v = pc.uri_v
+
             kdof = self.kdof
-            n = self.ksize
+            ksize = self.ksize
             if self.m is not None:
                 if self.unc:
                     imf = self.invm * force[kdof]
@@ -3194,33 +3226,30 @@ class TFSolve(object):
                                       check_finite=False)
             else:
                 imf = force[kdof]
-            w = uri[:, :n].dot(imf)
-            n2 = uri.shape[0]
-            u = np.empty((n2, nt), complex)
-            ivd = np.hstack((v[kdof, 0], d[kdof, 0]))
-            di = u[:, 0] = uri.dot(ivd)
+            w = uri_v @ imf
             if self.order == 1:
                 ABF = (Ae[:, None]*w[:, :-1] +
                        Be[:, None]*w[:, 1:])
             else:
                 ABF = (Ae+Be)[:, None]*w[:, :-1]
+
+            y = np.empty((uri_v.shape[0], nt), complex)
+            di = y[:, 0] = uri_v @ v[kdof, 0] + uri_d @ d[kdof, 0]
             for i in range(nt-1):
-                di = u[:, i+1] = Fe*di + ABF[:, i]
+                di = y[:, i+1] = Fe*di + ABF[:, i]
             if self.systype is float:
                 # Can do real math for recovery. Note that the
                 # imaginary part of 'd' and 'v' would be zero if no
                 # modes were deleted of the complex conjugate
                 # pairs. The real part is correct however, and that's
                 # all we need.
-                rur = ur.real
-                iur = ur.imag
-                ru = u.real[:, 1:]
-                iu = u.imag[:, 1:]
-                d[kdof, 1:] = rur[n:, :].dot(ru) - iur[n:, :].dot(iu)
-                v[kdof, 1:] = rur[:n, :].dot(ru) - iur[:n, :].dot(iu)
+                ry = y[:, 1:].real.copy()
+                iy = y[:, 1:].imag.copy()
+                d[kdof, 1:] = rur_d @ ry - iur_d @ iy
+                v[kdof, 1:] = rur_v @ ry - iur_v @ iy
             else:
-                d[kdof, 1:] = ur[n:, :].dot(u[:, 1:])
-                v[kdof, 1:] = ur[:n, :].dot(u[:, 1:])
+                d[kdof, 1:] = ur_d @ y[:, 1:]
+                v[kdof, 1:] = ur_v @ y[:, 1:]
 
     def _solve_complex_unc_generator(self, d, v, a, F0):
         """Solve the complex uncoupled equations for :func:`su`"""
@@ -3268,17 +3297,17 @@ class TFSolve(object):
             Fe = pc.Fe
             Ae = pc.Ae
             Be = pc.Be
-            ur = pc.ur
-            ur_d = ur[ksize:]
-            ur_v = ur[:ksize]
-            rur_d = ur_d.real.copy()
-            iur_d = ur_d.imag.copy()
-            rur_v = ur_v.real.copy()
-            iur_v = ur_v.imag.copy()
+            # ur = pc.ur
+            ur_d = pc.ur_d
+            ur_v = pc.ur_v
+            rur_d = pc.rur_d
+            iur_d = pc.iur_d
+            rur_v = pc.rur_v
+            iur_v = pc.iur_v
 
-            uri = pc.uri
-            uri_v = uri[:, :ksize].copy()  # copy for faster mults
-            uri_d = uri[:, ksize:].copy()
+            # uri = pc.uri
+            uri_v = pc.uri_v
+            uri_d = pc.uri_d
 
             kdof = self.kdof
             if m is not None:
@@ -3331,7 +3360,6 @@ class TFSolve(object):
             if ksize:
                 F0k = Force[kdof, i-1]
                 F1k = F1[kdof]
-
                 if m is not None:
                     if unc:
                         F0k = invm * F0k
@@ -3351,10 +3379,10 @@ class TFSolve(object):
                 yn = Fe * y + ABF
                 if systype is float:
                     # Can do real math for recovery. Note that the
-                    # imaginary part of 'd' and 'v' would be zero if no
-                    # modes were deleted of the complex conjugate
-                    # pairs. The real part is correct however, and that's
-                    # all we need.
+                    # imaginary part of 'd' and 'v' would be zero if
+                    # no modes were deleted of the complex conjugate
+                    # pairsw. The real part is correct however, and
+                    # that's all we need.
                     ry = yn.real
                     iy = yn.imag
                     D[:, i] = rur_d @ ry - iur_d @ iy
@@ -3445,11 +3473,11 @@ class TFSolve(object):
             else:
                 imf = force[kdof]
             nc = imf.shape[0]
-            w = pc.uri[:, :nc].dot(imf)
+            w = pc.uri[:, :nc] @ imf
             n = w.shape[0]
-            H = np.dot(np.ones((n, 1), float),
-                       1j*freqw[None, :]) - pc.lam[:, None]
-            d[kdof] = pc.ur[nc:].dot(w / H)
+            H = (np.ones((n, 1)) @ (1.0j*freqw[None, :]) -
+                 pc.lam[:, None])
+            d[kdof] = pc.ur[nc:] @ (w / H)
             a[kdof] = d[kdof] * -(freqw2)
             v[kdof] = d[kdof] * (1j*freqw)
 
