@@ -1151,13 +1151,30 @@ class TFSolve(object):
         self._common_precalcs(m, b, k, h, rb, rf, pre_eig)
         self._inv_m()
         self.order = order
-        nn = self.nonrf.size
-        if h and nn > 0:
+        ksize = self.ksize
+        if h and ksize > 0:
             A = self._build_A()
             E, P, Q = expmint.getEPQ(A, h, order, half=True)
             self.P = P
             self.Q = Q
-            self.E = E
+            # In state-space, the solution is:
+            #   y[n+1] = E @ y[n] + pqf[n, n+1]
+            # Put in terms of `d` and `v`:
+            #   y = [v; d]
+            #   [v[n+1]; d[n+1]] = [E_v, E_d] @ [v[n]; d[n]] +
+            #                      pqf[n, n+1]
+            #   v[n+1] = [E_vv, E_vd] @ [v[n]; d[n]] +
+            #            pqf_v[n, n+1]
+            #          = E_vv @ v[n] + E_vd @ d[n] + pqf_v[n, n+1]
+            #   d[n+1] = [E_dv, E_dd] @ [v[n]; d[n]] +
+            #            pqf_v[n, n+1]
+            #          = E_dv @ v[n] + E_dd @ d[n] + pqf_d[n, n+1]
+
+            # copy for faster multiplies:
+            self.E_vv = E[:ksize, :ksize].copy()
+            self.E_vd = E[:ksize, ksize:].copy()
+            self.E_dv = E[ksize:, :ksize].copy()
+            self.E_dd = E[ksize:, ksize:].copy()
             self.pc = True
         else:
             self.pc = False
@@ -1301,36 +1318,37 @@ class TFSolve(object):
         force = np.atleast_2d(force)
         d, v, a, force = self._init_dva(force, d0, v0,
                                         static_ic, 'mkse2params')
-        n = self.ksize
-        if n > 0:
+        ksize = self.ksize
+        if ksize > 0:
             nt = force.shape[1]
-            y = np.zeros((n*2, nt), self.systype, order='F')
-            kdof = self.kdof
-            y[n:, 0] = d[kdof, 0]
-            y[:n, 0] = v[kdof, 0]
-
-            if self.m is not None:
-                if self.unc:
-                    imf = self.invm * force[kdof]
-                else:
-                    imf = la.lu_solve(self.invm, force[kdof],
-                                      check_finite=False)
-            else:
-                imf = force[kdof]
-
             if nt > 1:
-                if self.order == 1:
-                    PQF = np.copy(self.P.dot(imf[:, :-1]) +
-                                  self.Q.dot(imf[:, 1:]), order='F')
+                kdof = self.kdof
+                D = d[kdof]
+                V = v[kdof]
+                if self.m is not None:
+                    if self.unc:
+                        imf = self.invm * force[kdof]
+                    else:
+                        imf = la.lu_solve(self.invm, force[kdof],
+                                          check_finite=False)
                 else:
-                    PQF = np.copy(self.P.dot(imf[:, :-1]), order='F')
-                E = self.E
-                y0 = y[:, 0]
-                for j in range(nt-1):
-                    y0 = y[:, j+1] = E.dot(y0) + PQF[:, j]
-
-            d[kdof] = y[n:]
-            v[kdof] = y[:n]
+                    imf = force[kdof]
+                if self.order == 1:
+                    PQF = self.P @ imf[:, :-1] + self.Q @ imf[:, 1:]
+                else:
+                    PQF = self.P @ imf[:, :-1]
+                E_dd = self.E_dd
+                E_dv = self.E_dv
+                E_vd = self.E_vd
+                E_vv = self.E_vv
+                for i in range(nt-1):
+                    d0 = D[:, i]
+                    v0 = V[:, i]
+                    D[:, i+1] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:, i]
+                    V[:, i+1] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize, i]
+                if not self.slices:
+                    d[kdof] = D
+                    v[kdof] = V
             self._calc_acce_kdof(d, v, a, force)
         return self._solution(d, v, a)
 
@@ -1419,9 +1437,9 @@ class TFSolve(object):
                available.
             3. The first time step cannot be redone.
 
-        From one timing test, the generator solver took longer than
-        the normal solver by a factor of 3.7 for diagonal equations.
-        For coupled equations, the factor was 2.7.
+        From just a few timing tests, there is only a small penalty
+        (around 10%) for using the generator solver versus the normal
+        solver.
 
         Examples
         --------
@@ -1861,9 +1879,9 @@ class TFSolve(object):
                available.
             3. The first time step cannot be redone.
 
-        From one timing test, the generator solver took longer than
-        the normal solver by a factor of 2.3 for diagonal equations.
-        For coupled equations, the factor was 4.1.
+        From just a few timing tests, there is only a small penalty
+        (around 10-20%) for using the generator solver versus the
+        normal solver.
 
         Examples
         --------
@@ -2937,6 +2955,7 @@ class TFSolve(object):
 
         ksize = self.ksize
         if not ksize:
+            # only rf modes
             i, F1 = yield
             if unc:
                 while True:
@@ -2952,7 +2971,6 @@ class TFSolve(object):
         # there are rb/el modes if here
         pc = self.pc
         kdof = self.kdof
-        E = self.E
         P = self.P
         Q = self.Q
         order = self.order
@@ -2969,21 +2987,10 @@ class TFSolve(object):
                 if order == 1:
                     Q = la.lu_solve(self.invm, Q.T, trans=1,
                                     check_finite=False).T
-
-        # In state-space, the solution is:
-        #   y[n+1] = E @ y[n] + pqf[n, n+1]
-        # Put in terms of `d` and `v`:
-        #   y = [v; d]
-        #   [v[n+1]; d[n+1]] = [E_v, E_d] @ [v[n]; d[n]] + pqf[n, n+1]
-        #   v[n+1] = [E_vv, E_vd] @ [v[n]; d[n]] + pqf_v[n, n+1]
-        #          = E_vv @ v[n] + E_vd @ d[n] + pqf_v[n, n+1]
-        #   d[n+1] = [E_dv, E_dd] @ [v[n]; d[n]] + pqf_v[n, n+1]
-        #          = E_dv @ v[n] + E_dd @ d[n] + pqf_d[n, n+1]
-        E_vv = E[:ksize, :ksize]
-        E_vd = E[:ksize, ksize:]
-        E_dv = E[ksize:, :ksize]
-        E_dd = E[ksize:, ksize:]
-
+        E_dd = self.E_dd
+        E_dv = self.E_dv
+        E_vd = self.E_vd
+        E_vv = self.E_vv
         i, F1 = yield
         if rfsize:
             # both rf and non-rf modes present
@@ -3264,14 +3271,14 @@ class TFSolve(object):
             ur = pc.ur
             ur_d = ur[ksize:]
             ur_v = ur[:ksize]
-            rur_d = ur_d.real
-            iur_d = ur_d.imag
-            rur_v = ur_v.real
-            iur_v = ur_v.imag
+            rur_d = ur_d.real.copy()
+            iur_d = ur_d.imag.copy()
+            rur_v = ur_v.real.copy()
+            iur_v = ur_v.imag.copy()
 
             uri = pc.uri
-            uri_v = uri[:, :ksize]
-            uri_d = uri[:, ksize:]
+            uri_v = uri[:, :ksize].copy()  # copy for faster mults
+            uri_d = uri[:, ksize:].copy()
 
             kdof = self.kdof
             if m is not None:
