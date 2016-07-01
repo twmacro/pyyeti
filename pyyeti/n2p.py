@@ -36,7 +36,7 @@ def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
     Notes
     -----
     All grids are assumed to be in the same rectangular coordinate
-    system.  For a much more sophisticated routine, see
+    system. For a much more sophisticated routine, see
     :func:`rbgeom_uset`.
 
     Examples
@@ -86,7 +86,7 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     uset : ndarray
         A 6-column matrix as output by :func:`op2.rdn2cop2`.
     refpoint : integer or vector
-        Defines location that rb modes will be relative to.  Either an
+        Defines location that rb modes will be relative to. Either an
         integer specifying the node ID (which is in the uset table),
         or it is a coordinates vector [x, y, z] in basic.
 
@@ -98,9 +98,9 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     Notes
     -----
     The return `rb` is analogous to the output of Nastran VECPLOT
-    option 4.  Here, "global" means the combination of all local
-    coordinate systems.  In other words, the rigid-body modes are in
-    all the local coordinates of the grids.  The refpoint is given
+    option 4. Here, "global" means the combination of all local
+    coordinate systems. In other words, the rigid-body modes are in
+    all the local coordinates of the grids. The refpoint is given
     unit translations and rotations in the basic coordinate system.
 
     All SPOINTs, all EPOINTs, and GRIDS in the Q-set or in the "left
@@ -148,23 +148,13 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     grid_rows = uset[:, 1] != 0
     # get the q-set and the left-over c-set:
     qset = mksetpv(uset, "p", "q")
-    if any(qset):
+    if qset.any():
         qdof1 = uset[qset, 1] == 1
-        qgrids = uset[qset, :1][qdof1]
-        if any(qgrids):
-            # expand qgrids to include all 6 dof:
-            nq = len(qgrids)
-            dof = np.arange(1., 7.).reshape(6, 1)
-            qdof = np.dot(dof, np.ones((1, nq)))
-            qgrids = np.dot(np.ones((6, 1)), qgrids.T)
-            qgrids = np.hstack((qgrids.reshape(-1, 1),
-                                qdof.reshape(-1, 1)))
-
-            # get partition vector:
-            pvq = locate.mat_intersect(uset[:, :2].astype(np.int64),
-                                          qgrids, 1)[0]
-            plain_grids = np.logical_not(locate.index2bool(pvq, r))
-            grid_rows = np.logical_and(grid_rows, plain_grids)
+        qgrids = uset[qset, 0][qdof1]
+        if qgrids.any():
+            pvq = mkdofpv(uset, 'p', qgrids)[0]
+            grid_rows = uset[:, 1] != 0
+            grid_rows[pvq] = False
 
     rbmodes = np.zeros((r, 6))
     if not any(grid_rows):
@@ -182,8 +172,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     for j in range(ngrids):
         i = 6*j
         t = grids[i+3:i+6, 3:].T
-        rb2[i:i+3] = np.dot(t, rb[i:i+3])
-        rb2[i+3:i+6] = np.dot(t, rb[i+3:i+6])
+        rb2[i:i+3] = t @ rb[i:i+3]
+        rb2[i+3:i+6] = t @ rb[i+3:i+6]
 
     # fix up cylindrical:
     grid_loc = np.arange(0, grids.shape[0], 6)
@@ -193,14 +183,14 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
         for i in grid_loc_cyl:
             t = grids[i+3:i+6, 3:].T
             loc = grids[i, 3:]
-            loc2 = np.dot(t, loc - grids[i+2, 3:])
+            loc2 = t @ (loc - grids[i+2, 3:])
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
                 th = math.atan2(loc2[1], loc2[0])
                 c = math.cos(th)
                 s = math.sin(th)
                 t = np.array([[c, s], [-s, c]])
-                rb2[i:i+2] = np.dot(t, rb2[i:i+2])
-                rb2[i+3:i+5] = np.dot(t, rb2[i+3:i+5])
+                rb2[i:i+2] = t @ rb2[i:i+2]
+                rb2[i+3:i+5] = t @ rb2[i+3:i+5]
 
     # fix up spherical:
     sph = grids[1::6, 4] == 3
@@ -209,15 +199,15 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
         for i in grid_loc_sph:
             t = grids[i+3:i+6, 3:].T
             loc = grids[i, 3:]
-            loc2 = np.dot(t, loc - grids[i+2, 3:])
+            loc2 = t @ (loc - grids[i+2, 3:])
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
                 phi = math.atan2(loc2[1], loc2[0])
                 c = math.cos(phi)
                 s = math.sin(phi)
                 t = np.array([[c, s], [-s, c]])
-                rb2[i:i+2] = np.dot(t, rb2[i:i+2])
-                rb2[i+3:i+5] = np.dot(t, rb2[i+3:i+5])
-                loc2[:2] = np.dot(t, loc2[:2])
+                rb2[i:i+2] = t @ rb2[i:i+2]
+                rb2[i+3:i+5] = t @ rb2[i+3:i+5]
+                loc2[:2] = t @ loc2[:2]
             if abs(loc2[2]) + abs(loc2[0]) > 1e-8:
                 th = math.atan2(loc2[0], loc2[2])
             else:
@@ -225,8 +215,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
             c = math.cos(th)
             s = math.sin(th)
             t = np.array([[s, 0, c], [c, 0, -s], [0, 1, 0]])
-            rb2[i:i+3] = np.dot(t, rb2[i:i+3])
-            rb2[i+3:i+6] = np.dot(t, rb2[i+3:i+6])
+            rb2[i:i+3] = t @ rb2[i:i+3]
+            rb2[i+3:i+6] = t @ rb2[i+3:i+6]
 
     # prepare final output:
     rbmodes[grid_rows] = rb2
@@ -273,8 +263,8 @@ def rbcoords(rb, verbose=2):
     Parameters
     ----------
     rb : 6 column ndarray
-       Rigid-body modes.  Nodes can be in any mixture of coordinate
-       systems.  Number of rows is assumed to be (6 x nodes) ... other
+       Rigid-body modes. Nodes can be in any mixture of coordinate
+       systems. Number of rows is assumed to be (6 x nodes) ... other
        DOF (like SPOINTs) must be partitioned out before calling this
        routine.
     verbose : integer
@@ -306,14 +296,14 @@ def rbcoords(rb, verbose=2):
           0 0 0    0   0   1 ]
 
     That pattern shown assumes the node is in the same coordinate
-    system as the reference node.  If this is not the case, the 3x3
+    system as the reference node. If this is not the case, the 3x3
     coordinate transformation matrix (from reference to local) will
-    show up in place of the the 3x3 identity matrix shown above.  This
+    show up in place of the the 3x3 identity matrix shown above. This
     routine will use that 3x3 matrix to convert coordinates to that of
-    the reference before checking for the expected pattern.  The
-    matrix inversion is done in a least squares sense.  This all means
+    the reference before checking for the expected pattern. The
+    matrix inversion is done in a least squares sense. This all means
     is that the use of local coordinate systems is acceptable for this
-    routine.  Zero rows (like what could happen for q-set dof) get
+    routine. Zero rows (like what could happen for q-set dof) get
     zero coordinates.
 
     Raises
@@ -423,7 +413,7 @@ def rbcoords(rb, verbose=2):
 def _expand_dof1(dof):
     """
     Expands Nastran DOF specification to 6-element vector, negatives
-    for unused DOF.  Typically called by :func:`mkdofpv`.
+    for unused DOF. Typically called by :func:`mkdofpv`.
 
     Parameters
     ----------
@@ -434,8 +424,8 @@ def _expand_dof1(dof):
     Returns
     -------
     edof : 1d ndarray
-        Expanded version of `dof` with 1 DOF per element.  Size =
-        len(`dof`)*6 x 1.  Unused DOF will be negative.  See example.
+        Expanded version of `dof` with 1 DOF per element. Size =
+        len(`dof`)*6 x 1. Unused DOF will be negative. See example.
 
     See also
     --------
@@ -474,7 +464,7 @@ def _expand_dof1(dof):
 def expand_trim(dof):
     """
     Expands and trims Nastran DOF specification up to a 6-element
-    vector.  Typically called by other higher-level routines.
+    vector. Typically called by other higher-level routines.
 
     Parameters
     ----------
@@ -543,27 +533,14 @@ def expanddof(dof):
            [2, 5],
            [2, 6]]...)
     """
-    dof = np.asarray(dof).astype(np.int64)
-    if dof.ndim < 2:
-        dof = np.reshape(dof, (-1, 1))
-    r, c = dof.shape
-    if c == 2:
-        # does the second column need to be expanded (ie, 123456 type):
-        if any(dof[:, 1] > 6):
-            O = np.ones((1, 6), dtype=np.int64)
-            gid = np.dot(dof[:, 0:1], O).ravel('C')
-            dof2 = np.hstack((gid.reshape(-1, 1),
-                              _expand_dof1(dof[:, 1])))
-            pv = dof2[:, 1] >= 0
-            dof = dof2[pv]
-    else:
-        # expand dof to include six dof per grid
-        nodes = np.dot(np.ones((6, 1), dtype=np.int64),
-                       dof.T).ravel('F')
-        dof = np.dot(np.arange(1, 7).reshape(-1, 1),
-                     np.ones((1, r), dtype=np.int64)).ravel('F')
-        dof = np.vstack((nodes, dof)).T
-    return dof
+    dof = np.atleast_1d(dof).astype(np.int64)
+    if dof.ndim < 2 or dof.shape[1] == 1:
+        return np.array([[n, i]
+                         for n in dof.ravel()
+                         for i in range(1, 7)])
+    return np.array([[node, int(i)]
+                     for node, arg in dof
+                     for i in str(arg)])
 
 
 def mkusetmask(nasset=None):
@@ -573,7 +550,7 @@ def mkusetmask(nasset=None):
     Parameters
     ----------
     nasset : None or string; optional
-        Specifies Nastran set or sets.  If a string, can be a single
+        Specifies Nastran set or sets. If a string, can be a single
         set (eg, 'a') or multiple sets combined with the '+' (eg,
         'a+o+m').
 
@@ -581,7 +558,7 @@ def mkusetmask(nasset=None):
     -------
     mask : integer or dict
         If `nasset` is None, returns a dictionary of bit-masks that is
-        indexed by the lowercase set letter(s).  Otherwise, `mask` is
+        indexed by the lowercase set letter(s). Otherwise, `mask` is
         the bit mask for the specific set(s).
 
     Notes
@@ -608,10 +585,10 @@ def mkusetmask(nasset=None):
     Note: MSC.Nastran apparently changes the B-set bitmask not only
     between different versions but also between different machines.
     Sometimes the 2nd bit goes to the B-set and sometimes it goes to
-    the S-set.  However, so far, the S-set always has other bits set
-    that can be (and are) checked.  Therefore, to work around this
+    the S-set. However, so far, the S-set always has other bits set
+    that can be (and are) checked. Therefore, to work around this
     difficulty, the :func:`op2.rdn2cop2` routine clears the 2nd bit
-    for all S-set DOF.  Because of that, this routine can safely
+    for all S-set DOF. Because of that, this routine can safely
     assume that the 2nd bit belongs to the B-set and no manual changes
     are required.
 
@@ -696,12 +673,12 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
         description below.
     form : integer; optional
         If `form` == 0, print a set at a time (like sets are grouped
-        together).  If `form` > 0, print a table showing set
+        together). If `form` > 0, print a table showing set
         membership in columns and `form` is used as the minimum field
-        width (see more notes below).  `form` is ignored if `file` is
+        width (see more notes below). `form` is ignored if `file` is
         0.
     perpage : integer; optional
-        Number of lines to print per page.  `perpage` is ignored if
+        Number of lines to print per page. `perpage` is ignored if
         `file` is 0.
 
     Returns
@@ -712,15 +689,15 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
             [ DOF_number, ID, DOF, sets(up to 24 cols) ]
 
         Columns 4 and up will have 0's and DOF numbers; the 0's show
-        non-membership.  The columns will correspond to printsets, in
-        the order given below.  The rows will be truncated to non-zero
+        non-membership. The columns will correspond to printsets, in
+        the order given below. The rows will be truncated to non-zero
         rows.
 
     Notes
     -----
     `printsets` is a comma delimited strings that specifies which sets
-    to print.  It can be input in lower or upper case.  Sets that are
-    identical are printed together (as G and P often are).  The value
+    to print. It can be input in lower or upper case. Sets that are
+    identical are printed together (as G and P often are). The value
     of "*" is equivalent to specifying all sets::
 
         "M,S,O,Q,R,C,B,E,L,T,A,D,F,FE,N,NE,G,P,U1,U2,U3,U4,U5,U6"
@@ -732,7 +709,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     visualization, the 0's are not printed being replaced with spaces.
     The non-zero values for each set are the DOF numbers in each set.
     The value of form specifies the minimum width for each of the last
-    24 columns of the table.  Note that the width will be more than
+    24 columns of the table. Note that the width will be more than
     form if a set DOF number requires more space.
 
     The sets (and supersets) currently accounted for are::
@@ -1063,7 +1040,7 @@ def mksetpv(uset, major, minor):
     Notes
     -----
     The inputs majorset and minorset can be specified as a combination
-    of sets by using the '+' sign.  See help in :func:`mkusetmask` for
+    of sets by using the '+' sign. See help in :func:`mkusetmask` for
     more information on how to specify the sets.
 
     The sets (and supersets) currently accounted for are::
@@ -1143,7 +1120,7 @@ def mkdofpv(uset, nasset, dof):
     Parameters
     ----------
     uset : ndarray
-        A 6-column matrix as output by :func:`op2.rdn2cop2`.  Can have
+        A 6-column matrix as output by :func:`op2.rdn2cop2`. Can have
         only the first two columns if ``nasset == 'p'``.
     nasset : string or integer
         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
@@ -1152,15 +1129,15 @@ def mkdofpv(uset, nasset, dof):
     dof : 1d or 2d array
         `dof` can be input in 2 different ways:
 
-         1. 1 column, each row is an ID (grid, spoint, etc).  All
+         1. 1 column, each row is an ID (grid, spoint, etc). All
             DOF associated with the ID that are in the set will be
-            included.  An error will be generated if any ID is
+            included. An error will be generated if any ID is
             missing.
-         2. 2 column DOF array, each row is: [ID DOF].  Here, DOF
+         2. 2 column DOF array, each row is: [ID DOF]. Here, DOF
             specifies which degrees-of-freedom of the ID to find.
             The DOF can be input in the same way as Nastran accepts
             it: 0 or any combo of digits 1-6; eg, 123456 for all 6.
-            An error is generated if any DOF are missing.  See
+            An error is generated if any DOF are missing. See
             examples.
 
     Returns
@@ -1249,7 +1226,7 @@ def coordcardinfo(uset, cid=None):
         A 6-column matrix as output by :func:`op2.rdn2cop2`.
     cid : None or integer
         If integer, it is the id of the coordinate system to get data
-        for.  If None, all coordinate system information is returned.
+        for. If None, all coordinate system information is returned.
 
     Returns
     -------
@@ -1271,8 +1248,8 @@ def coordcardinfo(uset, cid=None):
             {cid1 : [name, ...], cid2 : [...]}.
 
         `name` is either 'CORD2R' (`type` == 1), 'CORD2C' (`type` ==
-        2), or 'CORD2S' (`type` ==3).  `ref` is always 0, regardless
-        what the original reference coordinate system was.  `A`, `B`,
+        2), or 'CORD2S' (`type` ==3). `ref` is always 0, regardless
+        what the original reference coordinate system was. `A`, `B`,
         `C` are the 3-element vectors defining the origin (`A`), the
         Z-axis direction (`B`), and the X-axis direction (`C`).
 
@@ -1424,7 +1401,7 @@ def get_coordinfo(cord, uset, coordref):
     ----------
     cord : scalar or 4x3 array_like
         If scalar, it is a coordinate system id (must be 0 or appear
-        in either `uset` or `coordref`).  If 4x3 matrix, format is as
+        in either `uset` or `coordref`). If 4x3 matrix, format is as
         on a Nastran CORD2* card::
 
                     [ id type reference_id ]
@@ -1435,13 +1412,13 @@ def get_coordinfo(cord, uset, coordref):
         where type is 0 (rectangular), 1 (cylindrical), or 2
         (spherical).
     uset : ndarray
-        A 6-column matrix as output by :func:`op2.rdn2cop2`.  Not used
+        A 6-column matrix as output by :func:`op2.rdn2cop2`. Not used
         unless needed.
     coordref : dictionary
         Read/write dictionary with the keys being the coordinate
         system id and the values being the 5x3 matrix returned below.
         For speed reasons, this routine will look in `coordref` before
-        `uset` for a coordinate system.  Can be empty.
+        `uset` for a coordinate system. Can be empty.
 
     Returns
     -------
@@ -1591,7 +1568,7 @@ def build_coords(cords):
             if pv.size == 0:
                 print('Need these coordinate cards:', ref_ids)
                 raise RuntimeError('Could not resolve coordinate '
-                                   'systems.  See message above for '
+                                   'systems. See message above for '
                                    'missing ids.')
             selected[pv] = loop
             loop += 1
@@ -1613,7 +1590,7 @@ def getcoords(uset, gid, csys, coordref=None):
     uset : ndarray
         A 6-column matrix as output by :func:`op2.rdn2cop2`.
     gid : integer or 3 element vector
-        If integer, it is a grid id in `uset`.  Otherwise, it is a 3
+        If integer, it is a grid id in `uset`. Otherwise, it is a 3
         element vector:  [x, y, z] specifiy location in basic.
     csys : integer or 4x3 matrix
         Specifies coordinate system to get coordinates of `gid` in.
@@ -1630,9 +1607,9 @@ def getcoords(uset, gid, csys, coordref=None):
     coordref : dictionary or None; optional
         If None, this input is ignored. Otherwise, it is a read/write
         dictionary with the keys being the coordinate system id and
-        the values being the 5x3 matrix returned below.  For speed
+        the values being the 5x3 matrix returned below. For speed
         reasons, this routine will look in `coordref` before `uset`
-        for a coordinate system.  Can be empty.
+        for a coordinate system. Can be empty.
 
     Returns
     -------
@@ -1885,12 +1862,12 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         Grid id, must be unique.
     nasset : string
         The set to put the grid in (eg "m"); must be one of these
-        letters: m, s, o, q, r, c, b, e.  Can also be a 6-character
+        letters: m, s, o, q, r, c, b, e. Can also be a 6-character
         string of set letters, one for each dof.
     coordin : integer or 4x3 matrix
         If integer, it is the id of the input coordinate system which
-        is defined in uset (or coordref).  If a 4x3 matrix, it
-        defines the input coordinate system (see below).  Note the id
+        is defined in uset (or coordref). If a 4x3 matrix, it
+        defines the input coordinate system (see below). Note the id
         0 is the basic coordinate system and is always available.
     xyz : three element vector
         Defines grid location in `coordin` coordinates::
@@ -1901,7 +1878,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
                  - angles are specified in degrees
 
     coordout: integer or 4x3 matrix
-        Same format as `coordin`.  Defines the output coordinate
+        Same format as `coordin`. Defines the output coordinate
         system of the grid (see description below for more
         information).
     coordref : dictionary or None; optional
@@ -1952,7 +1929,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
     Note: in the demo below, the uset matrix is expanded each call.
     For a large number of nodes, it is more efficient to allocate the
-    matrix first and then fill in every 6 rows.  For example, if there
+    matrix first and then fill in every 6 rows. For example, if there
     are n nodes::
 
         uset = np.zeros((n*6, 6))
@@ -2081,7 +2058,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
             DOF_Ind1   : 1 or 2 element vector containing the
                          component DOF (ie, 123456) of the nodes in
                          GRIDS_Ind1 and, optionally, the weighting
-                         factor for these DOF.  If not input, the
+                         factor for these DOF. If not input, the
                          weighting factor defaults to 1.0.
             GRIDS_Ind1 : list of node ids corresponding to DOF_Ind1
             ...
@@ -2092,25 +2069,25 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
               GRID_MSET1 : first grid in the M-set
               DOF_MSET1  : DOF of first grid in M-set (integer subset
-                           of 123456).  No weighting factors are
+                           of 123456). No weighting factors are
                            allowed here.
               GRID_MSET2 : second grid in the M-set
               DOF_MSET2  : DOF of second grid in M-set
               ...
 
         The `UM_List` option changes what is dependent and what is
-        independent.  The M-set DOF will become the dependent DOF
+        independent. The M-set DOF will become the dependent DOF
         instead of `GRID_dep`, `DOF_dep` (though it can include these
-        DOF).  The total number of M-set DOF must equal the original
-        amount defined in `GRID_dep`, `DOF_dep` (max of 6).  All M-set
+        DOF). The total number of M-set DOF must equal the original
+        amount defined in `GRID_dep`, `DOF_dep` (max of 6). All M-set
         DOF must be within the the set of previously entered DOF
         (either dependent or independent).
 
     Returns
     -------
     rbe3 : ndarray
-        The interpolation matrix.  Size is # dependent DOF rows by #
-        independent DOF columns.  The order of rows and columns
+        The interpolation matrix. Size is # dependent DOF rows by #
+        independent DOF columns. The order of rows and columns
         corresponds to the order the DOF occur in the USET table
         `uset`.
 
@@ -2141,11 +2118,11 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
     When the `UM_List` option is used, unless the M-set is equal to
     the dependent set (which would be the same as not including the
-    `UM_List` input), there will be a matrix inversion.  This matrix
-    must be non-singular.  If it is close to singular (or singular),
+    `UM_List` input), there will be a matrix inversion. This matrix
+    must be non-singular. If it is close to singular (or singular),
     this routine will print a warning message and, if singular,
-    scipy.linalg will raise the LinAlgError exception.  In this case,
-    choose a different, non-singular set for the M-set.  This is
+    scipy.linalg will raise the LinAlgError exception. In this case,
+    choose a different, non-singular set for the M-set. This is
     similar to choosing DOF for the SUPORT card in Nastran.
 
     Raises
@@ -2255,8 +2232,8 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
                              "".format(np.size(mdof, 0),
                                        np.size(ddof, 0)))
         # The rest of the code uses 'mdof' to sort rows of the output
-        # matrix.  We could leave it as input, or sort it according to
-        # the uset table.  For now, sort it according to uset:
+        # matrix. We could leave it as input, or sort it according to
+        # the uset table. For now, sort it according to uset:
         pv = locate.mat_intersect(mdof, usetdof, 2)[0]
         mdof = mdof[pv]
 
@@ -2338,7 +2315,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     #          Dm      | A inv(C),   -A inv(C) D + B |  Dn
     #          Im   =  | inv(C),     -inv(C) D       |  In
     #
-    #   Matrix C must be square and non-singular.  The resulting
+    #   Matrix C must be square and non-singular. The resulting
     #   matrix is reordered as described in the help section.
 
     # partition rbe3 -- taking care NOT to rearrange columns
@@ -2414,7 +2391,7 @@ def upasetpv(nas, seup):
     pv : array
         An index partition vector for partitioning the upstream A-set
         degrees of freedom of superelement SEUP from the P-set of the
-        downstream superelement.  This partition vector is not a 0-1
+        downstream superelement. This partition vector is not a 0-1
         type because the A-set DOF order may be different downstream
         than from upstream (from reordering done on a CSUPER entry).
 
@@ -2422,9 +2399,9 @@ def upasetpv(nas, seup):
     -----
     Example usage::
 
-        # External superelement 100 is upstream of the residual.  On
+        # External superelement 100 is upstream of the residual. On
         # the CSUPER entry, the A-set of 100 were assigned new ids and
-        # the order was changed.  Form the ULVS matrix:
+        # the order was changed. Form the ULVS matrix:
         from pyyeti import n2p
         import op2
         nas = op2.rdnas2cam('nas2cam')
@@ -2495,7 +2472,7 @@ def _proc_mset(nas, se, dof):
 
 def _formtran_0(nas, dof, gset):
     """
-    Utility routine called by :func:`formtran` when se == 0.  See that
+    Utility routine called by :func:`formtran` when se == 0. See that
     routine for more information.
     """
     uset = nas['uset'][0]
@@ -2520,7 +2497,7 @@ def _formtran_0(nas, dof, gset):
                                     dof)[0]
         if v.size > 0:
             raise RuntimeError("some of the DOF of SE 0 go to the"
-                               " O-set.  Routine not set up for"
+                               " O-set. Routine not set up for"
                                " this.")
 
     a = np.nonzero(mksetpv(uset, "g", "a"))[0]
@@ -2540,7 +2517,7 @@ def _formtran_0(nas, dof, gset):
         if np.any(o_n):
             if np.any(gm[:, o_n]):
                 raise RuntimeError('M-set for residual is dependent'
-                                   ' on O-set (through GM).  '
+                                   ' on O-set (through GM). '
                                    'Routine not set up for this.')
         sets = np.hstack((sets, m))
 
@@ -2600,13 +2577,13 @@ def formtran(nas, se, dof, gset=False):
         the second column is internally set to 123456 for each id
     gset : bool; optional
         If true, and `sedn` == 0, transform from g-set instead of
-        modal DOF.  See below.
+        modal DOF. See below.
 
     Returns
     -------
     Tran : ndarray
         Transformation from the A-set DOF of superelement `se` to
-        the specified DOF (`dof`) of the same superelement.  The
+        the specified DOF (`dof`) of the same superelement. The
         transformation is as follows::
 
             if sedn > 0:
@@ -2683,7 +2660,7 @@ def formtran(nas, se, dof, gset=False):
         q1 = sum(mksetpv(uset, "g", "q"))
         if q1 > 0:
             warnings.warn("nas['goq'][{}] not found, but q-set do"
-                          " exist.  Assuming it is all zeros.  "
+                          " exist. Assuming it is all zeros. "
                           "This can happen when q-set DOF are "
                           "defined but modes are not calculated.".
                           format(se), RuntimeWarning)
@@ -2695,8 +2672,8 @@ def formtran(nas, se, dof, gset=False):
     if 'got' in nas and se in nas['got']:
         got = nas['got'][se]
     else:
-        warnings.warn("nas['got'][{}] not found.  Assuming it is "
-                      "all zeros.  This can happen for a Benfield"
+        warnings.warn("nas['got'][{}] not found. Assuming it is "
+                      "all zeros. This can happen for a Benfield"
                       "-Hruda collector superelement since all "
                       "b-set (really upstream q-set) are not "
                       "connected to other DOF in the stiffness.".
@@ -2805,22 +2782,22 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
     sedn : integer; optional
         The id of the downstream superelement.
     keepcset : bool; optional
-        If true, keeps any C-set rows/columns in the result.  This is
+        If true, keeps any C-set rows/columns in the result. This is
         useful when the C-set are real (that is, NOT used for 'left-
-        over' DOF after defining the Q-set).  Set `keepcset=False` to
+        over' DOF after defining the Q-set). Set `keepcset=False` to
         delete C-set.
     shortcut : bool; optional
         If true, use the ULVS already in `nas` if it's there.
     gset : bool; optional
         If true, and `sedn` == 0, transform from g-set instead of
-        modal DOF.  See below.
+        modal DOF. See below.
 
     Returns
     -------
     ULVS : 2d numpy ndarray or 1
         Transformation from either the modal or physical DOF of the
         downstream superelement sedn to the T and Q-set DOF of the
-        upstream superelement seup.  The transformation (called ULVS
+        upstream superelement seup. The transformation (called ULVS
         here) is as follows::
 
           if sedn > 0:
@@ -2898,7 +2875,7 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
         The id of the downstream superelement.
     gset : bool; optional
         If true, and `sedn` == 0, transform from g-set instead of
-        modal DOF.  See below.
+        modal DOF. See below.
 
     Returns
     -------

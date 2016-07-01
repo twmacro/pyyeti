@@ -8,7 +8,7 @@ https://github.com/mwaskom/seaborn/blob/master/doc/tutorial/tools/nb_to_doc.py
 """
 import sys
 import os
-from subprocess import check_call as sh
+from subprocess import run
 
 
 def convert_nb(nbname):
@@ -27,20 +27,18 @@ def convert_nb(nbname):
     tmp2 = 'temp_' + rst
 
     # Execute the notebook:
-    sh(["jupyter", "nbconvert", "--to", "notebook",
-        "--execute", nbname, "--output", tmp])
+    run(["jupyter", "nbconvert", "--to", "notebook",
+         "--execute", nbname, "--output", tmp], check=True)
 
     # Convert to .rst for Sphinx:
-    sh(["jupyter", "nbconvert", "--to", "rst", tmp, "--output", tmp2])
+    run(["jupyter", "nbconvert", "--to", "rst",
+         tmp, "--output", tmp2], check=True)
 
     with open(tmp2) as fin:
         with open(rst, 'wt') as fout:
             for line in fin:
                 fout.write(line.replace('.. parsed-literal::',
-#                                        '::'))
-#                                        '.. code::'))
                                         '.. code-block:: none'))
-#                                        '.. literal::'))
 
     # Remove the temporary notebooks:
     os.remove(tmp)
