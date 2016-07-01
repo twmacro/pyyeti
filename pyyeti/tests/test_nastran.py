@@ -253,26 +253,22 @@ def test_rdeigen2():
 def test_wtqcset():
     with StringIO() as f:
         nastran.wtqcset(f, 990001, 5)
-        assert f.getvalue() == ('$\n'
-                                'QSET1      12345  990001\n'
+        assert f.getvalue() == ('QSET1      12345  990001\n'
                                 'CSET1          6  990001\n')
 
     with StringIO() as f:
         nastran.wtqcset(f, 990001, 6)
-        assert f.getvalue() == ('$\n'
-                                'QSET1     123456  990001\n')
+        assert f.getvalue() == ('QSET1     123456  990001\n')
 
     with StringIO() as f:
         nastran.wtqcset(f, 990001, 7)
-        assert f.getvalue() == ('$\n'
-                                'QSET1     123456  990001\n'
+        assert f.getvalue() == ('QSET1     123456  990001\n'
                                 'QSET1          1  990002\n'
                                 'CSET1      23456  990002\n')
 
     with StringIO() as f:
         nastran.wtqcset(f, 990001, 12)
-        assert f.getvalue() == ('$\n'
-                                'QSET1     123456  990001 THRU     990002\n')
+        assert f.getvalue() == ('QSET1     123456  990001 THRU     990002\n')
 
 
 def test_wtrbe3():

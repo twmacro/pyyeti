@@ -1084,12 +1084,11 @@ def wtcsuper(f, superid, grids):
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtcsuper(1, 100, np.arange(1, 10))
-    $
     CSUPER       100       0       1       2       3       4       5       6
                    7       8       9
     """
     def _wtcsuper(f, superid, grids):
-        f.write('$\nCSUPER  {:8d}{:8d}'.format(superid, 0))
+        f.write('CSUPER  {:8d}{:8d}'.format(superid, 0))
         wtnasints(f, 4, grids)
     return ytools.wtfile(f, _wtcsuper, superid, grids)
 
@@ -1122,19 +1121,17 @@ def wtspc1(f, eid, dof, grids, name='SPC1'):
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtspc1(1, 1, 123456, np.arange(1, 10))
-    $
     SPC1           1  123456       1       2       3       4       5       6
                    7       8       9
     >>> nastran.wtspc1(1, 200, 123456, np.arange(2001, 2031),
     ...                'SEQSET1')
-    $
     SEQSET1      200  123456    2001    2002    2003    2004    2005    2006
                 2007    2008    2009    2010    2011    2012    2013    2014
                 2015    2016    2017    2018    2019    2020    2021    2022
                 2023    2024    2025    2026    2027    2028    2029    2030
     """
     def _wtspc1(f, eid, dof, grids, name):
-        f.write('$\n{:<8s}{:8d}{:8d}'.format(name, eid, dof))
+        f.write('{:<8s}{:8d}{:8d}'.format(name, eid, dof))
         wtnasints(f, 4, grids)
     return ytools.wtfile(f, _wtspc1, eid, dof, grids, name)
 
@@ -1165,16 +1162,14 @@ def wtxset1(f, dof, grids, name="BSET1"):
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtxset1(1, 123456, np.arange(1, 11))
-    $
     BSET1     123456       1       2       3       4       5       6       7
                    8       9      10
     >>> nastran.wtxset1(1, 0, np.arange(2001, 2013), 'QSET1')
-    $
     QSET1          0    2001    2002    2003    2004    2005    2006    2007
                 2008    2009    2010    2011    2012
     """
     def _wtxset1(f, dof, grids, name):
-        f.write('$\n{:<8s}{:8d}'.format(name, dof))
+        f.write('{:<8s}{:8d}'.format(name, dof))
         wtnasints(f, 3, grids)
     return ytools.wtfile(f, _wtxset1, dof, grids, name)
 
@@ -1205,13 +1200,11 @@ def wtqcset(f, startgrid, nq):
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtqcset(1, 990001, 14)
-    $
     QSET1     123456  990001 THRU     990002
     QSET1         12  990003
     CSET1       3456  990003
     """
     def _wtqcset(f, startgrid, nq):
-        f.write('$\n')
         ngrids = (nq + 5) // 6
         endgrid = startgrid + ngrids - 1
         xdof = nq - 6*(ngrids-1)
@@ -1269,12 +1262,11 @@ def wtrbe2(f, eid, indep, dof, dep):
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtrbe2(1, 1, 100, 123456, np.arange(101, 111))
-    $
     RBE2           1     100  123456     101     102     103     104     105
                  106     107     108     109     110
     """
     def _wtrbe2(f, eid, indep, dof, dep):
-        f.write('$\nRBE2    {:8d}{:8d}{:8d}'.format(eid, indep, dof))
+        f.write('RBE2    {:8d}{:8d}{:8d}'.format(eid, indep, dof))
         wtnasints(f, 5, dep)
     return ytools.wtfile(f, _wtrbe2, eid, indep, dof, dep)
 
@@ -1334,7 +1326,6 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
     >>> nastran.wtrbe3(1, 100, 9900, 123456,
     ...                [123, [9901, 9902, 9903, 9904],
     ...                 123456, [450001, 200]])
-    $
     RBE3         100            9900  123456   1.000     123    9901    9902
                 9903    9904   1.000  123456  450001     200
     >>> nastran.wtrbe3(1, 100, 9900, 123456,
@@ -1342,7 +1333,6 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
     ...                 [123456, 1.2], [450001, 200]],
     ...                UM_List=[9901, 12, 9902, 3, 9903, 12, 9904, 3],
     ...                alpha='6.5e-6')
-    $
     RBE3         100            9900  123456   1.000     123    9901    9902
                 9903    9904   1.200  123456  450001     200
             UM          9901      12    9902       3    9903      12
@@ -1350,7 +1340,7 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
             ALPHA     6.5e-6
     """
     def _wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List, alpha):
-        f.write('$\nRBE3    {:8d}        {:8d}{:8d}'.
+        f.write('RBE3    {:8d}        {:8d}{:8d}'.
                 format(eid, GRID_dep, DOF_dep))
         field = 5
 
@@ -1427,14 +1417,12 @@ def wtseset(f, superid, grids):
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtseset(1, 100, np.arange(1, 26))
-    $
     SESET        100       1       2       3       4       5       6       7
     SESET        100       8       9      10      11      12      13      14
     SESET        100      15      16      17      18      19      20      21
     SESET        100      22      23      24      25
     """
     def _wtseset(f, superid, grids):
-        f.write('$\n')
         n = len(grids)
         # 7 grids per SESET:
         frm = 'SESET   {:8d}' + '{:8d}'*7 + '\n'
@@ -1471,15 +1459,13 @@ def wtset(f, setid, ids):
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtset(1, 100, np.arange(1, 26))
-    $
     SET 100 = 1, 2, 3, 4, 5, 6, 7,
      8, 9, 10, 11, 12, 13, 14,
      15, 16, 17, 18, 19, 20, 21,
      22, 23, 24, 25
-    $
     """
     def _wtset(f, setid, ids):
-        f.write('$\nSET {:d} ='.format(setid))
+        f.write('SET {:d} ='.format(setid))
         n = len(ids)
         # 7 ids per line:
         frm = ' {:d},'*7 + '\n'
@@ -1487,7 +1473,7 @@ def wtset(f, setid, ids):
         while i+7 < n:
             f.write(frm.format(*ids[i:i+7]))
             i += 7
-        frm = ' {:d},'*(n-i-1) + ' {:d}\n$\n'
+        frm = ' {:d},'*(n-i-1) + ' {:d}\n'
         f.write(frm.format(*ids[i:]))
     return ytools.wtfile(f, _wtset, setid, ids)
 
@@ -2127,7 +2113,6 @@ def wtcoordcards(f, ci):
     ...                                [100., 0., 100.],
     ...                                [200., 0., 0.]])]}
     >>> nastran.wtcoordcards(1, ci)
-    $
     $ Coordinate 10:
     CORD2R*               10               0  1.00000000e+02  0.00000000e+00*
     *         0.00000000e+00  1.00000000e+02  0.00000000e+00  1.00000000e+02*
@@ -2140,7 +2125,7 @@ def wtcoordcards(f, ci):
         for k in ci:
             data = ci[k]  # [name, [[id, type, ref]; A; B; C]]
             coord = data[1]
-            f.write('$\n$ Coordinate {:d}:\n'.format(k))
+            f.write('$ Coordinate {:d}:\n'.format(k))
             f.write('{:<8s}{:16d}{:16d}{:16.8e}{:16.8e}*\n'.
                     format(data[0]+'*', k, int(coord[0, 2]),
                            *coord[1, :2]))
@@ -2179,12 +2164,11 @@ def wtextrn(f, ids, dof):
     >>> from pyyeti import nastran
     >>> nastran.wtextrn(1, [999, 10001, 10002, 10003, 10004, 10005],
     ...                    [123456, 0, 0, 0, 0, 0])
-    $
     EXTRN        999  123456   10001       0   10002       0   10003       0
                10004       0   10005       0
     """
     def _wtextrn(f, ids, dof):
-        f.write('$\nEXTRN   ')
+        f.write('EXTRN   ')
         ints = np.zeros(len(ids)*2, dtype=int)
         ints[::2] = ids
         ints[1::2] = dof
@@ -2294,7 +2278,7 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
 
         # Write coordinate system cards if needed:
         f.write('$\n')
-        f.write('$ COORDINATE SYSTEM DATA\n')
+        f.write('$ COORDINATE SYSTEM DATA\n$\n')
         wtcoordcards(f, ci)
 
         # Write Grid data:
@@ -2302,45 +2286,44 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
         f.write('$ BOUNDARY GRID DATA\n')
         f.write('$\n')
         wtgrids(f, grids, 0, xyz, cd)
-        f.write('$\n')
-        f.write('SECONCT {:8d}{:8d}              NO\n'.
-                format(se, sedn))
-        f.write('        {:8d}    THRU{:8d}{:8d}    THRU{:8d}\n'.
-                format(spoint1, spointn, spoint1, spointn))
-        f.write('$\n')
-        f.write('SPOINT  {:8d}    THRU{:8d}\n'.
-                format(spoint1, spointn))
+        if spointn >= spoint1:
+            f.write('$\n')
+            f.write('SECONCT {:8d}{:8d}              NO\n'.
+                    format(se, sedn))
+            f.write('        {:8d}    THRU{:8d}{:8d}    THRU{:8d}\n'.
+                    format(spoint1, spointn, spoint1, spointn))
+            f.write('$\n')
+            f.write('SPOINT  {:8d}    THRU{:8d}\n'.
+                    format(spoint1, spointn))
 
     # Write out PCH file
     with open(name+'.pch', 'w') as f:
         f.write(('$ {:s} PUNCH FILE FOR RESIDUAL RUN...INCLUDE '
                  'AT END\n').format(name.upper()))
         f.write('$\n')
-        f.write('BEGIN SUPER{:8d}\n'.format(se))
+        f.write('BEGIN SUPER{:8d}\n$\n'.format(se))
         ids = np.hstack((grids, spoint1+np.arange(nq)))
         dof = np.zeros_like(ids, dtype=int)
         dof[:len(grids)] = 123456
         wtextrn(f, ids, dof)
         f.write('$\n')
-        f.write('$ COORDINATE SYSTEM DATA\n')
+        f.write('$ COORDINATE SYSTEM DATA\n$\n')
         wtcoordcards(f, ci)
-        f.write('$\n')
-        f.write('$ BOUNDARY GRID DATA\n')
-        f.write('$\n')
+        f.write('$\n$ BOUNDARY GRID DATA\n$\n')
         wtgrids(f, grids, 0, xyz, cd)
         f.write('$\n')
 
         f.write('$ BSET\n$\n')
         f.write('ASET1   {:8d}'.format(123456))
         wtnasints(f, 3, grids)
-        f.write('$\n')
-
-        f.write('$ QSET\n$\n')
-        f.write('QSET1   {:8d}{:8d}    THRU{:8d}\n'.
-                format(0, spoint1, spointn))
-        f.write('$\n')
-        f.write('SPOINT  {:8d}    THRU{:8d}\n'.
-                format(spoint1, spointn))
+        if spointn >= spoint1:
+            f.write('$\n')
+            f.write('$ QSET\n$\n')
+            f.write('QSET1   {:8d}{:8d}    THRU{:8d}\n'.
+                    format(0, spoint1, spointn))
+            f.write('$\n')
+            f.write('SPOINT  {:8d}    THRU{:8d}\n'.
+                    format(spoint1, spointn))
 
 
 def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
