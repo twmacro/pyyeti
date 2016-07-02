@@ -18,7 +18,8 @@ import warnings
 
 
 def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
-    """Compute 6 rigid-body modes from geometry.
+    """
+    Compute 6 rigid-body modes from geometry.
 
     Parameters
     ----------
@@ -253,7 +254,7 @@ def rbmove(rb, oldref, newref):
     True
 
     """
-    return np.dot(rb, rbgeom(oldref, newref))
+    return rb @ rbgeom(oldref, newref)
 
 
 def rbcoords(rb, verbose=2):
@@ -410,85 +411,6 @@ def rbcoords(rb, verbose=2):
     return coords, maxdev, maxerr
 
 
-def _expand_dof1(dof):
-    """
-    Expands Nastran DOF specification to 6-element vector, negatives
-    for unused DOF. Typically called by :func:`mkdofpv`.
-
-    Parameters
-    ----------
-    dof : 1d array_like
-        Each element in `dof` is either 0 or an integer containing any
-        combination of digits 1-6 (Nastran style).
-
-    Returns
-    -------
-    edof : 1d ndarray
-        Expanded version of `dof` with 1 DOF per element. Size =
-        len(`dof`)*6 x 1. Unused DOF will be negative. See example.
-
-    See also
-    --------
-    :func:`mkdofpv`, :func:`expand_trim`
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from pyyeti import n2p
-    >>> np.set_printoptions(linewidth=75)
-    >>> n2p._expand_dof1(12).T             # doctest: +ELLIPSIS
-    array([[ 1,  2, -3, -4, -5, -6]]...)
-    >>> dof = np.array([123456, 2, 345, 0])
-    >>> n2p._expand_dof1(dof).T            # doctest: +ELLIPSIS
-    array([[ 1,  2,  3,  4,  5,  6, -1,  2, -3, -4, -5, -6, -1, -2,  3,  4,  5,
-            -6,  0, -1, -1, -1, -1, -1]]...)
-    """
-    dof = np.atleast_1d(dof)
-    edof = np.zeros((6*len(dof), 1), dtype=np.int64) - 1
-    sdof = '123456'
-    for j in range(len(dof)):
-        R = j*6
-        if dof[j] == 0:
-            edof[R] = 0
-        else:
-            d = str(dof[j])
-            for r in range(6):
-                s = d.find(sdof[r])
-                if s != -1:
-                    edof[R+r] = r+1
-                else:
-                    edof[R+r] = -r-1
-    return edof
-
-
-def expand_trim(dof):
-    """
-    Expands and trims Nastran DOF specification up to a 6-element
-    vector. Typically called by other higher-level routines.
-
-    Parameters
-    ----------
-    dof : array
-        Vector of DOF to expand (via :func:`_expand_dof1`) and then
-        trim down to keep only the used DOF.
-
-    Returns
-    -------
-    edof : ndarray
-        Expanded version of DOF with up to 6-elements per input
-        element.
-
-    Examples
-    --------
-    >>> from pyyeti import n2p
-    >>> dof = [123456, 2, 345, 0]
-    >>> n2p.expand_trim(dof).T             # doctest: +ELLIPSIS
-    array([[1, 2, 3, 4, 5, 6, 2, 3, 4, 5, 0]]...)
-    """
-    edof = _expand_dof1(dof)
-    return edof[edof[:, 0] >= 0]
-
-
 def expanddof(dof):
     """
     Expands DOF specification
@@ -507,7 +429,7 @@ def expanddof(dof):
 
     Returns
     -------
-    outdof : vector
+    outdof : 2d ndarray
         The expanded version of the dof input.
 
     Examples
@@ -1202,14 +1124,14 @@ def mkdofpv(uset, nasset, dof):
     pv = i[pvi]
     chk = uset_set[pv] != dof
     if np.any(chk):
-        print("set '{}' does not contain all of the dof in `dof`."
-              "  These are missing:".format(nasset))
         ids = (dof[chk] // 10)
         dof = dof[chk] - 10*ids
         missing_dof = np.hstack((ids.reshape(-1, 1),
                                  dof.reshape(-1, 1)))
-        print('missing_dof = ', missing_dof)
-        raise ValueError('see missing dof message above')
+        msg = ("set '{}' does not contain all of the dof in `dof`."
+               " These are missing:\n{!s}"
+               .format(nasset, missing_dof))
+        raise ValueError(msg)
     ids = dof // 10
     dof = dof - 10*ids
     outdof = np.hstack((ids.reshape(-1, 1), dof.reshape(-1, 1)))
@@ -1489,8 +1411,8 @@ def get_coordinfo(cord, uset, coordref):
     x = np.cross(y, z)
     x = x/linalg.norm(x)
     Tg = refinfo[2:]
-    location = refinfo[1] + np.dot(Tg, a)
-    T = np.dot(Tg, np.vstack((x, y, z)).T)
+    location = refinfo[1] + Tg @ a
+    T = Tg @ np.vstack((x, y, z)).T
     row1 = np.hstack((cid_type, 0))
     coordinfo = np.vstack((row1, location, T))
     coordref[cid_type[0]] = coordinfo
@@ -1566,10 +1488,10 @@ def build_coords(cords):
         while np.any(selected == 0):
             pv = locate.find_vals(cords[:, 2], ref_ids)
             if pv.size == 0:
-                print('Need these coordinate cards:', ref_ids)
-                raise RuntimeError('Could not resolve coordinate '
-                                   'systems. See message above for '
-                                   'missing ids.')
+                msg = ('Could not resolve coordinate systems. Need '
+                       'these coordinate cards:\n{!s}'
+                       .format(ref_ids))
+                raise RuntimeError(msg)
             selected[pv] = loop
             loop += 1
             ref_ids = cords[pv, 0]
@@ -1803,7 +1725,7 @@ def getcoords(uset, gid, csys, coordref=None):
     coordinfo = get_coordinfo(csys, uset, coordref)
     xyz_coord = coordinfo[1]
     T = coordinfo[2:]   # transform to basic for coordinate system
-    g = np.dot(T.T, xyz_basic-xyz_coord)
+    g = T.T @ (xyz_basic-xyz_coord)
     ctype = coordinfo[0, 1].astype(np.int64)
     if ctype == 1:
         return g
@@ -1833,7 +1755,7 @@ def _get_loc_a_basic(coordinfo, a):
     Tg = coordinfo[2:]
     coordloc = coordinfo[1]
     if coordinfo[0, 1] == 1:
-        location = coordloc + np.dot(Tg, a)
+        location = coordloc + Tg @ a
     else:
         a2r = math.pi/180.
         if coordinfo[0, 1] == 2:   # cylindrical
@@ -1845,7 +1767,7 @@ def _get_loc_a_basic(coordinfo, a):
             vec = a[0]*np.array([s*math.cos(a[2]*a2r),
                                  s*math.sin(a[2]*a2r),
                                  math.cos(a[1]*a2r)])
-        location = coordloc + np.dot(Tg, vec)
+        location = coordloc + Tg @ vec
     return location
 
 
@@ -2053,19 +1975,20 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         Contains all or a subset of the digits 123456 giving the
         dependent component DOF.
     Ind_List : list
-        [ DOF_Ind1, GRIDS_Ind1, DOF_Ind2, GRIDS_Ind2, ... ], where::
+        [DOF_Ind1, GRIDS_Ind1, DOF_Ind2, GRIDS_Ind2, ...], where::
 
-            DOF_Ind1   : 1 or 2 element vector containing the
+            DOF_Ind1   : 1 or 2 element 1d array_like containing the
                          component DOF (ie, 123456) of the nodes in
                          GRIDS_Ind1 and, optionally, the weighting
                          factor for these DOF. If not input, the
                          weighting factor defaults to 1.0.
-            GRIDS_Ind1 : list of node ids corresponding to DOF_Ind1
+            GRIDS_Ind1 : 1d array_like of node ids corresponding to
+                         DOF_Ind1
             ...
-            eg:  [ [123, 1.2], [95, 195, 1000], 123456, 95]
+            eg:  [[123, 1.2], [95, 195, 1000], 123456, 95]
 
-    UM_List : None or list; optional
-        [ GRID_MSET1, DOF_MSET1, GRID_MSET2, DOF_MSET2, ... ] where::
+    UM_List : None or array_like; optional
+        [GRID_MSET1, DOF_MSET1, GRID_MSET2, DOF_MSET2, ...] where::
 
               GRID_MSET1 : first grid in the M-set
               DOF_MSET1  : DOF of first grid in M-set (integer subset
@@ -2184,53 +2107,44 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
      [ 1.    0.    0.    0.    0.    0.    0.    0.    0.    0.    2.    0.  ]
      [ 0.    0.25  0.25  0.    0.5  -0.25  0.25  0.    0.    0.    0.    1.  ]
      [ 0.5   0.    0.    0.    0.    0.    0.    0.5   0.    0.5   0.5   0.  ]]
+
     """
     # form dependent DOF table:
-    ddof = expand_trim(DOF_dep)
-    ddof = np.hstack((GRID_dep+0*ddof, ddof))
+    ddof = expanddof([[GRID_dep, DOF_dep]])
 
     # form independent DOF table:
-    idof = np.array([], dtype=np.int64).reshape(0, 2)
-    wtdof = np.array([])
     usetdof = uset[:, :2].astype(np.int64)
+    idof = []
+    wtdof = []
     for j in range(0, len(Ind_List), 2):
+        # eg:  [[123, 1.2], [95, 195, 1000], 123456, 95]
         DOF_ind = np.atleast_1d(Ind_List[j])
         GRIDS_ind = np.atleast_1d(Ind_List[j+1])
         if len(DOF_ind) == 2:
             wtcur = DOF_ind[1]
             DOF_ind = DOF_ind[0]
         else:
-            wtcur = 1.
-        idofcur = expand_trim(DOF_ind)
-        lend = len(idofcur)
-        leng = len(GRIDS_ind)
-        grids = np.dot(np.ones((lend, 1), dtype=np.int64),
-                       GRIDS_ind.reshape(1, -1)).T
-        dof = np.dot(idofcur, np.ones((1, leng), dtype=np.int64)).T
-        wtdof = np.hstack((wtdof, wtcur*np.ones((lend*leng),
-                                                dtype=np.int64)))
-        idof = np.vstack((idof, np.hstack((grids.reshape(-1, 1),
-                                           dof.reshape(-1, 1)))))
-        # Sort idof according to uset:
-        pv = locate.mat_intersect(idof, usetdof, 2)[0]
-        idof = idof[pv]
-        wtdof = wtdof[pv]
+            wtcur = 1.0
+        newdof = expanddof([[n, DOF_ind] for n in GRIDS_ind])
+        idof.extend(newdof)
+        wtdof.extend([wtcur for i in range(len(newdof))])
+
+    idof = np.array(idof)
+    wtdof = np.array(wtdof)
+
+    # Sort idof according to uset:
+    pv = locate.mat_intersect(idof, usetdof, 2)[0]
+    idof = idof[pv]
+    wtdof = wtdof[pv]
 
     if UM_List is not None:
-        mdof = np.array([], dtype=np.int64).reshape(0, 2)
-        for j in range(0, len(UM_List), 2):
-            GRID_MSET = np.atleast_1d(UM_List[j])
-            DOF_MSET = np.atleast_1d(UM_List[j+1])
-            mdofcur = expand_trim(DOF_MSET)
-            grids = np.dot(np.ones((len(mdofcur), 1), dtype=np.int64),
-                           GRID_MSET.reshape(1, -1))
-            mdof = np.vstack((mdof, np.hstack((grids, mdofcur))))
-
+        mdof = expanddof([[UM_List[j], UM_List[j+1]]
+                          for j in range(0, len(UM_List), 2)])
         if np.size(mdof, 0) != np.size(ddof, 0):
             raise ValueError("incorrect size of M-set DOF ({}): "
                              "must equal size of Dep DOF ({})."
-                             "".format(np.size(mdof, 0),
-                                       np.size(ddof, 0)))
+                             .format(np.size(mdof, 0),
+                                     np.size(ddof, 0)))
         # The rest of the code uses 'mdof' to sort rows of the output
         # matrix. We could leave it as input, or sort it according to
         # the uset table. For now, sort it according to uset:
@@ -2241,7 +2155,6 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     npids = np.vstack((ddof[0, :1], idof[:, :1]))
     ids = sorted(list(set(npids[:, 0])))
     alldof = mkdofpv(uset, "p", ids)[0]
-    alldof = locate.index2bool(alldof, np.size(uset, 0))
     uset = uset[alldof]
 
     # form partition vectors:
@@ -2256,8 +2169,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         # get characterstic length of rbe3:
         deploc = uset[pv[0], 3:]
         n = np.size(uset, 0) // 6
-        delta = uset[::6, 3:] - np.dot(np.ones((n, 1)),
-                                       np.reshape(deploc, (1, 3)))
+        delta = uset[::6, 3:] - deploc
         Lc = np.sum(np.sqrt(np.sum(delta * delta, axis=1))) / (n-1)
         if Lc > 1.e-12:
             wtdof[rot] = wtdof[rot]*(Lc*Lc)
@@ -2267,16 +2179,15 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     T = rbb[pv]
     rb = rbb[ipv]
     rbw = rb.T * wtdof
-    rbwrb = np.dot(rbw, rb)
-    rbe3 = _solve(rbwrb, rbw)
-    rbe3 = np.dot(T, rbe3)[ddof[:, 1]-1]
+    rbe3 = _solve(rbw @ rb, rbw)
+    rbe3 = (T @ rbe3)[ddof[:, 1]-1]
     if UM_List is None:
         return rbe3
 
     # find m-set dof that belong to current dependent set:
     dpv_m = locate.mat_intersect(ddof, mdof, 2)[0]
     # this works when the m-set is a subset of the independent set:
-    if not np.any(dpv_m):
+    if not dpv_m.any():
         mpv = mkdofpv(uset[ipv], "p", mdof)[0]
         rbe3_um = rbe3[:, mpv]
         notmpv = locate.flippv(mpv, len(ipv))
@@ -2337,7 +2248,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     r = np.size(A, 0)
     c = np.size(C, 1)
     # m-set rows from dependent part
-    F = np.dot(A, E) + np.hstack((np.zeros((r, c)), B))
+    F = A @ E + np.hstack((np.zeros((r, c)), B))
     rbe3a = np.vstack((F, E))
 
     didof = np.vstack((ddof[dpv_mzo], idof[ipv_mzo]))
@@ -2368,9 +2279,9 @@ def _findse(nas, se):
     """
     r = np.nonzero(nas['selist'][:, 0] == se)[0]
     if r.size == 0:
-        print('selist = ', nas['selist'])
-        raise ValueError("superelement {} not found!"
-                         " See selist echo above".format(se))
+        msg = ("superelement {} not found. Current `selist` is:\n{!s}"
+               .format(se, nas['selist']))
+        raise ValueError(msg)
     return r[0]
 
 
@@ -2537,10 +2448,11 @@ def _formtran_0(nas, dof, gset):
 
     if len(pv2) != len(pvdof):
         notpv2 = locate.flippv(pv2, len(pvdof))
-        print('missing_dof = ', dof[notpv2])
-        raise RuntimeError("bug in _formtran_0() since dof in "
-                           "recovery set does not contain all of the "
-                           "dof in DOF. See missing_dof echo above.")
+        msg = ("bug in :func:`_formtran_0` since dof in "
+               "recovery set does not contain all of the "
+               "dof in `dof`. These dof are missing:\n{!s}"
+               .format(dof[notpv2]))
+        raise RuntimeError(msg)
     # sets = [ a, m, s ]
     cols = nas['pha'][0].shape[1]
     tran = np.zeros((len(pv), cols))
@@ -2549,7 +2461,7 @@ def _formtran_0(nas, dof, gset):
 
     if hasm:
         a_n = np.nonzero(mksetpv(uset, "n", "a"))[0]
-        tran[R:R+len(m)] = np.dot(gm[:, a_n], nas['pha'][0])
+        tran[R:R+len(m)] = gm[:, a_n] @ nas['pha'][0]
         R += len(m)
 
     if hass:
@@ -2718,10 +2630,11 @@ def formtran(nas, se, dof, gset=False):
 
     if len(pv2) != len(pvdof):
         notpv2 = locate.flippv(pv2, len(pvdof))
-        print('missing_dof = ', dof[notpv2])
-        raise RuntimeError("bug in formtran() since dof in recovery"
-                           " set does not contain all of the dof in"
-                           " DOF. See missing_dof echo above.")
+        msg = ("bug in :func:`formtran` since dof in "
+               "recovery set does not contain all of the "
+               "dof in `dof`. These dof are missing:\n{!s}"
+               .format(dof[notpv2]))
+        raise RuntimeError(msg)
 
     # sets = [ t, o, m, q, s ]
     tran = np.zeros((len(pv), ct+cq))
@@ -2743,9 +2656,9 @@ def formtran(nas, se, dof, gset=False):
         v = np.nonzero(np.any(gmo, 0))[0]
         if v.size > 0:
             gmo = gmo[:, v]
-            ulvsm[:, t_a] = gm[:, t_n] + np.dot(gmo, got[v])
+            ulvsm[:, t_a] = gm[:, t_n] + gmo @ got[v]
             if cq:
-                ulvsm[:, q_a] = np.dot(gmo, goq[v])
+                ulvsm[:, q_a] = gmo @ goq[v]
         else:
             ulvsm[:, t_a] = gm[:, t_n]
         if cq:

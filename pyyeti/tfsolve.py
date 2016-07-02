@@ -325,7 +325,7 @@ def eigss(A, delcc):
         The vector of complex eigenvalues
     ur : 2d ndarray
         Normalized complex right eigenvectors
-    uri : 2d ndarray
+    ur_inv : 2d ndarray
         Inverse of right eigenvectors
     dups : 1d ndarray
         Index partition vector for repeated roots; it will be empty
@@ -347,14 +347,14 @@ def eigss(A, delcc):
 
     When the `M`, `B` and `K` are assembled into the `A` matrix, they
     must not contain any rigid-body modes since the inverse of `ur`
-    may not exist, causing the method to fail. If you seen any
-    warning messages about a matrix being singular or near singular,
-    the method has likely failed. Duplicate roots can also cause
-    trouble, so if there are duplicates, check to see if uri*ur and
-    uri*A*ur are diagonal matrices (if ``not delcc``, these would be
-    identity and the eigenvalues, but if `delcc` is True, the factor
-    of 2.0 discussed next has the chance to modify that). If method
-    fails, see :func:`TFSolve.se1` or :func:`TFSolve.se2`.
+    may not exist, causing the method to fail. If you seen any warning
+    messages about a matrix being singular or near singular, the
+    method has likely failed. Duplicate roots can also cause trouble,
+    so if there are duplicates, check to see if ``ur_inv @ ur`` and
+    ``ur_inv @ A @ ur`` are diagonal matrices (if ``not delcc``, these
+    would be identity and the eigenvalues, but if `delcc` is True, the
+    factor of 2.0 discussed next has the chance to modify that). If
+    method fails, see :func:`TFSolve.se1` or :func:`TFSolve.se2`.
 
     For underdamped modes, the complex eigenvalues and modes come in
     complex conjugate pairs. Each mode of a pair yields the same
@@ -368,18 +368,19 @@ def eigss(A, delcc):
     --------
     :func:`make_A`, :func:`_eigc_dups`, :func:`TFSolve.se1`,
     :func:`TFSolve.se2`.
+
     """
     lam, ur = la.eig(A)
-    uri = la.inv(ur)
+    ur_inv = la.inv(ur)
     lam, i, dups = _eigc_dups(lam)
     ur = ur[:, i]
-    uri = uri[i]
+    ur_inv = ur_inv[i]
     if delcc:
-        return delconj(lam, ur, uri, dups)
-    return lam, ur, uri, dups
+        return delconj(lam, ur, ur_inv, dups)
+    return lam, ur, ur_inv, dups
 
 
-def delconj(lam, ur, uri, dups):
+def delconj(lam, ur, ur_inv, dups):
     """
     Delete one eigenvalue/eigenvector from of each pair of complex
     conjugates.
@@ -390,21 +391,22 @@ def delconj(lam, ur, uri, dups):
         The vector of complex eigenvalues
     ur : 2d ndarray
         Normalized complex right eigenvectors
-    uri : 2d ndarray
+    ur_inv : 2d ndarray
         Inverse of right eigenvectors
-    dups : 1d ndarray
+    dups : 1d array_like
         Index partition vector for repeated roots; it will be empty
         (np.array([])) if there are no repeated roots. See
         :func:`_eigc_dups` for more notes on dups.
 
     Returns
     -------
-    lam : 1d ndarray
-        The vector of complex eigenvalues
-    ur : 2d ndarray
-        Normalized complex right eigenvectors
-    uri : 2d ndarray
-        Inverse of right eigenvectors
+    lam1 : 1d ndarray
+        Trimmed vector of complex eigenvalues
+    ur1 : 2d ndarray
+        Trimmed normalized complex right eigenvectors; columns may be
+        trimmed
+    ur_inv1 : 2d ndarray
+        Trimmed inverse of right eigenvectors; rows may be trimmed
     dups : 1d ndarray
         Index partition vector for repeated roots; it will be empty
         (np.array([])) if there are no repeated roots. See
@@ -432,8 +434,9 @@ def delconj(lam, ur, uri, dups):
             keep = np.logical_not(neg)
             lam = lam[keep]
             ur = ur[:, keep]
-            uri = uri[keep]
+            ur_inv = ur_inv[keep]
             # update dups:
+            dups = np.atleast_1d(dups)
             if dups.size > 0:
                 ndof = ur.shape[0]
                 temp = np.zeros(ndof, bool)
@@ -445,10 +448,10 @@ def delconj(lam, ur, uri, dups):
             pv = lam.imag > 0.
             if np.any(pv):
                 ur[:, pv] *= 2.
-    return lam, ur, uri, dups
+    return lam, ur, ur_inv, dups
 
 
-def addconj(lam, ur, uri):
+def addconj(lam, ur, ur_inv):
     """
     Add back in the missing complex-conjugate mode
 
@@ -458,7 +461,7 @@ def addconj(lam, ur, uri):
         The vector of complex eigenvalues
     ur : 2d ndarray
         Normalized complex right eigenvectors
-    uri : 2d ndarray
+    ur_inv : 2d ndarray
         Inverse of right eigenvectors
 
     Returns
@@ -468,7 +471,7 @@ def addconj(lam, ur, uri):
     ur1 : 2d ndarray
         Complete set of normalized complex right eigenvectors; will be
         square
-    uri1 : 2d ndarray
+    ur_inv1 : 2d ndarray
         Complete set of inverse of right eigenvectors; will be square
 
     Notes
@@ -488,7 +491,8 @@ def addconj(lam, ur, uri):
     - checks for all positive imaginary parts in lam (:func:`eigss`
       deletes the negative conjugates)
     - check for the factor of 2 (see above) in ur
-    - check that ur1 and uri1 will be square after adding in the modes
+    - check that `ur1` and `ur_inv1` will be square after adding in
+      the modes
     - check that all underdamped modes are sorted last (as
       :func:`eigss` has them)
 
@@ -499,15 +503,15 @@ def addconj(lam, ur, uri):
     conj2 = np.nonzero(lam.imag > 0.)[0]
     if ur.shape[0] > ur.shape[1] and conj2.size > 0:
         if np.any(lam.imag < 0.):
-            return lam, ur, uri
-        two = np.dot(uri[conj2[0]], ur[:, conj2[0]])
+            return lam, ur, ur_inv
+        two = ur_inv[conj2[0]] @ ur[:, conj2[0]]
         if abs(two - 2.) > 1e-13:
             raise ValueError('factor of 2.0 seems to be missing: '
                              'error on first underdamped mode = {}'.
                              format(abs(two - 2.)))
         n = len(lam) + len(conj2)
-        if n != uri.shape[1] or n != ur.shape[0]:
-            raise ValueError('ur and/or uri will not be square '
+        if n != ur_inv.shape[1] or n != ur.shape[0]:
+            raise ValueError('ur and/or ur_inv will not be square '
                              'after adding missing modes')
         reals = np.nonzero(lam.imag == 0.)[0]
         if len(reals) > 0 and np.max(reals) > np.min(conj2):
@@ -515,20 +519,20 @@ def addconj(lam, ur, uri):
         conj2_new = conj2 + np.arange(1, len(conj2)+1)
         conj1_new = conj2_new - 1
         lam1 = np.zeros(n, complex)
-        uri1 = np.zeros((n, n), complex)
+        ur_inv1 = np.zeros((n, n), complex)
         ur1 = np.zeros((n, n), complex)
         if reals.size > 0:
             lam1[reals] = lam[reals]
             ur1[:, reals] = ur[:, reals]
-            uri1[reals] = uri[reals]
+            ur_inv1[reals] = ur_inv[reals]
         lam1[conj1_new] = lam[conj2]
         lam1[conj2_new] = np.conj(lam[conj2])
         ur1[:, conj1_new] = ur[:, conj2]/2.
         ur1[:, conj2_new] = np.conj(ur[:, conj2])/2.
-        uri1[conj1_new] = uri[conj2]
-        uri1[conj2_new] = np.conj(uri[conj2])
-        return lam1, ur1, uri1
-    return lam, ur, uri
+        ur_inv1[conj1_new] = ur_inv[conj2]
+        ur_inv1[conj2_new] = np.conj(ur_inv[conj2])
+        return lam1, ur1, ur_inv1
+    return lam, ur, ur_inv
 
 
 def make_A(M, B, K):
@@ -967,8 +971,8 @@ class TFSolve(object):
             >>> D = np.array([[0]])
             >>> F = np.zeros((1, nt), float)
             >>> ts = TFSolve('se1', A, h)
-            >>> sol = ts.tsolve(B.dot(F), B[:, 0])
-            >>> y = C.dot(sol.d)
+            >>> sol = ts.tsolve(B @ F, B[:, 0])
+            >>> y = C @ sol.d
             >>> fig = plt.figure('se1 demo')
             >>> ax = plt.plot(sol.t, y.T,
             ...               label='TFSolve.se1')
@@ -978,8 +982,8 @@ class TFSolve(object):
             >>> y2 = np.zeros((C.shape[0], nt), float)
             >>> x[:, 0:1] = B
             >>> for k in range(nt):
-            ...     x[:, k+1] = z.A.dot(x[:, k]) + z.B.dot(F[:, k])
-            ...     y2[:, k]  = z.C.dot(x[:, k]) + z.D.dot(F[:, k])
+            ...     x[:, k+1] = z.A @ x[:, k] + z.B @ F[:, k]
+            ...     y2[:, k]  = z.C @ x[:, k] + z.D @ F[:, k]
             >>> ax = plt.plot(sol.t, y2.T, label='discrete')
             >>> leg = plt.legend(loc='best')
             >>> np.allclose(y, y2)
@@ -1010,11 +1014,6 @@ class TFSolve(object):
                 raise RuntimeError('rerun `mkse1params` with a valid '
                                    'time step.')
             # calc force term outside loop:
-            # if self.order == 1:
-            #     PQF = np.copy(self.P.dot(force[:, :-1]) +
-            #                   self.Q.dot(force[:, 1:]), order='F')
-            # else:
-            #     PQF = np.copy(self.P.dot(force[:, :-1]), order='F')
             if self.order == 1:
                 PQF = self.P @ force[:, :-1] + self.Q @ force[:, 1:]
             else:
@@ -1025,8 +1024,7 @@ class TFSolve(object):
             t = self.h * np.arange(nt)
         else:
             t = 0.
-        return SimpleNamespace(d=d, v=force+self.A.dot(d),
-                               h=self.h, t=t)
+        return SimpleNamespace(d=d, v=force+self.A @ d, h=self.h, t=t)
 
     def mkse2params(self, m, b, k, h, rb=None, rf=None, order=1,
                     pre_eig=False):
@@ -2294,11 +2292,11 @@ class TFSolve(object):
             # equations are uncoupled, solve everything in one step:
             Omega = 2*np.pi*freq[None, :]
             if m is None:
-                H = ((1j*b[:, None].dot(Omega) +
+                H = (((1j*b)[:, None] @ Omega +
                       k[:, None]) - Omega**2)
             else:
-                H = (1j*b[:, None].dot(Omega) +
-                     k[:, None] - m[:, None].dot(Omega**2))
+                H = ((1j*b)[:, None] @ Omega +
+                     k[:, None] - m[:, None] @ Omega**2)
             d[:] = force / H
         else:
             # equations are coupled, use a loop:
@@ -2750,12 +2748,12 @@ class TFSolve(object):
             not None.
         lam : 1d ndarray
             The complex eigenvalues.
-        ur, uri : 2d ndarrays
-            The complex right-eigenvectors and inverse.
+        ur : 2d ndarray
+            The complex right-eigenvectors
         ur_d, ur_v : 2d ndarrays
             Partitions of `ur`
-        uri_v, uri_d : 2d ndarrays
-            Partitions of `uri`
+        ur_inv_v, ur_inv_d : 2d ndarrays
+            Partitions of ``inv(ur)``
         rur_d, iur_d : 2d ndarrays
             Real and imaginary parts of `ur_d`
         rur_v, iur_v : 2d ndarrays
@@ -2796,15 +2794,16 @@ class TFSolve(object):
         msg1 = ('Repeated roots detected and equations do not appear '
                 'to be diagonalized. Generally, this is a failure '
                 'condition. For time domain problems, the routine '
-                ':func:`mkse2params` will probably work '
-                'better. For frequency domain, see :func:`fsd`. '
-                'Proceeding, but check results VERY '
-                'carefully.\n\tMax off diag of uri*ur = {}\n\tMax '
-                'off diag of uri*A*ur = {}\n\tMax uri*A*ur = {}')
+                ':func:`mkse2params` will probably work better. For '
+                'frequency domain, see :func:`fsd`. Proceeding, but '
+                'check results VERY carefully.\n\tMax off-diag of '
+                '``inv(ur) @ ur = {}``\n\tMax off-diag of '
+                '``inv(ur) @ A @ ur = {}``\n\tMax '
+                '``inv(ur) @ A @ ur = {}``')
         msg2 = ('Found {} rigid-body modes in elastic solver section.'
                 ' If there are no previous warnings about singular '
                 'matrices or repeated roots, solution is probably '
-                'valid, but check it before trusting it')
+                'valid, but check it before trusting it.')
         pc = SimpleNamespace()
         h = self.h
         if self.rbsize:
@@ -2826,10 +2825,10 @@ class TFSolve(object):
         if self.elsize:
             self._inv_m()
             A = self._build_A()
-            lam, ur, uri, dups = eigss(A, delcc)
+            lam, ur, ur_inv, dups = eigss(A, delcc)
             if dups.size:
-                uu = uri[dups].dot(ur[:, dups])
-                uau = uri[dups].dot(A.dot(ur[:, dups]))
+                uu = ur_inv[dups] @ ur[:, dups]
+                uau = ur_inv[dups] @ A @ ur[:, dups]
                 maxuau = abs(uau).max()
                 if (not np.allclose(uu, np.eye(uu.shape[0])) or
                         not ytools.isdiag(uau) or
@@ -2860,18 +2859,17 @@ class TFSolve(object):
                 pc.Fe = Fe
                 pc.Ae = Ae
                 pc.Be = Be
-            pc.lam = lam
-            pc.ur = ur
-            pc.uri = uri
-            self._add_partition_copies(pc)
+            self._add_partition_copies(pc, lam, ur, ur_inv)
         return pc
 
-    def _add_partition_copies(self, pc):
+    def _add_partition_copies(self, pc, lam, ur, ur_inv):
         ksize = self.ksize
+        pc.lam = lam
+        pc.ur = ur
         pc.ur_d = pc.ur[ksize:]
         pc.ur_v = pc.ur[:ksize]
-        pc.uri_v = pc.uri[:, :ksize].copy()
-        pc.uri_d = pc.uri[:, ksize:].copy()
+        pc.ur_inv_v = ur_inv[:, :ksize].copy()
+        pc.ur_inv_d = ur_inv[:, ksize:].copy()
         pc.rur_d = pc.ur_d.real.copy()
         pc.iur_d = pc.ur_d.imag.copy()
         pc.rur_v = pc.ur_v.real.copy()
@@ -2879,22 +2877,17 @@ class TFSolve(object):
 
     def _addconj(self):
         pc = self.pc
-        if pc.uri.shape[1] > pc.ur.shape[1]:
-            lam, ur, uri = addconj(pc.lam, pc.ur, pc.uri)
-            pc.lam = lam
-            pc.ur = ur
-            pc.uri = uri
-            self._add_partition_copies(pc)
+        if 2*pc.ur_inv_v.shape[1] > pc.ur_d.shape[1]:
+            ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
+            lam, ur, ur_inv = addconj(pc.lam, pc.ur, ur_inv)
+            self._add_partition_copies(pc, lam, ur, ur_inv)
 
     def _delconj(self):
         pc = self.pc
-        if pc.uri.shape[1] == pc.ur.shape[1]:
-            lam, ur, uri, dups = delconj(pc.lam, pc.ur, pc.uri,
-                                         np.array([]))
-            pc.lam = lam
-            pc.ur = ur
-            pc.uri = uri
-            self._add_partition_copies(pc)
+        if 2*pc.ur_inv_v.shape[1] == pc.ur_d.shape[1]:
+            ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
+            lam, ur, ur_inv, _ = delconj(pc.lam, pc.ur, ur_inv, [])
+            self._add_partition_copies(pc, lam, ur, ur_inv)
 
     def _calc_acce_kdof(self, d, v, a, force):
         """Calculate the `kdof` part of the acceleration"""
@@ -2909,8 +2902,8 @@ class TFSolve(object):
                 else:
                     a[kdof] = F - B - K
             else:
-                B = self.b.dot(v[kdof])
-                K = self.k.dot(d[kdof])
+                B = self.b @ v[kdof]
+                K = self.k @ d[kdof]
                 if self.m is not None:
                     a[kdof] = la.lu_solve(self.invm, F - B - K,
                                           check_finite=False)
@@ -3205,16 +3198,14 @@ class TFSolve(object):
             Fe = pc.Fe
             Ae = pc.Ae
             Be = pc.Be
-            #            ur = pc.ur
-            #            uri = pc.uri
             ur_d = pc.ur_d
             ur_v = pc.ur_v
             rur_d = pc.rur_d
             iur_d = pc.iur_d
             rur_v = pc.rur_v
             iur_v = pc.iur_v
-            uri_d = pc.uri_d
-            uri_v = pc.uri_v
+            ur_inv_d = pc.ur_inv_d
+            ur_inv_v = pc.ur_inv_v
 
             kdof = self.kdof
             ksize = self.ksize
@@ -3226,23 +3217,24 @@ class TFSolve(object):
                                       check_finite=False)
             else:
                 imf = force[kdof]
-            w = uri_v @ imf
+            w = ur_inv_v @ imf
             if self.order == 1:
                 ABF = (Ae[:, None]*w[:, :-1] +
                        Be[:, None]*w[:, 1:])
             else:
                 ABF = (Ae+Be)[:, None]*w[:, :-1]
 
-            y = np.empty((uri_v.shape[0], nt), complex)
-            di = y[:, 0] = uri_v @ v[kdof, 0] + uri_d @ d[kdof, 0]
+            y = np.empty((ur_inv_v.shape[0], nt), complex)
+            di = y[:, 0] = (ur_inv_v @ v[kdof, 0] +
+                            ur_inv_d @ d[kdof, 0])
             for i in range(nt-1):
                 di = y[:, i+1] = Fe*di + ABF[:, i]
             if self.systype is float:
                 # Can do real math for recovery. Note that the
                 # imaginary part of 'd' and 'v' would be zero if no
-                # modes were deleted of the complex conjugate
-                # pairs. The real part is correct however, and that's
-                # all we need.
+                # modes were deleted of the complex conjugate pairs.
+                # The real part is correct however, and that's all we
+                # need.
                 ry = y[:, 1:].real.copy()
                 iy = y[:, 1:].imag.copy()
                 d[kdof, 1:] = rur_d @ ry - iur_d @ iy
@@ -3297,17 +3289,14 @@ class TFSolve(object):
             Fe = pc.Fe
             Ae = pc.Ae
             Be = pc.Be
-            # ur = pc.ur
             ur_d = pc.ur_d
             ur_v = pc.ur_v
             rur_d = pc.rur_d
             iur_d = pc.iur_d
             rur_v = pc.rur_v
             iur_v = pc.iur_v
-
-            # uri = pc.uri
-            uri_v = pc.uri_v
-            uri_d = pc.uri_d
+            ur_inv_v = pc.ur_inv_v
+            ur_inv_d = pc.ur_inv_d
 
             kdof = self.kdof
             if m is not None:
@@ -3367,21 +3356,21 @@ class TFSolve(object):
                     else:
                         F0k = invm @ F0k
                         F1k = invm @ F1k
-                w0 = uri_v @ F0k
-                w1 = uri_v @ F1k
+                w0 = ur_inv_v @ F0k
+                w1 = ur_inv_v @ F1k
                 if self.order == 1:
                     ABF = Ae*w0 + Be*w1
                 else:
                     ABF = (Ae+Be)*w0
                 # [V; D] = ur @ y
-                # y = uri @ [V; D] = [uri_v, uri_d] @ [V; D]
-                y = uri_v @ V[:, i-1] + uri_d @ D[:, i-1]
+                # y = ur_inv @ [V; D] = [ur_inv_v, ur_inv_d] @ [V; D]
+                y = ur_inv_v @ V[:, i-1] + ur_inv_d @ D[:, i-1]
                 yn = Fe * y + ABF
                 if systype is float:
                     # Can do real math for recovery. Note that the
                     # imaginary part of 'd' and 'v' would be zero if
                     # no modes were deleted of the complex conjugate
-                    # pairsw. The real part is correct however, and
+                    # pairs. The real part is correct however, and
                     # that's all we need.
                     ry = yn.real
                     iy = yn.imag
@@ -3389,10 +3378,14 @@ class TFSolve(object):
                     V[:, i] = rur_v @ ry - iur_v @ iy
                 else:
                     # [V; D] = ur @ y
-                    # V = ur[:ksize] @ yn
-                    # D = ur[ksize:] @ yn
                     D[:, i] = ur_d @ yn
                     V[:, i] = ur_v @ yn
+                    # ry = yn.real
+                    # iy = yn.imag
+                    # D[:, i].real = rur_d @ ry - iur_d @ iy
+                    # D[:, i].imag = rur_d @ iy + iur_d @ ry
+                    # V[:, i].real = rur_v @ ry - iur_v @ iy
+                    # V[:, i].imag = rur_v @ iy + iur_v @ ry
 
             if rfsize:
                 if unc:
@@ -3439,12 +3432,12 @@ class TFSolve(object):
             fw = freqw[None, :]
             fw2 = freqw2[None, :]
             if self.m is None:
-                d[el] = force[el] / (1j*(self.b[_el][:, None].dot(fw)) +
+                d[el] = force[el] / (1j*(self.b[_el][:, None] @ fw) +
                                      self.k[_el][:, None] - fw2)
             else:
-                d[el] = force[el] / (1j*(self.b[_el][:, None].dot(fw)) +
+                d[el] = force[el] / (1j*(self.b[_el][:, None] @ fw) +
                                      self.k[_el][:, None] -
-                                     self.m[_el][:, None].dot(fw2))
+                                     self.m[_el][:, None] @ fw2)
             a[el] = d[el] * -(freqw2)
             v[el] = d[el] * (1j*freqw)
 
@@ -3472,12 +3465,11 @@ class TFSolve(object):
                                   check_finite=False)
             else:
                 imf = force[kdof]
-            nc = imf.shape[0]
-            w = pc.uri[:, :nc] @ imf
+            w = pc.ur_inv_v @ imf
             n = w.shape[0]
             H = (np.ones((n, 1)) @ (1.0j*freqw[None, :]) -
                  pc.lam[:, None])
-            d[kdof] = pc.ur[nc:] @ (w / H)
+            d[kdof] = pc.ur_d @ (w / H)
             a[kdof] = d[kdof] * -(freqw2)
             v[kdof] = d[kdof] * (1j*freqw)
 
@@ -3780,7 +3772,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
     >>> from pyyeti.tfsolve import getmodepart
     >>> import scipy.linalg as la
     >>> K = 40*np.random.randn(5, 5)
-    >>> K = K.dot(K.T)  # pos-definite K matrix, M is identity
+    >>> K = K @ K.T  # pos-definite K matrix, M is identity
     >>> M = None
     >>> w2, phi = la.eigh(K)
     >>> mfreq = np.sqrt(w2)/2/np.pi
@@ -3792,8 +3784,8 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
     >>> Tmid = phi[2:3, :]
     >>> Ttop = phi[4:5, :]
     >>> ts = TFSolve('fsu', M, Z, w2)
-    >>> sol_bot = ts.fsolve(np.dot(Tbot.T, f), freq)
-    >>> sol_mid = ts.fsolve(np.dot(Tmid.T, f), freq)
+    >>> sol_bot = ts.fsolve(Tbot.T @ f, freq)
+    >>> sol_mid = ts.fsolve(Tmid.T @ f, freq)
 
     Prepare transforms and solutions for :func:`getmodepart`:
     (Note: the top 2 items in sols could be combined since they
@@ -3816,7 +3808,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
 
     >>> fig = plt.figure('approach 2 FRFs')         # doctest: +SKIP
     >>> for s in sols:                              # doctest: +SKIP
-    ...     plt.plot(freq, abs(s[0].dot(s[1])).T,   # doctest: +SKIP
+    ...     plt.plot(freq, abs(s[0] @ s[1]).T,      # doctest: +SKIP
     ...              label=s[2])                    # doctest: +SKIP
     >>> _ = plt.xlabel('Frequency (Hz)')            # doctest: +SKIP
     >>> plt.yscale('log')                           # doctest: +SKIP
@@ -4098,14 +4090,14 @@ def modeselect(name, ts, force, freq, Trcv, labelrcv, mfreq,
     >>> from pyyeti.tfsolve import modeselect
     >>> import scipy.linalg as la
     >>> K = 40*np.random.randn(5, 5)
-    >>> K = K.dot(K.T)       # positive definite K matrix, M is identity
+    >>> K = K @ K.T       # positive definite K matrix, M is identity
     >>> M = None
     >>> w2, phi = la.eigh(K)
     >>> mfreq = np.sqrt(w2)/2/np.pi
     >>> zetain = np.array([ .02, .02, .05, .02, .05 ])
     >>> Z = np.diag(2*zetain*np.sqrt(w2))
     >>> freq = np.arange(0.1, 15.05, .1)
-    >>> f = phi[4:].T.dot(np.ones((1, len(freq))))   # force of DOF 5
+    >>> f = phi[4:].T @ np.ones((1, len(freq)))      # force of DOF 5
     >>> Trcv = phi[[0, 2, 4]]                        # recover DOF 1, 3, 5
     >>> labels = ['5 to 1', '5 to 3', '5 to 5']
     >>> ts = TFSolve('fsu', M, Z, w2)               # doctest: +SKIP
@@ -4120,4 +4112,4 @@ def modeselect(name, ts, force, freq, Trcv, labelrcv, mfreq,
         auto = [0, auto]
     modes, freqs = getmodepart(freq, sols, mfreq, factor, helpmsg,
                                ylog, auto, idlabel, frf_ttl=name)
-    return modes, freqs, Trcv.dot(sol.a)
+    return modes, freqs, Trcv @ sol.a

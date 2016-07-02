@@ -10,7 +10,6 @@ Nastran-to-Python tools (n2p)
     addgrid
     build_coords
     coordcardinfo
-    expand_trim
     expanddof
     formdrm
     formrbe3
