@@ -144,7 +144,7 @@ def test_getEPQ_B():
             assert np.allclose(q, qt)
 
 
-def test_TFSolve_ic():
+def test_tfsolve_ic():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -162,8 +162,8 @@ def test_TFSolve_ic():
     d0 = np.random.randn(4)
     v0 = np.random.randn(4)
 
-    se2 = tfsolve.TFSolve('se2', m, b, k, h)
-    su = tfsolve.TFSolve('su', m, b, k, h)
+    se2 = tfsolve.se2(m, b, k, h)
+    su = tfsolve.su(m, b, k, h)
     sole = se2.tsolve(f, d0, v0)
     solu = su.tsolve(f, d0, v0)
 
@@ -203,7 +203,7 @@ def get_rfsol(k, rf, f):
     return rfsol
 
 
-def test_TFSolve_uncoupled():
+def test_tfsolve_uncoupled():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -224,18 +224,18 @@ def test_TFSolve_uncoupled():
         b = np.diag(b)
         for rf in (None, 3, 2, np.array([1, 2, 3])):
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 A = tfsolve.make_A(m, b, k)
@@ -252,7 +252,7 @@ def test_TFSolve_uncoupled():
                 tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                t, X0=ic,
                                                interp=order)
-                tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                tse1 = tfsolve.se1(A, h, order=order)
                 if abs(ic).max() == 0:
                     sole1 = tse1.tsolve(B.dot(f2))
                 else:
@@ -260,7 +260,7 @@ def test_TFSolve_uncoupled():
                 yl2 = C.dot(sole1.d) + D.dot(f2)
                 assert np.allclose(yl, yl2.T)
 
-                tse1 = tfsolve.TFSolve('se1', A, h=None)
+                tse1 = tfsolve.se1(A, h=None)
                 sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                 yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                 assert np.allclose(yl[:1, :], yl2.T)
@@ -287,7 +287,7 @@ def test_TFSolve_uncoupled():
                 assert np.allclose(solu0.d, solu.d[:, :1])
 
 
-def test_TFSolve_uncoupled_2():
+def test_tfsolve_uncoupled_2():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -311,18 +311,18 @@ def test_TFSolve_uncoupled_2():
             k = k_*kmult
             b = b_*kmult
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 A = tfsolve.make_A(m, b, k)
@@ -339,12 +339,12 @@ def test_TFSolve_uncoupled_2():
                 tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                t, X0=ic,
                                                interp=order)
-                tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                tse1 = tfsolve.se1(A, h, order=order)
                 sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                 yl2 = C.dot(sole1.d) + D.dot(f2)
                 assert np.allclose(yl, yl2.T)
 
-                tse1 = tfsolve.TFSolve('se1', A, h=None)
+                tse1 = tfsolve.se1(A, h=None)
                 sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                 yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                 assert np.allclose(yl[:1, :], yl2.T)
@@ -386,7 +386,7 @@ def decouple_rf(args, rf):
     return out
 
 
-def test_TFSolve_coupled():
+def test_tfsolve_coupled():
     # coupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -416,18 +416,18 @@ def test_TFSolve_coupled():
                 m = np.diag(m)
                 b = np.diag(b)
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 if rf is None:
@@ -445,12 +445,12 @@ def test_TFSolve_coupled():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -471,12 +471,12 @@ def test_TFSolve_coupled():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -501,7 +501,7 @@ def test_TFSolve_coupled():
                 assert np.allclose(solu0.d, solu.d[:, :1])
 
 
-def test_TFSolve_coupled_2():
+def test_tfsolve_coupled_2():
     # coupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -529,18 +529,18 @@ def test_TFSolve_coupled_2():
             k = k_*kmult
             b = b_*kmult
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 if rf is None:
@@ -555,12 +555,12 @@ def test_TFSolve_coupled_2():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -578,12 +578,12 @@ def test_TFSolve_coupled_2():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -608,7 +608,7 @@ def test_TFSolve_coupled_2():
                 assert np.allclose(solu0.d, solu.d[:, :1])
 
 
-def test_TFSolve_uncoupled_mNone():
+def test_tfsolve_uncoupled_mNone():
     # uncoupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -628,18 +628,18 @@ def test_TFSolve_uncoupled_mNone():
         b = np.diag(b)
         for rf in (None, 3, 2, np.array([1, 2, 3])):
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 A = tfsolve.make_A(m, b, k)
@@ -653,12 +653,12 @@ def test_TFSolve_uncoupled_mNone():
                 tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                t, X0=ic,
                                                interp=order)
-                tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                tse1 = tfsolve.se1(A, h, order=order)
                 sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                 yl2 = C.dot(sole1.d) + D.dot(f2)
                 assert np.allclose(yl, yl2.T)
 
-                tse1 = tfsolve.TFSolve('se1', A, h=None)
+                tse1 = tfsolve.se1(A, h=None)
                 sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                 yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                 assert np.allclose(yl[:1, :], yl2.T)
@@ -685,7 +685,7 @@ def test_TFSolve_uncoupled_mNone():
                 assert np.allclose(solu0.d, solu.d[:, :1])
 
 
-def test_TFSolve_uncoupled_2_mNone():
+def test_tfsolve_uncoupled_2_mNone():
     # uncoupled equations
     m = None
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -708,18 +708,18 @@ def test_TFSolve_uncoupled_2_mNone():
             k = k_*kmult
             b = b_*kmult
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 A = tfsolve.make_A(m, b, k)
@@ -733,12 +733,12 @@ def test_TFSolve_uncoupled_2_mNone():
                 tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                t, X0=ic,
                                                interp=order)
-                tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                tse1 = tfsolve.se1(A, h, order=order)
                 sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                 yl2 = C.dot(sole1.d) + D.dot(f2)
                 assert np.allclose(yl, yl2.T)
 
-                tse1 = tfsolve.TFSolve('se1', A, h=None)
+                tse1 = tfsolve.se1(A, h=None)
                 sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                 yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                 assert np.allclose(yl[:1, :], yl2.T)
@@ -765,7 +765,7 @@ def test_TFSolve_uncoupled_2_mNone():
                 assert np.allclose(solu0.d, solu.d[:, :1])
 
 
-def test_TFSolve_coupled_mNone():
+def test_tfsolve_coupled_mNone():
     # coupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -788,18 +788,18 @@ def test_TFSolve_coupled_mNone():
     for order in (0, 1):
         for rf in (None, 3, 2, np.array([1, 2, 3])):
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 if rf is None:
@@ -814,12 +814,12 @@ def test_TFSolve_coupled_mNone():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -837,12 +837,12 @@ def test_TFSolve_coupled_mNone():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -867,7 +867,7 @@ def test_TFSolve_coupled_mNone():
                 assert np.allclose(solu0.d, solu.d[:, :1])
 
 
-def test_TFSolve_coupled_2_mNone():
+def test_tfsolve_coupled_2_mNone():
     # coupled equations
     m = None
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -893,22 +893,22 @@ def test_TFSolve_coupled_2_mNone():
             k = k_*kmult
             b = b_*kmult
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
                 if kmult != 0.0:
-                    tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                          order=order, rf=rf, rb=[])
+                    tsu = tfsolve.su(m, b, k, h,
+                                     order=order, rf=rf, rb=[])
                 else:
-                    tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                          order=order, rf=rf)
+                    tsu = tfsolve.su(m, b, k, h,
+                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 if rf is None:
@@ -923,12 +923,12 @@ def test_TFSolve_coupled_2_mNone():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -946,12 +946,12 @@ def test_TFSolve_coupled_2_mNone():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -976,7 +976,7 @@ def test_TFSolve_coupled_2_mNone():
                 assert np.allclose(solu0.d, solu.d[:, :1])
 
 
-def test_TFSolve_coupled_mNone_rblast():
+def test_tfsolve_coupled_mNone_rblast():
     # coupled equations
     m = None
     k = np.array([6.e5, 6.e5, 6.e5, 0.])   # diagonal of stiffness
@@ -1002,20 +1002,20 @@ def test_TFSolve_coupled_mNone_rblast():
             if order == 1 and rf is 1:
                 k = np.diag(k)
             for static_ic in (0, 1):
-                ts = tfsolve.TFSolve('se2', m, b, k, h,
-                                   order=order, rf=rf)
+                ts = tfsolve.se2(m, b, k, h,
+                                 order=order, rf=rf)
                 sol = ts.tsolve(f, static_ic=static_ic)
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf, rb=rb)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf, rb=rb)
                 if tsu.ksize > 0:
                     assert tsu.pc.ur.shape[0] > tsu.pc.ur.shape[1]
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
-                ts0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                    order=order, rf=rf)
+                ts0 = tfsolve.se2(m, b, k, h=None,
+                                  order=order, rf=rf)
                 sol0 = ts0.tsolve(f[:, :1], static_ic=static_ic)
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf, rb=rb)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf, rb=rb)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 if rf is None or np.size(rf) == 0:
@@ -1030,12 +1030,12 @@ def test_TFSolve_coupled_mNone_rblast():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -1053,12 +1053,12 @@ def test_TFSolve_coupled_mNone_rblast():
                     tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                    t, X0=ic,
                                                    interp=order)
-                    tse1 = tfsolve.TFSolve('se1', A, h, order=order)
+                    tse1 = tfsolve.se1(A, h, order=order)
                     sole1 = tse1.tsolve(B.dot(f2), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2)
                     assert np.allclose(yl, yl2.T)
 
-                    tse1 = tfsolve.TFSolve('se1', A, h=None)
+                    tse1 = tfsolve.se1(A, h=None)
                     sole1 = tse1.tsolve(B.dot(f2[:, :1]), d0=ic)
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
@@ -1116,7 +1116,7 @@ def test_se1():
     C = np.array([[8, -5]])
     D = np.array([[0]])
     F = np.zeros((1, nt), float)
-    ts = tfsolve.TFSolve('se1', A, h)
+    ts = tfsolve.se1(A, h)
     sol = ts.tsolve(B.dot(F), B[:, 0])
     y = C.dot(sol.d)
     ssmodel = SSModel(A, B, C, D)
@@ -1141,7 +1141,7 @@ def test_se1():
     assert np.allclose(yout, y.flatten())
 
 
-def test_TFSolve_init():
+def test_tfsolve_init():
     def iseq(a, b):
         if type(a) != type(b):
             return False
@@ -1167,41 +1167,17 @@ def test_TFSolve_init():
     h = .01
     A = np.random.randn(4, 4)
 
-    ts = tfsolve.TFSolve()
-    ts.mkse1params(A, h, 0)
-    ts1 = tfsolve.TFSolve('se1', A, h, 0)
-    assert comp_class(ts, ts1)
-    ts1 = tfsolve.TFSolve('se1', A, h, 1)
-    assert not comp_class(ts, ts1)
+    ts1 = tfsolve.se1(A, h, 0)
+    ts2 = tfsolve.se1(A, h, 1)
+    assert not comp_class(ts1, ts2)
 
-    ts = tfsolve.TFSolve()
-    ts.mkse2params(m, b, k, h, order=1, rf=3)
-    ts1 = tfsolve.TFSolve('se2', m, b, k, h, order=1, rf=3)
-    assert comp_class(ts, ts1)
-    ts1 = tfsolve.TFSolve('se2', m, b, k, h, order=1)
-    assert not comp_class(ts, ts1)
+    ts1 = tfsolve.se2(m, b, k, h, order=1, rf=3)
+    ts2 = tfsolve.se2(m, b, k, h, order=1)
+    assert not comp_class(ts1, ts2)
 
-    ts = tfsolve.TFSolve()
-    ts.mksuparams(m, b, k, h, order=0, rf=1, rb=2)
-    ts1 = tfsolve.TFSolve('su', m, b, k, h, order=0, rf=1, rb=2)
-    assert comp_class(ts, ts1)
-    ts1 = tfsolve.TFSolve('su', m, b, k, h, order=0, rf=1, rb=1)
-    assert not comp_class(ts, ts1)
-
-    ts = tfsolve.TFSolve()
-    ts.mkse1params(A, h=None)
-    ts1 = tfsolve.TFSolve('se1', A, h=None)
-    assert comp_class(ts, ts1)
-
-    ts = tfsolve.TFSolve()
-    ts.mkse2params(m, b, k, h=None, order=1, rf=3)
-    ts1 = tfsolve.TFSolve('se2', m, b, k, h=None, order=1, rf=3)
-    assert comp_class(ts, ts1)
-
-    ts = tfsolve.TFSolve()
-    ts.mksuparams(m, b, k, h=None, order=0, rf=1, rb=2)
-    ts1 = tfsolve.TFSolve('su', m, b, k, h=None, order=0, rf=1, rb=2)
-    assert comp_class(ts, ts1)
+    ts1 = tfsolve.su(m, b, k, h, order=0, rf=1, rb=2)
+    ts2 = tfsolve.su(m, b, k, h, order=0, rf=1, rb=1)
+    assert not comp_class(ts1, ts2)
 
 
 def runsim(ss_sysz, sysz):
@@ -1303,7 +1279,7 @@ def test_zoha_c2d_d2c():
         x1[:, j+1] = za.A.dot(x1[:, j]) + za.B.dot(u[:, j])
         y1[:, j] = za.C.dot(x1[:, j]) + za.D.dot(u[:, j])
 
-    ts = tfsolve.TFSolve('se1', A, h, order=1)
+    ts = tfsolve.se1(A, h, order=1)
     F = B.dot(u)
     PQF = np.copy((ts.P+ts.Q).dot((F[:, :-1] +
                                    F[:, 1:])/2), order='F')
@@ -1464,7 +1440,7 @@ def test_getfsucoef():
                      s.A * P[:, j] + s.B * P[:, j+1])
         v[:, j+1] = (s.Fp * d[:, j] + s.Gp * v[:, j] +
                      s.Ap * P[:, j] + s.Bp * P[:, j+1])
-    ts = tfsolve.TFSolve('su', m, b, k, h, rf=rf)
+    ts = tfsolve.su(m, b, k, h, rf=rf)
     sol = ts.tsolve(f, static_ic=0)
     assert np.allclose(sol.v, v)
     assert np.allclose(sol.d, d)
@@ -1482,9 +1458,9 @@ def test_no_h():
     A = tfsolve.make_A(m, b, k)
     h = None
 
-    ts1 = tfsolve.TFSolve('se1', A, h)
-    ts2 = tfsolve.TFSolve('se2', m, b, k, h)
-    tsu = tfsolve.TFSolve('su', m, b, k, h)
+    ts1 = tfsolve.se1(A, h)
+    ts2 = tfsolve.se2(m, b, k, h)
+    tsu = tfsolve.su(m, b, k, h)
 
     assert_raises(ValueError, ts1.tsolve, [[1], [0], [0]])
     sol1 = ts1.tsolve([[1], [0]])
@@ -1501,8 +1477,8 @@ def test_no_h():
     assert_raises(RuntimeError, ts2.tsolve, f)
     assert_raises(RuntimeError, tsu.tsolve, f)
 
-    ts2 = tfsolve.TFSolve('se2', m, b, k, h, rf=0)
-    tsu = tfsolve.TFSolve('su', m, b, k, h, rf=0)
+    ts2 = tfsolve.se2(m, b, k, h, rf=0)
+    tsu = tfsolve.su(m, b, k, h, rf=0)
 
     sol2 = ts2.tsolve(f)
     solu = tsu.tsolve(f)
@@ -1512,7 +1488,7 @@ def test_no_h():
     assert np.allclose(sol2.a, solu.a)
 
 
-def test_TFSolve_uncoupled_freq():
+def test_tfsolve_uncoupled_freq():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1530,7 +1506,7 @@ def test_TFSolve_uncoupled_freq():
     # to accommodate a freqw of zero:
     H[rb, 0] = 1.
     for rf in (None, [3], [2], np.array([1, 2, 3])):
-        tsu = tfsolve.TFSolve('fsu', m, b, k, rf=rf)
+        tsu = tfsolve.fsu(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
             d = f / H
@@ -1553,7 +1529,7 @@ def test_TFSolve_uncoupled_freq():
             assert np.all(freq == sol.f)
 
 
-def test_TFSolve_uncoupled_freq_rblast():
+def test_tfsolve_uncoupled_freq_rblast():
     # uncoupled equations
     m = np.array([30., 30., 30., 10])     # diagonal of mass
     k = np.array([6.e5, 6.e5, 6.e5, 0])   # diagonal of stiffness
@@ -1571,7 +1547,7 @@ def test_TFSolve_uncoupled_freq_rblast():
     # to accommodate a freqw of zero:
     H[rb, 0] = 1.
     for rf in (None, [2], [1], np.array([0, 1, 2])):
-        tsu = tfsolve.TFSolve('fsu', m, b, k, rf=rf)
+        tsu = tfsolve.su(m, b, k, rf=rf, delcc=False)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
             d = f / H
@@ -1594,7 +1570,7 @@ def test_TFSolve_uncoupled_freq_rblast():
             assert np.all(freq == sol.f)
 
 
-def test_TFSolve_uncoupled_freq_mNone():
+def test_tfsolve_uncoupled_freq_mNone():
     # uncoupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1612,7 +1588,7 @@ def test_TFSolve_uncoupled_freq_mNone():
     # to accommodate a freqw of zero:
     H[rb, 0] = 1.
     for rf in (None, [3], [2], np.array([1, 2, 3])):
-        tsu = tfsolve.TFSolve('fsu', m, b, k, rf=rf)
+        tsu = tfsolve.fsu(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
             d = f / H
@@ -1635,7 +1611,7 @@ def test_TFSolve_uncoupled_freq_mNone():
             assert np.all(freq == sol.f)
 
 
-def test_TFSolve_coupled_freq():
+def test_tfsolve_coupled_freq():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1657,7 +1633,7 @@ def test_TFSolve_coupled_freq():
 
     freqw = 2*np.pi*freq
     for rf in (None, [3], [2], np.array([1, 2, 3])):
-        tsu = tfsolve.TFSolve('fsu', m, b, k, rf=rf)
+        tsu = tfsolve.su(m, b, k, rf=rf, delcc=False)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
 
@@ -1689,7 +1665,7 @@ def test_TFSolve_coupled_freq():
             assert np.all(freq == sol.f)
 
 
-def test_TFSolve_coupled_freq_mNone():
+def test_tfsolve_coupled_freq_mNone():
     # uncoupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1708,7 +1684,7 @@ def test_TFSolve_coupled_freq_mNone():
 
     freqw = 2*np.pi*freq
     for rf in (None, [3], [2], np.array([1, 2, 3])):
-        tsu = tfsolve.TFSolve('su', m, b, k, rf=rf)
+        tsu = tfsolve.su(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
 
@@ -1740,7 +1716,7 @@ def test_TFSolve_coupled_freq_mNone():
             assert np.all(freq == sol.f)
 
 
-def test_TFSolve_fsd_1():
+def test_tfsolve_fsd_1():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1758,10 +1734,10 @@ def test_TFSolve_fsd_1():
     v = 1j*freqw*d
     a = 1j*freqw*v
 
-    tsu = tfsolve.TFSolve('fsu', m, b, k)
+    tsu = tfsolve.fsu(m, b, k)
     solu = tsu.fsolve(f, freq)
 
-    tsd = tfsolve.TFSolve('fsd', m, b, k)
+    tsd = tfsolve.fsd(m, b, k)
     sold = tsd.fsolve(f, freq)
     assert np.allclose(a, solu.a)
     assert np.allclose(v, solu.v)
@@ -1795,7 +1771,7 @@ def test_TFSolve_fsd_1():
     assert np.allclose(d, solu.d)
 
 
-def test_TFSolve_fsd_2():
+def test_tfsolve_fsd_2():
     # uncoupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1812,10 +1788,10 @@ def test_TFSolve_fsd_2():
     v = 1j*freqw*d
     a = 1j*freqw*v
 
-    tsu = tfsolve.TFSolve('fsu', m, b, k)
+    tsu = tfsolve.fsu(m, b, k)
     solu = tsu.fsolve(f, freq)
 
-    tsd = tfsolve.TFSolve('fsd', m, b, k)
+    tsd = tfsolve.fsd(m, b, k)
     sold = tsd.fsolve(f, freq)
     assert np.allclose(a, solu.a)
     assert np.allclose(v, solu.v)
@@ -1826,7 +1802,7 @@ def test_TFSolve_fsd_2():
     assert np.all(freq == sold.f)
 
 
-def test_TFSolve_fsd_3():
+def test_tfsolve_fsd_3():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1845,9 +1821,9 @@ def test_TFSolve_fsd_3():
     f = np.ones((4, freq.size))
 
     freqw = 2*np.pi*freq
-    tsu = tfsolve.TFSolve('fsu', m, b, k)
+    tsu = tfsolve.fsu(m, b, k)
     solu = tsu.fsolve(f, freq)
-    tsd = tfsolve.TFSolve('fsd', m, b, k)
+    tsd = tfsolve.fsd(m, b, k)
     sold = tsd.fsolve(f, freq)
     assert np.allclose(solu.a, sold.a)
     assert np.allclose(solu.v, sold.v)
@@ -1855,7 +1831,7 @@ def test_TFSolve_fsd_3():
     assert np.all(freq == sold.f)
 
 
-def test_TFSolve_fsd_4():
+def test_tfsolve_fsd_4():
     # uncoupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1872,9 +1848,9 @@ def test_TFSolve_fsd_4():
     f = np.ones((4, freq.size))
 
     freqw = 2*np.pi*freq
-    tsu = tfsolve.TFSolve('fsu', m, b, k)
+    tsu = tfsolve.fsu(m, b, k)
     solu = tsu.fsolve(f, freq)
-    tsd = tfsolve.TFSolve('fsd', m, b, k)
+    tsd = tfsolve.fsd(m, b, k)
     sold = tsd.fsolve(f, freq)
     assert np.allclose(solu.a, sold.a)
     assert np.allclose(solu.v, sold.v)
@@ -1882,7 +1858,7 @@ def test_TFSolve_fsd_4():
     assert np.all(freq == sold.f)
 
 
-def test_TFSolve_fsd_uncoupled_complex_1():
+def test_tfsolve_fsd_uncoupled_complex_1():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1897,9 +1873,9 @@ def test_TFSolve_fsd_uncoupled_complex_1():
     f = np.ones((4, freq.size))
 
     freqw = 2*np.pi*freq
-    tsu = tfsolve.TFSolve('fsu', m, b, k)
+    tsu = tfsolve.fsu(m, b, k)
     solu = tsu.fsolve(f, freq)
-    tsd = tfsolve.TFSolve('fsd', m, b, k)
+    tsd = tfsolve.fsd(m, b, k)
     sold = tsd.fsolve(f, freq)
     assert np.allclose(solu.a, sold.a)
     assert np.allclose(solu.v, sold.v)
@@ -1907,7 +1883,7 @@ def test_TFSolve_fsd_uncoupled_complex_1():
     assert np.all(freq == sold.f)
 
 
-def test_TFSolve_fsd_uncoupled_complex_2():
+def test_tfsolve_fsd_uncoupled_complex_2():
     # uncoupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1921,9 +1897,9 @@ def test_TFSolve_fsd_uncoupled_complex_2():
     f = np.ones((4, freq.size))
 
     freqw = 2*np.pi*freq
-    tsu = tfsolve.TFSolve('fsu', m, b, k)
+    tsu = tfsolve.fsu(m, b, k)
     solu = tsu.fsolve(f, freq)
-    tsd = tfsolve.TFSolve('fsd', m, b, k)
+    tsd = tfsolve.fsd(m, b, k)
     sold = tsd.fsolve(f, freq)
     assert np.allclose(solu.a, sold.a)
     assert np.allclose(solu.v, sold.v)
@@ -1931,7 +1907,7 @@ def test_TFSolve_fsd_uncoupled_complex_2():
     assert np.all(freq == sold.f)
 
 
-def test_TFSolve_fsd_coupled_complex_1():
+def test_tfsolve_fsd_coupled_complex_1():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1953,9 +1929,9 @@ def test_TFSolve_fsd_coupled_complex_1():
     f = np.ones((4, freq.size))
 
     freqw = 2*np.pi*freq
-    tsu = tfsolve.TFSolve('fsu', m, b, k)
+    tsu = tfsolve.fsu(m, b, k)
     solu = tsu.fsolve(f, freq)
-    tsd = tfsolve.TFSolve('fsd', m, b, k)
+    tsd = tfsolve.fsd(m, b, k)
     sold = tsd.fsolve(f, freq)
     assert np.allclose(solu.a, sold.a)
     assert np.allclose(solu.v, sold.v)
@@ -1963,7 +1939,7 @@ def test_TFSolve_fsd_coupled_complex_1():
     assert np.all(freq == sold.f)
 
 
-def test_TFSolve_fsd_coupled_complex_2():
+def test_tfsolve_fsd_coupled_complex_2():
     # uncoupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -1983,9 +1959,9 @@ def test_TFSolve_fsd_coupled_complex_2():
     f = np.ones((4, freq.size))
 
     freqw = 2*np.pi*freq
-    tsu = tfsolve.TFSolve('fsu', m, b, k)
+    tsu = tfsolve.fsu(m, b, k)
     solu = tsu.fsolve(f, freq)
-    tsd = tfsolve.TFSolve('fsd', m, b, k)
+    tsd = tfsolve.fsd(m, b, k)
     sold = tsd.fsolve(f, freq)
     assert np.allclose(solu.a, sold.a)
     assert np.allclose(solu.v, sold.v)
@@ -2009,7 +1985,7 @@ def test_tfsolve_complex_coefficients():
             m = np.diag(m)
             b = np.diag(b)
             k = np.diag(k)
-        ts = tfsolve.TFSolve('su', m, b, k, h)
+        ts = tfsolve.su(m, b, k, h)
         sol = ts.tsolve(f, static_ic=0)
         if use_diag:
             fr = m[:, None]*sol.a + b[:, None]*sol.v + k[:, None]*sol.d
@@ -2072,7 +2048,7 @@ def test_tfsolve_complex_coefficients_with_rf():
             m = np.diag(m)
             b = np.diag(b)
             k = np.diag(k)
-        ts = tfsolve.TFSolve('su', m, b, k, h, rf=2)
+        ts = tfsolve.su(m, b, k, h, rf=2)
         sol = ts.tsolve(f, static_ic=0)
         if use_diag:
             fr = m[:, None]*sol.a + b[:, None]*sol.v + k[:, None]*sol.d
@@ -2113,7 +2089,7 @@ def test_tfsolve_complex_coefficients_mNone():
         if use_diag:
             b = np.diag(b)
             k = np.diag(k)
-        ts = tfsolve.TFSolve('su', m, b, k, h)
+        ts = tfsolve.su(m, b, k, h)
         sol = ts.tsolve(f, static_ic=0)
         if use_diag:
             fr = sol.a + b[:, None]*sol.v + k[:, None]*sol.d
@@ -2147,7 +2123,7 @@ def test_tfsolve_complex_coefficients_dups():
     k = aa.copy()
     h = .1
     with assert_warns(RuntimeWarning) as cm:
-        tfsolve.TFSolve('su', m, b, k, h)
+        tfsolve.su(m, b, k, h)
     wrn0 = str(cm.warnings[0].message)
     assert 0 == wrn0.find('Repeated roots detected')
     found = False
@@ -2175,7 +2151,7 @@ def test_tfsolve_complex_coefficients_rb():
             m = np.diag(m)
             b = np.diag(b)
             k = np.diag(k)
-        ts = tfsolve.TFSolve('su', m, b, k, h)
+        ts = tfsolve.su(m, b, k, h)
         sol = ts.tsolve(f, static_ic=0)
         if use_diag:
             fr = m[:, None]*sol.a + b[:, None]*sol.v + k[:, None]*sol.d
@@ -2200,13 +2176,11 @@ def test_tfsolve_complex_coefficients_rb():
         assert np.allclose(sol.v, sol2.v)
         assert np.allclose(sol.d, sol2.d)
 
-    assert_raises(ValueError, tfsolve.TFSolve, 'badsolvename', m, b, k, h)
-
 
 def test_approx_rbmodes():
     from pyyeti import op2
     from pyyeti import n2p
-    from pyyeti.tfsolve import TFSolve
+    from pyyeti.tfsolve import su, se2
     nas = op2.rdnas2cam('pyyeti/tests/nas2cam/with_se_nas2cam')
 
     # setup mass, stiffness, damping:
@@ -2226,8 +2200,8 @@ def test_approx_rbmodes():
     ATM, dof = n2p.formdrm(nas, 100, [[35, 1], [36, 1]])
 
     # initialize uncoupled solver:
-    su = TFSolve('su', m, b, k, h)
-    se = TFSolve('se2', m, b, k, h)
+    su = su(m, b, k, h)
+    se = se2(m, b, k, h)
 
     # solve equations of motion with zero initial conditions:
     solu_nosic = su.tsolve(drm.T @ f, static_ic=0)
@@ -2309,49 +2283,55 @@ def test_tfsolve_pre_eig():
     F = np.vstack((np.ones((1, len(freq))),
                    np.zeros((3, len(freq)))))
 
-    TFSolve = tfsolve.TFSolve
-    sol1 = TFSolve('eigfsu', MASS, DAMP, STIF).fsolve(F, freq)
-    sol2 = TFSolve('fsd', MASS, DAMP, STIF).fsolve(F, freq)
+    sol1 = tfsolve.eigfsu(MASS, DAMP, STIF).fsolve(F, freq)
+    sol2 = tfsolve.fsd(MASS, DAMP, STIF).fsolve(F, freq)
 
     assert np.allclose(sol1.d, sol2.d)
     assert np.allclose(sol1.v, sol2.v)
     assert np.allclose(sol1.a, sol2.a)
 
     # frequency domain with identity M ... as None:
-    TFSolve = tfsolve.TFSolve
-    sol1 = TFSolve('eigfsu', None, DAMP, STIF).fsolve(F, freq)
-    sol2 = TFSolve('fsd', None, DAMP, STIF).fsolve(F, freq)
+    sol1 = tfsolve.eigfsu(None, DAMP, STIF).fsolve(F, freq)
+    sol1a = tfsolve.eigsu(None, DAMP, STIF, h).fsolve(F, freq)
+    sol2 = tfsolve.fsd(None, DAMP, STIF).fsolve(F, freq)
 
     assert np.allclose(sol1.d, sol2.d)
     assert np.allclose(sol1.v, sol2.v)
     assert np.allclose(sol1.a, sol2.a)
+    assert np.allclose(sol1a.d, sol2.d)
+    assert np.allclose(sol1a.v, sol2.v)
+    assert np.allclose(sol1a.a, sol2.a)
 
     # time domain:
     F[0] = 0.
     pv = np.where((time > .1) & (time < .8))[0]
     F[0][pv] = 10.
-    sol1 = TFSolve('eigsu', MASS, DAMP, STIF, h).tsolve(F)
-    sol2 = TFSolve('se2', MASS, DAMP, STIF, h).tsolve(F)
+    sol1 = tfsolve.eigsu(MASS, DAMP, STIF, h).tsolve(F)
+    sol1a = tfsolve.eigfsu(MASS, DAMP, STIF, h).tsolve(F)
+    sol2 = tfsolve.se2(MASS, DAMP, STIF, h).tsolve(F)
 
     assert np.allclose(sol1.d, sol2.d)
     assert np.allclose(sol1.v, sol2.v)
     assert np.allclose(sol1.a, sol2.a)
+    assert np.allclose(sol1a.d, sol2.d)
+    assert np.allclose(sol1a.v, sol2.v)
+    assert np.allclose(sol1a.a, sol2.a)
 
     STIF2 = np.diag(STIF)
-    sol1 = TFSolve('eigsu', MASS, DAMP, STIF2, h).tsolve(F)
-    sol2 = TFSolve('se2', MASS, DAMP, STIF2, h).tsolve(F)
+    sol1 = tfsolve.eigsu(MASS, DAMP, STIF2, h).tsolve(F)
+    sol2 = tfsolve.se2(MASS, DAMP, STIF2, h).tsolve(F)
 
     assert np.allclose(sol1.d, sol2.d)
     assert np.allclose(sol1.v, sol2.v)
     assert np.allclose(sol1.a, sol2.a)
-    
+
     F[0] = 0.
     pv = np.where(time < .8)[0]
     F[0][pv] = 10.
-    sol1 = TFSolve('eigsu', MASS, DAMP,
-                   STIF, h).tsolve(F, static_ic=1)
-    sol2 = TFSolve('eigse2', MASS, DAMP,
-                   STIF, h).tsolve(F, static_ic=1)
+    sol1 = tfsolve.su(MASS, DAMP, STIF, h,
+                      pre_eig=True).tsolve(F, static_ic=1)
+    sol2 = tfsolve.eigse2(MASS, DAMP,
+                          STIF, h).tsolve(F, static_ic=1)
 
     assert np.allclose(sol1.d, sol2.d)
     assert np.allclose(sol1.v, sol2.v)
@@ -2361,8 +2341,8 @@ def test_tfsolve_pre_eig():
                       [-k1, k1+k2, -k2, 0],
                       [k1, -k2, k2+k3, -k3],
                       [k1, 0, -k3, k3]])
-    assert_raises(ValueError, TFSolve, 'eigsu', MASS, DAMP, STIF2, h)
-    assert_raises(ValueError, TFSolve, 'eigsu', None, DAMP, STIF2, h)
+    assert_raises(ValueError, tfsolve.eigsu, MASS, DAMP, STIF2, h)
+    assert_raises(ValueError, tfsolve.eigsu, None, DAMP, STIF2, h)
 
 
 def test_tfsolve_badsize():
@@ -2372,12 +2352,12 @@ def test_tfsolve_badsize():
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
     f = np.random.randn(3, len(t))
-    assert_raises(ValueError, tfsolve.TFSolve, 'se2', m, b, k, h)
-    assert_raises(ValueError, tfsolve.TFSolve, 'se2', b[0], b, k, h)
+    assert_raises(ValueError, tfsolve.se2, m, b, k, h)
+    assert_raises(ValueError, tfsolve.se2, b[0], b, k, h)
     b1 = np.random.randn(2, 2)
-    assert_raises(ValueError, tfsolve.TFSolve, 'se2', m, b1, k, h)
+    assert_raises(ValueError, tfsolve.se2, m, b1, k, h)
     m1 = np.random.randn(3, 3, 3)
-    assert_raises(ValueError, tfsolve.TFSolve, 'se2', m1, b, k, h)
+    assert_raises(ValueError, tfsolve.se2, m1, b, k, h)
 
 
 def test_precalc_warnings():
@@ -2392,11 +2372,11 @@ def test_precalc_warnings():
         if getattr(v, '__warningregistry__', None):
             v.__warningregistry__ = {}
 
-    assert_warns(RuntimeWarning, tfsolve.TFSolve, 'su',
+    assert_warns(RuntimeWarning, tfsolve.su,
                  m, b, k, h, rf=[2, 3])
 
     m = np.array([10e3, 30e-18, 30., 30.])     # diagonal of mass
-    assert_warns(RuntimeWarning, tfsolve.TFSolve, 'su',
+    assert_warns(RuntimeWarning, tfsolve.su,
                  m, b, k, h, rf=3)
 
 
@@ -2410,7 +2390,7 @@ def test_tfsolve_solvepsd():
     freq = np.arange(.1, 35, .1)
 
     forcepsd = 10000*np.ones((4, freq.size))  # constant PSD forces
-    ts = tfsolve.TFSolve('fsu', m, b, k)
+    ts = tfsolve.fsu(m, b, k)
     atm = np.random.randn(4, 4)
     dtm = np.random.randn(4, 4)
     t_frc = np.random.randn(4, 4)
@@ -2537,7 +2517,7 @@ def test_getmodepart():
     Tbot = phi[0:1, :]
     Tmid = phi[2:3, :]
     Ttop = phi[4:5, :]
-    ts = tfsolve.TFSolve('fsu', M, Z, w2)
+    ts = tfsolve.fsu(M, Z, w2)
     sol_bot = ts.fsolve(Tbot.T @ f, freq)
     sol_mid = ts.fsolve(Tmid.T @ f, freq)
 
@@ -2608,7 +2588,7 @@ def test_getmodepart():
                  factor=.1, auto=[1, 0])
 
 
-def test_TFSolve_ic_generator():
+def test_tfsolve_ic_generator():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -2628,10 +2608,10 @@ def test_TFSolve_ic_generator():
 
     for get_force in (True, False):
         for order in (0, 1):
-            su = tfsolve.TFSolve('su', m, b, k, h, order=order)
+            su = tfsolve.su(m, b, k, h, order=order)
             solu = su.tsolve(f, d0, v0)
 
-            se = tfsolve.TFSolve('se2', m, b, k, h, order=order)
+            se = tfsolve.se2(m, b, k, h, order=order)
             sole = se.tsolve(f, d0, v0)
 
             nt = len(t)
@@ -2662,7 +2642,7 @@ def test_TFSolve_ic_generator():
             assert np.allclose(d0, solu.d[:, 0])
 
 
-def test_TFSolve_uncoupled_generator():
+def test_tfsolve_uncoupled_generator():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -2685,8 +2665,8 @@ def test_TFSolve_uncoupled_generator():
             for static_ic in (0, 1):
                 get_force = not get_force
                 # su
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -2696,8 +2676,8 @@ def test_TFSolve_uncoupled_generator():
                     gen.send((i, f[:, i]))
                 solu2 = tsu.finalize(get_force)
 
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                       order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 nt = 1
@@ -2720,8 +2700,8 @@ def test_TFSolve_uncoupled_generator():
                 assert np.allclose(solu20.d, solu2.d[:, :1])
 
                 # se2
-                tse = tfsolve.TFSolve('se2', m, b, k, h,
-                                    order=order, rf=rf)
+                tse = tfsolve.se2(m, b, k, h,
+                                  order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -2731,8 +2711,8 @@ def test_TFSolve_uncoupled_generator():
                     gen.send((i, f[:, i]))
                 sole2 = tse.finalize(get_force)
 
-                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                       order=order, rf=rf)
+                tse0 = tfsolve.se2(m, b, k, h=None,
+                                   order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
 
                 nt = 1
@@ -2765,20 +2745,24 @@ def test_TFSolve_uncoupled_generator():
                     assert np.allclose(sole20.force, f[:, :1])
 
     nt = f.shape[1]
-    tsu = tfsolve.TFSolve('su', m, b, k, h, order=order, rf=2)
+    tsu = tfsolve.su(m, b, k, h, order=order, rf=2)
     assert_raises(NotImplementedError, tsu.generator,
                   nt, f[:, 0], static_ic=static_ic)
 
-    tsu = tfsolve.TFSolve('su', m, b, k, h, order=order)
+    tse2 = tfsolve.se2(m, b, k, h, order=order, rf=2)
+    assert_raises(NotImplementedError, tse2.generator,
+                  nt, f[:, 0], static_ic=static_ic)
+
+    tsu = tfsolve.su(m, b, k, h, order=order)
     assert_raises(ValueError, tsu.generator,
                   nt, f[:-1, 0], static_ic=static_ic)
 
-    tsu = tfsolve.TFSolve('eigsu', m, b, np.diag(k), h, order=order)
+    tsu = tfsolve.eigsu(m, b, np.diag(k), h, order=order)
     assert_raises(NotImplementedError, tsu.generator,
                   nt, f[:, 0], static_ic=static_ic)
 
 
-def test_TFSolve_uncoupled_2_generator():
+def test_tfsolve_uncoupled_2_generator():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -2805,8 +2789,8 @@ def test_TFSolve_uncoupled_2_generator():
             for static_ic in (0, 1):
                 get_force = not get_force
                 # su
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -2816,8 +2800,8 @@ def test_TFSolve_uncoupled_2_generator():
                     gen.send((i, f[:, i]))
                 solu2 = tsu.finalize(get_force)
 
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -2840,8 +2824,8 @@ def test_TFSolve_uncoupled_2_generator():
                     assert np.allclose(solu20.force, f[:, :1])
 
                 # se2
-                tse = tfsolve.TFSolve('se2', m, b, k, h,
-                                      order=order, rf=rf)
+                tse = tfsolve.se2(m, b, k, h,
+                                  order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -2851,8 +2835,8 @@ def test_TFSolve_uncoupled_2_generator():
                     gen.send((i, f[:, i]))
                 sole2 = tse.finalize(get_force)
 
-                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                       order=order, rf=rf)
+                tse0 = tfsolve.se2(m, b, k, h=None,
+                                   order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -2879,7 +2863,7 @@ def test_TFSolve_uncoupled_2_generator():
                     assert np.allclose(sole20.force, f[:, :1])
 
 
-def test_TFSolve_coupled_generator():
+def test_tfsolve_coupled_generator():
     # coupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -2908,8 +2892,8 @@ def test_TFSolve_coupled_generator():
                 b = np.diag(b)
             for static_ic in (0, 1):
                 # su
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
-                                    order=order, rf=rf)
+                tsu = tfsolve.su(m, b, k, h,
+                                 order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -2919,8 +2903,8 @@ def test_TFSolve_coupled_generator():
                     gen.send((i, f[:, i]))
                 solu2 = tsu.finalize()
 
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -2939,8 +2923,8 @@ def test_TFSolve_coupled_generator():
                 assert np.allclose(solu20.d, solu2.d[:, :1])
 
                 # se
-                tse = tfsolve.TFSolve('se2', m, b, k, h,
-                                    order=order, rf=rf)
+                tse = tfsolve.se2(m, b, k, h,
+                                  order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -2950,8 +2934,8 @@ def test_TFSolve_coupled_generator():
                     gen.send((i, f[:, i]))
                 sole2 = tse.finalize()
 
-                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tse0 = tfsolve.se2(m, b, k, h=None,
+                                   order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -2974,7 +2958,7 @@ def test_TFSolve_coupled_generator():
                 assert np.allclose(sole20.d, sole2.d[:, :1])
 
 
-def test_TFSolve_coupled_2_generator():
+def test_tfsolve_coupled_2_generator():
     # coupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -3005,7 +2989,7 @@ def test_TFSolve_coupled_2_generator():
             for static_ic in (0, 1):
                 get_force = not get_force
                 # su
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
+                tsu = tfsolve.su(m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
@@ -3016,7 +3000,7 @@ def test_TFSolve_coupled_2_generator():
                     gen.send((i, f[:, i]))
                 solu2 = tsu.finalize(get_force)
 
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
+                tsu0 = tfsolve.su(m, b, k, h=None,
                                      order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
@@ -3040,8 +3024,8 @@ def test_TFSolve_coupled_2_generator():
                     assert np.allclose(solu20.force, f[:, :1])
 
                 # se
-                tse = tfsolve.TFSolve('se2', m, b, k, h,
-                                    order=order, rf=rf)
+                tse = tfsolve.se2(m, b, k, h,
+                                  order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3051,8 +3035,8 @@ def test_TFSolve_coupled_2_generator():
                     gen.send((i, f[:, i]))
                 sole2 = tse.finalize(get_force)
 
-                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tse0 = tfsolve.se2(m, b, k, h=None,
+                                   order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3079,7 +3063,7 @@ def test_TFSolve_coupled_2_generator():
                     assert np.allclose(sole20.force, f[:, :1])
 
 
-def test_TFSolve_coupled_mNone_generator():
+def test_tfsolve_coupled_mNone_generator():
     # coupled equations
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -3103,7 +3087,7 @@ def test_TFSolve_coupled_mNone_generator():
         for rf in (None, 3, np.array([1, 2, 3])):
             for static_ic in (0, 1):
                 # su
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
+                tsu = tfsolve.su(m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
@@ -3114,7 +3098,7 @@ def test_TFSolve_coupled_mNone_generator():
                     gen.send((i, f[:, i]))
                 solu2 = tsu.finalize()
 
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
+                tsu0 = tfsolve.su(m, b, k, h=None,
                                      order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
@@ -3134,8 +3118,8 @@ def test_TFSolve_coupled_mNone_generator():
                 assert np.allclose(solu20.d, solu2.d[:, :1])
 
                 # se
-                tse = tfsolve.TFSolve('se2', m, b, k, h,
-                                    order=order, rf=rf)
+                tse = tfsolve.se2(m, b, k, h,
+                                  order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3145,8 +3129,8 @@ def test_TFSolve_coupled_mNone_generator():
                     gen.send((i, f[:, i]))
                 sole2 = tse.finalize()
 
-                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tse0 = tfsolve.se2(m, b, k, h=None,
+                                   order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3169,7 +3153,7 @@ def test_TFSolve_coupled_mNone_generator():
                 assert np.allclose(sole20.d, sole2.d[:, :1])
 
 
-def test_TFSolve_coupled_2_mNone_generator():
+def test_tfsolve_coupled_2_mNone_generator():
     # coupled equations
     m = None
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
@@ -3196,7 +3180,7 @@ def test_TFSolve_coupled_2_mNone_generator():
             b = b_*kmult
             for static_ic in (0, 1):
                 # su
-                tsu = tfsolve.TFSolve('su', m, b, k, h,
+                tsu = tfsolve.su(m, b, k, h,
                                     order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
@@ -3212,8 +3196,8 @@ def test_TFSolve_coupled_2_mNone_generator():
                 
                 solu2 = tsu.finalize()
 
-                tsu0 = tfsolve.TFSolve('su', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tsu0 = tfsolve.su(m, b, k, h=None,
+                                  order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3232,8 +3216,8 @@ def test_TFSolve_coupled_2_mNone_generator():
                 assert np.allclose(solu20.d, solu2.d[:, :1])
 
                 # se
-                tse = tfsolve.TFSolve('se2', m, b, k, h,
-                                    order=order, rf=rf)
+                tse = tfsolve.se2(m, b, k, h,
+                                  order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3248,8 +3232,8 @@ def test_TFSolve_coupled_2_mNone_generator():
 
                 sole2 = tse.finalize()
 
-                tse0 = tfsolve.TFSolve('se2', m, b, k, h=None,
-                                     order=order, rf=rf)
+                tse0 = tfsolve.se2(m, b, k, h=None,
+                                   order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3270,3 +3254,10 @@ def test_TFSolve_coupled_2_mNone_generator():
                 assert np.allclose(sole20.a, sole2.a[:, :1])
                 assert np.allclose(sole20.v, sole2.v[:, :1])
                 assert np.allclose(sole20.d, sole2.d[:, :1])
+
+
+def test_abstractness():
+    a = tfsolve._BaseTFSolve()
+    assert_raises(NotImplementedError, a.tsolve)
+    assert_raises(NotImplementedError, a.fsolve)
+    assert_raises(NotImplementedError, a.generator)

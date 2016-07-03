@@ -64,7 +64,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
 
     See also
     --------
-    :func:`TFSolve.mksuparams`
+    :class:`su`
     """
     if h is None:
         return None
@@ -354,7 +354,7 @@ def eigss(A, delcc):
     ``ur_inv @ A @ ur`` are diagonal matrices (if ``not delcc``, these
     would be identity and the eigenvalues, but if `delcc` is True, the
     factor of 2.0 discussed next has the chance to modify that). If
-    method fails, see :func:`TFSolve.se1` or :func:`TFSolve.se2`.
+    method fails, see :class:`se1` or :class:`se2`.
 
     For underdamped modes, the complex eigenvalues and modes come in
     complex conjugate pairs. Each mode of a pair yields the same
@@ -366,9 +366,7 @@ def eigss(A, delcc):
 
     See also
     --------
-    :func:`make_A`, :func:`_eigc_dups`, :func:`TFSolve.se1`,
-    :func:`TFSolve.se2`.
-
+    :func:`make_A`, :func:`_eigc_dups`, :class:`su`.
     """
     lam, ur = la.eig(A)
     ur_inv = la.inv(ur)
@@ -498,7 +496,7 @@ def addconj(lam, ur, ur_inv):
 
     See also
     --------
-    :func:`eigss`, :func:`TFSolve.se2`, :func:`TFSolve.fsu`
+    :func:`eigss`, :class:`su`, :class:`se2`
     """
     conj2 = np.nonzero(lam.imag > 0.)[0]
     if ur.shape[0] > ur.shape[1] and conj2.size > 0:
@@ -571,7 +569,7 @@ def make_A(M, B, K):
 
     See also
     --------
-    :func:`eigss`, :func:`TFSolve.se2`.
+    :func:`eigss`, :class:`su`, :class:`se2`
     """
     Atype = float
     if M is None:
@@ -604,255 +602,82 @@ def make_A(M, B, K):
     return A
 
 
-class TFSolve(object):
+class se1(object):
     """
-    Time and frequency domain solvers for equations of motion.
+    1st order ODE time domain solver based on the matrix exponential.
 
-    **Time Domain**
+    This class is for solving: ``yd - A y = f``
 
-    The following table summarizes the time domain solvers currently
-    available. Note that `x` denotes a physical or modal coordinate
-    while `q` denotes a modal coordinate:
-
-        ========   ================================================
-        Name       Notes
-        ========   ================================================
-        'se1'      ``xd - A x = f``  Solver: :func:`se1`.
-        'se2'      ``m xdd + b xd + k x = f``  Solver: :func:`se2`.
-        'su'       ``m qdd + b qd + k q = f``  This solves modal
-                   equations of motion only: for this solver to
-                   function properly, it is necessary to detect
-                   rigid-body modes. Solver: :func:`su`.
-        'eigsu'    ``m xdd + b xd + k x = f``  Runs a "pre"
-                   eigensolution to transform the equations into
-                   modal space. Solver: :func:`su`.
-        'eigse2'   ``m xdd + b xd + k x = f``  Runs a "pre"
-                   eigensolution to transform the equations into
-                   modal space. Only needed if using static initial
-                   conditions. Solver: :func:`se2`.
-        ========   ================================================
-
-    The pre-calculations for these solvers are carried out by these
-    routines:
-
-      - :func:`mkse1params`
-      - :func:`mkse2params`
-      - :func:`mksuparams`
-
-    The first two solvers use the matrix exponential method (similar
-    to :func:`scipy.signal.lsim`). The :func:`se2` method transforms
-    the equations into state-space form (to 1st order ODE, like
-    :func:`se1`). The :func:`su` method solves uncoupled equations: if
-    all coefficients are diagonal matrices, the 2nd order equations
-    are solved directly; otherwise, the equations are transformed into
-    state-space and are then decoupled by using the complex
-    eigenvectors. In most cases the :func:`su` solver is faster than
-    :func:`se2` since the integrator doesn't have a matrix multiply in
-    the loop (but test it!).
-
-    All three are exact assuming either constant forces for each time
-    step (zero order hold) or linear forces for each time step (first
-    order hold).
-
-    **Frequency Domain**
-
-    There are two frequency domain solvers currently implemented:
-
-        ========   ==============================================
-        Name       Notes
-        ========   ==============================================
-        'fsu'      ``m qdd + b qd + k q = f``  This solves modal
-                   equations of motion only: for this solver to
-                   function properly, it is necessary to detect
-                   rigid-body modes. Solver: :func:`fsu`.
-        'fsd'      ``m xdd + b xd + k x = f`` Solves equations
-                   directly. Can be very slow if matrices are
-                   coupled since there will be a matrix inversion
-                   for every frequency. Solver: :func:`fsd`.
-        'eigfsu'   ``m xdd + b xd + k x = f``  Runs a "pre"
-                   eigensolution to transform the equations
-                   into modal space. Solver: :func:`fsu`.
-        ========   ==============================================
-
-    The pre-calculations for these solvers are carried out by these
-    routines:
-
-      - :func:`mksuparams` (same as for time-domain :func:`su`)
-      - :func:`mkfsdparams`
-
-    The :func:`fsu` solver works like :func:`su` to uncouple the
-    equations. :func:`fsd` on the other hand solves the equations
-    directly by inverting the H(w) at each frequency; it is only fast
-    if the equations are uncoupled to begin with.
-
-    Refer to those routines for more information and examples.
+    This solver is exact assuming either piece-wise linear or
+    piece-wise constant forces.
 
     Examples
     --------
-    Solve a simple damped mass-spring system subjected to an initial
-    displacement and, separately, an initial velocity::
+    Calculate impulse response of state-space system::
 
-        fraction of critical damping = 0.05
-        natural frequency = 35 rad/sec
+        xd = A @ x + B @ u
+        y  = C @ x + D @ u
+
+    where:
+        - force = 0's
+        - velocity(0) = B
 
     .. plot::
         :context: close-figs
 
         >>> from pyyeti import tfsolve
+        >>> from pyyeti.ssmodel import SSModel
         >>> import numpy as np
-        >>> m = 1
-        >>> b = 2*35*.05
-        >>> k = 35**2
-        >>> h = .001
-        >>> d0 = 1
-        >>> v0 = 50
-        >>> f = np.zeros((1, int(2/h)))  # 2 seconds
-        >>> ts = tfsolve.TFSolve('su', m, b, k, h)  # do pre-calcs
-        >>> sold0 = ts.tsolve(f, d0=d0)     # solve w/ initial disp
-        >>> solv0 = ts.tsolve(f, v0=v0)     # solve w/ initial velo
-        >>> sold0.a[0, 0] == -k*d0
-        True
-        >>> solv0.a[0, 0] == -b*v0
-        True
-
-        Plot results:
-
         >>> import matplotlib.pyplot as plt
-        >>> _ = plt.figure('TFSolve Demo')
-        >>> _ = plt.subplot(311)
-        >>> _ = plt.plot(sold0.t, sold0.d[0], label='d0')
-        >>> _ = plt.plot(solv0.t, solv0.d[0], label='v0')
-        >>> _ = plt.title('Displacement')
-        >>> _ = plt.legend(loc='upper right')
-        >>> _ = plt.subplot(312)
-        >>> _ = plt.plot(sold0.t, sold0.v[0], label='d0')
-        >>> _ = plt.plot(solv0.t, solv0.v[0], label='v0')
-        >>> _ = plt.title('Velocity')
-        >>> _ = plt.subplot(313)
-        >>> _ = plt.plot(sold0.t, sold0.d[0], label='d0')
-        >>> _ = plt.plot(solv0.t, solv0.d[0], label='v0')
-        >>> _ = plt.title('Acceleration')
-        >>> plt.tight_layout()
+        >>> f = 5           # 5 hz oscillator
+        >>> w = 2*np.pi*f
+        >>> w2 = w*w
+        >>> zeta = .05
+        >>> h = .01
+        >>> nt = 500
+        >>> A = np.array([[0, 1], [-w2, -2*w*zeta]])
+        >>> B = np.array([[0], [3]])
+        >>> C = np.array([[8, -5]])
+        >>> D = np.array([[0]])
+        >>> F = np.zeros((1, nt), float)
+        >>> ts = tfsolve.se1(A, h)
+        >>> sol = ts.tsolve(B @ F, B[:, 0])
+        >>> y = C @ sol.d
+        >>> fig = plt.figure('se1 demo')
+        >>> ax = plt.plot(sol.t, y.T,
+        ...               label='se1')
+        >>> ssmodel = SSModel(A, B, C, D)
+        >>> z = ssmodel.c2d(h=h, method='zoh')
+        >>> x = np.zeros((A.shape[1], nt+1), float)
+        >>> y2 = np.zeros((C.shape[0], nt), float)
+        >>> x[:, 0:1] = B
+        >>> for k in range(nt):
+        ...     x[:, k+1] = z.A @ x[:, k] + z.B @ F[:, k]
+        ...     y2[:, k]  = z.C @ x[:, k] + z.D @ F[:, k]
+        >>> ax = plt.plot(sol.t, y2.T, label='discrete')
+        >>> leg = plt.legend(loc='best')
+        >>> np.allclose(y, y2)
+        True
+
+        Compare against scipy:
+
+        >>> from scipy import signal
+        >>> ss = ssmodel.getlti()
+        >>> tout, yout = ss.impulse(T=sol.t)
+        >>> ax = plt.plot(tout, yout, label='scipy')
+        >>> leg = plt.legend(loc='best')
+        >>> np.allclose(yout, y.ravel())
+        True
     """
 
-    def __init__(self, name=None, *args, **kwargs):
+    def __init__(self, A, h, order=1):
         """
-        Initializer for a `TFSolve` instance.
-
-        Parameters
-        ----------
-        name : string or None
-            Either 'se1', 'se2', 'eigse2', 'su', 'eigsu', 'fsu',
-            'eigfsu' or 'fsd' to choose the solver. If None, no
-            initialization is done and the user must call one of the
-            "mk*params" routines directly:
-
-            **Time Domain**
-
-            - 'se1' : `mkse1params`
-            - 'se2' : `mkse2params`
-            - 'eigse2' : `mkse2params` with ``pre_eig=True``
-            - 'su'  : `mksuparams`
-            - 'eigsu' : `mksuparams` with ``pre_eig=True``
-
-            **Frequency Domain**
-
-            - 'fsu' : `mksuparams` with ``delcc=False`` (optional; for
-                efficiency when solving in frequency domain problems;
-                can just use 'su')
-            - 'eigfsu' : `mksuparams` with ``delcc=False`` and
-                ``pre_eig=True``
-            - 'fsd' : `mkfsdparams`
-
-        *args, **kwargs : mixed types
-            All arguments after `name` are passed to the appropriate
-            "mk*params" routine.
-
-        Notes
-        -----
-        **Time Domain**
-
-        Example usages for time-domain problems::
-
-            ts = tfsolve.TFSolve('se1', A, h, order=1)
-            ts = tfsolve.TFSolve('se2', m, b, k, h, rf=rf, order=1)
-            ts = tfsolve.TFSolve('su', m, b, k, h, rb=rb, rf=rf,
-                                 order=1)
-            ts = tfsolve.TFSolve('eigsu', m, b, k, h)
-
-        The initialization would then be followed by a call to the
-        solver. For example::
-
-            ts = tfsolve.TFSolve('se2', m, b, k, h, rf=rf, order=1)
-            sol = ts.tsolve(force)
-
-        The result `sol` is a record (SimpleNamespace) that contains
-        the solution.
-
-        The above example is equivalent to::
-
-            ts = tfsolve.TFSolve()
-            ts.mkse2params(m, b, k, h, rf=rf, order=1)
-            sol = ts.tsolve(force)
-
-        **Frequency Domain**
-
-        Example usages for frequency-domain problems::
-
-            fs = tfsolve.TFSolve('fsu', m, b, k, rb=rb, rf=rf)
-            fs = tfsolve.TFSolve('eigfsu', m, b, k)
-            fs = tfsolve.TFSolve('fsd', m, b, k)
-
-        The initialization would then be followed by a call to the
-        solver. For example::
-
-            fs = tfsolve.TFSolve('fsu', m, b, k, rb=rb, rf=rf)
-            sol = fs.fsolve(force, freq)
-
-        The result `sol` is a record (SimpleNamespace) that contains
-        the solution.
-
-        See also
-        --------
-        :func:`mkse1params`, :func:`mkse2params`, :func:`mksuparams`,
-        :func:`mkfsdparams`, :func:`se1`, :func:`se2`,
-        :func:`su`, :func:`fsu`, :func:`fsd`.
-        """
-        if name is not None:
-            if name == 'se1':
-                self.mkse1params(*args, **kwargs)
-            elif name == 'se2':
-                self.mkse2params(*args, **kwargs)
-            elif name == 'su':
-                self.mksuparams(*args, **kwargs)
-            elif name == 'fsu':
-                kwargs['delcc'] = False
-                self.mksuparams(*args, **kwargs)
-            elif name == 'fsd':
-                self.mkfsdparams(*args, **kwargs)
-            elif name == 'eigsu':
-                kwargs['pre_eig'] = True
-                self.mksuparams(*args, **kwargs)
-            elif name == 'eigfsu':
-                kwargs['delcc'] = False
-                kwargs['pre_eig'] = True
-                self.mksuparams(*args, **kwargs)
-            elif name == 'eigse2':
-                kwargs['pre_eig'] = True
-                self.mkse2params(*args, **kwargs)
-            else:
-                raise ValueError("invalid solver name; must be 'se1', "
-                                 "'se2', 'eigse2', 'su', 'eigsu', 'fsu'"
-                                 " 'eigfsu' or 'fsd'")
-
-    def mkse1params(self, A, h, order=1):
-        """
-        Does pre-calcs for the :func:`se1` solver.
+        Instantiates a :class:`se1` solver.
 
         Parameters
         ----------
         A : 2d ndarray
-            The state-space matrix:  yd - A y = f
+            The state-space matrix: ``yd - A y = f``
         h : scalar or None
             Time step or None; if None, the `E`, `P`, `Q` members will
             not be computed.
@@ -864,35 +689,27 @@ class TFSolve(object):
             - 1 for the 1st order hold (force can vary linearly across
               time step)
 
-        Returns
-        -------
-        None
-
         Notes
         -----
-        The instance of TFSolve class is populated with the
-        following members:
+        The class instance is populated with the following members:
 
-        ==========   ================================================
-         Member      Description
-        ==========   ================================================
-           A         the input `A`
-           h         time step
-           n         number of total DOF (``A.shape[0]``)
-           order     order of solver (0 or 1; see above)
-           E, P, Q   output of :func:`expmint.getEPQ`; they are
-                     matrices used to solve the ODE
-           pc        True if E, P, and Q member have been calculated;
-                     False otherwise
-           tsolve    :func:`se1`
-        ==========   ================================================
+        =======   ================================================
+        Member    Description
+        =======   ================================================
+        A         the input `A`
+        h         time step
+        n         number of total DOF (``A.shape[0]``)
+        order     order of solver (0 or 1; see above)
+        E, P, Q   output of :func:`expmint.getEPQ`; they are
+                  matrices used to solve the ODE
+        pc        True if E, P, and Q member have been calculated;
+                  False otherwise
+        =======   ================================================
 
         The E, P, and Q entries are used to solve the ODE::
 
             for j in range(1, nt):
                 d[:, j] = E*d[:, j-1] + P*F[:, j-1] + Q*F[:, j]
-
-        See also :func:`se1`.
         """
         if h:
             E, P, Q = expmint.getEPQ(A, h, order)
@@ -902,13 +719,11 @@ class TFSolve(object):
         self.A = A
         self.h = h
         self.order = order
-        self.tsolve = self.se1
         self.n = A.shape[0]
 
-    def se1(self, force, d0=None):
+    def tsolve(self, force, d0=None):
         """
-        1st order ODE time domain solver based on the matrix
-        exponential.
+        Solve time-domain 1st order ODE equations.
 
         Parameters
         ----------
@@ -930,74 +745,6 @@ class TFSolve(object):
             Time-step
         t : 1d ndarray
             Time vector: np.arange(d.shape[1])*h
-
-        Notes
-        -----
-        This, with :func:`mkse1params`, is for solving:
-        ``yd - A y = f``
-
-        This solver is exact assuming either piece-wise linear or
-        piece-wise constant forces.
-
-        See also
-        --------
-        :func:`mkse1params`, :func:`se2`, :func:`su`.
-
-        Examples
-        --------
-        Calculate impulse response of state-space system::
-
-            xd = A*x + B*u
-            y  = C*x + D*u
-             - force = 0's
-             - velocity(0) = B
-
-        .. plot::
-            :context: close-figs
-
-            >>> from pyyeti.tfsolve import TFSolve
-            >>> from pyyeti.ssmodel import SSModel
-            >>> import numpy as np
-            >>> import matplotlib.pyplot as plt
-            >>> f = 5           # 5 hz oscillator
-            >>> w = 2*np.pi*f
-            >>> w2 = w*w
-            >>> zeta = .05
-            >>> h = .01
-            >>> nt = 500
-            >>> A = np.array([[0, 1], [-w2, -2*w*zeta]])
-            >>> B = np.array([[0], [3]])
-            >>> C = np.array([[8, -5]])
-            >>> D = np.array([[0]])
-            >>> F = np.zeros((1, nt), float)
-            >>> ts = TFSolve('se1', A, h)
-            >>> sol = ts.tsolve(B @ F, B[:, 0])
-            >>> y = C @ sol.d
-            >>> fig = plt.figure('se1 demo')
-            >>> ax = plt.plot(sol.t, y.T,
-            ...               label='TFSolve.se1')
-            >>> ssmodel = SSModel(A, B, C, D)
-            >>> z = ssmodel.c2d(h=h, method='zoh')
-            >>> x = np.zeros((A.shape[1], nt+1), float)
-            >>> y2 = np.zeros((C.shape[0], nt), float)
-            >>> x[:, 0:1] = B
-            >>> for k in range(nt):
-            ...     x[:, k+1] = z.A @ x[:, k] + z.B @ F[:, k]
-            ...     y2[:, k]  = z.C @ x[:, k] + z.D @ F[:, k]
-            >>> ax = plt.plot(sol.t, y2.T, label='discrete')
-            >>> leg = plt.legend(loc='best')
-            >>> np.allclose(y, y2)
-            True
-
-            Compare against scipy:
-
-            >>> from scipy import signal
-            >>> ss = ssmodel.getlti()
-            >>> tout, yout = ss.impulse(T=sol.t)
-            >>> ax = plt.plot(tout, yout, label='scipy')
-            >>> leg = plt.legend(loc='best')
-            >>> np.allclose(yout, y.ravel())
-            True
         """
         force = np.atleast_2d(force)
         if force.shape[0] != self.n:
@@ -1011,7 +758,7 @@ class TFSolve(object):
             d0 = np.zeros(self.n, float)
         if nt > 1:
             if not self.h:
-                raise RuntimeError('rerun `mkse1params` with a valid '
+                raise RuntimeError('instantiate the class with a valid '
                                    'time step.')
             # calc force term outside loop:
             if self.order == 1:
@@ -1026,928 +773,32 @@ class TFSolve(object):
             t = 0.
         return SimpleNamespace(d=d, v=force+self.A @ d, h=self.h, t=t)
 
-    def mkse2params(self, m, b, k, h, rb=None, rf=None, order=1,
-                    pre_eig=False):
+
+class _BaseTFSolve(object):
+    """
+    Base class for time and frequency domain equations of motion
+    solvers.
+    """
+
+    def tsolve(self):
+        """'Abstract' method to solve time-domain equations"""
+        raise NotImplementedError
+
+    def fsolve(self):
+        """'Abstract' method to solve frequency-domain equations"""
+        raise NotImplementedError
+
+    def generator(self):
         """
-        Prepare input for :func:`se2`, a 2nd order ODE solver.
-
-        Parameters
-        ----------
-        m : 1d or 2d ndarray or None
-            Mass; vector (of diagonal), or full; if None, mass is
-            assumed identity
-        b : 1d or 2d ndarray
-            Damping; vector (of diagonal), or full
-        k : 1d or 2d ndarray
-            Stiffness; vector (of diagonal), or full
-        h : scalar or None
-            Time step; can be None if only want to solve a static
-            problem
-        rb : 1d array or None; optional
-            Index partition vector for rigid-body modes. If None, the
-            rigid-body modes will be automatically detected by this
-            logic::
-
-                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
-                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
-
-            Set to [] to specify no rigid-body modes. Note: the
-            detection of rigid-body modes is done after the `pre_eig`
-            operation, if that is True.
-        rf : 1d array or None; optional
-            Index partition vector for res-flex modes; these will be
-            solved statically
-        order : integer; optional
-            Specify which solver to use:
-
-            - 0 for the zero order hold (force stays constant across
-              time step)
-            - 1 for the 1st order hold (force can vary linearly across
-              time step)
-
-        pre_eig : bool; optional
-            If True, an eigensolution will be computed with the mass
-            and stiffness matrices to convert the system to modal
-            space. This will allow the automatic detection of
-            rigid-body modes which is necessary for specifying
-            "static" initial conditions when calling the solver. No
-            modes are truncated. Only works if stiffness is
-            symmetric/hermitian and mass is positive definite (see
-            :func:`scipy.linalg.eigh`). Just leave it as False if the
-            equations are already in modal space or if not using
-            "static" initial conditions.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        The instance of TFSolve class is populated with the following
-        members:
-
-        =========  ===================================================
-        Member     Description
-        =========  ===================================================
-        m          mass for the non-rf modes
-        b          damping for the non-rf modes
-        k          stiffness for the non-rf modes
-        h          time step
-        rb         index vector or slice for the rb modes
-        el         index vector or slice for the el modes
-        rf         index vector or slice for the rf modes
-        _rb        index vector or slice for the rb modes relative to
-                   the non-rf modes
-        _el        index vector or slice for the el modes relative to
-                   the non-rf modes
-        nonrf      index vector or slice for the non-rf modes
-        kdof       index vector or slice for the non-rf modes
-        n          number of total DOF
-        rbsize     number of rb modes
-        elsize     number of el modes
-        rfsize     number of rf modes
-        nonrfsz    number of non-rf modes
-        ksize      number of non-rf modes
-        invm       decomposition of m for the non-rf, non-rb modes
-        krf        stiffness for the rf modes
-        ikrf       inverse of stiffness for the rf modes
-        unc        True if there are no off-diagonal terms in any
-                   matrix; False otherwise
-        order      order of solver (0 or 1; see above)
-        E_vv       partition of "E" which is output of
-                   :func:`expmint.getEPQ`
-        E_vd       another partition of "E"
-        E_dv       another partition of "E"
-        E_dd       another partition of "E"
-        P, Q       output of :func:`expmint.getEPQ`; they are matrices
-                   used to solve the ODE
-        pc         True if E*, P, and Q member have been calculated;
-                   False otherwise
-        pre_eig    True if the "pre" eigensolution was done; False
-                   otherwise
-        phi        the mode shape matrix from the "pre"
-                   eigensolution; only present if `pre_eig` is True
-        tsolve     :func:`se2`
-        generator  :func:`TFSolve.se2_generator`
-        finalize   :func:`TFSolve.finalize`
-        =========  ===================================================
-
-        The E, P, and Q entries are used to solve the ODE::
-
-            for j in range(1, nt):
-                d[:, j] = E*d[:, j-1] + P*F[:, j-1] + Q*F[:, j]
-
-        The 2nd order ODE set of equations are transformed into::
-
-             qdd      [ -inv(M)*B  -inv(M)*K ] qd        inv(M)*f
-                   -  [                      ]       =
-             qd       [     I           0    ] q             0
-
-        or::
-
-             yd  -  A y = w
-
-        Unlike for the uncoupled solver "su", this solver doesn't need
-        or use the `rb` input unless static initial conditions are
-        requested when solving equations.
-
-        See also
-        --------
-        :func:`se2`, :func:`se1`.
+        'Abstract' method to get Python "generator" version of
+        :class:`se2` solver. This is to interactively solve (or
+        re-solve) one step at a time.
         """
-        self._common_precalcs(m, b, k, h, rb, rf, pre_eig)
-        self._inv_m()
-        self.order = order
-        ksize = self.ksize
-        if h and ksize > 0:
-            A = self._build_A()
-            E, P, Q = expmint.getEPQ(A, h, order, half=True)
-            self.P = P
-            self.Q = Q
-            # In state-space, the solution is:
-            #   y[n+1] = E @ y[n] + pqf[n, n+1]
-            # Put in terms of `d` and `v`:
-            #   y = [v; d]
-            #   [v[n+1]; d[n+1]] = [E_v, E_d] @ [v[n]; d[n]] +
-            #                      pqf[n, n+1]
-            #   v[n+1] = [E_vv, E_vd] @ [v[n]; d[n]] +
-            #            pqf_v[n, n+1]
-            #          = E_vv @ v[n] + E_vd @ d[n] + pqf_v[n, n+1]
-            #   d[n+1] = [E_dv, E_dd] @ [v[n]; d[n]] +
-            #            pqf_v[n, n+1]
-            #          = E_dv @ v[n] + E_dd @ d[n] + pqf_d[n, n+1]
-
-            # copy for faster multiplies:
-            self.E_vv = E[:ksize, :ksize].copy()
-            self.E_vd = E[:ksize, ksize:].copy()
-            self.E_dv = E[ksize:, :ksize].copy()
-            self.E_dd = E[ksize:, ksize:].copy()
-            self.pc = True
-        else:
-            self.pc = False
-        self._mk_slices(False)
-        self.tsolve = self.se2
-
-        # for the generator solvers:
-        self.generator = self.se2_generator
-        self.finalize = self.finalize
-
-    def se2(self, force, d0=None, v0=None, static_ic=False):
-        """
-        2nd order ODE time domain solver based on the matrix
-        exponential.
-
-        Parameters
-        ----------
-        force : 2d ndarray
-            The force matrix; ndof x time
-        d0 : 1d ndarray; optional
-            Displacement initial conditions; if None, zero ic's are
-            used.
-        v0 : 1d ndarray; optional
-            Velocity initial conditions; if None, zero ic's are used.
-        static_ic : bool; optional
-            If True and `d0` is None, then `d0` is calculated such
-            that static (steady-state) initial conditions are
-            used. Uses the pseudo-inverse in case there are rigid-body
-            modes. `static_ic` is ignored if `d0` is not None.
-
-        Returns
-        -------
-        A record (SimpleNamespace class) with the members:
-
-        d : 2d ndarray
-            Displacement; ndof x time
-        v : 2d ndarray
-            Velocity; ndof x time
-        a : 2d ndarray
-            Acceleration; ndof x time
-        h : scalar
-            Time-step
-        t : 1d ndarray
-            Time vector: np.arange(d.shape[1])*h
-
-        Notes
-        -----
-        This routine, with :func:`mkse2params`, is for solving::
-
-            m xdd + b xd + k x = f
-
-        The equation is transformed (by :func:`mkse2params`) into::
-
-             qdd      [ -inv(M)*B  -inv(M)*K ] qd        inv(M)*f
-                   -  [                      ]       =
-             qd       [     I           0    ] q             0
-
-        or::
-
-             yd  -  A y = w
-
-        This solver is exact assuming either piece-wise linear or
-        piece-wise constant forces.
-
-        The above equations are for the non-residual-flexibility
-        modes. The 'rf' modes are solved statically and any initial
-        conditions are ignored for them.
-
-        For a static solution:
-
-            - rigid-body displacements = zeros
-            - elastic displacments = inv(k[elastic]) * F[elastic]
-            - velocity = zeros
-            - rigid-body accelerations = inv(m[rigid]) * F[rigid]
-            - elastic accelerations = zeros
-
-        See also
-        --------
-        :func:`mkse2params`, :func:`se1`, :func:`su`.
-
-        Examples
-        --------
-        .. plot::
-            :context: close-figs
-
-            >>> from pyyeti import tfsolve
-            >>> import numpy as np
-            >>> m = np.array([10., 30., 30., 30.])    # diag mass
-            >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
-            >>> zeta = np.array([0., .05, 1., 2.])    # percent damp
-            >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-            >>> h = .001                              # time step
-            >>> t = np.arange(0, .3001, h)            # time vector
-            >>> c = 2*np.pi
-            >>> f = np.vstack((3*(1-np.cos(c*2*t)),
-            ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
-            ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
-            ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
-            >>> f *= 1.e4
-            >>> ts = tfsolve.TFSolve()
-            >>> ts.mkse2params(m, b, k, h)
-            >>> sol = ts.tsolve(f, static_ic=1)
-
-            Solve with scipy.signal.lsim for comparison:
-
-            >>> A = tfsolve.make_A(m, b, k)
-            >>> n = len(m)
-            >>> Z = np.zeros((n, n), float)
-            >>> B = np.vstack((np.eye(n), Z))
-            >>> C = np.vstack((A, np.hstack((Z, np.eye(n)))))
-            >>> D = np.vstack((B, Z))
-            >>> ic = np.hstack((sol.v[:, 0], sol.d[:, 0]))
-            >>> import scipy.signal
-            >>> f2 = (1./m).reshape(-1, 1) * f
-            >>> tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T, t,
-            ...                                X0=ic)
-            >>> print('acce cmp:', np.allclose(yl[:, :n], sol.a.T))
-            acce cmp: True
-            >>> print('velo cmp:', np.allclose(yl[:, n:2*n], sol.v.T))
-            velo cmp: True
-            >>> print('disp cmp:', np.allclose(yl[:, 2*n:], sol.d.T))
-            disp cmp: True
-
-            Plot the four accelerations:
-
-            >>> import matplotlib.pyplot as plt
-            >>> fig = plt.figure('se2 vs. lsim', figsize=[8, 8])
-            >>> labels = ['Rigid-body', 'Underdamped',
-            ...           'Critically Damped', 'Overdamped']
-            >>> for j, name in zip(range(4), labels):
-            ...     _ = plt.subplot(4, 1, j+1)
-            ...     _ = plt.plot(t, sol.a[j], label='se2')
-            ...     _ = plt.plot(tl, yl[:, j], label='scipy lsim')
-            ...     _ = plt.title(name)
-            ...     _ = plt.ylabel('Acceleration')
-            ...     _ = plt.xlabel('Time (s)')
-            ...     if j == 0:
-            ...         _ = plt.legend(loc='best')
-            >>> plt.tight_layout()
-        """
-        force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(force, d0, v0,
-                                        static_ic, 'mkse2params')
-        ksize = self.ksize
-        if ksize > 0:
-            nt = force.shape[1]
-            if nt > 1:
-                kdof = self.kdof
-                D = d[kdof]
-                V = v[kdof]
-                if self.m is not None:
-                    if self.unc:
-                        imf = self.invm * force[kdof]
-                    else:
-                        imf = la.lu_solve(self.invm, force[kdof],
-                                          check_finite=False)
-                else:
-                    imf = force[kdof]
-                if self.order == 1:
-                    PQF = self.P @ imf[:, :-1] + self.Q @ imf[:, 1:]
-                else:
-                    PQF = self.P @ imf[:, :-1]
-                E_dd = self.E_dd
-                E_dv = self.E_dv
-                E_vd = self.E_vd
-                E_vv = self.E_vv
-                for i in range(nt-1):
-                    d0 = D[:, i]
-                    v0 = V[:, i]
-                    D[:, i+1] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:, i]
-                    V[:, i+1] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize, i]
-                if not self.slices:
-                    d[kdof] = D
-                    v[kdof] = V
-            self._calc_acce_kdof(d, v, a, force)
-        return self._solution(d, v, a)
-
-    def se2_generator(self, nt, F0, d0=None, v0=None,
-                      static_ic=False):
-        """
-        Python "generator" version of :func:`TFSolve.se2`;
-        interactively solve (or re-solve) one step at a time.
-
-        Parameters
-        ----------
-        nt : integer
-            Number of time steps
-        F0 : 1d ndarray
-            Initial force vector
-        d0 : 1d ndarray or None; optional
-            Displacement initial conditions; if None, zero ic's are
-            used.
-        v0 : 1d ndarray or None; optional
-            Velocity initial conditions; if None, zero ic's are used.
-        static_ic : bool; optional
-            If True and `d0` is None, then `d0` is calculated such
-            that static (steady-state) initial conditions are
-            used. Uses the pseudo-inverse in case there are rigid-body
-            modes. `static_ic` is ignored if `d0` is not None.
-
-        Returns
-        -------
-        gen : generator function
-            Generator function for solving equations one step at a
-            time
-        d, v, a : 2d ndarrays
-            The displacement, velocity and acceleration arrays. Only
-            the first column of `d` and `v` are set; other values are
-            all zero.
-
-        Notes
-        -----
-        See :func:`TFSolve.se2` for more information on the solver.
-
-        To use the generator:
-
-            1. Instantiate a :class:`TFSolve` instance::
-
-                   ts = TFSolve('se2', m, b, k, h)
-
-            2. Retrieve a generator and the arrays for holding the
-               solution (here, :func:`TFSolve.generator` is an alias
-               for :func:`TFSolve.se2_generator`). The initial force
-               vector and any initial conditions are input here (see
-               Parameters above)::
-
-                   gen, d, v = ts.generator(len(time), f0)
-
-            3. Use :func:`gen.send` to send a tuple of the next index
-               and corresponding force vector in a loop. Re-do
-               time-steps as necessary (note that index zero cannot be
-               redone)::
-
-                   for i in range(1, len(time)):
-                       # Do whatever to get i'th force
-                       # - note: d[:, :i] and v[:, :i] are available
-                       gen.send((i, fi))
-
-               The class instance will have the attributes `_d`, `_v`
-               (same objects as `d` and `v`), `_a`, and `_force`. `d`,
-               `v` and `ts._force` are updated on every
-               :func:`gen.send`. (`ts._a` is not used until step 4.)
-
-            4. Call :func:`ts.finalize` to get final solution
-               in standard form::
-
-                   sol = ts.finalize()
-
-               The internal references `_d`, `_v`, `_a`, and `_force`
-               are deleted.
-
-        The generator solver currently has these limitations:
-
-            1. Unlike the normal solver, equations cannot be
-               interspersed. That is, each type of equation
-               (rigid-body, elastic, residual-flexibility) must be
-               contained in a contiguous group (so that `self.slices`
-               is True).
-            2. Unlike the normal solver, the `pre_eig` option is not
-               available.
-            3. The first time step cannot be redone.
-
-        Examples
-        --------
-        Set up some equations and solve both the normal way and via
-        the generator:
-
-        >>> from pyyeti import tfsolve
-        >>> import numpy as np
-        >>> m = np.array([10., 30., 30., 30.])    # diag mass
-        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
-        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
-        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-        >>> h = .001                              # time step
-        >>> t = np.arange(0, .3001, h)            # time vector
-        >>> c = 2*np.pi
-        >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
-        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
-        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
-        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
-        >>> f *= 1.e4
-        >>> ts = tfsolve.TFSolve('se2', m, b, k, h)
-
-        Solve the normal way:
-
-        >>> sol = ts.tsolve(f, static_ic=1)
-
-        Solve via the generator:
-
-        >>> nt = f.shape[1]
-        >>> gen, d, v = ts.generator(nt, f[:, 0], static_ic=1)
-        >>> for i in range(1, nt):
-        ...     # Could do stuff here using d[:, :i] & v[:, :i] to
-        ...     # get next force
-        ...     gen.send((i, f[:, i]))
-        >>> sol2 = ts.finalize()
-
-        Confirm results:
-
-        >>> np.allclose(sol2.a, sol.a)
-        True
-        >>> np.allclose(sol2.v, sol.v)
-        True
-        >>> np.allclose(sol2.d, sol.d)
-        True
-        """
-        if not self.slices:
-            raise NotImplementedError(
-                '"se2" generator not yet implemented for the case'
-                ' when different types of equations are interspersed'
-                ' (eg, a res-flex DOF in the middle of the elastic'
-                ' DOFs)')
-        d, v, a, force = self._init_dva_part(
-            nt, F0, d0, v0, static_ic, 'mkse2params')
-        self._d, self._v, self._a, self._force = d, v, a, force
-        generator = self._solve_se2_generator(d, v, a, F0)
-        next(generator)
-        return generator, d, v
-
-    def mksuparams(self, m, b, k, h=None, rb=None, rf=None, order=1,
-                   delcc=True, pre_eig=False):
-        """
-        Prepare input for :func:`su`, a 2nd order ODE solver.
-
-        Parameters
-        ----------
-        m : 1d or 2d ndarray or None
-            Mass; vector (of diagonal), or full; if None, mass is
-            assumed identity
-        b : 1d or 2d ndarray
-            Damping; vector (of diagonal), or full
-        k : 1d or 2d ndarray
-            Stiffness; vector (of diagonal), or full
-        h : scalar or None; optional
-            Time step; can be None if only want to solve a static
-            problem
-        rb : 1d array or None; optional
-            Index partition vector for rigid-body modes. If None, the
-            rigid-body modes will be automatically detected by this
-            logic::
-
-                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
-                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
-
-            Set to [] to specify no rigid-body modes. Note: the
-            detection of rigid-body modes is done after the `pre_eig`
-            operation, if that is True.
-        rf : 1d array or None; optional
-            Index partition vector for res-flex modes; these will be
-            solved statically
-        order : integer; optional
-            Specify which solver to use:
-
-            - 0 for the zero order hold (force stays constant across
-              time step)
-            - 1 for the 1st order hold (force can vary linearly across
-              time step)
-
-        delcc : bool; optional
-            Set to True if you want to keep only one of each pair of
-            complex-conjugate eigensolutions when solving coupled
-            equations. This is good for time-domain problems. For
-            efficiency, set to False for frequency-domain (otherwise,
-            the :func:`fsu` solver will add the deleted
-            conjugate back in before solving). If solving both time-
-            domain and frequency-domain problems, the recommendation
-            is to set `delcc` to True and solve the time-domain
-            equations first.
-        pre_eig : bool; optional
-            If True, an eigensolution will be computed with the mass
-            and stiffness matrices to convert the system to modal
-            space. This will allow the automatic detection of
-            rigid-body modes which is necessary for the complex
-            eigenvalue method to work properly on systems with
-            rigid-body modes. No modes are truncated. Only works if
-            stiffness is symmetric/hermitian and mass is positive
-            definite (see :func:`scipy.linalg.eigh`). Just leave it as
-            False if the equations are already in modal space.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        The instance of TFSolve class is populated with some or all of
-        the following members. Note that in the table,
-        `non-rf/elastic` means `non-rf` for uncoupled systems,
-        `elastic` for coupled -- the difference is whether or not the
-        rigid-body modes are included: they are for uncoupled.
-
-        =========  ===================================================
-        Member     Description
-        =========  ===================================================
-        m          mass for the non-rf/elastic modes
-        b          damping for the non-rf/elastic modes
-        k          stiffness for the non-rf/elastic modes
-        h          time step
-        rb         index vector or slice for the rb modes
-        el         index vector or slice for the el modes
-        rf         index vector or slice for the rf modes
-        _rb        index vector or slice for the rb modes relative to
-                   the non-rf modes
-        _el        index vector or slice for the el modes relative to
-                   the non-rf modes
-        nonrf      index vector or slice for the non-rf modes
-        kdof       index vector or slice for the non-rf/elastic modes
-        n          number of total DOF
-        rbsize     number of rb modes
-        elsize     number of el modes
-        rfsize     number of rf modes
-        nonrfsz    number of non-rf modes
-        ksize      number of non-rf/elastic modes
-        invm       decomposition of m for the non-rf/elastic modes
-        imrb       decomposition of m for the rb modes
-        krf        stiffness for the rf modes
-        ikrf       inverse of stiffness for the rf modes
-        unc        True if there are no off-diagonal terms in any
-                   matrix; False otherwise
-        order      order of solver (0 or 1; see above)
-        pc         None or record (SimpleNamespace) of integration
-                   coefficients; if uncoupled, this is populated by
-                   :func:`get_su_coef`; otherwise by
-                   :func:`TFSolve.get_su_eig`
-        pre_eig    True if the "pre" eigensolution was done; False
-                   otherwise
-        phi        the mode shape matrix from the "pre" eigensolution;
-                   only present if `pre_eig` is True
-        systype    float or complex; determined by `m` `b` `k`
-        tsolve     :func:`TFSolve.su`
-        fsolve     :func:`TFSolve.fsu`
-        generator  :func:`TFSolve.su_generator`
-        finalize   :func:`TFSolve.finalize`
-        =========  ===================================================
-
-        Unlike for :func:`mkse2params`, `order` is not used until the
-        solver is called. In other words, this routine prepares the
-        integration coefficients for a first order hold no matter
-        what the setting of `order` is, but the solver will adjust the
-        use of the forces to account for the `order` setting.
-
-        The mass, damping and stiffness may be real or complex.
-
-        See also
-        --------
-        :func:`su`, :func:`fsu`, :func:`se2`.
-        """
-        self._common_precalcs(m, b, k, h, rb, rf, pre_eig)
-        if self.ksize:
-            if self.unc and self.systype is float:
-                self._inv_m()
-                self.pc = get_su_coef(self.m, self.b, self.k,
-                                      h, self.rb)
-            else:
-                self.pc = self._get_su_eig(delcc)
-        else:
-            self.pc = None
-        self._mk_slices(True)
-        self.order = order
-        self.tsolve = self.su
-        self.fsolve = self.fsu
-
-        # for the generator solvers:
-        self.generator = self.su_generator
-        self.finalize = self.finalize
-
-    def su(self, force, d0=None, v0=None, static_ic=False):
-        """
-        Called after :func:`TFSolve.mksuparams` to solve time-domain
-        modal equations of motion using a closed-form, uncoupled
-        solver.
-
-        Parameters
-        ----------
-        force : 2d ndarray
-            The force matrix; ndof x time
-        d0 : 1d ndarray; optional
-            Displacement initial conditions; if None, zero ic's are
-            used.
-        v0 : 1d ndarray; optional
-            Velocity initial conditions; if None, zero ic's are used.
-        static_ic : bool; optional
-            If True and `d0` is None, then `d0` is calculated such
-            that static (steady-state) initial conditions are
-            used. Uses the pseudo-inverse in case there are rigid-body
-            modes. `static_ic` is ignored if `d0` is not None.
-
-        Returns
-        -------
-        A record (SimpleNamespace class) with the members:
-
-        d : 2d ndarray
-            Displacement; ndof x time
-        v : 2d ndarray
-            Velocity; ndof x time
-        a : 2d ndarray
-            Acceleration; ndof x time
-        h : scalar
-            Time-step
-        t : 1d ndarray
-            Time vector: np.arange(d.shape[1])*h
-
-        Notes
-        -----
-        This routine, with :func:`mksuparams`, is for solving::
-
-            m xdd + b xd + k x = f
-
-        This solver is exact assuming piece-wise linear forces if
-        `order` is 1.
-
-        For uncoupled equations, pre-calculated integration
-        coefficients are used (see :func:`get_su_coef`).
-
-        For coupled systems, the elastic modes part of the equation is
-        transformed (by :func:`mksuparams`) into state-space::
-
-             qdd      [ -inv(M)*B  -inv(M)*K ] qd        inv(M)*f
-                   -  [                      ]       =
-             qd       [     I           0    ] q             0
-
-        or::
-
-             yd  -  A y = w
-
-        The above state-space equations are for the dynamic elastic
-        modes only. Then, the complex eigensolution is used to
-        decouple the equations. The rigid-body and
-        residual-flexibility modes are solved independently. Note that
-        the res-flex modes are solved statically and any initial
-        conditions are ignored for them.
-
-        For a static solution:
-            - rigid-body displacements = zeros
-            - elastic displacments = inv(k[elastic]) * F[elastic]
-            - velocity = zeros
-            - rigid-body accelerations = inv(m[rigid]) * F[rigid]
-            - elastic accelerations = zeros
-
-        See also
-        --------
-        :func:`mksuparams`, :func:`se2`.
-
-        Examples
-        --------
-        .. plot::
-            :context: close-figs
-
-            >>> from pyyeti import tfsolve
-            >>> import numpy as np
-            >>> m = np.array([10., 30., 30., 30.])    # diag mass
-            >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
-            >>> zeta = np.array([0., .05, 1., 2.])    # % damping
-            >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-            >>> h = .001                              # time step
-            >>> t = np.arange(0, .3001, h)            # time vector
-            >>> c = 2*np.pi
-            >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
-            ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
-            ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
-            ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
-            >>> f *= 1.e4
-            >>> ts = tfsolve.TFSolve('su', m, b, k, h)
-            >>> sol = ts.tsolve(f, static_ic=1)
-
-            Solve with scipy.signal.lsim for comparison:
-
-            >>> A = tfsolve.make_A(m, b, k)
-            >>> n = len(m)
-            >>> Z = np.zeros((n, n), float)
-            >>> B = np.vstack((np.eye(n), Z))
-            >>> C = np.vstack((A, np.hstack((Z, np.eye(n)))))
-            >>> D = np.vstack((B, Z))
-            >>> ic = np.hstack((sol.v[:, 0], sol.d[:, 0]))
-            >>> import scipy.signal
-            >>> f2 = (1./m).reshape(-1, 1) * f
-            >>> tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T, t,
-            ...                                X0=ic)
-            >>>
-            >>> print('acce cmp:', np.allclose(yl[:, :n], sol.a.T))
-            acce cmp: True
-            >>> print('velo cmp:', np.allclose(yl[:, n:2*n], sol.v.T))
-            velo cmp: True
-            >>> print('disp cmp:', np.allclose(yl[:, 2*n:], sol.d.T))
-            disp cmp: True
-
-            Plot the four accelerations:
-
-            >>> import matplotlib.pyplot as plt
-            >>> fig = plt.figure('su vs. lsim', figsize=[8, 8])
-            >>> labels = ['Rigid-body', 'Underdamped',
-            ...           'Critically Damped', 'Overdamped']
-            >>> for j, name in zip(range(4), labels):
-            ...     _ = plt.subplot(4, 1, j+1)
-            ...     _ = plt.plot(t, sol.a[j], label='su')
-            ...     _ = plt.plot(tl, yl[:, j], label='scipy lsim')
-            ...     _ = plt.title(name)
-            ...     _ = plt.ylabel('Acceleration')
-            ...     _ = plt.xlabel('Time (s)')
-            ...     if j == 0:
-            ...         _ = plt.legend(loc='best')
-            >>> plt.tight_layout()
-        """
-        force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(force, d0, v0,
-                                        static_ic, 'mksuparams')
-        if self.nonrfsz:
-            if self.unc and self.systype is float:
-                # for uncoupled, m, b, k have rb+el (all nonrf)
-                self._solve_real_unc(d, v, a, force)
-            else:
-                # for coupled, m, b, k are only el only
-                self._solve_complex_unc(d, v, a, force)
-        self._calc_acce_kdof(d, v, a, force)
-        return self._solution(d, v, a)
-
-    def su_generator(self, nt, F0, d0=None, v0=None, static_ic=False):
-        """
-        Python "generator" version of :func:`TFSolve.su`;
-        interactively solve (or re-solve) one step at a time.
-
-        Parameters
-        ----------
-        nt : integer
-            Number of time steps
-        F0 : 1d ndarray
-            Initial force vector
-        d0 : 1d ndarray or None; optional
-            Displacement initial conditions; if None, zero ic's are
-            used.
-        v0 : 1d ndarray or None; optional
-            Velocity initial conditions; if None, zero ic's are used.
-        static_ic : bool; optional
-            If True and `d0` is None, then `d0` is calculated such
-            that static (steady-state) initial conditions are
-            used. Uses the pseudo-inverse in case there are rigid-body
-            modes. `static_ic` is ignored if `d0` is not None.
-
-        Returns
-        -------
-        gen : generator function
-            Generator function for solving equations one step at a
-            time
-        d, v, a : 2d ndarrays
-            The displacement, velocity and acceleration arrays. Only
-            the first column of `d` and `v` are set; other values are
-            all zero.
-
-        Notes
-        -----
-        See :func:`TFSolve.su` for more information on the solver.
-
-        To use the generator:
-
-            1. Instantiate a :class:`TFSolve` instance::
-
-                   ts = TFSolve('su', m, b, k, h)
-
-            2. Retrieve a generator and the arrays for holding the
-               solution (here, :func:`TFSolve.generator` is an alias
-               for :func:`TFSolve.su_generator`). The initial force
-               vector and any initial conditions are input here (see
-               Parameters above)::
-
-                   gen, d, v = ts.generator(len(time), f0)
-
-            3. Use :func:`gen.send` to send a tuple of the next index
-               and corresponding force vector in a loop. Re-do
-               time-steps as necessary (note that index zero cannot be
-               redone)::
-
-                   for i in range(1, len(time)):
-                       # Do whatever to get i'th force
-                       # - note: d[:, :i] and v[:, :i] are available
-                       gen.send((i, fi))
-
-               The class instance will have the attributes `_d`, `_v`
-               (same objects as `d` and `v`), `_a`, and `_force`. `d`,
-               `v` and `ts._force` are updated on every
-               :func:`gen.send`. (`ts._a` is not used until step 4.)
-
-            4. Call :func:`ts.finalize` to get final solution
-               in standard form::
-
-                   sol = ts.finalize()
-
-               The internal references `_d`, `_v`, `_a`, and `_force`
-               are deleted.
-
-        The generator solver currently has these limitations:
-
-            1. Unlike the normal solver, equations cannot be
-               interspersed. That is, each type of equation
-               (rigid-body, elastic, residual-flexibility) must be
-               contained in a contiguous group (so that `self.slices`
-               is True).
-            2. Unlike the normal solver, the `pre_eig` option is not
-               available.
-            3. The first time step cannot be redone.
-
-        Examples
-        --------
-        Set up some equations and solve both the normal way and via
-        the generator:
-
-        >>> from pyyeti import tfsolve
-        >>> import numpy as np
-        >>> m = np.array([10., 30., 30., 30.])    # diag mass
-        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
-        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
-        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-        >>> h = .001                              # time step
-        >>> t = np.arange(0, .3001, h)            # time vector
-        >>> c = 2*np.pi
-        >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
-        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
-        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
-        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
-        >>> f *= 1.e4
-        >>> ts = tfsolve.TFSolve('su', m, b, k, h)
-
-        Solve the normal way:
-
-        >>> sol = ts.tsolve(f, static_ic=1)
-
-        Solve via the generator:
-
-        >>> nt = f.shape[1]
-        >>> gen, d, v = ts.generator(nt, f[:, 0], static_ic=1)
-        >>> for i in range(1, nt):
-        ...     # Could do stuff here using d[:, :i] & v[:, :i] to
-        ...     # get next force
-        ...     gen.send((i, f[:, i]))
-        >>> sol2 = ts.finalize()
-
-        Confirm results:
-
-        >>> np.allclose(sol2.a, sol.a)
-        True
-        >>> np.allclose(sol2.v, sol.v)
-        True
-        >>> np.allclose(sol2.d, sol.d)
-        True
-        """
-        if not self.slices:
-            raise NotImplementedError(
-                '"su" generator not yet implemented for the case when'
-                ' different types of equations are interspersed (eg, '
-                'a res-flex DOF in the middle of the elastic DOFs)')
-        d, v, a, force = self._init_dva_part(nt, F0, d0, v0,
-                                             static_ic, 'mksuparams')
-        self._d, self._v, self._a, self._force = d, v, a, force
-        if self.unc and self.systype is float:
-            # for uncoupled, m, b, k have rb+el (all nonrf)
-            generator = self._solve_real_unc_generator(d, v, a, F0)
-            next(generator)
-            return generator, d, v
-        else:
-            # for coupled, m, b, k are only el only
-            generator = self._solve_complex_unc_generator(d, v, a, F0)
-            next(generator)
-            return generator, d, v
+        raise NotImplementedError
 
     def finalize(self, get_force=False):
         """
-        Finalize "su" or "se2" generator solution.
+        Finalize time-domain generator solution.
 
         Parameters
         ----------
@@ -1971,10 +822,6 @@ class TFSolve(object):
             Time vector: np.arange(d.shape[1])*h
         force : 2d ndarray; optional
             Force; ndof x time. Only included if `get_force` is True.
-
-        See also
-        --------
-        :func:`TFSolve.su_generator`, :func:`TFSolve.se2_generator`
         """
         d, v, a, f = self._d, self._v, self._a, self._force
         del self._d, self._v, self._a, self._force
@@ -1983,337 +830,6 @@ class TFSolve(object):
         if get_force:
             sol.force = f
         return sol
-
-    def fsu(self, force, freq, incrb=2):
-        """
-        Solve frequency-domain modal equations of motion using
-        uncoupled equations.
-
-        Parameters
-        ----------
-        force : 2d ndarray
-            The force matrix; ndof x freq
-        freq : 1d ndarray
-            Frequency vector in Hz; solution will be computed at all
-            frequencies in `freq`
-        incrb : 0, 1, or 2; optional
-            Specifies how to handle rigid-body responses:
-
-            ======  ==============================================
-            incrb   description
-            ======  ==============================================
-               0    no rigid-body is included
-               1    acceleration and velocity rigid-body only
-               2    all of rigid-body is included (see note below)
-            ======  ==============================================
-
-        Returns
-        -------
-        A record (SimpleNamespace class) with the members:
-
-        d : 2d ndarray
-            Displacement; ndof x freq
-        v : 2d ndarray
-            Velocity; ndof x freq
-        a : 2d ndarray
-            Acceleration; ndof x freq
-        f : 1d ndarray
-            Frequency vector (same as the input `freq`)
-
-        Notes
-        -----
-        This routine, with :func:`mksuparams`, is for solving::
-
-            m xdd + b xd + k x = f
-
-        in the frequency domain. For uncoupled equations, the solution
-        is direct and very efficient. For coupled equations, the
-        elastic modes part of the equation is transformed (by
-        :func:`mksuparams`) into::
-
-             qdd      [ -inv(M)*B  -inv(M)*K ] qd        inv(M)*f
-                   -  [                      ]       =
-             qd       [     I           0    ] q             0
-
-        or::
-
-             yd  -  A y = w
-
-        The above equations are for the dynamic elastic modes
-        only. Then, the complex eigensolution is used to decouple the
-        equations. The rigid-body and residual-flexibility modes are
-        solved independently. Note that the res-flex modes are solved
-        statically.
-
-        Rigid-body velocities and displacements are undefined where
-        `freq` is zero. So, if `incrb` is 1 or 2, this routine just
-        sets these responses to zero.
-
-        See also
-        --------
-        :func:`mksuparams`, :func:`mkfsdparams`, :func:`su`.
-
-        Examples
-        --------
-        .. plot::
-            :context: close-figs
-
-            >>> from pyyeti import tfsolve
-            >>> import numpy as np
-            >>> m = np.array([10., 30., 30., 30.])    # diag mass
-            >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
-            >>> zeta = np.array([0., .05, 1., 2.])    # % damping
-            >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-            >>> freq = np.arange(0, 35, .1)           # frequency
-            >>> f = 100*np.ones((4, freq.size))       # constant ffn
-            >>> ts = tfsolve.TFSolve('fsu', m, b, k)
-            >>> sol = ts.fsolve(f, freq)
-
-            Solve @ 25 Hz by hand for comparison:
-
-            >>> w = 2*np.pi*25
-            >>> i = np.argmin(abs(freq-25))
-            >>> H = -w**2*m + 1j*w*b + k
-            >>> disp = f[:, i] / H
-            >>> velo = 1j*w*disp
-            >>> acce = -w**2*disp
-            >>> np.allclose(disp, sol.d[:, i])
-            True
-            >>> np.allclose(velo, sol.v[:, i])
-            True
-            >>> np.allclose(acce, sol.a[:, i])
-            True
-
-            Plot the four accelerations:
-
-            >>> import matplotlib.pyplot as plt
-            >>> fig = plt.figure('fsu demo', figsize=[8, 8])
-            >>> labels = ['Rigid-body', 'Underdamped',
-            ...           'Critically Damped', 'Overdamped']
-            >>> for j, name in zip(range(4), labels):
-            ...     _ = plt.subplot(4, 1, j+1)
-            ...     _ = plt.plot(freq, abs(sol.a[j]))
-            ...     _ = plt.title(name)
-            ...     _ = plt.ylabel('Acceleration')
-            ...     _ = plt.xlabel('Frequency (Hz)')
-            >>> plt.tight_layout()
-        """
-        force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(force, None, None, False,
-                                        'mksuparams', istime=False)
-        freq = np.atleast_1d(freq)
-        self._force_freq_compat_chk(force, freq)
-        if self.nonrfsz:
-            if self.unc:
-                # for uncoupled, m, b, k have rb+el (all nonrf)
-                self._solve_freq_unc(d, v, a, force, freq, incrb)
-            else:
-                # for coupled, m, b, k are only el only
-                self._solve_freq_coup(d, v, a, force, freq, incrb)
-        return self._solution_freq(d, v, a, freq)
-
-    def mkfsdparams(self, m, b, k, rb=None):
-        """
-        Prepare input for :func:`fsd`, a 2nd order frequency domain ODE
-        solver.
-
-        Parameters
-        ----------
-        m : 1d or 2d ndarray or None
-            Mass; vector (of diagonal), or full; if None, mass is
-            assumed identity
-        b : 1d or 2d ndarray
-            Damping; vector (of diagonal), or full
-        k : 1d or 2d ndarray
-            Stiffness; vector (of diagonal), or full
-        rb : 1d array or None; optional
-            Index partition vector for rigid-body modes. If None, the
-            rigid-body modes will be automatically detected by this
-            logic::
-
-                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
-                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
-
-            Set to [] to specify no rigid-body modes.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        The instance of TFSolve class is populated with some or all of
-        the following members.
-
-        ========   ==================================================
-         Member    Description
-        ========   ==================================================
-         m         mass
-         b         damping
-         k         stiffness
-         h         time step (None)
-         rb        index vector or slice for the rb modes
-         el        index vector or slice for the el modes
-         rf        index vector or slice for the rf modes ([])
-         _rb       index vector or slice for the rb modes relative to
-                   the non-rf modes
-         _el       index vector or slice for the el modes relative to
-                   the non-rf modes
-         nonrf     index vector or slice for the non-rf modes
-         kdof      index vector or slice for the non-rf/elastic modes
-         n         number of total DOF
-         rfsize    number of rf modes
-         nonrfsz   number of non-rf modes
-         ksize     number of non-rf/elastic modes
-         krf       stiffness for the rf modes
-         ikrf      inverse of stiffness for the rf modes
-         unc       True if there are no off-diagonal terms in any
-                   matrix; False otherwise
-         systype   float or complex; determined by `m`, `b`, and `k`
-         fsolve    :func:`TFSolve.fsd`
-        ========   ==================================================
-
-        The mass, damping and stiffness may be real or complex. This
-        routine currently does not accept the `rf` input (if there are
-        any, they are treated like all other elastic modes).
-
-        See also
-        --------
-        :func:`su`, :func:`fsu`, :func:`se2`.
-
-        """
-        self._common_precalcs(m, b, k, h=None, rb=rb, rf=None)
-        self.fsolve = self.fsd
-
-    def fsd(self, force, freq, incrb=2):
-        """
-        Solve equations of motion in frequency domain.
-
-        Parameters
-        ----------
-        force : 2d ndarray
-            The force matrix; ndof x freq
-        freq : 1d ndarray
-            Frequency vector in Hz; solution will be computed at all
-            frequencies in `freq`
-        incrb : 0, 1, or 2; optional
-            Specifies how to handle rigid-body responses:
-
-            ======  ==============================================
-            incrb   description
-            ======  ==============================================
-               0    no rigid-body is included
-               1    acceleration and velocity rigid-body only
-               2    all of rigid-body is included (see note below)
-            ======  ==============================================
-
-        Returns
-        -------
-        A record (SimpleNamespace class) with the members:
-
-        d : 2d ndarray
-            Displacement; ndof x freq
-        v : 2d ndarray
-            Velocity; ndof x freq
-        a : 2d ndarray
-            Acceleration; ndof x freq
-        f : 1d ndarray
-            Frequency vector (same as the input `freq`)
-
-        Notes
-        -----
-        Each frequency is solved via complex matrix inversion. There
-        is no partitioning for rigid-body modes or residual-
-        flexibility modes. Note that the solution will be fast if all
-        matrices are diagonal.
-
-        Unlike :func:`fsu`, since this routine makes no special
-        provisions for rigid-body modes, including 0.0 in `freq` can
-        cause a divide-by-zero. It is thereforce recommended to ensure
-        that all values in `freq` > 0.0, at least when rigid-body
-        modes are present.
-
-        See also
-        --------
-        :func:`mkfsdparams`, :func:`fsu`, :func:`mksuparams`.
-
-        Examples
-        --------
-        .. plot::
-            :context: close-figs
-
-            >>> from pyyeti import tfsolve
-            >>> import numpy as np
-            >>> m = np.array([10., 30., 30., 30.])    # diag mass
-            >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
-            >>> zeta = np.array([0., .05, 1., 2.])    # % damping
-            >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-            >>> freq = np.arange(.1, 35, .1)          # frequency
-            >>> f = 100*np.ones((4, freq.size))       # constant ffn
-            >>> ts = tfsolve.TFSolve('fsd', m, b, k)
-            >>> sol = ts.fsolve(f, freq)
-
-            Solve @ 25 Hz by hand for comparison:
-
-            >>> w = 2*np.pi*25
-            >>> i = np.argmin(abs(freq-25))
-            >>> H = -w**2*m + 1j*w*b + k
-            >>> disp = f[:, i] / H
-            >>> velo = 1j*w*disp
-            >>> acce = -w**2*disp
-            >>> np.allclose(disp, sol.d[:, i])
-            True
-            >>> np.allclose(velo, sol.v[:, i])
-            True
-            >>> np.allclose(acce, sol.a[:, i])
-            True
-
-            Plot the four accelerations:
-
-            >>> import matplotlib.pyplot as plt
-            >>> fig = plt.figure('fsd demo', figsize=[8, 8])
-            >>> labels = ['Rigid-body', 'Underdamped',
-            ...           'Critically Damped', 'Overdamped']
-            >>> for j, name in zip(range(4), labels):
-            ...     _ = plt.subplot(4, 1, j+1)
-            ...     _ = plt.plot(freq, abs(sol.a[j]))
-            ...     _ = plt.title(name)
-            ...     _ = plt.ylabel('Acceleration')
-            ...     _ = plt.xlabel('Frequency (Hz)')
-            >>> plt.tight_layout()
-        """
-        force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(force, None, None, False,
-                                        'mkfsdparams', istime=False)
-        freq = np.atleast_1d(freq)
-        self._force_freq_compat_chk(force, freq)
-        m, b, k = self.m, self.b, self.k
-        if self.unc:
-            # equations are uncoupled, solve everything in one step:
-            Omega = 2*np.pi*freq[None, :]
-            if m is None:
-                H = (((1j*b)[:, None] @ Omega +
-                      k[:, None]) - Omega**2)
-            else:
-                H = ((1j*b)[:, None] @ Omega +
-                     k[:, None] - m[:, None] @ Omega**2)
-            d[:] = force / H
-        else:
-            # equations are coupled, use a loop:
-            Omega = 2*np.pi*freq
-            if m is None:
-                m = np.eye(self.n)
-            for i, O in enumerate(Omega):
-                Hi = 1j*b*O + k - m*O**2
-                d[:, i] = la.solve(Hi, force[:, i])
-        a[:] = -Omega**2 * d
-        v[:] = 1j*Omega * d
-        if incrb < 2:
-            d[self.rb] = 0
-            if incrb == 0:
-                a[self.rb] = 0
-                v[self.rb] = 0
-        return self._solution_freq(d, v, a, freq)
 
     #
     # Utility routines follow:
@@ -2636,12 +1152,13 @@ class TFSolve(object):
                                     check_finite=False)
         return A
 
-    def _alloc_dva(self, nt, name, istime):
+    def _alloc_dva(self, nt, istime):
         n = self.ksize
         if istime:
             if nt > 1 and n > 0 and not self.pc:
-                raise RuntimeError('rerun `{}` with a valid time '
-                                   'step.'.format(name))
+                raise RuntimeError(
+                    'rerun `{}` with a valid time step.'
+                    .format(type(self).__name__))
             d = np.zeros((self.n, nt), self.systype)
             v = np.zeros((self.n, nt), self.systype)
             a = np.zeros((self.n, nt), self.systype)
@@ -2665,7 +1182,7 @@ class TFSolve(object):
         if v0 is not None:
             v[:, 0] = v0
 
-    def _init_dva_part(self, nt, F0, d0, v0, static_ic, name,
+    def _init_dva_part(self, nt, F0, d0, v0, static_ic,
                        istime=True):
         if F0.shape[0] != self.n:
             raise ValueError('Initial force vector has {} elements;'
@@ -2676,7 +1193,7 @@ class TFSolve(object):
                 '"su" generator not yet implemented using the '
                 '`pre_eig` option')
 
-        d, v, a = self._alloc_dva(nt, name, istime)
+        d, v, a = self._alloc_dva(nt, istime)
         f = a.copy()
         f[:, 0] = F0
         self._init_dv(d, v, d0, v0, F0, static_ic)
@@ -2688,13 +1205,13 @@ class TFSolve(object):
                                             check_finite=False)
         return d, v, a, f
 
-    def _init_dva(self, force, d0, v0, static_ic, name, istime=True):
+    def _init_dva(self, force, d0, v0, static_ic, istime=True):
         if force.shape[0] != self.n:
             raise ValueError('Force matrix has {} rows; {} rows are '
                              'expected'
                              .format(force.shape[0], self.n))
 
-        d, v, a = self._alloc_dva(force.shape[1], name, istime)
+        d, v, a = self._alloc_dva(force.shape[1], istime)
 
         if self.pre_eig:
             force = self.phi.T @ force
@@ -2708,186 +1225,6 @@ class TFSolve(object):
                 d[self.rf] = la.lu_solve(self.ikrf, force[self.rf],
                                          check_finite=False)
         return d, v, a, force
-
-    def _get_su_eig(self, delcc):
-        """
-        Does pre-calcs for the `su` solver via the complex eigenvalue
-        approach.
-
-        Parameters
-        ----------
-        None, but class is expected to be populated with:
-
-            m : 1d or 2d ndarray or None
-                Mass; vector (of diagonal), or full; if None, mass is
-                assumed identity. Has only rigid-body b and elastic
-                modes.
-            b : 1d or 2d ndarray
-                Damping; vector (of diagonal), or full. Has only
-                rigid-body b and elastic modes.
-            k : 1d or 2d ndarray
-                Stiffness; vector (of diagonal), or full. Has only
-                rigid-body b and elastic modes.
-            h : scalar or None
-                Time step; can be None if just solving static case.
-            rb : 1d array or None
-                Index vector for the rigid-body modes; None for no
-                rigid-body modes.
-            el : 1d array or None
-                Index vector for the elastic modes; None for no
-                elastic modes.
-
-        Returns
-        -------
-        A record (SimpleNamespace) containing:
-
-        G, A, Ap, Fe, Ae, Be: 1d ndarrays
-            The integration coefficients. ``G, A, Ap`` are for the
-            rigid-body equations and ``Fe, Ae, Be`` are for the
-            elastic equations. These will only be present if `h` is
-            not None.
-        lam : 1d ndarray
-            The complex eigenvalues.
-        ur : 2d ndarray
-            The complex right-eigenvectors
-        ur_d, ur_v : 2d ndarrays
-            Partitions of `ur`
-        ur_inv_v, ur_inv_d : 2d ndarrays
-            Partitions of ``inv(ur)``
-        rur_d, iur_d : 2d ndarrays
-            Real and imaginary parts of `ur_d`
-        rur_v, iur_v : 2d ndarrays
-            Real and imaginary parts of `ur_v`
-        invm : 2d ndarray or None
-            Decomposition of the elastic part of the mass matrix; None
-            if `self.m` is None (identity mass)
-        imrb : 2d ndarray or None
-            LU decomposition of rigid-body part of mass; or None if
-            `m` is None.
-
-        Notes
-        -----
-        The members `m`, `b`, and `k` are partitioned down to the
-        elastic part only.
-
-        This routine, with :func:`mksuparams`, is for solving::
-
-            m xdd + b xd + k x = f
-
-        The equation is transformed into, for the elastic equations
-        only::
-
-             qdd      [ -inv(m)*b  -inv(m)*k ] qd        inv(m)*f
-                   -  [                      ]       =
-             qd       [     I           0    ] q             0
-
-        or::
-
-             yd  -  A y = w
-
-        This solver is exact assuming either piece-wise linear forces.
-
-        See also
-        --------
-        :func:`mksuparams`, :func:`su`, :func:`se2`.
-        """
-        msg1 = ('Repeated roots detected and equations do not appear '
-                'to be diagonalized. Generally, this is a failure '
-                'condition. For time domain problems, the routine '
-                ':func:`mkse2params` will probably work better. For '
-                'frequency domain, see :func:`fsd`. Proceeding, but '
-                'check results VERY carefully.\n\tMax off-diag of '
-                '``inv(ur) @ ur = {}``\n\tMax off-diag of '
-                '``inv(ur) @ A @ ur = {}``\n\tMax '
-                '``inv(ur) @ A @ ur = {}``')
-        msg2 = ('Found {} rigid-body modes in elastic solver section.'
-                ' If there are no previous warnings about singular '
-                'matrices or repeated roots, solution is probably '
-                'valid, but check it before trusting it.')
-        pc = SimpleNamespace()
-        h = self.h
-        if self.rbsize:
-            self._inv_mrb()
-            if h:
-                pc.G = h
-                pc.A = h*h/3
-                pc.Ap = h/2
-        if self.unc:
-            pv = self._el
-        else:
-            pv = np.ix_(self._el, self._el)
-        if self.m is not None:
-            self.m = self.m[pv]
-        self.k = self.k[pv]
-        self.b = self.b[pv]
-        self.kdof = self.nonrf[self._el]
-        self.ksize = ksize = self.kdof.size
-        if self.elsize:
-            self._inv_m()
-            A = self._build_A()
-            lam, ur, ur_inv, dups = eigss(A, delcc)
-            if dups.size:
-                uu = ur_inv[dups] @ ur[:, dups]
-                uau = ur_inv[dups] @ A @ ur[:, dups]
-                maxuau = abs(uau).max()
-                if (not np.allclose(uu, np.eye(uu.shape[0])) or
-                        not ytools.isdiag(uau) or
-                        maxuau < 5.e-5):
-                    od1 = abs(uu - np.diag(np.diag(uu))).max()
-                    od2 = abs(uau - np.diag(np.diag(uau))).max()
-                    warnings.warn(msg1.format(od1, od2, maxuau),
-                                  RuntimeWarning)
-
-            if h:
-                # form coefficients for piece-wise exact solution:
-                Fe = np.exp(lam*h)
-                ilam = 1/lam
-                ilamh = (ilam*ilam)/h
-                Ae = ilamh + Fe*(ilam - ilamh)
-                Be = Fe*ilamh - ilam - ilamh
-                abslam = abs(lam)
-                # check for rb modes (5.e-5 determined by trial and
-                #  error comparing against matrix exponential solver)
-                pv = np.nonzero(abslam < 5.e-5)[0]
-                if pv.size:
-                    if pv.size > 1:
-                        warnings.warn(msg2.format(len(pv)),
-                                      RuntimeWarning)
-                    Fe[pv] = 1.
-                    Ae[pv] = h/2.
-                    Be[pv] = h/2.
-                pc.Fe = Fe
-                pc.Ae = Ae
-                pc.Be = Be
-            self._add_partition_copies(pc, lam, ur, ur_inv)
-        return pc
-
-    def _add_partition_copies(self, pc, lam, ur, ur_inv):
-        ksize = self.ksize
-        pc.lam = lam
-        pc.ur = ur
-        pc.ur_d = pc.ur[ksize:]
-        pc.ur_v = pc.ur[:ksize]
-        pc.ur_inv_v = ur_inv[:, :ksize].copy()
-        pc.ur_inv_d = ur_inv[:, ksize:].copy()
-        pc.rur_d = pc.ur_d.real.copy()
-        pc.iur_d = pc.ur_d.imag.copy()
-        pc.rur_v = pc.ur_v.real.copy()
-        pc.iur_v = pc.ur_v.imag.copy()
-
-    def _addconj(self):
-        pc = self.pc
-        if 2*pc.ur_inv_v.shape[1] > pc.ur_d.shape[1]:
-            ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
-            lam, ur, ur_inv = addconj(pc.lam, pc.ur, ur_inv)
-            self._add_partition_copies(pc, lam, ur, ur_inv)
-
-    def _delconj(self):
-        pc = self.pc
-        if 2*pc.ur_inv_v.shape[1] == pc.ur_d.shape[1]:
-            ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
-            lam, ur, ur_inv, _ = delconj(pc.lam, pc.ur, ur_inv, [])
-            self._add_partition_copies(pc, lam, ur, ur_inv)
 
     def _calc_acce_kdof(self, d, v, a, force):
         """Calculate the `kdof` part of the acceleration"""
@@ -2910,49 +1247,459 @@ class TFSolve(object):
                 else:
                     a[kdof] = F - B - K
 
-    def _solve_real_unc(self, d, v, a, force):
-        """Solve the real uncoupled equations for :func:`su`"""
-        # solve:
-        # for i in range(nt-1):
-        #     D[:,i+1] = F *D[:, i] + G *V[:, i] +
-        #                A *force[:, i] + B *force[:, i+1]
-        #     V[:,i+1] = Fp*D[:, i] + Gp*V[:, i] +
-        #                Ap*force[:, i] + Bp*force[:, i+1]
-        nt = force.shape[1]
-        if nt == 1:
-            return
-        pc = self.pc
-        kdof = self.kdof
-        F = pc.F
-        G = pc.G
-        A = pc.A
-        B = pc.B
-        Fp = pc.Fp
-        Gp = pc.Gp
-        Ap = pc.Ap
-        Bp = pc.Bp
-        D = d[kdof]
-        V = v[kdof]
-        if self.order == 1:
-            ABF = (A[:, None]*force[kdof, :-1] +
-                   B[:, None]*force[kdof, 1:])
-            ABFp = (Ap[:, None]*force[kdof, :-1] +
-                    Bp[:, None]*force[kdof, 1:])
+    def _force_freq_compat_chk(self, force, freq):
+        """Check compatibility between force matrix and freq vector"""
+        if force.shape[1] != len(freq):
+            raise ValueError('Number of columns `force` ({}) does '
+                             'not equal length of `freq`'.
+                             format(force.shape[1], len(freq)))
+
+
+class se2(_BaseTFSolve):
+    """
+    2nd order ODE time domain solver based on the matrix exponential.
+
+    This class is for solving::
+
+        m xdd + b xd + k x = f
+
+    The 2nd order ODE set of equations are transformed into::
+
+         qdd      [ -inv(M)*B  -inv(M)*K ] qd        inv(M)*f
+               -  [                      ]       =
+         qd       [     I           0    ] q             0
+
+    or::
+
+         yd  -  A y = w
+
+    Unlike for the uncoupled solver :class:`su`, this solver doesn't
+    need or use the `rb` input unless static initial conditions are
+    requested when solving equations.
+
+    This solver is exact assuming either piece-wise linear or
+    piece-wise constant forces.
+
+    The above equations are for the non-residual-flexibility
+    modes. The 'rf' modes are solved statically and any initial
+    conditions are ignored for them.
+
+    For a static solution:
+
+        - rigid-body displacements = zeros
+        - elastic displacments = inv(k[elastic]) * F[elastic]
+        - velocity = zeros
+        - rigid-body accelerations = inv(m[rigid]) * F[rigid]
+        - elastic accelerations = zeros
+
+    See also
+    --------
+    :class:`su`.
+
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        >>> from pyyeti import tfsolve
+        >>> import numpy as np
+        >>> m = np.array([10., 30., 30., 30.])    # diag mass
+        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+        >>> zeta = np.array([0., .05, 1., 2.])    # percent damp
+        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
+        >>> h = .001                              # time step
+        >>> t = np.arange(0, .3001, h)            # time vector
+        >>> c = 2*np.pi
+        >>> f = np.vstack((3*(1-np.cos(c*2*t)),
+        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
+        >>> f *= 1.e4
+        >>> ts = tfsolve.se2(m, b, k, h)
+        >>> sol = ts.tsolve(f, static_ic=1)
+
+        Solve with scipy.signal.lsim for comparison:
+
+        >>> A = tfsolve.make_A(m, b, k)
+        >>> n = len(m)
+        >>> Z = np.zeros((n, n), float)
+        >>> B = np.vstack((np.eye(n), Z))
+        >>> C = np.vstack((A, np.hstack((Z, np.eye(n)))))
+        >>> D = np.vstack((B, Z))
+        >>> ic = np.hstack((sol.v[:, 0], sol.d[:, 0]))
+        >>> import scipy.signal
+        >>> f2 = (1./m).reshape(-1, 1) * f
+        >>> tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T, t,
+        ...                                X0=ic)
+        >>> print('acce cmp:', np.allclose(yl[:, :n], sol.a.T))
+        acce cmp: True
+        >>> print('velo cmp:', np.allclose(yl[:, n:2*n], sol.v.T))
+        velo cmp: True
+        >>> print('disp cmp:', np.allclose(yl[:, 2*n:], sol.d.T))
+        disp cmp: True
+
+        Plot the four accelerations:
+
+        >>> import matplotlib.pyplot as plt
+        >>> fig = plt.figure('se2 vs. lsim', figsize=[8, 8])
+        >>> labels = ['Rigid-body', 'Underdamped',
+        ...           'Critically Damped', 'Overdamped']
+        >>> for j, name in zip(range(4), labels):
+        ...     _ = plt.subplot(4, 1, j+1)
+        ...     _ = plt.plot(t, sol.a[j], label='se2')
+        ...     _ = plt.plot(tl, yl[:, j], label='scipy lsim')
+        ...     _ = plt.title(name)
+        ...     _ = plt.ylabel('Acceleration')
+        ...     _ = plt.xlabel('Time (s)')
+        ...     if j == 0:
+        ...         _ = plt.legend(loc='best')
+        >>> plt.tight_layout()
+    """
+
+    def __init__(self, m, b, k, h, rb=None, rf=None, order=1,
+                 pre_eig=False):
+        """
+        Instantiates a :class:`se2` solver.
+
+        Parameters
+        ----------
+        m : 1d or 2d ndarray or None
+            Mass; vector (of diagonal), or full; if None, mass is
+            assumed identity
+        b : 1d or 2d ndarray
+            Damping; vector (of diagonal), or full
+        k : 1d or 2d ndarray
+            Stiffness; vector (of diagonal), or full
+        h : scalar or None
+            Time step; can be None if only want to solve a static
+            problem
+        rb : 1d array or None; optional
+            Index partition vector for rigid-body modes. If None, the
+            rigid-body modes will be automatically detected by this
+            logic::
+
+                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
+                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
+
+            Set to [] to specify no rigid-body modes. Note: the
+            detection of rigid-body modes is done after the `pre_eig`
+            operation, if that is True.
+        rf : 1d array or None; optional
+            Index partition vector for res-flex modes; these will be
+            solved statically
+        order : integer; optional
+            Specify which solver to use:
+
+            - 0 for the zero order hold (force stays constant across
+              time step)
+            - 1 for the 1st order hold (force can vary linearly across
+              time step)
+
+        pre_eig : bool; optional
+            If True, an eigensolution will be computed with the mass
+            and stiffness matrices to convert the system to modal
+            space. This will allow the automatic detection of
+            rigid-body modes which is necessary for specifying
+            "static" initial conditions when calling the solver. No
+            modes are truncated. Only works if stiffness is
+            symmetric/hermitian and mass is positive definite (see
+            :func:`scipy.linalg.eigh`). Just leave it as False if the
+            equations are already in modal space or if not using
+            "static" initial conditions.
+
+        Notes
+        -----
+        The instance is populated with the following members:
+
+        =========  ===================================================
+        Member     Description
+        =========  ===================================================
+        m          mass for the non-rf modes
+        b          damping for the non-rf modes
+        k          stiffness for the non-rf modes
+        h          time step
+        rb         index vector or slice for the rb modes
+        el         index vector or slice for the el modes
+        rf         index vector or slice for the rf modes
+        _rb        index vector or slice for the rb modes relative to
+                   the non-rf modes
+        _el        index vector or slice for the el modes relative to
+                   the non-rf modes
+        nonrf      index vector or slice for the non-rf modes
+        kdof       index vector or slice for the non-rf modes
+        n          number of total DOF
+        rbsize     number of rb modes
+        elsize     number of el modes
+        rfsize     number of rf modes
+        nonrfsz    number of non-rf modes
+        ksize      number of non-rf modes
+        invm       decomposition of m for the non-rf, non-rb modes
+        krf        stiffness for the rf modes
+        ikrf       inverse of stiffness for the rf modes
+        unc        True if there are no off-diagonal terms in any
+                   matrix; False otherwise
+        order      order of solver (0 or 1; see above)
+        E_vv       partition of "E" which is output of
+                   :func:`expmint.getEPQ`
+        E_vd       another partition of "E"
+        E_dv       another partition of "E"
+        E_dd       another partition of "E"
+        P, Q       output of :func:`expmint.getEPQ`; they are matrices
+                   used to solve the ODE
+        pc         True if E*, P, and Q member have been calculated;
+                   False otherwise
+        pre_eig    True if the "pre" eigensolution was done; False
+                   otherwise
+        phi        the mode shape matrix from the "pre"
+                   eigensolution; only present if `pre_eig` is True
+        =========  ===================================================
+
+        The E, P, and Q entries are used to solve the ODE::
+
+            for j in range(1, nt):
+                d[:, j] = E*d[:, j-1] + P*F[:, j-1] + Q*F[:, j]
+        """
+        self._common_precalcs(m, b, k, h, rb, rf, pre_eig)
+        self._inv_m()
+        self.order = order
+        ksize = self.ksize
+        if h and ksize > 0:
+            A = self._build_A()
+            E, P, Q = expmint.getEPQ(A, h, order, half=True)
+            self.P = P
+            self.Q = Q
+            # In state-space, the solution is:
+            #   y[n+1] = E @ y[n] + pqf[n, n+1]
+            # Put in terms of `d` and `v`:
+            #   y = [v; d]
+            #   [v[n+1]; d[n+1]] = [E_v, E_d] @ [v[n]; d[n]] +
+            #                      pqf[n, n+1]
+            #   v[n+1] = [E_vv, E_vd] @ [v[n]; d[n]] +
+            #            pqf_v[n, n+1]
+            #          = E_vv @ v[n] + E_vd @ d[n] + pqf_v[n, n+1]
+            #   d[n+1] = [E_dv, E_dd] @ [v[n]; d[n]] +
+            #            pqf_v[n, n+1]
+            #          = E_dv @ v[n] + E_dd @ d[n] + pqf_d[n, n+1]
+
+            # copy for faster multiplies:
+            self.E_vv = E[:ksize, :ksize].copy()
+            self.E_vd = E[:ksize, ksize:].copy()
+            self.E_dv = E[ksize:, :ksize].copy()
+            self.E_dd = E[ksize:, ksize:].copy()
+            self.pc = True
         else:
-            ABF = (A+B)[:, None]*force[kdof, :-1]
-            ABFp = (Ap+Bp)[:, None]*force[kdof, :-1]
-        di = D[:, 0]
-        vi = V[:, 0]
-        for i in range(nt-1):
-            din = F*di + G*vi + ABF[:, i]
-            vi = V[:, i+1] = Fp*di + Gp*vi + ABFp[:, i]
-            D[:, i+1] = di = din
+            self.pc = False
+        self._mk_slices(False)
+
+    def tsolve(self, force, d0=None, v0=None, static_ic=False):
+        """
+        Solve time-domain 2nd order ODE equations
+
+        Parameters
+        ----------
+        force : 2d ndarray
+            The force matrix; ndof x time
+        d0 : 1d ndarray; optional
+            Displacement initial conditions; if None, zero ic's are
+            used.
+        v0 : 1d ndarray; optional
+            Velocity initial conditions; if None, zero ic's are used.
+        static_ic : bool; optional
+            If True and `d0` is None, then `d0` is calculated such
+            that static (steady-state) initial conditions are
+            used. Uses the pseudo-inverse in case there are rigid-body
+            modes. `static_ic` is ignored if `d0` is not None.
+
+        Returns
+        -------
+        A record (SimpleNamespace class) with the members:
+
+        d : 2d ndarray
+            Displacement; ndof x time
+        v : 2d ndarray
+            Velocity; ndof x time
+        a : 2d ndarray
+            Acceleration; ndof x time
+        h : scalar
+            Time-step
+        t : 1d ndarray
+            Time vector: np.arange(d.shape[1])*h
+        """
+        force = np.atleast_2d(force)
+        d, v, a, force = self._init_dva(force, d0, v0,
+                                        static_ic) #, 'mkse2params')
+        ksize = self.ksize
+        if ksize > 0:
+            nt = force.shape[1]
+            if nt > 1:
+                kdof = self.kdof
+                D = d[kdof]
+                V = v[kdof]
+                if self.m is not None:
+                    if self.unc:
+                        imf = self.invm * force[kdof]
+                    else:
+                        imf = la.lu_solve(self.invm, force[kdof],
+                                          check_finite=False)
+                else:
+                    imf = force[kdof]
+                if self.order == 1:
+                    PQF = self.P @ imf[:, :-1] + self.Q @ imf[:, 1:]
+                else:
+                    PQF = self.P @ imf[:, :-1]
+                E_dd = self.E_dd
+                E_dv = self.E_dv
+                E_vd = self.E_vd
+                E_vv = self.E_vv
+                for i in range(nt-1):
+                    d0 = D[:, i]
+                    v0 = V[:, i]
+                    D[:, i+1] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:, i]
+                    V[:, i+1] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize, i]
+                if not self.slices:
+                    d[kdof] = D
+                    v[kdof] = V
+            self._calc_acce_kdof(d, v, a, force)
+        return self._solution(d, v, a)
+
+    def generator(self, nt, F0, d0=None, v0=None, static_ic=False):
+        """
+        Python "generator" version of :func:`se2.tsolve`;
+        interactively solve (or re-solve) one step at a time.
+
+        Parameters
+        ----------
+        nt : integer
+            Number of time steps
+        F0 : 1d ndarray
+            Initial force vector
+        d0 : 1d ndarray or None; optional
+            Displacement initial conditions; if None, zero ic's are
+            used.
+        v0 : 1d ndarray or None; optional
+            Velocity initial conditions; if None, zero ic's are used.
+        static_ic : bool; optional
+            If True and `d0` is None, then `d0` is calculated such
+            that static (steady-state) initial conditions are
+            used. Uses the pseudo-inverse in case there are rigid-body
+            modes. `static_ic` is ignored if `d0` is not None.
+
+        Returns
+        -------
+        gen : generator function
+            Generator function for solving equations one step at a
+            time
+        d, v, a : 2d ndarrays
+            The displacement, velocity and acceleration arrays. Only
+            the first column of `d` and `v` are set; other values are
+            all zero.
+
+        Notes
+        -----
+        To use the generator:
+
+            1. Instantiate a :class:`se2` instance::
+
+                   ts = se2(m, b, k, h)
+
+            2. Retrieve a generator and the arrays for holding the
+               solution::
+
+                   gen, d, v = ts.generator(len(time), f0)
+
+            3. Use :func:`gen.send` to send a tuple of the next index
+               and corresponding force vector in a loop. Re-do
+               time-steps as necessary (note that index zero cannot be
+               redone)::
+
+                   for i in range(1, len(time)):
+                       # Do whatever to get i'th force
+                       # - note: d[:, :i] and v[:, :i] are available
+                       gen.send((i, fi))
+
+               The class instance will have the attributes `_d`, `_v`
+               (same objects as `d` and `v`), `_a`, and `_force`. `d`,
+               `v` and `ts._force` are updated on every
+               :func:`gen.send`. (`ts._a` is not used until step 4.)
+
+            4. Call :func:`ts.finalize` to get final solution
+               in standard form::
+
+                   sol = ts.finalize()
+
+               The internal references `_d`, `_v`, `_a`, and `_force`
+               are deleted.
+
+        The generator solver currently has these limitations:
+
+            1. Unlike the normal solver, equations cannot be
+               interspersed. That is, each type of equation
+               (rigid-body, elastic, residual-flexibility) must be
+               contained in a contiguous group (so that `self.slices`
+               is True).
+            2. Unlike the normal solver, the `pre_eig` option is not
+               available.
+            3. The first time step cannot be redone.
+
+        Examples
+        --------
+        Set up some equations and solve both the normal way and via
+        the generator:
+
+        >>> from pyyeti import tfsolve
+        >>> import numpy as np
+        >>> m = np.array([10., 30., 30., 30.])    # diag mass
+        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
+        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
+        >>> h = .001                              # time step
+        >>> t = np.arange(0, .3001, h)            # time vector
+        >>> c = 2*np.pi
+        >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
+        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
+        >>> f *= 1.e4
+        >>> ts = tfsolve.se2(m, b, k, h)
+
+        Solve the normal way:
+
+        >>> sol = ts.tsolve(f, static_ic=1)
+
+        Solve via the generator:
+
+        >>> nt = f.shape[1]
+        >>> gen, d, v = ts.generator(nt, f[:, 0], static_ic=1)
+        >>> for i in range(1, nt):
+        ...     # Could do stuff here using d[:, :i] & v[:, :i] to
+        ...     # get next force
+        ...     gen.send((i, f[:, i]))
+        >>> sol2 = ts.finalize()
+
+        Confirm the solutions are the same:
+
+        >>> np.allclose(sol2.a, sol.a)
+        True
+        >>> np.allclose(sol2.v, sol.v)
+        True
+        >>> np.allclose(sol2.d, sol.d)
+        True
+        """
         if not self.slices:
-            d[kdof] = D
-            v[kdof] = V
+            raise NotImplementedError(
+                'generator not yet implemented for the case'
+                ' when different types of equations are interspersed'
+                ' (eg, a res-flex DOF in the middle of the elastic'
+                ' DOFs)')
+        d, v, a, force = self._init_dva_part(
+            nt, F0, d0, v0, static_ic)  # , 'mkse2params')
+        self._d, self._v, self._a, self._force = d, v, a, force
+        generator = self._solve_se2_generator(d, v, a, F0)
+        next(generator)
+        return generator, d, v
 
     def _solve_se2_generator(self, d, v, a, F0):
-        """Solve ODE equations for :func:`se2`"""
+        """Generator solver for :class:`se2`"""
         nt = d.shape[1]
         if nt == 1:
             yield
@@ -3044,8 +1791,585 @@ class TFSolve(object):
                 v[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
                 i, F1 = yield
 
+class su(_BaseTFSolve):
+    """
+    2nd order ODE time and frequency domain solvers for "uncoupled"
+    equations of motion
+
+    This class is for solving::
+
+        m xdd + b xd + k x = f
+
+    Note that the mass, damping and stiffness can be fully populated
+    (coupled).
+
+    This solver is exact assuming piece-wise linear forces if `order`
+    is 1.
+
+    For uncoupled equations, pre-formulated integration coefficients
+    are used (see :func:`get_su_coef`).
+
+    For coupled systems, the elastic modes part of the equation is
+    transformed into state-space::
+
+         qdd      [ -inv(M)*B  -inv(M)*K ] qd        inv(M)*f
+               -  [                      ]       =
+         qd       [     I           0    ] q             0
+
+    or::
+
+         yd  -  A y = w
+
+    The above state-space equations are for the dynamic elastic modes
+    only. Then, the complex eigensolution is used to decouple the
+    equations. The rigid-body and residual-flexibility modes are
+    solved independently. Note that the res-flex modes are solved
+    statically and any initial conditions are ignored for them.
+
+    For a static solution:
+
+        - rigid-body displacements = zeros
+        - elastic displacments = inv(k[elastic]) * F[elastic]
+        - velocity = zeros
+        - rigid-body accelerations = inv(m[rigid]) * F[rigid]
+        - elastic accelerations = zeros
+
+    See also
+    --------
+    :class:`se2`.
+
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        >>> from pyyeti import tfsolve
+        >>> import numpy as np
+        >>> m = np.array([10., 30., 30., 30.])    # diag mass
+        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
+        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
+        >>> h = .001                              # time step
+        >>> t = np.arange(0, .3001, h)            # time vector
+        >>> c = 2*np.pi
+        >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
+        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
+        >>> f *= 1.e4
+        >>> ts = tfsolve.su(m, b, k, h)
+        >>> sol = ts.tsolve(f, static_ic=1)
+
+        Solve with scipy.signal.lsim for comparison:
+
+        >>> A = tfsolve.make_A(m, b, k)
+        >>> n = len(m)
+        >>> Z = np.zeros((n, n), float)
+        >>> B = np.vstack((np.eye(n), Z))
+        >>> C = np.vstack((A, np.hstack((Z, np.eye(n)))))
+        >>> D = np.vstack((B, Z))
+        >>> ic = np.hstack((sol.v[:, 0], sol.d[:, 0]))
+        >>> import scipy.signal
+        >>> f2 = (1./m).reshape(-1, 1) * f
+        >>> tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T, t,
+        ...                                X0=ic)
+        >>>
+        >>> print('acce cmp:', np.allclose(yl[:, :n], sol.a.T))
+        acce cmp: True
+        >>> print('velo cmp:', np.allclose(yl[:, n:2*n], sol.v.T))
+        velo cmp: True
+        >>> print('disp cmp:', np.allclose(yl[:, 2*n:], sol.d.T))
+        disp cmp: True
+
+        Plot the four accelerations:
+
+        >>> import matplotlib.pyplot as plt
+        >>> fig = plt.figure('su vs. lsim', figsize=[8, 8])
+        >>> labels = ['Rigid-body', 'Underdamped',
+        ...           'Critically Damped', 'Overdamped']
+        >>> for j, name in zip(range(4), labels):
+        ...     _ = plt.subplot(4, 1, j+1)
+        ...     _ = plt.plot(t, sol.a[j], label='su')
+        ...     _ = plt.plot(tl, yl[:, j], label='scipy lsim')
+        ...     _ = plt.title(name)
+        ...     _ = plt.ylabel('Acceleration')
+        ...     _ = plt.xlabel('Time (s)')
+        ...     if j == 0:
+        ...         _ = plt.legend(loc='best')
+        >>> plt.tight_layout()
+    """
+
+    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
+                 delcc=True, pre_eig=False):
+        """
+        Instantiates a :class:`su` solver.
+
+        Parameters
+        ----------
+        m : 1d or 2d ndarray or None
+            Mass; vector (of diagonal), or full; if None, mass is
+            assumed identity
+        b : 1d or 2d ndarray
+            Damping; vector (of diagonal), or full
+        k : 1d or 2d ndarray
+            Stiffness; vector (of diagonal), or full
+        h : scalar or None; optional
+            Time step; can be None if only want to solve a static
+            problem
+        rb : 1d array or None; optional
+            Index partition vector for rigid-body modes. If None, the
+            rigid-body modes will be automatically detected by this
+            logic::
+
+                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
+                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
+
+            Set to [] to specify no rigid-body modes. Note: the
+            detection of rigid-body modes is done after the `pre_eig`
+            operation, if that is True.
+        rf : 1d array or None; optional
+            Index partition vector for res-flex modes; these will be
+            solved statically
+        order : integer; optional
+            Specify which solver to use:
+
+            - 0 for the zero order hold (force stays constant across
+              time step)
+            - 1 for the 1st order hold (force can vary linearly across
+              time step)
+
+        delcc : bool; optional
+            Set to True if you want to keep only one of each pair of
+            complex-conjugate eigensolutions when solving coupled
+            equations. This is good for time-domain problems. For
+            efficiency, set to False for frequency-domain (otherwise,
+            the :func:`su.fsolve` solver will add the deleted
+            conjugate back in before solving). If solving both time-
+            domain and frequency-domain problems, it is recommended
+            to either: set `delcc` to True and solve the time-domain
+            equations first; or set `delcc` to False and solve the
+            frequency-domain equations first.
+        pre_eig : bool; optional
+            If True, an eigensolution will be computed with the mass
+            and stiffness matrices to convert the system to modal
+            space. This will allow the automatic detection of
+            rigid-body modes which is necessary for the complex
+            eigenvalue method to work properly on systems with
+            rigid-body modes. No modes are truncated. Only works if
+            stiffness is symmetric/hermitian and mass is positive
+            definite (see :func:`scipy.linalg.eigh`). Just leave it as
+            False if the equations are already in modal space.
+
+        Notes
+        -----
+        The instance is populated with some or all of the following
+        members. Note that in the table, `non-rf/elastic` means
+        `non-rf` for uncoupled systems, `elastic` for coupled -- the
+        difference is whether or not the rigid-body modes are
+        included: they are for uncoupled.
+
+        =========  ===================================================
+        Member     Description
+        =========  ===================================================
+        m          mass for the non-rf/elastic modes
+        b          damping for the non-rf/elastic modes
+        k          stiffness for the non-rf/elastic modes
+        h          time step
+        rb         index vector or slice for the rb modes
+        el         index vector or slice for the el modes
+        rf         index vector or slice for the rf modes
+        _rb        index vector or slice for the rb modes relative to
+                   the non-rf modes
+        _el        index vector or slice for the el modes relative to
+                   the non-rf modes
+        nonrf      index vector or slice for the non-rf modes
+        kdof       index vector or slice for the non-rf/elastic modes
+        n          number of total DOF
+        rbsize     number of rb modes
+        elsize     number of el modes
+        rfsize     number of rf modes
+        nonrfsz    number of non-rf modes
+        ksize      number of non-rf/elastic modes
+        invm       decomposition of m for the non-rf/elastic modes
+        imrb       decomposition of m for the rb modes
+        krf        stiffness for the rf modes
+        ikrf       inverse of stiffness for the rf modes
+        unc        True if there are no off-diagonal terms in any
+                   matrix; False otherwise
+        order      order of solver (0 or 1; see above)
+        pc         None or record (SimpleNamespace) of integration
+                   coefficients; if uncoupled, this is populated by
+                   :func:`get_su_coef`; otherwise by
+                   :func:`su._get_su_eig`
+        pre_eig    True if the "pre" eigensolution was done; False
+                   otherwise
+        phi        the mode shape matrix from the "pre" eigensolution;
+                   only present if `pre_eig` is True
+        systype    float or complex; determined by `m` `b` `k`
+        =========  ===================================================
+
+        Unlike for :class:`se2`, `order` is not used until the solver
+        is called. In other words, this routine prepares the
+        integration coefficients for a first order hold no matter what
+        the setting of `order` is, but the solver will adjust the use
+        of the forces to account for the `order` setting.
+
+        The mass, damping and stiffness may be real or complex.
+        """
+        self._common_precalcs(m, b, k, h, rb, rf, pre_eig)
+        if self.ksize:
+            if self.unc and self.systype is float:
+                self._inv_m()
+                self.pc = get_su_coef(self.m, self.b, self.k,
+                                      h, self.rb)
+            else:
+                self.pc = self._get_su_eig(delcc)
+        else:
+            self.pc = None
+        self._mk_slices(True)
+        self.order = order
+
+    def tsolve(self, force, d0=None, v0=None, static_ic=False):
+        """
+        Solve time-domain 2nd order ODE equations
+
+        Parameters
+        ----------
+        force : 2d ndarray
+            The force matrix; ndof x time
+        d0 : 1d ndarray; optional
+            Displacement initial conditions; if None, zero ic's are
+            used.
+        v0 : 1d ndarray; optional
+            Velocity initial conditions; if None, zero ic's are used.
+        static_ic : bool; optional
+            If True and `d0` is None, then `d0` is calculated such
+            that static (steady-state) initial conditions are
+            used. Uses the pseudo-inverse in case there are rigid-body
+            modes. `static_ic` is ignored if `d0` is not None.
+
+        Returns
+        -------
+        A record (SimpleNamespace class) with the members:
+
+        d : 2d ndarray
+            Displacement; ndof x time
+        v : 2d ndarray
+            Velocity; ndof x time
+        a : 2d ndarray
+            Acceleration; ndof x time
+        h : scalar
+            Time-step
+        t : 1d ndarray
+            Time vector: np.arange(d.shape[1])*h
+        """
+        force = np.atleast_2d(force)
+        d, v, a, force = self._init_dva(force, d0, v0,
+                                        static_ic) #, 'mksuparams')
+        if self.nonrfsz:
+            if self.unc and self.systype is float:
+                # for uncoupled, m, b, k have rb+el (all nonrf)
+                self._solve_real_unc(d, v, a, force)
+            else:
+                # for coupled, m, b, k are only el only
+                self._solve_complex_unc(d, v, a, force)
+        self._calc_acce_kdof(d, v, a, force)
+        return self._solution(d, v, a)
+
+    def generator(self, nt, F0, d0=None, v0=None, static_ic=False):
+        """
+        Python "generator" version of :func:`su.tsolve`;
+        interactively solve (or re-solve) one step at a time.
+
+        Parameters
+        ----------
+        nt : integer
+            Number of time steps
+        F0 : 1d ndarray
+            Initial force vector
+        d0 : 1d ndarray or None; optional
+            Displacement initial conditions; if None, zero ic's are
+            used.
+        v0 : 1d ndarray or None; optional
+            Velocity initial conditions; if None, zero ic's are used.
+        static_ic : bool; optional
+            If True and `d0` is None, then `d0` is calculated such
+            that static (steady-state) initial conditions are
+            used. Uses the pseudo-inverse in case there are rigid-body
+            modes. `static_ic` is ignored if `d0` is not None.
+
+        Returns
+        -------
+        gen : generator function
+            Generator function for solving equations one step at a
+            time
+        d, v, a : 2d ndarrays
+            The displacement, velocity and acceleration arrays. Only
+            the first column of `d` and `v` are set; other values are
+            all zero.
+
+        Notes
+        -----
+        To use the generator:
+
+            1. Instantiate a :class:`su` instance::
+
+                   ts = su(m, b, k, h)
+
+            2. Retrieve a generator and the arrays for holding the
+               solution::
+
+                   gen, d, v = ts.generator(len(time), f0)
+
+            3. Use :func:`gen.send` to send a tuple of the next index
+               and corresponding force vector in a loop. Re-do
+               time-steps as necessary (note that index zero cannot be
+               redone)::
+
+                   for i in range(1, len(time)):
+                       # Do whatever to get i'th force
+                       # - note: d[:, :i] and v[:, :i] are available
+                       gen.send((i, fi))
+
+               The class instance will have the attributes `_d`, `_v`
+               (same objects as `d` and `v`), `_a`, and `_force`. `d`,
+               `v` and `ts._force` are updated on every
+               :func:`gen.send`. (`ts._a` is not used until step 4.)
+
+            4. Call :func:`ts.finalize` to get final solution
+               in standard form::
+
+                   sol = ts.finalize()
+
+               The internal references `_d`, `_v`, `_a`, and `_force`
+               are deleted.
+
+        The generator solver currently has these limitations:
+
+            1. Unlike the normal solver, equations cannot be
+               interspersed. That is, each type of equation
+               (rigid-body, elastic, residual-flexibility) must be
+               contained in a contiguous group (so that `self.slices`
+               is True).
+            2. Unlike the normal solver, the `pre_eig` option is not
+               available.
+            3. The first time step cannot be redone.
+
+        Examples
+        --------
+        Set up some equations and solve both the normal way and via
+        the generator:
+
+        >>> from pyyeti import tfsolve
+        >>> import numpy as np
+        >>> m = np.array([10., 30., 30., 30.])    # diag mass
+        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
+        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
+        >>> h = .001                              # time step
+        >>> t = np.arange(0, .3001, h)            # time vector
+        >>> c = 2*np.pi
+        >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
+        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
+        >>> f *= 1.e4
+        >>> ts = tfsolve.su(m, b, k, h)
+
+        Solve the normal way:
+
+        >>> sol = ts.tsolve(f, static_ic=1)
+
+        Solve via the generator:
+
+        >>> nt = f.shape[1]
+        >>> gen, d, v = ts.generator(nt, f[:, 0], static_ic=1)
+        >>> for i in range(1, nt):
+        ...     # Could do stuff here using d[:, :i] & v[:, :i] to
+        ...     # get next force
+        ...     gen.send((i, f[:, i]))
+        >>> sol2 = ts.finalize()
+
+        Confirm results:
+
+        >>> np.allclose(sol2.a, sol.a)
+        True
+        >>> np.allclose(sol2.v, sol.v)
+        True
+        >>> np.allclose(sol2.d, sol.d)
+        True
+        """
+        if not self.slices:
+            raise NotImplementedError(
+                'generator not yet implemented for the case when'
+                ' different types of equations are interspersed (eg, '
+                'a res-flex DOF in the middle of the elastic DOFs)')
+        d, v, a, force = self._init_dva_part(
+            nt, F0, d0, v0, static_ic) #, 'mksuparams')
+        self._d, self._v, self._a, self._force = d, v, a, force
+        if self.unc and self.systype is float:
+            # for uncoupled, m, b, k have rb+el (all nonrf)
+            generator = self._solve_real_unc_generator(d, v, a, F0)
+            next(generator)
+            return generator, d, v
+        else:
+            # for coupled, m, b, k are only el only
+            generator = self._solve_complex_unc_generator(d, v, a, F0)
+            next(generator)
+            return generator, d, v
+
+    def fsolve(self, force, freq, incrb=2):
+        """
+        Solve frequency-domain modal equations of motion using
+        uncoupled equations.
+
+        Parameters
+        ----------
+        force : 2d ndarray
+            The force matrix; ndof x freq
+        freq : 1d ndarray
+            Frequency vector in Hz; solution will be computed at all
+            frequencies in `freq`
+        incrb : 0, 1, or 2; optional
+            Specifies how to handle rigid-body responses:
+
+            ======  ==============================================
+            incrb   description
+            ======  ==============================================
+               0    no rigid-body is included
+               1    acceleration and velocity rigid-body only
+               2    all of rigid-body is included (see note below)
+            ======  ==============================================
+
+        Returns
+        -------
+        A record (SimpleNamespace class) with the members:
+
+        d : 2d ndarray
+            Displacement; ndof x freq
+        v : 2d ndarray
+            Velocity; ndof x freq
+        a : 2d ndarray
+            Acceleration; ndof x freq
+        f : 1d ndarray
+            Frequency vector (same as the input `freq`)
+
+        Notes
+        -----
+        The rigid-body and residual-flexibility modes are solved
+        independently. The res-flex modes are solved statically.
+
+        Rigid-body velocities and displacements are undefined where
+        `freq` is zero. So, if `incrb` is 1 or 2, this routine just
+        sets these responses to zero.
+
+        See also
+        --------
+        :class:`fsd`
+
+        Examples
+        --------
+        .. plot::
+            :context: close-figs
+
+            >>> from pyyeti import tfsolve
+            >>> import numpy as np
+            >>> m = np.array([10., 30., 30., 30.])    # diag mass
+            >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+            >>> zeta = np.array([0., .05, 1., 2.])    # % damping
+            >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
+            >>> freq = np.arange(0, 35, .1)           # frequency
+            >>> f = 100*np.ones((4, freq.size))       # constant ffn
+            >>> ts = tfsolve.su(m, b, k, delcc=False)
+            >>> sol = ts.fsolve(f, freq)
+
+            Solve @ 25 Hz by hand for comparison:
+
+            >>> w = 2*np.pi*25
+            >>> i = np.argmin(abs(freq-25))
+            >>> H = -w**2*m + 1j*w*b + k
+            >>> disp = f[:, i] / H
+            >>> velo = 1j*w*disp
+            >>> acce = -w**2*disp
+            >>> np.allclose(disp, sol.d[:, i])
+            True
+            >>> np.allclose(velo, sol.v[:, i])
+            True
+            >>> np.allclose(acce, sol.a[:, i])
+            True
+
+            Plot the four accelerations:
+
+            >>> import matplotlib.pyplot as plt
+            >>> fig = plt.figure(figsize=[8, 8])
+            >>> labels = ['Rigid-body', 'Underdamped',
+            ...           'Critically Damped', 'Overdamped']
+            >>> for j, name in zip(range(4), labels):
+            ...     _ = plt.subplot(4, 1, j+1)
+            ...     _ = plt.plot(freq, abs(sol.a[j]))
+            ...     _ = plt.title(name)
+            ...     _ = plt.ylabel('Acceleration')
+            ...     _ = plt.xlabel('Frequency (Hz)')
+            >>> plt.tight_layout()
+        """
+        force = np.atleast_2d(force)
+        d, v, a, force = self._init_dva(
+            force, None, None, False, istime=False)
+        #  'mksuparams', istime=False)
+        freq = np.atleast_1d(freq)
+        self._force_freq_compat_chk(force, freq)
+        if self.nonrfsz:
+            if self.unc:
+                # for uncoupled, m, b, k have rb+el (all nonrf)
+                self._solve_freq_unc(d, v, a, force, freq, incrb)
+            else:
+                # for coupled, m, b, k are only el only
+                self._solve_freq_coup(d, v, a, force, freq, incrb)
+        return self._solution_freq(d, v, a, freq)
+
+    def _solve_real_unc(self, d, v, a, force):
+        """Solve the real uncoupled equations for :class:`su`"""
+        # solve:
+        # for i in range(nt-1):
+        #     D[:,i+1] = F *D[:, i] + G *V[:, i] +
+        #                A *force[:, i] + B *force[:, i+1]
+        #     V[:,i+1] = Fp*D[:, i] + Gp*V[:, i] +
+        #                Ap*force[:, i] + Bp*force[:, i+1]
+        nt = force.shape[1]
+        if nt == 1:
+            return
+        pc = self.pc
+        kdof = self.kdof
+        F = pc.F
+        G = pc.G
+        A = pc.A
+        B = pc.B
+        Fp = pc.Fp
+        Gp = pc.Gp
+        Ap = pc.Ap
+        Bp = pc.Bp
+        D = d[kdof]
+        V = v[kdof]
+        if self.order == 1:
+            ABF = (A[:, None]*force[kdof, :-1] +
+                   B[:, None]*force[kdof, 1:])
+            ABFp = (Ap[:, None]*force[kdof, :-1] +
+                    Bp[:, None]*force[kdof, 1:])
+        else:
+            ABF = (A+B)[:, None]*force[kdof, :-1]
+            ABFp = (Ap+Bp)[:, None]*force[kdof, :-1]
+        di = D[:, 0]
+        vi = V[:, 0]
+        for i in range(nt-1):
+            din = F*di + G*vi + ABF[:, i]
+            vi = V[:, i+1] = Fp*di + Gp*vi + ABFp[:, i]
+            D[:, i+1] = di = din
+        if not self.slices:
+            d[kdof] = D
+            v[kdof] = V
+
     def _solve_real_unc_generator(self, d, v, a, F0):
-        """Solve the real uncoupled equations for :func:`su`"""
+        """Solve the real uncoupled equations for :class:`su`"""
         # solve:
         # for i in range(nt-1):
         #     D[:,i+1] = F *D[:, i] + G *V[:, i] +
@@ -3149,7 +2473,7 @@ class TFSolve(object):
                     i, F1 = yield
 
     def _solve_complex_unc(self, d, v, a, force):
-        """Solve the complex uncoupled equations for :func:`su`"""
+        """Solve the complex uncoupled equations for :class:`su`"""
         nt = force.shape[1]
         pc = self.pc
         if self.rbsize:
@@ -3244,7 +2568,7 @@ class TFSolve(object):
                 v[kdof, 1:] = ur_v @ y[:, 1:]
 
     def _solve_complex_unc_generator(self, d, v, a, F0):
-        """Solve the complex uncoupled equations for :func:`su`"""
+        """Solve the complex uncoupled equations for :class:`su`"""
         nt = d.shape[1]
 
         # need to handle up to 3 types of equations every loop:
@@ -3394,9 +2718,178 @@ class TFSolve(object):
                     drf[:, i] = ikrf @ F1[rf]
             i, F1 = yield
 
+    def _get_su_eig(self, delcc):
+        """
+        Does pre-calcs for the `su` solver via the complex eigenvalue
+        approach.
+
+        Parameters
+        ----------
+        None, but class is expected to be populated with:
+
+            m : 1d or 2d ndarray or None
+                Mass; vector (of diagonal), or full; if None, mass is
+                assumed identity. Has only rigid-body b and elastic
+                modes.
+            b : 1d or 2d ndarray
+                Damping; vector (of diagonal), or full. Has only
+                rigid-body b and elastic modes.
+            k : 1d or 2d ndarray
+                Stiffness; vector (of diagonal), or full. Has only
+                rigid-body b and elastic modes.
+            h : scalar or None
+                Time step; can be None if just solving static case.
+            rb : 1d array or None
+                Index vector for the rigid-body modes; None for no
+                rigid-body modes.
+            el : 1d array or None
+                Index vector for the elastic modes; None for no
+                elastic modes.
+
+        Returns
+        -------
+        A record (SimpleNamespace) containing:
+
+        G, A, Ap, Fe, Ae, Be: 1d ndarrays
+            The integration coefficients. ``G, A, Ap`` are for the
+            rigid-body equations and ``Fe, Ae, Be`` are for the
+            elastic equations. These will only be present if `h` is
+            not None.
+        lam : 1d ndarray
+            The complex eigenvalues.
+        ur : 2d ndarray
+            The complex right-eigenvectors
+        ur_d, ur_v : 2d ndarrays
+            Partitions of `ur`
+        ur_inv_v, ur_inv_d : 2d ndarrays
+            Partitions of ``inv(ur)``
+        rur_d, iur_d : 2d ndarrays
+            Real and imaginary parts of `ur_d`
+        rur_v, iur_v : 2d ndarrays
+            Real and imaginary parts of `ur_v`
+        invm : 2d ndarray or None
+            Decomposition of the elastic part of the mass matrix; None
+            if `self.m` is None (identity mass)
+        imrb : 2d ndarray or None
+            LU decomposition of rigid-body part of mass; or None if
+            `m` is None.
+
+        Notes
+        -----
+        The members `m`, `b`, and `k` are partitioned down to the
+        elastic part only.
+
+        See also
+        --------
+        :class:`su`
+        """
+        msg = ('Repeated roots detected and equations do not appear '
+               'to be diagonalized. Generally, this is a failure '
+               'condition. For time domain problems, the routine '
+               ':class:`se2` will probably work better. For '
+               'frequency domain, see :class:`fsd`. Proceeding, but '
+               'check results VERY carefully.\n\tMax off-diag of '
+               '``inv(ur) @ ur = {}``\n\tMax off-diag of '
+               '``inv(ur) @ A @ ur = {}``\n\tMax '
+               '``inv(ur) @ A @ ur = {}``')
+        pc = SimpleNamespace()
+        h = self.h
+        if self.rbsize:
+            self._inv_mrb()
+            if h:
+                pc.G = h
+                pc.A = h*h/3
+                pc.Ap = h/2
+        if self.unc:
+            pv = self._el
+        else:
+            pv = np.ix_(self._el, self._el)
+        if self.m is not None:
+            self.m = self.m[pv]
+        self.k = self.k[pv]
+        self.b = self.b[pv]
+        self.kdof = self.nonrf[self._el]
+        self.ksize = ksize = self.kdof.size
+        if self.elsize:
+            self._inv_m()
+            A = self._build_A()
+            lam, ur, ur_inv, dups = eigss(A, delcc)
+            if dups.size:
+                uu = ur_inv[dups] @ ur[:, dups]
+                uau = ur_inv[dups] @ A @ ur[:, dups]
+                maxuau = abs(uau).max()
+                if (not np.allclose(uu, np.eye(uu.shape[0])) or
+                        not ytools.isdiag(uau) or
+                        maxuau < 5.e-5):
+                    od1 = abs(uu - np.diag(np.diag(uu))).max()
+                    od2 = abs(uau - np.diag(np.diag(uau))).max()
+                    warnings.warn(msg.format(od1, od2, maxuau),
+                                  RuntimeWarning)
+            if h:
+                self._get_complex_su_coefs(pc, lam, h)
+            self._add_partition_copies(pc, lam, ur, ur_inv)
+        return pc
+
+    def _get_complex_su_coefs(self, pc, lam, h):
+        msg = ('Found {} rigid-body modes in elastic solver section.'
+               ' If there are no previous warnings about singular '
+               'matrices or repeated roots, solution is probably '
+               'valid, but check it before trusting it.')
+        # form coefficients for piece-wise exact solution:
+        Fe = np.exp(lam*h)
+        ilam = 1/lam
+        ilamh = (ilam*ilam)/h
+        Ae = ilamh + Fe*(ilam - ilamh)
+        Be = Fe*ilamh - ilam - ilamh
+        abslam = abs(lam)
+        # check for rb modes (5.e-5 determined by trial and
+        #  error comparing against matrix exponential solver)
+        pv = np.nonzero(abslam < 5.e-5)[0]
+        if pv.size:
+            if pv.size > 1:
+                warnings.warn(msg.format(len(pv)),
+                              RuntimeWarning)
+            Fe[pv] = 1.
+            Ae[pv] = h/2.
+            Be[pv] = h/2.
+        pc.Fe = Fe
+        pc.Ae = Ae
+        pc.Be = Be
+
+    def _add_partition_copies(self, pc, lam, ur, ur_inv):
+        ksize = self.ksize
+        pc.lam = lam
+        pc.ur = ur
+        pc.ur_d = pc.ur[ksize:]
+        pc.ur_v = pc.ur[:ksize]
+        pc.ur_inv_v = ur_inv[:, :ksize].copy()
+        pc.ur_inv_d = ur_inv[:, ksize:].copy()
+        pc.rur_d = pc.ur_d.real.copy()
+        pc.iur_d = pc.ur_d.imag.copy()
+        pc.rur_v = pc.ur_v.real.copy()
+        pc.iur_v = pc.ur_v.imag.copy()
+
+    def _addconj(self):
+        pc = self.pc
+        if 2*pc.ur_inv_v.shape[1] > pc.ur_d.shape[1]:
+            ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
+            lam, ur, ur_inv = addconj(pc.lam, pc.ur, ur_inv)
+            if self.h:
+                self._get_complex_su_coefs(pc, lam, self.h)
+            self._add_partition_copies(pc, lam, ur, ur_inv)
+
+    def _delconj(self):
+        pc = self.pc
+        if 2*pc.ur_inv_v.shape[1] == pc.ur_d.shape[1]:
+            ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
+            lam, ur, ur_inv, _ = delconj(pc.lam, pc.ur, ur_inv, [])
+            if self.h:
+                self._get_complex_su_coefs(pc, lam, self.h)
+            self._add_partition_copies(pc, lam, ur, ur_inv)
+
     def _solve_freq_rb(self, d, v, a, force, freqw, freqw2, incrb,
                        unc):
-        """Solve the rigid-body equations for :func:`fsu`"""
+        """Solve the rigid-body equations for :func:`su.fsolve`"""
         if self.rbsize and incrb:
             rb = self.rb
             if self.m is not None:
@@ -3413,7 +2906,7 @@ class TFSolve(object):
                 d[rb, pvnz] = (-1./freqw2[pvnz]) * a[rb, pvnz]
 
     def _solve_freq_unc(self, d, v, a, force, freq, incrb):
-        """Solve the uncoupled equations for :func:`fsu`"""
+        """Solve the uncoupled equations for :func:`su.fsolve`"""
         # convert frequency in Hz to radian/sec:
         freqw = 2*np.pi*freq
         freqw2 = freqw**2
@@ -3442,7 +2935,7 @@ class TFSolve(object):
             v[el] = d[el] * (1j*freqw)
 
     def _solve_freq_coup(self, d, v, a, force, freq, incrb):
-        """Solve the coupled equations for :func:`fsu`"""
+        """Solve the coupled equations for :func:`su.fsolve`"""
         # convert frequency in Hz to radian/sec:
         freqw = 2*np.pi*freq
         freqw2 = freqw**2
@@ -3473,12 +2966,289 @@ class TFSolve(object):
             a[kdof] = d[kdof] * -(freqw2)
             v[kdof] = d[kdof] * (1j*freqw)
 
-    def _force_freq_compat_chk(self, force, freq):
-        """Check compatibility between force matrix and freq vector"""
-        if force.shape[1] != len(freq):
-            raise ValueError('Number of columns `force` ({}) does '
-                             'not equal length of `freq`'.
-                             format(force.shape[1], len(freq)))
+
+class eigse2(su):
+    """
+    Equivalent to :class:`se2` with ``pre_eig=True``
+
+    That is::
+
+        eigse2(m, b, k, h)
+
+    is the same as::
+
+        se2(m, b, k, h, pre_eig=True)
+
+    See :class:`se2` for more information.
+    """
+    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
+                 delcc=True, pre_eig=True):
+        super().__init__(m, b, k, h=h, rb=rb, rf=rf, order=order,
+                         delcc=delcc, pre_eig=pre_eig)
+
+
+class eigsu(su):
+    """
+    Equivalent to :class:`su` with ``pre_eig=True``
+
+    That is::
+
+        eigsu(m, b, k, h)
+
+    is the same as::
+
+        su(m, b, k, h, pre_eig=True)
+
+    See :class:`su` for more information.
+    """
+    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
+                 delcc=True, pre_eig=True):
+        super().__init__(m, b, k, h=h, rb=rb, rf=rf, order=order,
+                         delcc=delcc, pre_eig=pre_eig)
+
+
+class fsu(su):
+    """
+    Equivalent to :class:`su` with ``delcc=False`` which is handy for
+    solving frequency domain problems.
+
+    That is::
+
+        fsu(m, b, k, h)
+
+    is the same as::
+
+        su(m, b, k, h, delcc=False)
+
+    See :class:`su` for more information.
+    """
+    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
+                 delcc=False, pre_eig=False):
+        super().__init__(m, b, k, h=h, rb=rb, rf=rf, order=order,
+                         delcc=delcc, pre_eig=pre_eig)
+
+
+class eigfsu(su):
+    """
+    Equivalent to :class:`su` with ``delcc=False`` and
+    ``pre_eig=True``
+
+
+    That is::
+
+        fsu(m, b, k, h)
+
+    is the same as::
+
+        su(m, b, k, h, delcc=False, pre_eig=True)
+
+    See :class:`su` for more information.
+    """
+    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
+                 delcc=False, pre_eig=True):
+        super().__init__(m, b, k, h=h, rb=rb, rf=rf, order=order,
+                         delcc=delcc, pre_eig=pre_eig)
+
+
+class fsd(_BaseTFSolve):
+    """
+    2nd order ODE frequency domain solver
+
+    This class is for solving::
+
+        m xdd + b xd + k x = f
+
+    Notes
+    -----
+    Each frequency is solved via complex matrix inversion. There
+    is no partitioning for rigid-body modes or residual-
+    flexibility modes. Note that the solution will be fast if all
+    matrices are diagonal.
+
+    Unlike :class:`su`, since this routine makes no special provisions
+    for rigid-body modes, including 0.0 in `freq` can cause a
+    divide-by-zero. It is thereforce recommended to ensure that all
+    values in `freq` > 0.0, at least when rigid-body modes are
+    present.
+
+    See also
+    --------
+    :func:`su.fsolve`
+
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        >>> from pyyeti import tfsolve
+        >>> import numpy as np
+        >>> m = np.array([10., 30., 30., 30.])    # diag mass
+        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
+        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
+        >>> freq = np.arange(.1, 35, .1)          # frequency
+        >>> f = 100*np.ones((4, freq.size))       # constant ffn
+        >>> ts = tfsolve.fsd(m, b, k)
+        >>> sol = ts.fsolve(f, freq)
+
+        Solve @ 25 Hz by hand for comparison:
+
+        >>> w = 2*np.pi*25
+        >>> i = np.argmin(abs(freq-25))
+        >>> H = -w**2*m + 1j*w*b + k
+        >>> disp = f[:, i] / H
+        >>> velo = 1j*w*disp
+        >>> acce = -w**2*disp
+        >>> np.allclose(disp, sol.d[:, i])
+        True
+        >>> np.allclose(velo, sol.v[:, i])
+        True
+        >>> np.allclose(acce, sol.a[:, i])
+        True
+
+        Plot the four accelerations:
+
+        >>> import matplotlib.pyplot as plt
+        >>> fig = plt.figure(figsize=[8, 8])
+        >>> labels = ['Rigid-body', 'Underdamped',
+        ...           'Critically Damped', 'Overdamped']
+        >>> for j, name in zip(range(4), labels):
+        ...     _ = plt.subplot(4, 1, j+1)
+        ...     _ = plt.plot(freq, abs(sol.a[j]))
+        ...     _ = plt.title(name)
+        ...     _ = plt.ylabel('Acceleration')
+        ...     _ = plt.xlabel('Frequency (Hz)')
+        >>> plt.tight_layout()
+    """
+
+    def __init__(self, m, b, k, rb=None):
+        """
+        Instantiates a :class:`fsd` solver.
+
+        Parameters
+        ----------
+        m : 1d or 2d ndarray or None
+            Mass; vector (of diagonal), or full; if None, mass is
+            assumed identity
+        b : 1d or 2d ndarray
+            Damping; vector (of diagonal), or full
+        k : 1d or 2d ndarray
+            Stiffness; vector (of diagonal), or full
+        rb : 1d array or None; optional
+            Index partition vector for rigid-body modes. If None, the
+            rigid-body modes will be automatically detected by this
+            logic::
+
+                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
+                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
+
+            Set to [] to specify no rigid-body modes.
+
+        Notes
+        -----
+        The instance is populated with some or all of the following
+        members.
+
+        ========   ==================================================
+         Member    Description
+        ========   ==================================================
+         m         mass
+         b         damping
+         k         stiffness
+         h         time step (None)
+         rb        index vector or slice for the rb modes
+         el        index vector or slice for the el modes
+         rf        index vector or slice for the rf modes ([])
+         _rb       index vector or slice for the rb modes relative to
+                   the non-rf modes
+         _el       index vector or slice for the el modes relative to
+                   the non-rf modes
+         nonrf     index vector or slice for the non-rf modes
+         kdof      index vector or slice for the non-rf/elastic modes
+         n         number of total DOF
+         rfsize    number of rf modes
+         nonrfsz   number of non-rf modes
+         ksize     number of non-rf/elastic modes
+         krf       stiffness for the rf modes
+         ikrf      inverse of stiffness for the rf modes
+         unc       True if there are no off-diagonal terms in any
+                   matrix; False otherwise
+         systype   float or complex; determined by `m`, `b`, and `k`
+        ========   ==================================================
+
+        The mass, damping and stiffness may be real or complex. This
+        routine currently does not accept the `rf` input (if there are
+        any, they are treated like all other elastic modes).
+        """
+        self._common_precalcs(m, b, k, h=None, rb=rb, rf=None)
+
+    def fsolve(self, force, freq, incrb=2):
+        """
+        Solve equations of motion in frequency domain.
+
+        Parameters
+        ----------
+        force : 2d ndarray
+            The force matrix; ndof x freq
+        freq : 1d ndarray
+            Frequency vector in Hz; solution will be computed at all
+            frequencies in `freq`
+        incrb : 0, 1, or 2; optional
+            Specifies how to handle rigid-body responses:
+
+            ======  ==============================================
+            incrb   description
+            ======  ==============================================
+               0    no rigid-body is included
+               1    acceleration and velocity rigid-body only
+               2    all of rigid-body is included (see note below)
+            ======  ==============================================
+
+        Returns
+        -------
+        A record (SimpleNamespace class) with the members:
+
+        d : 2d ndarray
+            Displacement; ndof x freq
+        v : 2d ndarray
+            Velocity; ndof x freq
+        a : 2d ndarray
+            Acceleration; ndof x freq
+        f : 1d ndarray
+            Frequency vector (same as the input `freq`)
+        """
+        force = np.atleast_2d(force)
+        d, v, a, force = self._init_dva(force, None, None, False,
+                                        istime=False)  # 'mkfsdparams'
+        freq = np.atleast_1d(freq)
+        self._force_freq_compat_chk(force, freq)
+        m, b, k = self.m, self.b, self.k
+        if self.unc:
+            # equations are uncoupled, solve everything in one step:
+            Omega = 2*np.pi*freq[None, :]
+            if m is None:
+                H = (((1j*b)[:, None] @ Omega +
+                      k[:, None]) - Omega**2)
+            else:
+                H = ((1j*b)[:, None] @ Omega +
+                     k[:, None] - m[:, None] @ Omega**2)
+            d[:] = force / H
+        else:
+            # equations are coupled, use a loop:
+            Omega = 2*np.pi*freq
+            if m is None:
+                m = np.eye(self.n)
+            for i, O in enumerate(Omega):
+                Hi = 1j*b*O + k - m*O**2
+                d[:, i] = la.solve(Hi, force[:, i])
+        a[:] = -Omega**2 * d
+        v[:] = 1j*Omega * d
+        if incrb < 2:
+            d[self.rb] = 0
+            if incrb == 0:
+                a[self.rb] = 0
+                v[self.rb] = 0
+        return self._solution_freq(d, v, a, freq)
 
 
 def solvepsd(ts, forcepsd, t_frc, freq, drmlist, incrb=2, forcephi=None,
@@ -3490,8 +3260,8 @@ def solvepsd(ts, forcepsd, t_frc, freq, drmlist, incrb=2, forcephi=None,
     Parameters
     ----------
     ts : class
-        An instance of TFSolve class as output by
-        :func:`TFSolve.mksuparams` or :func:`TFSolve.mkfsdparams`
+        An instance of :class:`su` or :class:`fsd` (or similar ...
+        must have `.fsolve` method)
     forcepsd : 2d array_like
         The matrix of force psds; each row is a force PSD
     t_frc : 2d array_like
@@ -3578,7 +3348,7 @@ def solvepsd(ts, forcepsd, t_frc, freq, drmlist, incrb=2, forcephi=None,
         >>> b = 2.*zeta*np.sqrt(k/m)*m                # diag damping
         >>> freq = np.arange(.1, 35, .1)              # frequency
         >>> forcepsd = 10000*np.ones((4, freq.size))  # PSD forces
-        >>> ts = tfsolve.TFSolve('fsu', m, b, k)
+        >>> ts = tfsolve.fsu(m, b, k)
         >>> atm = np.eye(4)    # recover modal accels
         >>> t_frc = np.eye(4)  # assume forces already modal
         >>> drms = [[atm, None]]
@@ -3685,7 +3455,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
 
         accel1, accel2, etc are the complex modal acceleration (or
         displacement or velocity) frequency responses; normally output
-        by :func:`TFSolve.fsu` or :func:`TFSolve.fsd`.
+        by, for example, :func:`su.fsolve`
     mfreq : array_like
         Vector of modal frequencies (Hz)
     factor : scalar; optional
@@ -3761,14 +3531,14 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
 
     See also
     --------
-    :func:`TFSolve.fsu`, :func:`TFSolve.fsd`, :func:`modeselect`,
+    :class:`su`, :class:`fsd`, :func:`modeselect`,
     :func:`pyyeti.datacursor`
 
     Examples
     --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> from pyyeti.tfsolve import TFSolve
+    >>> from pyyeti.tfsolve import su
     >>> from pyyeti.tfsolve import getmodepart
     >>> import scipy.linalg as la
     >>> K = 40*np.random.randn(5, 5)
@@ -3783,7 +3553,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
     >>> Tbot = phi[0:1, :]
     >>> Tmid = phi[2:3, :]
     >>> Ttop = phi[4:5, :]
-    >>> ts = TFSolve('fsu', M, Z, w2)
+    >>> ts = su(M, Z, w2, delcc=False)
     >>> sol_bot = ts.fsolve(Tbot.T @ f, freq)
     >>> sol_mid = ts.fsolve(Tmid.T @ f, freq)
 
@@ -4016,8 +3786,8 @@ def modeselect(name, ts, force, freq, Trcv, labelrcv, mfreq,
         Name of analysis; for example the flight event name; it is
         used for plot title
     ts : class
-        An instance of TFSolve class as output by
-        :func:`TFSolve.mksuparams` or :func:`TFSolve.mkfsdparams`
+        An instance of :class:`su` or :class:`fsd` (or similar ...
+        must have `.fsolve` method)
     force : 2d array_like
         Forcing function in frequency domain; # cols = len(freq)
     freq : 1d array_like
@@ -4041,13 +3811,13 @@ def modeselect(name, ts, force, freq, Trcv, labelrcv, mfreq,
     auto : integer or None; optional
 
         - If None, operate interactively.
-        - If an integer, it specifies a row in `Trcr` row (0-offset)
+        - If an integer, it specifies a row in `Trcv` row (0-offset)
           that this routine will automatically (non-interactively) use
           to select modes. It will select the peak of the specified
           response and, based on mode participation, return the
           results. In other words, it acts as if you picked the peak
           of the specified curve and then hit 't'. For example, to
-          choose the 12th row of `Tcvr`, set `auto` to 11.
+          choose the 12th row of `Trcv`, set `auto` to 11.
 
     idlabel : string; optional If not '', it will be
           used in the figure name. This allows multiple
@@ -4079,15 +3849,13 @@ def modeselect(name, ts, force, freq, Trcv, labelrcv, mfreq,
 
     See also
     --------
-    :func:`getmodepart`, :func:`TFSolve.mksuparams`,
-    :func:`TFSolve.mkfsdparams`.
+    :func:`getmodepart`, :class:`su`, :class:`fsd`
 
     Examples
     --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> from pyyeti.tfsolve import TFSolve
-    >>> from pyyeti.tfsolve import modeselect
+    >>> from pyyeti.tfsolve import su, modeselect
     >>> import scipy.linalg as la
     >>> K = 40*np.random.randn(5, 5)
     >>> K = K @ K.T       # positive definite K matrix, M is identity
@@ -4100,7 +3868,7 @@ def modeselect(name, ts, force, freq, Trcv, labelrcv, mfreq,
     >>> f = phi[4:].T @ np.ones((1, len(freq)))      # force of DOF 5
     >>> Trcv = phi[[0, 2, 4]]                        # recover DOF 1, 3, 5
     >>> labels = ['5 to 1', '5 to 3', '5 to 5']
-    >>> ts = TFSolve('fsu', M, Z, w2)               # doctest: +SKIP
+    >>> ts = su(M, Z, w2, delcc=False)              # doctest: +SKIP
     >>> mfr = modeselect('Demo', ts, f, freq,       # doctest: +SKIP
     ...                  Trcv, labels, mfreq)       # doctest: +SKIP
     >>> print('modes =', mfr[0])                    # doctest: +SKIP

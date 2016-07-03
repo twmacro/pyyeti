@@ -6,7 +6,6 @@ import tempfile
 import os
 import inspect
 from pyyeti import cb, op2, n2p, ytools, locate, op4, nastran
-from pyyeti.tfsolve import TFSolve
 from nose.tools import *
 
 

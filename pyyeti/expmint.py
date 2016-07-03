@@ -684,8 +684,7 @@ def _getEPQ2(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`expmint`, :func:`tfsolve.TFSolve.se1`,
-    :func:`tfsolve.TFSolve.se2`.
+    :func:`expmint`, :class:`tfsolve.se1`, :class:`tfsolve.se2`.
 
     Examples
     --------
@@ -779,8 +778,8 @@ def getEPQ_pow(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`getEPQ`, :func:`expmint_pow`, :func:`tfsolve.TFSolve.se1`,
-    :func:`tfsolve.TFSolve.se2`.
+    :func:`getEPQ`, :func:`expmint_pow`, :class:`tfsolve.se1`,
+    :class:`tfsolve.se2`.
 
     Examples
     --------
@@ -1080,8 +1079,8 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`_getEPQ2`, :func:`getEPQ_pow`, :func:`tfsolve.TFSolve.se1`,
-    :func:`tfsolve.TFSolve.se2`.
+    :func:`_getEPQ2`, :func:`getEPQ_pow`, :class:`tfsolve.se1`, 
+    :class:`tfsolve.se2`.
 
     Examples
     --------
@@ -1224,8 +1223,7 @@ def getEPQ(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`getEPQ_pow`, :func:`tfsolve.TFSolve.se1`,
-    :func:`tfsolve.TFSolve.se2`.
+    :func:`getEPQ_pow`, :class:`tfsolve.se1`, :class:`tfsolve.se2`.
 
     Examples
     --------

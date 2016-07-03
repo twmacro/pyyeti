@@ -1,6 +1,5 @@
 import numpy as np
-from pyyeti import cb, op2, n2p, ytools, frclim
-from pyyeti.tfsolve import TFSolve
+from pyyeti import cb, op2, n2p, ytools, frclim, tfsolve
 from nose.tools import *
 
 
@@ -61,7 +60,7 @@ def test_ntfl():
                      [0, 0, -k3, k3]])
     F = np.vstack((np.ones((1, len(freq))),
                    np.zeros((3, len(freq)))))
-    fs = TFSolve('eigfsu', MASS, DAMP, STIF)
+    fs = tfsolve.eigfsu(MASS, DAMP, STIF)
     fullsol = fs.fsolve(F, freq)
     A_coupled = fullsol.a[1]
     F_coupled = (M2/2*A_coupled - k2*(fullsol.d[2] - fullsol.d[1])
@@ -73,7 +72,7 @@ def test_ntfl():
     cs = np.array([[c1, -c1], [-c1, c1]])
     ks = np.array([[k1, -k1], [-k1, k1]])
     source = [ms, cs, ks, [[0, 1]]]
-    fs_source = TFSolve('eigfsu', ms, cs, ks)
+    fs_source = tfsolve.eigfsu(ms, cs, ks)
     sourcesol = fs_source.fsolve(F[:2], freq)
     As = sourcesol.a[1:2]   # free acceleration
 

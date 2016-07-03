@@ -4,49 +4,46 @@ Time and frequency domain equation of motion solvers (tfsolve)
 .. automodule:: pyyeti.tfsolve
 .. currentmodule:: pyyeti.tfsolve
 
-The TFSolve Class
------------------
+1st Order ODE Solver `se1`
+--------------------------
 .. autosummary::
     :toctree: generated/
 
-    TFSolve
+    se1
+    se1.tsolve
 
-Time domain solvers:
-
+2nd Order ODE Solver `su`
+-------------------------
 .. autosummary::
     :toctree: generated/
 
-    TFSolve.se1
-    TFSolve.se2
-    TFSolve.su
+    su
+    su.tsolve
+    su.fsolve
+    su.generator
+    su.finalize
+    fsu
+    eigsu
+    eigfsu
 
-Generator time domain solvers:
-
+2nd Order ODE Solver `se2`
+--------------------------
 .. autosummary::
     :toctree: generated/
 
-    TFSolve.se2_generator
-    TFSolve.su_generator
-    TFSolve.finalize
+    se2
+    se2.tsolve
+    se2.generator
+    se2.finalize
+    eigse2
 
-Frequency domain solvers:
-
+2nd Order ODE Frequency Domain Solver `fsd`
+-------------------------------------------
 .. autosummary::
     :toctree: generated/
 
-    TFSolve.fsd
-    TFSolve.fsu
-
-Optional direct setup routines (usually called via
-:func:`TFSolve.__init__`):
-
-.. autosummary::
-    :toctree: generated/
-
-    TFSolve.mkfsdparams
-    TFSolve.mkse1params
-    TFSolve.mkse2params
-    TFSolve.mksuparams
+    fsd
+    fsd.fsolve
 
 Other main routines
 -------------------

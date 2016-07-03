@@ -5,7 +5,7 @@ A very basic pretty printer (pp)
 .. currentmodule:: pyyeti.pp
 
 The PP Class
------------------
+------------
 .. autosummary::
     :toctree: generated/
 
