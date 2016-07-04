@@ -12,7 +12,7 @@ Miscellaneous
    tutorials/fatigue
    tutorials/op4
    tutorials/srs
-   tutorials/tfsolve
+   tutorials/ode
 
 Hurty-Craig-Bampton model checks
 --------------------------------

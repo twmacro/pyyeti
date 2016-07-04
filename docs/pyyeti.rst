@@ -21,12 +21,12 @@ Modules
     modules/nastran
     modules/op2
     modules/op4
+    modules/ode
     modules/pp
     modules/psd
     modules/srs
     modules/stats
     modules/ssmodel
-    modules/tfsolve
     modules/writer
     modules/ytools
 

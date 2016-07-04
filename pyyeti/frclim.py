@@ -43,7 +43,8 @@ def calcAM(S, freq, name="structure"):
        1.  If `bdof` is a 2d array_like, it is interpreted to be a
            data recovery matrix to the b-set (number b-set =
            ``bdof.shape[0]``). Structure is treated generically (uses
-           :class:`ode.eigfsu` solver to compute apparent mass).
+           :class:`ode.SolveUnc` with ``pre_eig=True`` to compute
+           apparent mass).
        2.  Otherwise, `bdof` is assumed to be a 1d partition vector
            from full `N` size to b-set and structure is assumed to be
            in Craig-Bampton form (uses :func:`cb.cbtf` to compute
@@ -66,7 +67,7 @@ def calcAM(S, freq, name="structure"):
         T = bdof
         Frc = np.zeros((r, lf))
         Acc = np.empty((r, lf, r), dtype=complex)
-        fs = ode.eigfsu(m, b, k)
+        fs = ode.SolveUnc(m, b, k, pre_eig=True)
         for direc in range(r):
             Frc[direc, :] = 1.
             sol = fs.fsolve(T.T @ Frc, freq)
@@ -151,7 +152,8 @@ def ntfl(Source, Load, As, freq):
        1.  If `bdof` is a 2d array_like, it is interpreted to be a
            data recovery matrix to the b-set (number b-set =
            ``bdof.shape[0]``). Structure is treated generically (uses
-           :func:`ode.eigfsu` solver to compute apparent mass).
+           :class:`ode.SolveUnc` with ``pre_eig=True`` to compute
+           apparent mass).
        2.  Otherwise, `bdof` is assumed to be a 1d partition vector
            from full `N` size to b-set and structure is assumed to be
            in Craig-Bampton form (uses :func:`cb.cbtf` to compute
@@ -273,7 +275,7 @@ def ntfl(Source, Load, As, freq):
         ...                  [0, 0, -k3, k3]])
         >>> F = np.vstack((np.ones((1, len(freq))),
         ...                np.zeros((3, len(freq)))))
-        >>> fs = ode.eigfsu(MASS, DAMP, STIF)
+        >>> fs = ode.SolveUnc(MASS, DAMP, STIF, pre_eig=True)
         >>> fullsol = fs.fsolve(F, freq)
         >>> A_coupled = fullsol.a[1]
         >>> F_coupled = (M2/2*A_coupled -
@@ -286,7 +288,7 @@ def ntfl(Source, Load, As, freq):
         >>> cs = np.array([[c1, -c1], [-c1, c1]])
         >>> ks = np.array([[k1, -k1], [-k1, k1]])
         >>> source = [ms, cs, ks, [[0, 1]]]
-        >>> fs_source = ode.eigfsu(ms, cs, ks)
+        >>> fs_source = ode.SolveUnc(ms, cs, ks, pre_eig=True)
         >>> sourcesol = fs_source.fsolve(F[:2], freq)
         >>> As = sourcesol.a[1:2]   # free acceleration
 

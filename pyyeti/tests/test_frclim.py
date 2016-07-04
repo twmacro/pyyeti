@@ -60,7 +60,7 @@ def test_ntfl():
                      [0, 0, -k3, k3]])
     F = np.vstack((np.ones((1, len(freq))),
                    np.zeros((3, len(freq)))))
-    fs = ode.eigfsu(MASS, DAMP, STIF)
+    fs = ode.SolveUnc(MASS, DAMP, STIF, pre_eig=True)
     fullsol = fs.fsolve(F, freq)
     A_coupled = fullsol.a[1]
     F_coupled = (M2/2*A_coupled - k2*(fullsol.d[2] - fullsol.d[1])
@@ -72,7 +72,7 @@ def test_ntfl():
     cs = np.array([[c1, -c1], [-c1, c1]])
     ks = np.array([[k1, -k1], [-k1, k1]])
     source = [ms, cs, ks, [[0, 1]]]
-    fs_source = ode.eigfsu(ms, cs, ks)
+    fs_source = ode.SolveUnc(ms, cs, ks, pre_eig=True)
     sourcesol = fs_source.fsolve(F[:2], freq)
     As = sourcesol.a[1:2]   # free acceleration
 
