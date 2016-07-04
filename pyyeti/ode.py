@@ -341,7 +341,7 @@ def eigss(A, delcc):
         M \ddot{q} + B \dot{q} + K q = F
 
     The 2nd order ODE set of equations are transformed into the
-    1st order ODE (see :func:`make_A`)::
+    1st order ODE (see :func:`make_A`):
 
     .. math::
         \left\{
@@ -353,7 +353,7 @@ def eigss(A, delcc):
         \right\} = \left\{
             \begin{array}{c} M^{-1} F \\ 0 \end{array} \right\}
 
-    or::
+    or:
 
     .. math::
         \dot{y} - A y = w
@@ -546,7 +546,7 @@ def addconj(lam, ur, ur_inv):
 
 
 def make_A(M, B, K):
-    """
+    r"""
     Setup the state-space matrix from mass, damping and stiffness.
 
     Parameters
@@ -572,7 +572,7 @@ def make_A(M, B, K):
         M \ddot{q} + B \dot{q} + K q = F
 
     The 2nd order ODE set of equations are transformed into the
-    1st order ODE::
+    1st order ODE:
 
     .. math::
         \left\{
@@ -584,7 +584,7 @@ def make_A(M, B, K):
         \right\} = \left\{
             \begin{array}{c} M^{-1} F \\ 0 \end{array} \right\}
 
-    or::
+    or:
 
     .. math::
         \dot{y} - A y = w
@@ -1281,17 +1281,16 @@ class _BaseODE(object):
 
 
 class SolveExp2(_BaseODE):
-    """
+    r"""
     2nd order ODE time domain solver based on the matrix exponential.
 
-    This class is for solving::
+    This class is for solving:
 
     .. math::
         M \ddot{q} + B \dot{q} + K q = F
 
-
     The 2nd order ODE set of equations are transformed into the
-    1st order ODE::
+    1st order ODE:
 
     .. math::
         \left\{
@@ -1303,7 +1302,7 @@ class SolveExp2(_BaseODE):
         \right\} = \left\{
             \begin{array}{c} M^{-1} F \\ 0 \end{array} \right\}
 
-    or::
+    or:
 
     .. math::
         \dot{y} - A y = w
@@ -1312,8 +1311,9 @@ class SolveExp2(_BaseODE):
     doesn't need or use the `rb` input unless static initial
     conditions are requested when solving equations.
 
-    This solver is exact assuming either piece-wise linear or
-    piece-wise constant forces.
+    Like :class:`SolveUnc`, this solver is exact assuming piece-wise
+    linear forces (if `order` is 1) or piece-wise constant forces (if
+    `order` is 0).
 
     The above equations are for the non-residual-flexibility
     modes. The 'rf' modes are solved statically and any initial
@@ -1827,11 +1827,11 @@ class SolveExp2(_BaseODE):
 
 
 class SolveUnc(_BaseODE):
-    """
+    r"""
     2nd order ODE time and frequency domain solvers for "uncoupled"
     equations of motion
 
-    This class is for solving::
+    This class is for solving:
 
     .. math::
         M \ddot{q} + B \dot{q} + K q = F
@@ -1839,14 +1839,15 @@ class SolveUnc(_BaseODE):
     Note that the mass, damping and stiffness can be fully populated
     (coupled).
 
-    This solver is exact assuming piece-wise linear forces if `order`
-    is 1.
+    Like :class:`SolveExp2`, this solver is exact assuming piece-wise
+    linear forces (if `order` is 1) or piece-wise constant forces (if
+    `order` is 0).
 
     For uncoupled equations, pre-formulated integration coefficients
     are used (see :func:`get_su_coef`).
 
     For coupled systems, the elastic modes part of the equation is
-    transformed into state-space::
+    transformed into state-space:
 
     .. math::
         \left\{
@@ -1858,7 +1859,7 @@ class SolveUnc(_BaseODE):
         \right\} = \left\{
             \begin{array}{c} M^{-1} F \\ 0 \end{array} \right\}
 
-    or::
+    or:
 
     .. math::
         \dot{y} - A y = w
@@ -2297,7 +2298,7 @@ class SolveUnc(_BaseODE):
 
         See also
         --------
-        :class:`fsd`
+        :class:`FreqDirect`
 
         Examples
         --------
@@ -2819,11 +2820,11 @@ class SolveUnc(_BaseODE):
                'to be diagonalized. Generally, this is a failure '
                'condition. For time domain problems, the routine '
                ':class:`SolveExp2` will probably work better. For '
-               'frequency domain, see :class:`fsd`. Proceeding, but '
-               'check results VERY carefully.\n\tMax off-diag of '
-               '``inv(ur) @ ur = {}``\n\tMax off-diag of '
-               '``inv(ur) @ A @ ur = {}``\n\tMax '
-               '``inv(ur) @ A @ ur = {}``')
+               'frequency domain, see :class:`FreqDirect`. '
+               'Proceeding, but check results VERY carefully.\n'
+               '\tMax off-diag of ``inv(ur) @ ur = {}``\n'
+               '\tMax off-diag of ``inv(ur) @ A @ ur = {}``\n'
+               '\tMax ``inv(ur) @ A @ ur = {}``')
         pc = SimpleNamespace()
         h = self.h
         if self.rbsize:

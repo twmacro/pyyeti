@@ -3,8 +3,16 @@
 API reference manual
 ====================
 
-Modules
--------
+..    Module contents
+..    ---------------
+..    
+..    .. automodule:: pyyeti
+..        :members:
+..        :undoc-members:
+..        :show-inheritance:
+
+Modules (alphabetical by module name)
+-------------------------------------
 
 .. toctree::
     :maxdepth: 1
@@ -19,9 +27,9 @@ Modules
     modules/locate
     modules/n2p
     modules/nastran
+    modules/ode
     modules/op2
     modules/op4
-    modules/ode
     modules/pp
     modules/psd
     modules/srs
