@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 """
+pyYeti
+======
 
--  cb.py
--  cyclecount.py
--  datacursor.py
--  dsp.py
--  expmint.py
--  fdepsd.py
--  frclim.py
--  locate.py
--  n2p.py
--  nastran.py
--  op2.py
--  op4.py
--  pp.py
--  psd.py
--  rainflow
--  srs.py
--  ssmodel.py
--  stats.py
--  tfsolve.py
--  writer.py
--  ytools.py
+pyYeti has tools mostly related to structural dynamics:
+
+    * Solve matrix equations of motion in the time and
+      frequency domains
+    * Shock response spectrum (SRS)
+    * Rainflow cycle counting
+    * Fatigue damage equivalent power spectral densities (PSD)
+    * Resample data with the Lanczos method
+    * A "vectorized" writing module
+    * A data-cursor for interacting with 2D x-y plots
+    * Statistics tools for computing k-factors (for tolerance
+      bounds and intervals) and for order statistics
+    * Force limiting analysis tools
+    * Eigensolution with the subspace iteration method
+    * Read/write Nastran output4 (.op4) files
+    * Limited capability to read Nastran output2 (.op2) files
+    * Hurty-Craig-Bampton model checks
+    * Tools for working with the "nas2cam" Nastran DMAP
+    * Other miscellaneous tools
 
 """
 

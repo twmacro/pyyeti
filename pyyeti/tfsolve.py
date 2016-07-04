@@ -2202,8 +2202,8 @@ class su(_BaseTFSolve):
         if not self.slices:
             raise NotImplementedError(
                 'generator not yet implemented for the case when'
-                ' different types of equations are interspersed (eg, '
-                'a res-flex DOF in the middle of the elastic DOFs)')
+                ' different types of equations are interspersed (eg,'
+                ' a res-flex DOF in the middle of the elastic DOFs)')
         d, v, a, force = self._init_dva_part(
             nt, F0, d0, v0, static_ic) #, 'mksuparams')
         self._d, self._v, self._a, self._force = d, v, a, force
