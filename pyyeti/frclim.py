@@ -6,8 +6,8 @@ Tools for force limiting.
 import numpy as np
 import scipy.linalg as la
 from scipy.optimize import minimize_scalar
-from pyyeti import ytools, cb, tfsolve
 from types import SimpleNamespace
+from pyyeti import ytools, cb, ode
 
 
 def calcAM(S, freq, name="structure"):
@@ -19,7 +19,7 @@ def calcAM(S, freq, name="structure"):
     S : list/tuple
         Contains: ``[mass, damp, stiff, bdof]`` for structure. These
         are the source mass, damping, and stiffness matrices (see
-        :class:`tfsolve.su`) and `bdof`, which is described
+        :class:`ode.SolveUnc`) and `bdof`, which is described
         below.
     freq : 1d array_like
         Frequency vector (Hz)
@@ -43,7 +43,7 @@ def calcAM(S, freq, name="structure"):
        1.  If `bdof` is a 2d array_like, it is interpreted to be a
            data recovery matrix to the b-set (number b-set =
            ``bdof.shape[0]``). Structure is treated generically (uses
-           :func:`tfsolve.eigfsu` solver to compute apparent mass).
+           :class:`ode.eigfsu` solver to compute apparent mass).
        2.  Otherwise, `bdof` is assumed to be a 1d partition vector
            from full `N` size to b-set and structure is assumed to be
            in Craig-Bampton form (uses :func:`cb.cbtf` to compute
@@ -66,7 +66,7 @@ def calcAM(S, freq, name="structure"):
         T = bdof
         Frc = np.zeros((r, lf))
         Acc = np.empty((r, lf, r), dtype=complex)
-        fs = tfsolve.eigfsu(m, b, k)
+        fs = ode.eigfsu(m, b, k)
         for direc in range(r):
             Frc[direc, :] = 1.
             sol = fs.fsolve(T.T @ Frc, freq)
@@ -102,7 +102,7 @@ def ntfl(Source, Load, As, freq):
            1. list/tuple of ``[mass, damp, stiff, bdof]`` for source
               (eg, launch vehicle). These are the source mass,
               damping, and stiffness matrices (see
-              :class:`tfsolve.su`) and `bdof`, which is described
+              :class:`ode.SolveUnc`) and `bdof`, which is described
               below.
            2. SAM, a 3d ndarray of source apparent mass (from a
               previous run). See description of outputs.
@@ -151,7 +151,7 @@ def ntfl(Source, Load, As, freq):
        1.  If `bdof` is a 2d array_like, it is interpreted to be a
            data recovery matrix to the b-set (number b-set =
            ``bdof.shape[0]``). Structure is treated generically (uses
-           :func:`tfsolve.eigfsu` solver to compute apparent mass).
+           :func:`ode.eigfsu` solver to compute apparent mass).
        2.  Otherwise, `bdof` is assumed to be a 1d partition vector
            from full `N` size to b-set and structure is assumed to be
            in Craig-Bampton form (uses :func:`cb.cbtf` to compute
@@ -244,7 +244,7 @@ def ntfl(Source, Load, As, freq):
         :context: close-figs
 
         >>> import numpy as np
-        >>> from pyyeti import frclim, tfsolve
+        >>> from pyyeti import frclim, ode
         >>> freq = np.arange(0., 25.1, .1)
         >>> M1 = 10.
         >>> M2 = 30.
@@ -273,7 +273,7 @@ def ntfl(Source, Load, As, freq):
         ...                  [0, 0, -k3, k3]])
         >>> F = np.vstack((np.ones((1, len(freq))),
         ...                np.zeros((3, len(freq)))))
-        >>> fs = tfsolve.eigfsu(MASS, DAMP, STIF)
+        >>> fs = ode.eigfsu(MASS, DAMP, STIF)
         >>> fullsol = fs.fsolve(F, freq)
         >>> A_coupled = fullsol.a[1]
         >>> F_coupled = (M2/2*A_coupled -
@@ -286,7 +286,7 @@ def ntfl(Source, Load, As, freq):
         >>> cs = np.array([[c1, -c1], [-c1, c1]])
         >>> ks = np.array([[k1, -k1], [-k1, k1]])
         >>> source = [ms, cs, ks, [[0, 1]]]
-        >>> fs_source = tfsolve.eigfsu(ms, cs, ks)
+        >>> fs_source = ode.eigfsu(ms, cs, ks)
         >>> sourcesol = fs_source.fsolve(F[:2], freq)
         >>> As = sourcesol.a[1:2]   # free acceleration
 
@@ -569,7 +569,7 @@ def stdfs(mr, Q):
     freq = lam[1]/2/np.pi
     F = np.zeros((3, 1))
     F[0] = 1e6
-    fs = tfsolve.fsd(mass, damp, stif)
+    fs = ode.FreqDirect(mass, damp, stif)
     sol = fs.fsolve(F, freq)
 
     spec_level = np.max(abs(sol.a[1]))
@@ -748,7 +748,7 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
             freq = np.array([fq2, fq3])
 
             # method 1: solve system only at natural frequencies
-            fs = tfsolve.fsd(mass, damp, stif)
+            fs = ode.FreqDirect(mass, damp, stif)
             sol = fs.fsolve(F, freq)
             d4 = sol.d[2]
             d2 = sol.d[1]
@@ -939,7 +939,7 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
         freq = np.array([fq2, fq3])
 
         # method 1: solve system only at natural frequencies
-        fs = tfsolve.fsd(mass, damp, stif)
+        fs = ode.FreqDirect(mass, damp, stif)
         sol = fs.fsolve(F, freq)
         d4 = sol.d[2]
         d2 = sol.d[1]

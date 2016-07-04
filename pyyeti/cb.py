@@ -7,9 +7,9 @@ import numpy as np
 import math
 import scipy.linalg as linalg
 import scipy.sparse.linalg as sp_la
-from pyyeti import n2p, locate, ytools, writer, tfsolve
 from types import SimpleNamespace
 from warnings import warn
+from pyyeti import n2p, locate, ytools, writer, ode
 
 
 def cbtf(m, b, k, a, freq, bset, save=None):
@@ -66,7 +66,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
     This is analogous to doing a seismic mass baseshake, so the
     interface force F should have peaks at fixed-base Craig-Bampton
     frequencies. To exercise a free-free system, see
-    :class:`tfsolve.fsu` or :func:`tfsolve.fsd`.
+    :class:`ode.SolveUnc` or :func:`ode.FreqDirect`.
 
     The Craig-Bampton equations of motion in the frequency domain are:
 
@@ -103,7 +103,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         &= \left(-M_{qb} + i B_{qb}/\Omega \right) \ddot{X}_b(\Omega)
         \end{aligned}
 
-    That equation is solved via :func:`tfsolve.fsu.fsolve`. After
+    That equation is solved via :func:`ode.SolveUnc.fsolve`. After
     solution, :math:`F_b(\Omega)` is computed from the top equation
     above.
 
@@ -211,7 +211,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
                 pass
         if tf is None:
             qq = np.ix_(qset, qset)
-            tf = tfsolve.fsu(m[qq], b[qq], k[qq], rb=[])
+            tf = ode.SolveUnc(m[qq], b[qq], k[qq], rb=[])
             if isinstance(save, dict):
                 save['tf'] = tf
 

@@ -2370,8 +2370,8 @@ def _proc_mset(nas, se, dof):
     m = np.nonzero(mksetpv(uset, "g", "m"))[0]
     pvdofm = gm = None
     if m.size > 0:
-        pvdofm = locate.mat_intersect(uset[m, :2].astype(np.int64),
-                                         dof)[0]
+        pvdofm = locate.mat_intersect(
+            uset[m, :2].astype(np.int64), dof)[0]
         if pvdofm.size > 0:
             hasm = 1
             m = m[pvdofm]
@@ -2404,16 +2404,16 @@ def _formtran_0(nas, dof, gset):
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
     if o.size > 0:
-        v = locate.mat_intersect(uset[o, :2].astype(np.int64),
-                                    dof)[0]
+        v = locate.mat_intersect(
+            uset[o, :2].astype(np.int64), dof)[0]
         if v.size > 0:
             raise RuntimeError("some of the DOF of SE 0 go to the"
                                " O-set. Routine not set up for"
                                " this.")
 
     a = np.nonzero(mksetpv(uset, "g", "a"))[0]
-    pvdofa = locate.mat_intersect(uset[a, :2].astype(np.int64),
-                                     dof)[0]
+    pvdofa = locate.mat_intersect(
+        uset[a, :2].astype(np.int64), dof)[0]
     if pvdofa.size > 0:
         a = a[pvdofa]
         sets = a
@@ -2436,8 +2436,8 @@ def _formtran_0(nas, dof, gset):
     hass = 0
     s = np.nonzero(mksetpv(uset, "g", "s"))[0]
     if s.size > 0:
-        pvdofs = locate.mat_intersect(uset[s, :2].astype(np.int64),
-                                         dof)[0]
+        pvdofs = locate.mat_intersect(
+            uset[s, :2].astype(np.int64), dof)[0]
         if pvdofs.size > 0:
             hass = 1
             s = s[pvdofs]
@@ -2549,8 +2549,8 @@ def formtran(nas, se, dof, gset=False):
 
     sets = np.zeros(0, np.int64)
     t = np.nonzero(mksetpv(uset, "g", "t"))[0]
-    pvdoft = locate.mat_intersect(uset[t, :2].astype(np.int64),
-                                     dof)[0]
+    pvdoft = locate.mat_intersect(
+        uset[t, :2].astype(np.int64), dof)[0]
     hast = 0
     if pvdoft.size > 0:
         hast = 1
@@ -2558,8 +2558,8 @@ def formtran(nas, se, dof, gset=False):
         sets = np.hstack((sets, t))
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
-    pvdofo = locate.mat_intersect(uset[o, :2].astype(np.int64),
-                                     dof)[0]
+    pvdofo = locate.mat_intersect(
+        uset[o, :2].astype(np.int64), dof)[0]
     haso = 0
     if pvdofo.size > 0:
         haso = 1
@@ -2607,8 +2607,8 @@ def formtran(nas, se, dof, gset=False):
     q = np.nonzero(mksetpv(uset, "g", "q"))[0]
     hasq = 0
     if q.size > 0:
-        pvdofq = locate.mat_intersect(uset[q, :2].astype(np.int64),
-                                         dof)[0]
+        pvdofq = locate.mat_intersect(
+            uset[q, :2].astype(np.int64), dof)[0]
         if pvdofq.size > 0:
             hasq = 1
             q = q[pvdofq]
@@ -2618,8 +2618,8 @@ def formtran(nas, se, dof, gset=False):
     hass = 0
     s = np.nonzero(mksetpv(uset, "g", "s"))[0]
     if s.size > 0:
-        pvdofs = locate.mat_intersect(uset[s, :2].astype(np.int64),
-                                         dof)[0]
+        pvdofs = locate.mat_intersect(
+            uset[s, :2].astype(np.int64), dof)[0]
         if pvdofs.size > 0:
             hass = 1
             s = s[pvdofs]
