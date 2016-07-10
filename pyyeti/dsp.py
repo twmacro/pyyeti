@@ -10,12 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import itertools
 from warnings import warn
-
-# to accommodate pre-3.5:
-try:
-    from math import gcd
-except ImportError:
-    from fractions import gcd
+from math import gcd
 
 
 def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
@@ -298,15 +293,15 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
     >>> x[3] *= 2
     >>> x
     array([ 0.,  1.,  2.,  6.,  4.,  5.])
-    >>> savgol_filter(x, 3, 0)
+    >>> savgol_filter(x, 3, polyorder=0)
     array([ 1.,  1.,  3.,  4.,  5.,  5.])
-    >>> exclusive_sgfilter(x, 3, True)
-    array([ 1. ,  1. ,  3.5,  3. ,  5.5,  5.5])
+    >>> exclusive_sgfilter(x, 3, exclude_midpoint=True)
+    array([ 1.5,  1. ,  3.5,  3. ,  5.5,  5. ])
 
     If `exclude_midpoint` is False, this is the same as a normal 0th
     order Savitzky-Golay filter:
 
-    >>> exclusive_sgfilter(x, 3, False)
+    >>> exclusive_sgfilter(x, 3, exclude_midpoint=False)
     array([ 1.,  1.,  3.,  4.,  5.,  5.])
     """
     n = n | 1
@@ -321,10 +316,21 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
     if axis != -1 or axis != x.ndim - 1:
         # Move the axis containing the data to the end
         x = np.swapaxes(x, axis, x.ndim - 1)
-    d = signal.lfilter(b, 1, x)
-    d[..., n_mid:-n_mid] = d[..., n-1:]
-    d[..., :n_mid] = d[..., n_mid:n_mid+1]
-    d[..., -n_mid:] = d[..., -n_mid-1:-n_mid]
+
+    # Append pieces of x onto the front and back so the averages on
+    # the ends work out properly. For example, if n is 5 and x is:
+    #      x = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    # then x2 is:
+    #      x2 = [3, 4,  0, 1, 2, 3, 4, 5, 6, 7, 8,  4, 5]
+    # 1st ave:   +  +   -  +  +
+    # 2nd ave:      +   +  -  +  +
+    # 3rd ave:          +  +  -  +  +
+    # ... last ave:                       +  +  -   +  +
+    x2 = np.concatenate((x[..., n_mid+1:n],
+                         x,
+                         x[..., -n:-(n_mid+1)]), axis=-1)
+
+    d = signal.lfilter(b, 1, x2)[..., n-1:]
     if axis != -1 or axis != x.ndim - 1:
         # Move the axis back to where it was
         d = np.swapaxes(d, axis, x.ndim - 1)
@@ -378,20 +384,23 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
     >>> from pyyeti.dsp import despike
     >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
     >>> np.set_printoptions(precision=2, linewidth=65)
-    >>> despike(x, n=9, sigma=2)
-    (array([ 2,  2,  3, -4, -5, -6,  6,  3, -2,  4, -2, -2]),
-     array([ True, False, False, False,  True, False, False, False,
-            False, False, False,  True], dtype=bool),
-     array([ 6.71,  6.71,  6.71,  6.71,  6.71,  6.36,  6.47,  7.36,
-             7.36,  7.36,  7.36,  7.36]))
+    >>> x, pv, limit = despike(x, n=9, sigma=2)
+    >>> x
+    array([ 2,  2,  3, -4, -5, -6,  6,  3, -2,  4, -2, -2])
+    >>> pv
+    array([ True, False, False, False,  True, False, False, False,
+           False, False, False,  True], dtype=bool)
+    >>> limit
+    array([ 7.23,  7.23,  7.32,  7.22,  6.95,  6.54,  6.58,  7.46,
+            7.35,  7.39,  7.35,  7.35])
     """
     def _find_outlier_peaks(peaks, n, sigma, axis):
         peaks = abs(peaks)
         ave = exclusive_sgfilter(peaks, n, axis=axis)
         delta = peaks - ave
         std = np.sqrt(exclusive_sgfilter(delta**2, n, axis=axis))
-        limit = ave + sigma * std
-        return peaks > limit, limit, ave
+        limit = sigma * std
+        return abs(delta) > limit, ave+limit, ave
 
     def _set_ave(x, pv, axis):
         pv_prev = list(pv.nonzero())
@@ -403,7 +412,7 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
         pv_prev[axis][j] += 2
         j = pv_next[axis] >= x.shape[axis]
         pv_next[axis][j] -= 2
-        x[pv] = (x[pv_prev] + x[pv_next])/2
+        x[pv] = (x[pv_prev] + x[pv_next])/2.0
 
     x = np.atleast_1d(x).copy()
     PV = None
@@ -689,7 +698,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             defsr = round(ave_sr/dsr)*dsr
         if sr == 'auto':
             sr = defsr
-        elif not sr:
+        elif not sr:                    # pragma: no cover
             ssr = input('==> Enter desired sample rate [{:g}]: '
                         .format(defsr))
             if not ssr:

@@ -419,6 +419,8 @@ def test_fixtime_too_many_tp():
 
     assert_raises(ValueError, dsp.fixtime,
                   ([1, 2, 3, 4], [1, 2, 3]))
+    assert_raises(ValueError, dsp.fixtime,
+                  np.random.randn(3, 3, 3))
 
     with assert_warns(RuntimeWarning):
         t, d = dsp.fixtime((*fd.T,), sr='auto')
@@ -572,3 +574,90 @@ def test_fftfilt():
     assert freq[0] == 0.0
     assert np.allclose(freq[1], 1/t_end)
     assert nyq - freq[-1] < freq[1]
+
+
+def test_despike():
+    x = np.array([[[[ 100,    1],
+                    [   2,    2],
+                    [   3,    3],
+                    [  -4,   -4],
+                    [  25,   25],
+                    [  -6,   -6],
+                    [   6,    6],
+                    [   3,    3],
+                    [  -2,   -2],
+                    [   4,    4],
+                    [  -2,   -2],
+                    [  -3, -100]]]])
+    x1, pv1, lim1 = dsp.despike(x, n=9, sigma=2, axis=2, maxiter=1)
+    x2, pv2, lim2 = dsp.despike(x, n=9, sigma=2, axis=2, maxiter=2)
+    x3, pv3, lim3 = dsp.despike(x, n=9, sigma=2, axis=2)
+    x4, pv4, lim4 = dsp.despike(x2, n=9, sigma=2, axis=2)
+    assert (x1 == np.array([[[[ 2,  1],
+                              [ 2,  2],
+                              [ 3,  3],
+                              [-4, -4],
+                              [25, -5],
+                              [-6, -6],
+                              [ 6,  6],
+                              [ 3,  3],
+                              [-2, -2],
+                              [ 4,  4],
+                              [-2, -2],
+                              [-3, -2]]]])).all()
+    assert (pv1 == np.array([[[[ True, False],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False,  True],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False,  True]]]])).all()
+    assert (x2 == np.array([[[[ 2,  1],
+                              [ 2,  2],
+                              [ 3,  3],
+                              [-4, -4],
+                              [-5, -5],
+                              [-6, -6],
+                              [ 6,  6],
+                              [ 3,  3],
+                              [-2, -2],
+                              [ 4,  4],
+                              [-2, -2],
+                              [-3, -2]]]])).all()
+    assert (pv2 == np.array([[[[ True, False],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [ True,  True],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False, False],
+                               [False,  True]]]])).all()
+    assert (x2 == x3).all()
+    assert (pv2 == pv3).all()
+    assert (x3 == x4).all()
+    assert (pv4 == False).all()
+    assert (lim3 == lim4).all()
+    
+
+def test_despike2():
+    x = np.arange(100.)
+    x[45] = 4.5
+    x[0] = -20
+    x[-1] = 110
+    x2, pv, lim = dsp.despike(x, 9, sigma=4)
+    x3 = x.copy()
+    x3[0] = x3[1]
+    x3[-1] = x3[-2]
+    x3[45] = 45.0
+    assert (x2==x3).all()
+
+    

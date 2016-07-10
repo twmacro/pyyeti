@@ -2078,6 +2078,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     >>> # Define the motion of grid 500 to be average of translational
     >>> # motion of grids:  100, 200, 300, and 400.
     >>> rbe3 = n2p.formrbe3(uset, 500, 123456, [123, [100, 200, 300, 400]])
+    >>> np.set_printoptions(linewidth=75)
     >>> print(rbe3+0)
     [[ 0.25  0.    0.    0.25  0.    0.    0.25  0.    0.    0.25  0.    0.  ]
      [ 0.    0.25  0.    0.    0.25  0.    0.    0.25  0.    0.    0.25  0.  ]

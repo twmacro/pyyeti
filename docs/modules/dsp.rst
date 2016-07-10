@@ -11,6 +11,8 @@ Main routines
 
     aligntime
     calcenv
+    despike
+    exclusive_sgfilter
     fdscale
     fftfilt
     fixtime
