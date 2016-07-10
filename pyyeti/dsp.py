@@ -8,6 +8,7 @@ import scipy.signal as signal
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import itertools
 from warnings import warn
 
 # to accommodate pre-3.5:
@@ -262,6 +263,159 @@ def _get_prev_index(vec, val):
     if p < 0:
         return 0
     return p
+
+
+def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
+    """
+    0th order 1-d Savitzky-Golay FIR filter that excludes midpoint
+
+    Parameters
+    ----------
+    x : nd array_like
+        Array to filter
+    n : integer
+        Number of points for filter; if even, n+1 points are used
+    exclude_midpoint : bool; optional
+        If True, exclude middle point in the filter. That is, the
+        moving average is computed without the central point. Can
+        be useful for determining if point is an outlier. The average
+        is of the n-1 surrounding points.
+    axis : integer; optional
+        Axis along which to apply filter; each subarray along this
+        axis is filtered
+
+    Returns
+    -------
+    x_f : nd ndarray
+        Filtered version of `x`
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from scipy.signal import savgol_filter
+    >>> from pyyeti.dsp import exclusive_sgfilter
+    >>> x = np.arange(6.)
+    >>> x[3] *= 2
+    >>> x
+    array([ 0.,  1.,  2.,  6.,  4.,  5.])
+    >>> savgol_filter(x, 3, 0)
+    array([ 1.,  1.,  3.,  4.,  5.,  5.])
+    >>> exclusive_sgfilter(x, 3, True)
+    array([ 1. ,  1. ,  3.5,  3. ,  5.5,  5.5])
+
+    If `exclude_midpoint` is False, this is the same as a normal 0th
+    order Savitzky-Golay filter:
+
+    >>> exclusive_sgfilter(x, 3, False)
+    array([ 1.,  1.,  3.,  4.,  5.,  5.])
+    """
+    n = n | 1
+    n_mid = n // 2
+    b = np.empty(n)
+    if exclude_midpoint:
+        b[:] = 1/(n-1)
+        b[n_mid] = 0.0
+    else:
+        b[:] = 1/n
+    x = np.atleast_1d(x)
+    if axis != -1 or axis != x.ndim - 1:
+        # Move the axis containing the data to the end
+        x = np.swapaxes(x, axis, x.ndim - 1)
+    d = signal.lfilter(b, 1, x)
+    d[..., n_mid:-n_mid] = d[..., n-1:]
+    d[..., :n_mid] = d[..., n_mid:n_mid+1]
+    d[..., -n_mid:] = d[..., -n_mid-1:-n_mid]
+    if axis != -1 or axis != x.ndim - 1:
+        # Move the axis back to where it was
+        d = np.swapaxes(d, axis, x.ndim - 1)
+    return d
+
+
+def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
+    """
+    Delete outlier data points from signal(s)
+
+    Parameters
+    ----------
+    x : nd array_like
+        Array to filter
+    n : integer
+        Number of points for moving average; if even, n+1 points are
+        used
+    sigma : real scalar; optional
+        Number of standard deviations beyond which a point is
+        considered an outlier. Note that the point itself is excluded
+        in the calculation of ``mean + sigma*std``; the surrounding
+        ``n-1`` points are used where `n` is odd.
+    maxiter : integer; optional
+        Maximum number of iterations of outlier removal
+        allowed. Multiple iterations are possible because the deletion
+        of an outlier may expose other points as outliers. If <= 0,
+        there is no set limit; the looping will stop when no more
+        outliers are detected.
+    axis : integer; optional
+        Axis along which to delete outliers; each subarray along this
+        axis is despiked
+
+    Returns
+    -------
+    x_d : nd ndarray; same shape as `x`
+        Despiked version of `x`
+    pv : bool nd ndarray; same shape as `x`
+        Has True where an outlier was detected
+    limit : nd ndarray; same shape as `x`
+        This is the ``mean + sigma*std`` curve(s). Note that the
+        operand is ``abs(x)``.
+
+    Notes
+    -----
+    Uses :func:`exclusive_sgfilter` to exclude the midpoint in the
+    moving average and the moving standard deviation calculations.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti.dsp import despike
+    >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
+    >>> np.set_printoptions(precision=2, linewidth=65)
+    >>> despike(x, n=9, sigma=2)
+    (array([ 2,  2,  3, -4, -5, -6,  6,  3, -2,  4, -2, -2]),
+     array([ True, False, False, False,  True, False, False, False,
+            False, False, False,  True], dtype=bool),
+     array([ 6.71,  6.71,  6.71,  6.71,  6.71,  6.36,  6.47,  7.36,
+             7.36,  7.36,  7.36,  7.36]))
+    """
+    def _find_outlier_peaks(peaks, n, sigma, axis):
+        peaks = abs(peaks)
+        ave = exclusive_sgfilter(peaks, n, axis=axis)
+        delta = peaks - ave
+        std = np.sqrt(exclusive_sgfilter(delta**2, n, axis=axis))
+        limit = ave + sigma * std
+        return peaks > limit, limit, ave
+
+    def _set_ave(x, pv, axis):
+        pv_prev = list(pv.nonzero())
+        pv_next = pv_prev[:]
+        pv_next[axis] = pv_next[axis].copy()
+        pv_prev[axis] -= 1
+        pv_next[axis] += 1
+        j = pv_prev[axis] < 0
+        pv_prev[axis][j] += 2
+        j = pv_next[axis] >= x.shape[axis]
+        pv_next[axis][j] -= 2
+        x[pv] = (x[pv_prev] + x[pv_next])/2
+
+    x = np.atleast_1d(x).copy()
+    PV = None
+    for i in itertools.count(1):
+        pv, limit, ave = _find_outlier_peaks(x, n, sigma, axis=axis)
+        PV = PV | pv if PV is not None else pv
+        if not pv.any():
+            break
+        _set_ave(x, pv, axis)
+        if maxiter > 0 and i >= maxiter:
+            break
+    return x, PV, limit
 
 
 def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
