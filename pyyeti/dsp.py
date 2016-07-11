@@ -9,8 +9,10 @@ import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import itertools
+from collections import abc
 from warnings import warn
 from math import gcd
+from types import SimpleNamespace
 
 
 def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
@@ -424,7 +426,7 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
         pv_prev[axis][j] += 2
         j = pv_next[axis] >= x.shape[axis]
         pv_next[axis][j] -= 2
-        
+
         x[pv] = (x[pv_prev] + x[pv_next])/2.0
 
     x = np.atleast_1d(x).copy()
@@ -441,8 +443,8 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
 
 
 def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
-            dropval=-1.40130E-45, deloutliers=True, base=None,
-            fixdrift=False, getall=False):
+            dropval=-1.40130E-45, delouttimes=True, delspikes=False,
+            base=None, fixdrift=False, getall=False):
     """
     Process recorded data to make an even time vector.
 
@@ -473,9 +475,16 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         The numerical value of drop-outs. Note that any `np.nan` or
         `np.inf` values in the data are treated as drop-outs in any
         case.
-    deloutliers : bool; optional
+    delouttimes : bool; optional
         If True, outlier times are deleted from the data; otherwise,
         they are left in.
+    delspikes : bool or dict; optional
+        If False, do not delete spikes. If True, delete spikes by
+        calling :func:`despike`; the window size is set to:
+        ``max(int(sr/10) | 1, 7)`` and accepts the other defaults (see
+        :func:`despike`). If a dict, it specifies all desired inputs
+        to :func:`despike` except for the signal itself; for example:
+        ``delspikes=dict(n=51, sigma=5, maxiter=4)``.
     base : scalar or None; optional
         Scalar value that new time vector would hit exactly if within
         range. If None, new time vector is aligned to longest section
@@ -483,8 +492,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     fixdrift : bool; optional
         If True, shift data
     getall : bool; optional
-        If True, return `dropouts` and `sr_stats`; otherwise only
-        `newdata` is returned.
+        If True, return `fixinfo`; otherwise only `newdata` is
+        returned.
 
     Returns
     -------
@@ -492,26 +501,42 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         Cleaned up version of `olddata`. Will be 2d ndarray if
         `olddata` was ndarray; otherwise it is a tuple:
         ``(time, data)``.
-    dropouts : 1d ndarray; optional
-        If `deldrops` is True (the default), this is a True/False
-        vector into `olddata` where drop-outs occurred. Otherwise,
-        it is a True/False vector into `newdata`.
-    sr_stats : 1d ndarray or None; optional
-        Five-element vector with the sample rate statistics; useful to
-        help user select best sample rate or to compare against `sr`.
-        The five elements are::
 
-            [max_sr, min_sr, mean_sr, max_count_sr, max_count_percent]
+    fixinfo : SimpleNamespace; optional
+        Only returned if `getall` is True. Members:
 
-        The `max_count_sr` is the sample rate that occurred most
-        often. This is usually the 'correct' sample rate.
-        `max_count_percent` gives the percent occurrence of
-        `max_count_sr`.
+        - `dropouts` : 1d ndarray
+           If `deldrops` is True (the default), this is a True/False
+           vector into `olddata` where drop-outs occurred. Otherwise,
+           it is a True/False vector into `newdata`.
 
-    tp : 1d ndarray or None; optional
-        Contains indices into old time vector of where time-step shifts
-        ("turning points") were done to align the new time vector
-        against the old.
+        - `sr_stats` : 1d ndarray
+           Five-element vector with the sample rate statistics; useful
+           to help user select best sample rate or to compare against
+           `sr`.  The five elements are::
+
+            [max_sr, min_sr, ave_sr, max_count_sr, max_count_percent]
+
+           The `max_count_sr` is the sample rate that occurred most
+           often. This is usually the 'correct' sample rate.
+           `max_count_percent` gives the percent occurrence of
+           `max_count_sr`.
+
+        - `tp` : 1d ndarray
+
+           Contains indices into old time vector of where time-step
+           shifts ("turning points") were done to align the new time
+           vector against the old.
+
+        - `spike_info` : SimpleNamespace or None
+           If `delspikes` is True or a dict, `spike_info` contains:
+
+               ========   ==============================
+               `limit`    As output by :func:`despike`
+               `n`        Value input to :func:`despike`
+               `pv`       As output by :func:`despike`
+               `t`        Time vector for `limit`
+               ========   ==============================
 
     Notes
     -----
@@ -519,12 +544,12 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
        1.  Find and delete drop-outs if `deldrops` is True.
 
-       2.  Delete outlier times if `deloutliers` is True. These are
+       2.  Delete outlier times if `delouttimes` is True. These are
            points with times that are more than 3 standard deviations
            away from the mean. A warning message is printed if any
            such times are found. Note that on a perfect time vector,
-           the end points are at 1.73 sigma (eg, m+1.73s =
-           .5+1.73*.2887 = 1).
+           the end points are at 1.73 sigma (eg:
+           ``mean + 1.73*sigma = 0.5 + 1.73*0.2887 = 1.0``).
 
        3.  Check for positive time steps, and if there are none, error
            out.
@@ -542,35 +567,42 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            least within 5 samples/second). If `sr` is not input,
            prompt user for `sr`.
 
-       6.  Count number of small time-steps defined as those that are
+       6.  Call :func:`despike` if requested to replace spikes with
+           linearly interpolated values.
+
+       7.  Count number of small time-steps defined as those that are
            less than ``0.93/sr``. If more than 1% of the steps are
            small, print a warning.
 
-       7.  Count number of large time-steps defines as those that are
+       8.  Count number of large time-steps defines as those that are
            greater than ``1.07/sr``. If more than 1% of the steps are
            large, print a warning.
 
-       8.  Make a new, evenly spaced time vector according to the new
+       9.  Make a new, evenly spaced time vector according to the new
            sample rate that spans the range of time in `olddata`.
 
-       9.  Find the "turning points" in the old time vector. These are
+       10. Find the "turning points" in the old time vector. These are
            where the step differs by more than 1/4 step from the
            ideal. If `fixdrift` is True, each segment is further
            divided if needed to re-align due to drift (when the
            sample rate is slightly off from the ideal). If there are
            too many turning points (more than 50% of total points),
-           this routine basically gives up and skips steps 10 and 11.
+           this routine basically gives up and skips steps 11 and 12.
 
-       10. Shift the new time vector to align with the longest section
+       11. Shift the new time vector to align with the longest section
            of "good" old time steps.
 
-       11. Loop over the segments defined by the turning points. Each
+       12. Loop over the segments defined by the turning points. Each
            segment will shifted left or right to fit with the new time
-           vector. The longest section is not shifted due to step 10.
+           vector. The longest section is not shifted due to step 11.
 
-       12. If `base` is not None, the new time vector is shifted by up
+       13. If `base` is not None, the new time vector is shifted by up
            to a half time step such that it would hit `base` exactly
            (if it was in range).
+
+       14. Fill in new data vector using best fit times. This means
+           that gaps are filled with previous value (flat line). This
+           routine does not do any linear interpolation.
 
     Examples
     --------
@@ -613,7 +645,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         return told, olddata, dropouts
 
     def _return(t, data, dropouts, sr_stats, tp, dropval,
-                getall, return_ndarray):
+                getall, return_ndarray, spike_info):
         if return_ndarray:
             newdata = np.vstack((t, data)).T
         else:
@@ -621,15 +653,20 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         if getall:
             if dropouts is None:
                 dropouts = _find_drops(data, dropval)
-            return newdata, dropouts, sr_stats, tp
+            fixinfo = SimpleNamespace(
+                dropouts=dropouts,
+                sr_stats=sr_stats,
+                tp=tp,
+                spike_info=spike_info)
+            return newdata, fixinfo
         return newdata
 
-    def _del_outtimes(told, olddata, deloutliers):
+    def _del_outtimes(told, olddata, delouttimes):
         mn = told.mean()
         sig = 3*told.std(ddof=1)
         pv = np.logical_or(told < mn-sig, told > mn+sig)
         if np.any(pv):
-            if deloutliers:
+            if delouttimes:
                 warn('there are {:d} outlier times being deleted.'
                      ' These are times more than 3-sigma away '
                      'from the mean. {:s}'.format(pv.sum(), POOR),
@@ -638,8 +675,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 olddata = olddata[~pv]
             else:
                 warn('there are {:d} outlier times that are NOT '
-                     'being deleted because `leaveoutliers` is '
-                     'True. These are times more than 3-sigma '
+                     'being deleted because `delouttimes` is '
+                     'False. These are times more than 3-sigma '
                      'away from the mean.'.format(pv.sum()),
                      RuntimeWarning)
         return told, olddata
@@ -752,12 +789,18 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         return np.sort(np.hstack((tp, tp_drift)))
 
     def _get_turning_points(told, dt, difft):
-        tp = np.nonzero(get_turning_pts(told, atol=dt/4))[0]
+        tp = np.empty(len(told), bool)
+        tp[0] = True
+        tp[1:] = abs(np.diff(told)-dt) > dt/4
+        tp[:-1] |= tp[1:]
+        tp[-1] = True
+        tp = np.nonzero(tp)[0]
+        # tp_old = np.nonzero(get_turning_pts(told, atol=dt/4))[0]
         msg = ('there are too many turning points ({:.2f}%) to '
                'account for drift. Trying to find only "big" '
-               'turning points. Skipping step 10.',
+               'turning points. Skipping step 11.',
                'there are still too many turning points ({:.2f}%) '
-               'to attempt any alignment. Skipping steps 10 and 11.')
+               'to attempt any alignment. Skipping steps 11 and 12.')
         align = True
         for i in range(2):
             if len(tp)-2 > len(told) // 2:  # -2 to ignore ends
@@ -834,10 +877,11 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         told, olddata, dropouts = _del_drops(told, olddata, dropval)
         if len(told) == 0:
             return _return(told, olddata, dropouts, sr_stats, tp,
-                           dropval, getall, return_ndarray)
+                           dropval, getall, return_ndarray,
+                           spike_info=None)
 
     # check for outlier times ... outside 3-sigma
-    told, olddata = _del_outtimes(told, olddata, deloutliers)
+    told, olddata = _del_outtimes(told, olddata, delouttimes)
 
     # check for negative steps:
     told, olddata, difft = _chk_negsteps(told, olddata, negmethod)
@@ -845,6 +889,22 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # sample rate calculations:
     sr, sr_stats = _sr_calcs(difft, sr)
     dt = 1/sr
+
+    # delete spikes if requested:
+    if delspikes:
+        if not isinstance(delspikes, abc.MutableMapping):
+            n = max(int(sr/10) | 1, 7)
+            delspikes = dict(n=n)
+        _, pv, limit = despike(olddata, **delspikes)
+        t_limit = told
+        if pv.any():
+            olddata = olddata[~pv]
+            told = told[~pv]
+            difft = np.diff(told)
+        spike_info = SimpleNamespace(pv=pv, t=t_limit, limit=limit,
+                                     n=delspikes['n'])
+    else:
+        spike_info = None
 
     # check for small and large time steps:
     _check_dt_size(difft, dt)
@@ -862,9 +922,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         t1 = base - t0 - np.round((base-t0)*sr)/sr
         tnew += t1
 
+    # fill in new data vector with best-fit times (no interpolation):
     newdata = olddata[index]
     return _return(tnew, newdata, dropouts, sr_stats, tp,
-                   dropval, getall, return_ndarray)
+                   dropval, getall, return_ndarray, spike_info)
 
 
 def aligntime(dct, channels=None, mode='truncate', value=0):

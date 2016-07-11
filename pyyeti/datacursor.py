@@ -284,6 +284,8 @@ class DataCursor(object):
                     self._annotation[ax].set_visible(False)
                     self._dot[ax].set_visible(False)
             for fig in self._figs:
+                if fig in self._kid:
+                    fig.canvas.mpl_disconnect(self._kid[fig])
                 if (self.hover and fig in self._mid and
                         self._mid[fig] is not None):
                     fig.canvas.mpl_disconnect(self._mid[fig])

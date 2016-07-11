@@ -353,7 +353,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   (master_doc, 'pyYeti', 'pyYeti Documentation',
-   author, 'pyYeti', 'One line description of project.',
+   author, 'pyYeti', 'A structural dynamics toolbox.',
    'Miscellaneous'),
 ]
 

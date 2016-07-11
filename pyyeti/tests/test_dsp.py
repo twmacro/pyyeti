@@ -236,14 +236,16 @@ def test_fixtime():
     assert np.all(yn == [1, 2, 2, 2, 2, 2, 3, 4])
 
     with assert_warns(RuntimeWarning):
-        ((t2, y2), pv,
-         sr_stats, tp) = dsp.fixtime((t, y), getall=True,
-                                        sr=1)
+        (t2, y2), info = dsp.fixtime((t, y), getall=True, sr=1)
+        #((t2, y2), pv,
+        # sr_stats, tp) = dsp.fixtime((t, y), getall=True,
+        #                                sr=1)
     assert np.all(tn == t2)
     assert np.all(yn == y2)
-    assert np.all(pv == [False, False, False, False])
-    assert np.allclose(sr_stats, [1, .2, 3/7, 1, 200/3])
-    assert np.all(tp == np.arange(4))
+    assert np.all(info.dropouts == [False, False, False, False])
+    assert np.allclose(info.sr_stats, [1, .2, 3/7, 1, 200/3])
+    assert np.all(info.tp == np.arange(4))
+    assert info.spike_info is None
     assert_raises(ValueError, dsp.fixtime, (1, 1, 1))
 
     drop = -1.40130E-45
@@ -259,13 +261,13 @@ def test_fixtime():
     y = [drop, drop, drop]
     assert_warns(RuntimeWarning, dsp.fixtime, (t, y), 'auto')
 
-    ((t2, y2), drops,
-     sr_stats, tp) = dsp.fixtime((t, y), 'auto', deldrops=False,
-                                    getall=True)
-    assert np.all(tp == [0, 2])
+
+    (t2, y2), info = dsp.fixtime((t, y), 'auto', deldrops=False,
+                                 getall=True)
+    assert np.all(info.tp == [0, 2])
     assert np.all(t2 == t)
     assert np.all(y2 == y)
-    assert np.all(drops == [True, True, True])
+    assert np.all(info.dropouts == [True, True, True])
 
     t = np.arange(100.)
     t = np.hstack((t, 200.))
@@ -276,7 +278,7 @@ def test_fixtime():
     assert np.all(y2 == np.arange(100))
 
     with assert_warns(RuntimeWarning):
-        t2, y2 = dsp.fixtime((t, y), 'auto', deloutliers=0)
+        t2, y2 = dsp.fixtime((t, y), 'auto', delouttimes=0)
     assert np.all(t2 == np.arange(200.1))
     sbe = np.ones(201, int)*99
     sbe[:100] = np.arange(100)
@@ -438,14 +440,46 @@ def test_fixtime_naninf():
     t = np.arange(15)
     y = [1, 2, 3, 4, np.nan, 6, 7, np.inf, 9, 10,
          -np.inf, 12, -1.40130E-45, 14, 15]
-    
-    with assert_warns(RuntimeWarning):
-        (tn, yn), d, sr, tp = dsp.fixtime((t, y), sr=1, getall=1)
 
-    d = np.nonzero(d)[0]
+    with assert_warns(RuntimeWarning):
+        (tn, yn), info = dsp.fixtime((t, y), sr=1, getall=1)
+
+    d = np.nonzero(info.dropouts)[0]
+    assert np.all(d == [4, 7, 10, 12])
     assert np.all(t == tn)
     assert np.all(yn == [1, 2, 3, 4, 4, 6, 7, 7, 9,
                          10, 10, 12, 12, 14, 15])
+
+
+def test_fixtime_despike():
+    import sys
+    for v in list(sys.modules.values()):
+        if getattr(v, '__warningregistry__', None):
+            v.__warningregistry__ = {}
+
+    t = np.arange(16)
+    y = [1, 2, 3, 4, np.nan, 6, 7, np.inf, 9, 10,
+         -np.inf, 12, -1.40130E-45, 14, 134, 15]
+
+    with assert_warns(RuntimeWarning):
+        (tn, yn), info = dsp.fixtime((t, y), sr=1, getall=1,
+                                     delspikes=dict(n=9))
+        (tn2, yn2), info2 = dsp.fixtime((t, y), sr=1, getall=1,
+                                        delspikes=True)
+
+    d = np.nonzero(info.dropouts)[0]
+    assert np.all(d == [4, 7, 10, 12])
+    assert np.all(t == tn)
+    assert np.all(t == tn2)
+    assert np.allclose(yn, [1, 2, 3, 4, 4, 6, 7, 7, 9,
+                            10, 10, 12, 12, 14, 14, 15])
+    assert np.allclose(yn2, [1, 2, 3, 4, 4, 6, 7, 7, 9,
+                             10, 10, 12, 12, 14, 14, 15])
+    assert info.spike_info.n == 9
+    assert info2.spike_info.n == 7
+    # spike is at pos 10 in deleted-dropout version:
+    assert np.all(np.nonzero(info.spike_info.pv)[0] == 10)
+    assert np.all(np.nonzero(info2.spike_info.pv)[0] == 10)
 
 
 def test_fixtime_perfect():
@@ -475,7 +509,7 @@ def test_aligntime():
     assert abs(newdct['t'][0] - t3[0]) < 1e-14
     print(newdct['t'][-1], t2[-1], abs(newdct['t'][-1] - t2[-1]))
     assert abs(newdct['t'][-1] - t2[-1]) < 1e-14
-    
+
     newdct = dsp.aligntime(dct, ['ax1', 'ax3'])
     assert abs(newdct['t'][0] - t3[0]) < 1e-14
     assert abs(newdct['t'][-1] - t3[-1]) < 1e-14
@@ -557,7 +591,7 @@ def test_fftfilt():
     yf = dsp.fftfilt(y, [7, 18, 45], nyq=nyq)[0]
     assert 1-stats.pearsonr(yf, y1+y3)[0] < 0.01
     assert yf.ndim == 1
-    
+
     assert_raises(ValueError, dsp.fftfilt, y, 2)
     assert_raises(ValueError, dsp.fftfilt, y, [.1, .3], bw=[.2, .2, .2])
 
@@ -646,7 +680,7 @@ def test_despike():
     assert (x3 == x4).all()
     assert (pv4 == False).all()
     assert (lim3 == lim4).all()
-    
+
 
 def test_despike2():
     x = np.arange(100.)
@@ -660,4 +694,4 @@ def test_despike2():
     x3[45] = 45.0
     assert (x2==x3).all()
 
-    
+
