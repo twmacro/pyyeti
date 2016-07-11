@@ -268,8 +268,8 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
     ----------
     x : nd array_like
         Array to filter
-    n : integer
-        Number of points for filter; if even, n+1 points are used
+    n : odd integer
+        Number of points for filter; if even, it is reset to ``n+1``
     exclude_midpoint : bool; optional
         If True, exclude middle point in the filter. That is, the
         moving average is computed without the central point. Can
@@ -277,12 +277,17 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
         is of the n-1 surrounding points.
     axis : integer; optional
         Axis along which to apply filter; each subarray along this
-        axis is filtered
+        axis is filtered.  For example, to filter each column in a 2d
+        array, set `axis` to 0.
 
     Returns
     -------
     x_f : nd ndarray
         Filtered version of `x`
+
+    Notes
+    -----
+    0th order Savitzky-Golay is a basic "moving average".
 
     Examples
     --------
@@ -345,23 +350,22 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
     ----------
     x : nd array_like
         Array to filter
-    n : integer
-        Number of points for moving average; if even, n+1 points are
-        used
+    n : odd integer
+        Number of points for moving average; if even, it is reset to
+        ``n+1``
     sigma : real scalar; optional
         Number of standard deviations beyond which a point is
-        considered an outlier. Note that the point itself is excluded
-        in the calculation of ``mean + sigma*std``; the surrounding
-        ``n-1`` points are used where `n` is odd.
+        considered an outlier.
     maxiter : integer; optional
-        Maximum number of iterations of outlier removal
-        allowed. Multiple iterations are possible because the deletion
-        of an outlier may expose other points as outliers. If <= 0,
-        there is no set limit; the looping will stop when no more
-        outliers are detected.
+        Maximum number of iterations of outlier removal allowed.
+        Multiple iterations are possible because the deletion of an
+        outlier may expose other points as outliers. If <= 0, there is
+        no set limit and the looping will stop when no more outliers
+        are detected.
     axis : integer; optional
         Axis along which to delete outliers; each subarray along this
-        axis is despiked
+        axis is despiked. For example, to despike each column in a 2d
+        array, set `axis` to 0.
 
     Returns
     -------
@@ -377,6 +381,9 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
     -----
     Uses :func:`exclusive_sgfilter` to exclude the midpoint in the
     moving average and the moving standard deviation calculations.
+    (It's still indirectly included in the moving standard deviation
+    because the average of neighbors -- which goes into the standard
+    deviation calculation -- is affected by the center point.)
 
     Examples
     --------
@@ -403,15 +410,21 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
         return abs(delta) > limit, ave+limit, ave
 
     def _set_ave(x, pv, axis):
+        # Set outlier value to be average of two neighbor points
+        # (linear interpolation).
+        # First, get previous and next indexes:
         pv_prev = list(pv.nonzero())
         pv_next = pv_prev[:]
         pv_next[axis] = pv_next[axis].copy()
         pv_prev[axis] -= 1
         pv_next[axis] += 1
+        # If spike is on an edge, just set to equal to the single
+        # neighbor:
         j = pv_prev[axis] < 0
         pv_prev[axis][j] += 2
         j = pv_next[axis] >= x.shape[axis]
         pv_next[axis][j] -= 2
+        
         x[pv] = (x[pv_prev] + x[pv_next])/2.0
 
     x = np.atleast_1d(x).copy()

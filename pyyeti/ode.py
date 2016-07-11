@@ -3655,14 +3655,10 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
     modes = []    # list to store modes
     primary = []  # flag to help delete plot objects logically
 
-    def addpoint(axes, x, y, n):
-        ln = axes.lines[n]
+    def addpoint(axes, x, y, n, i, ln):
         if ln not in h:
             print('invalid curve ... ignoring')
             return
-        freq = ln.get_xdata()
-        # get analysis freq number (ie, freq[i] = x)
-        i = np.nonzero(freq == x)[0][0]
 
         # find n'th (zero offset) Trec, acce, label:
         j = 0

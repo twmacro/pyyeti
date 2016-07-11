@@ -2545,9 +2545,9 @@ def test_getmodepart():
                                factor=.1, auto=[1, 0])
 
     mds2, frqs2, r = ode.modeselect('modeselect demo 1', ts,
-                                        Tbot.T @ f, freq, Ttop,
-                                        'Bot to Top', mfreq,
-                                        factor=.1, auto=0)
+                                    Tbot.T @ f, freq, Ttop,
+                                    'Bot to Top', mfreq,
+                                    factor=.1, auto=0)
     # from Yeti:
     modes_sbe = [2, 3]
     freqs_sbe = [13.53671044272239, 15.80726801820284]
@@ -2557,44 +2557,71 @@ def test_getmodepart():
     assert np.allclose(modes_sbe, mds2)
     assert np.allclose(freqs_sbe, frqs2)
 
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    from pyyeti.datacursor import DataCursor
+    def getdata(self):
+        self.off()
+        plt.figure('FRF')
+        ax = plt.gca()
+        self.on(ax, callbacks=False)
+        x, y, n, ind, lineh = self._snap(ax, 7.0, 0.8)
+        self._add_point(ax, x, y, n, ind, lineh)
+        self.off()
+        return 1
+    
+    old_fake_getdata = DataCursor._fake_getdata
+    DataCursor._fake_getdata = getdata
+    mds3, frqs3, r = ode.modeselect('modeselect demo 2', ts,
+                                    Tbot.T @ f, freq, Ttop,
+                                    'Bot to Top', mfreq,
+                                    factor=.1, auto=None)
+    plt.close('all')
+    DataCursor._fake_getdata = old_fake_getdata
+    
+    modes_sbe = [1, 2]
+    freqs_sbe = [6.1315401651466273, 13.53671044272239]
+    assert np.allclose(modes_sbe, mds3)
+    assert np.allclose(freqs_sbe, frqs3)
+
     # check for some error conditions:
     assert_raises(ValueError, ode.getmodepart, freq, 4, mfreq,
-                 ylog=1, idlabel='getmodepart demo 1',
-                 factor=.1, auto=[1, 0])
+                  ylog=1, idlabel='getmodepart demo 1',
+                  factor=.1, auto=[1, 0])
 
     sols = [[Tmid, sol_bot.a],
             [Ttop, sol_bot.a, 'Bot to Top'],
             [Ttop, sol_mid.a, 'Mid to Top']]
     assert_raises(ValueError, ode.getmodepart, freq, sols, mfreq,
-                 ylog=1, idlabel='getmodepart demo 1',
-                 factor=.1, auto=[1, 0])
+                  ylog=1, idlabel='getmodepart demo 1',
+                  factor=.1, auto=[1, 0])
 
     T = np.vstack((Tmid, Ttop))
     sols = [[T, sol_bot.a, 'Bot to Mid'],
             [Ttop, sol_mid.a, 'Mid to Top']]
     assert_raises(ValueError, ode.getmodepart, freq, sols, mfreq,
-                 ylog=1, idlabel='getmodepart demo 1',
-                 factor=.1, auto=[1, 0])
+                  ylog=1, idlabel='getmodepart demo 1',
+                  factor=.1, auto=[1, 0])
 
     sols = [[T, sol_bot.a, ['Bot to Mid']],
             [Ttop, sol_mid.a, 'Mid to Top']]
     assert_raises(ValueError, ode.getmodepart, freq, sols, mfreq,
-                 ylog=1, idlabel='getmodepart demo 1',
-                 factor=.1, auto=[1, 0])
+                  ylog=1, idlabel='getmodepart demo 1',
+                  factor=.1, auto=[1, 0])
 
     sols = [[Tmid, sol_bot.a, 'Bot to Mid'],
             [Ttop, sol_bot.a, 'Bot to Top'],
             [Ttop, sol_mid.a[:-1, :], 'Mid to Top']]
     assert_raises(ValueError, ode.getmodepart, freq, sols, mfreq,
-                 ylog=1, idlabel='getmodepart demo 1',
-                 factor=.1, auto=[1, 0])
+                  ylog=1, idlabel='getmodepart demo 1',
+                  factor=.1, auto=[1, 0])
 
     sols = [[Tmid, sol_bot.a, ['Bot to Mid', 'bad label']],
             [Ttop, sol_bot.a, 'Bot to Top'],
             [Ttop, sol_mid.a, 'Mid to Top']]
     assert_raises(ValueError, ode.getmodepart, freq, sols, mfreq,
-                 ylog=1, idlabel='getmodepart demo 1',
-                 factor=.1, auto=[1, 0])
+                  ylog=1, idlabel='getmodepart demo 1',
+                  factor=.1, auto=[1, 0])
 
 
 def test_ode_ic_generator():

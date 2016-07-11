@@ -232,13 +232,13 @@ class DataCursor(object):
         if maxlines == 0 and errout:
             raise RuntimeError('no lines; plot something first')
 
-    def on(self, newax=-1):
+    def on(self, newax=-1, callbacks=True):
         """
         Toggles on and (re-)initializes the DataCursor for current
         figures.
 
         If `newax` is -1, the axes that the DataCursor uses remain
-        unchanged (all, if `ax` was originally None). Other value
+        unchanged (all, if `ax` was originally None). Other values
         reset the DataCursor as described in the main help for the
         `ax` input.
         """
@@ -255,21 +255,24 @@ class DataCursor(object):
         self._bid = {}
         self._aid = {}
         self._setup_annotations()
-        for fig in self._figs:
-            cvs = fig.canvas
-            if fig not in self._kid:
-                self._kid[fig] = cvs.mpl_connect('key_press_event',
-                                                 self._key)
-            if self.hover:
-                self._mid[fig] = cvs.mpl_connect('motion_notify_event',
-                                                 self._follow)
-            else:
-                self._mid[fig] = None
-            self._bid[fig] = cvs.mpl_connect('button_press_event',
-                                             self._follow)
-            self._aid[fig] = cvs.mpl_connect('axes_leave_event',
-                                             self._leave)
-        self._is_on = True
+        if callbacks:
+            for fig in self._figs:
+                cvs = fig.canvas
+                if fig not in self._kid:
+                    self._kid[fig] = cvs.mpl_connect(
+                        'key_press_event', self._key)
+                if self.hover:
+                    self._mid[fig] = cvs.mpl_connect(
+                        'motion_notify_event', self._follow)
+                else:
+                    self._mid[fig] = None
+                self._bid[fig] = cvs.mpl_connect(
+                    'button_press_event', self._follow)
+                self._aid[fig] = cvs.mpl_connect(
+                    'axes_leave_event', self._leave)
+            self._is_on = True
+        else:
+            self._is_on = False
 
     def off(self):
         """Toggles off the DataCursor and stops it from blocking (if
@@ -305,7 +308,23 @@ class DataCursor(object):
         """
         Function to call on a left-click.
 
-        Call signature is: ``func(ax, x, y, n, ind)``
+        Call signature is: ``func(ax, x, y, n, ind, lineh)``
+
+        The parameters for the function are described below.
+
+        Parameters
+        ----------
+        ax : axes object
+            Axes handle
+        x, y : scalars
+            The selected ``(x, y)`` data point
+        n : integer
+            The line number
+        ind : integer
+            The index of the data point within the plotted data
+            vectors
+        lineh : line object
+            Line handle
         """
         self.addptfunc = func
 
@@ -331,7 +350,7 @@ class DataCursor(object):
         if self._in_loop and len(self.xypoints) == self._max_points:
             self.off()
         if self.addptfunc:
-            self.addptfunc(ax, x, y, n, ind)
+            self.addptfunc(ax, x, y, n, ind, lineh)
 
     def _del_point(self, delete_line=False):
         """Deletes last saved point, if any."""
@@ -473,6 +492,14 @@ class DataCursor(object):
                 xyn = xdata[ind], ydata[ind], n, ind, ln
         return xyn
 
+    def _fake_getdata(self):
+        """
+        Available to bypass actual mouse interaction while running
+        tests of routines that use :func:`getdata`. If this function
+        returns anything other than None, :func:`getdata` is bypassed.
+        """
+        return
+
     def getdata(self, maxpoints=-1,
                 msg='Select points, hit "t" inside axes when done'):
         """
@@ -480,14 +507,17 @@ class DataCursor(object):
         If `maxpoints` is < 0, the loop will last until user hits 't'
         inside the axes ('t' toggles off the DataCursor).
         """
-        if maxpoints == 0:
-            return
-        if maxpoints < 0 and msg:
-            print(msg)
-        self.on()
-        self._in_loop = True
-        self._max_points = maxpoints
-        self._figs[0].canvas.start_event_loop(timeout=-1)
+        # _fake_getdata is used for testing functions that need
+        # getdata
+        if self._fake_getdata() is None:
+            if maxpoints == 0:
+                return
+            if maxpoints < 0 and msg:
+                print(msg)
+            self.on()
+            self._in_loop = True
+            self._max_points = maxpoints
+            self._figs[0].canvas.start_event_loop(timeout=-1)
 
 
 # instantiate one object, meant for general use:
