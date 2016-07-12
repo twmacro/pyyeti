@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 import tempfile
 import os
+from collections import OrderedDict
 from pyyeti.pp import PP
 from nose.tools import *
 
@@ -49,3 +50,25 @@ def test_array():
     assert o.output == ('float64 ndarray 9 elems: (3, 3) [[  5.005 '
                         '  6.005   7. <...> 5] [ 11.005  12.005  '
                         '13.005]]\n')
+
+
+def test_ordered_dict():
+    d = OrderedDict()
+    d['z'] = 'should be first'
+    d['a'] = 2
+    d['b'] = ('third item', 1)
+    d[90] = 'key 90 is 4th'
+    d['Z'] = 'Z is 5'
+    d['A'] = 'A is after Z'
+    d[0] = 'last item'
+    o = PP(d)
+    sbe = ["<class 'collections.OrderedDict'>[n=7]",
+           "    'z': 'should be first'",
+           "    'a': 2",
+           "    'b': [n=2]: ('third item', 1)",
+           "    90 : 'key 90 is 4th'",
+           "    'Z': 'Z is 5'",
+           "    'A': 'A is after Z'",
+           "    0  : 'last item'",
+           '']
+    assert o.output.split('\n') == sbe

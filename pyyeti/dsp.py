@@ -344,7 +344,7 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
     return d
 
 
-def despike(x, n, sigma=6.0, maxiter=-1, mode='average', axis=-1):
+def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
     """
     Delete outlier data points from signal(s)
 
@@ -354,10 +354,13 @@ def despike(x, n, sigma=6.0, maxiter=-1, mode='average', axis=-1):
         Array to filter. If `mode` is 'delete', `x` must be 1d.
     n : odd integer
         Number of points for moving average; if even, it is reset to
-        ``n+1``
+        ``n+1``. If greater than the dimension of `x`, it is reset to
+        the dimension or 1 less.
     sigma : real scalar; optional
         Number of standard deviations beyond which a point is
-        considered an outlier.
+        considered an outlier. The default value is quite high; this
+        is possible because the point itself if excluded somewhat from
+        the calculations (see note below).
     maxiter : integer; optional
         Maximum number of iterations of outlier removal allowed.
         Multiple iterations are possible because the deletion of an
@@ -396,9 +399,9 @@ def despike(x, n, sigma=6.0, maxiter=-1, mode='average', axis=-1):
     -----
     Uses :func:`exclusive_sgfilter` to exclude the midpoint in the
     moving average and the moving standard deviation calculations.
-    (It's still indirectly included in the moving standard deviation
+    It's still indirectly included in the moving standard deviation
     because the average of neighbors -- which goes into the standard
-    deviation calculation -- is affected by the center point.)
+    deviation calculation -- is affected by the center point.
 
     Examples
     --------
@@ -448,6 +451,8 @@ def despike(x, n, sigma=6.0, maxiter=-1, mode='average', axis=-1):
         if x.ndim > 1:
             raise ValueError(
                 "when `mode` is 'delete', `x` must be 1d")
+        if n > x.size:
+            n = x.size - 1
         limit = np.empty(x.shape)
         for i in itertools.count(1):
             y = x[PV]
@@ -459,6 +464,8 @@ def despike(x, n, sigma=6.0, maxiter=-1, mode='average', axis=-1):
                 break
         x = x[PV]
     elif mode == 'average':
+        if n > x.shape[axis]:
+            n = x.shape[axis] - 1
         for i in itertools.count(1):
             pv, limit = _find_outlier_peaks(x, n, sigma, axis=axis)
             if pv.all():
@@ -511,11 +518,14 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         they are left in.
     delspikes : bool or dict; optional
         If False, do not delete spikes. If True, delete spikes by
-        calling :func:`despike`; the window size is set to:
-        ``max(int(sr/10) | 1, 7)`` and accepts the other defaults (see
-        :func:`despike`). If a dict, it specifies all desired inputs
-        to :func:`despike` except for the signal itself; for example:
-        ``delspikes=dict(n=51, sigma=5, maxiter=4)``.
+        calling :func:`despike`; the window size is set to 15 and the
+        other defaults are accepted except for `mode` (see description
+        in :func:`despike`). If a dict, it specifies all desired
+        inputs to :func:`despike` except for the signal itself. If `n`
+        is not included, it is set to 15. For example:
+        ``delspikes=dict(n=31, sigma=5, maxiter=4)``. Note that the
+        `mode` option is always reset to 'delete', even if you specify
+        'average' in the dict.
     base : scalar or None; optional
         Scalar value that new time vector would hit exactly if within
         range. If None, new time vector is aligned to longest section
@@ -917,8 +927,11 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # delete spikes if requested:
     if delspikes:
         if not isinstance(delspikes, abc.MutableMapping):
-            n = max(int(sr/10) | 1, 7)
-            delspikes = dict(n=n)
+            delspikes = dict()
+        else:
+            delspikes = dict(**delspikes)  # make a copy
+        if 'n' not in delspikes:
+            delspikes['n'] = 15
         delspikes['mode'] = 'delete'
         olddata, pv, limit = despike(olddata, **delspikes)
         t_limit = told

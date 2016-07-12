@@ -5,6 +5,9 @@ Some math and text I/O tools translated from Yeti to Python.
 
 import numpy as np
 import scipy.linalg as linalg
+import pickle
+import gzip
+import bz2
 import sys
 
 
@@ -791,3 +794,55 @@ def wtfile(f, wtfunc, *args, **kwargs):
         if f == 1:
             f = sys.stdout
         return wtfunc(f, *args, **kwargs)
+
+
+def _get_fopen(name):
+    """Utility for save/load"""
+    if name.endswith('.pgz'):
+        fopen = gzip.open
+    elif name.endswith('.pbz2'):
+        fopen = bz2.open
+    else:
+        fopen = open
+    return fopen
+
+
+def save(name, obj):
+    """
+    Save an object to a file via pickling.
+
+    Parameters
+    ----------
+    name : string
+        Name of file. Should end in either '.p' for an uncompressed
+        pickle file, or in '.pgz' or '.pbz2' for a gzip or bz2
+        compressed pickle file. Note: only '.pgz' and 'pbz2' are
+        checked for; anything else is uncompressed.
+    obj : any
+        Any object to be pickled.
+    """
+    fopen = _get_fopen(name)
+    with fopen(name, 'wb') as f:
+        pickle.dump(obj, file=f, protocol=-1)
+
+
+def load(name):
+    """
+    Load an object from a pickle file.
+
+    Parameters
+    ----------
+    name : string
+        Name of file. Should end in either '.p' for an uncompressed
+        pickle file, or in '.pgz' or '.pbz2' for a gzip or bz2
+        compressed pickle file. Note: only '.pgz' and 'pbz2' are
+        checked for; anything else is uncompressed.
+
+    Returns
+    -------
+    obj : any
+        The pickled object.
+    """
+    fopen = _get_fopen(name)
+    with fopen(name, 'rb') as f:
+        return pickle.load(f)

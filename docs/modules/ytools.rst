@@ -23,5 +23,7 @@ Text I/O helper routines
 .. autosummary::
     :toctree: generated/
 
+    load
+    save
     rdfile
     wtfile

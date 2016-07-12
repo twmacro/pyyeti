@@ -1,4 +1,6 @@
 import numpy as np
+import tempfile
+import os
 from pyyeti import ytools
 from nose.tools import *
 import scipy.linalg as linalg
@@ -97,3 +99,29 @@ def test_mattype():
     assert not ytools.mattype(np.random.randn(5, 5)*(2+1j), 'posdef')
 
     assert_raises(ValueError, ytools.mattype, c, 'badtype')
+
+
+def test_save_load():
+    a = np.arange(18).reshape(2, 3, 3)
+    b = np.arange(3)
+    d = dict(A='test var', B=[1, 2, 3])
+
+    names = []
+    try:
+        f = tempfile.NamedTemporaryFile(delete=False)
+        name = f.name
+        f.close()
+        obj = dict(a=a, b=b, c=a, d=d, e=d)
+        for ext in ('', '.pgz', '.pbz2'):
+            fname = name + ext
+            names.append(fname)
+            ytools.save(fname, obj)
+            obj_in = ytools.load(fname)
+            assert np.all(obj['a'] == obj_in['a'])
+            assert np.all(obj['b'] == obj_in['b'])
+            assert obj_in['c'] is obj_in['a']
+            assert obj['d'] == obj_in['d']
+            assert obj_in['e'] is obj_in['d']
+    finally:
+        for name in names:
+            os.remove(name)

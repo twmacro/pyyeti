@@ -476,7 +476,7 @@ def test_fixtime_despike():
     assert np.allclose(yn2, [1, 2, 3, 4, 4, 6, 7, 7, 9,
                              10, 10, 12, 12, 14, 14, 15])
     assert info.spike_info.n == 9
-    assert info2.spike_info.n == 7
+    assert info2.spike_info.n == 15
     # spike is at pos 10 in deleted-dropout version:
     assert np.all(np.nonzero(info.spike_info.pv)[0] == 10)
     assert np.all(np.nonzero(info2.spike_info.pv)[0] == 10)

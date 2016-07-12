@@ -225,10 +225,11 @@ class PP(object):
         s = ['{}[n={}]\n'.format(typename, len(dct))]
         if level < self._depth:
             keys = self._get_keys(dct, showhidden)
-            try:
-                keys = sorted(keys)
-            except TypeError:
-                pass
+            if not isinstance(dct, collections.OrderedDict):
+                try:
+                    keys = sorted(keys)
+                except TypeError:
+                    pass
             level += 1
             # get max key length for pretty printing:
             n = 0
