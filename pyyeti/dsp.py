@@ -344,14 +344,14 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
     return d
 
 
-def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
+def despike(x, n, sigma=6.0, maxiter=-1, mode='average', axis=-1):
     """
     Delete outlier data points from signal(s)
 
     Parameters
     ----------
     x : nd array_like
-        Array to filter
+        Array to filter. If `mode` is 'delete', `x` must be 1d.
     n : odd integer
         Number of points for moving average; if even, it is reset to
         ``n+1``
@@ -364,6 +364,17 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
         outlier may expose other points as outliers. If <= 0, there is
         no set limit and the looping will stop when no more outliers
         are detected.
+    mode : string; optional
+        Either 'delete' or 'average'.
+
+          =========  ================================================
+          mode       description
+          =========  ================================================
+          'delete'   delete the outliers
+          'average'  replace the outliers with an average of the two
+                     surrounding points (or nearest point, if at end)
+          =========  ================================================
+
     axis : integer; optional
         Axis along which to delete outliers; each subarray along this
         axis is despiked. For example, to despike each column in a 2d
@@ -371,8 +382,10 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
 
     Returns
     -------
-    x_d : nd ndarray; same shape as `x`
-        Despiked version of `x`
+    x_d : nd ndarray
+        Despiked version of `x`. Will be shorter than `x` if `mode`
+        is 'delete' and spikes were detected; otherwise, it will
+        have the same shape as `x`.
     pv : bool nd ndarray; same shape as `x`
         Has True where an outlier was detected
     limit : nd ndarray; same shape as `x`
@@ -409,7 +422,7 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
         delta = peaks - ave
         std = np.sqrt(exclusive_sgfilter(delta**2, n, axis=axis))
         limit = sigma * std
-        return abs(delta) > limit, ave+limit, ave
+        return abs(delta) <= limit, ave+limit
 
     def _set_ave(x, pv, axis):
         # Set outlier value to be average of two neighbor points
@@ -430,16 +443,34 @@ def despike(x, n, sigma=6.0, maxiter=-1, axis=-1):
         x[pv] = (x[pv_prev] + x[pv_next])/2.0
 
     x = np.atleast_1d(x).copy()
-    PV = None
-    for i in itertools.count(1):
-        pv, limit, ave = _find_outlier_peaks(x, n, sigma, axis=axis)
-        PV = PV | pv if PV is not None else pv
-        if not pv.any():
-            break
-        _set_ave(x, pv, axis)
-        if maxiter > 0 and i >= maxiter:
-            break
-    return x, PV, limit
+    PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
+    if mode == 'delete':
+        if x.ndim > 1:
+            raise ValueError(
+                "when `mode` is 'delete', `x` must be 1d")
+        limit = np.empty(x.shape)
+        for i in itertools.count(1):
+            y = x[PV]
+            pv, limit[PV] = _find_outlier_peaks(y, n, sigma, 0)
+            if pv.all():
+                break
+            PV[PV] &= pv
+            if maxiter > 0 and i >= maxiter:
+                break
+        x = x[PV]
+    elif mode == 'average':
+        for i in itertools.count(1):
+            pv, limit = _find_outlier_peaks(x, n, sigma, axis=axis)
+            if pv.all():
+                break
+            _set_ave(x, ~pv, axis)
+            PV &= pv
+            if maxiter > 0 and i >= maxiter:
+                break
+    else:
+        raise ValueError(
+            "`mode` must be either 'delete' or 'average'")
+    return x, ~PV, limit
 
 
 def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
@@ -583,24 +614,29 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
        10. Find the "turning points" in the old time vector. These are
            where the step differs by more than 1/4 step from the
-           ideal. If `fixdrift` is True, each segment is further
-           divided if needed to re-align due to drift (when the
-           sample rate is slightly off from the ideal). If there are
-           too many turning points (more than 50% of total points),
-           this routine basically gives up and skips steps 11 and 12.
+           ideal. Will issue warning if the number of turning points
+           is greater than 50% of total points.
 
-       11. Shift the new time vector to align with the longest section
-           of "good" old time steps.
+       11. If `fixdrift` is True, and step 10 did not issue a warning
+           about too many turning points, search for additional
+           turning points to account for drift (when the sample rate
+           in the data is slightly off from the ideal).
 
-       12. Loop over the segments defined by the turning points. Each
+       12. If step 10 did not issue a warning about too many turning
+           points, the new time vector is shifted to align with the
+           longest section of "good" old time steps.
+
+       13. Loop over the segments defined by the turning points. Each
            segment will shifted left or right to fit with the new time
-           vector. The longest section is not shifted due to step 11.
+           vector. The longest section is not shifted due to step 12
+           (unless that step was skipped because of too many turning
+           points).
 
-       13. If `base` is not None, the new time vector is shifted by up
+       14. If `base` is not None, the new time vector is shifted by up
            to a half time step such that it would hit `base` exactly
            (if it was in range).
 
-       14. Fill in new data vector using best fit times. This means
+       15. Fill in new data vector using best fit times. This means
            that gaps are filled with previous value (flat line). This
            routine does not do any linear interpolation.
 
@@ -620,7 +656,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     array([ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.])
     >>> yn
     array([1, 2, 2, 2, 2, 2, 3, 4])
-
     """
     POOR = ('This may be a poor way to handle the current data, so '
             'please check the results carefully.')
@@ -796,26 +831,15 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         tp[-1] = True
         tp = np.nonzero(tp)[0]
         # tp_old = np.nonzero(get_turning_pts(told, atol=dt/4))[0]
-        msg = ('there are too many turning points ({:.2f}%) to '
-               'account for drift. Trying to find only "big" '
-               'turning points. Skipping step 11.',
-               'there are still too many turning points ({:.2f}%) '
-               'to attempt any alignment. Skipping steps 11 and 12.')
-        align = True
-        for i in range(2):
-            if len(tp)-2 > len(told) // 2:  # -2 to ignore ends
-                align = False
-                p = (len(tp)-2)/len(told)*100
-                warn(msg[i].format(p), RuntimeWarning)
-                if i == 1:
-                    tp = tp[[0, -1]]
-                else:
-                    meandt = difft[difft > 0].mean()
-                    a = 1.1*meandt
-                    tp = np.hstack((True, (difft > a)[:-1], True))
-                    tp = np.nonzero(tp)[0]
-            else:
-                break
+        if len(tp)-2 > len(told) // 2:  # -2 to ignore ends
+            align = False
+            p = (len(tp)-2)/len(told)*100
+            msg = ('there are too many turning points ({:.2f}%) to '
+                   'account for drift or align the largest section. '
+                   'Skipping steps 11 and 12.')
+            warn(msg.format(p), RuntimeWarning)
+        else:
+            align = True
         return tp, align
 
     def _mk_initial_tnew(told, sr, dt, difft, fixdrift):
@@ -895,10 +919,11 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         if not isinstance(delspikes, abc.MutableMapping):
             n = max(int(sr/10) | 1, 7)
             delspikes = dict(n=n)
-        _, pv, limit = despike(olddata, **delspikes)
+        delspikes['mode'] = 'delete'
+        olddata, pv, limit = despike(olddata, **delspikes)
         t_limit = told
         if pv.any():
-            olddata = olddata[~pv]
+            # olddata = olddata[~pv]
             told = told[~pv]
             difft = np.diff(told)
         spike_info = SimpleNamespace(pv=pv, t=t_limit, limit=limit,

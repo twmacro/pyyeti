@@ -2564,7 +2564,10 @@ def test_getmodepart():
         self.off()
         plt.figure('FRF')
         ax = plt.gca()
-        self.on(ax, callbacks=False)
+        # the next line is preferable for normal use ... however,
+        # for more complete test coverage, use the 2nd one:
+        # self.on(ax, callbacks=False)
+        self.on()
         x, y, n, ind, lineh = self._snap(ax, 7.0, 0.8)
         self._add_point(ax, x, y, n, ind, lineh)
         self.off()
