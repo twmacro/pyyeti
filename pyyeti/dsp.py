@@ -359,8 +359,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
     sigma : real scalar; optional
         Number of standard deviations beyond which a point is
         considered an outlier. The default value is quite high; this
-        is possible because the point itself if excluded somewhat from
-        the calculations (see note below).
+        is possible because the point itself if excluded from the
+        calculations.
     maxiter : integer; optional
         Maximum number of iterations of outlier removal allowed.
         Multiple iterations are possible because the deletion of an
@@ -371,7 +371,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
         Either 'delete' or 'average'.
 
           =========  ================================================
-          mode       description
+            mode     description
           =========  ================================================
           'delete'   delete the outliers
           'average'  replace the outliers with an average of the two
@@ -399,9 +399,6 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
     -----
     Uses :func:`exclusive_sgfilter` to exclude the midpoint in the
     moving average and the moving standard deviation calculations.
-    It's still indirectly included in the moving standard deviation
-    because the average of neighbors -- which goes into the standard
-    deviation calculation -- is affected by the center point.
 
     Examples
     --------
@@ -416,16 +413,23 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
     array([ True, False, False, False,  True, False, False, False,
            False, False, False,  True], dtype=bool)
     >>> limit
-    array([ 7.23,  7.23,  7.32,  7.22,  6.95,  6.54,  6.58,  7.46,
-            7.35,  7.39,  7.35,  7.35])
+    array([ 7.93,  7.93,  7.62,  8.31,  8.12,  8.39,  6.25,  6.56,
+            7.66,  6.12,  7.66,  7.66])
     """
-    def _find_outlier_peaks(peaks, n, sigma, axis):
-        peaks = abs(peaks)
-        ave = exclusive_sgfilter(peaks, n, axis=axis)
-        delta = peaks - ave
-        std = np.sqrt(exclusive_sgfilter(delta**2, n, axis=axis))
+    # def _find_outlier_peaks0(peaks, n, sigma, axis):
+    #     peaks = abs(peaks)
+    #     ave = exclusive_sgfilter(peaks, n, axis=axis)
+    #     delta = peaks - ave
+    #     std = np.sqrt(exclusive_sgfilter(delta**2, n, axis=axis))
+    #     limit = sigma * std
+    #     return abs(delta) <= limit, ave+limit
+
+    def _find_outlier_peaks(y, n, sigma, axis):
+        ave = exclusive_sgfilter(y, n, axis=axis)
+        var = exclusive_sgfilter(y**2, n, axis=axis) - ave**2
+        std = np.sqrt(var)
         limit = sigma * std
-        return abs(delta) <= limit, ave+limit
+        return abs(y-ave) <= limit, ave + limit
 
     def _set_ave(x, pv, axis):
         # Set outlier value to be average of two neighbor points
