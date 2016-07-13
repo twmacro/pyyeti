@@ -623,63 +623,64 @@ def test_despike():
                     [   4,    4],
                     [  -2,   -2],
                     [  -3, -100]]]])
-    x1, pv1, lim1 = dsp.despike(x, n=9, sigma=2, axis=2, maxiter=1)
-    x2, pv2, lim2 = dsp.despike(x, n=9, sigma=2, axis=2, maxiter=2)
-    x3, pv3, lim3 = dsp.despike(x, n=9, sigma=2, axis=2)
-    x4, pv4, lim4 = dsp.despike(x2, n=9, sigma=2, axis=2)
-    assert (x1 == np.array([[[[ 2,  1],
-                              [ 2,  2],
-                              [ 3,  3],
-                              [-4, -4],
-                              [25, -5],
-                              [-6, -6],
-                              [ 6,  6],
-                              [ 3,  3],
-                              [-2, -2],
-                              [ 4,  4],
-                              [-2, -2],
-                              [-3, -2]]]])).all()
-    assert (pv1 == np.array([[[[ True, False],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False,  True],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False,  True]]]])).all()
-    assert (x2 == np.array([[[[ 2,  1],
-                              [ 2,  2],
-                              [ 3,  3],
-                              [-4, -4],
-                              [-5, -5],
-                              [-6, -6],
-                              [ 6,  6],
-                              [ 3,  3],
-                              [-2, -2],
-                              [ 4,  4],
-                              [-2, -2],
-                              [-3, -2]]]])).all()
-    assert (pv2 == np.array([[[[ True, False],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [ True,  True],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False, False],
-                               [False,  True]]]])).all()
-    assert (x2 == x3).all()
-    assert (pv2 == pv3).all()
-    assert (x3 == x4).all()
-    assert (pv4 == False).all()
-    assert (lim3 == lim4).all()
+    s1 = dsp.despike(x, n=9, sigma=2, axis=2, maxiter=1)
+    s2 = dsp.despike(x, n=9, sigma=2, axis=2, maxiter=2)
+    s3 = dsp.despike(x, n=9, sigma=2, axis=2)
+    s4 = dsp.despike(s2.dx, n=9, sigma=2, axis=2)
+    assert (s1.dx == np.array([[[[ 2,  1],
+                                 [ 2,  2],
+                                 [ 3,  3],
+                                 [-4, -4],
+                                 [25, -5],
+                                 [-6, -6],
+                                 [ 6,  6],
+                                 [ 3,  3],
+                                 [-2, -2],
+                                 [ 4,  4],
+                                 [-2, -2],
+                                 [-3, -2]]]])).all()
+    assert (s1.pv == np.array([[[[ True, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False,  True],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False,  True]]]])).all()
+    assert (s2.dx == np.array([[[[ 2,  1],
+                                 [ 2,  2],
+                                 [ 3,  3],
+                                 [-4, -4],
+                                 [-5, -5],
+                                 [-6, -6],
+                                 [ 6,  6],
+                                 [ 3,  3],
+                                 [-2, -2],
+                                 [ 4,  4],
+                                 [-2, -2],
+                                 [-3, -2]]]])).all()
+    assert (s2.pv == np.array([[[[ True, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [ True,  True],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False, False],
+                                 [False,  True]]]])).all()
+    assert (s2.dx == s3.dx).all()
+    assert (s2.pv == s3.pv).all()
+    assert (s3.dx == s4.dx).all()
+    assert (s4.pv == False).all()
+    assert (s3.hilim == s4.hilim).all()
+    assert (s3.lolim == s4.lolim).all()
 
 
 def test_despike2():
@@ -687,11 +688,9 @@ def test_despike2():
     x[45] = 4.5
     x[0] = -20
     x[-1] = 110
-    x2, pv, lim = dsp.despike(x, 9, sigma=4)
+    s = dsp.despike(x, 9, sigma=4)
     x3 = x.copy()
     x3[0] = x3[1]
     x3[-1] = x3[-2]
     x3[45] = 45.0
-    assert (x2==x3).all()
-
-
+    assert (s.dx==x3).all()

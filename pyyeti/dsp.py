@@ -385,51 +385,76 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
 
     Returns
     -------
-    x_d : nd ndarray
+    A SimpleNamespace with the members:
+
+    dx : nd ndarray
         Despiked version of `x`. Will be shorter than `x` if `mode`
         is 'delete' and spikes were detected; otherwise, it will
         have the same shape as `x`.
     pv : bool nd ndarray; same shape as `x`
         Has True where an outlier was detected
-    limit : nd ndarray; same shape as `x`
-        This is the ``mean + sigma*std`` curve(s). Note that the
-        operand is ``abs(x)``.
+    hilim : nd ndarray; same shape as `x`
+        This is the upper limit: ``mean + sigma*std``
+    lolim : nd ndarray; same shape as `x`
+        This is the lower limit: ``mean - sigma*std``
+    niter : integer
+        Number of iterations executed
 
     Notes
     -----
     Uses :func:`exclusive_sgfilter` to exclude the midpoint in the
     moving average and the moving standard deviation calculations.
 
+    The 'delete' and 'average' methods are different enough that
+    they may find a different set of outliers. See example below.
+
     Examples
     --------
     >>> import numpy as np
-    >>> from pyyeti.dsp import despike
+    >>> from pyyeti import dsp
     >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
     >>> np.set_printoptions(precision=2, linewidth=65)
-    >>> x, pv, limit = despike(x, n=9, sigma=2)
-    >>> x
+    >>> s = dsp.despike(x, n=9, sigma=2, mode='average')
+    >>> s.dx
     array([ 2,  2,  3, -4, -5, -6,  6,  3, -2,  4, -2, -2])
-    >>> pv
+    >>> s.pv
     array([ True, False, False, False,  True, False, False, False,
            False, False, False,  True], dtype=bool)
-    >>> limit
+    >>> s.hilim
     array([ 7.93,  7.93,  7.62,  8.31,  8.12,  8.39,  6.25,  6.56,
             7.66,  6.12,  7.66,  7.66])
-    """
-    # def _find_outlier_peaks0(peaks, n, sigma, axis):
-    #     peaks = abs(peaks)
-    #     ave = exclusive_sgfilter(peaks, n, axis=axis)
-    #     delta = peaks - ave
-    #     std = np.sqrt(exclusive_sgfilter(delta**2, n, axis=axis))
-    #     limit = sigma * std
-    #     return abs(delta) <= limit, ave+limit
+    >>> s.niter
+    3
 
+    Now, run the same data but with 'delete'. Here, a plot is very
+    helpful to visualize each iteration:
+
+    .. plot::
+        :context: close-figs
+
+        >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
+        >>> _ = plt.figure(figsize=(8, 11))
+        >>> plt.clf()
+        >>> for i in range(5):
+        ...     s = dsp.despike(x, n=9, sigma=2,
+        ...                     mode='delete', maxiter=1)
+        ...     _ = plt.subplot(5, 1, i+1)
+        ...     _ = plt.plot(x)
+        ...     _ = plt.plot(s.hilim, 'k--')
+        ...     _ = plt.plot(s.lolim, 'k--')
+        ...     _ = plt.title('Iteration {}'.format(i+1))
+        ...     x = s.dx
+        >>> plt.tight_layout()
+        >>> s.dx
+        array([ 2,  3,  6,  3, -2,  4, -2])
+
+    """
     def _find_outlier_peaks(y, n, sigma, axis):
         ave = exclusive_sgfilter(y, n, axis=axis)
         var = exclusive_sgfilter(y**2, n, axis=axis) - ave**2
         std = np.sqrt(var)
         limit = sigma * std
-        return abs(y-ave) <= limit, ave + limit
+        return abs(y-ave) <= limit, ave+limit, ave-limit
 
     def _set_ave(x, pv, axis):
         # Set outlier value to be average of two neighbor points
@@ -455,12 +480,14 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
         if x.ndim > 1:
             raise ValueError(
                 "when `mode` is 'delete', `x` must be 1d")
-        if n > x.size:
-            n = x.size - 1
-        limit = np.empty(x.shape)
+        hilim = np.empty(x.shape)
+        lolim = np.empty(x.shape)
         for i in itertools.count(1):
             y = x[PV]
-            pv, limit[PV] = _find_outlier_peaks(y, n, sigma, 0)
+            if n > y.size:
+                n = y.size - 1
+            pv, hilim[PV], lolim[PV] = _find_outlier_peaks(y, n,
+                                                           sigma, 0)
             if pv.all():
                 break
             PV[PV] &= pv
@@ -471,7 +498,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
         if n > x.shape[axis]:
             n = x.shape[axis] - 1
         for i in itertools.count(1):
-            pv, limit = _find_outlier_peaks(x, n, sigma, axis=axis)
+            pv, hilim, lolim = _find_outlier_peaks(x, n, sigma,
+                                                   axis=axis)
             if pv.all():
                 break
             _set_ave(x, ~pv, axis)
@@ -481,7 +509,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
     else:
         raise ValueError(
             "`mode` must be either 'delete' or 'average'")
-    return x, ~PV, limit
+    return SimpleNamespace(dx=x, pv=~PV,
+                           hilim=hilim, lolim=lolim, niter=i)
 
 
 def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
@@ -577,8 +606,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            If `delspikes` is True or a dict, `spike_info` contains:
 
                ========   ==============================
-               `limit`    As output by :func:`despike`
+               `hilim`    As output by :func:`despike`
+               `lolim`    As output by :func:`despike`
                `n`        Value input to :func:`despike`
+               `niter`    As output by :func:`despike`
                `pv`       As output by :func:`despike`
                `t`        Time vector for `limit`
                ========   ==============================
@@ -807,6 +838,25 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         print('==> Using sample rate = {:g}'.format(sr))
         return sr, sr_stats
 
+    def _del_spikes(delspikes, told, olddata):
+        if not isinstance(delspikes, abc.MutableMapping):
+            delspikes = dict()
+        else:
+            delspikes = dict(**delspikes)  # make a copy
+        if 'n' not in delspikes:
+            delspikes['n'] = 15
+        delspikes['mode'] = 'delete'
+        s = despike(olddata, **delspikes)
+        olddata = s.dx
+        t_limit = told
+        if s.pv.any():
+            told = told[~s.pv]
+            difft = np.diff(told)
+        spike_info = SimpleNamespace(
+            pv=s.pv, t=t_limit, hilim=s.hilim, lolim=s.lolim,
+            n=delspikes['n'], niter=s.niter)
+        return told, olddata, spike_info, difft
+
     def _check_dt_size(difft, dt):
         n = len(difft)
         nsmall = np.sum(difft < .93*dt) / n
@@ -930,21 +980,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     # delete spikes if requested:
     if delspikes:
-        if not isinstance(delspikes, abc.MutableMapping):
-            delspikes = dict()
-        else:
-            delspikes = dict(**delspikes)  # make a copy
-        if 'n' not in delspikes:
-            delspikes['n'] = 15
-        delspikes['mode'] = 'delete'
-        olddata, pv, limit = despike(olddata, **delspikes)
-        t_limit = told
-        if pv.any():
-            # olddata = olddata[~pv]
-            told = told[~pv]
-            difft = np.diff(told)
-        spike_info = SimpleNamespace(pv=pv, t=t_limit, limit=limit,
-                                     n=delspikes['n'])
+        told, olddata, spike_info, difft = _del_spikes(
+            delspikes, told, olddata)
     else:
         spike_info = None
 
