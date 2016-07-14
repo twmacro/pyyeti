@@ -643,8 +643,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            least within 5 samples/second). If `sr` is not input,
            prompt user for `sr`.
 
-       6.  Call :func:`despike` if requested to replace spikes with
-           linearly interpolated values.
+       6.  Call :func:`despike` if requested to delete data spikes.
 
        7.  Count number of small time-steps defined as those that are
            less than ``0.93/sr``. If more than 1% of the steps are
