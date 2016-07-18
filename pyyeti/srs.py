@@ -1244,7 +1244,6 @@ def vrs(spec, freq, Q, linear, Fn=None,
     zeta = 1/2/Q
     if getresp:
         N = spec.shape[1] - 1
-#        psd_vrs = np.empty((N, len(Fn), len(freq)), float)
         psd_vrs = np.empty((len(Fn), N, len(freq)))
         for i, fn in enumerate(Fn):
             t = ((1+(2*zeta*freq/fn)**2) /
@@ -1359,23 +1358,21 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
 
     # setup frequency scale for solution:
     freqw = 2*np.pi*ffreq
+    if el:
+        fw = freqw.reshape(1, -1)
+        H = (ks[pvel].reshape(-1, 1) -
+             ms[pvel].reshape(-1, 1) @ fw**2 +
+             1j*(bs[pvel].reshape(-1, 1) @ fw))
     a = np.empty((n, nf), complex)
     for j in range(nfrf):
-        # compute responses:
-        #  base acceleration = zdd
-        #  absolute response = xdd
-        #  relative response = u = x - z
+        # compute relative response, then absolute (see eqns in srs)
         a[:] = 0.
-        fs = np.dot(-np.ones((n, 1), float), frf[:, j:j+1].T)
+        fs = frf[:, j]  # len(frf)
         if rb:
-            a[pvrb] = fs[pvrb]  # / ms[pvrb] ... since ms == 1
+            a[pvrb] = -fs  # / ms ... since ms == 1
         if el:
-            fw = freqw.reshape(1, -1)
-            H = (ks[pvel].reshape(-1, 1) -
-                 np.dot(ms[pvel].reshape(-1, 1), fw**2) +
-                 1j*np.dot(bs[pvel].reshape(-1, 1), fw))
-            a[pvel] = -(fs[pvel] / H) * freqw**2
-        shk[:, j] = abs(a - fs).max(axis=1)
+            a[pvel] = (fs*freqw**2) / H
+        shk[:, j] = abs(a + fs).max(axis=1)
     return shk
 
 
