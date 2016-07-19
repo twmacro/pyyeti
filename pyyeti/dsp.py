@@ -3,6 +3,7 @@
 Digital signal processing tools.
 """
 
+import math
 import numpy as np
 import scipy.signal as signal
 import scipy.interpolate as interp
@@ -11,7 +12,6 @@ import matplotlib.patches as mpatches
 import itertools
 from collections import abc
 from warnings import warn
-from math import gcd
 from types import SimpleNamespace
 
 
@@ -183,7 +183,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     ln = data.shape[0]
 
     # setup FIR filter for upsampling given the following parameters:
-    gf = gcd(p, q)
+    gf = math.gcd(p, q)
     p = p//gf
     q = q//gf
 
@@ -801,7 +801,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         if sr1 > 5:
             dsr = 5
         else:
-            dsr = np.round(10*max(sr1, .1))/10
+            dsr = round(10*max(sr1, .1))/10
         bins = np.arange(dsr/2, sr_all.max()+dsr, dsr)
         cnt, bins = np.histogram(sr_all, bins)
         centers = (bins[:-1] + bins[1:])/2
@@ -906,7 +906,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         return tp, align
 
     def _mk_initial_tnew(told, sr, dt, difft, fixdrift):
-        L = int(np.round((told[-1] - told[0])*sr)) + 1
+        L = int(round((told[-1] - told[0])*sr)) + 1
         tnew = np.arange(L)/sr + told[0]
 
         # get turning points and see if we should try to align:
@@ -997,7 +997,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # if want new time to exactly hit base (if base were in range):
     if base is not None:
         t0 = tnew[0]
-        t1 = base - t0 - np.round((base-t0)*sr)/sr
+        t1 = base - t0 - round((base-t0)*sr)/sr
         tnew += t1
 
     # fill in new data vector with best-fit times (no interpolation):
@@ -1222,7 +1222,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         Sample rate.
     timeslice : scalar
         The length in seconds of each time slice.
-    tsoverlap : scalar
+    tsoverlap : scalar in [0, 1)
         Fraction of a time slice for overlapping. 0.5 is 50% overlap.
     func : function
         This function is called for each time slice and is expected to
@@ -1252,11 +1252,11 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         example. The call is:
         ``sig_slice = slicefunc(sig[pv], *sliceargs, **slicekwargs)``.
     sliceargs : tuple or list; optional
-        If provided, these are passed to `slicefunc`. Must be `()` if
-        `slicefunc` is None.
+        If provided, these are passed to `slicefunc`. Must be None or
+        `()` if `slicefunc` is None.
     slicekwargs : dict; optional
-        If provided, these are passed to `slicefunc`. Must be `{}` if
-        `slicefunc` is None.
+        If provided, these are passed to `slicefunc`. Must be None or
+        `{}` if `slicefunc` is None.
 
     Returns
     -------
@@ -1336,8 +1336,8 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         if max(sig.shape) < sig.size:
             raise ValueError('`sig` must be a vector')
         sig = sig.ravel()
-    if tsoverlap >= 1:
-        raise ValueError('`tsoverlap` must be less than 1')
+    if not (0 <= tsoverlap < 1):
+        raise ValueError('`tsoverlap` must be in [0, 1)')
 
     if args is None:
         args = ()
@@ -1353,14 +1353,17 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
     if ntimeslice > sig.size:
         ntimeslice = sig.size
         timeslice = ntimeslice/sr
-    inc = int(ntimeslice * tsoverlap)
-    tlen = (sig.size-inc) // (ntimeslice-inc)
+
+    inc = max(1, int(round(ntimeslice * (1.0 - tsoverlap))))
+    non_overlap = inc / ntimeslice
+    tlen = (sig.size - ntimeslice) // inc + 1
     b = 0
 
     # make time vector:
-    t0_ = timeslice/2
-    tf = t0_ + (tlen-1)*(timeslice-timeslice*tsoverlap)
+    t0_ = timeslice / 2.0
+    tf = t0_ + (tlen - 1) * timeslice * non_overlap
     t = np.linspace(t0_, tf, tlen)
+    # print('tlen =', tlen, 'inc =', inc, 't[0], t[-1] =', t[0], t[-1])
 
     if not slicefunc:
         def slicefunc(a):

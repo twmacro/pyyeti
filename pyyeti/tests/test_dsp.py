@@ -85,13 +85,49 @@ def test_waterfall():
                              which=0, freq=1)
     mp, t, f = dsp.waterfall(sig2, sr, 2, .5, func,
                              which=0, freq=1)
-    assert_raises(ValueError, dsp.waterfall, sig, sr, 2, .5, func,
+    assert_raises(ValueError, dsp.waterfall, sig, sr, 2, 0.5, func,
                   which=None, freq=1)
     assert_raises(ValueError, dsp.waterfall, sig, sr, 2, 1.5, func,
+                  which=None, freq=frq)
+    assert_raises(ValueError, dsp.waterfall, sig, sr, 2, 1.0, func,
+                  which=None, freq=frq)
+    assert_raises(ValueError, dsp.waterfall, sig, sr, 2, -0.5, func,
                   which=None, freq=frq)
     sig = np.hstack((sig2, sig2))
     assert_raises(ValueError, dsp.waterfall, sig, sr, 2, .5, func,
                   which=None, freq=frq)
+
+
+def test_waterfall2():
+    N = 5000
+    sig = np.ones(N)
+    _t = np.arange(N)/1000.
+    sr = 1/_t[1]
+    frq = np.arange(1., 5.1)
+    def func(s):
+        return np.ones(len(frq)), frq
+    # test different overlaps
+    S = 1.0
+    O = 0.5
+    mp, t, f = dsp.waterfall(sig, sr, S, O, func,
+                             which=0, freq=1)
+    step = S*(1-O)
+    tcmp = np.arange(S/2., _t[-1]-S/2+step/2, step)
+    assert np.allclose(t, tcmp)
+
+    O = 0.9
+    mp, t, f = dsp.waterfall(sig, sr, S, O, func,
+                             which=0, freq=1)
+    step = S*(1-O)
+    tcmp = np.arange(S/2., _t[-1]-S/2+step/2, step)
+    assert np.allclose(t, tcmp)
+
+    O = 0.1
+    mp, t, f = dsp.waterfall(sig, sr, S, O, func,
+                             which=0, freq=1)
+    step = S*(1-O)
+    tcmp = np.arange(S/2., _t[-1]-S/2+step/2, step)
+    assert np.allclose(t, tcmp)
 
 
 def test_get_turning_pts():
