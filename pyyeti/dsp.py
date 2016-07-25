@@ -1913,3 +1913,252 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
             plt.axvline(x, **style)
         plt.axhline(mag, **style)
     return y_h, freq, h
+
+
+def fftcoef(x, sr, coef='mag', window='boxcar', dodetrend=False,
+            fold=True, maxdf=None):
+    r"""
+    FFT sine/cosine or magnitude/phase coefficients of a signal
+
+    Parameters
+    ----------
+    x : 1d array_like
+        The (real) signal to FFT
+    sr : scalar
+        The sample rate (samples/sec)
+    coef : string; optional
+        If set to 'mag', return magnitude and phase; otherwise,
+        return A and B: the cosine and sine coefficients (see
+        below)
+    window : string, tuple, or 1d array_like; optional
+        Specifies window function. If a string or tuple, it is passed
+        to :func:`scipy.signal.get_window` to get the window. If 1d
+        array_like, it must be length ``len(x)`` and is used directly.
+    dodetrend : bool; optional
+        If True, remove a linear fit from `x`; otherwise, no
+        detrending is done.
+    fold : bool; optional
+        If true, "fold" negative frequencies on top of positive
+        frequencies such that the coefficients at frequencies that
+        have a negative counterpart are doubled (magnitude is also
+        doubled).
+    maxdf : scalar or None; optional
+        If scalar, this is the maximum allowed frequency step; zero
+        padding will be done if necessary to enforce this. Note that
+        this is for providing more points between peaks only. If None,
+        the delta frequency is simply ``sr/len(x)``.
+
+    Returns
+    -------
+    MAG_or_A : 1d ndarray
+        The magnitude or cosine coefficients
+    PHASE_or_B : 1d ndarray
+        The phase (rad) or sine coefficients
+    f : 1d ndarray
+        Frequency vector (Hz)
+
+    Notes
+    -----
+    The FFT results are scaled according to the 'coherent gain' of the
+    window function (1.0 "boxcar")::
+
+        scale = 1/coherent_gain
+        coherent_gain = sum(window)/len(window)
+
+    The coefficients are related to the original signal by the
+    summations (if `fold` is True):
+
+    .. math::
+        x(t_n) = \sum\limits^{len(x)-1}_{k=0}
+                  M_k\sin(k \omega t_n - \phi_k)
+
+    .. math::
+        x(t_n) = \sum\limits^{len(x)-1}_{k=0}
+                  A_k \cos(k \omega t_n) +
+                  B_k \sin(k \omega t_n)
+
+    where :math:`\omega = 2 \pi \Delta f`, :math:`M` is the magnitude,
+    and :math:`\phi` is the phase.
+
+    The example below uses these formulas directly to upsample a
+    signal. This is for demonstration only; to truly upsample a
+    signal based on FFT, see :func:`scipy.signal.resample`.
+
+    See also
+    --------
+    :func:`fftmap`
+
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
+        >>> from pyyeti import dsp
+        >>> n = 23
+        >>> x = np.random.randn(n)
+        >>> t = np.arange(n)
+        >>> mag, phase, frq = dsp.fftcoef(x, 1.0)
+        >>> w = 2*np.pi*frq[1]
+        >>> #
+        >>> # use a finer time vector for reconstructions:
+        >>> t2 = np.arange(0., n, .05)
+        >>> #
+        >>> # reconstruct with magnitude and phase:
+        >>> x2 = 0.0
+        >>> for k, (m, p, f) in enumerate(zip(mag, phase, frq)):
+        ...     x2 = x2 + m*np.sin(k*w*t2 - p)
+        >>> #
+        >>> # reconstruct with A and B:
+        >>> A, B, frq = dsp.fftcoef(x, 1.0, coef='ab')
+        >>> x3 = 0.0
+        >>> for k, (a, b, f) in enumerate(zip(A, B, frq)):
+        ...     x3 = x3 + a*np.cos(k*w*t2) + b*np.sin(k*w*t2)
+        >>> #
+        >>> _ = plt.plot(t, x, 'o', label='Original')
+        >>> _ = plt.plot(t2, x2, label='FFT fit 1')
+        >>> _ = plt.plot(t2, x3, '--', label='FFT fit 2')
+        >>> _ = plt.legend(loc='best')
+        >>> _ = plt.title('Using `fftcoef` for FFT curve fit')
+        >>> _ = plt.xlabel('Time (s)')
+
+    """
+    n = len(x)
+    if isinstance(window, (str, tuple)):
+        window = signal.get_window(window, n)
+    else:
+        window = np.atleast_1d(window)
+        if len(window) != n:
+            raise ValueError('window size is {}; expected {} to '
+                             'match signal'.format(len(window), n))
+    scale = n/window.sum()
+    window *= scale
+
+    if dodetrend:
+        x = signal.detrend(x) * window
+    else:
+        x = x * window
+
+    def _fftsize(n, sr, maxdf):
+        if maxdf and sr/n > maxdf:
+            N = nextpow2(int(sr/maxdf))
+        else:
+            N = n
+        return N
+
+    N = _fftsize(n, sr, maxdf)
+    if N > n:
+        X = np.empty(N)
+        X[:n] = x
+        X[n:] = 0.0
+    else:
+        X = x
+    even = not (N & 1)
+    if even:
+        m = N // 2 + 1
+    else:
+        m = (N+1) // 2
+
+    F = np.fft.fft(X)
+    f = np.arange(0., m)*(sr/N)
+    if fold:
+        a = 2.0 * F[:m].real / n
+        a[0] = a[0] / 2.0
+        if even:
+            a[m-1] = a[m-1] / 2.0
+        b = -2.0 * F[:m].imag / n
+    else:
+        a = F[:m].real / n
+        b = -F[:m].imag / n
+
+    if coef == 'mag':
+        return np.sqrt(a**2 + b**2), np.arctan2(-a, b), f
+    return a, b, f
+
+
+def fftmap(timeslice, tsoverlap, sig, sr,
+           window='hann', dodetrend=False, fold=True, maxdf=None):
+    """
+    Make an FFT map ('waterfall') over time and frequency.
+
+    Parameters
+    ----------
+    timeslice : scalar
+        The length in seconds of each time slice.
+    tsoverlap : scalar
+        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
+    sig : 1d array_like
+        Signal to compute FFT map of.
+    sr : scalar
+        The sample rate (samples/sec)
+    window : string, tuple, or 1d array_like; optional
+        Specifies window function. If a string or tuple, it is passed
+        to :func:`scipy.signal.get_window` to get the window. If 1d
+        array_like, it must be length ``len(x)`` and is used directly.
+    dodetrend : bool; optional
+        If True, remove a linear fit from `x`; otherwise, no
+        detrending is done.
+    fold : bool; optional
+        If true, "fold" negative frequencies on top of positive
+        frequencies such that the coefficients at frequencies that
+        have a negative counterpart are doubled (magnitude is also
+        doubled).
+    maxdf : scalar or None; optional
+        If scalar, this is the maximum allowed frequency step; zero
+        padding will be done if necessary to enforce this. Note that
+        this is for providing more points between peaks only. If None,
+        the delta frequency is simply ``sr/len(x)``.
+
+    Returns
+    -------
+    mp : 2d ndarray
+        The FFT map; columns span time, rows span frequency (so each
+        column is an FFT curve). Time increases going across the
+        columns and frequency increases going down the rows.
+    t : 1d ndarray
+        Time vector of center times; corresponds to columns in map.
+        Signal is assumed to start at time = 0.
+    f : 1d ndarray
+        Frequency vector; corresponds to rows in map.
+
+    Notes
+    -----
+    This routine calls :func:`fftcoef` for each time slice. `mp` is a
+    matrix where each column is the FFT magnitude at all discrete
+    frequencies for a certain time-slice.  That is, time increases
+    going across the columns and frequency increases going down the
+    rows.
+
+    See also
+    --------
+    :func:`fftcoef`
+
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
+        >>> from matplotlib import cm
+        >>> from pyyeti import dsp, ytools
+        >>> sig, t, f = ytools.gensweep(10, 1, 50, 4)
+        >>> sr = 1/t[1]
+        >>> mp, t, f = dsp.fftmap(2, .1, sig, sr)
+        >>> pv = f <= 50.0
+        >>> _ = plt.contour(t, f[pv], mp[pv], 40, cmap=cm.cubehelix)
+        >>> cbar = plt.colorbar()
+        >>> cbar.filled = True
+        >>> cbar.draw_all()
+        >>> _ = plt.xlabel('Time (s)')
+        >>> _ = plt.ylabel('Frequency (Hz)')
+        >>> ttl = 'FFT Map of Sine-Sweep @ 4 oct/min'
+        >>> _ = plt.title(ttl)
+
+    """
+    return waterfall(sig, sr, timeslice, tsoverlap, fftcoef,
+                     which=0, freq=2,
+                     kwargs=dict(sr=sr, window=window,
+                                 dodetrend=dodetrend,
+                                 fold=fold, maxdf=maxdf))

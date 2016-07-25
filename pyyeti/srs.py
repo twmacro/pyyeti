@@ -1390,7 +1390,7 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
     sig : 1d array_like
         Base acceleration signal; vector.
     sr : scalar
-        Sample rate.
+        The sample rate (samples/sec)
     freq : array_like
         Frequency vector in Hz. This defines the single DOF systems
         to use.

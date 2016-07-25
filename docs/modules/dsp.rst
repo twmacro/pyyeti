@@ -14,7 +14,9 @@ Main routines
     despike
     exclusive_sgfilter
     fdscale
+    fftcoef
     fftfilt
+    fftmap
     fixtime
     resample
     waterfall
