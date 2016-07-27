@@ -344,7 +344,8 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
     return d
 
 
-def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
+def despike(x, n, sigma=8.0, maxiter=-1, mode='average',
+            threshold_sigma=0.1, threshold_value=None, axis=-1):
     """
     Delete outlier data points from signal(s)
 
@@ -378,6 +379,16 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
                      surrounding points (or nearest point, if at end)
           =========  ================================================
 
+    threshold_sigma : scalar; optional
+        Number of standard deviations below which all data is kept.
+        This standard deviation is of the entire input signal. This
+        value exists to avoid deleting small deviations such as bit
+        toggles. `threshold_value` overrides `threshold_sigma` if it
+        is not None.
+    threshold_value : scalar or None; optional
+        Optional method for specifying a minimum threshold. If not
+        None, this scalar is used as an absolute minimum deviation
+        from the moving average for a value to be considered a spike.
     axis : integer; optional
         Axis along which to delete outliers; each subarray along this
         axis is despiked. For example, to despike each column in a 2d
@@ -407,6 +418,9 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
 
     The 'delete' and 'average' methods are different enough that
     they may find a different set of outliers. See example below.
+
+    To not use a threshold, set `threshold_sigma` to 0.0 (or set
+    `threshold_value` to 0.0).
 
     Examples
     --------
@@ -449,11 +463,21 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
         array([ 2,  3,  6,  3, -2,  4, -2])
 
     """
-    def _find_outlier_peaks(y, n, sigma, axis):
+    def _get_min_limit(x, axis, threshold_sigma, threshold_value):
+        if threshold_value is not None:
+            return threshold_value
+        min_limit = threshold_sigma * np.std(x, axis=axis)
+        # reshape min_limit so it is broadcast compatible with x:
+        shape = list(x.shape)
+        shape[axis] = 1
+        return min_limit.reshape(shape)
+
+    def _find_outlier_peaks(y, n, sigma, min_limit, axis):
         ave = exclusive_sgfilter(y, n, axis=axis)
         var = exclusive_sgfilter(y**2, n, axis=axis) - ave**2
-        std = np.sqrt(var)
-        limit = sigma * std
+        # use abs to care of negative numerical zeros:
+        std = np.sqrt(abs(var))
+        limit = np.fmax(sigma * std, min_limit)
         return abs(y-ave) <= limit, ave+limit, ave-limit
 
     def _set_ave(x, pv, axis):
@@ -471,10 +495,11 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
         pv_prev[axis][j] += 2
         j = pv_next[axis] >= x.shape[axis]
         pv_next[axis][j] -= 2
-
         x[pv] = (x[pv_prev] + x[pv_next])/2.0
 
     x = np.atleast_1d(x).copy()
+    min_limit = _get_min_limit(x, axis, threshold_sigma,
+                               threshold_value)
     PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
     if mode == 'delete':
         if x.ndim > 1:
@@ -486,8 +511,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
             y = x[PV]
             if n > y.size:
                 n = y.size - 1
-            pv, hilim[PV], lolim[PV] = _find_outlier_peaks(y, n,
-                                                           sigma, 0)
+            pv, hilim[PV], lolim[PV] = _find_outlier_peaks(
+                y, n, sigma, min_limit, 0)
             if pv.all():
                 break
             PV[PV] &= pv
@@ -498,8 +523,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average', axis=-1):
         if n > x.shape[axis]:
             n = x.shape[axis] - 1
         for i in itertools.count(1):
-            pv, hilim, lolim = _find_outlier_peaks(x, n, sigma,
-                                                   axis=axis)
+            pv, hilim, lolim = _find_outlier_peaks(
+                x, n, sigma, min_limit, axis=axis)
             if pv.all():
                 break
             _set_ave(x, ~pv, axis)
@@ -837,7 +862,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         print('==> Using sample rate = {:g}'.format(sr))
         return sr, sr_stats
 
-    def _del_spikes(delspikes, told, olddata):
+    def _del_spikes(delspikes, told, olddata, difft):
         if not isinstance(delspikes, abc.MutableMapping):
             delspikes = dict()
         else:
@@ -980,7 +1005,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # delete spikes if requested:
     if delspikes:
         told, olddata, spike_info, difft = _del_spikes(
-            delspikes, told, olddata)
+            delspikes, told, olddata, difft)
     else:
         spike_info = None
 

@@ -527,6 +527,16 @@ def test_fixtime_perfect():
     assert np.all(y2 == y)
 
 
+def test_fixtime_perfect_delspike():
+    dt = .001
+    t = np.arange(1000)*dt
+    y = np.sin(2*np.pi*5*t)
+    (t2, y2), info = dsp.fixtime((t, y), 'auto',
+                                 delspikes=True, getall=1)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == y)
+
+
 def test_aligntime():
     dt = .001
     t = np.arange(1000)*dt
@@ -730,3 +740,35 @@ def test_despike2():
     x3[-1] = x3[-2]
     x3[45] = 45.0
     assert (s.dx==x3).all()
+
+
+def test_despike3():
+    dt = .001
+    t = np.arange(1000)*dt
+    y = np.sin(2*np.pi*5*t)
+    y[400:500] = 0.0
+    y1 = y.copy()
+
+    y[450] = 0.3
+    for axis in (0, 2):
+        desp = dsp.despike(y, 15, axis=axis)
+        assert np.all(desp.dx == y1)
+
+        desp = dsp.despike(y, 15, threshold_value=0.29, axis=axis)
+        assert np.all(desp.dx == y1)
+
+        desp = dsp.despike(y, 15, threshold_value=0.31, axis=axis)
+        assert np.all(desp.dx == y)
+
+        if axis == 0:
+            y[450] = 0.05
+        else:
+            y[0, 0, 450, 0, 0] = 0.05
+
+        desp = dsp.despike(y, 15, axis=axis)
+        assert np.all(desp.dx == y)
+
+        # same tests, in a different dimension:
+        y1 = y1.reshape(1, 1, -1, 1, 1)
+        y = y1.copy()
+        y[0, 0, 450, 0, 0] = 0.3

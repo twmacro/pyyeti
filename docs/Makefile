@@ -58,7 +58,7 @@ clean:
 
 notebooks:
 
-	make -C tutorial notebooks
+	make -C tutorials notebooks
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
