@@ -491,3 +491,9 @@ def test_bad_sparse():
                   sparse='badsparsestring')
     assert_raises(ValueError, op4.save, matfile, dict(r=r),
                   sparse='badsparsestring', binary=False)
+
+
+def test_bad_dimensions():
+    matfile = 'temp.op4'
+    r = np.ones((2, 2, 2))
+    assert_raises(ValueError, op4.save, matfile, dict(r=r))

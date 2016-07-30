@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.stats as stats
+import scipy.signal as signal
 from pyyeti import dsp, locate, ytools
 from nose.tools import *
 
@@ -54,6 +55,17 @@ def test_resample():
         assert 1-lcc[pts] < .015
         assert np.abs(np.mean(d)-np.mean(d0)) < .005
     assert lcc[50] > lcc[10]
+
+
+def test_exclusive_sgfilter():
+    assert_raises(ValueError, dsp.exclusive_sgfilter,
+                  [1, 2, 3, 4, 5, 6, 7, 8], 5, 'badoption')
+    assert_raises(ValueError, dsp.exclusive_sgfilter,
+                  [1, 2, 3, 4, 5, 6, 7, 8], 5, 6)
+    x = np.arange(4*2*150*3.0).reshape(4, 2, 150, 3)
+    x1 = signal.savgol_filter(x, 11, 0, axis=2)
+    x2 = dsp.exclusive_sgfilter(x, 11, exclude_point=None, axis=2)
+    assert np.allclose(x1, x2)
 
 
 def test_windowends():
@@ -537,6 +549,65 @@ def test_fixtime_perfect_delspike():
     assert np.all(y2 == y)
 
 
+def test_fixtime_exclude_point_change():
+    dt = .001
+    t = np.arange(1000)*dt
+    y = np.empty(1000)
+    y[::2] = 0.5
+    y[1::2] = -0.5
+    ycopy = y.copy()
+    ycopy[100:105] = y[99]
+    y[100:105] = 5.0
+
+    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == ycopy)
+
+    t2, y2 = dsp.fixtime(
+        (t, y), 'auto', delspikes=dict(exclude_point='last'))
+    assert np.allclose(t2, t)
+    assert np.all(y2 == ycopy)
+
+    t2, y2 = dsp.fixtime(
+        (t, y), 'auto', delspikes=dict(exclude_point='middle'))
+    assert np.allclose(t2, t)
+    assert np.all(y2 == y)
+
+    # some of a ramp up should be deleted:
+    y[100:105] = np.arange(0.0, 5.0)*3
+    ycopy = y.copy()
+    ycopy[102:105] = y[101]
+    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True)
+    # (t2, y2), info = dsp.fixtime((t, y), 'auto',
+    #                              delspikes=dict(maxiter=-1),
+    #                              getall=True)
+    # plt.figure(1)
+    # plt.clf()
+    # plt.plot(t, y)
+    # plt.plot(t2, y2)
+    # plt.plot(info.spike_info.t, info.spike_info.lolim)
+    # plt.plot(info.spike_info.t, info.spike_info.hilim)
+    # plt.xlim(.08, .11)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == ycopy)
+
+    # none of a ramp down should be deleted:
+    y[100:105] = np.arange(5.0, 0.0, -1.0)*3
+    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True)
+    # (t2, y2), info = dsp.fixtime((t, y), 'auto',
+    #                              delspikes=dict(maxiter=1),
+    #                              getall=True)
+    # plt.figure(2)
+    # plt.clf()
+    # plt.plot(t, y)
+    # plt.plot(t2, y2)
+    # plt.plot(info.spike_info.t, info.spike_info.lolim)
+    # plt.plot(info.spike_info.t, info.spike_info.hilim)
+    # plt.xlim(.08, .11)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == y)
+
+
 def test_aligntime():
     dt = .001
     t = np.arange(1000)*dt
@@ -656,119 +727,144 @@ def test_fftfilt():
     assert nyq - freq[-1] < freq[1]
 
 
-def test_despike():
-    x = np.array([[[[ 100,    1],
-                    [   2,    2],
-                    [   3,    3],
-                    [  -4,   -4],
-                    [  25,   25],
-                    [  -6,   -6],
-                    [   6,    6],
-                    [   3,    3],
-                    [  -2,   -2],
-                    [   4,    4],
-                    [  -2,   -2],
-                    [  -3, -100]]]])
-    s1 = dsp.despike(x, n=9, sigma=2, axis=2, maxiter=1)
-    s2 = dsp.despike(x, n=9, sigma=2, axis=2, maxiter=2)
-    s3 = dsp.despike(x, n=9, sigma=2, axis=2)
-    s4 = dsp.despike(s2.dx, n=9, sigma=2, axis=2)
-    assert (s1.dx == np.array([[[[ 2,  1],
-                                 [ 2,  2],
-                                 [ 3,  3],
-                                 [-4, -4],
-                                 [25, -5],
-                                 [-6, -6],
-                                 [ 6,  6],
-                                 [ 3,  3],
-                                 [-2, -2],
-                                 [ 4,  4],
-                                 [-2, -2],
-                                 [-3, -2]]]])).all()
-    assert (s1.pv == np.array([[[[ True, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False,  True],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False,  True]]]])).all()
-    assert (s2.dx == np.array([[[[ 2,  1],
-                                 [ 2,  2],
-                                 [ 3,  3],
-                                 [-4, -4],
-                                 [-5, -5],
-                                 [-6, -6],
-                                 [ 6,  6],
-                                 [ 3,  3],
-                                 [-2, -2],
-                                 [ 4,  4],
-                                 [-2, -2],
-                                 [-3, -2]]]])).all()
-    assert (s2.pv == np.array([[[[ True, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [ True,  True],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False, False],
-                                 [False,  True]]]])).all()
-    assert (s2.dx == s3.dx).all()
-    assert (s2.pv == s3.pv).all()
-    assert (s3.dx == s4.dx).all()
-    assert (s4.pv == False).all()
-    assert (s3.hilim == s4.hilim).all()
-    assert (s3.lolim == s4.lolim).all()
-
-
-def test_despike2():
+def test_despike1():
     x = np.arange(100.)
     x[45] = 4.5
     x[0] = -20
     x[-1] = 110
     s = dsp.despike(x, 9, sigma=4)
-    x3 = x.copy()
-    x3[0] = x3[1]
-    x3[-1] = x3[-2]
-    x3[45] = 45.0
-    assert (s.dx==x3).all()
+    pv = np.zeros(x.shape, bool)
+    pv[0] = True
+    pv[45] = True
+    pv[-1] = True
+    assert (s.pv == pv).all()
+    assert (s.dx == x[~pv]).all()
+    assert_raises(ValueError, dsp.despike, np.ones((5, 5)), 3)
 
 
-def test_despike3():
+def test_despike2():
     dt = .001
     t = np.arange(1000)*dt
     y = np.sin(2*np.pi*5*t)
     y[400:500] = 0.0
-    y1 = y.copy()
-
     y[450] = 0.3
-    for axis in (0, 2):
-        desp = dsp.despike(y, 15, axis=axis)
-        assert np.all(desp.dx == y1)
+    y1 = np.concatenate((y[:450], y[451:]))
+    pv = np.zeros(1000, bool)
+    pv[450] = True
+    desp = dsp.despike(y, 15)
+    assert np.all(desp.dx == y1)
+    assert np.all(desp.pv == pv)
 
-        desp = dsp.despike(y, 15, threshold_value=0.29, axis=axis)
-        assert np.all(desp.dx == y1)
+    desp = dsp.despike(y, 15, threshold_value=0.29)
+    assert np.all(desp.dx == y1)
+    assert np.all(desp.pv == pv)
 
-        desp = dsp.despike(y, 15, threshold_value=0.31, axis=axis)
-        assert np.all(desp.dx == y)
+    desp = dsp.despike(y, 15, threshold_value=0.31)
+    assert np.all(desp.dx == y)
+    pv = np.zeros(1000, bool)
+    assert np.all(desp.pv == pv)
 
-        if axis == 0:
-            y[450] = 0.05
+    y[450] = 0.05
+    desp = dsp.despike(y, 15)
+    assert np.all(desp.dx == y)
+    assert np.all(desp.pv == pv)
+
+
+def test_fftcoef():
+    for n in (50, 51):
+        t = np.arange(n)/n
+
+        x = 4.0 * np.sin(2*np.pi*4*t)
+        mag, phase, frq = dsp.fftcoef(x, 1/t[1])
+        # lowest frequency = 1/T = 1.0
+        # highest frequency = sr/2 = 500.0
+        nfrq = (n // 2) + 1
+        assert np.allclose(frq, 0.0 + np.arange(nfrq))
+        x2 = np.zeros(len(frq))
+        x2[4] = 4.0
+        assert np.allclose(mag, x2)
+        assert np.allclose(phase[4], 0.0)
+
+        x = 4.0 * np.cos(2*np.pi*4*t)
+        mag, phase, frq = dsp.fftcoef(x, 1/t[1])
+        # lowest frequency = 1/T = 1.0
+        # highest frequency = sr/2 = 500.0
+        nfrq = (n // 2) + 1
+        assert np.allclose(frq, 0.0 + np.arange(nfrq))
+        x2 = np.zeros(len(frq))
+        x2[4] = 4.0
+        assert np.allclose(mag, x2)
+        assert np.allclose(phase[4], -np.pi/2)
+
+
+def test_fftcoef_recon():
+    for n in (50, 51):
+        t = np.arange(n)/n
+        x = np.random.randn(n)
+        mag, phase, frq = dsp.fftcoef(x, 1/t[1])
+        A, B, frq = dsp.fftcoef(x, 1/t[1], coef='ab',
+                                window=np.ones(x.shape))
+
+        w = 2*np.pi*frq[1]
+        # reconstruct with magnitude and phase:
+        x2 = 0.0
+        for k, (m, p, f) in enumerate(zip(mag, phase, frq)):
+            x2 = x2 + m*np.sin(k*w*t - p)
+        assert np.allclose(x, x2)
+
+        # reconstruct with A and B:
+        x3 = 0.0
+        for k, (a, b, f) in enumerate(zip(A, B, frq)):
+            x3 = x3 + a*np.cos(k*w*t) + b*np.sin(k*w*t)
+        assert np.allclose(x, x3)
+
+
+def test_fftcoef_fold():
+    for n in (10, 11):
+        t = np.arange(n)/n
+        x = np.random.randn(n)
+        mag, phase, frq = dsp.fftcoef(x, 1/t[1], fold=True)
+        mag1, phase1, frq = dsp.fftcoef(x, 1/t[1], fold=False)
+        if not (n & 1):
+            mag1[1:-1] *= 2.0
         else:
-            y[0, 0, 450, 0, 0] = 0.05
+            mag1[1:] *= 2.0
+        assert np.allclose(mag, mag1)
+        assert np.allclose(phase, phase1)
 
-        desp = dsp.despike(y, 15, axis=axis)
-        assert np.all(desp.dx == y)
 
-        # same tests, in a different dimension:
-        y1 = y1.reshape(1, 1, -1, 1, 1)
-        y = y1.copy()
-        y[0, 0, 450, 0, 0] = 0.3
+def test_fftcoef_detrend():
+    for n in (50, 51):
+        t = np.arange(n)/n
+        x = np.random.randn(n)
+        xd = signal.detrend(x)
+        mag, phase, frq = dsp.fftcoef(x, 1/t[1], dodetrend=True)
+        A, B, frq = dsp.fftcoef(x, 1/t[1], coef='ab',
+                                window=np.ones(x.shape),
+                                dodetrend=True)
+
+        w = 2*np.pi*frq[1]
+        # reconstruct with magnitude and phase:
+        x2 = 0.0
+        for k, (m, p, f) in enumerate(zip(mag, phase, frq)):
+            x2 = x2 + m*np.sin(k*w*t - p)
+        assert np.allclose(xd, x2)
+
+        # reconstruct with A and B:
+        x3 = 0.0
+        for k, (a, b, f) in enumerate(zip(A, B, frq)):
+            x3 = x3 + a*np.cos(k*w*t) + b*np.sin(k*w*t)
+        assert np.allclose(xd, x3)
+
+    assert_raises(ValueError, dsp.fftcoef, x, 1/t[1],
+                            window=np.ones(x.size-1))
+
+
+def test_fftcoef_maxdf():
+    n = 16
+    t = np.arange(n)/n
+    x = np.random.randn(n)
+    mag, phase, frq = dsp.fftcoef(x, 1/t[1])
+    mag1, phase1, frq1 = dsp.fftcoef(x, 1/t[1], maxdf=0.6)
+    assert frq1[1] <= 0.6
+    assert np.allclose(mag1[::2], mag)

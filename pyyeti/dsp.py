@@ -262,9 +262,13 @@ def _get_prev_index(vec, val):
     return p
 
 
-def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
+def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
     """
-    0th order 1-d Savitzky-Golay FIR filter that excludes midpoint
+    1-d moving average that excludes selected point
+
+    More specifically, this is a 0th order 1-d Savitzky-Golay FIR
+    filter that has been modified such that it excludes the selected
+    point. This is helpful to find outliers.
 
     Parameters
     ----------
@@ -272,11 +276,14 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
         Array to filter
     n : odd integer
         Number of points for filter; if even, it is reset to ``n+1``
-    exclude_midpoint : bool; optional
-        If True, exclude middle point in the filter. That is, the
-        moving average is computed without the central point. Can
-        be useful for determining if point is an outlier. The average
-        is of the n-1 surrounding points.
+    exclude_point : string or int or None; optional
+        Defines which point to exclude in each moving average window.
+        If integer, it must be in [0, n), specifying the point to
+        exclude. If string, it must be 'first', 'middle', or 'last'
+        (which is the same as ``0``, ``n // 2``, and ``n``,
+        respectively). If None, no point will be excluded (this is
+        primarily for testing and should match a standard 0th order
+        Savitzky-Golay filter).
     axis : integer; optional
         Axis along which to apply filter; each subarray along this
         axis is filtered.  For example, to filter each column in a 2d
@@ -289,70 +296,147 @@ def exclusive_sgfilter(x, n, exclude_midpoint=True, axis=-1):
 
     Notes
     -----
-    0th order Savitzky-Golay is a basic "moving average".
+    The end windows cannot all exclude the selected point. For
+    example, if the excluded point is the first point in each window,
+    the last ``n-1`` windows cannot follow this rule. To illustrate,
+    let signal `x` be ``np.arange(9)``, `n` be 5, and `exclude_point`
+    be 'first' (or 0). In this scenario, the last 4 windows cannot
+    exclude the first point (the "-" denotes the excluded point for
+    each window)::
+
+              x = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+         1st ave:  -  +  +  +  +
+         2nd ave:     -  +  +  +  +
+         3rd ave:        -  +  +  +  +
+         4th ave:           -  +  +  +  +
+         5th ave:              -  +  +  +  +
+         6th ave:              +  -  +  +  +
+         7th ave:              +  +  -  +  +
+         8th ave:              +  +  +  -  +
+         9th ave:              +  +  +  +  -
+
+    If `exclude_point` is 'middle' or ``n // 2``::
+
+              x = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+         1st ave:  -  +  +  +  +
+         2nd ave:  +  -  +  +  +
+         3rd ave:  +  +  -  +  +
+         4th ave:     +  +  -  +  +
+         5th ave:        +  +  -  +  +
+         6th ave:           +  +  -  +  +
+         7th ave:              +  +  -  +  +
+         8th ave:              +  +  +  -  +
+         9th ave:              +  +  +  +  -
+
+    If `exclude_point` is 'last' or ``n``::
+
+              x = [0, 1, 2, 3, 4, 5, 6, 7, 8
+
+         1st ave:  -  +  +  +  +
+         2nd ave:  +  -  +  +  +
+         3rd ave:  +  +  -  +  +
+         4th ave:  +  +  +  -  +
+         5th ave:  +  +  +  +  -
+         6th ave:     +  +  +  +  -
+         7th ave:        +  +  +  +  -
+         8th ave:           +  +  +  +  -
+         9th ave:              +  +  +  +  -
 
     Examples
     --------
     >>> import numpy as np
-    >>> from scipy.signal import savgol_filter
     >>> from pyyeti.dsp import exclusive_sgfilter
     >>> x = np.arange(6.)
     >>> x[3] *= 2
     >>> x
     array([ 0.,  1.,  2.,  6.,  4.,  5.])
-    >>> savgol_filter(x, 3, polyorder=0)
-    array([ 1.,  1.,  3.,  4.,  5.,  5.])
-    >>> exclusive_sgfilter(x, 3, exclude_midpoint=True)
-    array([ 1.5,  1. ,  3.5,  3. ,  5.5,  5. ])
+    >>> for point in ('first', 'middle', 'last'):
+    ...     print(exclusive_sgfilter(x, 3, exclude_point=point))
+    [ 1.5  4.   5.   4.5  5.5  5. ]
+    [ 1.5  1.   3.5  3.   5.5  5. ]
+    [ 1.5  1.   0.5  1.5  4.   5. ]
 
-    If `exclude_midpoint` is False, this is the same as a normal 0th
+    Using indexes gives the same result:
+    >>> for point in (0, 1, 2):
+    ...     print(exclusive_sgfilter(x, 3, exclude_point=point))
+    [ 1.5  4.   5.   4.5  5.5  5. ]
+    [ 1.5  1.   3.5  3.   5.5  5. ]
+    [ 1.5  1.   0.5  1.5  4.   5. ]
+
+    If `exclude_point` is None, this is the same as a normal 0th
     order Savitzky-Golay filter:
 
-    >>> exclusive_sgfilter(x, 3, exclude_midpoint=False)
+    >>> from scipy.signal import savgol_filter
+    >>> savgol_filter(x, 3, polyorder=0)
+    array([ 1.,  1.,  3.,  4.,  5.,  5.])
+    >>> exclusive_sgfilter(x, 3, exclude_point=None)
     array([ 1.,  1.,  3.,  4.,  5.,  5.])
     """
     n = n | 1
-    n_mid = n // 2
     b = np.empty(n)
-    if exclude_midpoint:
-        b[:] = 1/(n-1)
-        b[n_mid] = 0.0
+    if isinstance(exclude_point, str):
+        if exclude_point == 'first':
+            n_pt = 0
+        elif exclude_point == 'middle':
+            n_pt = n // 2
+        elif exclude_point == 'last':
+            n_pt = n-1
+        else:
+            raise ValueError('invalid `exclude_point` string')
     else:
+        n_pt = exclude_point
+    if n_pt is None:
         b[:] = 1/n
+        n_pt = n // 2
+    else:
+        if not (0 <= n_pt <= n-1):
+            raise ValueError('invalid `exclude_point` integer')
+        b[:] = 1/(n-1)
+        # b is applied in reverse: y[1] = b[0]*x[1] + b[1]*x[0]
+        b[n-n_pt-1] = 0.0
     x = np.atleast_1d(x)
-    if axis != -1 or axis != x.ndim - 1:
+    if not (axis == -1 or axis == x.ndim - 1):
         # Move the axis containing the data to the end
         x = np.swapaxes(x, axis, x.ndim - 1)
 
     # Append pieces of x onto the front and back so the averages on
     # the ends work out properly. For example, if n is 5 and x is:
     #      x = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-    # then x2 is:
+
+    # and n_pt is 2, then x2 is:
     #      x2 = [3, 4,  0, 1, 2, 3, 4, 5, 6, 7, 8,  4, 5]
     # 1st ave:   +  +   -  +  +
     # 2nd ave:      +   +  -  +  +
     # 3rd ave:          +  +  -  +  +
     # ... last ave:                       +  +  -   +  +
-    x2 = np.concatenate((x[..., n_mid+1:n],
-                         x,
-                         x[..., -n:-(n_mid+1)]), axis=-1)
 
+    # and n_pt is 1, then x2 is:
+    #      x2 = [4,  0, 1, 2, 3, 4, 5, 6, 7, 8,  4, 5, 6]
+    # 1st ave:   +   -  +  +  +
+    # 2nd ave:       +  -  +  +  +
+    # 3rd ave:          +  -  +  +  +
+    # ... last ave:                       +  -   +  +  +
+    x2 = np.concatenate((x[..., n-n_pt:n],
+                         x,
+                         x[..., -n:-(n_pt+1)]), axis=-1)
     d = signal.lfilter(b, 1, x2)[..., n-1:]
-    if axis != -1 or axis != x.ndim - 1:
+    if not (axis == -1 or axis == x.ndim - 1):
         # Move the axis back to where it was
         d = np.swapaxes(d, axis, x.ndim - 1)
     return d
 
 
-def despike(x, n, sigma=8.0, maxiter=-1, mode='average',
-            threshold_sigma=0.1, threshold_value=None, axis=-1):
+def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.1,
+            threshold_value=None, exclude_point='first'):
     """
-    Delete outlier data points from signal(s)
+    Delete outlier data points from signal
 
     Parameters
     ----------
-    x : nd array_like
-        Array to filter. If `mode` is 'delete', `x` must be 1d.
+    x : 1d array_like
+        Signal to de-spike.
     n : odd integer
         Number of points for moving average; if even, it is reset to
         ``n+1``. If greater than the dimension of `x`, it is reset to
@@ -367,18 +451,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average',
         Multiple iterations are possible because the deletion of an
         outlier may expose other points as outliers. If <= 0, there is
         no set limit and the looping will stop when no more outliers
-        are detected.
-    mode : string; optional
-        Either 'delete' or 'average'.
-
-          =========  ================================================
-            mode     description
-          =========  ================================================
-          'delete'   delete the outliers
-          'average'  replace the outliers with an average of the two
-                     surrounding points (or nearest point, if at end)
-          =========  ================================================
-
+        are detected. Routine will always run at least 1 loop (setting
+        `maxiter` to 0 is the same as setting it to 1).
     threshold_sigma : scalar; optional
         Number of standard deviations below which all data is kept.
         This standard deviation is of the entire input signal. This
@@ -389,24 +463,29 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average',
         Optional method for specifying a minimum threshold. If not
         None, this scalar is used as an absolute minimum deviation
         from the moving average for a value to be considered a spike.
-    axis : integer; optional
-        Axis along which to delete outliers; each subarray along this
-        axis is despiked. For example, to despike each column in a 2d
-        array, set `axis` to 0.
+    exclude_point : string or int or None; optional
+        Defines where, within each window, the point that is being
+        considered as a potential outlier is. For example, 'first'
+        compares the first point in each window the rest in that
+        window to test if it is an outlier. This option is passed
+        directly :func:`exclusive_sgfilter`. If integer, it must be in
+        [0, n), specifying the point to exclude. If string, it must be
+        'first', 'middle', or 'last' (which is the same as ``0``, ``n
+        // 2``, and ``n``, respectively). If None, no point will be
+        excluded.
 
     Returns
     -------
     A SimpleNamespace with the members:
 
-    dx : nd ndarray
-        Despiked version of `x`. Will be shorter than `x` if `mode`
-        is 'delete' and spikes were detected; otherwise, it will
-        have the same shape as `x`.
-    pv : bool nd ndarray; same shape as `x`
+    dx : 1d ndarray
+        Despiked version of `x`. Will be shorter than `x` if any
+        spikes were deleted; otherwise, it will equal `x`.
+    pv : bool 1d ndarray; same size as `x`
         Has True where an outlier was detected
-    hilim : nd ndarray; same shape as `x`
+    hilim : 1d ndarray; same size as `x`
         This is the upper limit: ``mean + sigma*std``
-    lolim : nd ndarray; same shape as `x`
+    lolim : 1d ndarray; same size as `x`
         This is the lower limit: ``mean - sigma*std``
     niter : integer
         Number of iterations executed
@@ -416,42 +495,35 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average',
     Uses :func:`exclusive_sgfilter` to exclude the midpoint in the
     moving average and the moving standard deviation calculations.
 
-    The 'delete' and 'average' methods are different enough that
-    they may find a different set of outliers. See example below.
-
     To not use a threshold, set `threshold_sigma` to 0.0 (or set
     `threshold_value` to 0.0).
 
+    .. note::
+
+    If you plan to use both :func:`fixtime` and :func:`despike`, it is
+    recommended that you let :func:`fixtime` call :func:`despike` (via
+    the `delspikes` option). This is preferable over calling them
+    separately because the ideal time to run :func:`despike` is in the
+    middle of :func:`fixtime`: after drop-outs have been deleted but
+    before gaps are filled.
+
     Examples
     --------
-    >>> import numpy as np
-    >>> from pyyeti import dsp
-    >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
-    >>> np.set_printoptions(precision=2, linewidth=65)
-    >>> s = dsp.despike(x, n=9, sigma=2, mode='average')
-    >>> s.dx
-    array([ 2,  2,  3, -4, -5, -6,  6,  3, -2,  4, -2, -2])
-    >>> s.pv
-    array([ True, False, False, False,  True, False, False, False,
-           False, False, False,  True], dtype=bool)
-    >>> s.hilim
-    array([ 7.93,  7.93,  7.62,  8.31,  8.12,  8.39,  6.25,  6.56,
-            7.66,  6.12,  7.66,  7.66])
-    >>> s.niter
-    3
-
-    Now, run the same data but with 'delete'. Here, a plot is very
-    helpful to visualize each iteration:
+    Make up some data and use a low sigma value to demonstrate how the
+    routine runs. A plot is very helpful to visualize each iteration:
 
     .. plot::
         :context: close-figs
 
+        >>> import numpy as np
+        >>> from pyyeti import dsp
+        >>> np.set_printoptions(precision=2, linewidth=65)
         >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
         >>> _ = plt.figure(figsize=(8, 11))
         >>> plt.clf()
         >>> for i in range(5):
-        ...     s = dsp.despike(x, n=9, sigma=2,
-        ...                     mode='delete', maxiter=1)
+        ...     s = dsp.despike(x, n=9, sigma=2, maxiter=1,
+        ...                     exclude_point='middle')
         ...     _ = plt.subplot(5, 1, i+1)
         ...     _ = plt.plot(x)
         ...     _ = plt.plot(s.hilim, 'k--')
@@ -462,78 +534,49 @@ def despike(x, n, sigma=8.0, maxiter=-1, mode='average',
         >>> s.dx
         array([ 2,  3,  6,  3, -2,  4, -2])
 
+    Compare `exclude_point` 'first' and 'middle' options:
+
+    >>> x = [1, 1, 1, 1, 23, 23, 1, 1, 1, 1]
+    >>> s = dsp.despike(x, n=5, exclude_point='first')
+    >>> s.dx
+    array([1, 1, 1, 1, 1, 1, 1, 1])
+    >>> s = dsp.despike(x, n=5, exclude_point='middle')
+    >>> s.dx
+    array([ 1,  1,  1,  1, 23, 23,  1,  1,  1,  1])
     """
-    def _get_min_limit(x, axis, threshold_sigma, threshold_value):
+    def _get_min_limit(x, threshold_sigma, threshold_value):
         if threshold_value is not None:
             return threshold_value
-        min_limit = threshold_sigma * np.std(x, axis=axis)
-        # reshape min_limit so it is broadcast compatible with x:
-        shape = list(x.shape)
-        shape[axis] = 1
-        return min_limit.reshape(shape)
+        return threshold_sigma * np.std(x)
 
-    def _find_outlier_peaks(y, n, sigma, min_limit, axis):
-        ave = exclusive_sgfilter(y, n, axis=axis)
-        var = exclusive_sgfilter(y**2, n, axis=axis) - ave**2
+    def _find_outlier_peaks(y, n, sigma, min_limit, xp):
+        ave = exclusive_sgfilter(y, n, exclude_point=xp)
+        var = exclusive_sgfilter(y**2, n, exclude_point=xp) - ave**2
         # use abs to care of negative numerical zeros:
         std = np.sqrt(abs(var))
         limit = np.fmax(sigma * std, min_limit)
         return abs(y-ave) <= limit, ave+limit, ave-limit
 
-    def _set_ave(x, pv, axis):
-        # Set outlier value to be average of two neighbor points
-        # (linear interpolation).
-        # First, get previous and next indexes:
-        pv_prev = list(pv.nonzero())
-        pv_next = pv_prev[:]
-        pv_next[axis] = pv_next[axis].copy()
-        pv_prev[axis] -= 1
-        pv_next[axis] += 1
-        # If spike is on an edge, just set to equal to the single
-        # neighbor:
-        j = pv_prev[axis] < 0
-        pv_prev[axis][j] += 2
-        j = pv_next[axis] >= x.shape[axis]
-        pv_next[axis][j] -= 2
-        x[pv] = (x[pv_prev] + x[pv_next])/2.0
-
     x = np.atleast_1d(x).copy()
-    min_limit = _get_min_limit(x, axis, threshold_sigma,
-                               threshold_value)
+    if x.ndim > 1:
+        raise ValueError("`x` must be 1d")
+    min_limit = _get_min_limit(x, threshold_sigma, threshold_value)
     PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
-    if mode == 'delete':
-        if x.ndim > 1:
-            raise ValueError(
-                "when `mode` is 'delete', `x` must be 1d")
-        hilim = np.empty(x.shape)
-        lolim = np.empty(x.shape)
-        for i in itertools.count(1):
-            y = x[PV]
-            if n > y.size:
-                n = y.size - 1
-            pv, hilim[PV], lolim[PV] = _find_outlier_peaks(
-                y, n, sigma, min_limit, 0)
-            if pv.all():
-                break
-            PV[PV] &= pv
-            if maxiter > 0 and i >= maxiter:
-                break
-        x = x[PV]
-    elif mode == 'average':
-        if n > x.shape[axis]:
-            n = x.shape[axis] - 1
-        for i in itertools.count(1):
-            pv, hilim, lolim = _find_outlier_peaks(
-                x, n, sigma, min_limit, axis=axis)
-            if pv.all():
-                break
-            _set_ave(x, ~pv, axis)
-            PV &= pv
-            if maxiter > 0 and i >= maxiter:
-                break
-    else:
-        raise ValueError(
-            "`mode` must be either 'delete' or 'average'")
+
+    hilim = np.empty(x.shape)
+    lolim = np.empty(x.shape)
+    for i in itertools.count(1):
+        y = x[PV]
+        if n > y.size:
+            n = y.size - 1
+        pv, hilim[PV], lolim[PV] = _find_outlier_peaks(
+            y, n, sigma, min_limit, xp=exclude_point)
+        if pv.all():
+            break
+        PV[PV] &= pv
+        if maxiter > 0 and i >= maxiter:
+            break
+    x = x[PV]
     return SimpleNamespace(dx=x, pv=~PV,
                            hilim=hilim, lolim=lolim, niter=i)
 
@@ -581,9 +624,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         in :func:`despike`). If a dict, it specifies all desired
         inputs to :func:`despike` except for the signal itself. If `n`
         is not included, it is set to 15. For example:
-        ``delspikes=dict(n=31, sigma=5, maxiter=4)``. Note that the
-        `mode` option is always reset to 'delete', even if you specify
-        'average' in the dict.
+        ``delspikes=dict(n=31, sigma=5, maxiter=4)``.
     base : scalar or None; optional
         Scalar value that new time vector would hit exactly if within
         range. If None, new time vector is aligned to longest section
@@ -869,7 +910,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             delspikes = dict(**delspikes)  # make a copy
         if 'n' not in delspikes:
             delspikes['n'] = 15
-        delspikes['mode'] = 'delete'
         s = despike(olddata, **delspikes)
         olddata = s.dx
         t_limit = told
