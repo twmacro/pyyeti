@@ -280,7 +280,7 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
         Defines which point to exclude in each moving average window.
         If integer, it must be in [0, n), specifying the point to
         exclude. If string, it must be 'first', 'middle', or 'last'
-        (which is the same as ``0``, ``n // 2``, and ``n``,
+        (which is the same as ``0``, ``n // 2``, and ``n-1``,
         respectively). If None, no point will be excluded (this is
         primarily for testing and should match a standard 0th order
         Savitzky-Golay filter).
@@ -330,7 +330,7 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
          8th ave:              +  +  +  -  +
          9th ave:              +  +  +  +  -
 
-    If `exclude_point` is 'last' or ``n``::
+    If `exclude_point` is 'last' or ``n-1``::
 
               x = [0, 1, 2, 3, 4, 5, 6, 7, 8
 
@@ -358,7 +358,8 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
     [ 1.5  1.   3.5  3.   5.5  5. ]
     [ 1.5  1.   0.5  1.5  4.   5. ]
 
-    Using indexes gives the same result:
+    Equivalent run using indexes:
+
     >>> for point in (0, 1, 2):
     ...     print(exclusive_sgfilter(x, 3, exclude_point=point))
     [ 1.5  4.   5.   4.5  5.5  5. ]
@@ -500,24 +501,34 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.1,
 
     .. note::
 
-    If you plan to use both :func:`fixtime` and :func:`despike`, it is
-    recommended that you let :func:`fixtime` call :func:`despike` (via
-    the `delspikes` option). This is preferable over calling them
-    separately because the ideal time to run :func:`despike` is in the
-    middle of :func:`fixtime`: after drop-outs have been deleted but
-    before gaps are filled.
+        If you plan to use both :func:`fixtime` and :func:`despike`,
+        it is recommended that you let :func:`fixtime` call
+        :func:`despike` (via the `delspikes` option). This is
+        preferable over calling them separately because the ideal time
+        to run :func:`despike` is in the middle of :func:`fixtime`:
+        after drop-outs have been deleted but before gaps are filled.
 
     Examples
     --------
-    Make up some data and use a low sigma value to demonstrate how the
-    routine runs. A plot is very helpful to visualize each iteration:
+    Compare `exclude_point` 'first' and 'middle' options:
+
+    >>> import numpy as np
+    >>> from pyyeti import dsp
+    >>> x = [1, 1, 1, 1, 5, 5, 1, 1, 1, 1]
+    >>> s = dsp.despike(x, n=5, exclude_point='first')
+    >>> s.dx
+    array([1, 1, 1, 1, 1, 1, 1, 1])
+    >>> s = dsp.despike(x, n=5, exclude_point='middle')
+    >>> s.dx
+    array([1, 1, 1, 1, 5, 5, 1, 1, 1, 1])
+
+    Make up some data and, with carefully chosen inputs, demonstrate
+    how the routine runs by plotting one iteration at a time:
 
     .. plot::
         :context: close-figs
 
-        >>> import numpy as np
-        >>> from pyyeti import dsp
-        >>> np.set_printoptions(precision=2, linewidth=65)
+        >>> np.set_printoptions(linewidth=65)
         >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
         >>> _ = plt.figure(figsize=(8, 11))
         >>> plt.clf()
@@ -534,15 +545,16 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.1,
         >>> s.dx
         array([ 2,  3,  6,  3, -2,  4, -2])
 
-    Compare `exclude_point` 'first' and 'middle' options:
-
-    >>> x = [1, 1, 1, 1, 23, 23, 1, 1, 1, 1]
-    >>> s = dsp.despike(x, n=5, exclude_point='first')
-    >>> s.dx
-    array([1, 1, 1, 1, 1, 1, 1, 1])
-    >>> s = dsp.despike(x, n=5, exclude_point='middle')
-    >>> s.dx
-    array([ 1,  1,  1,  1, 23, 23,  1,  1,  1,  1])
+        Run all iterations at once to see what ``s.pv`` looks like:
+    
+        >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
+        >>> s = dsp.despike(x, n=9, sigma=2,
+        ...                 exclude_point='middle')
+        >>> s.dx
+        array([ 2,  3,  6,  3, -2,  4, -2])
+        >>> s.pv
+        array([ True, False, False,  True,  True,  True, False, False,
+               False, False, False,  True], dtype=bool)
     """
     def _get_min_limit(x, threshold_sigma, threshold_value):
         if threshold_value is not None:
@@ -620,11 +632,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     delspikes : bool or dict; optional
         If False, do not delete spikes. If True, delete spikes by
         calling :func:`despike`; the window size is set to 15 and the
-        other defaults are accepted except for `mode` (see description
-        in :func:`despike`). If a dict, it specifies all desired
-        inputs to :func:`despike` except for the signal itself. If `n`
-        is not included, it is set to 15. For example:
-        ``delspikes=dict(n=31, sigma=5, maxiter=4)``.
+        other defaults are accepted (see :func:`despike`). If a dict,
+        it specifies all desired inputs to :func:`despike` except for
+        the signal itself. If `n` is not included, it is set to
+        15. For example: ``delspikes=dict(n=31, sigma=5, maxiter=4)``.
     base : scalar or None; optional
         Scalar value that new time vector would hit exactly if within
         range. If None, new time vector is aligned to longest section
