@@ -456,10 +456,10 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.1,
         `maxiter` to 0 is the same as setting it to 1).
     threshold_sigma : scalar; optional
         Number of standard deviations below which all data is kept.
-        This standard deviation is of the entire input signal. This
-        value exists to avoid deleting small deviations such as bit
-        toggles. `threshold_value` overrides `threshold_sigma` if it
-        is not None.
+        This standard deviation is of the entire, unmodified input
+        signal. This value exists to avoid deleting small deviations
+        such as bit toggles. `threshold_value` overrides
+        `threshold_sigma` if it is not None.
     threshold_value : scalar or None; optional
         Optional method for specifying a minimum threshold. If not
         None, this scalar is used as an absolute minimum deviation
@@ -471,9 +471,9 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.1,
         window to test if it is an outlier. This option is passed
         directly :func:`exclusive_sgfilter`. If integer, it must be in
         [0, n), specifying the point to exclude. If string, it must be
-        'first', 'middle', or 'last' (which is the same as ``0``, ``n
-        // 2``, and ``n``, respectively). If None, no point will be
-        excluded.
+        'first', 'middle', or 'last' (which is the same as ``0``,
+        ``n // 2``, and ``n-1``, respectively). If None, no point will
+        be excluded.
 
     Returns
     -------
@@ -503,8 +503,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.1,
 
         If you plan to use both :func:`fixtime` and :func:`despike`,
         it is recommended that you let :func:`fixtime` call
-        :func:`despike` (via the `delspikes` option). This is
-        preferable over calling them separately because the ideal time
+        :func:`despike` (via the `delspikes` option) instead of
+        calling it directly. This is preferable because the ideal time
         to run :func:`despike` is in the middle of :func:`fixtime`:
         after drop-outs have been deleted but before gaps are filled.
 
@@ -561,13 +561,44 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.1,
             return threshold_value
         return threshold_sigma * np.std(x)
 
+    def _sweep_out_priors(y, pv, n, limit, ave):
+        # see if we can consider points before detected outliers
+        # also as outliers:
+        i = pv.nonzero()[0]
+        idiff = np.empty(i.size+1, np.int64)
+        idiff[1:-1] = np.diff(i)
+        idiff[0] = 0
+        idiff[-1] = n
+        for j in range(i.size-1, -1, -1):
+            k = i[j]   # index into ydelta, pv, limit
+            if idiff[j+1] >= n:
+                lim = limit[k]
+                av = ave[k]
+                k -= 1
+                while k >= 0 and not pv[k] and abs(y[k]-av) > lim:
+                    idiff[j] -= 1
+                    pv[k] = True
+                    k -= 1
+
     def _find_outlier_peaks(y, n, sigma, min_limit, xp):
         ave = exclusive_sgfilter(y, n, exclude_point=xp)
         var = exclusive_sgfilter(y**2, n, exclude_point=xp) - ave**2
         # use abs to care of negative numerical zeros:
         std = np.sqrt(abs(var))
         limit = np.fmax(sigma * std, min_limit)
-        return abs(y-ave) <= limit, ave+limit, ave-limit
+        ydelta = abs(y-ave)
+        pv = ydelta > limit
+        if np.any(pv) and xp in ('first', 0):
+            _sweep_out_priors(y, pv, n, limit, ave)
+        return ~pv, ave+limit, ave-limit
+
+    # def _find_outlier_peaks(y, n, sigma, min_limit, xp):
+    #     ave = exclusive_sgfilter(y, n, exclude_point=xp)
+    #     var = exclusive_sgfilter(y**2, n, exclude_point=xp) - ave**2
+    #     # use abs to care of negative numerical zeros:
+    #     std = np.sqrt(abs(var))
+    #     limit = np.fmax(sigma * std, min_limit)
+    #     return abs(y-ave) <= limit, ave+limit, ave-limit
 
     x = np.atleast_1d(x).copy()
     if x.ndim > 1:
