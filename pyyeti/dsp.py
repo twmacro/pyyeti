@@ -469,11 +469,12 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         considered as a potential outlier is. For example, 'first'
         compares the first point in each window the rest in that
         window to test if it is an outlier. This option is passed
-        directly :func:`exclusive_sgfilter`. If integer, it must be in
-        [0, n), specifying the point to exclude. If string, it must be
-        'first', 'middle', or 'last' (which is the same as ``0``,
-        ``n // 2``, and ``n-1``, respectively). If None, no point will
-        be excluded.
+        directly to :func:`exclusive_sgfilter`. If integer, it must be
+        in [0, n), specifying the point to exclude. If string, it must
+        be 'first', 'middle', or 'last' (which is the same as ``0``,
+        ``n // 2``, and ``n-1``, respectively). If None, the point
+        will in the middle of the window and will not be excluded from
+        the statistics (this is not recommended).
 
     Returns
     -------
@@ -493,8 +494,11 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
 
     Notes
     -----
-    Uses :func:`exclusive_sgfilter` to exclude the midpoint in the
-    moving average and the moving standard deviation calculations.
+    Uses :func:`exclusive_sgfilter` to exclude the point being tested
+    from the moving average and the moving standard deviation
+    calculations. Each point is tested. The points near the ends of
+    the signal may not be at the requested position in the window (see
+    :func:`exclusive_sgfilter` for more information on this).
 
     To not use a threshold, set `threshold_sigma` to 0.0 (or set
     `threshold_value` to 0.0).
@@ -510,7 +514,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
 
     Examples
     --------
-    Compare `exclude_point` 'first' and 'middle' options:
+    Compare `exclude_point` 'first' and 'middle' options. An
+    explanation follows:
 
     >>> import numpy as np
     >>> from pyyeti import dsp
@@ -522,8 +527,18 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
     >>> s.dx
     array([1, 1, 1, 1, 5, 5, 1, 1, 1, 1])
 
-    Make up some data and, with carefully chosen inputs, demonstrate
-    how the routine runs by plotting one iteration at a time:
+    The two 5 points get deleted when using 'first' but not when using
+    'middle'. This is logical because, when using 'first', the second
+    5 is compared to following four 1 values (the window is
+    ``[5, 1, 1, 1, 1]``. The second loop then catches the other 5. But
+    when 'middle' is used, the window for the first 5 is
+    ``[1, 1, 5, 5, 1]`` and the window for the second 5 is
+    ``[1, 5, 5, 1, 1]``. For both points, the other 5 in the window
+    prevents the center 5 from being considered an outlier.
+
+    For another example, make up some data and, with carefully chosen
+    inputs, demonstrate how the routine runs by plotting one iteration
+    at a time:
 
     .. plot::
         :context: close-figs
