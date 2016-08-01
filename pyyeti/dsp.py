@@ -429,7 +429,7 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
     return d
 
 
-def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.1,
+def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
             threshold_value=None, exclude_point='first'):
     """
     Delete outlier data points from signal
