@@ -1,5 +1,6 @@
 import numpy as np
 from pyyeti import stats
+from nose.tools import *
 
 
 def test_ksingle():
@@ -147,3 +148,6 @@ def test_order_stats():
          [0.973553199990880, 0.478552815466372],
          [0.999309166012882, 0.813620981660388]]])
     assert abs(c_table-s).max() < 1e-9
+
+    assert_raises(ValueError, stats.order_stats, 'badwhichoption',
+                  p=.99, c=.90, r=4)

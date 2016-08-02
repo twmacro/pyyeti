@@ -141,8 +141,8 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
         Compute CB mass and stiffness:
 
-        >>> mcb = np.dot(T.T, np.dot(m, T))
-        >>> kcb = np.dot(T.T, np.dot(k, T))
+        >>> mcb = T.T @ m @ T
+        >>> kcb = T.T @ k @ T
 
         Make 3% modal damping matrix:
 
@@ -156,8 +156,8 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
         Recover physical accelerations and make some plots:
 
-        >>> a = np.dot(T, tf.a)
-        >>> d = np.dot(T, tf.d)
+        >>> a = T @ tf.a
+        >>> d = T @ tf.d
         >>> fig = plt.figure('cbtf demo')
         >>> ax = plt.subplot(211)
         >>> lines = ax.plot(outfreq, np.abs(tf.frc).T, label='Force')
@@ -201,7 +201,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         accel = a.copy()
         displ = (-1/Omega**2) * accel
         veloc = 1j*(Omega * displ)
-        frc = m.dot(accel) + b.dot(veloc) + k.dot(displ)
+        frc = m @ accel + b @ veloc + k @ displ
     else:
         tf = None
         if isinstance(save, dict):
@@ -218,7 +218,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         bb = np.ix_(bset, bset)
         qb = np.ix_(qset, bset)
         v = 1j*a/Omega
-        f = b[qb].dot(v) - m[qb].dot(a)
+        f = b[qb] @ v - m[qb] @ a
         sol = tf.fsolve(f, freq)
 
         displ = np.zeros((lt, lenf), dtype=complex)
@@ -228,8 +228,8 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         veloc = 1j*(Omega * displ)
         accel[bset] = a
         accel[qset] = sol.a
-        frc = (m[bset].dot(accel) + b[bset].dot(veloc) +
-               k[bb].dot(displ[bset]))
+        frc = (m[bset] @ accel + b[bset] @ veloc +
+               k[bb] @ displ[bset])
     return SimpleNamespace(frc=frc, a=accel, d=displ,
                            v=veloc, freq=freq)
 
@@ -961,11 +961,11 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     rbr = np.size(rb, 0)
     cdrm = np.size(drm, 1)
     if cdrm == rbr:
-        drmrb = np.dot(drm, rb)
+        drmrb = drm @ rb
     elif cdrm < rbr:
-        drmrb = np.dot(drm, rb[:cdrm])
+        drmrb = drm @ rb[:cdrm]
     else:
-        drmrb = np.dot(drm[:, :rbr], rb)
+        drmrb = drm[:, :rbr] @ rb
 
     # get rb scale:
     xrss = np.sqrt(rb[:-2, 0]**2 + rb[1:-1, 0]**2 + rb[2:, 0]**2)
@@ -985,7 +985,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         pv = j + np.array([0, 1, 2])
         T1 = drmrb[pv, :3]
         # check for a scalar multiplier (like .00259, for example)
-        T1tT1 = np.dot(T1.T, T1)
+        T1tT1 = T1.T @ T1
         csqr = T1tT1[0, 0]
         try:
             T2 = linalg.inv(T1)
@@ -995,7 +995,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         except linalg.LinAlgError:
             good = False
         if good:
-            rbrot = np.dot(T2, drmrb[pv, 3:])
+            rbrot = T2 @ drmrb[pv, 3:]
             x = rbrot[1, 2]
             y = rbrot[2, 0]
             z = rbrot[0, 1]
@@ -1606,7 +1606,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
 
 
 def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
-             rb_norm):
+             rb_norm, reorder):
     """
     Routine used by :func:`cbcheck`. See documentation for
     :func:`cbcheck`.
@@ -1649,16 +1649,22 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         m = Mcb
         k = Kcb
 
-    # reorder mass and stiffness:
-    m = cbreorder(m, bseto)
-    k = cbreorder(k, bseto)
-    i = np.argsort(bseto)
-    uset = uset[i]
+    if reorder:
+        # reorder mass and stiffness:
+        m = cbreorder(m, bseto)
+        k = cbreorder(k, bseto)
+        i = np.argsort(bseto)
+        uset = uset[i]
 
-    # define "new" order of b-set:
-    b = locate.index2bool(bref, n)
-    bref = np.nonzero(b[bseto])[0]  # where ref will be in new bset
-    bset = np.arange(nb)
+        # define "new" order of b-set:
+        b = locate.index2bool(bref, n)
+        bset = np.arange(nb)
+        bref = np.nonzero(b[bseto])[0]  # where ref is in new bset
+    else:
+        bset = np.sort(bseto)
+        if not (bset == bseto).all():
+            raise ValueError('when `reorder` is False, `bseto` must'
+                             ' be in ascending order')
 
     # check for appropriate zeros:
     qset = locate.flippv(bset, n)
@@ -1765,7 +1771,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
             j = np.argsort(np.abs(w))
             w = np.abs(w[j])
             v = np.real(v[:, j])
-            normfacs = np.abs(np.diag(np.dot(np.dot(v.T, m), v)))
+            normfacs = np.abs(np.diag(v.T @ m @ v))
             v = np.sqrt(1/normfacs) * v
 
     # assuming 6 rigid-body modes
@@ -1774,15 +1780,18 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         rbe = rbe @ rb_normalizer
 
     # distance of motion check:
+    rbs_b = rbs[bset]
+    rbg_b = rbg
+    rbe_b = rbe[bset]
     nb = len(bset) // 6
     rss_s = np.zeros((nb, 3))
     rss_g = np.zeros((nb, 3))
     rss_e = np.zeros((nb, 3))
     for i in range(nb):
-        row = i*6
-        rss_s[i] = np.sqrt(np.sum(rbs[row:row+3, :3]**2, axis=0))
-        rss_g[i] = np.sqrt(np.sum(rbg[row:row+3, :3]**2, axis=0))
-        rss_e[i] = np.sqrt(np.sum(rbe[row:row+3, :3]**2, axis=0))
+        s = slice(i*6, i*6+3)
+        rss_s[i] = np.sqrt((rbs_b[s, :3]**2).sum(axis=0))
+        rss_g[i] = np.sqrt((rbg_b[s, :3]**2).sum(axis=0))
+        rss_e[i] = np.sqrt((rbe_b[s, :3]**2).sum(axis=0))
 
     fout.write('RB Translation Movement Check '
                '-- should all be 1.0s:\n\n')
@@ -1800,10 +1809,10 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     rss_rot_g = np.zeros((nb, 3))
     rss_rot_e = np.zeros((nb, 3))
     for i in range(nb):
-        row = i*6 + 3
-        rss_rot_s[i] = np.sqrt(np.sum(rbs[row:row+3, 3:]**2, axis=0))
-        rss_rot_g[i] = np.sqrt(np.sum(rbg[row:row+3, 3:]**2, axis=0))
-        rss_rot_e[i] = np.sqrt(np.sum(rbe[row:row+3, 3:]**2, axis=0))
+        s = slice(i*6+3, i*6+6)
+        rss_rot_s[i] = np.sqrt((rbs_b[s, 3:]**2).sum(axis=0))
+        rss_rot_g[i] = np.sqrt((rbg_b[s, 3:]**2).sum(axis=0))
+        rss_rot_e[i] = np.sqrt((rbe_b[s, 3:]**2).sum(axis=0))
 
     fout.write('RB Rotation Movement Check '
                '-- should all be 1.0s:\n\n')
@@ -1818,9 +1827,9 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     fout.write('\n\n')
 
     # get mass properties:
-    ms = np.dot(np.dot(rbs.T, m), rbs)
-    mg = np.dot(np.dot(rbg.T, mbb), rbg)
-    me = np.dot(np.dot(rbe.T, m), rbe)
+    ms = rbs.T @ m @ rbs
+    mg = rbg.T @ mbb @ rbg
+    me = rbe.T @ m @ rbe
 
     # cg location, radius of gyration:
     (mcgs, ds, gyr_s, pgyr_s, I_s, Ip_s) = cgmass(ms, all6=True)
@@ -1906,13 +1915,13 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                         '{:10.3f}  {:10.3f}  {:10.3f}\n', rbfsumm)
         fout.write('\n\n')
 
-    rbfs = np.dot(k, rbs)
-    rbfg = np.dot(kbb, rbg)
-    rbfe = np.dot(k, rbe)
+    rbfs = k @ rbs
+    rbfg = kbb @ rbg
+    rbfe = k @ rbe
 
-    wrtground(fout, uset, rbfs, np.dot(rbs.T, rbfs), 'stiffness')
-    wrtground(fout, uset, rbfg, np.dot(rbg.T, rbfg), 'geometry')
-    wrtground(fout, uset, rbfe, np.dot(rbe.T, rbfe), 'eigensolution')
+    wrtground(fout, uset, rbfs, rbs.T @ rbfs, 'stiffness')
+    wrtground(fout, uset, rbfg, rbg.T @ rbfg, 'geometry')
+    wrtground(fout, uset, rbfe, rbe.T @ rbfe, 'eigensolution')
 
     # free-free modes:
     fout.write('FREE-FREE MODES:\n\n')
@@ -1924,7 +1933,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     # compute modal-effective mass:
     if nq > 0:
         # effective mass in percent of total mass:
-        effmass = np.dot(m[QB], rbg)**2 * (100/np.diag(mg))
+        effmass = (m[QB] @ rbg)**2 * (100/np.diag(mg))
         num = np.arange(nq)+1
         frq = np.sqrt(np.abs(np.diag(kqq)))/(2*math.pi)
         summ = np.sum(effmass, axis=0)
@@ -1957,7 +1966,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
 
 
 def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
-            uref=[0, 0, 0], conv=None, em_filt=0, rb_norm=None):
+            uref=[0, 0, 0], conv=None, em_filt=0, rb_norm=None,
+            reorder=True):
     """
     Run model checks on Craig-Bampton mass and stiffness matrices.
  
@@ -1974,7 +1984,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     bseto : 1d ndarray
         Index partition vector specifying location and order of b-set
         (boundary) DOF in Mcb and Kcb. Will be used to reorder Mcb and
-        Kcb; see below. Uses zero offset.
+        Kcb if `reorder` is True; see below. Uses zero offset.
     bref : 1d ndarray
         6-element subset of `bseto` (or equal to `bseto` if `bseto`
         only has 6 elements). Defines reference DOF that must be a
@@ -2028,38 +2038,49 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         for example if the drilling DOF were not connected for the
         boundary DOF. For more information, see the related discussion
         in :func:`cbcoordchk` for the "rb_normalizer" input.
+    reorder : bool; optional
+        If True, reordering is allowed.
 
     Returns
     -------
     A record (SimpleNamespace class) with the members:
 
     m : 2d ndarray
-        Reordered and converted version of Mcb. Will equal Mcb if no
-        reordering or unit conversion is done.
+        Reordered and converted version of Mcb. Will equal Mcb if
+        there is no reordering or unit conversion.
     k : 2d ndarray
-        Reordered and converted version of Kcb. Will equal Kcb if no
-        reordering or unit conversion is done.
+        Reordered and converted version of Kcb. Will equal Kcb if
+        there is no reordering or unit conversion.
     bset : 1d ndarray
         Vector giving location of reordered b-set. This will equal
-        numpy.arange(len(bset)). Will equal `bseto` if `bseto` if
-        there is no reordering.
+        numpy.arange(len(bset)) if `reorder` is True. Will equal
+        `bseto` if there is no reordering.
     rbs : 2d ndarray
-        The stiffness-based rigid-body modes (b+q x 6).
+        The stiffness-based rigid-body modes (b+q x 6). DOF order is
+        consistent with returned `m` and `k`.
     rbg : 2d ndarray
-        The geometry-based rigid-body modes  (b x 6).
+        The geometry-based rigid-body modes  (b x 6). DOF order is
+        consistent with returned `m` and `k`.
     rbe : 2d ndarray
-        The eigenvalue-based rigid-body modes (b+q x 6).
+        The eigenvalue-based rigid-body modes (b+q x 6). DOF order is
+        consistent with returned `m` and `k`.
     uset : 2d ndarray
-        Converted version of then input `uset`. Will equal `uset` if
-        no unit conversion is done.
+        Converted, reordered version of the input `uset`. Will equal
+        `uset` if there is no unit conversion or reordering.
 
     Notes
     -----
+    Reordering, if allowed, will always put the bset first.
+
     This routine performs these checks:
 
        - Checks symmetry of Mcb and Kcb.
        - Prints some abs-max values from Mcb and Kcb for visual
          inspection.
+       - Converts units and reorders mass, stiffness and uset if
+         needed.
+       - Calculate the 3 types of rigid-body modes (all are relative
+         to reordered DOF).
        - Calculates coordinates of boundary DOF relative to a reference
          (`bref`) from the stiffness matrix.
        - Computes the root-sum-squared distances of motion for each
@@ -2124,4 +2145,4 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
 
     """
     return ytools.wtfile(f, _cbcheck, Mcb, Kcb, bseto, bref, uset,
-                         uref, conv, em_filt, rb_norm)
+                         uref, conv, em_filt, rb_norm, reorder)
