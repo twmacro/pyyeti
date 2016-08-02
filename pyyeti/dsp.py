@@ -549,6 +549,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         >>> plt.clf()
         >>> for i in range(5):
         ...     s = dsp.despike(x, n=9, sigma=2, maxiter=1,
+        ...                     threshold_sigma=0.1,
         ...                     exclude_point='middle')
         ...     _ = plt.subplot(5, 1, i+1)
         ...     _ = plt.plot(x)
@@ -564,6 +565,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
     
         >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
         >>> s = dsp.despike(x, n=9, sigma=2,
+        ...                 threshold_sigma=0.1,
         ...                 exclude_point='middle')
         >>> s.dx
         array([ 2,  3,  6,  3, -2,  4, -2])
@@ -583,17 +585,36 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         idiff = np.empty(i.size+1, np.int64)
         idiff[1:-1] = np.diff(i)
         idiff[0] = 0
-        idiff[-1] = n
+        idiff[-1] = y.size - i[-1]
         for j in range(i.size-1, -1, -1):
             k = i[j]   # index into ydelta, pv, limit
             if idiff[j+1] >= n:
                 lim = limit[k]
                 av = ave[k]
-                k -= 1
-                while k >= 0 and not pv[k] and abs(y[k]-av) > lim:
+                for k in range(k-1, -1, -1):
+                    if pv[k] or abs(y[k]-av) <= lim:
+                        break
                     idiff[j] -= 1
                     pv[k] = True
-                    k -= 1
+
+    def _sweep_out_nexts(y, pv, n, limit, ave):
+        # see if we can consider points after detected outliers
+        # also as outliers:
+        i = pv.nonzero()[0]
+        idiff = np.empty(i.size+1, np.int64)
+        idiff[1:-1] = np.diff(i)
+        idiff[0] = i[0]
+        idiff[-1] = 0
+        for j in range(i.size):
+            k = i[j]   # index into ydelta, pv, limit
+            if idiff[j] >= n:
+                lim = limit[k]
+                av = ave[k]
+                for k in range(k+1, y.size):
+                    if pv[k] or abs(y[k]-av) <= lim:
+                        break
+                    idiff[j+1] -= 1
+                    pv[k] = True
 
     def _find_outlier_peaks(y, n, sigma, min_limit, xp):
         ave = exclusive_sgfilter(y, n, exclude_point=xp)
@@ -603,17 +624,12 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         limit = np.fmax(sigma * std, min_limit)
         ydelta = abs(y-ave)
         pv = ydelta > limit
-        if np.any(pv) and xp in ('first', 0):
-            _sweep_out_priors(y, pv, n, limit, ave)
+        if np.any(pv):
+            if xp in ('first', 0):
+                _sweep_out_priors(y, pv, n, limit, ave)
+            elif xp in ('last', n-1):
+                _sweep_out_nexts(y, pv, n, limit, ave)
         return ~pv, ave+limit, ave-limit
-
-    # def _find_outlier_peaks(y, n, sigma, min_limit, xp):
-    #     ave = exclusive_sgfilter(y, n, exclude_point=xp)
-    #     var = exclusive_sgfilter(y**2, n, exclude_point=xp) - ave**2
-    #     # use abs to care of negative numerical zeros:
-    #     std = np.sqrt(abs(var))
-    #     limit = np.fmax(sigma * std, min_limit)
-    #     return abs(y-ave) <= limit, ave+limit, ave-limit
 
     x = np.atleast_1d(x).copy()
     if x.ndim > 1:

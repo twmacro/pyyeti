@@ -785,6 +785,24 @@ def test_despike3():
     assert (desp.pv == pv).all()
 
     
+def test_despike4():
+    # tests the sweep_out_nexts feature:
+    a = np.ones(1500)
+    a[75:100] = 5.0
+    a[115:125] = 5.0
+    a[575:600] = 5.0
+    desp = dsp.despike(a, 35, exclude_point='last')
+
+    print(desp.niter)
+#    assert desp.niter < 5
+
+    pv = np.zeros(1500)
+    pv[75:100] = True
+    pv[115:125] = True
+    pv[575:600] = True
+    assert (desp.pv == pv).all()
+    assert desp.niter < 5
+
 def test_fftcoef():
     for n in (50, 51):
         t = np.arange(n)/n
