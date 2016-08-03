@@ -980,11 +980,21 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         if not isinstance(delspikes, abc.MutableMapping):
             delspikes = dict()
         else:
-            delspikes = dict(**delspikes)  # make a copy
+            delspikes = dict(delspikes)  # make a copy
         if 'n' not in delspikes:
             delspikes['n'] = 15
-        s = despike(olddata, **delspikes)
-        olddata = s.dx
+
+        if 1:
+            diffdata = np.empty(olddata.shape)
+            diffdata[0] = 0.0
+            diffdata[1:] = np.diff(olddata)
+            s = despike(diffdata, **delspikes)
+            if s.pv.any():
+                olddata = olddata[~s.pv]
+        else:
+            s = despike(olddata, **delspikes)
+            olddata = s.dx
+
         t_limit = told
         if s.pv.any():
             told = told[~s.pv]

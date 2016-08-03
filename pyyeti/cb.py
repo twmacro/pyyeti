@@ -7,6 +7,8 @@ import numpy as np
 import math
 import scipy.linalg as linalg
 import scipy.sparse.linalg as sp_la
+from collections import abc
+import numbers
 from types import SimpleNamespace
 from warnings import warn
 from pyyeti import n2p, locate, ytools, writer, ode
@@ -204,7 +206,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         frc = m @ accel + b @ veloc + k @ displ
     else:
         tf = None
-        if isinstance(save, dict):
+        if isinstance(save, abc.MutableMapping):
             try:
                 tf = save['tf']
             except KeyError:
@@ -212,7 +214,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         if tf is None:
             qq = np.ix_(qset, qset)
             tf = ode.SolveUnc(m[qq], b[qq], k[qq], rb=[])
-            if isinstance(save, dict):
+            if isinstance(save, abc.MutableMapping):
                 save['tf'] = tf
 
         bb = np.ix_(bset, bset)
@@ -905,10 +907,10 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         xyz = np.arange(6)
 
     # add center point for RBE3
-    if isinstance(ref, int):
+    if isinstance(ref, numbers.Integral):
         i = np.nonzero(uset_if[:, 0] == ref)[0][0]
         ref = uset[i, 3:]
-    grids = uset_if[::6, 0].astype(int)
+    grids = uset_if[::6, 0].astype(np.int64)
     new_id = grids.max() + 1
     uset2 = n2p.addgrid(uset_if, new_id, 'b', 0, ref, 0)
     rbe3 = n2p.formrbe3(uset2, new_id, 123456, [dof_indep, grids])
@@ -1738,7 +1740,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                'the reference node.)\n'.format(bref[0]+1))
 
     # coordinates of boundary points according to stiffness:
-    coords, rbs, _ = cbcoordchk(k, bset, bref, uset[::6, 0].astype(int),
+    coords, rbs, _ = cbcoordchk(k, bset, bref,
+                                uset[::6, 0].astype(np.int64),
                                 ttl, True, fout, rb_normalizer)
 
     # calculate free-free modes:
@@ -1801,7 +1804,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                '-------------------    -------------------\n')
     writer.vecwrite(fout, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
                     '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
-                    '{:5.3f}  {:5.3f}\n', uset[::6, 0].astype(int),
+                    '{:5.3f}  {:5.3f}\n',
+                    uset[::6, 0].astype(np.int64),
                     rss_s, rss_g, rss_e)
     fout.write('\n\n')
 
@@ -1822,7 +1826,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                '-------------------    -------------------\n')
     writer.vecwrite(fout, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
                     '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
-                    '{:5.3f}  {:5.3f}\n', uset[::6, 0].astype(int),
+                    '{:5.3f}  {:5.3f}\n',
+                    uset[::6, 0].astype(np.int64),
                     rss_rot_s, rss_rot_g, rss_rot_e)
     fout.write('\n\n')
 
@@ -1903,7 +1908,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         nb = uset.shape[0]
         writer.vecwrite(fout, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
                         '  {:10.3f}  {:10.3f}  {:10.3f}\n',
-                        uset[:, :2].astype(int), rbf[:nb])
+                        uset[:, :2].astype(np.int64), rbf[:nb])
         nq = rbf.shape[0] - nb
         if nq > 0:
             writer.vecwrite(fout, '  modal  {:4d}   {:10.3f}  {:10.3f}'
