@@ -984,7 +984,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         if 'n' not in delspikes:
             delspikes['n'] = 15
 
-        if 1:
+        if 0:
             diffdata = np.empty(olddata.shape)
             diffdata[0] = 0.0
             diffdata[1:] = np.diff(olddata)
