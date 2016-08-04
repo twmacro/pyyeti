@@ -479,7 +479,7 @@ class DataCursor(object):
     def _snap(self, ax, x, y):
         """Return the value in self._points closest to x, y."""
         dmin = np.inf
-        xyn = None, None, None
+        xyn = None, None, None, None, None
         for n, ln in enumerate(ax.lines):
             xdata = ln.get_xdata()
             ydata = ln.get_ydata()
