@@ -978,6 +978,18 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     def _del_spikes(delspikes, told, olddata, difft):
         if not isinstance(delspikes, abc.MutableMapping):
+            if isinstance(delspikes, tuple):
+                n, s, iters = delspikes
+                for i in range(iters):
+                    av = exclusive_sgfilter(olddata, n, exclude_point='middle')
+                    sig = np.std(olddata)
+                    pv = abs(olddata - av) > s * sig
+                    if pv.any():
+                        olddata = olddata[~pv]
+                        told = told[~pv]
+                        difft = np.diff(told)
+                    spike_info = SimpleNamespace(pv=pv)
+                return told, olddata, spike_info, difft
             delspikes = dict()
         else:
             delspikes = dict(delspikes)  # make a copy
