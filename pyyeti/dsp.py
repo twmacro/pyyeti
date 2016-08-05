@@ -16,7 +16,8 @@ from types import SimpleNamespace
 
 
 def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
-    """Change sample rate of data by a rational factor using Lanczos
+    """
+    Change sample rate of data by a rational factor using Lanczos
     resampling.
 
     Parameters
@@ -562,7 +563,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         array([ 2,  3,  6,  3, -2,  4, -2])
 
         Run all iterations at once to see what ``s.pv`` looks like:
-    
+
         >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
         >>> s = dsp.despike(x, n=9, sigma=2,
         ...                 threshold_sigma=0.1,
@@ -577,6 +578,15 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         if threshold_value is not None:
             return threshold_value
         return threshold_sigma * np.std(x)
+
+
+    def _get_min_limit(x, threshold_sigma, threshold_value):
+        std = np.std(x)
+        if threshold_value is not None:
+            return threshold_value, std
+        return threshold_sigma * std, std
+
+
 
     def _sweep_out_priors(y, pv, n, limit, ave):
         # see if we can consider points before detected outliers
@@ -616,11 +626,12 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
                     idiff[j+1] -= 1
                     pv[k] = True
 
-    def _find_outlier_peaks(y, n, sigma, min_limit, xp):
+    def _find_outlier_peaks(y, n, sigma, min_limit, xp, minstd):
         ave = exclusive_sgfilter(y, n, exclude_point=xp)
         var = exclusive_sgfilter(y**2, n, exclude_point=xp) - ave**2
         # use abs to care of negative numerical zeros:
         std = np.sqrt(abs(var))
+        std[std <= minstd] = minstd
         limit = np.fmax(sigma * std, min_limit)
         ydelta = abs(y-ave)
         pv = ydelta > limit
@@ -634,9 +645,11 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
     x = np.atleast_1d(x).copy()
     if x.ndim > 1:
         raise ValueError("`x` must be 1d")
-    min_limit = _get_min_limit(x, threshold_sigma, threshold_value)
-    PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
+    min_limit, std = _get_min_limit(
+        x, threshold_sigma, threshold_value)
+    minstd = std * 0.0
 
+    PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
     hilim = np.empty(x.shape)
     lolim = np.empty(x.shape)
     for i in itertools.count(1):
@@ -644,7 +657,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         if n > y.size:
             n = y.size - 1
         pv, hilim[PV], lolim[PV] = _find_outlier_peaks(
-            y, n, sigma, min_limit, xp=exclude_point)
+            y, n, sigma, min_limit, xp=exclude_point, minstd=minstd)
         if pv.all():
             break
         PV[PV] &= pv
@@ -996,13 +1009,21 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         if 'n' not in delspikes:
             delspikes['n'] = 15
 
-        if 0:
-            diffdata = np.empty(olddata.shape)
-            diffdata[0] = 0.0
-            diffdata[1:] = np.diff(olddata)
+        if 1:
+            diffdata = np.diff(olddata)
             s = despike(diffdata, **delspikes)
             if s.pv.any():
-                olddata = olddata[~s.pv]
+                av = exclusive_sgfilter(olddata, delspikes['n'],
+                                        exclude_point='middle')
+                delta = abs(olddata - av)
+                pvold = np.zeros(olddata.size, bool)
+                pv = s.pv.nonzero()[0]
+                for i in pv:
+                    # "i" could be i or i + 1 in olddata:
+                    pvold[i if delta[i] > delta[i+1] else i+1] = True
+                olddata = olddata[~pvold]
+                s.pv = pvold
+
         else:
             s = despike(olddata, **delspikes)
             olddata = s.dx

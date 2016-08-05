@@ -191,7 +191,6 @@ class DataCursor(object):
             Sets the `offsets` attribute.
         """
         self._ax_input = ax
-        self._kid = {}
         self.hover = hover
         self.form1 = form1
         self.form2 = form2
@@ -251,6 +250,7 @@ class DataCursor(object):
         self.linenums = []
         self.pts = []
         self.notes = []
+        self._kid = {}
         self._mid = {}
         self._bid = {}
         self._aid = {}
@@ -258,9 +258,8 @@ class DataCursor(object):
         if callbacks:
             for fig in self._figs:
                 cvs = fig.canvas
-                if fig not in self._kid:
-                    self._kid[fig] = cvs.mpl_connect(
-                        'key_press_event', self._key)
+                self._kid[fig] = cvs.mpl_connect(
+                    'key_press_event', self._key)
                 if self.hover:
                     self._mid[fig] = cvs.mpl_connect(
                         'motion_notify_event', self._follow)
