@@ -647,10 +647,11 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         raise ValueError("`x` must be 1d")
     min_limit, std = _get_min_limit(
         x, threshold_sigma, threshold_value)
-    minstd = std * 0.0
-    
+    minstd = std * 0.02
+
     print('min_limit =', min_limit)
-    
+    print('minstd =', minstd)
+
     PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
     hilim = np.empty(x.shape)
     lolim = np.empty(x.shape)
@@ -1023,16 +1024,16 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             diffdata = np.diff(olddata)
             s = despike(diffdata, **delspikes)
             if s.pv.any():
-                _del_loners(s.pv)
-                
+                # _del_loners(s.pv)
+
                 import matplotlib.pyplot as plt
                 plt.figure('in dsp')
                 plt.clf()
                 plt.plot(told[1:], diffdata)
-                plt.plot(told[1:], s.hilim, 'k', alpha=.5) 
+                plt.plot(told[1:], s.hilim, 'k', alpha=.5)
                 plt.plot(told[1:], s.lolim, 'k', alpha=.5)
 
-                
+
                 av = exclusive_sgfilter(olddata, delspikes['n'],
                                         exclude_point='middle')
                 delta = abs(olddata - av)
@@ -1041,6 +1042,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 for i in pv:
                     # "i" could be i or i + 1 in olddata:
                     pvold[i if delta[i] > delta[i+1] else i+1] = True
+                _del_loners(pvold)
                 olddata = olddata[~pvold]
                 s.pv = pvold
 
