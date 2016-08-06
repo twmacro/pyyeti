@@ -648,7 +648,9 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
     min_limit, std = _get_min_limit(
         x, threshold_sigma, threshold_value)
     minstd = std * 0.0
-
+    
+    print('min_limit =', min_limit)
+    
     PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
     hilim = np.empty(x.shape)
     lolim = np.empty(x.shape)
@@ -863,9 +865,17 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 dropouts, abs(d-dropval) < abs(dropval)/100)
         return dropouts
 
+    def _del_loners(dropouts):
+        pv = dropouts.nonzero()[0]
+        loners = (np.diff(pv) == 2).nonzero()[0]
+        if loners.size > 0:
+            dropouts[pv[loners] + 1] = True
+
     def _del_drops(told, olddata, dropval):
         dropouts = _find_drops(olddata, dropval)
         if np.any(dropouts):
+            if delspikes:
+                _del_loners(dropouts)
             keep = ~dropouts
             if np.any(keep):
                 told = told[keep]
@@ -1013,6 +1023,16 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             diffdata = np.diff(olddata)
             s = despike(diffdata, **delspikes)
             if s.pv.any():
+                _del_loners(s.pv)
+                
+                import matplotlib.pyplot as plt
+                plt.figure('in dsp')
+                plt.clf()
+                plt.plot(told[1:], diffdata)
+                plt.plot(told[1:], s.hilim, 'k', alpha=.5) 
+                plt.plot(told[1:], s.lolim, 'k', alpha=.5)
+
+                
                 av = exclusive_sgfilter(olddata, delspikes['n'],
                                         exclude_point='middle')
                 delta = abs(olddata - av)
