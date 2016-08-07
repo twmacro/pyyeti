@@ -867,6 +867,27 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                     for j in range(i):
                         dropouts[pv[loners] + j] = True
 
+    def _del_loners(dropouts, n, nz=3):
+        pv = dropouts.nonzero()[0]
+        if pv.size > 2:
+            # delete 1-of loners first
+            loners = (np.diff(pv) == 2).nonzero()[0]
+            if loners.size > 0:
+                dropouts[pv[loners] + 1] = True
+            s = dropouts.size
+            ind = []
+            # for i, p in enumerate pv[:-1]:
+            for i in pv[:-(nz-1)]:
+                j = i + n
+                j = j if j < s else s
+                d_ij = dropouts[i:j]
+                if d_ij.sum() >= nz:
+                    while not dropouts[j-1]:
+                        j -= 1
+                    ind.append(slice(i, j))
+            for ij in ind:
+                dropouts[ij] = True
+
     def _del_drops(told, olddata, dropval, delspikes):
         dropouts = _find_drops(olddata, dropval)
         if np.any(dropouts):
@@ -987,7 +1008,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             delspikes = dict()
         else:
             delspikes = dict(delspikes)  # make a copy
-        _dict_default(delspikes, n=15, method='despike_deltas',
+        _dict_default(delspikes, sigma=12, n=15,
+                      method='despike_deltas',
                       maxiter=10)
         return delspikes
 
@@ -1144,25 +1166,46 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             index[lastp:] = n
         return index
 
-    def _return(t, data, dropouts, sr_stats, tp, dropval,
+    def _get_alldrops(npts, dropouts, spike_info, index):
+        if dropouts is None:
+            dropouts = np.zeros(npts, bool)
+        # gaps = np.zeros(npts, bool)
+        # if index is not None:
+        #     idiff = np.diff(index)
+        #     gaps[1:] = idiff == 0
+        # alldrops = dropouts | gaps
+        if spike_info is not None:
+            spikes = np.zeros(npts, bool)
+            spikes[~dropouts] = spike_info.pv
+            alldrops = dropouts | spikes
+            _del_loners(alldrops, spike_info.n, 3)
+        else:
+            alldrops = dropouts.copy()
+            spikes = None
+        return SimpleNamespace(
+            dropouts=dropouts,
+            # gaps=gaps,
+            spikes=spikes,
+            alldrops=alldrops)
+
+    def _return(t, data, alldrops, sr_stats, tp,
                 getall, return_ndarray, spike_info):
         if return_ndarray:
             newdata = np.vstack((t, data)).T
         else:
             newdata = (t, data)
         if getall:
-            if dropouts is None:
-                dropouts = _find_drops(data, dropval)
             fixinfo = SimpleNamespace(
-                dropouts=dropouts,
                 sr_stats=sr_stats,
                 tp=tp,
+                alldrops=alldrops,
                 spike_info=spike_info)
             return newdata, fixinfo
         return newdata
 
     # begin main routine
     told, olddata, return_ndarray = _get_timedata(olddata)
+    orig_t, orig_d = told, olddata
 
     # prep `delspikes` if needed:
     if delspikes:
@@ -1174,9 +1217,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         told, olddata, dropouts = _del_drops(told, olddata,
                                              dropval, delspikes)
         if len(told) == 0:
-            return _return(told, olddata, dropouts, sr_stats, tp,
-                           dropval, getall, return_ndarray,
-                           spike_info=None)
+            alldrops = _get_alldrops(orig_t.size, dropouts,
+                                     spike_info, index)
+            return _return(tnew, newdata, alldrops, sr_stats, tp,
+                           getall, return_ndarray, spike_info)
 
     # check for outlier times ... outside 3-sigma
     told, olddata = _del_outtimes(told, olddata, delouttimes)
@@ -1205,6 +1249,21 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # build a best-fit index by segments:
     index = _best_fit_segments(tnew, tp, told, dt)
 
+    # get partition vector for drops, spikes, and gaps:
+    alldrops = _get_alldrops(orig_t.size, dropouts,
+                             spike_info, index)
+
+    # make initial new time vector aligned with longest range in
+    # told of "good" time steps (tp: turning points):
+    pv = ~alldrops.alldrops
+    told = orig_t[pv]
+    olddata = orig_d[pv]
+    difft = np.diff(told)
+    tnew, tp = _mk_initial_tnew(told, sr, dt, difft, fixdrift)
+
+    # build a best-fit index by segments:
+    index = _best_fit_segments(tnew, tp, told, dt)
+
     # if want new time to exactly hit base (if base were in range):
     if base is not None:
         t0 = tnew[0]
@@ -1213,8 +1272,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     # fill in new data vector with best-fit times (no interpolation):
     newdata = olddata[index]
-    return _return(tnew, newdata, dropouts, sr_stats, tp,
-                   dropval, getall, return_ndarray, spike_info)
+    return _return(tnew, newdata, alldrops, sr_stats, tp,
+                   getall, return_ndarray, spike_info)
 
 
 def aligntime(dct, channels=None, mode='truncate', value=0):
