@@ -430,8 +430,8 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
     return d
 
 
-def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
-            threshold_value=None, exclude_point='first'):
+def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
+            threshold_value=None, exclude_point='first', **kwargs):
     """
     Delete outlier data points from signal
 
@@ -457,10 +457,11 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         `maxiter` to 0 is the same as setting it to 1).
     threshold_sigma : scalar; optional
         Number of standard deviations below which all data is kept.
-        This standard deviation is of the entire, unmodified input
-        signal. This value exists to avoid deleting small deviations
-        such as bit toggles. `threshold_value` overrides
-        `threshold_sigma` if it is not None.
+        This standard deviation is of the entire input signal minus
+        the moving average (using a window of `n` size). This value
+        exists to avoid deleting small deviations such as bit
+        toggles. `threshold_value` overrides `threshold_sigma` if it
+        is not None.
     threshold_value : scalar or None; optional
         Optional method for specifying a minimum threshold. If not
         None, this scalar is used as an absolute minimum deviation
@@ -476,6 +477,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         ``n // 2``, and ``n-1``, respectively). If None, the point
         will in the middle of the window and will not be excluded from
         the statistics (this is not recommended).
+    **kwargs : other args are ignored
+        This is here to accommodate :func:`fixtime`.
 
     Returns
     -------
@@ -574,19 +577,11 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         array([ True, False, False,  True,  True,  True, False, False,
                False, False, False,  True], dtype=bool)
     """
-    def _get_min_limit(x, threshold_sigma, threshold_value):
+    def _get_min_limit(x, n, threshold_sigma, threshold_value):
         if threshold_value is not None:
             return threshold_value
-        return threshold_sigma * np.std(x)
-
-
-    def _get_min_limit(x, threshold_sigma, threshold_value):
-        std = np.std(x)
-        if threshold_value is not None:
-            return threshold_value, std
-        return threshold_sigma * std, std
-
-
+        ave = exclusive_sgfilter(x, n, exclude_point=None)
+        return threshold_sigma * np.std(x-ave)
 
     def _sweep_out_priors(y, pv, n, limit, ave):
         # see if we can consider points before detected outliers
@@ -626,12 +621,11 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
                     idiff[j+1] -= 1
                     pv[k] = True
 
-    def _find_outlier_peaks(y, n, sigma, min_limit, xp, minstd):
+    def _find_outlier_peaks(y, n, sigma, min_limit, xp):
         ave = exclusive_sgfilter(y, n, exclude_point=xp)
         var = exclusive_sgfilter(y**2, n, exclude_point=xp) - ave**2
         # use abs to care of negative numerical zeros:
         std = np.sqrt(abs(var))
-        std[std <= minstd] = minstd
         limit = np.fmax(sigma * std, min_limit)
         ydelta = abs(y-ave)
         pv = ydelta > limit
@@ -645,12 +639,10 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
     x = np.atleast_1d(x).copy()
     if x.ndim > 1:
         raise ValueError("`x` must be 1d")
-    min_limit, std = _get_min_limit(
-        x, threshold_sigma, threshold_value)
-    minstd = std * 0.02
-
-    print('min_limit =', min_limit)
-    print('minstd =', minstd)
+    if n > x.size:
+        n = x.size - 1
+    min_limit = _get_min_limit(
+        x, n, threshold_sigma, threshold_value)
 
     PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
     hilim = np.empty(x.shape)
@@ -660,7 +652,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=0.2,
         if n > y.size:
             n = y.size - 1
         pv, hilim[PV], lolim[PV] = _find_outlier_peaks(
-            y, n, sigma, min_limit, xp=exclude_point, minstd=minstd)
+            y, n, sigma, min_limit, xp=exclude_point)
         if pv.all():
             break
         PV[PV] &= pv
@@ -866,17 +858,20 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 dropouts, abs(d-dropval) < abs(dropval)/100)
         return dropouts
 
-    def _del_loners(dropouts):
+    def _del_loners(dropouts, n):
         pv = dropouts.nonzero()[0]
-        loners = (np.diff(pv) == 2).nonzero()[0]
-        if loners.size > 0:
-            dropouts[pv[loners] + 1] = True
+        if pv.size > 0:
+            for i in range(2, n+1):
+                loners = (np.diff(pv) == i).nonzero()[0]
+                if loners.size > 0:
+                    for j in range(i):
+                        dropouts[pv[loners] + j] = True
 
-    def _del_drops(told, olddata, dropval):
+    def _del_drops(told, olddata, dropval, delspikes):
         dropouts = _find_drops(olddata, dropval)
         if np.any(dropouts):
             if delspikes:
-                _del_loners(dropouts)
+                _del_loners(dropouts, delspikes['n'])
             keep = ~dropouts
             if np.any(keep):
                 told = told[keep]
@@ -885,23 +880,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 warn('there are only drop-outs!', RuntimeWarning)
                 olddata = told = np.zeros(0)
         return told, olddata, dropouts
-
-    def _return(t, data, dropouts, sr_stats, tp, dropval,
-                getall, return_ndarray, spike_info):
-        if return_ndarray:
-            newdata = np.vstack((t, data)).T
-        else:
-            newdata = (t, data)
-        if getall:
-            if dropouts is None:
-                dropouts = _find_drops(data, dropval)
-            fixinfo = SimpleNamespace(
-                dropouts=dropouts,
-                sr_stats=sr_stats,
-                tp=tp,
-                spike_info=spike_info)
-            return newdata, fixinfo
-        return newdata
 
     def _del_outtimes(told, olddata, delouttimes):
         mn = told.mean()
@@ -1000,64 +978,72 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         print('==> Using sample rate = {:g}'.format(sr))
         return sr, sr_stats
 
-    def _del_spikes(delspikes, told, olddata, difft):
+    def _prep_delspikes(delspikes):
+        def _dict_default(dct, **kwargs):
+            for k, v in kwargs.items():
+                if k not in dct:
+                    dct[k] = v
         if not isinstance(delspikes, abc.MutableMapping):
-            if isinstance(delspikes, tuple):
-                n, s, iters = delspikes
-                for i in range(iters):
-                    av = exclusive_sgfilter(olddata, n, exclude_point='middle')
-                    sig = np.std(olddata)
-                    pv = abs(olddata - av) > s * sig
-                    if pv.any():
-                        olddata = olddata[~pv]
-                        told = told[~pv]
-                        difft = np.diff(told)
-                    spike_info = SimpleNamespace(pv=pv)
-                return told, olddata, spike_info, difft
             delspikes = dict()
         else:
             delspikes = dict(delspikes)  # make a copy
-        if 'n' not in delspikes:
-            delspikes['n'] = 15
+        _dict_default(delspikes, n=15, method='despike_deltas',
+                      maxiter=10)
+        return delspikes
 
-        if 1:
-            diffdata = np.diff(olddata)
-            s = despike(diffdata, **delspikes)
-            if s.pv.any():
-                # _del_loners(s.pv)
-
-                import matplotlib.pyplot as plt
-                plt.figure('in dsp')
-                plt.clf()
-                plt.plot(told[1:], diffdata)
-                plt.plot(told[1:], s.hilim, 'k', alpha=.5)
-                plt.plot(told[1:], s.lolim, 'k', alpha=.5)
-
-
-                av = exclusive_sgfilter(olddata, delspikes['n'],
-                                        exclude_point='middle')
-                delta = abs(olddata - av)
-                pvold = np.zeros(olddata.size, bool)
-                pv = s.pv.nonzero()[0]
-                for i in pv:
-                    # "i" could be i or i + 1 in olddata:
-                    pvold[i if delta[i] > delta[i+1] else i+1] = True
-                _del_loners(pvold)
-                olddata = olddata[~pvold]
-                s.pv = pvold
-
-        else:
-            s = despike(olddata, **delspikes)
-            olddata = s.dx
-
-        t_limit = told
-        if s.pv.any():
-            told = told[~s.pv]
+    def _post_despike(pv, told, olddata, difft, n, niter):
+        t = told
+        if pv.any():
+            _del_loners(pv, n)
+            pv1 = ~pv
+            told = told[pv1]
+            olddata = olddata[pv1]
             difft = np.diff(told)
-        spike_info = SimpleNamespace(
-            pv=s.pv, t=t_limit, hilim=s.hilim, lolim=s.lolim,
-            n=delspikes['n'], niter=s.niter)
-        return told, olddata, spike_info, difft
+        spike_info = SimpleNamespace(pv=pv, t=t, n=n, niter=niter)
+        return told, olddata, difft, spike_info
+
+    def _despike_deltas(delspikes, told, olddata, difft):
+        diffdata = np.diff(olddata)
+        s = despike(diffdata, **delspikes)
+        if s.pv.any():
+            av = exclusive_sgfilter(olddata, delspikes['n'],
+                                    # exclude_point='middle')
+                                    exclude_point=None)
+            delta = abs(olddata - av)
+            pvold = np.zeros(olddata.size, bool)
+            pv = s.pv.nonzero()[0]
+            for i in pv:
+                # "i" could be i or i + 1 in olddata:
+                pvold[i if delta[i] > delta[i+1] else i+1] = True
+        return _post_despike(pvold, told, olddata, difft,
+                             delspikes['n'], s.niter)
+
+    def _simple_filter(olddata, n, sigma=6, maxiter=10, **kwargs):
+        PV = np.ones(olddata.size, bool)
+        for i in range(maxiter):
+            ave = exclusive_sgfilter(olddata[PV], n,
+                                     # exclude_point='middle')
+                                     exclude_point=None)
+            delta = olddata[PV] - ave
+            pv = abs(delta) > sigma * np.std(delta)
+            if pv.any():
+                PV[PV] = ~pv
+            else:
+                break
+        return _post_despike(~PV, told, olddata, difft, n, i+1)
+
+    def _del_spikes(told, olddata, difft, delspikes):
+        method = delspikes['method']
+        if method == 'despike_deltas':
+            return _despike_deltas(delspikes, told, olddata, difft)
+        elif method == 'despike':
+            s = despike(olddata, **delspikes)
+            return _post_despike(s.pv, told, olddata, difft,
+                                 delspikes['n'], s.niter)
+        elif method == 'simple':
+            return _simple_filter(olddata, **delspikes)
+        else:
+            raise ValueError('unknown `method` ({})'.format(method))
 
     def _check_dt_size(difft, dt):
         n = len(difft)
@@ -1158,13 +1144,35 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             index[lastp:] = n
         return index
 
+    def _return(t, data, dropouts, sr_stats, tp, dropval,
+                getall, return_ndarray, spike_info):
+        if return_ndarray:
+            newdata = np.vstack((t, data)).T
+        else:
+            newdata = (t, data)
+        if getall:
+            if dropouts is None:
+                dropouts = _find_drops(data, dropval)
+            fixinfo = SimpleNamespace(
+                dropouts=dropouts,
+                sr_stats=sr_stats,
+                tp=tp,
+                spike_info=spike_info)
+            return newdata, fixinfo
+        return newdata
+
     # begin main routine
     told, olddata, return_ndarray = _get_timedata(olddata)
+
+    # prep `delspikes` if needed:
+    if delspikes:
+        delspikes = _prep_delspikes(delspikes)
 
     # check for drop outs:
     dropouts = sr_stats = tp = None
     if deldrops:
-        told, olddata, dropouts = _del_drops(told, olddata, dropval)
+        told, olddata, dropouts = _del_drops(told, olddata,
+                                             dropval, delspikes)
         if len(told) == 0:
             return _return(told, olddata, dropouts, sr_stats, tp,
                            dropval, getall, return_ndarray,
@@ -1182,8 +1190,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     # delete spikes if requested:
     if delspikes:
-        told, olddata, spike_info, difft = _del_spikes(
-            delspikes, told, olddata, difft)
+        told, olddata, difft, spike_info = _del_spikes(
+            told, olddata, difft, delspikes)
     else:
         spike_info = None
 
