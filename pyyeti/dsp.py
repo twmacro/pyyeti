@@ -749,17 +749,25 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            shifts ("turning points") were done to align the new time
            vector against the old.
 
-        - `spike_info` : SimpleNamespace or None
-           If `delspikes` is True or a dict, `spike_info` contains:
+        - `alldrops` : SimpleNamespace or None
+           Has bool 1d arrays with True showing the drops:
 
-               ========   ==============================
-               `hilim`    As output by :func:`despike`
-               `lolim`    As output by :func:`despike`
-               `n`        Value input to :func:`despike`
-               `niter`    As output by :func:`despike`
-               `pv`       As output by :func:`despike`
-               `t`        Time vector for `limit`
-               ========   ==============================
+               ==========  ==========================================
+               `alldrops`  ``dropouts | spikes`` plus possible points
+                           in between those
+               `dropouts`  shows infs, nans, and `dropvals`
+               `spikes`    shows spikes (None if ``not delspikes``)
+               ==========  ==========================================
+
+        - `despike_info` : SimpleNamespace or None
+           If `delspikes` is True or a dict, `despike_info` contains:
+
+               ===========  =======================================
+               `delspikes`  Dict of values used for spike removal
+                            (input to :func:`despike` for the
+                            "despike" methods)
+               `niter`      Number of iterations of spike removal
+               ===========  =======================================
 
     Notes
     -----
@@ -858,16 +866,23 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 dropouts, abs(d-dropval) < abs(dropval)/100)
         return dropouts
 
-    def _del_loners(dropouts, n):
-        pv = dropouts.nonzero()[0]
-        if pv.size > 0:
-            for i in range(2, n+1):
-                loners = (np.diff(pv) == i).nonzero()[0]
-                if loners.size > 0:
-                    for j in range(i):
-                        dropouts[pv[loners] + j] = True
+    # def _del_loners(dropouts, n):
+    #     pv = dropouts.nonzero()[0]
+    #     if pv.size > 0:
+    #         for i in range(2, n+1):
+    #             loners = (np.diff(pv) == i).nonzero()[0]
+    #             if loners.size > 0:
+    #                 for j in range(i):
+    #                     dropouts[pv[loners] + j] = True
 
     def _del_loners(dropouts, n, nz=3):
+        """Delete points amongst dropouts.
+        dropouts : 1d bool ndarray of dropouts; True for drops
+        n : integer; window size
+        nz : integer; number of points in `n` point range that will
+            cause all points between to True values to be turned to
+            True
+        """
         pv = dropouts.nonzero()[0]
         if pv.size > 2:
             # delete 1-of loners first
@@ -876,7 +891,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 dropouts[pv[loners] + 1] = True
             s = dropouts.size
             ind = []
-            # for i, p in enumerate pv[:-1]:
             for i in pv[:-(nz-1)]:
                 j = i + n
                 j = j if j < s else s
@@ -1013,16 +1027,16 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                       maxiter=10)
         return delspikes
 
-    def _post_despike(pv, told, olddata, difft, n, niter):
-        t = told
+    def _post_despike(pv, told, olddata, difft, delspikes, niter):
         if pv.any():
-            _del_loners(pv, n)
+            _del_loners(pv, delspikes['n'])
             pv1 = ~pv
             told = told[pv1]
             olddata = olddata[pv1]
             difft = np.diff(told)
-        spike_info = SimpleNamespace(pv=pv, t=t, n=n, niter=niter)
-        return told, olddata, difft, spike_info
+        despike_info = SimpleNamespace(
+            pv=pv, delspikes=delspikes, niter=niter)
+        return told, olddata, difft, despike_info
 
     def _despike_deltas(delspikes, told, olddata, difft):
         diffdata = np.diff(olddata)
@@ -1038,10 +1052,13 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 # "i" could be i or i + 1 in olddata:
                 pvold[i if delta[i] > delta[i+1] else i+1] = True
         return _post_despike(pvold, told, olddata, difft,
-                             delspikes['n'], s.niter)
+                             delspikes, s.niter)
 
-    def _simple_filter(olddata, n, sigma=6, maxiter=10, **kwargs):
+    def _simple_filter(olddata, delspikes):
         PV = np.ones(olddata.size, bool)
+        n = delspikes['n']
+        sigma = delspikes['sigma']
+        maxiter = delspikes['maxiter']
         for i in range(maxiter):
             ave = exclusive_sgfilter(olddata[PV], n,
                                      # exclude_point='middle')
@@ -1052,7 +1069,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 PV[PV] = ~pv
             else:
                 break
-        return _post_despike(~PV, told, olddata, difft, n, i+1)
+        return _post_despike(~PV, told, olddata, difft,
+                             delspikes, i+1)
 
     def _del_spikes(told, olddata, difft, delspikes):
         method = delspikes['method']
@@ -1061,9 +1079,9 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         elif method == 'despike':
             s = despike(olddata, **delspikes)
             return _post_despike(s.pv, told, olddata, difft,
-                                 delspikes['n'], s.niter)
+                                 delspikes, s.niter)
         elif method == 'simple':
-            return _simple_filter(olddata, **delspikes)
+            return _simple_filter(olddata, delspikes)
         else:
             raise ValueError('unknown `method` ({})'.format(method))
 
@@ -1166,40 +1184,36 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             index[lastp:] = n
         return index
 
-    def _get_alldrops(npts, dropouts, spike_info, index):
+    def _get_alldrops(npts, dropouts, despike_info):
         if dropouts is None:
             dropouts = np.zeros(npts, bool)
-        # gaps = np.zeros(npts, bool)
-        # if index is not None:
-        #     idiff = np.diff(index)
-        #     gaps[1:] = idiff == 0
-        # alldrops = dropouts | gaps
-        if spike_info is not None:
+        if despike_info is not None:
             spikes = np.zeros(npts, bool)
-            spikes[~dropouts] = spike_info.pv
+            spikes[~dropouts] = despike_info.pv
             alldrops = dropouts | spikes
-            _del_loners(alldrops, spike_info.n, 3)
+            _del_loners(alldrops, despike_info.delspikes['n'], 3)
         else:
             alldrops = dropouts.copy()
             spikes = None
         return SimpleNamespace(
             dropouts=dropouts,
-            # gaps=gaps,
             spikes=spikes,
             alldrops=alldrops)
 
     def _return(t, data, alldrops, sr_stats, tp,
-                getall, return_ndarray, spike_info):
+                getall, return_ndarray, despike_info):
         if return_ndarray:
             newdata = np.vstack((t, data)).T
         else:
             newdata = (t, data)
         if getall:
+            if despike_info:
+                del despike_info.pv
             fixinfo = SimpleNamespace(
                 sr_stats=sr_stats,
                 tp=tp,
                 alldrops=alldrops,
-                spike_info=spike_info)
+                despike_info=despike_info)
             return newdata, fixinfo
         return newdata
 
@@ -1218,9 +1232,9 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                                              dropval, delspikes)
         if len(told) == 0:
             alldrops = _get_alldrops(orig_t.size, dropouts,
-                                     spike_info, index)
+                                     despike_info)
             return _return(tnew, newdata, alldrops, sr_stats, tp,
-                           getall, return_ndarray, spike_info)
+                           getall, return_ndarray, despike_info)
 
     # check for outlier times ... outside 3-sigma
     told, olddata = _del_outtimes(told, olddata, delouttimes)
@@ -1234,10 +1248,17 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     # delete spikes if requested:
     if delspikes:
-        told, olddata, difft, spike_info = _del_spikes(
+        told, olddata, difft, despike_info = _del_spikes(
             told, olddata, difft, delspikes)
     else:
-        spike_info = None
+        despike_info = None
+
+    # get partition vector for drops, spikes, and remaining "loners":
+    alldrops = _get_alldrops(orig_t.size, dropouts, despike_info)
+    pv = ~alldrops.alldrops
+    told = orig_t[pv]
+    olddata = orig_d[pv]
+    difft = np.diff(told)
 
     # check for small and large time steps:
     _check_dt_size(difft, dt)
@@ -1249,31 +1270,16 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # build a best-fit index by segments:
     index = _best_fit_segments(tnew, tp, told, dt)
 
-    # get partition vector for drops, spikes, and gaps:
-    alldrops = _get_alldrops(orig_t.size, dropouts,
-                             spike_info, index)
-
-    # make initial new time vector aligned with longest range in
-    # told of "good" time steps (tp: turning points):
-    pv = ~alldrops.alldrops
-    told = orig_t[pv]
-    olddata = orig_d[pv]
-    difft = np.diff(told)
-    tnew, tp = _mk_initial_tnew(told, sr, dt, difft, fixdrift)
-
-    # build a best-fit index by segments:
-    index = _best_fit_segments(tnew, tp, told, dt)
+    # fill in new data vector with best-fit times (no interpolation):
+    newdata = olddata[index]
 
     # if want new time to exactly hit base (if base were in range):
     if base is not None:
         t0 = tnew[0]
         t1 = base - t0 - round((base-t0)*sr)/sr
         tnew += t1
-
-    # fill in new data vector with best-fit times (no interpolation):
-    newdata = olddata[index]
     return _return(tnew, newdata, alldrops, sr_stats, tp,
-                   getall, return_ndarray, spike_info)
+                   getall, return_ndarray, despike_info)
 
 
 def aligntime(dct, channels=None, mode='truncate', value=0):
