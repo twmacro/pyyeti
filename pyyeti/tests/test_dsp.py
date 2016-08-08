@@ -290,10 +290,10 @@ def test_fixtime():
         #                                sr=1)
     assert np.all(tn == t2)
     assert np.all(yn == y2)
-    assert np.all(info.dropouts == [False, False, False, False])
+    assert np.all(info.alldrops.dropouts == [False, False, False, False])
     assert np.allclose(info.sr_stats, [1, .2, 3/7, 1, 200/3])
     assert np.all(info.tp == np.arange(4))
-    assert info.spike_info is None
+    assert info.despike_info is None
     assert_raises(ValueError, dsp.fixtime, (1, 1, 1))
 
     drop = -1.40130E-45
@@ -315,7 +315,7 @@ def test_fixtime():
     assert np.all(info.tp == [0, 2])
     assert np.all(t2 == t)
     assert np.all(y2 == y)
-    assert np.all(info.dropouts == [True, True, True])
+    assert np.all(info.alldrops.dropouts == [True, True, True])
 
     t = np.arange(100.)
     t = np.hstack((t, 200.))
@@ -492,7 +492,7 @@ def test_fixtime_naninf():
     with assert_warns(RuntimeWarning):
         (tn, yn), info = dsp.fixtime((t, y), sr=1, getall=1)
 
-    d = np.nonzero(info.dropouts)[0]
+    d = np.nonzero(info.alldrops.dropouts)[0]
     assert np.all(d == [4, 7, 10, 12])
     assert np.all(t == tn)
     assert np.all(yn == [1, 2, 3, 4, 4, 6, 7, 7, 9,
@@ -515,7 +515,7 @@ def test_fixtime_despike():
         (tn2, yn2), info2 = dsp.fixtime((t, y), sr=1, getall=1,
                                         delspikes=True)
 
-    d = np.nonzero(info.dropouts)[0]
+    d = np.nonzero(info.alldrops.dropouts)[0]
     assert np.all(d == [4, 7, 10, 12])
     assert np.all(t == tn)
     assert np.all(t == tn2)
@@ -523,11 +523,11 @@ def test_fixtime_despike():
                             10, 10, 12, 12, 14, 14, 15])
     assert np.allclose(yn2, [1, 2, 3, 4, 4, 6, 7, 7, 9,
                              10, 10, 12, 12, 14, 14, 15])
-    assert info.spike_info.n == 9
-    assert info2.spike_info.n == 15
-    # spike is at pos 10 in deleted-dropout version:
-    assert np.all(np.nonzero(info.spike_info.pv)[0] == 10)
-    assert np.all(np.nonzero(info2.spike_info.pv)[0] == 10)
+    assert info.despike_info.delspikes['n'] == 9
+    assert info2.despike_info.delspikes['n'] == 15
+    # spike is at pos 14
+    assert np.all(np.nonzero(info.alldrops.spikes)[0] == 14)
+    assert np.all(np.nonzero(info2.alldrops.spikes)[0] == 14)
 
 
 def test_fixtime_perfect():
@@ -578,32 +578,12 @@ def test_fixtime_exclude_point_change():
     ycopy = y.copy()
     ycopy[102:105] = y[101]
     t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True)
-    # (t2, y2), info = dsp.fixtime((t, y), 'auto',
-    #                              delspikes=dict(maxiter=-1),
-    #                              getall=True)
-    # plt.figure(1)
-    # plt.clf()
-    # plt.plot(t, y)
-    # plt.plot(t2, y2)
-    # plt.plot(info.spike_info.t, info.spike_info.lolim)
-    # plt.plot(info.spike_info.t, info.spike_info.hilim)
-    # plt.xlim(.08, .11)
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
 
     # none of a ramp down should be deleted:
     y[100:105] = np.arange(5.0, 0.0, -1.0)*3
     t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True)
-    # (t2, y2), info = dsp.fixtime((t, y), 'auto',
-    #                              delspikes=dict(maxiter=1),
-    #                              getall=True)
-    # plt.figure(2)
-    # plt.clf()
-    # plt.plot(t, y)
-    # plt.plot(t2, y2)
-    # plt.plot(info.spike_info.t, info.spike_info.lolim)
-    # plt.plot(info.spike_info.t, info.spike_info.hilim)
-    # plt.xlim(.08, .11)
     assert np.allclose(t2, t)
     assert np.all(y2 == y)
 

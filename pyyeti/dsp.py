@@ -1041,12 +1041,12 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     def _despike_deltas(delspikes, told, olddata, difft):
         diffdata = np.diff(olddata)
         s = despike(diffdata, **delspikes)
+        pvold = np.zeros(olddata.size, bool)
         if s.pv.any():
             av = exclusive_sgfilter(olddata, delspikes['n'],
                                     # exclude_point='middle')
                                     exclude_point=None)
             delta = abs(olddata - av)
-            pvold = np.zeros(olddata.size, bool)
             pv = s.pv.nonzero()[0]
             for i in pv:
                 # "i" could be i or i + 1 in olddata:
@@ -1231,10 +1231,9 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         told, olddata, dropouts = _del_drops(told, olddata,
                                              dropval, delspikes)
         if len(told) == 0:
-            alldrops = _get_alldrops(orig_t.size, dropouts,
-                                     despike_info)
-            return _return(tnew, newdata, alldrops, sr_stats, tp,
-                           getall, return_ndarray, despike_info)
+            alldrops = _get_alldrops(orig_t.size, dropouts, None)
+            return _return(told, olddata, alldrops, sr_stats, tp,
+                           getall, return_ndarray, None)
 
     # check for outlier times ... outside 3-sigma
     told, olddata = _del_outtimes(told, olddata, delouttimes)
