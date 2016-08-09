@@ -333,7 +333,7 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
 
     If `exclude_point` is 'last' or ``n-1``::
 
-              x = [0, 1, 2, 3, 4, 5, 6, 7, 8
+              x = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
          1st ave:  -  +  +  +  +
          2nd ave:  +  -  +  +  +
@@ -376,7 +376,8 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
     >>> exclusive_sgfilter(x, 3, exclude_point=None)
     array([ 1.,  1.,  3.,  4.,  5.,  5.])
     """
-    n = n | 1
+    x = np.atleast_1d(x)
+    n = min(x.size-1, n) | 1
     b = np.empty(n)
     if isinstance(exclude_point, str):
         if exclude_point == 'first':
@@ -398,7 +399,6 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
         b[:] = 1/(n-1)
         # b is applied in reverse: y[1] = b[0]*x[1] + b[1]*x[0]
         b[n-n_pt-1] = 0.0
-    x = np.atleast_1d(x)
     if not (axis == -1 or axis == x.ndim - 1):
         # Move the axis containing the data to the end
         x = np.swapaxes(x, axis, x.ndim - 1)
@@ -856,24 +856,43 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     POOR = ('This may be a poor way to handle the current data, so '
             'please check the results carefully.')
 
+    def _chk_negsteps(t, data, negmethod):
+        difft = np.diff(t)
+        negs = difft < 0
+        if negs.any():
+            nneg = np.count_nonzero(negs)
+            npos = difft.size - nneg
+            if npos == 0:
+                raise ValueError('there are no positive steps in the '
+                                 'entire time vector. Cannot fix '
+                                 'this.')
+            if negmethod == 'stop':
+                raise ValueError('There are {:d} negative time steps.'
+                                 ' Stopping.'.format(nneg))
+            if negmethod == 'sort':
+                warn('there are {:d} negative time steps. '
+                     'Sorting the data. {:s}'.format(nneg, POOR),
+                     RuntimeWarning)
+                j = t.argsort()
+                # unsort = j.argsort()
+                t = t[j]
+                data = data[j]
+                difft = np.diff(t)
+        else:
+            j = None
+        return t, data, difft, j
+
     def _find_drops(d, dropval):
         dropouts = np.logical_or(np.isnan(d), np.isinf(d))
         if np.isfinite(dropval):
-            dropouts = np.logical_or(
-                dropouts, abs(d-dropval) < abs(dropval)/100)
+            d = d[~dropouts]
+            dropouts[~dropouts] = abs(d-dropval) < abs(dropval)/100
+            # dropouts = np.logical_or(
+            #    dropouts, abs(d-dropval) < abs(dropval)/100)
         return dropouts
 
-    # def _del_loners(dropouts, n):
-    #     pv = dropouts.nonzero()[0]
-    #     if pv.size > 0:
-    #         for i in range(2, n+1):
-    #             loners = (np.diff(pv) == i).nonzero()[0]
-    #             if loners.size > 0:
-    #                 for j in range(i):
-    #                     dropouts[pv[loners] + j] = True
-
     def _del_loners(dropouts, n, nz=3):
-        """Delete points amongst dropouts.
+        """Delete "loner-ish" points amongst dropouts.
         dropouts : 1d bool ndarray of dropouts; True for drops
         n : integer; window size
         nz : integer; number of points in `n` point range that will
@@ -882,7 +901,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         """
         pv = dropouts.nonzero()[0]
         if pv.size > 2:
-            # delete 1-of loners first
+            # delete 1-of loners first (this is necessary if
+            # method="despike_deltas" because a middle spike
+            # will be left behind if it is smaller than the two
+            # surrounding spikes)
             loners = (np.diff(pv) == 2).nonzero()[0]
             if loners.size > 0:
                 dropouts[pv[loners] + 1] = True
@@ -904,11 +926,11 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         if dropouts.any():
             if delspikes:
                 _del_loners(dropouts, delspikes['n'])
-            keep = ~dropouts
-            keep = keeps.nonzero()[0]
-            dropouts = dropouts.nonzero()[0]
-            if keep.size == 0:
-                warn('there are only drop-outs!', RuntimeWarning)
+        keep = ~dropouts
+        keep = keep.nonzero()[0]
+        dropouts = dropouts.nonzero()[0]
+        if keep.size == 0:
+            warn('there are only drop-outs!', RuntimeWarning)
         return keep, dropouts
 
     def _del_outtimes(told, keep, delouttimes):
@@ -931,30 +953,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                      'away from the mean.'.format(pv.sum()),
                      RuntimeWarning)
         return keep, outtimes
-
-    def _chk_negsteps(told, negmethod):
-        t = told[keep]
-        difft = np.diff(t)
-        negs = np.zeros(t.size, bool)
-        negs[1:] = difft < 0
-        if negs.any():
-            nneg = np.count_nonzero(negs)
-            npos = t.size - nneg
-            if npos == 0:
-                raise ValueError('there are no positive steps in the '
-                                 'entire time vector. Cannot fix '
-                                 'this.')
-            if negmethod == 'stop':
-                raise ValueError('There are {:d} negative time steps.'
-                                 ' Stopping.'.format(nneg))
-            if negmethod == 'sort':
-                warn('there are {:d} negative time steps. '
-                     'Sorting the data. {:s}'.format(nneg, POOR),
-                     RuntimeWarning)
-                j = np.argsort(t)
-                keep = keep[j]
-                difft = np.diff(t[j])
-        return keep, difft
 
     def _sr_calcs(difft, sr):
         min_ts = difft.min()
@@ -1026,26 +1024,50 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     def _post_despike(pv, keep, delspikes, niter):
         if pv.any():
             _del_loners(pv, delspikes['n'])
-            spikes = keep[pv]
-            keep = keep[~pv]
+        spikes = keep[pv]
+        keep = keep[~pv]
         despike_info = SimpleNamespace(
-            pv=pv, delspikes=delspikes, niter=niter)
+            delspikes=delspikes, niter=niter)
         return keep, spikes, despike_info
 
     def _despike_deltas(delspikes, olddata, keep):
         d = olddata[keep]
         diffdata = np.diff(d)
+        import matplotlib.pyplot as plt
         s = despike(diffdata, **delspikes)
         pv_d = np.zeros(d.size, bool)  # spike locations in d
-        if s.pv.any():
-            av = exclusive_sgfilter(d, delspikes['n'],
-                                    # exclude_point='middle')
-                                    exclude_point=None)
-            delta = abs(d - av)
-            pv = s.pv.nonzero()[0]
-            for i in pv:
-                # "i" could be i or i + 1 in olddata:
-                pv_d[i if delta[i] > delta[i+1] else i+1] = True
+        if 1:
+            if s.pv.any():
+                pv = s.pv.nonzero()[0]
+                av = exclusive_sgfilter(d, delspikes['n'],
+                                        # exclude_point='middle')
+                                        exclude_point=None)
+                delta = abs(d - av)
+                j = None
+                count = 0
+                for i in pv[1:]:
+                    count += 1 if diffdata[i] > 0 else -1
+                    if j is None:
+                        j = i
+                        # "j" could be j or j + 1 in olddata:
+                        j = j if delta[j] > delta[j+1] else j+1
+                    if count == 0:
+                        k = i
+                        k = k if delta[k] > delta[k+1] else k+2
+                        pv_d[j:k+1] = True
+                        j = None
+                if j is not None:
+                    pv_d[j:] = True
+        else:
+            if s.pv.any():
+                av = exclusive_sgfilter(d, delspikes['n'],
+                                        # exclude_point='middle')
+                                        exclude_point=None)
+                delta = abs(d - av)
+                pv = s.pv.nonzero()[0]
+                for i in pv:
+                    # "i" could be i or i + 1 in olddata:
+                    pv_d[i if delta[i] > delta[i+1] else i+1] = True
         return _post_despike(pv_d, keep, delspikes, s.niter)
 
     def _simple_filter(olddata, keep, delspikes):
@@ -1055,10 +1077,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         sigma = delspikes['sigma']
         maxiter = delspikes['maxiter']
         for i in itertools.count(1):
-            ave = exclusive_sgfilter(olddata[PV], n,
+            ave = exclusive_sgfilter(d[PV], n,
                                      # exclude_point='middle')
                                      exclude_point=None)
-            delta = olddata[PV] - ave
+            delta = d[PV] - ave
             pv = abs(delta) > sigma * np.std(delta)
             if pv.any():
                 PV[PV] = ~pv
@@ -1080,14 +1102,48 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         else:
             raise ValueError('unknown `method` ({})'.format(method))
 
+    def _get_alldrops(told, olddata, sortvec, dropouts,
+                      outtimes, spikes, despike_info, delouttimes):
+        alldrops = np.zeros(told.size, bool)
+        if dropouts is not None:
+            alldrops[dropouts] = True
+        if delouttimes:
+            alldrops[outtimes] = True
+        if spikes is not None:
+            alldrops[spikes] = True
+            _del_loners(alldrops, despike_info.delspikes['n'], 3)
+        else:
+            spikes = None
+        keep = ~alldrops
+        t = told[keep]
+        data = olddata[keep]
+        alldrops = alldrops.nonzero()[0]
+
+        def _apply_sortvec(sortvec, *args):
+            args = list(args)
+            for i, arg in enumerate(args):
+                if arg is not None:
+                    args[i] = np.sort(sortvec[arg])
+            return args
+
+        if sortvec is not None:
+            alldrops, dropouts, outtimes, spikes = _apply_sortvec(
+                sortvec, alldrops, dropouts, outtimes, spikes)
+
+        return t, data, SimpleNamespace(
+            dropouts=dropouts,
+            outtimes=outtimes,
+            spikes=spikes,
+            alldrops=alldrops)
+
     def _check_dt_size(difft, dt):
         n = len(difft)
-        nsmall = np.sum(difft < .93*dt) / n
-        nlarge = np.sum(difft > 1.07*dt) / n
+        nsmall = (difft < 0.93*dt).sum() / n
+        nlarge = (difft > 1.07*dt).sum() / n
         for n, s1, s2 in zip((nsmall, nlarge),
                              ('smaller', 'larger'),
                              ('low', 'high')):
-            if n > .01:
+            if n > 0.01:
                 warn('there are a large ({:.2f}%) number of time '
                      'steps {:s} than {:g} by more than 7%. Double '
                      'check the sample rate; it might be too {:s}.'
@@ -1179,28 +1235,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             index[lastp:] = n
         return index
 
-    def _get_alldrops(npts, keep, dropouts, outtimes,
-                      spikes, despike_info, delouttimes):
-        alldrops = np.zeros(npts, bool)
-        if dropouts is not None:
-            alldrops[dropouts] = True
-        if delouttimes:
-            alldrops[outtimes] = True
-        if spikes is not None:
-            alldrops[spikes] = True
-            _del_loners(alldrops, despike_info.delspikes['n'], 3)
-        else:
-            spikes = None
-
-        keep ???  ordering might be a problem here ... how to add new delete points?
-        
-        alldrops = alldrops.nonzero()[0]
-        return SimpleNamespace(
-            dropouts=dropouts,
-            outtimes=outtimes,
-            spikes=spikes,
-            alldrops=alldrops)
-
     def _return(t, data, alldrops, sr_stats, tp,
                 getall, return_ndarray, despike_info):
         if return_ndarray:
@@ -1208,8 +1242,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         else:
             newdata = (t, data)
         if getall:
-            if despike_info:
-                del despike_info.pv
             fixinfo = SimpleNamespace(
                 sr_stats=sr_stats,
                 tp=tp,
@@ -1222,6 +1254,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     told, olddata, return_ndarray = _get_timedata(olddata)
     # orig_t, orig_d = told, olddata
 
+    # check for negative steps:
+    told, olddata, difft, sortvec = _chk_negsteps(
+        told, olddata, negmethod)
+
     # prep `delspikes` if needed:
     if delspikes:
         delspikes = _prep_delspikes(delspikes)
@@ -1230,9 +1266,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     sr_stats = tp = None
     if deldrops:
         keep, dropouts = _del_drops(olddata, dropval, delspikes)
-        if len(told) == 0:
+        if len(keep) == 0:
             alldrops = _get_alldrops(
-                told.size, keep, dropouts, None, None, delouttimes)
+                told, olddata, sortvec, dropouts, None, None, None,
+                delouttimes)
             return _return(told, olddata, alldrops, sr_stats, tp,
                            getall, return_ndarray, None)
     else:
@@ -1242,10 +1279,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # check for outlier times ... outside 3-sigma
     keep, outtimes = _del_outtimes(told, keep, delouttimes)
 
-    # check for negative steps:
-    keep, difft = _chk_negsteps(told, keep, negmethod)
-
     # sample rate calculations:
+    difft = np.diff(told[keep])
     sr, sr_stats = _sr_calcs(difft, sr)
     dt = 1/sr
 
@@ -1259,9 +1294,9 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         despike_info = None
 
     # get partition vector for drops, spikes, and remaining "loners":
-    alldrops = _get_alldrops(
-        told.size, keep, dropouts, outtimes, spikes, despike_info,
-        delouttimes)
+    told, olddata, alldrops = _get_alldrops(
+        told, olddata, sortvec, dropouts, outtimes, spikes,
+        despike_info, delouttimes)
     difft = np.diff(told)
 
     # check for small and large time steps:

@@ -290,7 +290,7 @@ def test_fixtime():
         #                                sr=1)
     assert np.all(tn == t2)
     assert np.all(yn == y2)
-    assert np.all(info.alldrops.dropouts == [False, False, False, False])
+    assert np.all(info.alldrops.dropouts == [])
     assert np.allclose(info.sr_stats, [1, .2, 3/7, 1, 200/3])
     assert np.all(info.tp == np.arange(4))
     assert info.despike_info is None
@@ -315,7 +315,7 @@ def test_fixtime():
     assert np.all(info.tp == [0, 2])
     assert np.all(t2 == t)
     assert np.all(y2 == y)
-    assert np.all(info.alldrops.dropouts == [True, True, True])
+    assert info.alldrops.dropouts is None
 
     t = np.arange(100.)
     t = np.hstack((t, 200.))
@@ -492,7 +492,7 @@ def test_fixtime_naninf():
     with assert_warns(RuntimeWarning):
         (tn, yn), info = dsp.fixtime((t, y), sr=1, getall=1)
 
-    d = np.nonzero(info.alldrops.dropouts)[0]
+    d = info.alldrops.dropouts
     assert np.all(d == [4, 7, 10, 12])
     assert np.all(t == tn)
     assert np.all(yn == [1, 2, 3, 4, 4, 6, 7, 7, 9,
@@ -511,23 +511,23 @@ def test_fixtime_despike():
 
     with assert_warns(RuntimeWarning):
         (tn, yn), info = dsp.fixtime((t, y), sr=1, getall=1,
-                                     delspikes=dict(n=9))
+                                     delspikes=dict(n=9, sigma=2))
         (tn2, yn2), info2 = dsp.fixtime((t, y), sr=1, getall=1,
-                                        delspikes=True)
+                                        delspikes=dict(sigma=2))
 
-    d = np.nonzero(info.alldrops.dropouts)[0]
-    assert np.all(d == [4, 7, 10, 12])
+    d = info.alldrops.dropouts
+    assert np.all(d == range(4, 13))
     assert np.all(t == tn)
     assert np.all(t == tn2)
-    assert np.allclose(yn, [1, 2, 3, 4, 4, 6, 7, 7, 9,
-                            10, 10, 12, 12, 14, 14, 15])
-    assert np.allclose(yn2, [1, 2, 3, 4, 4, 6, 7, 7, 9,
-                             10, 10, 12, 12, 14, 14, 15])
+    assert np.allclose(yn, [1, 2, 3, 4, 4, 4, 4, 4, 4,
+                            4, 4, 4, 4, 4, 4, 15])
+    assert np.allclose(yn2, yn)
     assert info.despike_info.delspikes['n'] == 9
     assert info2.despike_info.delspikes['n'] == 15
     # spike is at pos 14
-    assert np.all(np.nonzero(info.alldrops.spikes)[0] == 14)
-    assert np.all(np.nonzero(info2.alldrops.spikes)[0] == 14)
+    assert np.all(info.alldrops.spikes == 14)
+    assert np.all(info2.alldrops.spikes == 14)
+    assert np.all(info.alldrops.alldrops == range(4, 15))
 
 
 def test_fixtime_perfect():
