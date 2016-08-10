@@ -1033,29 +1033,41 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     def _despike_deltas(delspikes, olddata, keep):
         d = olddata[keep]
         diffdata = np.diff(d)
-        import matplotlib.pyplot as plt
         s = despike(diffdata, **delspikes)
         pv_d = np.zeros(d.size, bool)  # spike locations in d
         if 1:
             if s.pv.any():
-                pv = s.pv.nonzero()[0]
                 av = exclusive_sgfilter(d, delspikes['n'],
                                         # exclude_point='middle')
                                         exclude_point=None)
                 delta = abs(d - av)
+                pv = s.pv.nonzero()[0]
+                min_spike = abs(diffdata[pv]).min()
                 j = None
-                count = 0
-                for i in pv[1:]:
-                    count += 1 if diffdata[i] > 0 else -1
+                spike_sum = 0.0
+                for i in pv:
+                    spike_sum += diffdata[i]
                     if j is None:
                         j = i
                         # "j" could be j or j + 1 in olddata:
                         j = j if delta[j] > delta[j+1] else j+1
-                    if count == 0:
+                    if abs(spike_sum) < min_spike:
                         k = i
                         k = k if delta[k] > delta[k+1] else k+2
                         pv_d[j:k+1] = True
                         j = None
+#                count = 0
+#                for i in pv:
+#                    count += 1 if diffdata[i] > 0 else -1
+#                    if j is None:
+#                        j = i
+#                        # "j" could be j or j + 1 in olddata:
+#                        j = j if delta[j] > delta[j+1] else j+1
+#                    if count == 0:
+#                        k = i
+#                        k = k if delta[k] > delta[k+1] else k+2
+#                        pv_d[j:k+1] = True
+#                        j = None
                 if j is not None:
                     pv_d[j:] = True
         else:
