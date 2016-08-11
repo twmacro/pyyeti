@@ -13,6 +13,7 @@ import itertools
 from collections import abc
 from warnings import warn
 from types import SimpleNamespace
+from pyyeti import locate
 
 
 def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
@@ -856,10 +857,14 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
                     pv[k] = True
 
     def _find_outlier_peaks(y, dy, n, sigma, min_limit, xp):
+        def _get_pv(y_delta, dpv):
+            dpv_nz = dpv.nonzero()[0]
+            pv = dpv_nz  # assume first point is spike
+            pv[y_delta[dpv_nz] < y_delta[dpv_nz+1]] += 1
+            return locate.index2bool(pv, y_delta.size)
 
 
-
-        y_delta = y - exclusive_sgfilter(y, n, exclude_point=xp)
+        y_delta = abs(y - exclusive_sgfilter(y, n, exclude_point=xp))
 
 
 
@@ -869,13 +874,14 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
         std = np.sqrt(abs(var))
         limit = np.fmax(sigma * std, min_limit)
         dy_delta = abs(y - ave)
-        pv = dy_delta > limit
-        if np.any(pv):
+        dpv = dy_delta > limit
+        if dpv.any():
+            pv = _get_pv(y_delta, dpv)
             if xp in ('first', 0):
-                _sweep_out_priors(dy, pv, n, limit, ave)
+                _sweep_out_priors(y_delta, pv, dy, dpv, n, limit, ave)
             elif xp in ('last', n-1):
-                _sweep_out_nexts(dy, pv, n, limit, ave)
-        return pv, ave+limit, ave-limit
+                _sweep_out_nexts(y_delta, pv, dy, dpv, n, limit, ave)
+        return pv, dpv, ave+limit, ave-limit
 
 
 
