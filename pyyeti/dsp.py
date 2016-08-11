@@ -818,43 +818,52 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
         ave = exclusive_sgfilter(x, n, exclude_point=None)
         return threshold_sigma * np.std(x-ave)
 
-    def _sweep_out_priors(y, pv, n, limit, ave):
+    def _sweep_out_priors(y, pv, dpv, n, limit, ave):
         # see if we can consider points before detected outliers
         # also as outliers:
-        i = pv.nonzero()[0]
+        i = dpv.nonzero()[0]
+        I = pv.nonzero()[0]
         idiff = np.empty(i.size+1, np.int64)
         idiff[1:-1] = np.diff(i)
         idiff[0] = 0
-        idiff[-1] = y.size - i[-1]
+        idiff[-1] = dpv.size - i[-1]
         for j in range(i.size-1, -1, -1):
-            k = i[j]   # index into ydelta, pv, limit
+            k = i[j]   # k is index into dy, dpv, limit
+            K = I[j]   # K is index into y, pv
             if idiff[j+1] >= n:
                 lim = limit[k]
                 av = ave[k]
-                for k in range(k-1, -1, -1):
-                    if pv[k] or abs(y[k]-av) <= lim:
+                next_y = y[K+1]
+                for K in range(K-1, -1, -1):
+                    new_dy = next_y - y[K]
+                    if pv[K] or abs(new_dy - av) <= lim:
                         break
                     idiff[j] -= 1
-                    pv[k] = True
+                    pv[K] = True
 
-    def _sweep_out_nexts(y, pv, n, limit, ave):
-        # see if we can consider points after detected outliers
+
+    def _sweep_out_nexts(y, pv, dpv, n, limit, ave):
+        # see if we can consider points before detected outliers
         # also as outliers:
-        i = pv.nonzero()[0]
+        i = dpv.nonzero()[0]
+        I = pv.nonzero()[0]
         idiff = np.empty(i.size+1, np.int64)
         idiff[1:-1] = np.diff(i)
         idiff[0] = i[0]
         idiff[-1] = 0
         for j in range(i.size):
-            k = i[j]   # index into ydelta, pv, limit
-            if idiff[j] >= n:
+            k = i[j]   # k is index into dy, dpv, limit
+            K = I[j]   # K is index into y, pv
+            if idiff[j+1] >= n:
                 lim = limit[k]
                 av = ave[k]
-                for k in range(k+1, y.size):
-                    if pv[k] or abs(y[k]-av) <= lim:
+                prev_y = y[K+1]
+                for K in range(K+1, y.size):
+                    new_dy = y[K] - prev_y
+                    if pv[K] or abs(new_dy - av) <= lim:
                         break
-                    idiff[j+1] -= 1
-                    pv[k] = True
+                    idiff[j] -= 1
+                    pv[K] = True
 
     def _find_outlier_peaks(y, dy, n, sigma, min_limit, xp):
         def _get_pv(y_delta, dpv):
@@ -862,30 +871,56 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
             pv = dpv_nz  # assume first point is spike
             pv[y_delta[dpv_nz] < y_delta[dpv_nz+1]] += 1
             return locate.index2bool(pv, y_delta.size)
-
-
         y_delta = abs(y - exclusive_sgfilter(y, n, exclude_point=xp))
-
-
-
         ave = exclusive_sgfilter(dy, n, exclude_point=xp)
         var = exclusive_sgfilter(dy**2, n, exclude_point=xp) - ave**2
         # use abs to care of negative numerical zeros:
         std = np.sqrt(abs(var))
         limit = np.fmax(sigma * std, min_limit)
-        dy_delta = abs(y - ave)
+        dy_delta = abs(dy - ave)
         dpv = dy_delta > limit
         if dpv.any():
-            pv = _get_pv(y_delta, dpv)
             if xp in ('first', 0):
-                _sweep_out_priors(y_delta, pv, dy, dpv, n, limit, ave)
+                # keep only last one ... previous ones can change
+                i = dpv.nonzero()[0]
+                dpv[i[:-1]] = False
+                pv = _get_pv(y_delta, dpv)
+                _sweep_out_priors(y, pv, dpv, n, limit, ave)
             elif xp in ('last', n-1):
-                _sweep_out_nexts(y_delta, pv, dy, dpv, n, limit, ave)
-        return pv, dpv, ave+limit, ave-limit
+                # keep only first one ... latter ones can change
+                i = dpv.nonzero()[0]
+                dpv[i[1:]] = False
+                pv = _get_pv(y_delta, dpv)
+                _sweep_out_nexts(y, pv, dpv, n, limit, ave)
+            else:
+                pv = _get_pv(y_delta, dpv)
+        else:
+            pv = None
+        return pv
 
-
-
-
+    def _find_outlier_peaks_first(y, dy, n, sigma, min_limit):
+        def _get_pv(y_delta, dpv):
+            dpv_nz = dpv.nonzero()[0]
+            pv = dpv_nz  # assume first point is spike
+            pv[y_delta[dpv_nz] < y_delta[dpv_nz+1]] += 1
+            return locate.index2bool(pv, y_delta.size)
+        y_delta = abs(y - exclusive_sgfilter(y, n, exclude_point=xp))
+        ave = exclusive_sgfilter(dy, n, exclude_point=xp)
+        var = exclusive_sgfilter(dy**2, n, exclude_point=xp) - ave**2
+        # use abs to care of negative numerical zeros:
+        std = np.sqrt(abs(var))
+        limit = np.fmax(sigma * std, min_limit)
+        dy_delta = abs(dy - ave)
+        dpv = dy_delta > limit
+        if dpv.any():
+            # keep only last one ... previous ones can change
+            i = dpv.nonzero()[0]
+            dpv[i[:-1]] = False
+            pv = _get_pv(y_delta, dpv)
+            _sweep_out_priors(y, pv, dpv, n, limit, ave)
+        else:
+            pv = None
+        return pv
 
     x = np.atleast_1d(x)
     if x.ndim > 1:
@@ -896,25 +931,22 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
     min_limit = _get_min_limit(
         dx, n, threshold_sigma, threshold_value)
 
-    PV = np.zeros(x.shape, bool)  # assume no outliers (all are good)
-    dPV = np.zeros(dx.shape, bool)  # assume no outliers (all are good)
-    hilim = np.empty(dx.shape)
-    lolim = np.empty(dx.shape)
+    PV = np.zeros(x.shape, bool)
+    y = x
+    dy = dx
     for i in itertools.count(1):
-        y = x[~PV]
-        dy = dx[~dPV]
-        
         if n > y.size:
             n = y.size - 1
-        pv, dpv, hilim[~dPV], lolim[~dPV] = _find_outlier_peaks(
+        pv = _find_outlier_peaks(
             y, dy, n, sigma, min_limit, xp=exclude_point)
-        if not dpv.any():
+        if pv is None:
             break
-
         PV[~PV] = pv
-        dPV[~dPV] = dpv
         if maxiter > 0 and i >= maxiter:
             break
+        y = x[~PV]
+        dy = np.diff(y)
+
     x = x[~PV]
     return SimpleNamespace(x=x, pv=PV, niter=i)
 
@@ -1274,7 +1306,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             delspikes = dict(delspikes)  # make a copy
         _dict_default(delspikes, sigma=12, n=15,
                       method='despike_deltas',
-                      maxiter=10)
+                      maxiter=40)
         return delspikes
 
     def _post_despike(pv, keep, delspikes, niter):
@@ -1286,57 +1318,58 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             delspikes=delspikes, niter=niter)
         return keep, spikes, despike_info
 
-    def _despike_deltas(delspikes, olddata, keep):
-        d = olddata[keep]
-        diffdata = np.diff(d)
-        s = despike(diffdata, **delspikes)
-        pv_d = np.zeros(d.size, bool)  # spike locations in d
-        if 1:
-            if s.pv.any():
-                # av = exclusive_sgfilter(d, delspikes['n'],
-                #                         # exclude_point='middle')
-                #                         exclude_point=None)
-                # delta = abs(d - av)
-                pv = s.pv.nonzero()[0]
-                min_spike = abs(diffdata[pv]).min()
-                j = None
-                spike_sum = 0.0
-                for i in pv:
-                    spike_sum += diffdata[i]
-                    if j is None:
-                        j = i + 1
-                        # # "j" could be j or j + 1 in olddata:
-                        # j = j if delta[j] > delta[j+1] else j+1
-                    if abs(spike_sum) < min_spike:
-                        k = i
-                        # k = k if delta[k] > delta[k+1] else k+1
-                        pv_d[j:k+1] = True
-                        j = None
-#                count = 0
-#                for i in pv:
-#                    count += 1 if diffdata[i] > 0 else -1
-#                    if j is None:
-#                        j = i
-#                        # "j" could be j or j + 1 in olddata:
-#                        j = j if delta[j] > delta[j+1] else j+1
-#                    if count == 0:
-#                        k = i
-#                        k = k if delta[k] > delta[k+1] else k+2
-#                        pv_d[j:k+1] = True
-#                        j = None
-                if j is not None:
-                    pv_d[j:] = True
-        else:
-            if s.pv.any():
-                av = exclusive_sgfilter(d, delspikes['n'],
-                                        # exclude_point='middle')
-                                        exclude_point=None)
-                delta = abs(d - av)
-                pv = s.pv.nonzero()[0]
-                for i in pv:
-                    # "i" could be i or i + 1 in olddata:
-                    pv_d[i if delta[i] > delta[i+1] else i+1] = True
-        return _post_despike(pv_d, keep, delspikes, s.niter)
+#     def _despike_deltas(delspikes, olddata, keep):
+#         d = olddata[keep]
+#         diffdata = np.diff(d)
+#         s = despike(diffdata, **delspikes)
+#         pv_d = np.zeros(d.size, bool)  # spike locations in d
+#         if 1:
+#             if s.pv.any():
+#                 # av = exclusive_sgfilter(d, delspikes['n'],
+#                 #                         # exclude_point='middle')
+#                 #                         exclude_point=None)
+#                 # delta = abs(d - av)
+#                 pv = s.pv.nonzero()[0]
+#                 min_spike = abs(diffdata[pv]).min()
+#                 j = None
+#                 spike_sum = 0.0
+#                 for i in pv:
+#                     spike_sum += diffdata[i]
+#                     if j is None:
+#                         j = i + 1
+#                         # # "j" could be j or j + 1 in olddata:
+#                         # j = j if delta[j] > delta[j+1] else j+1
+#                     if abs(spike_sum) < min_spike:
+#                         k = i
+#                         # k = k if delta[k] > delta[k+1] else k+1
+#                         pv_d[j:k+1] = True
+#                         j = None
+# #                count = 0
+# #                for i in pv:
+# #                    count += 1 if diffdata[i] > 0 else -1
+# #                    if j is None:
+# #                        j = i
+# #                        # "j" could be j or j + 1 in olddata:
+# #                        j = j if delta[j] > delta[j+1] else j+1
+# #                    if count == 0:
+# #                        k = i
+# #                        k = k if delta[k] > delta[k+1] else k+2
+# #                        pv_d[j:k+1] = True
+# #                        j = None
+#                 if j is not None:
+#                     pv_d[j:] = True
+#         else:
+#             if s.pv.any():
+#                 av = exclusive_sgfilter(d, delspikes['n'],
+#                                         # exclude_point='middle')
+#                                         exclude_point=None)
+#                 delta = abs(d - av)
+#                 pv = s.pv.nonzero()[0]
+#                 for i in pv:
+#                     # "i" could be i or i + 1 in olddata:
+#                     pv_d[i if delta[i] > delta[i+1] else i+1] = True
+#         return _post_despike(pv_d, keep, delspikes, s.niter)
+
 
     def _simple_filter(olddata, keep, delspikes):
         d = olddata[keep]
@@ -1361,7 +1394,9 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     def _del_spikes(olddata, keep, delspikes):
         method = delspikes['method']
         if method == 'despike_deltas':
-            return _despike_deltas(delspikes, olddata, keep)
+            # return _despike_deltas(delspikes, olddata, keep)
+            s = despike_deltas(olddata[keep], **delspikes)
+            return _post_despike(s.pv, keep, delspikes, s.niter)
         elif method == 'despike':
             s = despike(olddata[keep], **delspikes)
             return _post_despike(s.pv, keep, delspikes, s.niter)
