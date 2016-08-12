@@ -898,12 +898,24 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
             pv = None
         return pv
 
+    def _sweep_out_priors_first(y, i, di, n, limit, ave):
+        # see if we can consider points before detected outliers
+        # also as outliers:
+        pv = [di]
+        if y.size - di > n:
+            lim = limit[di]
+            av = ave[di]
+            next_y = y[i+1]
+            for K in range(i-1, -1, -1):
+                new_dy = next_y - y[K]
+                if abs(new_dy - av) <= lim:
+                    break
+                pv.append(K)
+        pv.reverse()
+        return pv
+
     def _find_outlier_peaks_first(y, dy, n, sigma, min_limit):
-        def _get_pv(y_delta, dpv):
-            dpv_nz = dpv.nonzero()[0]
-            pv = dpv_nz  # assume first point is spike
-            pv[y_delta[dpv_nz] < y_delta[dpv_nz+1]] += 1
-            return locate.index2bool(pv, y_delta.size)
+        xp = 'first'
         y_delta = abs(y - exclusive_sgfilter(y, n, exclude_point=xp))
         ave = exclusive_sgfilter(dy, n, exclude_point=xp)
         var = exclusive_sgfilter(dy**2, n, exclude_point=xp) - ave**2
@@ -912,41 +924,50 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
         limit = np.fmax(sigma * std, min_limit)
         dy_delta = abs(dy - ave)
         dpv = dy_delta > limit
-        while 1:
+        while True:
             if dpv.any():
                 # keep only last one ... previous ones can change
-                i = dpv.nonzero()[0]
-                dpv[i[:-1]] = False
-                pv = _get_pv(y_delta, dpv)
-                _sweep_out_priors(y, pv, dpv, n, limit, ave)
+                di = dpv.nonzero()[0][-1]
+                i = di if y_delta[di] > y_delta[di+1] else di+1
+                pv = _sweep_out_priors_first(y, i, di, n, limit, ave)
             else:
                 pv = None
             yield pv
-            j = pv.nonzero()[0][0]
-            if j == 0:
-                yield None
-            i = j - n
-            if i < 0:
-                i = 0
+
+            i, j = pv[0], pv[-1]
+            if i == 0:
+                yield None  # we're done
+
+            # To determine if point before i is a spike, need n-1
+            # valid points after j:
+            k = min(y.size, j+n)
+            count = k - (j + 1)  # n-1 if away from end
+            y[i:i+count] = y[j+1:k]
+
+            # bound slice that needs updating: from i-n to k
+            j = i
+            i = max(i-n, 0)
 
             ### dsp.exclusive_sgfilter(r[10:20+4], 5)[:-4]
+            av = exclusive_sgfilter(y[i:k], n, exclude_point=xp)[:j-i]
+            y_delta[i:j] = abs(y[i:j] - av)
 
-            y_delta[i:j] = abs(y[i:j] - exclusive_sgfilter(y[i:j+n-1], n, exclude_point=xp)[:1-n])
-            
             dy[i:j] = np.diff(y[i:j+1])
-            
-            ave[i:j] = exclusive_sgfilter(dy[i:j+n-1], n, exclude_point=xp)[:1-n]
-            var[i:j] = exclusive_sgfilter(dy[i:j+n-1]**2, n, exclude_point=xp)[:1-n] - ave[i:j]**2
+
+            ave[i:j] = exclusive_sgfilter(dy[i:k], n,
+                                          exclude_point=xp)[:j-i]
+            av = exclusive_sgfilter(dy[i:k]**2, n,
+                                    exclude_point=xp)[:j-i]
+            var[i:j] = av - ave[i:j]**2
             # use abs to care of negative numerical zeros:
             std[i:j] = np.sqrt(abs(var[i:j]))
 
-            
             limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
             dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
             dpv[i:j] = dy_delta[i:j] > limit[i:j]
             dpv[j:] = False
-            pv[j:] = False
-            
+            # pv[j:] = False
+
     x = np.atleast_1d(x)
     if x.ndim > 1:
         raise ValueError("`x` must be 1d")
@@ -957,23 +978,20 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
         dx, n, threshold_sigma, threshold_value)
 
     PV = np.zeros(x.shape, bool)
-    y = x
+    y = x.copy()
     dy = dx
-    for i in itertools.count(1):
-        if n > y.size:
-            n = y.size - 1
-        pv = _find_outlier_peaks(
-            y, dy, n, sigma, min_limit, xp=exclude_point)
+
+    # start generator:
+    gen = _find_outlier_peaks_first(y, dy, n, sigma, min_limit)
+    for i, pv in zip(itertools.count(1), gen):
         if pv is None:
             break
-        PV[~PV] = pv
+        PV[pv] = True
+        # PV[~PV] = pv
         if maxiter > 0 and i >= maxiter:
             break
-        y = x[~PV]
-        dy = np.diff(y)
 
-    x = x[~PV]
-    return SimpleNamespace(x=x, pv=PV, niter=i)
+    return SimpleNamespace(x=x[~PV], pv=PV, niter=i)
 
 
 def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
