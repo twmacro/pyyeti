@@ -912,16 +912,41 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
         limit = np.fmax(sigma * std, min_limit)
         dy_delta = abs(dy - ave)
         dpv = dy_delta > limit
-        if dpv.any():
-            # keep only last one ... previous ones can change
-            i = dpv.nonzero()[0]
-            dpv[i[:-1]] = False
-            pv = _get_pv(y_delta, dpv)
-            _sweep_out_priors(y, pv, dpv, n, limit, ave)
-        else:
-            pv = None
-        return pv
+        while 1:
+            if dpv.any():
+                # keep only last one ... previous ones can change
+                i = dpv.nonzero()[0]
+                dpv[i[:-1]] = False
+                pv = _get_pv(y_delta, dpv)
+                _sweep_out_priors(y, pv, dpv, n, limit, ave)
+            else:
+                pv = None
+            yield pv
+            j = pv.nonzero()[0][0]
+            if j == 0:
+                yield None
+            i = j - n
+            if i < 0:
+                i = 0
 
+            ### dsp.exclusive_sgfilter(r[10:20+4], 5)[:-4]
+
+            y_delta[i:j] = abs(y[i:j] - exclusive_sgfilter(y[i:j+n-1], n, exclude_point=xp)[:1-n])
+            
+            dy[i:j] = np.diff(y[i:j+1])
+            
+            ave[i:j] = exclusive_sgfilter(dy[i:j+n-1], n, exclude_point=xp)[:1-n]
+            var[i:j] = exclusive_sgfilter(dy[i:j+n-1]**2, n, exclude_point=xp)[:1-n] - ave[i:j]**2
+            # use abs to care of negative numerical zeros:
+            std[i:j] = np.sqrt(abs(var[i:j]))
+
+            
+            limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
+            dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
+            dpv[i:j] = dy_delta[i:j] > limit[i:j]
+            dpv[j:] = False
+            pv[j:] = False
+            
     x = np.atleast_1d(x)
     if x.ndim > 1:
         raise ValueError("`x` must be 1d")
