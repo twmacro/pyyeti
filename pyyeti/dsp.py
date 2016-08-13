@@ -937,10 +937,10 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
             i, j = pv[0], pv[-1]
             if i == 0:
                 yield None  # we're done
-
+            m = 0 if di == j else 1
             # To determine if point before i is a spike, need n-1
             # valid points after j:
-            k = min(y.size, j+n)
+            k = min(y.size-1, j+n)
             count = k - (j + 1)  # n-1 if away from end
             y[i:i+count] = y[j+1:k]
 
@@ -952,20 +952,20 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
             av = exclusive_sgfilter(y[i:k], n, exclude_point=xp)[:j-i]
             y_delta[i:j] = abs(y[i:j] - av)
 
-            dy[i:j] = np.diff(y[i:j+1])
+            dy[i-m:k-m] = np.diff(y[i:k+1])
 
-            ave[i:j] = exclusive_sgfilter(dy[i:k], n,
+            ave[i:j] = exclusive_sgfilter(dy[i-m:k-m], n,
                                           exclude_point=xp)[:j-i]
-            av = exclusive_sgfilter(dy[i:k]**2, n,
-                                    exclude_point=xp)[:j-i]
-            var[i:j] = av - ave[i:j]**2
+            avsq = exclusive_sgfilter(dy[i-m:k-m]**2, n,
+                                      exclude_point=xp)[:j-i]
+            var[i:j] = avsq - ave[i:j]**2
             # use abs to care of negative numerical zeros:
             std[i:j] = np.sqrt(abs(var[i:j]))
 
             limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
-            dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
-            dpv[i:j] = dy_delta[i:j] > limit[i:j]
-            dpv[j:] = False
+            dy_delta[i-m:j-m] = abs(dy[i-m:j-m] - ave[i:j])
+            dpv[i-m:j-m] = dy_delta[i-m:j-m] > limit[i:j]
+            dpv[j-m:] = False
             # pv[j:] = False
 
     x = np.atleast_1d(x)
