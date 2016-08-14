@@ -718,7 +718,7 @@ def test_despike1():
     pv[45] = True
     pv[-1] = True
     assert (s.pv == pv).all()
-    assert (s.dx == x[~pv]).all()
+    assert (s.x == x[~pv]).all()
     assert_raises(ValueError, dsp.despike, np.ones((5, 5)), 3)
 
 
@@ -732,21 +732,21 @@ def test_despike2():
     pv = np.zeros(1000, bool)
     pv[450] = True
     desp = dsp.despike(y, 15)
-    assert np.all(desp.dx == y1)
+    assert np.all(desp.x == y1)
     assert np.all(desp.pv == pv)
 
     desp = dsp.despike(y, 15, threshold_value=0.29)
-    assert np.all(desp.dx == y1)
+    assert np.all(desp.x == y1)
     assert np.all(desp.pv == pv)
 
     desp = dsp.despike(y, 15, threshold_value=0.31)
-    assert np.all(desp.dx == y)
+    assert np.all(desp.x == y)
     pv = np.zeros(1000, bool)
     assert np.all(desp.pv == pv)
 
     y[450] = 0.05
-    desp = dsp.despike(y, 15)
-    assert np.all(desp.dx == y)
+    desp = dsp.despike(y, 15, threshold_value=0.051)
+    assert np.all(desp.x == y)
     assert np.all(desp.pv == pv)
 
 
