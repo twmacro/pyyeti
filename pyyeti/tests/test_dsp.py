@@ -548,28 +548,79 @@ def test_fixtime_perfect_delspike():
     assert np.allclose(t2, t)
     assert np.all(y2 == y)
 
+    assert_raises(ValueError, dsp.fixtime, (t, y), 'auto',
+                  delspikes=dict(method='badmethod'), getall=1)
+
 
 def test_fixtime_exclude_point_change():
     dt = .001
     t = np.arange(1000)*dt
     y = np.empty(1000)
-    y[::2] = 0.5
-    y[1::2] = -0.5
+    y[::2] = 0.1
+    y[1::2] = -0.1
     ycopy = y.copy()
     ycopy[100:105] = y[99]
-    y[100:105] = 5.0
+    y[100:105] = 10.0
 
-    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True)
+    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True,
+                         verbose=False)
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
 
     t2, y2 = dsp.fixtime(
-        (t, y), 'auto', delspikes=dict(exclude_point='last'))
+        (t, y), 'auto', delspikes=dict(exclude_point='last'),
+        verbose=False)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == ycopy)
+
+    assert_raises(ValueError, dsp.fixtime, (t, y), 'auto',
+                  delspikes=dict(exclude_point='middle'),
+                  verbose=False)
+
+    # some of a ramp up should be deleted:
+    y[100:105] = np.arange(0.0, 5.0)*3
+    ycopy = y.copy()
+    ycopy[102:105] = y[101]
+    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=dict(sigma=18),
+                         verbose=False)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == ycopy)
+
+    # none of a ramp down should be deleted:
+    y[100:105] = np.arange(5.0, 0.0, -1.0)*3
+    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=dict(sigma=18),
+                         verbose=False)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == y)
+
+
+def test_fixtime_exclude_point_change2():
+    dt = .001
+    t = np.arange(1000)*dt
+    y = np.empty(1000)
+    y[::2] = 0.1
+    y[1::2] = -0.1
+    ycopy = y.copy()
+    ycopy[100:105] = y[99]
+    y[100:105] = 10.0
+
+    t2, y2 = dsp.fixtime((t, y), 'auto',
+                         delspikes=dict(method='despike'),
+                         verbose=False)
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
 
     t2, y2 = dsp.fixtime(
-        (t, y), 'auto', delspikes=dict(exclude_point='middle'))
+        (t, y), 'auto', delspikes=dict(exclude_point='last',
+                                       method='despike'),
+        verbose=False)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == ycopy)
+
+    t2, y2 = dsp.fixtime(
+        (t, y), 'auto', delspikes=dict(exclude_point='middle',
+                                       method='despike'),
+        verbose=False)
     assert np.allclose(t2, t)
     assert np.all(y2 == y)
 
@@ -577,15 +628,138 @@ def test_fixtime_exclude_point_change():
     y[100:105] = np.arange(0.0, 5.0)*3
     ycopy = y.copy()
     ycopy[102:105] = y[101]
-    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True)
+    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=dict(sigma=35,
+                                                        method='despike'),
+                         verbose=False)
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
 
     # none of a ramp down should be deleted:
     y[100:105] = np.arange(5.0, 0.0, -1.0)*3
-    t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True)
+    t2, y2 = dsp.fixtime((t, y), 'auto',
+                         delspikes=dict(sigma=35, method='despike'),
+                         verbose=False)
     assert np.allclose(t2, t)
     assert np.all(y2 == y)
+
+
+def test_fixtime_simple_despike():
+    dt = .001
+    t = np.arange(1000)*dt
+    y = np.empty(1000)
+    y[::2] = 0.1
+    y[1::2] = -0.1
+    ycopy = y.copy()
+    ycopy[100] = y[99]
+    y[100] = 10.0
+
+    t2, y2 = dsp.fixtime((t, y), 'auto',
+                         delspikes=dict(method='simple', sigma=4),
+                         verbose=False)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == ycopy)
+
+    t2, y2 = dsp.fixtime((t, y), 'auto',
+                         delspikes=dict(method='simple', sigma=4,
+                                        maxiter=1),
+                         verbose=False)
+    assert np.allclose(t2, t)
+    assert np.all(y2 == ycopy)
+    
+
+def test_fixtime_despike_edge_conditions():
+    dt = .001
+    n = 45
+    t = np.arange(n)*dt
+    y = np.empty(n)
+    for i in range(1, n-5):
+        y[::2] = 0.1
+        y[1::2] = -0.1
+        ycopy = y.copy()
+        s = slice(i, i+5)
+        ycopy[s] = y[i-1]
+        y[s] = 10.0
+
+        # with despike_deltas:
+        t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True,
+                             verbose=False)
+        assert np.allclose(t2, t)
+        if i < n-15:
+            assert np.allclose(y2, ycopy)
+        else:
+            assert np.allclose(y2, y)
+        
+        t2, y2 = dsp.fixtime((t, y), 'auto',
+                             delspikes=dict(exclude_point='last'),
+                             verbose=False)
+        assert np.allclose(t2, t)
+        if i > 10:
+            assert np.allclose(y2, ycopy)
+        else:
+            assert np.allclose(y2, y)
+
+        # now with despike:
+        t2, y2 = dsp.fixtime((t, y), 'auto',
+                             delspikes=dict(method='despike'),
+                             verbose=False)
+        assert np.allclose(t2, t)
+        if i < n-15-3:
+            assert np.allclose(y2, ycopy)
+        else:
+            assert np.allclose(y2, y)
+
+        t2, y2 = dsp.fixtime((t, y), 'auto',
+                             delspikes=dict(method='despike',
+                                            exclude_point='last'),
+                             verbose=False)
+        assert np.allclose(t2, t)
+        if i > 13:
+            assert np.allclose(y2, ycopy)
+        else:
+            assert np.allclose(y2, y)
+
+
+def test_fix_edges2():
+    dt = .01
+    t = np.arange(50)*dt
+
+    y = np.zeros(50)
+    n = 44
+    y[n:] = 1
+    t2, y2 = dsp.fixtime((t, y), 'auto',
+                         delspikes=dict(exclude_point='last'),
+                         verbose=False)
+    assert np.allclose(t2, t[:n])
+    assert np.all(y2 == y[:n])
+
+    y = np.zeros(50)
+    n = 5
+    y[:n] = 1
+    t2, y2 = dsp.fixtime((t, y), 'auto',
+                         delspikes=dict(exclude_point='first'),
+                         verbose=False)
+    assert np.allclose(t2, t[n:])
+    assert np.all(y2 == y[n:])
+
+    y = np.zeros(50)
+    n = 44
+    y[n:] = 1
+    t2, y2 = dsp.fixtime((t, y), 'auto',
+                         delspikes=dict(exclude_point='last',
+                                        method='despike'),
+                         verbose=False)
+    assert np.allclose(t2, t[:n])
+    assert np.all(y2 == y[:n])
+
+    y = np.zeros(50)
+    n = 5
+    y[:n] = 1
+    t2, y2 = dsp.fixtime((t, y), 'auto',
+                         delspikes=dict(exclude_point='first',
+                                        method='despike'),
+                         verbose=False)
+    assert np.allclose(t2, t[n:])
+    assert np.all(y2 == y[n:])
 
 
 def test_aligntime():
@@ -772,9 +946,7 @@ def test_despike4():
     a[115:125] = 5.0
     a[575:600] = 5.0
     desp = dsp.despike(a, 35, exclude_point='last')
-
-    print(desp.niter)
-#    assert desp.niter < 5
+    assert desp.niter < 5
 
     pv = np.zeros(1500)
     pv[75:100] = True
@@ -782,6 +954,33 @@ def test_despike4():
     pv[575:600] = True
     assert (desp.pv == pv).all()
     assert desp.niter < 5
+
+
+def test_despike_deltas():
+    x = np.arange(100.)
+    x[45] = 4.5
+    x[0] = -20
+    x[-13] = 115
+    s = dsp.despike_deltas(x, 9, sigma=4)
+    pv = np.zeros(x.shape, bool)
+    pv[0] = True
+    pv[45] = True
+    pv[-13] = True
+    assert (s.pv == pv).all()
+    assert (s.x == x[~pv]).all()
+
+    x[45] = 4.5
+    x[0] = -20
+    x[-13] = 115
+    s = dsp.despike_deltas(x, 9, sigma=4, maxiter=1)
+    pv = np.zeros(x.shape, bool)
+    pv[-13] = True
+    assert (s.pv == pv).all()
+    assert (s.x == x[~pv]).all()
+    assert s.niter == 1
+
+    assert_raises(ValueError, dsp.despike_deltas, np.ones((5, 5)), 3)
+
 
 def test_fftcoef():
     for n in (50, 51):

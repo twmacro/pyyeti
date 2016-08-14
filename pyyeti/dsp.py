@@ -13,7 +13,6 @@ import itertools
 from collections import abc
 from warnings import warn
 from types import SimpleNamespace
-from pyyeti import locate
 
 
 def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
@@ -431,239 +430,6 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
     return d
 
 
-def despike0(x, n, sigma=8.0, maxiter=-1, threshold_sigma=1.0,
-             threshold_value=None, exclude_point='first', **kwargs):
-    """
-    Delete outlier data points from signal
-
-    Parameters
-    ----------
-    x : 1d array_like
-        Signal to de-spike.
-    n : odd integer
-        Number of points for moving average; if even, it is reset to
-        ``n+1``. If greater than the dimension of `x`, it is reset to
-        the dimension or 1 less.
-    sigma : real scalar; optional
-        Number of standard deviations beyond which a point is
-        considered an outlier. The default value is quite high; this
-        is possible because the point itself if excluded from the
-        calculations.
-    maxiter : integer; optional
-        Maximum number of iterations of outlier removal allowed.
-        Multiple iterations are possible because the deletion of an
-        outlier may expose other points as outliers. If <= 0, there is
-        no set limit and the looping will stop when no more outliers
-        are detected. Routine will always run at least 1 loop (setting
-        `maxiter` to 0 is the same as setting it to 1).
-    threshold_sigma : scalar; optional
-        Number of standard deviations below which all data is kept.
-        This standard deviation is of the entire input signal minus
-        the moving average (using a window of `n` size). This value
-        exists to avoid deleting small deviations such as bit
-        toggles. `threshold_value` overrides `threshold_sigma` if it
-        is not None.
-    threshold_value : scalar or None; optional
-        Optional method for specifying a minimum threshold. If not
-        None, this scalar is used as an absolute minimum deviation
-        from the moving average for a value to be considered a spike.
-    exclude_point : string or int or None; optional
-        Defines where, within each window, the point that is being
-        considered as a potential outlier is. For example, 'first'
-        compares the first point in each window the rest in that
-        window to test if it is an outlier. This option is passed
-        directly to :func:`exclusive_sgfilter`. If integer, it must be
-        in [0, n), specifying the point to exclude. If string, it must
-        be 'first', 'middle', or 'last' (which is the same as ``0``,
-        ``n // 2``, and ``n-1``, respectively). If None, the point
-        will in the middle of the window and will not be excluded from
-        the statistics (this is not recommended).
-    **kwargs : other args are ignored
-        This is here to accommodate :func:`fixtime`.
-
-    Returns
-    -------
-    A SimpleNamespace with the members:
-
-    dx : 1d ndarray
-        Despiked version of `x`. Will be shorter than `x` if any
-        spikes were deleted; otherwise, it will equal `x`.
-    pv : bool 1d ndarray; same size as `x`
-        Has True where an outlier was detected
-    hilim : 1d ndarray; same size as `x`
-        This is the upper limit: ``mean + sigma*std``
-    lolim : 1d ndarray; same size as `x`
-        This is the lower limit: ``mean - sigma*std``
-    niter : integer
-        Number of iterations executed
-
-    Notes
-    -----
-    Uses :func:`exclusive_sgfilter` to exclude the point being tested
-    from the moving average and the moving standard deviation
-    calculations. Each point is tested. The points near the ends of
-    the signal may not be at the requested position in the window (see
-    :func:`exclusive_sgfilter` for more information on this).
-
-    To not use a threshold, set `threshold_sigma` to 0.0 (or set
-    `threshold_value` to 0.0).
-
-    .. note::
-
-        If you plan to use both :func:`fixtime` and :func:`despike`,
-        it is recommended that you let :func:`fixtime` call
-        :func:`despike` (via the `delspikes` option) instead of
-        calling it directly. This is preferable because the ideal time
-        to run :func:`despike` is in the middle of :func:`fixtime`:
-        after drop-outs have been deleted but before gaps are filled.
-
-    Examples
-    --------
-    Compare `exclude_point` 'first' and 'middle' options. An
-    explanation follows:
-
-    >>> import numpy as np
-    >>> from pyyeti import dsp
-    >>> x = [1, 1, 1, 1, 5, 5, 1, 1, 1, 1]
-    >>> s = dsp.despike0(x, n=5, exclude_point='first')
-    >>> s.dx
-    array([1, 1, 1, 1, 1, 1, 1, 1])
-    >>> s = dsp.despike0(x, n=5, exclude_point='middle')
-    >>> s.dx
-    array([1, 1, 1, 1, 5, 5, 1, 1, 1, 1])
-
-    The two 5 points get deleted when using 'first' but not when using
-    'middle'. This is logical because, when using 'first', the second
-    5 is compared to following four 1 values (the window is
-    ``[5, 1, 1, 1, 1]``. The second loop then catches the other 5. But
-    when 'middle' is used, the window for the first 5 is
-    ``[1, 1, 5, 5, 1]`` and the window for the second 5 is
-    ``[1, 5, 5, 1, 1]``. For both points, the other 5 in the window
-    prevents the center 5 from being considered an outlier.
-
-    For another example, make up some data and, with carefully chosen
-    inputs, demonstrate how the routine runs by plotting one iteration
-    at a time:
-
-    .. plot::
-        :context: close-figs
-
-        >>> np.set_printoptions(linewidth=65)
-        >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
-        >>> _ = plt.figure(figsize=(8, 11))
-        >>> plt.clf()
-        >>> for i in range(5):
-        ...     s = dsp.despike0(x, n=9, sigma=2, maxiter=1,
-        ...                      threshold_sigma=0.1,
-        ...                      exclude_point='middle')
-        ...     _ = plt.subplot(5, 1, i+1)
-        ...     _ = plt.plot(x)
-        ...     _ = plt.plot(s.hilim, 'k--')
-        ...     _ = plt.plot(s.lolim, 'k--')
-        ...     _ = plt.title('Iteration {}'.format(i+1))
-        ...     x = s.dx
-        >>> plt.tight_layout()
-        >>> s.dx
-        array([ 2,  3,  6,  3, -2,  4, -2])
-
-        Run all iterations at once to see what ``s.pv`` looks like:
-
-        >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
-        >>> s = dsp.despike0(x, n=9, sigma=2,
-        ...                  threshold_sigma=0.1,
-        ...                  exclude_point='middle')
-        >>> s.dx
-        array([ 2,  3,  6,  3, -2,  4, -2])
-        >>> s.pv
-        array([ True, False, False,  True,  True,  True, False, False,
-               False, False, False,  True], dtype=bool)
-    """
-    def _get_min_limit(x, n, threshold_sigma, threshold_value):
-        if threshold_value is not None:
-            return threshold_value
-        ave = exclusive_sgfilter(x, n, exclude_point=None)
-        return threshold_sigma * np.std(x-ave)
-
-    def _sweep_out_priors(y, pv, n, limit, ave):
-        # see if we can consider points before detected outliers
-        # also as outliers:
-        i = pv.nonzero()[0]
-        idiff = np.empty(i.size+1, np.int64)
-        idiff[1:-1] = np.diff(i)
-        idiff[0] = 0
-        idiff[-1] = y.size - i[-1]
-        for j in range(i.size-1, -1, -1):
-            k = i[j]   # index into y_delta, pv, limit
-            if idiff[j+1] >= n:
-                lim = limit[k]
-                av = ave[k]
-                for k in range(k-1, -1, -1):
-                    if pv[k] or abs(y[k]-av) <= lim:
-                        break
-                    idiff[j] -= 1
-                    pv[k] = True
-
-    def _sweep_out_nexts(y, pv, n, limit, ave):
-        # see if we can consider points after detected outliers
-        # also as outliers:
-        i = pv.nonzero()[0]
-        idiff = np.empty(i.size+1, np.int64)
-        idiff[1:-1] = np.diff(i)
-        idiff[0] = i[0]
-        idiff[-1] = 0
-        for j in range(i.size):
-            k = i[j]   # index into y_delta, pv, limit
-            if idiff[j] >= n:
-                lim = limit[k]
-                av = ave[k]
-                for k in range(k+1, y.size):
-                    if pv[k] or abs(y[k]-av) <= lim:
-                        break
-                    idiff[j+1] -= 1
-                    pv[k] = True
-
-    def _find_outlier_peaks(y, n, sigma, min_limit, xp):
-        ave = exclusive_sgfilter(y, n, exclude_point=xp)
-        var = exclusive_sgfilter(y**2, n, exclude_point=xp) - ave**2
-        # use abs to care of negative numerical zeros:
-        std = np.sqrt(abs(var))
-        limit = np.fmax(sigma * std, min_limit)
-        y_delta = abs(y-ave)
-        pv = y_delta > limit
-        if np.any(pv):
-            if xp in ('first', 0):
-                _sweep_out_priors(y, pv, n, limit, ave)
-            elif xp in ('last', n-1):
-                _sweep_out_nexts(y, pv, n, limit, ave)
-        return ~pv, ave+limit, ave-limit
-
-    x = np.atleast_1d(x).copy()
-    if x.ndim > 1:
-        raise ValueError("`x` must be 1d")
-    if n > x.size:
-        n = x.size - 1
-    min_limit = _get_min_limit(
-        x, n, threshold_sigma, threshold_value)
-
-    PV = np.ones(x.shape, bool)  # assume no outliers (all are good)
-    hilim = np.empty(x.shape)
-    lolim = np.empty(x.shape)
-    for i in itertools.count(1):
-        y = x[PV]
-        if n > y.size:
-            n = y.size - 1
-        pv, hilim[PV], lolim[PV] = _find_outlier_peaks(
-            y, n, sigma, min_limit, xp=exclude_point)
-        if pv.all():
-            break
-        PV[PV] = pv
-        if maxiter > 0 and i >= maxiter:
-            break
-    x = x[PV]
-    return SimpleNamespace(dx=x, pv=~PV,
-                           hilim=hilim, lolim=lolim, niter=i)
-
-
 def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             threshold_value=None, exclude_point='first', **kwargs):
     """
@@ -718,9 +484,10 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
     -------
     A SimpleNamespace with the members:
 
-    dx : 1d ndarray
-        Despiked version of `x`. Will be shorter than `x` if any
-        spikes were deleted; otherwise, it will equal `x`.
+    x : 1d ndarray
+        Despiked version of input `x`. Will be shorter than input `x`
+        if any spikes were deleted; otherwise, it will equal input
+        `x`.
     pv : bool 1d ndarray; same size as `x`
         Has True where an outlier was detected
     hilim : 1d ndarray; same size as `x`
@@ -851,58 +618,6 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         limit = np.fmax(sigma * std, min_limit)
         return ave, y_delta, var, std, limit
 
-    #def _get_stats_first(y, n, sigma, min_limit, xp,
-    #                     i, j, ave, y_delta, var, std, limit):
-    #    # To determine if point before i is a spike, need n-1
-    #    # valid points after j:
-    #    k = min(y.size, j+n)
-    #    count = k - (j + 1)  # n-1 if away from end
-    #    # shift good points backward in time to get rid of spikes:
-    #    #            <---
-    #    # ......ssss+++++   ==>  ......+++++
-    #    #       i  j
-    #    y[i:i+count] = y[j+1:k]
-    #
-    #    # update only sections that need it: from i-n to i
-    #    j = i
-    #    i = max(i-n, 0)
-    #    ave[i:j] = exclusive_sgfilter(y[i:k], n,
-    #                                  exclude_point=xp)[:j-i]
-    #    y_delta[i:j] = abs(y[i:j] - ave[i:j])
-    #    avsq = exclusive_sgfilter(y[i:k]**2, n,
-    #                              exclude_point=xp)[:j-i]
-    #    var[i:j] = avsq - ave[i:j]**2
-    #    # use abs to care of negative numerical zeros:
-    #    std[i:j] = np.sqrt(abs(var[i:j]))
-    #    limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
-    #
-    #def _get_stats_last(y, n, sigma, min_limit, xp,
-    #                    i, j, ave, y_delta, var, std, limit):
-    #    # To determine if point after j is a spike, need n-1
-    #    # valid points before i:
-    #    k = max(0, i-n+1)
-    #    count = i - k  # n-1 if away from start
-    #    # shift good points forward in time to get rid of spikes:
-    #    #  --->
-    #    # ......ssss+++++   ==>  ......+++++
-    #    #       i  j
-    #    j += 1
-    #    y[j-count:j] = y[k:i]
-    #
-    #    # update only sections that need it: from j to j+n
-    #    i = j
-    #    j = min(j+n, y.size)
-    #    m = i - j  # -(j-i) ... keep last j-i points
-    #    ave[i:j] = exclusive_sgfilter(y[k:j], n,
-    #                                  exclude_point=xp)[m:]
-    #    y_delta[i:j] = abs(y[i:j] - ave[i:j])
-    #    avsq = exclusive_sgfilter(y[k:j]**2, n,
-    #                              exclude_point=xp)[m:]
-    #    var[i:j] = avsq - ave[i:j]**2
-    #    # use abs to care of negative numerical zeros:
-    #    std[i:j] = np.sqrt(abs(var[i:j]))
-    #    limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
-
     def _outs_first(y, n, sigma, min_limit, xp,
                     ave, y_delta, var, std, limit):
         PV = y_delta > limit
@@ -952,7 +667,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             pv = _sweep_out_nexts(y, pv[0], n, limit, ave)
             yield pv, ave+limit, ave-limit
             i, j = pv[0], pv[-1]
-            if i == 0:
+            if j == y.size-1:
                 yield None, ave+limit, ave-limit  # we're done
             PV[i:j+1] = False
             # To determine if point after j is a spike, need n-1
@@ -963,8 +678,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             #  --->
             # ......ssss+++++   ==>  ......+++++
             #       i  j
-            j += 1
-            y[j-count:j] = y[k:i]
+            y[j-count+1:j+1] = y[k:i]
 
             # update only sections that need it: from j to j+n
             i = j
@@ -1013,36 +727,6 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             yield from _outs_gen(y, n, sigma, min_limit, xp,
                                  ave, y_delta, var, std, limit)
 
-        #while True:
-        #    pv = (y_delta > limit).nonzero()[0]
-        #    if pv.size > 0:
-        #        if xp in ('first', 0):
-        #            # keep only last one ... previous ones can change
-        #            pv = _sweep_out_priors(y, pv[-1], n, limit, ave)
-        #            yield pv, ave+limit, ave-limit
-        #            i, j = pv[0], pv[-1]
-        #            if i == 0:
-        #                yield None, ave+limit, ave-limit  # we're done
-        #                _get_stats_first(y, n, sigma, min_limit, xp,
-        #                             i, j, ave, y_delta, var, std,
-        #                             limit)
-        #        elif xp in ('last', n-1):
-        #            # keep only first one ... later ones can change
-        #            pv = _sweep_out_nexts(y, pv[0], n, limit, ave)
-        #            yield pv, ave+limit, ave-limit
-        #            i, j = pv[0], pv[-1]
-        #            if i == 0:
-        #                yield None, ave+limit, ave-limit  # we're done
-        #            _get_stats_last(y, n, sigma, min_limit, xp,
-        #                            i, j, ave, y_delta, var, std,
-        #                            limit)
-        #        else:
-        #            yield pv, ave+limit, ave-limit
-        #            ave, y_delta, var, std, limit = _get_stats_full(
-        #                y, n, sigma, min_limit, xp)
-        #    else:
-        #        yield None, ave+limit, ave-limit
-
     x = np.atleast_1d(x)
     if x.ndim > 1:
         raise ValueError("`x` must be 1d")
@@ -1066,9 +750,10 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
 
 
 def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
-            threshold_value=None, exclude_point='first', **kwargs):
+                   threshold_value=None, exclude_point='first',
+                   **kwargs):
     """
-    Delete outlier data points from signal
+    Delete outlier data points from signal based on level changes
 
     Parameters
     ----------
@@ -1084,34 +769,35 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         is possible because the point itself if excluded from the
         calculations.
     maxiter : integer; optional
-        Maximum number of iterations of outlier removal allowed.
-        Multiple iterations are possible because the deletion of an
-        outlier may expose other points as outliers. If <= 0, there is
-        no set limit and the looping will stop when no more outliers
-        are detected. Routine will always run at least 1 loop (setting
-        `maxiter` to 0 is the same as setting it to 1).
+        Maximum number of iterations of outlier removal allowed. If
+        `exclude_point` is 'first', only the last spike is removed on
+        each iteration; if it is 'last', only the first spike is
+        removed on each iteration. It is done this way because
+        removing a spike can expose other points as spikes (but didn't
+        appear to be because the removed spike was present). If <= 0,
+        there is no set limit and the looping will stop when no more
+        outliers are detected. Routine will always run at least 1 loop
+        (setting `maxiter` to 0 is the same as setting it to 1).
     threshold_sigma : scalar; optional
         Number of standard deviations below which all data is kept.
-        This standard deviation is of the entire input signal minus
-        the moving average (using a window of `n` size). This value
-        exists to avoid deleting small deviations such as bit
-        toggles. `threshold_value` overrides `threshold_sigma` if it
-        is not None.
+        This standard deviation is computed from `x`. Let
+        ``dx = np.diff(x)``, the standard deviate is
+        ``std(dx - moving_average(dx))``. The moving average uses a
+        window of `n` size. This value exists to avoid deleting small
+        deviations such as bit toggles. `threshold_value` overrides
+       `threshold_sigma` if it is not None.
     threshold_value : scalar or None; optional
         Optional method for specifying a minimum threshold. If not
         None, this scalar is used as an absolute minimum deviation
         from the moving average for a value to be considered a spike.
-    exclude_point : string or int or None; optional
+        Overrides `threshold_sigma`.
+    exclude_point : string or int; optional
         Defines where, within each window, the point that is being
-        considered as a potential outlier is. For example, 'first'
-        compares the first point in each window the rest in that
-        window to test if it is an outlier. This option is passed
-        directly to :func:`exclusive_sgfilter`. If integer, it must be
-        in [0, n), specifying the point to exclude. If string, it must
-        be 'first', 'middle', or 'last' (which is the same as ``0``,
-        ``n // 2``, and ``n-1``, respectively). If None, the point
-        will in the middle of the window and will not be excluded from
-        the statistics (this is not recommended).
+        considered as a potential outlier is. For this routine,
+        `exclude_point` must be either 'first' (or 0) or 'last' (or
+        ``n-1``). For example, 'first' compares the first point in
+        each window the rest in that window to test if it is an
+        outlier.
     **kwargs : other args are ignored
         This is here to accommodate :func:`fixtime`.
 
@@ -1119,15 +805,12 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
     -------
     A SimpleNamespace with the members:
 
-    dx : 1d ndarray
-        Despiked version of `x`. Will be shorter than `x` if any
-        spikes were deleted; otherwise, it will equal `x`.
+    x : 1d ndarray
+        Despiked version of input `x`. Will be shorter than input `x`
+        if any spikes were deleted; otherwise, it will equal input
+        `x`.
     pv : bool 1d ndarray; same size as `x`
         Has True where an outlier was detected
-    hilim : 1d ndarray; same size as `x`
-        This is the upper limit: ``mean + sigma*std``
-    lolim : 1d ndarray; same size as `x`
-        This is the lower limit: ``mean - sigma*std``
     niter : integer
         Number of iterations executed
 
@@ -1150,106 +833,74 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         calling it directly. This is preferable because the ideal time
         to run :func:`despike` is in the middle of :func:`fixtime`:
         after drop-outs have been deleted but before gaps are filled.
+
+    Examples
+    --------
+    Set `threshold_value` to catch second spike but not first. The
+    threshold is based on differences:
+
+    >>> import numpy as np
+    >>> from pyyeti import dsp
+    >>> x = [2, 2, 2, 2, 5, 2, 2, 2, 2, 7, 2, 2, 2, 2, 2]
+    >>> s = dsp.despike_deltas(x, n=5, threshold_value=4)
+    >>> s.x
+    array([2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+    >>> s.pv
+    array([False, False, False, False, False, False, False, False,
+           False,  True, False, False, False, False, False], dtype=bool)
+    >>> s.niter
+    2
     """
-#    Examples
-#    --------
-#    Compare `exclude_point` 'first' and 'middle' options. An
-#    explanation follows:
-#
-#    >>> import numpy as np
-#    >>> from pyyeti import dsp
-#    >>> x = [1, 1, 1, 1, 5, 5, 1, 1, 1, 1]
-#    >>> s = dsp.despike(x, n=5, exclude_point='first')
-#    >>> s.dx
-#    array([1, 1, 1, 1, 1, 1, 1, 1])
-#    >>> s = dsp.despike(x, n=5, exclude_point='middle')
-#    >>> s.dx
-#    array([1, 1, 1, 1, 5, 5, 1, 1, 1, 1])
-#
-#    The two 5 points get deleted when using 'first' but not when using
-#    'middle'. This is logical because, when using 'first', the second
-#    5 is compared to following four 1 values (the window is
-#    ``[5, 1, 1, 1, 1]``. The second loop then catches the other 5. But
-#    when 'middle' is used, the window for the first 5 is
-#    ``[1, 1, 5, 5, 1]`` and the window for the second 5 is
-#    ``[1, 5, 5, 1, 1]``. For both points, the other 5 in the window
-#    prevents the center 5 from being considered an outlier.
-#
-#    For another example, make up some data and, with carefully chosen
-#    inputs, demonstrate how the routine runs by plotting one iteration
-#    at a time:
-#
-#    .. plot::
-#        :context: close-figs
-#
-#        >>> np.set_printoptions(linewidth=65)
-#        >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
-#        >>> _ = plt.figure(figsize=(8, 11))
-#        >>> plt.clf()
-#        >>> for i in range(5):
-#        ...     s = dsp.despike(x, n=9, sigma=2, maxiter=1,
-#        ...                     threshold_sigma=0.1,
-#        ...                     exclude_point='middle')
-#        ...     _ = plt.subplot(5, 1, i+1)
-#        ...     _ = plt.plot(x)
-#        ...     _ = plt.plot(s.hilim, 'k--')
-#        ...     _ = plt.plot(s.lolim, 'k--')
-#        ...     _ = plt.title('Iteration {}'.format(i+1))
-#        ...     x = s.dx
-#        >>> plt.tight_layout()
-#        >>> s.dx
-#        array([ 2,  3,  6,  3, -2,  4, -2])
-#
-#        Run all iterations at once to see what ``s.pv`` looks like:
-#
-#        >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
-#        >>> s = dsp.despike(x, n=9, sigma=2,
-#        ...                 threshold_sigma=0.1,
-#        ...                 exclude_point='middle')
-#        >>> s.dx
-#        array([ 2,  3,  6,  3, -2,  4, -2])
-#        >>> s.pv
-#        array([ True, False, False,  True,  True,  True, False, False,
-#               False, False, False,  True], dtype=bool)
-#    """
     def _get_min_limit(x, n, threshold_sigma, threshold_value):
         if threshold_value is not None:
             return threshold_value
         ave = exclusive_sgfilter(x, n, exclude_point=None)
         return threshold_sigma * np.std(x-ave)
 
-    def _sweep_out_priors(y, i, di, n, limit, ave):
+    def _sweep_out_priors(y, i, n, limit, ave):
         # see if we can consider points before the detected outlier
         # also as outliers:
-        pv = [di]
-        lim = limit[di]
-        av = ave[di]
+        pv = [i]
+        lim = limit[i]
+        av = ave[i]
         next_y = y[i+1]
-        for K in range(i-1, -1, -1):
-            new_dy = next_y - y[K]
+        for k in range(i-1, -1, -1):
+            new_dy = next_y - y[k]
             if abs(new_dy - av) <= lim:
                 break
-            pv.append(K)
+            pv.append(k)
         pv.reverse()
         return pv
 
-    def _find_outlier_peaks(y, dy, n, sigma, min_limit):
-        xp = 'first'
-        y_delta = abs(y - exclusive_sgfilter(y, n, exclude_point=xp))
-        ave = exclusive_sgfilter(dy, n, exclude_point=xp)
-        var = exclusive_sgfilter(dy**2, n, exclude_point=xp) - ave**2
-        # use abs to care of negative numerical zeros:
-        std = np.sqrt(abs(var))
-        limit = np.fmax(sigma * std, min_limit)
-        dy_delta = abs(dy - ave)
-        dpv = dy_delta > limit
+    def _sweep_out_nexts(y, i, n, limit, ave):
+        # see if we can consider points after the detected outlier
+        # also as outliers:
+        pv = [i]
+        lim = limit[i-1]
+        av = ave[i-1]
+        prev_y = y[i-1]
+        for k in range(i+1, y.size):
+            new_dy = y[k] - prev_y
+            if abs(new_dy - av) <= lim:
+                break
+            pv.append(k)
+        return pv
+
+    def _outs_first(y, dy, n, sigma, min_limit, xp,
+                    ave, dy_delta, var, std, limit, dpv):
         while True:
             if dpv.any():
                 # keep only last one ... previous ones can change
-                di = dpv.nonzero()[0][-1]
-                # is i always di?
-                i = di if y_delta[di] > y_delta[di+1] else di+1
-                pv = _sweep_out_priors(y, i, di, n, limit, ave)
+                i = dpv.nonzero()[0][-1]
+                # since we're grabbing last spike in dy, that index
+                # is also what we need for y:
+                # dy -> y
+                # 0 -> 1-0
+                # 1 -> 2-1
+                # 2 -> 3-2
+                # say 1 of dy is last spike ... 2 isn't. So 3-2
+                # of original is okay. spike in original has to be 1.
+                pv = _sweep_out_priors(y, i, n, limit, ave)
             else:
                 pv = None
             yield pv
@@ -1257,7 +908,7 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             i, j = pv[0], pv[-1]
             if i == 0:
                 yield None  # we're done
-            m = 0 if di == j else 1
+            dpv[i:j+1] = False
             # To determine if point before i is a spike, need n-1
             # valid points after j:
             k = min(y.size, j+n)
@@ -1272,20 +923,84 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             # update only sections that need it: from i-n to i
             j = i
             i = max(i-n, 0)
-            av = exclusive_sgfilter(y[i:k], n, exclude_point=xp)[:j-i]
-            y_delta[i:j] = abs(y[i:j] - av)
-            dy[i-m:k-m] = np.diff(y[i:k+1])
-            ave[i:j] = exclusive_sgfilter(dy[i-m:k-m], n,
+            dy[i:k] = np.diff(y[i:k+1])
+            ave[i:j] = exclusive_sgfilter(dy[i:k], n,
                                           exclude_point=xp)[:j-i]
-            avsq = exclusive_sgfilter(dy[i-m:k-m]**2, n,
+            dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
+            avsq = exclusive_sgfilter(dy[i:k]**2, n,
                                       exclude_point=xp)[:j-i]
             var[i:j] = avsq - ave[i:j]**2
             # use abs to care of negative numerical zeros:
             std[i:j] = np.sqrt(abs(var[i:j]))
             limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
-            dy_delta[i-m:j-m] = abs(dy[i-m:j-m] - ave[i:j])
-            dpv[i-m:j-m] = dy_delta[i-m:j-m] > limit[i:j]
-            dpv[j-m:] = False
+            dpv[i:j] = dy_delta[i:j] > limit[i:j]
+
+    def _outs_last(y, dy, n, sigma, min_limit, xp,
+                   ave, dy_delta, var, std, limit, dpv):
+        while True:
+            if dpv.any():
+                # keep only first one ... later ones can change
+                i = dpv.nonzero()[0][0]
+                # since we're grabbing first spike in dy, that index
+                # plus 1 is what we need for y:
+                # dy -> y
+                # 0 -> 1-0
+                # 1 -> 2-1
+                # 2 -> 3-2
+                # say 1 of dy is first spike ... 0 isn't. So 1-0
+                # of original is okay. spike in original has to be 2.
+                pv = _sweep_out_nexts(y, i+1, n, limit, ave)
+            else:
+                pv = None
+            yield pv
+
+            i, j = pv[0], pv[-1]
+            if j == dy.size:
+                yield None  # we're done
+            dpv[i-1:j] = False
+            # To determine if point after j is a spike, need n-1
+            # valid points before i:
+            k = max(0, i-n+1)
+            count = i - k  # n-1 if away from start
+            # shift good points forward in time to get rid of spikes:
+            #  --->
+            # ......ssss+++++   ==>  ......+++++
+            #       i  j
+            y[j-count+1:j+1] = y[k:i]
+
+            # update only sections that need it: from j to j+n
+            i = j
+            j = min(j+n, dy.size)
+            m = i - j  # -(j-i) ... keep last j-i points
+            dy[k:j] = np.diff(y[k:j+1])
+            ave[i:j] = exclusive_sgfilter(dy[k:j], n,
+                                          exclude_point=xp)[m:]
+            dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
+            avsq = exclusive_sgfilter(dy[k:j]**2, n,
+                                      exclude_point=xp)[m:]
+            var[i:j] = avsq - ave[i:j]**2
+            # use abs to care of negative numerical zeros:
+            std[i:j] = np.sqrt(abs(var[i:j]))
+            limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
+            dpv[i:j] = dy_delta[i:j] > limit[i:j]
+
+    def _find_outlier_peaks(y, dy, n, sigma, min_limit, xp):
+        ave = exclusive_sgfilter(dy, n, exclude_point=xp)
+        dy_delta = abs(dy - ave)
+        var = exclusive_sgfilter(dy**2, n, exclude_point=xp) - ave**2
+        # use abs to care of negative numerical zeros:
+        std = np.sqrt(abs(var))
+        limit = np.fmax(sigma * std, min_limit)
+        dpv = dy_delta > limit
+        if xp in ('first', 0):
+            yield from _outs_first(y, dy, n, sigma, min_limit, xp,
+                                   ave, dy_delta, var, std, limit, dpv)
+        elif xp in ('last', n-1):
+            yield from _outs_last(y, dy, n, sigma, min_limit, xp,
+                                  ave, dy_delta, var, std, limit, dpv)
+        else:
+            raise ValueError('invalid `exclude_point` for'
+                             ' :func:`despike_deltas` routine')
 
     x = np.atleast_1d(x)
     if x.ndim > 1:
@@ -1298,7 +1013,8 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
 
     PV = np.zeros(x.shape, bool)
     # start generator:
-    gen = _find_outlier_peaks(x.copy(), dx, n, sigma, min_limit)
+    gen = _find_outlier_peaks(x.copy(), dx, n, sigma, min_limit,
+                              xp=exclude_point)
     for i, pv in zip(itertools.count(1), gen):
         if pv is None:
             break
@@ -1310,7 +1026,7 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
 
 def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             dropval=-1.40130E-45, delouttimes=True, delspikes=False,
-            base=None, fixdrift=False, getall=False):
+            base=None, fixdrift=False, getall=False, verbose=True):
     """
     Process recorded data to make an even time vector.
 
@@ -1360,6 +1076,9 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     getall : bool; optional
         If True, return `fixinfo`; otherwise only `newdata` is
         returned.
+    verbose : bool; optional
+        If True, sample rate statistics are printed. Note that if `sr`
+        is None, `verbose` is internally set to True.
 
     Returns
     -------
@@ -1599,7 +1318,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                      RuntimeWarning)
         return keep, outtimes
 
-    def _sr_calcs(difft, sr):
+    def _sr_calcs(difft, sr, verbose):
         min_ts = difft.min()
         max_ts = difft.max()
         ave_ts = difft.mean()
@@ -1625,16 +1344,20 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         mx = cnt[r]/Ldiff * 100
         cnt_sr = centers[r]
         cnt_ts = 1/cnt_sr
-
-        print('==> Info: [min, max, ave, count (% occurrence)] time step:')
-        print('==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]'
-              .format(min_ts, max_ts, ave_ts, cnt_ts, mx))
         sr_stats = np.array([max_sr, min_sr, ave_sr, cnt_sr, mx])
-        print('==>       Corresponding sample rates:')
-        print('==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]'
-              .format(*sr_stats))
-        print('==>       Note: "count" shows most frequent sample rate to')
-        print('          nearest {} samples/sec.'.format(dsr))
+        if not sr:                    # pragma: no cover
+            verbose = True
+        if verbose:
+            print('==> Info: [min, max, ave, count (% occurrence)] '
+                  'time step:')
+            print('==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]'
+                  .format(min_ts, max_ts, ave_ts, cnt_ts, mx))
+            print('==>       Corresponding sample rates:')
+            print('==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]'
+                  .format(*sr_stats))
+            print('==>       Note: "count" shows most frequent '
+                  'sample rate to')
+            print('          nearest {} samples/sec.'.format(dsr))
 
         if mx > 90 or abs(cnt_sr-ave_sr) < dsr:
             defsr = round(cnt_sr/dsr)*dsr
@@ -1649,7 +1372,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 sr = defsr
             else:
                 sr = float(ssr)
-        print('==> Using sample rate = {:g}'.format(sr))
+        if verbose:
+            print('==> Using sample rate = {:g}'.format(sr))
         return sr, sr_stats
 
     def _prep_delspikes(delspikes):
@@ -1674,59 +1398,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         despike_info = SimpleNamespace(
             delspikes=delspikes, niter=niter)
         return keep, spikes, despike_info
-
-#     def _despike_deltas(delspikes, olddata, keep):
-#         d = olddata[keep]
-#         diffdata = np.diff(d)
-#         s = despike(diffdata, **delspikes)
-#         pv_d = np.zeros(d.size, bool)  # spike locations in d
-#         if 1:
-#             if s.pv.any():
-#                 # av = exclusive_sgfilter(d, delspikes['n'],
-#                 #                         # exclude_point='middle')
-#                 #                         exclude_point=None)
-#                 # delta = abs(d - av)
-#                 pv = s.pv.nonzero()[0]
-#                 min_spike = abs(diffdata[pv]).min()
-#                 j = None
-#                 spike_sum = 0.0
-#                 for i in pv:
-#                     spike_sum += diffdata[i]
-#                     if j is None:
-#                         j = i + 1
-#                         # # "j" could be j or j + 1 in olddata:
-#                         # j = j if delta[j] > delta[j+1] else j+1
-#                     if abs(spike_sum) < min_spike:
-#                         k = i
-#                         # k = k if delta[k] > delta[k+1] else k+1
-#                         pv_d[j:k+1] = True
-#                         j = None
-# #                count = 0
-# #                for i in pv:
-# #                    count += 1 if diffdata[i] > 0 else -1
-# #                    if j is None:
-# #                        j = i
-# #                        # "j" could be j or j + 1 in olddata:
-# #                        j = j if delta[j] > delta[j+1] else j+1
-# #                    if count == 0:
-# #                        k = i
-# #                        k = k if delta[k] > delta[k+1] else k+2
-# #                        pv_d[j:k+1] = True
-# #                        j = None
-#                 if j is not None:
-#                     pv_d[j:] = True
-#         else:
-#             if s.pv.any():
-#                 av = exclusive_sgfilter(d, delspikes['n'],
-#                                         # exclude_point='middle')
-#                                         exclude_point=None)
-#                 delta = abs(d - av)
-#                 pv = s.pv.nonzero()[0]
-#                 for i in pv:
-#                     # "i" could be i or i + 1 in olddata:
-#                     pv_d[i if delta[i] > delta[i+1] else i+1] = True
-#         return _post_despike(pv_d, keep, delspikes, s.niter)
-
 
     def _simple_filter(olddata, keep, delspikes):
         d = olddata[keep]
@@ -1941,7 +1612,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     # sample rate calculations:
     difft = np.diff(told[keep])
-    sr, sr_stats = _sr_calcs(difft, sr)
+    sr, sr_stats = _sr_calcs(difft, sr, verbose)
     dt = 1/sr
 
     # delete spikes if requested:
