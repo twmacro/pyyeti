@@ -12,6 +12,7 @@ Main routines
     aligntime
     calcenv
     despike
+    despike_deltas
     exclusive_sgfilter
     fdscale
     fftcoef

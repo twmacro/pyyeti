@@ -449,12 +449,15 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         is possible because the point itself if excluded from the
         calculations.
     maxiter : integer; optional
-        Maximum number of iterations of outlier removal allowed.
-        Multiple iterations are possible because the deletion of an
-        outlier may expose other points as outliers. If <= 0, there is
-        no set limit and the looping will stop when no more outliers
-        are detected. Routine will always run at least 1 loop (setting
-        `maxiter` to 0 is the same as setting it to 1).
+        Maximum number of iterations of outlier removal allowed. If
+        `exclude_point` is 'first', only the last spike is removed on
+        each iteration; if it is 'last', only the first spike is
+        removed on each iteration. It is done this way because
+        removing a spike can expose other points as spikes (but didn't
+        appear to be because the removed spike was present). If <= 0,
+        there is no set limit and the looping will stop when no more
+        outliers are detected. Routine will always run at least 1 loop
+        (setting `maxiter` to 0 is the same as setting it to 1).
     threshold_sigma : scalar; optional
         Number of standard deviations below which all data is kept.
         This standard deviation is of the entire input signal minus
@@ -466,6 +469,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         Optional method for specifying a minimum threshold. If not
         None, this scalar is used as an absolute minimum deviation
         from the moving average for a value to be considered a spike.
+        Overrides `threshold_sigma`.
     exclude_point : string or int or None; optional
         Defines where, within each window, the point that is being
         considered as a potential outlier is. For example, 'first'
@@ -785,7 +789,7 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         ``std(dx - moving_average(dx))``. The moving average uses a
         window of `n` size. This value exists to avoid deleting small
         deviations such as bit toggles. `threshold_value` overrides
-       `threshold_sigma` if it is not None.
+        `threshold_sigma` if it is not None.
     threshold_value : scalar or None; optional
         Optional method for specifying a minimum threshold. If not
         None, this scalar is used as an absolute minimum deviation
@@ -1062,11 +1066,37 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         they are left in.
     delspikes : bool or dict; optional
         If False, do not delete spikes. If True, delete spikes by
-        calling :func:`despike`; the window size is set to 15 and the
-        other defaults are accepted (see :func:`despike`). If a dict,
-        it specifies all desired inputs to :func:`despike` except for
-        the signal itself. If `n` is not included, it is set to
-        15. For example: ``delspikes=dict(n=31, sigma=5, maxiter=4)``.
+        calling :func:`despike_deltas`; the window size is set to 15
+        and the other defaults are accepted (see
+        :func:`despike_deltas`). If a dict, you can take complete
+        control. You can specify one of 3 methods for despiking:
+
+        =================  ======================================
+            `method`           Action
+        =================  ======================================
+         "despike_deltas"  Call :func:`despike_deltas` (default)
+         "despike"         Call :func:`despike`
+         "simple"          Detect outliers by standard deviations
+                           from a moving average through signal.
+        =================  ======================================
+
+        For example, to set the method to "despike", the number of
+        standard deviations to 8, the window size to 25, the maximum
+        iterations to 100, and the threshold_value to 0.25::
+
+            delspikes=dict(method='despike', sigma=8, n=25,
+                           maxiter=100, threshold_value=0.25)
+
+        Defaults are defined for some parameters (others are accepted
+        from the definition of :func:`despike_deltas` or
+        :func:`despike` ... 'simple' only uses these three). The
+        defaults are::
+
+            method = 'despike_deltas'
+            n = 15
+            sigma = 12
+            maxiter = -1   # negative value means no limit
+
     base : scalar or None; optional
         Scalar value that new time vector would hit exactly if within
         range. If None, new time vector is aligned to longest section
@@ -1109,15 +1139,18 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            vector against the old.
 
         - `alldrops` : SimpleNamespace or None
-           Has bool 1d arrays with True showing the drops:
+           Has 1d indexing arrays into `olddata` showing the drops:
 
                ==========  ==========================================
-               `dropouts`  shows infs, nans, and `dropvals`; True
-                           where drops were detected in `olddata`
-               `spikes`    True where spikes were found in `olddata`
+               `dropouts`  shows infs, nans, and `dropvals` (None if
+                           ``not deldrops``)
+               `outtimes`  shows where outlier times were found in
+                           `olddata` (whether they were deleted or
+                           not)
+               `spikes`    shows where spikes were found in `olddata`
                            (None if ``not delspikes``)
-               `alldrops`  ``dropouts | spikes`` plus possible points
-                           in between those
+               `alldrops`  merger of `dropouts` and `spikes` plus
+                           possible points in between those
                ==========  ==========================================
 
         - `despike_info` : SimpleNamespace or None
@@ -1159,7 +1192,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            least within 5 samples/second). If `sr` is not input,
            prompt user for `sr`.
 
-       6.  Call :func:`despike` if requested to delete data spikes.
+       6.  Call selected despiker if requested to delete data spikes.
 
        7.  Count number of small time-steps defined as those that are
            less than ``0.93/sr``. If more than 1% of the steps are
@@ -1387,7 +1420,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             delspikes = dict(delspikes)  # make a copy
         _dict_default(delspikes, sigma=12, n=15,
                       method='despike_deltas',
-                      maxiter=40)
+                      maxiter=-1)
         return delspikes
 
     def _post_despike(pv, keep, delspikes, niter):
@@ -1422,7 +1455,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     def _del_spikes(olddata, keep, delspikes):
         method = delspikes['method']
         if method == 'despike_deltas':
-            # return _despike_deltas(delspikes, olddata, keep)
             s = despike_deltas(olddata[keep], **delspikes)
             return _post_despike(s.pv, keep, delspikes, s.niter)
         elif method == 'despike':
@@ -1504,7 +1536,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         tp[:-1] |= tp[1:]
         tp[-1] = True
         tp = np.nonzero(tp)[0]
-        # tp_old = np.nonzero(get_turning_pts(told, atol=dt/4))[0]
+
         if len(tp)-2 > len(told) // 2:  # -2 to ignore ends
             align = False
             p = (len(tp)-2)/len(told)*100
@@ -1583,7 +1615,6 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     # begin main routine
     told, olddata, return_ndarray = _get_timedata(olddata)
-    # orig_t, orig_d = told, olddata
 
     # check for negative steps:
     told, olddata, difft, sortvec = _chk_negsteps(
