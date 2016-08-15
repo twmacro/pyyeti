@@ -680,7 +680,7 @@ def test_fixtime_despike_edge_conditions():
         ycopy[s] = y[i-1]
         y[s] = 10.0
 
-        # with despike_deltas:
+        # with despike_diff:
         t2, y2 = dsp.fixtime((t, y), 'auto', delspikes=True,
                              verbose=False)
         assert np.allclose(t2, t)
@@ -956,12 +956,12 @@ def test_despike4():
     assert desp.niter < 5
 
 
-def test_despike_deltas():
+def test_despike_diff():
     x = np.arange(100.)
     x[45] = 4.5
     x[0] = -20
     x[-13] = 115
-    s = dsp.despike_deltas(x, 9, sigma=4)
+    s = dsp.despike_diff(x, 9, sigma=4)
     pv = np.zeros(x.shape, bool)
     pv[0] = True
     pv[45] = True
@@ -972,14 +972,14 @@ def test_despike_deltas():
     x[45] = 4.5
     x[0] = -20
     x[-13] = 115
-    s = dsp.despike_deltas(x, 9, sigma=4, maxiter=1)
+    s = dsp.despike_diff(x, 9, sigma=4, maxiter=1)
     pv = np.zeros(x.shape, bool)
     pv[-13] = True
     assert (s.pv == pv).all()
     assert (s.x == x[~pv]).all()
     assert s.niter == 1
 
-    assert_raises(ValueError, dsp.despike_deltas, np.ones((5, 5)), 3)
+    assert_raises(ValueError, dsp.despike_diff, np.ones((5, 5)), 3)
 
 
 def test_fftcoef():

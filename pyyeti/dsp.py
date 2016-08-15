@@ -753,7 +753,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
                            hilim=hi, lolim=lo, niter=i)
 
 
-def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
+def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
                    threshold_value=None, exclude_point='first',
                    **kwargs):
     """
@@ -846,7 +846,7 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
     >>> import numpy as np
     >>> from pyyeti import dsp
     >>> x = [2, 2, 2, 2, 5, 2, 2, 2, 2, 7, 2, 2, 2, 2, 2]
-    >>> s = dsp.despike_deltas(x, n=5, threshold_value=4)
+    >>> s = dsp.despike_diff(x, n=5, threshold_value=4)
     >>> s.x
     array([2, 2, 2, 2, 5, 2, 2, 2, 2, 2, 2, 2, 2, 2])
     >>> s.pv
@@ -1004,7 +1004,7 @@ def despike_deltas(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
                                   ave, dy_delta, var, std, limit, dpv)
         else:
             raise ValueError('invalid `exclude_point` for'
-                             ' :func:`despike_deltas` routine')
+                             ' :func:`despike_diff` routine')
 
     x = np.atleast_1d(x)
     if x.ndim > 1:
@@ -1066,35 +1066,33 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         they are left in.
     delspikes : bool or dict; optional
         If False, do not delete spikes. If True, delete spikes by
-        calling :func:`despike_deltas`; the window size is set to 15
-        and the other defaults are accepted (see
-        :func:`despike_deltas`). If a dict, you can take complete
-        control. You can specify one of 3 methods for despiking:
+        calling :func:`despike_diff` with inputs as defined below. If
+        a dict, you can take complete control. You can specify one of
+        3 methods for despiking:
 
-        =================  ======================================
+        ===============  ======================================
             `method`           Action
-        =================  ======================================
-         "despike_deltas"  Call :func:`despike_deltas` (default)
-         "despike"         Call :func:`despike`
-         "simple"          Detect outliers by standard deviations
-                           from a moving average through signal.
-        =================  ======================================
+        ===============  ======================================
+         "despike_diff"  Call :func:`despike_diff` (default)
+         "despike"       Call :func:`despike`
+         "simple"        Detect outliers by standard deviations
+                         from a moving average through signal.
+        ===============  ======================================
 
         For example, to set the method to "despike", the number of
-        standard deviations to 8, the window size to 25, the maximum
+        standard deviations to 12, the window size to 25, the maximum
         iterations to 100, and the threshold_value to 0.25::
 
-            delspikes=dict(method='despike', sigma=8, n=25,
+            delspikes=dict(method='despike', sigma=12, n=25,
                            maxiter=100, threshold_value=0.25)
 
         Defaults are defined for some parameters (others are accepted
-        from the definition of :func:`despike_deltas` or
-        :func:`despike` ... 'simple' only uses these three). The
-        defaults are::
+        from the definition of :func:`despike_diff` or :func:`despike`
+        ... 'simple' only uses these three). The defaults are::
 
-            method = 'despike_deltas'
+            method = 'despike_diff'
             n = 15
-            sigma = 12
+            sigma = 8
             maxiter = -1   # negative value means no limit
 
     base : scalar or None; optional
@@ -1233,6 +1231,24 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            that gaps are filled with previous value (flat line). This
            routine does not do any linear interpolation.
 
+    If despiking is not producing the good results:
+
+        1. Try increasing/decreasing `sigma` to make it more/less
+           picky.
+
+        2. If bit toggles or similar small spikes are being considered
+           spikes (which can also make the routine take a very long
+           time to run), setting `threshold_value` to a suitable value
+           for the current data is often a good solution.  Increasing
+           `threshold_sigma` can also protect these small spikes. Note
+           that the threshold settings are not available for the
+           "simple" method.
+
+        3. Try a different window size.
+
+        4. Try a different method. They all have strengths and
+           weaknesses, so experiment.
+
     Examples
     --------
     >>> t = [0, 1, 6, 7]
@@ -1299,7 +1315,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         pv = dropouts.nonzero()[0]
         if pv.size > 2:
             # delete 1-of loners first (this is necessary if
-            # method="despike_deltas" because a middle spike
+            # method="despike_diff" because a middle spike
             # will be left behind if it is smaller than the two
             # surrounding spikes)
             loners = (np.diff(pv) == 2).nonzero()[0]
@@ -1418,8 +1434,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
             delspikes = dict()
         else:
             delspikes = dict(delspikes)  # make a copy
-        _dict_default(delspikes, sigma=12, n=15,
-                      method='despike_deltas',
+        _dict_default(delspikes, sigma=8, n=15,
+                      method='despike_diff',
                       maxiter=-1)
         return delspikes
 
@@ -1454,8 +1470,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     def _del_spikes(olddata, keep, delspikes):
         method = delspikes['method']
-        if method == 'despike_deltas':
-            s = despike_deltas(olddata[keep], **delspikes)
+        if method == 'despike_diff':
+            s = despike_diff(olddata[keep], **delspikes)
             return _post_despike(s.pv, keep, delspikes, s.niter)
         elif method == 'despike':
             s = despike(olddata[keep], **delspikes)
