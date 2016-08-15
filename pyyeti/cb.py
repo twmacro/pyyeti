@@ -755,7 +755,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     bset : 1d array_like
         Index partition vector specifying location and order of b-set
         (boundary) DOF in Mcb and Kcb. Uses zero offset.
-    bsubset : 1d array_like
+    bsubset : 1d array_like or None; optional
         Index partition vector into `bset` specifying which b-set DOF
         to consider. Note the CG acceleration recovery matrix will
         only consider forces on this subset so if there are other
@@ -764,9 +764,12 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     uset : 2d ndarray; optional for single point interface
         A 6-column matrix as output by :func:`op2.rdn2cop2` or
         :func:`n2p.addgrid`. For information on the format of this
-        matrix, see :func:`op2.rdn2cop2`. If `uset` is None, a single
-        grid with id 1 will be automatically created at (0, 0, 0). The
-        :func:`n2p.addgrid` call for this is::
+        matrix, see :func:`op2.rdn2cop2`. This defines the
+        Craig-Bampton interface nodes in s/c coordinates.
+
+        If `uset` is None, a single grid with id 1 will be
+        automatically created at (0, 0, 0). The :func:`n2p.addgrid`
+        call for this is::
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
@@ -843,6 +846,15 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     scaxial_sc, scaxial_lv : integers
         0, 1, or 2 depending on which DOF is axial in s/c coordinates
         and in l/v coordinates, respectively.
+    Tsc2lv : 2d ndarray
+        The 6x6 transformation from s/c to l/v coordinates.
+    rb : 2d ndarray
+        The geometry-based rigid-body modes corresponding to the
+        `bsubset` part of the `uset` table. Same as `rb_all` if
+        `bsubset` is None.
+    rb_all : 2d ndarray
+        The geometry-based rigid-body modes corresponding to the
+        the `uset` table. Same as `rb` if `bsubset` is None.
     """
     if uset is None:
         uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
@@ -947,7 +959,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         cgatm_sc=cgatm, cgatm_lv=Tsc2lv @ cgatm,
         weight_sc=weight_sc, weight_lv=weight_lv,
         height_sc=height_sc, height_lv=height_lv,
-        scaxial_sc=scaxial_sc, scaxial_lv=scaxial_lv)
+        scaxial_sc=scaxial_sc, scaxial_lv=scaxial_lv,
+        Tsc2lv=Tsc2lv, rb=rb, rb_all=rb_all)
 
 
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
@@ -1975,7 +1988,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
             reorder=True):
     """
     Run model checks on Craig-Bampton mass and stiffness matrices.
- 
+
     Parameters
     ----------
     f : string, file handle, or 1
