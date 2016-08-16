@@ -1231,12 +1231,20 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            that gaps are filled with previous value (flat line). This
            routine does not do any linear interpolation.
 
-    If despiking is not producing the good results:
+    If despiking is not producing good results:
 
-        1. Try increasing/decreasing `sigma` to make it more/less
+        1. Spikes very near the ends of the signal (in the first or
+           last window) can cause trouble for the :func:`despike_diff`
+           and :func:`despike` routines. If `exclude_point` is
+           'first', spikes in the last window should be avoided (the
+           routine works backward); conversely, if `exclude_point` is
+           'last', spikes in the first window should be avoided (the
+           routine works forward).
+
+        2. Try increasing/decreasing `sigma` to make it more/less
            picky.
 
-        2. If bit toggles or similar small spikes are being considered
+        3. If bit toggles or similar small spikes are being considered
            spikes (which can also make the routine take a very long
            time to run), setting `threshold_value` to a suitable value
            for the current data is often a good solution.  Increasing
@@ -1244,9 +1252,9 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            that the threshold settings are not available for the
            "simple" method.
 
-        3. Try a different window size.
+        4. Try a different window size.
 
-        4. Try a different method. They all have strengths and
+        5. Try a different method. They all have strengths and
            weaknesses, so experiment.
 
     Examples

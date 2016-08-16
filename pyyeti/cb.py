@@ -765,7 +765,9 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         A 6-column matrix as output by :func:`op2.rdn2cop2` or
         :func:`n2p.addgrid`. For information on the format of this
         matrix, see :func:`op2.rdn2cop2`. This defines the
-        Craig-Bampton interface nodes in s/c coordinates.
+        Craig-Bampton interface nodes in s/c coordinates, *not* in l/v
+        coordinates. Use `sccoord` to define the transformation from
+        l/v to s/c coordinates.
 
         If `uset` is None, a single grid with id 1 will be
         automatically created at (0, 0, 0). The :func:`n2p.addgrid`
@@ -847,7 +849,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         0, 1, or 2 depending on which DOF is axial in s/c coordinates
         and in l/v coordinates, respectively.
     Tsc2lv : 2d ndarray
-        The 6x6 transformation from s/c to l/v coordinates.
+        The 6x6 transformation from s/c to l/v coordinates. This is
+        the transpose of the transform defined by `sccoord`.
     rb : 2d ndarray
         The geometry-based rigid-body modes corresponding to the
         `bsubset` part of the `uset` table. Same as `rb_all` if
