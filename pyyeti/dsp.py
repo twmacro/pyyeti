@@ -785,7 +785,7 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
     threshold_sigma : scalar; optional
         Number of standard deviations below which all data is kept.
         This standard deviation is computed from `x`. Let
-        ``dx = np.diff(x)``, the standard deviate is
+        ``dx = np.diff(x)``, the standard deviation is
         ``std(dx - moving_average(dx))``. The moving average uses a
         window of `n` size. This value exists to avoid deleting small
         deviations such as bit toggles. `threshold_value` overrides
