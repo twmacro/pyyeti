@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Some math and text I/O tools translated from Yeti to Python.
+Some math and I/O tools. Most are translated from Yeti to Python.
 """
 
 import numpy as np
@@ -9,6 +9,81 @@ import pickle
 import gzip
 import bz2
 import sys
+
+
+def histogram(data, binsize):
+    """
+    Calculate a histogram
+
+    Parameters
+    ----------
+    data : 1d array_like
+        The data to do histogram counting on
+    binsize : scalar
+        Bin size
+
+    Returns
+    -------
+    histo : 2d ndarray
+        3-column matrix: [bincenter, count, percent]
+
+    Notes
+    -----
+    Only bins that have count > 0 are included in the output. The
+    bin-centers are: ``binsize*[..., -2, -1, 0, 1, 2, ...]``.
+
+    The main difference from :func:`numpy.histogram` is how bins are
+    defined and how the data are returned. For
+    :func:`numpy.histogram`, you must either define the number of bins
+    or the bin edges and the output will include empty bins; for this
+    routine, you only define the binsize and only non-empty bins are
+    returned.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> np.set_printoptions(precision=4, suppress=True)
+    >>> from pyyeti import ytools
+    >>> data = [1, 2, 345, 2.4, 1.8, 345.1]
+    >>> ytools.histogram(data, 1.0)
+    array([[   1.    ,    1.    ,   16.6667],
+           [   2.    ,    3.    ,   50.    ],
+           [ 345.    ,    2.    ,   33.3333]])
+
+    To try to get similar output from :func:`numpy.histogram` you have
+    to define the bins:
+
+    >>> binedges = [0.5, 1.5, 2.5, 344.5, 345.5]
+    >>> cnt, bins = np.histogram(data, binedges)
+    >>> cnt
+    array([1, 3, 0, 2])
+    >>> bins
+    array([   0.5,    1.5,    2.5,  344.5,  345.5])
+    """
+    # use a generator to simplify the work; only yield a bin
+    # if it has data:
+    def get_next_bin(data, binsize):
+        data = np.atleast_1d(data)
+        data = data[np.isfinite(data)]
+        mn = data.min()
+        mx = data.max()
+        a = int(np.floor(mn/binsize))
+        b = int(np.ceil(mx/binsize))
+        for i in range(a, b+1):
+            lft = (i-1/2)*binsize
+            rgt = (i+1/2)*binsize
+            count = np.count_nonzero((lft <= data) &
+                                     (data < rgt))
+            if count > 0:
+                yield [i*binsize, count]
+
+    bins = []
+    for b in get_next_bin(data, binsize):
+        bins.append(b)
+    histo = np.empty((len(bins), 3))
+    histo[:, :2] = bins
+    histo[:, 2] = 100*histo[:, 1]/histo[:, 1].sum()
+    return histo
 
 
 def multmd(a, b):

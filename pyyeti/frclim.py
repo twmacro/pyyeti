@@ -7,7 +7,7 @@ import numpy as np
 import scipy.linalg as la
 from scipy.optimize import minimize_scalar
 from types import SimpleNamespace
-from pyyeti import ytools, cb, ode
+from pyyeti import cb, ode
 
 
 def calcAM(S, freq, name="structure"):
@@ -915,8 +915,6 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
 
     c1 = 2*zeta1*w1*m1
     k1 = w1**2*m1
-    fl = wr[0]  # low bound
-    fh = wr[1]  # high bound
 
     def get_neg_pknfl(nw2):
         """

@@ -11,8 +11,6 @@ import sys
 from pyyeti import n2p, op4
 import struct
 import warnings
-import itertools as it
-# from collections import namedtuple
 
 #  Notes on the op2 format.
 #
@@ -1434,14 +1432,14 @@ class OP2(object):
 #     def _rdop2drm_old(self):
 #         """
 #         Read Nastran output2 DRM data block (table).
-# 
+#
 #         Returns
 #         -------
 #         drm : ndarray
 #             The drm matrix.
 #         iddof : ndarray
 #             2-column matrix of [id, dof].
-# 
+#
 #         This routine is beta -- check output carefully.
 #         """
 #         def getStr(iprev, elemtype, ir_Str, ir_bytes):
@@ -1453,7 +1451,7 @@ class OP2(object):
 #                 ir_Str = struct.Struct(self._endian + self._i*ints_rec2)
 #                 ir_bytes = self._ibytes*ints_rec2
 #             return ir_Str, ir_bytes, ints_rec2
-# 
+#
 #         rfrm = self._rfrm
 #         rfrmu = self._rfrmu
 #         rsize = self._fbytes
@@ -1464,7 +1462,7 @@ class OP2(object):
 #         nwords = u1[9]
 #         key = self._getkey()
 #         block = 7*4+3*self._ibytes
-# 
+#
 #         # determine records/column by scanning first column:
 #         rpc = 0
 #         fp = self._fileh
@@ -1493,7 +1491,7 @@ class OP2(object):
 #             iddof[drmrow:drmrow+L, 1] = elemid
 #             fp.seek(self._ibytes*L, 1)
 #             drmrow += L
-# 
+#
 #             # read rest of record:
 #             for i in range(1, key // nwords):
 #                 dataint = ir_Str.unpack(fp.read(ir_bytes))
@@ -1521,7 +1519,7 @@ class OP2(object):
 #                 nwords = u1[9]
 #                 fp.seek(block, 1)
 #                 key = self._getkey()
-# 
+#
 #         drmrows = drmrow
 #         iddof = iddof[:drmrows]
 #         drmcols = blocksize
@@ -1549,7 +1547,7 @@ class OP2(object):
 #                         drm[drmrow:drmrow+L,
 #                             drmcol] = np.fromfile(fp, rfrm, L)
 #                     drmrow += L
-# 
+#
 #                 fp.seek(block, 1)
 #                 key = self._getkey()
 #                 if key > 0:
@@ -2973,9 +2971,8 @@ def rdpostop2(op2file, verbose=False, getougv1=False, getoef1=False,
                     print("Skipping table {}...".format(name))
                 o2.skipop2table()
 
-        if (eqexin1 is not None and
-            eqexin is not None and
-            bgpdt_rec1 is not None):
+        if (eqexin1 is not None and eqexin is not None and
+                bgpdt_rec1 is not None):
             (xyz, cid, dof,
              doftype, nid, upids) = o2._proc_bgpdt(
                  eqexin1, eqexin, True, bgpdt_rec1)

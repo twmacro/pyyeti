@@ -11,7 +11,7 @@ from warnings import warn
 
 
 def get_freq_oct(n, frange=[1., 10000.], exact=False, trim='band',
-                anchor=None):
+                 anchor=None):
     r"""
     Get frequency vector on an octave scale.
 

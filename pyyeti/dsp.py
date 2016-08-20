@@ -754,8 +754,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
 
 
 def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
-                   threshold_value=None, exclude_point='first',
-                   **kwargs):
+                 threshold_value=None, exclude_point='first',
+                 **kwargs):
     """
     Delete outlier data points from signal based on level changes
 

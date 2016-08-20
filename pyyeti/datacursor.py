@@ -31,8 +31,16 @@ class DataCursor(object):
     ----------
     hover : bool
         If True, an annotated large green, semi-transparent dot is
-        displayed that follows the mouse as long as the mouse is inside
-        the axes.
+        displayed that follows the mouse as long as the mouse is
+        inside the axes. Note: setting this directly is possible; you
+        just have to turn the DataCursor off and back on for the
+        setting to take effect. For example::
+
+            from pyyeti.datacursor import DC
+            DC.hover = False
+            DC.off()
+            DC.on()
+
     form1 : function
         Function to format the x, y data for the annotation. This is
         called for axes that have only one line. Must accept the four
@@ -83,15 +91,14 @@ class DataCursor(object):
 
         from datacursor import DC
         ...
-        DC.getdata()   # blocks until DataCursor is toggled off (see
-                       # table below); or:
-        DC.getdata(n)  # blocks until user selects `n` points or the
-                       # DataCursor is toggle off
+        DC.getdata()   # blocks until DataCursor is turned off via 't'
+        DC.getdata(n)  # blocks until user selects `n` points (or
+                       # DataCursor is turned off via 't')
 
     From an interactive prompt::
 
         from datacursor import DC
-        DC.on()       # doesn't block, but DataCursor is active
+        DC.on()       # doesn't block, but DC is active
 
     Once the DataCursor is turned on, you'll just mouse over the data
     to see selected data points. These operations are available (when
@@ -101,14 +108,13 @@ class DataCursor(object):
     Action       Description
     ===========  ======================================================
     left-click   Data point will be stored in the member list
-                 `xypoints`. The annotation for points saved will also
-                 be saved.
-    right-click  Last point is deleted from `xypoints` (along with
-                 annotation).
-    typing 't'   Toggles operation of DataCursor off and on. Toggling
-                 on will reset the `xypoints` data member. Note that
-                 toggling on will only work if the DataCursor was on
-                 previously for current figure.
+                 `xypoints`. The other members (`inds`, `lines`,
+                 `linenums`, `pts` and `notes`) are updated as well.
+    right-click  Last point is deleted from `xypoints` and from the
+                 other members.
+    typing 't'   Turns off DataCursor. To turn on, use ``DC.on``. Note
+                 that turning on will reset `xypoints` and the other
+                 members.
     typing 'D'   Deletes last point AND removes the line from the plot
                  via ``line_handle.remove()``. Any older annotations
                  are not deleted.
@@ -119,7 +125,7 @@ class DataCursor(object):
     't' to end blocking so the script will continue (see
     :func:`DataCursor.getdata`).
 
-    Once the DataCursor is toggled off, the annotations become
+    Once the DataCursor is turned off, the annotations become
     draggable. Two notes on this:
 
         1. Due to a bug in matplotlib v1.4.3, dragging annotations
@@ -127,23 +133,23 @@ class DataCursor(object):
            doesn't work correctly. Newer versions work properly.
         2. Somehow, annotations sometimes become linked (moving one
            will move another). When that happens, try dragging
-           a different annotation; this often breaks the link.
+           a different annotation; this sometimes breaks the link.
 
     Interactively, the member functions :func:`DataCursor.on` and
-    :func:`DataCursor.off` can be used to turn the DataCursor on and
+    :func:`DataCursor.off` are used to turn the DataCursor on and
     off. These functions will update the internal state of the
     `DataCursor` to account for deleted or added items.
     :func:`DataCursor.getdata` calls :func:`DataCursor.on` internally.
 
     The following example plots some random data, calls
     :func:`DataCursor.getdata` to wait for the user to optionally
-    select data points and then toggle the DataCursor off (with
+    select data points and then turn the DataCursor off (with
     keystroke 't'). It then prints the selected points.::
 
         import matplotlib.pyplot as plt
         import numpy as np
         from pyyeti.datacursor import DC
-        x = np.arange(500)
+        x = np.arange(500)/250
         y = np.random.rand(*x.shape)
         fig = plt.figure('demo')
         fig.clf()
@@ -166,6 +172,32 @@ class DataCursor(object):
                     .format(x=x, y=y, ind=ind))
 
         DC.form1 = DC.form2 = formnew
+
+        plt.plot(np.random.randn(50))
+        DC.on()
+
+    For increased versatility, there are two optional functions the
+    user can define that will be called when a point is added
+    (left-click) and when a point is deleted (right-click). See
+    :func:`DataCursor.addpt_func` and :func:`DataCursor.delpt_func`
+    for more information on the call signatures. Here is simple
+    example::
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from pyyeti.datacursor import DC
+
+        def addpt(ax, x, y, n, ind, lineh):
+            print('You selected ({}, {})'.format(x, y))
+
+        def delpt(ax, x, y, n, ind):
+            print('You deleted ({}, {})'.format(x, y))
+
+        DC.addpt_func(addpt)
+        DC.delpt_func(delpt)
+
+        plt.plot(np.random.randn(50))
+        DC.on()
 
     """
 
@@ -233,8 +265,11 @@ class DataCursor(object):
 
     def on(self, newax=-1, callbacks=True):
         """
-        Toggles on and (re-)initializes the DataCursor for current
+        Turns on and (re-)initializes the DataCursor for current
         figures.
+
+        The `xypoints` and other data members are reset to empty
+        lists.
 
         If `newax` is -1, the axes that the DataCursor uses remain
         unchanged (all, if `ax` was originally None). Other values
@@ -274,8 +309,12 @@ class DataCursor(object):
             self._is_on = False
 
     def off(self):
-        """Toggles off the DataCursor and stops it from blocking (if
-        :func:`getdata` was called)."""
+        """
+        Turns off the DataCursor and stops it from blocking (if
+        :func:`getdata` was called).
+
+        Note that the keystroke 't' will also turn off the DataCursor.
+        """
         self._init_all()
         if self._is_on:
             for ax in self._ax:
@@ -285,6 +324,9 @@ class DataCursor(object):
             for fig in self._figs:
                 if fig in self._kid:
                     fig.canvas.mpl_disconnect(self._kid[fig])
+                # if (self.hover and fig in self._mid and
+                #         self._mid[fig] is not None):
+                #     fig.canvas.mpl_disconnect(self._mid[fig])
                 if (self.hover and fig in self._mid and
                         self._mid[fig] is not None):
                     fig.canvas.mpl_disconnect(self._mid[fig])
@@ -333,7 +375,21 @@ class DataCursor(object):
         """
         Function to call on a right-click.
 
-        Call signature is: ``func()``
+        Call signature is: ``func(ax, x, y, n, ind)``
+
+        The parameters for the function are described below.
+
+        Parameters
+        ----------
+        ax : axes object
+            Axes handle
+        x, y : scalars
+            The selected ``(x, y)`` data point
+        n : integer
+            The line number
+        ind : integer
+            The index of the data point within the plotted data
+            vectors
         """
         self.delptfunc = func
 
@@ -343,7 +399,8 @@ class DataCursor(object):
         self.lines.append(lineh)
         self.linenums.append(n)
         self.pts.append(ax.scatter(x, y, s=130,
-                        color='red', alpha=0.4))
+                                   color='red', alpha=0.4,
+                                   visible=True))
         self.notes.append(self._annotation[ax])
         # offsetbox.DraggableAnnotation(self._annotation)
         # make a new annotation box so current one is static
@@ -353,12 +410,12 @@ class DataCursor(object):
         if self.addptfunc:
             self.addptfunc(ax, x, y, n, ind, lineh)
 
-    def _del_point(self, delete_line=False):
+    def _del_point(self, ax=None, delete_line=False):
         """Deletes last saved point, if any."""
         if len(self.xypoints) == 0:
             return
-        self.xypoints.pop()
-        self.inds.pop()
+        x, y = self.xypoints.pop()
+        ind = self.inds.pop()
         h = self.lines.pop()
         if delete_line:
             # line may have been deleted already, so catch exception:
@@ -366,13 +423,13 @@ class DataCursor(object):
                 h.remove()
             except ValueError:
                 pass
-        self.linenums.pop()
+        n = self.linenums.pop()
         pt = self.pts.pop()
         pt.remove()
         na = self.notes.pop()
         na.remove()
         if self.delptfunc:
-            self.delptfunc()
+            self.delptfunc(ax, x, y, n, ind)
 
     def _get_ax(self, event):
         """
@@ -398,7 +455,7 @@ class DataCursor(object):
 
     def _key(self, event):
         """
-        Processes 't' key press to toggle the DataCursor on and off.
+        Processes 't' key press to turn the DataCursor off.
         """
         if not self._get_ax(event):
             return
@@ -437,14 +494,17 @@ class DataCursor(object):
             annotation.set_text(self.form2(x, y, n, ind))
         else:
             annotation.set_text(self.form1(x, y, n, ind))
-        annotation.set_visible(True)
         dot.set_offsets((x, y))
-        dot.set_visible(True)
         if event.name == 'button_press_event':
             if event.button == 1:
+                # dot.set_visible(True)
+                annotation.set_visible(True)
                 self._add_point(ax, x, y, n, ind, lineh)
             elif event.button == 3 and len(self.xypoints) > 0:
-                self._del_point()
+                self._del_point(ax=ax)
+        elif self.hover:
+            dot.set_visible(True)
+            annotation.set_visible(True)
         event.canvas.draw()
 
     def _new_annotation(self, ax, xy):
@@ -506,7 +566,8 @@ class DataCursor(object):
         """
         Suspend python while user selects points up to `maxpoints`.
         If `maxpoints` is < 0, the loop will last until user hits 't'
-        inside the axes ('t' toggles off the DataCursor).
+        inside the axes ('t' turns off the DataCursor). Deleted points
+        are not counted.
         """
         # _fake_getdata is used for testing functions that need
         # getdata

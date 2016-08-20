@@ -3699,7 +3699,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
             primary.append(i == 0)
         fig.canvas.draw()
 
-    def deletepoint():
+    def deletepoint(axes, x, y, n, i):
         while len(primary) > 0:
             m = modes.pop()
             p = primary.pop()

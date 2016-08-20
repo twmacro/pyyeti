@@ -25,4 +25,4 @@ pyYeti has tools mostly related to structural dynamics:
 
 """
 
-__version__ = '0.88.4'
+__version__ = '0.88.5'

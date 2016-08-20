@@ -5,7 +5,6 @@ A pretty printer.
 import numpy as np
 import collections
 import h5py
-#import pandas as pd
 
 
 class PP(object):
@@ -98,14 +97,14 @@ class PP(object):
         ...     a = 9
         ...     b = {'variable': [1, 2, 3]}
         >>> PP(A, 2)       # doctest: +ELLIPSIS
-        <class 'type'>[n=6]
+        <class 'A'>[n=6]
             .a: 9
             .b: <class 'dict'>[n=1]
                 'variable': [n=3]: [1, 2, 3]
         <BLANKLINE>
         <...>
         >>> PP(A, 2, show_hidden=1)       # doctest: +ELLIPSIS
-        <class 'type'>[n=6]
+        <class 'A'>[n=6]
             .__dict__   : <attribute '__dict__' of 'A' objects>
             .__doc__    : None
             .__module__ : 'pyyeti.pp'
@@ -246,7 +245,11 @@ class PP(object):
         try:
             s = self._functions[type(var)](var, level)
         except KeyError:
-            typename = str(type(var))
+            cls = type(var)
+            if cls is type:
+                typename = "<class '{}'>".format(var.__name__)
+            else:
+                typename = str(cls)
             if isinstance(var, collections.Mapping):
                 s = self._dict_string(var, level, typename=typename)
             elif (hasattr(var, '__dict__') and

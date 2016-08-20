@@ -242,7 +242,7 @@ def relvelo(Q, dT, wn):
     :func:`scipy.signal.lfilter`.
     """
     if wn == 0.:
-        b = np.array([-1., -1.])*dT/2  # test SRS for approaching this value
+        b = np.array([-1., -1.])*dT/2
         a = np.array([1., -1.])
     else:
         zeta = 1/2/Q
@@ -305,7 +305,8 @@ def fftroll(sig, sr, ppc, frq):
     Returns
     -------
     signew : ndarray
-        The resampled version of `sig` that meets the ppc requirement.
+        The resampled version of `sig` that meets the `ppc`
+        requirement.
     srnew : scalar
         The new sample rate.
 
@@ -862,18 +863,19 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         \ddot{x} = \ddot{u} + \ddot{z}
 
     By assuming the input signal is linear between time points (ramp
-    invariant), these equations can be solved in closed
-    form. Reference [#srs1]_ below has done this and conveniently put
-    the solution in terms of linear digital filter
-    coefficients. Furthermore, coefficients are provided to solve for
-    whichever response is requested. More information on coefficient
-    derivation can be found in references [#srs2]_, and [#srs3]_.
-    Reference [#srs4]_ is a method for accounting for rolloff.
+    invariant), these equations can be solved in closed form.
+    Reference [#srs1]_ below has done this and conveniently put the
+    solution in terms of linear digital filter coefficients.
+    Furthermore, coefficients are provided to solve for whichever
+    response is requested. More information on coefficient derivation
+    can be found in references [#srs2]_, and [#srs3]_.  Reference
+    [#srs4]_ is a method for accounting for rolloff.
 
     The maximum errors listed above are a summation of the bias error
-    from the ramp invariant solver and the maximum error that can occur
-    when selecting peaks (since peaks occur between solution points).
-    The error equations are (noting that :math:`sr/f = ppc`):
+    from the ramp invariant solver and the maximum error that can
+    occur when selecting peaks (since peaks occur between solution
+    points).  The error equations are (noting that
+    :math:`sr/f = ppc`):
 
     .. math::
         \begin{aligned}
@@ -886,17 +888,18 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     .. note::
         The 'zero' and 'mshift' initial conditions may be handled in a
         slightly different manner than one might think: the zero
-        initial displacement and velocity conditions occur one time step
-        before `sig` begins (where `sig` is also assumed zero).
+        initial displacement and velocity conditions occur one time
+        step before `sig` begins (where `sig` is also assumed zero).
 
     References
     ----------
-    .. [#srs1] “Mechanical vibration and shock – Signal processing – Part
-           4: Shock-response spectrum analysis”, ISO 18431-4.
+    .. [#srs1] “Mechanical vibration and shock – Signal processing –
+           Part 4: Shock-response spectrum analysis”, ISO 18431-4.
 
-    .. [#srs2] Morin, A. and Labbé, P., "Derivation of Recursive Digital
-           Filters by the Step-Invariant and the Ramp-Invariant
-           Transformations", DREV R-4325/84, May 1984, UNCLASSIFIED.
+    .. [#srs2] Morin, A. and Labbé, P., "Derivation of Recursive
+           Digital Filters by the Step-Invariant and the Ramp-
+           Invariant Transformations", DREV R-4325/84, May 1984,
+           UNCLASSIFIED.
 
     .. [#srs3] David Smallwood, "An Improved Recursive Formula for
            Calculating Shock Response Spectra", 51st Shock and
@@ -1131,9 +1134,10 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
     Notes
     -----
-    VRS [#srs6]_ computes the acceleration RMS (root-mean-square) response
-    of a spectrum of single DOF systems that are excited by an input
-    base acceleration PSD(s)::
+
+    VRS [#srs6]_ computes the acceleration RMS (root-mean-square)
+    response of a spectrum of single DOF systems that are excited by
+    an input base acceleration PSD(s)::
 
                       _____    ^
                      |     |   |
@@ -1156,10 +1160,10 @@ def vrs(spec, freq, Q, linear, Fn=None,
        octave away from the end points.
 
     2. The integration is not accurate until delta_f as computed from
-       `freq` is less than f/Q, i.e. the response at frequency f is not
-       accurate unless delta_f < f/Q, where Q=1/2/zeta. The integration
-       should be conservative if this condition is not met and delta_f
-       is not unreasonably large.
+       `freq` is less than f/Q, i.e. the response at frequency f is
+       not accurate unless delta_f < f/Q, where Q=1/2/zeta. The
+       integration should be conservative if this condition is not met
+       and delta_f is not unreasonably large.
 
     3. Applying a flat PSD spectrum can be used to determine if the
        delta_f is good since you can compare to the Miles' equation
@@ -1297,7 +1301,8 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
     -------
     sh : 2d ndarray
         The SRS results: [SRS1, SRS2, .... SRSn];
-        ``sh.shape = (len(srs_frq), n)`` where n is the number of FRFs.
+        ``sh.shape = (len(srs_frq), n)`` where n is the number of
+        FRFs.
 
     Examples
     --------

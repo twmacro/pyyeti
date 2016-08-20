@@ -1080,7 +1080,7 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`_getEPQ2`, :func:`getEPQ_pow`, :class:`ode.SolveExp1`, 
+    :func:`_getEPQ2`, :func:`getEPQ_pow`, :class:`ode.SolveExp1`,
     :class:`ode.SolveExp2`
 
     Examples

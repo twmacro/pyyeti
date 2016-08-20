@@ -72,3 +72,41 @@ def test_ordered_dict():
            "    0  : 'last item'",
            '']
     assert o.output.split('\n') == sbe
+
+
+def test_short_key():
+    pr = PP(keylen=10)
+    a = {'long key name that will be truncated': [4, 5],
+         'short': 'key is "short"'}
+    pr.pp(a)
+    sbe = ["<class 'dict'>[n=2]",
+           "    'long  ...: [n=2]: [4, 5]",
+           '    \'short\'   : \'key is "short"\'',
+           '']
+    assert pr.output.split('\n') == sbe
+
+
+def test_levels_too_deep():
+    a = [[1], [2, 3, ['level 2']]]
+    o = PP(a, 1).output
+    sbe = '[n=2]: [[n=1]: [1], [n=3]: [2, 3, [n=1]: [...]]]\n'
+    assert o == sbe
+
+    o = PP(a, 2).output
+    sbe = "[n=2]: [[n=1]: [1], [n=3]: [2, 3, [n=1]: ['level 2']]]\n"
+    assert o == sbe
+
+
+def test_unsortable_dict():
+    a = {(1, 2): (1, 2), 'short': 'key is "short"'}
+    o = PP(a).output.split('\n')
+    sbe = []
+    sbe.append(["<class 'dict'>[n=2]",
+                '    (1, 2) : [n=2]: (1, 2)',
+                '    \'short\': \'key is "short"\'',
+                ''])
+    sbe.append(["<class 'dict'>[n=2]",
+                '    \'short\': \'key is "short"\'',
+                '    (1, 2) : [n=2]: (1, 2)',
+                ''])
+    assert o == sbe[0] or o == sbe[1]

@@ -12,6 +12,7 @@ Math routines
     diagmat
     eig_si
     gensweep
+    histogram
     isdiag
     mattype
     mkpattvec

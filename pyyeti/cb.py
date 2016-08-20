@@ -1147,7 +1147,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
             fout.write('Skipping check. Fix input and rerun.\n')
         else:
             fout.write('\n')
-            nr2 = np.nonzero(np.any(drm2, axis=1) == False)[0]
+            nr2 = np.nonzero(~np.any(drm2, axis=1))[0]
             err = 0
             if nr2.size != nr.size:
                 fout.write(' !! Warning: companion matrix DRM2'

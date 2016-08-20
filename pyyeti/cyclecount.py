@@ -310,10 +310,10 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
         A cycle count table (len(`meanbins`) x len(`ampbins`)). Each
         value in `table` entry is the number of cycles in the bin
         (see below).
-    ampbins : 1d ndarray
+    ampbins : 1d ndarray; optional
         Boundaries of amplitude bins used; length = # of bins + 1.
         Only returned if `retbins` is True.
-    meanbins : 1d ndarray
+    meanbins : 1d ndarray; optional
         Boundaries of mean-value bins used; length = # of bins + 1.
         Only returned if `retbins` is True.
 
@@ -347,14 +347,16 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
     5  4.0   0.0    0.5
     6  3.0   1.0    0.5
     >>> format = lambda x: "{:.1f}".format(x)
-    >>> cyclecount._binify(rf, 3, 2).applymap(format)
+    >>> df = cyclecount._binify(rf, 3, 2)
+    >>> df.applymap(format)                # doctest: +ELLIPSIS
     Amp             (1.497, 2.500] (2.500, 3.500] (3.500, 4.500]
-    Mean                                                        
+    Mean...
     (-1.002, 0.000]            1.0            0.0            0.5
     (0.000, 1.000]             1.0            0.5            1.0
-    >>> cyclecount._binify(rf, 3, 2, right=0).applymap(format)
+    >>> df = cyclecount._binify(rf, 3, 2, right=0)
+    >>> df.applymap(format)                # doctest: +ELLIPSIS
     Amp             [1.500, 2.500) [2.500, 3.500) [3.500, 4.503)
-    Mean                                                        
+    Mean...
     [-1.000, 0.000)            1.0            0.0            0.0
     [0.000, 1.002)             1.0            0.5            1.5
     """
@@ -381,6 +383,7 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
                 pv = inbin(rfrows['amp'], ampb[j], ampb[j+1])
                 if np.any(pv):
                     table[i, j] = np.sum(rfrows['count'][pv])
+
     def getlabels(bins):
         return [form.format(i, j)
                 for i, j in zip(bins[:-1], bins[1:])]
@@ -470,9 +473,9 @@ def sigcount(sig, ampbins=10, meanbins=1, right=True, precision=3,
     >>> # `sig` has 99 half-cycles; amplitude grows from 0.5 up to
     >>> #  98.5; mean of each is either 0.5 or -0.5
     >>> table = cyclecount.sigcount(sig, 2, 2)
-    >>> table
+    >>> table                              # doctest: +ELLIPSIS
     Amp              (0.402, 49.500]  (49.500, 98.500]
-    Mean                                              
+    Mean...
     (-0.501, 0.000]             12.5              12.0
     (0.000, 0.500]              12.5              12.5
 
