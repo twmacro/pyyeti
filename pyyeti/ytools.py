@@ -55,8 +55,8 @@ def histogram(data, binsize):
 
     >>> binedges = [0.5, 1.5, 2.5, 344.5, 345.5]
     >>> cnt, bins = np.histogram(data, binedges)
-    >>> cnt
-    array([1, 3, 0, 2])
+    >>> cnt                                # doctest: +ELLIPSIS
+    array([1, 3, 0, 2]...)
     >>> bins
     array([   0.5,    1.5,    2.5,  344.5,  345.5])
     """
