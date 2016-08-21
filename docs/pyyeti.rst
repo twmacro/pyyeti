@@ -24,6 +24,7 @@ Modules (alphabetical by module name)
     modules/expmint
     modules/fdepsd
     modules/frclim
+    modules/guitools
     modules/locate
     modules/n2p
     modules/nastran

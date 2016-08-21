@@ -10,7 +10,7 @@ import re
 import warnings
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-from pyyeti import n2p, locate, writer, ytools, op4
+from pyyeti import n2p, locate, writer, ytools, op4, guitools
 
 
 def nas_sscanf(s):
@@ -138,9 +138,11 @@ def rdgpwg(f, s1=None, s2=None, s3=None):
 
     Parameters
     ----------
-    f : string or file handle
+    f : string or file handle or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
     s1, s2, s3 : string or None; optional
         If input, these strings are searched for in order so the
         proper GPWG table is found. If `s1` is None, the first GPWG
@@ -336,9 +338,11 @@ def rdcards(f, name, blank=0, dct=False, dtype=float,
 
     Parameters
     ----------
-    f : string or file handle
+    f : string or file handle or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
     name : string
         Card name.
     blank : scalar; optional
@@ -389,9 +393,11 @@ def rdgrids(f):
 
     Parameters
     ----------
-    f : string or file handle
+    f : string or file handle or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
 
     Returns
     -------
@@ -437,9 +443,11 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     grids : 1d array_like
         Vector of grid ids; N = len(grids).
     cp : integer scalar or vector
@@ -519,9 +527,11 @@ def rdtabled1(f, name='tabled1'):
 
     Parameters
     ----------
-    f : string or file handle
+    f : string or file handle or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
     name : string; optional
         Name of cards to read.
 
@@ -615,10 +625,11 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open` or :func:`StringIO`. Input as integer 1 to write
-        to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     tid : integer
         ID for TABLED1 card
     t : 1d array_like
@@ -684,7 +695,8 @@ def bulk2uset(*args):
     ----------
     *args
         File names (or handles as returned by :func:`open`). Files
-        referred to by handle are rewound first.
+        referred to by handle are rewound first. If an argument is
+        None or a directory name, a GUI is open for file selection.
 
     Returns
     -------
@@ -713,6 +725,7 @@ def bulk2uset(*args):
     no_data = np.zeros((0, 11))
     cord2r = cord2c = cord2s = no_data
     for f in args:
+        f = guitools._get_file_name(f, read=True)
         cord2r = np.vstack((cord2r, rdcards(f, 'cord2r',
                                             no_data_return=no_data)))
         cord2c = np.vstack((cord2c, rdcards(f, 'cord2c',
@@ -761,11 +774,14 @@ def rdwtbulk(fin, fout):
     ----------
     fin : string or file handle
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
     fout : string or file handle or 1
         Either a name of a file or a file handle as returned by
-        :func:`open` or :func:`StringIO`. Input as integer 1 to write
-        to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
 
     Returns
     -------
@@ -814,9 +830,11 @@ def rdeigen(f, use_pandas=True):
 
     Parameters
     ----------
-    f : string or file handle
+    f : string or file handle or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
     use_pandas : bool; optional
         If True, the values with be pandas objects
 
@@ -915,10 +933,11 @@ def wtnasints(f, start, ints):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open` or :func:`StringIO`. Input as integer 1 to write
-        to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     start : integer
         Beginning field for the integers; card name is in field 1, so
         start should be >= 2.
@@ -963,9 +982,11 @@ def rdcsupers(f):
 
     Parameters
     ----------
-    f : string or file handle
+    f : string or file handle or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
 
     Returns
     -------
@@ -999,9 +1020,11 @@ def rdextrn(f, expand=True):
 
     Parameters
     ----------
-    f : string or file handle
+    f : string or file handle or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
     expand : bool; optional
         If True, expand rows like this::
 
@@ -1067,9 +1090,11 @@ def wtcsuper(f, superid, grids):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     superid : integer
         Superelement ID
     grids : 1d array_like
@@ -1099,9 +1124,11 @@ def wtspc1(f, eid, dof, grids, name='SPC1'):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     eid : integer
         Element ID
     dof : integer
@@ -1142,9 +1169,11 @@ def wtxset1(f, dof, grids, name="BSET1"):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     dof : integer
         An integer concatenation of the DOF (ex: 123456)
     grids : 1d array_like
@@ -1181,9 +1210,11 @@ def wtqcset(f, startgrid, nq):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     startgrid : integer
         The start ID for the modal grids that need to be assigned to
         the Q-set and C-set. Any extra DOF are assigned to the C-set.
@@ -1241,9 +1272,11 @@ def wtrbe2(f, eid, indep, dof, dep):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     eid : integer
         Element ID
     indep : integer
@@ -1278,9 +1311,11 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     eid : integer
         Element ID
     GRID_dep : integer
@@ -1400,9 +1435,11 @@ def wtseset(f, superid, grids):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     superid: integer
         Superelement ID
     grids : 1d array_like
@@ -1442,9 +1479,11 @@ def wtset(f, setid, ids):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     setid: integer
         Set ID
     ids : 1d array_like
@@ -1522,10 +1561,11 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open` or :func:`StringIO`. Input as integer 1 to write
-        to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     rid : integer
         ID for 1st RSPLINE; gets incremented by 1 for each RSPLINE
     ids : 2d array_like
@@ -1875,10 +1915,11 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open` or :func:`StringIO`. Input as integer 1 to write
-        to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     r1grids : 2d array_like
         4 or 6 column matrix of info on ring 1 grids:
 
@@ -2019,9 +2060,11 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     baa : 2d array_like
         Craig-Bampton damping matrix
     kaa : 2d array_like
@@ -2088,9 +2131,11 @@ def wtcoordcards(f, ci):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     ci : dictionary or None
         Dictionary of coordinate card info as returned by
         :func:`n2p.coordcardinfo`. If None or if dict is empty, this
@@ -2143,9 +2188,11 @@ def wtextrn(f, ids, dof):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout.
+        :func:`open`. Use 1 to write to stdout. Can also be the name
+        of a directory or None; in these cases, a GUI is
+        opened for file selection.
     ids : 1d array_like
         Vector of node ids
     dof : 1d array_like
@@ -2457,9 +2504,11 @@ def rddtipch(f, name='TUG1'):
 
     Parameters
     ----------
-    f : string or file handle
+    f : string or file handle or None
         Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first.
+        :func:`open`. If handle, file is rewound first. Can also be
+        the name of a directory or None; in these cases, a GUI is
+        opened for file selection.
     name : string
         Name of DTI table to read from the .pch file
 

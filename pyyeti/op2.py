@@ -8,9 +8,11 @@ Can read files in big or little endian format.
 
 import numpy as np
 import sys
-from pyyeti import n2p, op4
+import os
 import struct
 import warnings
+from pyyeti import n2p, op4, guitools
+
 
 #  Notes on the op2 format.
 #
@@ -1940,15 +1942,26 @@ class OP2(object):
         return nas
 
 
+def _get_op2_op4(op2file, op4file):
+    if op2file is None:        # pragma: no cover
+        op2file = guitools._get_file_name(None, read=True)
+    elif not os.path.exists(op2file):
+        op2file = op2file+'.op2'
+    if not op4file:
+        op4file = op2file.replace('.op2', '.op4')
+    return op2file, op4file
+
+
 def rdnas2cam(op2file='nas2cam', op4file=None):
     """
     Read op2/op4 data written by the DMAP NAS2CAM.
 
     Parameters
     ----------
-    op2file : string
+    op2file : string or None
         Either the basename of the .op2 and .op4 files, or the full
-        name of the .op2 file
+        name of the .op2 file. If None, a GUI is opened for file
+        selection.
     op4file : string or None
         The name of the .op4 file or, if None, builds name from the
         `op2file` input.
@@ -2019,9 +2032,7 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
 
     See also the Nastran DMAP NAS2CAM.
     """
-    if not op4file:
-        op4file = op2file+'.op4'
-        op2file = op2file+'.op2'
+    op2file, op4file = _get_op2_op4(op2file, op4file)
 
     # read op2 file:
     with OP2(op2file) as o2:
@@ -2647,16 +2658,17 @@ def get_drm(drminfo, otm, drms, drmkeys, dr, desc):
                                                            DOF[j])
 
 
-def procdrm12(op2file, op4file=None, dosort=True):
+def procdrm12(op2file=None, op4file=None, dosort=True):
     """
     Process op2/op4 file2 output from DRM1/DRM2 DMAPs to form data
     recovery matrices.
 
     Parameters
     ----------
-    op2file : string
+    op2file : string or None
         Either the basename of the .op2 and .op4 files, or the full
-        name of the .op2 file
+        name of the .op2 file. If None, a GUI is opened for file
+        selection.
     op4file : string or None
         The name of the .op4 file or, if None, builds name from the
         `op2file` input.
@@ -2720,9 +2732,8 @@ def procdrm12(op2file, op4file=None, dosort=True):
         otm = op2.procdrm12('drm2')
 
     """
-    if not op4file:
-        op4file = op2file+'.op4'
-        op2file = op2file+'.op2'
+    op2file, op4file = _get_op2_op4(op2file, op4file)
+
     # read op4 file:
     drms = op4.load(op4file)
 
@@ -2823,15 +2834,15 @@ def procdrm12(op2file, op4file=None, dosort=True):
     return otm
 
 
-def rdpostop2(op2file, verbose=False, getougv1=False, getoef1=False,
-              getoes1=False):
+def rdpostop2(op2file=None, verbose=False, getougv1=False,
+              getoef1=False, getoes1=False):
     """
     Reads PARAM,POST,-1 op2 file and returns dictionary of data.
 
     Parameters
     ----------
-    op2file : string
-        Name of op2 file.
+    op2file : string or None
+        Name of op2 file. If None, a GUI is opened for file selection.
     verbose : bool
         If True, echo names of tables and matrices to screen
     getougv1 : bool
@@ -2864,6 +2875,7 @@ def rdpostop2(op2file, verbose=False, getougv1=False, getoef1=False,
         present.
     """
     # read op2 file:
+    op2file = guitools._get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
         mats = {}
         selist = uset = cstm2 = sebulk = None

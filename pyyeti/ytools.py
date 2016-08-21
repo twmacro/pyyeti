@@ -9,6 +9,8 @@ import pickle
 import gzip
 import bz2
 import sys
+import os
+from pyyeti import guitools
 
 
 def histogram(data, binsize):
@@ -789,9 +791,10 @@ def rdfile(f, rdfunc, *args, **kwargs):
 
     Parameters
     ----------
-    f : string or file_like
+    f : string or file_like or None
         Either a name of a file or a file handle as returned by
-        :func:`open`.
+        :func:`open`. Can also be the name of a directory or None; in
+        these cases, a GUI is opened for file selection.
     rdfunc : function
         Function that reads data from file; first argument is the
         input file handle.
@@ -822,6 +825,7 @@ def rdfile(f, rdfunc, *args, **kwargs):
     >>> s
     'param = 45.300\n'
     """
+    f = guitools._get_file_name(f, read=True)
     if isinstance(f, str):
         with open(f, 'r') as fin:
             return rdfunc(fin, *args, **kwargs)
@@ -835,10 +839,11 @@ def wtfile(f, wtfunc, *args, **kwargs):
 
     Parameters
     ----------
-    f : string or file handle or 1
+    f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
         :func:`open` or :func:`StringIO`. Input as integer 1 to write
-        to stdout.
+        to stdout. Can also be the name of a directory or None; in
+        these cases, a GUI is opened for file selection.
     wtfunc : function
         Function that writes output; first argument is the output
         file handle.
@@ -862,6 +867,7 @@ def wtfile(f, wtfunc, *args, **kwargs):
     >>> wtfile(1, dowrite, 'param', number=45.3)
     param = 45.300
     """
+    f = guitools._get_file_name(f, read=False)
     if isinstance(f, str):
         with open(f, 'w') as fout:
             return wtfunc(fout, *args, **kwargs)
@@ -871,15 +877,16 @@ def wtfile(f, wtfunc, *args, **kwargs):
         return wtfunc(f, *args, **kwargs)
 
 
-def _get_fopen(name):
+def _get_fopen(name, read=True):
     """Utility for save/load"""
+    name = guitools._get_file_name(name, read)
     if name.endswith('.pgz'):
         fopen = gzip.open
     elif name.endswith('.pbz2'):
         fopen = bz2.open
     else:
         fopen = open
-    return fopen
+    return name, fopen
 
 
 def save(name, obj):
@@ -888,15 +895,17 @@ def save(name, obj):
 
     Parameters
     ----------
-    name : string
-        Name of file. Should end in either '.p' for an uncompressed
-        pickle file, or in '.pgz' or '.pbz2' for a gzip or bz2
-        compressed pickle file. Note: only '.pgz' and 'pbz2' are
-        checked for; anything else is uncompressed.
+    name : string or None
+        Name of file or directory or None. If file name, should end in
+        either '.p' for an uncompressed pickle file, or in '.pgz' or
+        '.pbz2' for a gzip or bz2 compressed pickle file. Note: only
+        '.pgz' and 'pbz2' are checked for; anything else is
+        uncompressed. If `name` is the name of a directory or None, a
+        GUI is opened for file selection.
     obj : any
         Any object to be pickled.
     """
-    fopen = _get_fopen(name)
+    name, fopen = _get_fopen(name, read=False)
     with fopen(name, 'wb') as f:
         pickle.dump(obj, file=f, protocol=-1)
 
@@ -918,6 +927,6 @@ def load(name):
     obj : any
         The pickled object.
     """
-    fopen = _get_fopen(name)
+    name, fopen = _get_fopen(name, read=True)
     with fopen(name, 'rb') as f:
         return pickle.load(f)

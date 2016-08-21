@@ -14,6 +14,7 @@ import itertools as it
 import struct
 import sys
 import warnings
+from pyyeti import guitools
 
 
 def _view_as_complex(X):
@@ -1382,15 +1383,16 @@ class OP4(object):
                     wrtfunc(f, name, matrix, digits)
 
 
-def load(filename, namelist=None, into='dct'):
+def load(filename=None, namelist=None, into='dct'):
     """
     Read all matching matrices from op4 file into dictionary or list;
     non-member version of :func:`OP4.load`.
 
     Parameters
     ----------
-    filename : string
-        Name of op4 file to read.
+    filename : string or None
+        Name of op4 file to read. Can also be the name of a directory
+        or None; in these cases, a GUI is opened for file selection.
     namelist : list, string, or None; optional
         List of variable names to read in, or string with name of the
         single variable to read in, or None. If None, all matrices
@@ -1421,6 +1423,7 @@ def load(filename, namelist=None, into='dct'):
     --------
     :func:`write` (or :func:`save`), :func:`dir`.
     """
+    filename = guitools._get_file_name(filename, read=True)
     if into == 'dct':
         return OP4().dctload(filename, namelist)
     elif into == 'list':
@@ -1428,15 +1431,16 @@ def load(filename, namelist=None, into='dct'):
     raise ValueError('invalid "into" option')
 
 
-def dir(filename, verbose=True):
+def dir(filename=None, verbose=True):
     """
     Directory of all matrices in op4 file; non-member version of
     :func:`OP4.dir`.
 
     Parameters
     ----------
-    filename : string
-        Name of op4 file to read.
+    filename : string or None
+        Name of op4 file to read. Can also be the name of a directory
+        or None; in these cases, a GUI is opened for file selection.
     verbose : bool; optional
         If true, directory will be printed to screen.
 
@@ -1458,6 +1462,7 @@ def dir(filename, verbose=True):
     --------
     :func:`load`, :func:`write` (or :func:`save`).
     """
+    filename = guitools._get_file_name(filename, read=True)
     return OP4().dir(filename, verbose)
 
 
@@ -1469,11 +1474,14 @@ def write(filename, names, matrices=None,
 
     Parameters
     ----------
-    filename : string
-        Name of file.
-    names : string or list or dictionary
-        Matrix name or list of matrix names or dictionary indexed
-        by the names.
+    filename : string or None
+        Name of file. Can also be the name of a directory or None; in
+        these cases, a GUI is opened for file selection.
+    names : dictionary or list or string
+        Dictionary indexed by the matrix names of matrices to be
+        save. Can also be a list (or single string if just one matrix
+        is to be saved) of matrix names. If not a dictionary,
+        `matrices` is required to specify the matrices.
     matrices : array or list; optional
         2d ndarray or list of 2d ndarrays. Ignored if `names` is
         a dictionary.
@@ -1526,6 +1534,7 @@ def write(filename, names, matrices=None,
     --------
     :func:`load`, :func:`dir`.
     """
+    filename = guitools._get_file_name(filename, read=False)
     OP4().write(filename, names, matrices, binary,
                 digits, endian, sparse)
 

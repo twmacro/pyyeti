@@ -12,9 +12,9 @@ RBE3-like interpolation matrices, etc.
 import scipy.linalg as linalg
 import numpy as np
 import math
-from pyyeti import locate
 import sys
 import warnings
+from pyyeti import locate
 
 
 def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
@@ -586,8 +586,8 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     ----------
     file : string or file handle
         Either a name of a file or a file handle as returned by
-        open(). Use 1 to write to the screen, 0 to write nothing --
-        just get output.
+        :func:`open`. Use 1 to write to the screen, 0 to write nothing
+        -- just get output.
     uset : ndarray
         A 6-column matrix as output by :func:`op2.rdn2cop2`.
     printsets : string; optional
