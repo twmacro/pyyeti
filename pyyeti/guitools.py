@@ -49,11 +49,8 @@ def askopenfilename(title=None,
         Title of window. Use None to accept tkinter default.
     filetypes : list or None
         Option to limit file search to certain patterns. Typically,
-        this is a list of tuples; eg::
-
-            [('Output4 files', '*.op4'),
-             ('All files', '*')]
-
+        this is a list of tuples, each tuple containing a description
+        followed by a pattern (see example below).
     initialdir : string or None
         Initial directory to begin search. If None, use previous
         location if there is one.
@@ -62,6 +59,21 @@ def askopenfilename(title=None,
     -------
     filename : string
         The selected filename.
+
+    Notes
+    -----
+    Here is a simple example::
+
+        from pyyeti import guitools
+        filename = guitools.askopenfilename()
+
+    To filter the files to selected types::
+
+        from pyyeti import guitools
+        filetypes = [('Output4 files', '*.op4'),
+                     ('All files', '*')]
+        filename = guitools.askopenfilename(filetypes=filetypes)
+
     """
     global LASTOPENDIR
     root = tk.Tk()
@@ -91,11 +103,8 @@ def asksaveasfilename(title=None,
         Title of window. Use None to accept tkinter default.
     filetypes : list or None
         Option to limit file search to certain patterns. Typically,
-        this is a list of tuples; eg::
-
-            [('Output4 files', '*.op4'),
-             ('All files', '*')]
-
+        this is a list of tuples, each tuple containing a description
+        followed by a pattern (see example below).
     initialdir : string or None
         Initial directory to begin search. If None, use previous
         location if there is one.
@@ -104,6 +113,21 @@ def asksaveasfilename(title=None,
     -------
     filename : string
         The selected filename.
+
+    Notes
+    -----
+    Here is a simple example::
+
+        from pyyeti import guitools
+        filename = guitools.asksaveasfilename()
+
+    To filter the files to selected types::
+
+        from pyyeti import guitools
+        filetypes = [('Output4 files', '*.op4'),
+                     ('All files', '*')]
+        filename = guitools.asksaveasfilename(filetypes=filetypes)
+
     """
     global LASTSAVEDIR
     root = tk.Tk()
