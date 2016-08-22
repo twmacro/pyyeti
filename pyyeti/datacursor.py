@@ -144,7 +144,7 @@ class DataCursor(object):
     The following example plots some random data, calls
     :func:`DataCursor.getdata` to wait for the user to optionally
     select data points and then turn the DataCursor off (with
-    keystroke 't'). It then prints the selected points.::
+    keystroke 't'). It then prints the selected points::
 
         import matplotlib.pyplot as plt
         import numpy as np
@@ -180,8 +180,8 @@ class DataCursor(object):
     user can define that will be called when a point is added
     (left-click) and when a point is deleted (right-click). See
     :func:`DataCursor.addpt_func` and :func:`DataCursor.delpt_func`
-    for more information on the call signatures. Here is simple
-    example::
+    for more information on the call signatures. Here is a simple
+    example that just prints statements to the screen::
 
         import matplotlib.pyplot as plt
         import numpy as np
