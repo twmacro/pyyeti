@@ -1067,7 +1067,7 @@ class OP4(object):
         f.write(struct.pack(endian+'d', 2**.5))
         f.write(colTrailer.pack(reclen))
 
-    def dctload(self, filename, namelist=None):
+    def dctload(self, filename, namelist=None, justmatrix=False):
         """
         Read all matching matrices from op4 file into dictionary.
 
@@ -1079,12 +1079,16 @@ class OP4(object):
             List of variable names to read in, or string with name of
             the single variable to read in, or None. If None, all
             matrices are read in.
+        justmatrix : bool; optional
+            If True, only the matrix is stored in the dictionary. If
+            False, a tuple of ``(matrix, form, mtype)`` is stored.
 
         Returns
         -------
         dct : dictionary
-            Keys are the lower-case matrix names and the values are a
-            tuple of: (matrix, form, mtype).
+            Keys are the lower-case matrix names and the values are
+            either just the matrix or a tuple of:
+            ``(matrix, form, mtype)`` depending on `justmatrix`.
 
         See also
         --------
@@ -1101,11 +1105,14 @@ class OP4(object):
             else:
                 loadfunc = self._loadop4_binary
             while 1:
-                name, X, form, mtype =\
-                    loadfunc(patternlist=namelist)
+                name, X, form, mtype = loadfunc(
+                    patternlist=namelist)
                 if not name:
                     break
-                dct[name] = X, form, mtype
+                if justmatrix:
+                    dct[name] = X
+                else:
+                    dct[name] = X, form, mtype
         finally:
             self._op4close()
         return dct
@@ -1166,7 +1173,8 @@ class OP4(object):
             self._op4close()
         return names, matrices, forms, mtypes
 
-    def load(self, filename, namelist=None, into='dct'):
+    def load(self, filename, namelist=None, into='dct',
+             justmatrix=False):
         """
         Read all matching matrices from op4 file into dictionary or
         list; interface to :func:`dctload` and :func:`listload`.
@@ -1182,31 +1190,27 @@ class OP4(object):
         into : string; optional
             Either 'dct' or 'list'. Use 'list' if multiple matrices
             share the same name. See below.
+        justmatrix : bool; optional
+            If True, only the matrix is stored in the dictionary. If
+            False, a tuple of ``(matrix, form, mtype)`` is stored.
+            This option is ignored if ``into == 'list'``.
 
         Returns
         -------
         dct : dictionary, if ``into == 'dct'``
-            Keys are the lower-case matrix names and the values are a
-            tuple of:  (matrix, form, mtype).
+            Keys are the lower-case matrix names and the values are
+            either just the matrix or a tuple of:
+            ``(matrix, form, mtype)`` depending on `justmatrix`.
 
         tup : tuple, if ``into == 'list'``
-        names : list
-            Lower-case list of matrix names in order as read.
-        matrices : list
-            List of matrices in order as read.
-        forms : list
-            List of integers specifying the Nastran form of each
-            matrix.
-        mtypes : list
-            List of integers specifying the Nastran type of each
-            matrix.
+            Tuple of 4 lists: ``(names, matrices, forms, mtypes)``
 
         See also
         --------
         :func:`write` (or :func:`save`), :func:`dir`.
         """
         if into == 'dct':
-            return self.dctload(filename, namelist)
+            return self.dctload(filename, namelist, justmatrix)
         elif into == 'list':
             return self.listload(filename, namelist)
         raise ValueError('invalid "into" option')
@@ -1383,7 +1387,7 @@ class OP4(object):
                     wrtfunc(f, name, matrix, digits)
 
 
-def load(filename=None, namelist=None, into='dct'):
+def load(filename=None, namelist=None, into='dct', justmatrix=False):
     """
     Read all matching matrices from op4 file into dictionary or list;
     non-member version of :func:`OP4.load`.
@@ -1400,24 +1404,20 @@ def load(filename=None, namelist=None, into='dct'):
     into : string; optional
         Either 'dct' or 'list'. Use 'list' if multiple matrices share
         the same name. See below.
+    justmatrix : bool; optional
+        If True, only the matrix is stored in the dictionary. If
+        False, a tuple of ``(matrix, form, mtype)`` is stored.
+        This option is ignored if ``into == 'list'``.
 
     Returns
     -------
     dct : dictionary, if ``into == 'dct'``
-        Keys are the lower-case matrix names and the values are a
-        tuple of: (matrix, form, mtype).
+        Keys are the lower-case matrix names and the values are
+        either just the matrix or a tuple of:
+        ``(matrix, form, mtype)`` depending on `justmatrix`.
 
     tup : tuple, if ``into == 'list'``
-    names : list
-        Lower-case list of matrix names in order as read.
-    matrices : list
-        List of matrices in order as read.
-    forms : list
-        List of integers specifying the Nastran form of each
-        matrix.
-    mtypes : list
-        List of integers specifying the Nastran type of each
-        matrix.
+        Tuple of 4 lists: ``(names, matrices, forms, mtypes)``
 
     See also
     --------
@@ -1425,7 +1425,7 @@ def load(filename=None, namelist=None, into='dct'):
     """
     filename = guitools._get_file_name(filename, read=True)
     if into == 'dct':
-        return OP4().dctload(filename, namelist)
+        return OP4().dctload(filename, namelist, justmatrix)
     elif into == 'list':
         return OP4().listload(filename, namelist)
     raise ValueError('invalid "into" option')
