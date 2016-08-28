@@ -193,9 +193,9 @@ def ntfl(Source, Load, As, freq):
         T, dof = n2p.formdrm(nas, seup=0, sedn=0, dof=888888)
 
         # Load S/C mass and stiffness:
-        mk = op4.load('mk.op4')
-        kgen = mk['kgen'][0]
-        mgen = mk['mgen'][0]
+        mk = op4.read('mk.op4')
+        kgen = mk['kgen']
+        mgen = mk['mgen']
         kgen[:6, :6] = 0.
         zeta = 0.01
         bgen = np.diag(2*zeta*np.sqrt(np.diag(kgen)))

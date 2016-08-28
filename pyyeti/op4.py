@@ -1421,7 +1421,7 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False):
 
     See also
     --------
-    :func:`write` (or :func:`save`), :func:`dir`.
+    :func:`read`, :func:`write` (or :func:`save`), :func:`dir`.
     """
     filename = guitools._get_file_name(filename, read=True)
     if into == 'dct':
@@ -1429,6 +1429,48 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False):
     elif into == 'list':
         return OP4().listload(filename, namelist)
     raise ValueError('invalid "into" option')
+
+
+def read(filename=None, namelist=None, into='dct', justmatrix=True):
+    """
+    Read all matching matrices from op4 file into dictionary or list;
+    non-member version of :func:`OP4.load`.
+
+    This is a the same as :func:`load` except `justmatrix` default is
+    True.
+
+    Parameters
+    ----------
+    filename : string or None
+        Name of op4 file to read. Can also be the name of a directory
+        or None; in these cases, a GUI is opened for file selection.
+    namelist : list, string, or None; optional
+        List of variable names to read in, or string with name of the
+        single variable to read in, or None. If None, all matrices
+        are read in.
+    into : string; optional
+        Either 'dct' or 'list'. Use 'list' if multiple matrices share
+        the same name. See below.
+    justmatrix : bool; optional
+        If True, only the matrix is stored in the dictionary. If
+        False, a tuple of ``(matrix, form, mtype)`` is stored.
+        This option is ignored if ``into == 'list'``.
+
+    Returns
+    -------
+    dct : dictionary, if ``into == 'dct'``
+        Keys are the lower-case matrix names and the values are
+        either just the matrix or a tuple of:
+        ``(matrix, form, mtype)`` depending on `justmatrix`.
+
+    tup : tuple, if ``into == 'list'``
+        Tuple of 4 lists: ``(names, matrices, forms, mtypes)``
+
+    See also
+    --------
+    :func:`load`, :func:`write` (or :func:`save`), :func:`dir`.
+    """
+    return load(filename, namelist, into, justmatrix)
 
 
 def dir(filename=None, verbose=True):

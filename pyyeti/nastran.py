@@ -2530,7 +2530,7 @@ def rddtipch(f, name='TUG1'):
         # read mug1 and tug1 (created from EXTSEOUT):
         from pyyeti import op4
         from pyyeti import nastran
-        mug1 = op4.load('data.op4', 'mug1')['mug1'][0]
+        mug1 = op4.read('data.op4', 'mug1')['mug1']
         tug1 = nastran.rddtipch('data.pch')
 
         # form DRM to recovery grid 100, dof 4:

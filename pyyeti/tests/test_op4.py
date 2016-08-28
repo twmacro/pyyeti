@@ -229,6 +229,16 @@ def test_wtop4_2():
         dct = op4.load(filename, into='dct')
         for nm in dct:
             assert np.allclose(m[nm], dct[nm][0])
+
+        dct = op4.read(filename)
+        for nm in dct:
+            assert np.allclose(m[nm], dct[nm])
+        op4.save(filename, wtdct,
+                 binary=binary, endian=endian)
+        dct = op4.read(filename, into='dct')
+        for nm in dct:
+            assert np.allclose(m[nm], dct[nm])
+
     # clean up:
     for item in filenames:
         os.remove(item[0])
@@ -439,9 +449,9 @@ def test_wtop4_single_2():
         endian = item[2]
         op4.write(filename, name, mat,
                   binary=binary, endian=endian)
-        dct = op4.load(filename)
+        dct = op4.read(filename)
         for nm in dct:
-            assert np.allclose(m[nm], dct[nm][0])
+            assert np.allclose(m[nm], dct[nm])
     # clean up:
     for item in filenames:
         os.remove(item[0])

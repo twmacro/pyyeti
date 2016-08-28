@@ -2608,8 +2608,8 @@ def get_drm(drminfo, otm, drms, drmkeys, dr, desc):
         _name = desci.capitalize()
 
     if len(nasnm) == 3 and 'm'+nasnm+'d1' in drms:
-        d1 = drms['m'+nasnm+'d1'][0]
-        s1 = drms['m'+nasnm+'s1'][0]
+        d1 = drms['m'+nasnm+'d1']
+        s1 = drms['m'+nasnm+'s1']
         iddof = drmkeys['t'+nasnm+'d1']
         acce = nm+'A'
         disp = nm+'D'
@@ -2627,10 +2627,9 @@ def get_drm(drminfo, otm, drms, drmkeys, dr, desc):
                 if eltype in _dct:
                     otm[_desc][j] = _dct[eltype][DOF[j]-offset]
                 else:
-                    otm[_desc][j] = ('EL-{}, El. Type {:3}, '
-                                     'Code {:3}  ').format(_name,
-                                                           eltype,
-                                                           DOF[j])
+                    otm[_desc][j] = (('EL-{}, El. Type {:3}, '
+                                      'Code {:3}  ')
+                                     .format(_name, eltype, DOF[j]))
     else:
         if len(nasnm) == 3:
             matname = 'm'+nasnm+'x1'
@@ -2638,7 +2637,7 @@ def get_drm(drminfo, otm, drms, drmkeys, dr, desc):
         else:
             matname = 'm'+nasnm
             tabname = 't'+nasnm
-        x1 = drms[matname][0]
+        x1 = drms[matname]
         iddof = drmkeys[tabname]
         otm[nm] = np.zeros((drc, x1.shape[1]))
         lastid = -1
@@ -2652,10 +2651,9 @@ def get_drm(drminfo, otm, drms, drmkeys, dr, desc):
                 if eltype in _dct:
                     otm[_desc][j] = _dct[eltype][DOF[j]-offset]
                 else:
-                    otm[_desc][j] = ('EL-{}, El. Type {:3}, '
-                                     'Code {:3}  ').format(_name,
-                                                           eltype,
-                                                           DOF[j])
+                    otm[_desc][j] = (('EL-{}, El. Type {:3}, '
+                                      'Code {:3}  ')
+                                     .format(_name, eltype, DOF[j]))
 
 
 def procdrm12(op2file=None, op4file=None, dosort=True):
@@ -2735,7 +2733,7 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
     op2file, op4file = _get_op2_op4(op2file, op4file)
 
     # read op4 file:
-    drms = op4.load(op4file)
+    drms = op4.read(op4file)
 
     with OP2(op2file) as o2:
         drmkeys = o2.rddrm2op2()

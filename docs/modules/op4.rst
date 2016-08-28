@@ -11,6 +11,7 @@ Main routines
 
     dir
     load
+    read
     write
 
 *Note:* :func:`pyyeti.op4.save` is an alias for :func:`pyyeti.op4.write`.

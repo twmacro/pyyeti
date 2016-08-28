@@ -2880,8 +2880,7 @@ class SolveUnc(_BaseODE):
         pv = np.nonzero(abslam < 5.e-5)[0]
         if pv.size:
             if pv.size > 1:
-                warnings.warn(msg.format(len(pv)),
-                              RuntimeWarning)
+                warnings.warn(msg.format(len(pv)), RuntimeWarning)
             Fe[pv] = 1.
             Ae[pv] = h/2.
             Be[pv] = h/2.
