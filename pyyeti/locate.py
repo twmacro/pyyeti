@@ -358,13 +358,13 @@ def list_intersect(L1, L2):
     --------
     >>> from pyyeti import locate
     >>> pv1, pv2 = locate.list_intersect(['a', 3, 'z', 0],
-    ...                                     [0, 'z', 1, 'a'])
+    ...                                  [0, 'z', 1, 'a'])
     >>> pv1  # doctest: +ELLIPSIS
     array([0, 2, 3]...)
     >>> pv2  # doctest: +ELLIPSIS
     array([3, 1, 0]...)
     >>> locate.list_intersect(['a', 'b'],
-    ...                          [1, 2])       # doctest: +ELLIPSIS
+    ...                       [1, 2])       # doctest: +ELLIPSIS
     (array([], dtype=int...), array([], dtype=int...))
     """
     inters = set(L1) & set(L2)

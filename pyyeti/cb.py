@@ -820,7 +820,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
     Returns
     -------
-    A record (SimpleNamespace class) with these 12 members:
+    A record (SimpleNamespace class) with these members:
 
     ifltma_sc, ifltma_lv : 2d ndarrays
         The acceleration-dependent portion of the net interface force

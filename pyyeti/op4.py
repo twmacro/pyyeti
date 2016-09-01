@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Python tools for reading/writing Nastran .op4 files. Can read and
-write all formats (as far as I know) with the restriction that the
-output files created by this class are always double precision. The
-binary files can be in big or little endian format.
+write all formats (as far as I know) with the restrictions that the
+output files created by this class are always double precision, and
+all matrices are read in as double precision. The binary files can be
+in big or little endian format.
 
 Currently, all matrices are read into dense (non-sparse format)
 matrices even if they were written in a sparse format.
