@@ -379,3 +379,70 @@ def list_intersect(L1, L2):
         pv2[j] = L2.index(item)
     si = pv1.argsort()
     return pv1[si], pv2[si]
+
+
+def merge_lists(list1, list2):
+    """
+    Merge two lists, trying to maintain order of both
+
+    Parameters
+    ----------
+    list1 : list
+        The first list to merge.
+    list2 : list
+        The second list to merge.
+
+    Returns
+    -------
+    mlist : list
+        The merged list.
+    pv1 : list
+        List of indices specifying where the elements of `list1` are
+        in `mlist`; eg: ``list1 = [mlist[i] for i in pv1]``
+    pv2 : list
+        List of indices specifying where the elements of `list2` are
+        in `mlist`; eg: ``list2 = [mlist[i] for i in pv2]``
+
+    Notes
+    -----
+    The order of `list1` is maintained. The order of `list2` is
+    maintained unless it conflicts with `list1`. When a merge is
+    ambiguous, the `list1` elements are merged first.
+
+    Examples
+    --------
+    >>> from pyyeti import locate
+    >>> l1 = ['one', 'four', 'ten']
+    >>> l2 = ['zero', 'one', 'two', 'four', 'five']
+    >>> m, i, j = locate.merge_lists(l1, l2)
+    >>> m
+    ['zero', 'one', 'two', 'four', 'ten', 'five']
+    >>> i, j
+    ([1, 3, 4], [0, 1, 2, 3, 5])
+    >>> locate.merge_lists(l1, [])
+    (['one', 'four', 'ten'], [0, 1, 2], [])
+    """
+    merged = list1.copy()
+    elements = []
+    for e in list2:
+        try:
+            i = merged.index(e)
+        except ValueError:
+            # e is not in merged ... save it so it can be
+            # inserted later, just in front of the next
+            # common element
+            elements.append(e)
+        else:
+            # e is in merged, so insert currenly accumulated
+            # elements that weren't (these get inserted in
+            # order, just in front of the common element e)
+            for j, x in enumerate(elements):
+                merged.insert(i+j, x)
+            del elements[:]
+    merged.extend(elements)
+    # form pv1, knowing that list1 elements are in order:
+    pv1 = [0] * len(list1)
+    prev = 0
+    for i, e in enumerate(list1):
+        prev = pv1[i] = merged.index(e, prev)
+    return merged, pv1, [merged.index(e) for e in list2]
