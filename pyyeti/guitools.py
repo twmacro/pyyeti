@@ -36,7 +36,7 @@ def _get_file_name(f, read):
             return asksaveasfilename(initialdir=initialdir)
     return f
 
-    
+
 def askopenfilename(title=None,
                     filetypes=None,
                     initialdir=None):              # pragma: no cover
@@ -293,10 +293,15 @@ def _sortby(tree, col, descending):          # pragma: no cover
     # grab values to sort
     data = [(tree.set(child, col), child)
             for child in tree.get_children('')]
+
     # print(data)
     data.sort(reverse=descending)
     for ix, item in enumerate(data):
         tree.move(item[1], '', ix)
+
+    # to make first of any current selection visible:
+    tree.see(tree.selection()[:1])
+
     # switch the heading so it will sort in the opposite direction
     tree.heading(col, command=lambda col=col:
                  _sortby(tree, col, int(not descending)))

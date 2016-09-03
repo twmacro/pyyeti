@@ -395,7 +395,7 @@ def merge_lists(list1, list2):
     Returns
     -------
     mlist : list
-        The merged list.
+        The merged list; guaranteed to be a new list.
     pv1 : list
         List of indices specifying where the elements of `list1` are
         in `mlist`; eg: ``list1 = [mlist[i] for i in pv1]``
@@ -414,15 +414,15 @@ def merge_lists(list1, list2):
     >>> from pyyeti import locate
     >>> l1 = ['one', 'four', 'ten']
     >>> l2 = ['zero', 'one', 'two', 'four', 'five']
-    >>> m, i, j = locate.merge_lists(l1, l2)
-    >>> m
+    >>> l3, i, j = locate.merge_lists(l1, l2)
+    >>> l3
     ['zero', 'one', 'two', 'four', 'ten', 'five']
     >>> i, j
     ([1, 3, 4], [0, 1, 2, 3, 5])
     >>> locate.merge_lists(l1, [])
     (['one', 'four', 'ten'], [0, 1, 2], [])
     """
-    merged = list1.copy()
+    merged = list1[:]
     elements = []
     for e in list2:
         try:
