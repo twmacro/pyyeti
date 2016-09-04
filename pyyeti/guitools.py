@@ -154,6 +154,12 @@ class MultiColumnListbox(object):                 # pragma: no cover
     selecting a row and pressing "Done" or by double-clicking a row.
     Or, you may select multiple items and pressing "Done".
 
+    You can filter the values shown by entering strings in the filter
+    boxes above the multicolumn listbox and hitting the Return
+    key. All values in a row must match their respective filter for
+    the row to remain visible. A value matches if it contains the
+    filter anywhere in it.
+
     After selection, retrieve your selection by accessing attributes
     `sel_index` or `sel_dict`. `sel_index` is a list of indexes into
     the provided lists. `sel_dict` is a dictionary with the keys being
@@ -200,7 +206,8 @@ class MultiColumnListbox(object):                 # pragma: no cover
             List of column headers
         lists : list of lists
             Corresponds to `headers`. Each list must be the same
-            length and contain the contents of the columns.
+            length and contain the contents of the columns. The
+            contents are expected to be strings.
         topstring : string; optional
             String to print above table
         """
@@ -212,15 +219,18 @@ class MultiColumnListbox(object):                 # pragma: no cover
         self.topstring = topstring
         self.sel_dict = {}
         self.sel_index = []
+        self.detached_items = [0]*len(lists[0])
         self._setup_widgets()
         self._build_tree()
-        self._add_done_button()
         self.root.mainloop()
 
     def _setup_widgets(self):
-        msg = ttk.Label(wraplength="4i", justify="left", anchor="n",
-                        padding=(10, 2, 10, 6), text=self.topstring)
+        msg = tk.Text(wrap='word', height=2, font='TkDefaultFont')
+        msg.insert('1.0', self.topstring) # line 1, column 0
+        msg.configure(bg=self.root.cget('bg'), relief='flat',
+                      state='disabled')
         msg.pack(fill='x')
+        self._add_filter_boxes()
         container = ttk.Frame()
         container.pack(fill='both', expand=True)
         # create a treeview with dual scrollbars
@@ -238,6 +248,51 @@ class MultiColumnListbox(object):                 # pragma: no cover
         hsb.grid(column=0, row=1, sticky='ew', in_=container)
         container.grid_columnconfigure(0, weight=1)
         container.grid_rowconfigure(0, weight=1)
+        # add a done button:
+        button = ttk.Button(text='Done', command=self._get_selection)
+        button.pack()
+
+    def _add_filter_boxes(self):
+        container = ttk.Frame()
+        container.pack(fill='x')
+        msg = ttk.Label(container,
+                        text='Filters:',
+                        # background='gray',
+                        borderwidth=5)
+        msg.grid(row=0, rowspan=2, column=0, padx=10)
+        self.filter_var = []
+        # add an Entry widget for all columns except "Index":
+        for i, header in enumerate(self.headers):
+            filter_var = tk.StringVar()
+            filter_entry = ttk.Entry(container,
+                                     textvariable=filter_var)
+            filter_var.set('')
+            filter_entry.bind('<Key-Return>', self._apply_filters)
+            # filter_entry.pack(side='left', padx=10, expand=True)
+            ttk.Label(container, text=header).grid(
+                row=0, column=i+1, sticky='w')
+            filter_entry.grid(row=1, column=i+1, sticky='w')
+            # container.grid_columnconfigure(i+1, weight=1)
+            self.filter_var.append(filter_var)
+
+    def _apply_filters(self, event=None):
+        # detach all items remaining:
+        for item in self.tree.get_children(''):
+            i = int(item[1:], 16) - 1
+            self.detached_items[i] = item
+            self.tree.detach(item)
+        # reattach those where all filters pass:
+        for i in range(len(self.lists[0])):
+            for curfilt, curlist in zip(self.filter_var,
+                                        self.lists):
+                string = curfilt.get()
+                if string and not curlist[i].find(string) > -1:
+                    break
+            else:
+                # only here if the 'break' was not executed ...
+                # when all filters pass:
+                self.tree.move(self.detached_items[i], '', i)
+                self.detached_items[i] = 0
 
     def _quit(self):
         # self.root.quit()
@@ -266,8 +321,9 @@ class MultiColumnListbox(object):                 # pragma: no cover
             self.tree.heading(col, text=col.title(),
                 command=lambda c=col: _sortby(self.tree, c, 0))
             # adjust the column's width to the header string
-            self.tree.column(col,
-                width=tkFont.Font().measure(col.title()))
+            # - add 15 pixels for a little buffer
+            self.tree.column(
+                col, width=tkFont.Font().measure(col.title())+15)
 
         for item in zip(*self.lists):
             self.tree.insert('', 'end', values=item)
@@ -283,10 +339,6 @@ class MultiColumnListbox(object):                 # pragma: no cover
             if width < col_w:
                 self.tree.column(col, width=col_w)
         self.tree.bind("<Double-1>", self._double_click)
-
-    def _add_done_button(self):
-        button = ttk.Button(text='Done', command=self._get_selection)
-        button.pack()
 
 def _sortby(tree, col, descending):          # pragma: no cover
     """sort tree contents when a column header is clicked on"""
