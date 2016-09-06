@@ -259,7 +259,16 @@ class MultiColumnListbox(object):                 # pragma: no cover
                         text='Filters:',
                         # background='gray',
                         borderwidth=5)
-        msg.grid(row=0, rowspan=2, column=0, padx=10)
+        # msg.grid(row=0, rowspan=2, column=0, padx=10)
+        msg.grid(row=0, column=0, padx=10)
+        
+        self.casesen = tk.IntVar()
+        self.casesen.set(0)
+        cbutton = ttk.Checkbutton(
+            container, text="Case Sensitive",
+            variable=self.casesen)  # command=self._checkbutton_action)
+        cbutton.grid(row=1, column=0)
+
         self.filter_var = []
         # add an Entry widget for all columns except "Index":
         for i, header in enumerate(self.headers):
@@ -282,11 +291,19 @@ class MultiColumnListbox(object):                 # pragma: no cover
             self.detached_items[i] = item
             self.tree.detach(item)
         # reattach those where all filters pass:
+        if self.casesen.get():
+            filtervars = [v.get() for v in self.filter_var]
+            def _do_find(value, sub):
+                return value.find(sub) > -1
+        else:
+            filtervars = [v.get().lower() for v in self.filter_var]
+            def _do_find(value, sub):
+                return value.lower().find(sub) > -1
+
         for i in range(len(self.lists[0])):
-            for curfilt, curlist in zip(self.filter_var,
+            for string, curlist in zip(filtervars,
                                         self.lists):
-                string = curfilt.get()
-                if string and not curlist[i].find(string) > -1:
+                if string and not _do_find(curlist[i], string):
                     break
             else:
                 # only here if the 'break' was not executed ...
