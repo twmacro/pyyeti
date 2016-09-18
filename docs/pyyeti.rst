@@ -18,6 +18,7 @@ Modules (alphabetical by module name)
     :maxdepth: 1
 
     modules/cb
+    modules/cla
     modules/cyclecount
     modules/datacursor
     modules/dsp
