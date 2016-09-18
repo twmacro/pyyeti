@@ -4,8 +4,8 @@ Tools for coupled loads analysis (cla)
 .. automodule:: pyyeti.cla
 .. currentmodule:: pyyeti.cla
 
-Class for defining data recovery categories `DR_Def`
-----------------------------------------------------
+Class for defining data recovery categories
+-------------------------------------------
 .. autosummary::
     :toctree: generated/
 
@@ -16,8 +16,8 @@ Class for defining data recovery categories `DR_Def`
     DR_Def.copycat
     DR_Def.excel_summary
 
-Class for getting data recovery ready for a specific event
-----------------------------------------------------------
+Class for getting data recovery ready for running a specific event
+------------------------------------------------------------------
 .. autosummary::
     :toctree: generated/
 
@@ -53,8 +53,15 @@ Utility routines
 .. autosummary::
     :toctree: generated/
 
-    PSD_consistent_rss
-    rptext1
-    rpttab1
-    rptpct1
+    extrema
+    freq3_augment
+    get_marker_cycle
+    magpct
+    maxmin
     mk_plots
+    PrintCLAInfo
+    PSD_consistent_rss
+    rdext
+    rptext1
+    rptpct1
+    rpttab1

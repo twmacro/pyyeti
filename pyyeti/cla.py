@@ -74,8 +74,8 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
 
         >>> import numpy as np
         >>> from pyyeti import cla
-        >>> m1 = 10 + np.random.randn(200)
-        >>> m2 = m1 + np.random.randn(200)*0.1
+        >>> m1 = np.arange(200) + np.random.randn(200)
+        >>> m2 = m1 + np.random.randn(200)
         >>> pds = cla.magpct(m1, m2)
 
     """
@@ -120,6 +120,8 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
                       (((apd > 5) & (apd <= 10)).nonzero()[0], 'm'),
                       ((apd > 10).nonzero()[0], 'r')]:
             plt.plot(ref[pv], curpd[pv], c+_marker)
+    plt.xlabel('Reference Magnitude')
+    plt.ylabel('% Difference')
     return pds
 
 
@@ -484,7 +486,7 @@ class DR_Def(object):
     Notes
     -----
     Rather than try to describe the `dr_def` dictionary, we'll use
-    :func:`pyyeti.pp.PP` to display sections of it for the Jason 3
+    :func:`pyyeti.pp.PP` to display sections of it for an example
     mission:
 
     PP(claparams['drdefs'].dr_def)::
@@ -492,20 +494,20 @@ class DR_Def(object):
         <class 'dict'>[n=9]
             'SC_atm'    : <class 'types.SimpleNamespace'>[n=19]
             'SC_dtm'    : <class 'types.SimpleNamespace'>[n=19]
-            'SC_ifload' : <class 'types.SimpleNamespace'>[n=19]
+            'SC_ifl'    : <class 'types.SimpleNamespace'>[n=19]
             'SC_ltma'   : <class 'types.SimpleNamespace'>[n=19]
             'SC_ltmd'   : <class 'types.SimpleNamespace'>[n=19]
-            'SC_tcg'    : <class 'types.SimpleNamespace'>[n=19]
-            'SC_tsp'    : <class 'types.SimpleNamespace'>[n=19]
-            'SC_tsp_0rb': <class 'types.SimpleNamespace'>[n=19]
+            'SC_cg'     : <class 'types.SimpleNamespace'>[n=19]
+            'SC_ifa'    : <class 'types.SimpleNamespace'>[n=19]
+            'SC_ifa_0rb': <class 'types.SimpleNamespace'>[n=19]
             '_vars'     : <class 'types.SimpleNamespace'>[n=2]
 
-    PP(claparams['drdefs'].dr_def['SC_tsp'])::
+    PP(claparams['drdefs'].dr_def['SC_ifa'])::
 
         <class 'types.SimpleNamespace'>[n=20]
             .desc      : 'S/C Interface Accelerations'
-            .drfile    : '/loads/CLA/Falcon9/missions/.../drfuncs.py'
-            .drfunc    : 'SC_tsp'
+            .drfile    : '/loads/CLA/Rocket/missions/.../drfuncs.py'
+            .drfunc    : 'SC_ifa'
             .filterval : 1e-06
             .histlabels: [n=12]: ['I/F Axial Accel     X sc', ... lv']
             .histpv    : slice(None, 12, None)
@@ -513,7 +515,7 @@ class DR_Def(object):
             .labels    : [n=12]: ['I/F Axial Accel     X sc', ... lv']
             .misc      : None
             .napv      : None
-            .se        : 501
+            .se        : 500
             .srsQs     : [n=2]: (25, 50)
             .srsconv   : 1
             .srsfrq    : float64 ndarray 990 elems: (990,)
@@ -530,16 +532,16 @@ class DR_Def(object):
 
         <class 'types.SimpleNamespace'>[n=2]
             .drms   : <class 'dict'>[n=1]
-                501: <class 'dict'>[n=7]
+                500: <class 'dict'>[n=7]
                     'SC_ifl_drm': float64 ndarray 1296 ... (12, 108)
-                    'SC_tcg_drm': float64 ndarray 1512 ... (14, 108)
-                    'SC_tsp_drm': float64 ndarray 1296 ... (12, 108)
+                    'SC_cg_drm' : float64 ndarray 1512 ... (14, 108)
+                    'SC_ifa_drm': float64 ndarray 1296 ... (12, 108)
                     'scatm'     : float64 ndarray 28944 ... (268, 108)
                     'scdtmd'    : float64 ndarray 9396 ... (87, 108)
                     'scltma'    : float64 ndarray 15768 ... (146, 108)
                     'scltmd'    : float64 ndarray 15768 ... (146, 108)
             .nondrms: <class 'dict'>[n=1]
-                501: <class 'dict'>[n=0]
+                500: <class 'dict'>[n=0]
 
     """
     # static variable:
@@ -874,11 +876,9 @@ class DR_Def(object):
 
         Notes
         -----
-        **Data Recovery Functions**
-
         The `drfile` must contain the appropriate data recovery
-        function(s) named `name` and, optionally, `name`_psd. For a
-        typical data recovery category, only one data recovery
+        function(s) named ``name`` and, optionally, ``name_psd``. For
+        a typical data recovery category, only one data recovery
         function would be needed. Here are some examples:
 
         For a typical ATM::
@@ -906,7 +906,7 @@ class DR_Def(object):
         (for `name` "x_y_rss"): acceleration response in the 'x' and
         'y' directions and the consistent RSS between them for the 3rd
         row. In this example, it is assumed the data recovery matrix
-        has 3 rows where the 3rd row could be all zeros:
+        has 3 rows where the 3rd row could be all zeros::
 
             def x_y_rss(sol, nrb, Vars, se):
                 resp = Vars[se]['xyrss'] @ sol.a
@@ -1027,24 +1027,24 @@ class DR_Def(object):
         One very common usage is to add a zero-rigid-body version of a
         category; for example::
 
-            drdefs.copycat(['SC_tsp', 'SC_atm'], '_0rb',
+            drdefs.copycat(['SC_ifa', 'SC_atm'], '_0rb',
                              uf_reds=(0, 1, 1.25, 1))
 
-        would add 'SC_tsp_0rb' and 'SC_atm_0rb' copy categories
+        would add 'SC_ifa_0rb' and 'SC_atm_0rb' copy categories
         without the rigid-body component.
 
-        For another example, recover the 'SC_tcg' (cg load factors)
+        For another example, recover the 'SC_cg' (cg load factors)
         in "static" and "dynamic" pieces::
 
-            drdefs.copycat('SC_tcg', '_static',
+            drdefs.copycat('SC_cg', '_static',
                              uf_reds=(1, 1, 0, 1))
-            drdefs.copycat('SC_tcg', '_dynamic',
+            drdefs.copycat('SC_cg', '_dynamic',
                              uf_reds=(1, 1, 1.25, 0))
 
         As a final example to show the alternate use of `name_addon`,
         here is an equivalent call for the static example::
 
-            drdefs.copycat('SC_tcg', ['SC_tcg_static'],
+            drdefs.copycat('SC_cg', ['SC_cg_static'],
                              uf_reds=(1, 1, 0, 1))
 
         Raises
@@ -1100,9 +1100,9 @@ class DR_Def(object):
 
         For example::
 
-            drdefs.add_0rb('SC_tsp', 'SC_atm')
+            drdefs.add_0rb('SC_ifa', 'SC_atm')
 
-        would add 'SC_tsp_0rb' and 'SC_atm_0rb' categories with the
+        would add 'SC_ifa_0rb' and 'SC_atm_0rb' categories with the
         first element in `uf_reds` set to 0.
         """
         if args[0] not in self.dr_def:
@@ -1228,23 +1228,23 @@ class Event_DR(object):
 
         <class 'dict'>[n=2]
             0  : <class 'dict'>[n=1]
-                'T9990301': float64 ndarray 732 elems: (3, 244)
-            206: <class 'dict'>[n=3]
+                'Tnode4': float64 ndarray 732 elems: (3, 244)
+            100: <class 'dict'>[n=3]
                 'ifatm' : float64 ndarray 46896 elems: (48, 977)
                 'ifltma': float64 ndarray 17586 elems: (18, 977)
                 'ifltmd': float64 ndarray 17586 elems: (18, 977)
-            501: <class 'dict'>[n=7]
+            500: <class 'dict'>[n=7]
                 'SC_ifl_drm': float64 ndarray 11724 elems: (12, 977)
-                'SC_tcg_drm': float64 ndarray 13678 elems: (14, 977)
-                'SC_tsp_drm': float64 ndarray 11724 elems: (12, 977)
+                'SC_cg_drm' : float64 ndarray 13678 elems: (14, 977)
+                'SC_ifa_drm': float64 ndarray 11724 elems: (12, 977)
                 'scatm'     : float64 ndarray 261836 elems: (268, 977)
                 'scdtmd'    : float64 ndarray 84999 elems: (87, 977)
                 'scltma'    : float64 ndarray 142642 elems: (146, 977)
                 'scltmd'    : float64 ndarray 142642 elems: (146, 977)
 
-    In that example, all the variables except 'T9990301' are
-    multiplied by the appropriate ULVS matrix. That is, the SE 206 and
-    501 matrices all came from the ``dr_def['_vars'].drms`` entry and
+    In that example, all the variables except 'Tnode4' are
+    multiplied by the appropriate ULVS matrix. That is, the SE 100 and
+    500 matrices all came from the ``dr_def['_vars'].drms`` entry and
     none came from the ``dr_def['_vars'].nondrms`` entry. The SE 0
     matrix could come from either the `.drms` or `.nondrms` entry.
     """
@@ -1610,10 +1610,10 @@ class DR_Results(OrderedDict):
     PP(results)::
 
         <class 'cla.DR_Results'>[n=2]
-            'MQP15U' : <class 'cla.DR_Results'>[n=12]
+            'MaxQ' : <class 'cla.DR_Results'>[n=12]
             'extreme': <class 'cla.DR_Results'>[n=12]
 
-    PP(results['MQP15U'])::
+    PP(results['MaxQ'])::
 
         <class 'cla.DR_Results'>[n=12]
             'PAF_ifatm'    : <class 'types.SimpleNamespace'>[n=17]
@@ -1621,23 +1621,23 @@ class DR_Results(OrderedDict):
             'PAF_ifltm'    : <class 'types.SimpleNamespace'>[n=17]
             'SC_atm'       : <class 'types.SimpleNamespace'>[n=17]
             'SC_dtm'       : <class 'types.SimpleNamespace'>[n=15]
-            'SC_ifload'    : <class 'types.SimpleNamespace'>[n=17]
+            'SC_ifl'       : <class 'types.SimpleNamespace'>[n=17]
             'SC_ltma'      : <class 'types.SimpleNamespace'>[n=15]
             'SC_ltmd'      : <class 'types.SimpleNamespace'>[n=15]
-            'SC_tcg'       : <class 'types.SimpleNamespace'>[n=15]
-            'SC_tsp'       : <class 'types.SimpleNamespace'>[n=17]
-            'SC_tsp_0rb'   : <class 'types.SimpleNamespace'>[n=17]
-            'pYpZ_CG'      : <class 'types.SimpleNamespace'>[n=17]
+            'SC_cg'        : <class 'types.SimpleNamespace'>[n=15]
+            'SC_ifa'       : <class 'types.SimpleNamespace'>[n=17]
+            'SC_ifa_0rb'   : <class 'types.SimpleNamespace'>[n=17]
+            'Box_CG'       : <class 'types.SimpleNamespace'>[n=17]
 
-    PP(results['MQP15U']['SC_tsp'], 3)::
+    PP(results['MaxQ']['SC_ifa'], 3)::
 
         <class 'types.SimpleNamespace'>[n=17]
-            .cases  : [n=1]: ['MQP15U']
+            .cases  : [n=1]: ['MaxQ']
             .domain : 'freq'
             .drminfo: <class 'types.SimpleNamespace'>[n=20]
                 .desc      : 'S/C Interface Accelerations'
-                .drfile    : '/loads/CLA/Falcon9/missions/...funcs.py'
-                .drfunc    : 'SC_tsp'
+                .drfile    : '/loads/CLA/Rocket/missions/...funcs.py'
+                .drfunc    : 'SC_ifa'
                 .filterval : 1e-06
                 .histlabels: [n=12]: ['I/F Axial Accel     X sc', ...]
                 .histpv    : slice(None, 12, None)
@@ -1645,7 +1645,7 @@ class DR_Results(OrderedDict):
                 .labels    : [n=12]: ['I/F Axial Accel     X sc', ...]
                 .misc      : None
                 .napv      : None
-                .se        : 501
+                .se        : 500
                 .srsQs     : [n=2]: (25, 50)
                 .srsconv   : 1
                 .srsfrq    : float64 ndarray 990 elems: (990,)
@@ -1657,15 +1657,15 @@ class DR_Results(OrderedDict):
                 .srsunits  : 'G, rad/sec^2'
                 .uf_reds   : [n=4]: (1, 1, 1.25, 1)
                 .units     : 'G, rad/sec^2'
-            .event  : 'MQP15 Buffet'
+            .event  : 'MaxQ Buffet'
             .ext    : float64 ndarray 24 elems: (12, 2)
             .exttime: float64 ndarray 24 elems: (12, 2)
             .freq   : float64 ndarray 2332 elems: (2332,)
-            .maxcase: [n=12]: ['MQP15U', 'MQP15U', 'MQP15U' ...QP15U']
+            .maxcase: [n=12]: ['MaxQ', 'MaxQ', 'MaxQ' ...'MaxQ']
             .maxtime: float64 ndarray 12 elems: (12, 1)
-            .mincase: [n=12]: ['MQP15U', 'MQP15U', 'MQP15U' ...QP15U']
+            .mincase: [n=12]: ['MaxQ', 'MaxQ', 'MaxQ' ...'MaxQ']
             .mintime: float64 ndarray 12 elems: (12, 1)
-            .mission: 'Falcon 9 v1.1 / Jason 3 - VLC'
+            .mission: 'Rocket / Spacecraft VLC'
             .mn     : float64 ndarray 12 elems: (12, 1)
             .mx     : float64 ndarray 12 elems: (12, 1)
             .psd    : float64 ndarray 27984 elems: (1, 12, 2332)
@@ -1684,15 +1684,15 @@ class DR_Results(OrderedDict):
     Here is another example from a time-domain case where the extreme
     values are computed statistically from all cases:
 
-    PP(results['SC_tsp'], 4)::
+    PP(results['SC_ifa'], 4)::
 
         <class 'types.SimpleNamespace'>[n=16]
             .cases  : [n=21]: ['SECO2 1', 'SECO2 2', 'SECO2 3 ... 21']
             .domain : 'time'
             .drminfo: <class 'types.SimpleNamespace'>[n=20]
                 .desc      : 'S/C Interface Accelerations'
-                .drfile    : '/loads/CLA/Falcon9/missions/...funcs.py'
-                .drfunc    : 'SC_tsp'
+                .drfile    : '/loads/CLA/Rocket/missions/...funcs.py'
+                .drfunc    : 'SC_ifa'
                 .filterval : 1e-06
                 .histlabels: [n=12]: ['I/F Axial Accel     X sc', ...]
                 .histpv    : slice(None, 12, None)
@@ -1700,7 +1700,7 @@ class DR_Results(OrderedDict):
                 .labels    : [n=12]: ['I/F Axial Accel     X sc', ...]
                 .misc      : None
                 .napv      : None
-                .se        : 501
+                .se        : 500
                 .srsQs     : [n=2]: (25, 50)
                 .srsconv   : 1
                 .srsfrq    : float64 ndarray 990 elems: (990,)
@@ -1720,7 +1720,7 @@ class DR_Results(OrderedDict):
             .maxtime: float64 ndarray 252 elems: (12, 21)
             .mincase: None
             .mintime: float64 ndarray 252 elems: (12, 21)
-            .mission: 'Falcon 9 v1.1 / Jason 3 - VLC'
+            .mission: 'Rocket / Spacecraft VLC'
             .mn     : float64 ndarray 252 elems: (12, 21)
             .mx     : float64 ndarray 252 elems: (12, 21)
             .srs    : <class 'types.SimpleNamespace'>[n=5]
@@ -1881,7 +1881,7 @@ class DR_Results(OrderedDict):
         Examples
         --------
         Here is a simple but complete example. CLA results are made up
-        for an "ATM" and an "LTM" for 3 events::
+        for an "ATM" and an "LTM" for 3 events:
 
         >>> import numpy as np
         >>> from pyyeti import cla
@@ -1933,8 +1933,9 @@ class DR_Results(OrderedDict):
         ...     labels = _get_labels(name)
         ...     drdefs.add(**locals())
         >>>
-        >>> # make a pandas DataFrame to summarize data recovery
-        >>> # definitions (but skip the excel file for this demo)
+        >>> # for checking, make a pandas DataFrame to summarize data
+        >>> # recovery definitions (but skip the excel file for this
+        >>> # demo)
         >>> drdefs.excel_summary(None)   # doctest: +ELLIPSIS
                                               ATM ...            LTM
         desc           S/C Internal Accelerations ... Internal Loads
@@ -1957,7 +1958,7 @@ class DR_Results(OrderedDict):
         srsunits                             None ...              -
         uf_reds                 4: (1, 1, 1.2, 1) ...              -
         units                  m/sec^2, rad/sec^2 ...         N, N-m
-
+        >>>
         >>> # prepare results data structure:
         >>> DR = cla.Event_DR()
         >>> DR.add(None, drdefs)
@@ -2330,7 +2331,7 @@ class DR_Results(OrderedDict):
 
         Notes
         -----
-        Each results record (eg, ``self['SECO1']['SC_tsp']``) is
+        Each results record (eg, ``self['SECO1']['SC_ifa']``) is
         expected to have `.mx` and `.mn` members. Each of these is
         data-recovery rows x load cases. This routine will calculate a
         new `.ext` member by::
@@ -2725,7 +2726,7 @@ class DR_Results(OrderedDict):
             Notes:
 
               1. If the keys are different than those in
-                 ``self[event]`` (eg, 'SC_tsp', 'SC_atm', etc), then
+                 ``self[event]`` (eg, 'SC_ifa', 'SC_atm', etc), then
                  the input `keyconv` is necessary.
               2. If a key in ``self[event]`` is not found in `refres`,
                  a message is printed and that item is skipped
@@ -4017,6 +4018,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     ...
 
     Finally, the histogram summaries:
+
     >>> dct = cla.rptpct1(ext1, ext2, 1, **opts)  # doctest: +ELLIPSIS
     PERCENT DIFFERENCE REPORT
     ...
