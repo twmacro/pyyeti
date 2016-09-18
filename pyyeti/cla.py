@@ -1939,7 +1939,7 @@ class DR_Results(OrderedDict):
         >>> drdefs.excel_summary(None)   # doctest: +ELLIPSIS
                                               ATM ...            LTM
         desc           S/C Internal Accelerations ... Internal Loads
-        drfile          ...
+        drfile      ...
         drfunc                                ATM ...            LTM
         filterval                           1e-06 ...              -
         histlabels                           None ...              -
