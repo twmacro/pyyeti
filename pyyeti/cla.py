@@ -1310,9 +1310,9 @@ class DR_Event(object):
 
             # collect all sets of uncertainty factors together for the
             # apply_uf routine later:
-            uf_reds = self.Info[name].uf_reds
-            if uf_reds not in self.UF_reds:
-                self.UF_reds.append(uf_reds)
+            uf_reds_cur = self.Info[name].uf_reds
+            if uf_reds_cur not in self.UF_reds:
+                self.UF_reds.append(uf_reds_cur)
 
         se_last = -2
         # apply ULVS to all drms and put in DR:
