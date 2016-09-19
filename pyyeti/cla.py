@@ -77,7 +77,7 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         >>> n = 500
         >>> m1 = 5 + np.arange(n)/5 + np.random.randn(n)
         >>> m2 = m1 + np.random.randn(n)
-        >>> cla.magpct(m1, m2);
+        >>> pds = cla.magpct(m1, m2)
 
     """
     if Ref is None:
