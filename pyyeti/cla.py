@@ -74,9 +74,10 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
 
         >>> import numpy as np
         >>> from pyyeti import cla
-        >>> m1 = np.arange(200) + np.random.randn(200)
-        >>> m2 = m1 + np.random.randn(200)
-        >>> pds = cla.magpct(m1, m2)
+        >>> n = 500
+        >>> m1 = 5 + np.arange(n)/5 + np.random.randn(n)
+        >>> m2 = m1 + np.random.randn(n)
+        >>> cla.magpct(m1, m2);
 
     """
     if Ref is None:
@@ -946,7 +947,7 @@ class DR_Def(object):
             nrb    Number of rigid-body modes
             DR     Defines data recovery for an event simulation (and
                    is created in the simulation script via
-                   ``DR = cla.Event_DR()``). It is an event specific
+                   ``DR = cla.DR_Event()``). It is an event specific
                    version of all combined :class:`DR_Def` objects
                    with all ULVS matrices applied.
             se     Superelement number. Used as key into `DR`.
@@ -1197,8 +1198,7 @@ class DR_Def(object):
         return df
 
 
-# call this DR_Modes?
-class Event_DR(object):
+class DR_Event(object):
     """
     Setup data recovery for a specific event or set of modes.
 
@@ -1960,7 +1960,7 @@ class DR_Results(OrderedDict):
         units                  m/sec^2, rad/sec^2 ...         N, N-m
         >>>
         >>> # prepare results data structure:
-        >>> DR = cla.Event_DR()
+        >>> DR = cla.DR_Event()
         >>> DR.add(None, drdefs)
         >>> results = cla.DR_Results()
         >>> for event in events:
@@ -2029,10 +2029,10 @@ class DR_Results(OrderedDict):
             String identifying the case; stored in the
             ``self.cat[name].cases`` and the `.mincase` and `.maxcase`
             lists
-        DR : instance of :class:`Event_DR`
+        DR : instance of :class:`DR_Event`
             Defines data recovery for an event simulation (and is
             created in the simulation script via
-            ``DR = cla.Event_DR()``). It is an event specific version
+            ``DR = cla.DR_Event()``). It is an event specific version
             of all combined :class:`DR_Def` objects with all ULVS
             matrices applied.
         n : integer
@@ -2118,10 +2118,10 @@ class DR_Results(OrderedDict):
             String identifying the case; stored in the
             ``self.cat[name].cases`` and the `.mincase` and `.maxcase`
             lists
-        DR : instance of :class:`Event_DR`
+        DR : instance of :class:`DR_Event`
             Defines data recovery for an event simulation (and is
             created in the simulation script via
-            ``DR = cla.Event_DR()``). It is an event specific version
+            ``DR = cla.DR_Event()``). It is an event specific version
             of all combined :class:`DR_Def` objects with all ULVS
             matrices applied.
         m, b, k : 2d array_like
@@ -2217,10 +2217,10 @@ class DR_Results(OrderedDict):
             String identifying the case; stored in the
             ``self.cat[name].cases`` and the `.mincase` and `.maxcase`
             lists
-        DR : instance of :class:`Event_DR`
+        DR : instance of :class:`DR_Event`
             Defines data recovery for an event simulation (and is
             created in the simulation script via
-            ``DR = cla.Event_DR()``). It is an event specific version
+            ``DR = cla.DR_Event()``). It is an event specific version
             of all combined :class:`DR_Def` objects with all ULVS
             matrices applied.
         n : integer

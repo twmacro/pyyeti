@@ -21,11 +21,11 @@ Class for getting data recovery ready for running a specific event
 .. autosummary::
     :toctree: generated/
 
-    Event_DR
-    Event_DR.add
-    Event_DR.prepare_results
-    Event_DR.apply_uf
-    Event_DR.psd_apply_uf
+    DR_Event
+    DR_Event.add
+    DR_Event.prepare_results
+    DR_Event.apply_uf
+    DR_Event.psd_apply_uf
 
 Class for storing and working with CLA results
 ----------------------------------------------
