@@ -2840,7 +2840,7 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
     return np.dot(t, u), outdof
 
 
-def AddULVS(nas, *ses):
+def AddULVS(nas, *ses, **kwargs):
     """
     Add ULVS matrices to the nas (nas2cam) record.
 
@@ -2851,9 +2851,20 @@ def AddULVS(nas, *ses):
     *ses : list
         Remaining args are the superelement ids for which to compute a
         ULVS via :func:`formulvs`.
+    **kwargs : dict; optional
+        Named arguments to pass to :func:`formulvs`
     """
     if 'ulvs' not in nas:
         nas['ulvs'] = {}
+
     for se in ses:
-        if se not in nas['ulvs']:
-            nas['ulvs'][se] = formulvs(nas, se)
+        nas['ulvs'][se] = formulvs(nas, se, **kwargs)
+
+#    try:
+#        shortcut = kwargs['shortcut']
+#    except KeyError:
+#        shortcut = True
+#
+#    for se in ses:
+#        if not shortcut or se not in nas['ulvs']:
+#            nas['ulvs'][se] = formulvs(nas, se, **kwargs)
