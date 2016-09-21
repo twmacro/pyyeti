@@ -2859,12 +2859,3 @@ def AddULVS(nas, *ses, **kwargs):
 
     for se in ses:
         nas['ulvs'][se] = formulvs(nas, se, **kwargs)
-
-#    try:
-#        shortcut = kwargs['shortcut']
-#    except KeyError:
-#        shortcut = True
-#
-#    for se in ses:
-#        if not shortcut or se not in nas['ulvs']:
-#            nas['ulvs'][se] = formulvs(nas, se, **kwargs)

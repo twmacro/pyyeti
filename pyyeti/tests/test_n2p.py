@@ -1152,6 +1152,16 @@ def test_formulvs_1():
     for se in [101, 102]:
         assert np.allclose(old[se], nas['ulvs'][se])
 
+    old = {i: v for i, v in nas['ulvs'].items()}
+    n2p.AddULVS(nas, 101, 102)
+    for se in [101, 102]:
+        assert id(old[se]) == id(nas['ulvs'][se])
+
+    n2p.AddULVS(nas, 101, 102, shortcut=False)
+    for se in [101, 102]:
+        assert id(old[se]) != id(nas['ulvs'][se])
+        assert np.allclose(old[se], nas['ulvs'][se])
+
 
 def test_formulvs_2():
     nas = op2.rdnas2cam('pyyeti/tests/nas2cam_extseout/nas2cam')
