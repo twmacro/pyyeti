@@ -2162,8 +2162,13 @@ class DR_Results(OrderedDict):
         # initialize categories for data recovery
         drfuncs = {}
         for key, value in self.items():
-            value.freq = freq
-            value._psd = {}
+            if '_psd' not in value.__dict__:
+                value.freq = freq
+                value._psd = {}
+            else:
+                if not np.allclose(value.freq, freq):
+                    raise ValueError('`freq` must match `freq` '
+                                     'from previous case')
             value._psd[case] = 0.0
             # get data recovery functions just once, outside of main
             # loop; returns tuple: (func, func_psd) ... func_psd will
@@ -2318,6 +2323,7 @@ class DR_Results(OrderedDict):
                     else:
                         res.srs.ext[q] = np.fmax(res.srs.ext[q],
                                                  srs_cur)
+        if j == n-1:
             del res._psd
 
     def form_stat_ext(self, k):
@@ -4806,12 +4812,12 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     y = res[name].hist
                     xlab = 'Time (s)'
                     ylab = 'Time Response'
-                elif 'PSD' in res[name].__dict__:
+                elif 'psd' in res[name].__dict__:
                     x = res[name].freq
                     y = res[name].psd
                     xlab = 'Frequency (Hz)'
                     ylab = 'PSD Response'
-                elif 'FRF' in res[name].__dict__:
+                elif 'frf' in res[name].__dict__:
                     x = res[name].freq
                     y = abs(res[name].FRF)
                     xlab = 'Frequency (Hz)'

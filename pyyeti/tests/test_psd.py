@@ -4,6 +4,16 @@ from nose.tools import *
 import scipy.signal as signal
 
 
+def test_interp():
+    spec = [[20, 0.5],
+            [50, 1.0]]
+    freq = [15, 35, 60]
+    psdlinear = psd.interp(spec, freq, linear=True).ravel()
+    psdlog = psd.interp(spec, freq, linear=False).ravel()
+    assert np.allclose(psdlinear, [0, 0.75, 0])
+    assert np.allclose(psdlog, [0, 0.76352135927358911, 0])
+
+
 def test_rescale():
     g = np.random.randn(10000)
     sr = 400

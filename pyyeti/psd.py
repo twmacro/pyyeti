@@ -158,6 +158,11 @@ def interp(spec, freq, linear=False):
         Matrix of the interpolated PSD values. Has one fewer columns
         than `spec` because the frequency column is not included.
 
+    Notes
+    -----
+    Zeros are used to fill in PSD values for frequencies outside the
+    specification(s).
+
     Examples
     --------
     >>> import numpy as np
@@ -185,7 +190,9 @@ def interp(spec, freq, linear=False):
         ifunc = interp1d(sp[:, 0], sp[:, 1:], axis=0,
                          bounds_error=False, fill_value=0,
                          assume_sorted=True)
-        psdfull = np.exp(ifunc(np.log(freq)))
+        psdfull = ifunc(np.log(freq))
+        pv = (freq >= spec[0, 0]) & (freq <= spec[-1, 0])
+        psdfull[pv] = np.exp(psdfull[pv])
     return psdfull
 
 
