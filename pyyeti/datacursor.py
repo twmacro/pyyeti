@@ -156,6 +156,9 @@ class DataCursor(object):
         ax = fig.add_subplot(1, 1, 1)
         ax.plot(x, y)
         DC.getdata()
+        # use DC.pause if you want to drag boxes around before
+        # continuing:
+        DC.pause()
         print('points are:', DC.xypoints)
 
     Settings can be changed after instantiation. Here is an example of
@@ -268,13 +271,27 @@ class DataCursor(object):
         Turns on and (re-)initializes the DataCursor for current
         figures.
 
+        Parameters
+        ----------
+        newax : -1 or axes handle; optional
+            If `newax` is -1, the axes that the DataCursor uses remain
+            unchanged (all, if `ax` was originally None). Other values
+            reset the DataCursor as described in the main help for the
+            `ax` input.
+        callbacks : bool or str; optional
+            If False, call-backs are not turned on. If True, all call-
+            backs are turned on. If 'key_only', only the key-press
+            call-back is turned on (used for pausing; see
+            :func:`pause`).
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
         The `xypoints` and other data members are reset to empty
         lists.
-
-        If `newax` is -1, the axes that the DataCursor uses remain
-        unchanged (all, if `ax` was originally None). Other values
-        reset the DataCursor as described in the main help for the
-        `ax` input.
         """
         if newax != -1:
             self._ax_input = newax
@@ -295,23 +312,23 @@ class DataCursor(object):
                 cvs = fig.canvas
                 self._kid[fig] = cvs.mpl_connect(
                     'key_press_event', self._key)
-                if self.hover:
-                    self._mid[fig] = cvs.mpl_connect(
-                        'motion_notify_event', self._follow)
-                else:
-                    self._mid[fig] = None
-                self._bid[fig] = cvs.mpl_connect(
-                    'button_press_event', self._follow)
-                self._aid[fig] = cvs.mpl_connect(
-                    'axes_leave_event', self._leave)
+                if callbacks != 'key_only':
+                    if self.hover:
+                        self._mid[fig] = cvs.mpl_connect(
+                            'motion_notify_event', self._follow)
+                    else:
+                        self._mid[fig] = None
+                    self._bid[fig] = cvs.mpl_connect(
+                        'button_press_event', self._follow)
+                    self._aid[fig] = cvs.mpl_connect(
+                        'axes_leave_event', self._leave)
             self._is_on = True
         else:
             self._is_on = False
 
     def off(self):
         """
-        Turns off the DataCursor and stops it from blocking (if
-        :func:`getdata` was called).
+        Turns off the DataCursor and stops it from blocking
 
         Note that the keystroke 't' will also turn off the DataCursor.
         """
@@ -580,6 +597,17 @@ class DataCursor(object):
             self._in_loop = True
             self._max_points = maxpoints
             self._figs[0].canvas.start_event_loop(timeout=-1)
+
+    def pause(self, msg='Hit "t" inside axes when done'):
+        """
+        Suspend python so user can interact with plots (such as moving
+        previously added annotations) before continuing. Hit 't'
+        inside the axes to continue.
+        """
+        print(msg)
+        self.on(callbacks='key_only')
+        self._in_loop = True
+        self._figs[0].canvas.start_event_loop(timeout=-1)
 
 
 # instantiate one object, meant for general use:

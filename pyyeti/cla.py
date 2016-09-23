@@ -962,12 +962,6 @@ class DR_Def(object):
         dr_def_args = {i: values[i] for i in args
                        if i not in ('self', 'name', 'drms',
                                     'nondrms', 'kwargs')}
-        #dr_def_args = locals()
-        #for item in ('self', 'name', 'drms', 'nondrms', 'kwargs'):
-        #    del dr_def_args[item]
-        #
-        #print(dr_def_args.keys())
-        #
         if name in self.dr_def:
             raise ValueError('data recovery for "{}" already defined'
                              .format(name))
@@ -1317,6 +1311,8 @@ class DR_Event(object):
         se_last = -2
         # apply ULVS to all drms and put in DR:
         for se, dct in dr_def['_vars'].drms.items():
+            if not dct:
+                continue
             if se not in self.Vars:
                 self.Vars[se] = {}
             if se != 0 and se != se_last:
@@ -1356,7 +1352,7 @@ class DR_Event(object):
                 if name in self.Vars[se]:
                     raise ValueError('"{}" is already in Vars[{}]'
                                      .format(name, se))
-                    self.Vars[se][name] = mat
+                self.Vars[se][name] = mat
 
     def prepare_results(self, mission, event):
         """
@@ -4543,6 +4539,9 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     direc : string; optional
         Directory name to put all output plot files; will be
         created if it doesn't exist.
+    cases : tuple/list of case names to plot or None; optional
+        If None, all cases are plotted. This option is ignored if
+        plotting SRS curves and `showall` is True.
     sub_right : scalar or None; optional
         Used in: ``plt.subplots_adjust(right=sub_right)`` when
         a legend is placed outside the plots. If None, this
