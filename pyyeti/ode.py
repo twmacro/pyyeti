@@ -7,12 +7,11 @@ equations being in modal space (particularly important where there are
 distinctions between the rigid-body modes and the elastic modes).
 """
 
-import scipy.linalg as la
-import numpy as np
-from pyyeti import expmint
-from pyyeti import ytools
 from types import SimpleNamespace
 import warnings
+import scipy.linalg as la
+import numpy as np
+from pyyeti import expmint, ytools
 
 
 def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
@@ -103,12 +102,12 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
         pvcrit[pvel] = abs(rat) < 1.e-8
         pvover[pvel] = rat <= -1e-8
 
-        if not np.all(1 == rfmodes2 + pvrb + pvundr +
-                      pvover + pvcrit):
-            badrows = np.nonzero(1 != rfmodes2 + pvrb + pvundr +
-                                 pvover + pvcrit)[0]
-    elif not np.all(1 == rfmodes2 + pvrb):
-            badrows = np.nonzero(1 != rfmodes2 + pvrb)[0]
+        if not np.all(rfmodes2 + pvrb + pvundr +
+                      pvover + pvcrit == 1):
+            badrows = np.nonzero(rfmodes2 + pvrb + pvundr +
+                                 pvover + pvcrit != 1)[0]
+    elif not np.all(rfmodes2 + pvrb == 1):
+        badrows = np.nonzero(rfmodes2 + pvrb != 1)[0]
 
     if badrows is not None:
         msg = ('Partitioning problem. Check '
@@ -1276,7 +1275,7 @@ class _BaseODE(object):
         """Check compatibility between force matrix and freq vector"""
         if force.shape[1] != len(freq):
             raise ValueError('Number of columns `force` ({}) does '
-                             'not equal length of `freq`'.
+                             'not equal length of `freq` ({})'.
                              format(force.shape[1], len(freq)))
 
 
@@ -1729,11 +1728,11 @@ class SolveExp2(_BaseODE):
         d, v, a, force = self._init_dva_part(
             nt, F0, d0, v0, static_ic)
         self._d, self._v, self._a, self._force = d, v, a, force
-        generator = self._solve_se2_generator(d, v, a, F0)
+        generator = self._solve_se2_generator(d, v, F0)
         next(generator)
         return generator, d, v
 
-    def _solve_se2_generator(self, d, v, a, F0):
+    def _solve_se2_generator(self, d, v, F0):
         """Generator solver for :class:`SolveExp2`"""
         nt = d.shape[1]
         if nt == 1:
@@ -2102,7 +2101,7 @@ class SolveUnc(_BaseODE):
         if self.nonrfsz:
             if self.unc and self.systype is float:
                 # for uncoupled, m, b, k have rb+el (all nonrf)
-                self._solve_real_unc(d, v, a, force)
+                self._solve_real_unc(d, v, force)
             else:
                 # for coupled, m, b, k are only el only
                 self._solve_complex_unc(d, v, a, force)
@@ -2242,7 +2241,7 @@ class SolveUnc(_BaseODE):
         self._d, self._v, self._a, self._force = d, v, a, force
         if self.unc and self.systype is float:
             # for uncoupled, m, b, k have rb+el (all nonrf)
-            generator = self._solve_real_unc_generator(d, v, a, F0)
+            generator = self._solve_real_unc_generator(d, v, F0)
             next(generator)
             return generator, d, v
         else:
@@ -2359,7 +2358,7 @@ class SolveUnc(_BaseODE):
                 self._solve_freq_coup(d, v, a, force, freq, incrb)
         return self._solution_freq(d, v, a, freq)
 
-    def _solve_real_unc(self, d, v, a, force):
+    def _solve_real_unc(self, d, v, force):
         """Solve the real uncoupled equations for :class:`SolveUnc`"""
         # solve:
         # for i in range(nt-1):
@@ -2400,7 +2399,7 @@ class SolveUnc(_BaseODE):
             d[kdof] = D
             v[kdof] = V
 
-    def _solve_real_unc_generator(self, d, v, a, F0):
+    def _solve_real_unc_generator(self, d, v, F0):
         """Solve the real uncoupled equations for :class:`SolveUnc`"""
         # solve:
         # for i in range(nt-1):
@@ -3571,7 +3570,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
             raise ValueError('in sols[{}], Trecover is not compatibly '
                              'sized with accel'.format(j))
 
-    def getmds(modepart):
+    def _getmds(modepart):
         # find largest contributor mode:
         mode = np.argmax(modepart)
         mx = modepart[mode]
@@ -3602,8 +3601,8 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
         acce = np.atleast_2d(s[1])[:, i]
         modepart = abs(Trcv.ravel() * acce)
         # pv = np.nonzero((mfreq >= freq[0]) & (mfreq <= freq[-1]))[0]
-        # mds = getmds(modepart[pv])
-        mds = getmds(modepart)
+        # mds = _getmds(modepart[pv])
+        mds = _getmds(modepart)
         modes = sorted(mds)
         freqs = mfreq[modes]
         return modes, freqs
@@ -3654,7 +3653,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
     modes = []    # list to store modes
     primary = []  # flag to help delete plot objects logically
 
-    def addpoint(axes, x, y, n, i, ln):
+    def _addpoint(axes, x, y, n, i, ln):
         if ln not in h:
             print('invalid curve ... ignoring')
             return
@@ -3677,7 +3676,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
 
         # compute modal participation at this frequency
         modepart = abs(T * acce)
-        mds = getmds(modepart)
+        mds = _getmds(modepart)
 
         # plot bar chart showing modal participation and label top
         # modes:
@@ -3698,7 +3697,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
             primary.append(i == 0)
         fig.canvas.draw()
 
-    def deletepoint(axes, x, y, n, i):
+    def _deletepoint(axes, x, y, n, i):
         while len(primary) > 0:
             m = modes.pop()
             p = primary.pop()
@@ -3707,8 +3706,8 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2/3, helpmsg=True,
                 break
     try:
         DC.off()
-        DC.addpt_func(addpoint)
-        DC.delpt_func(deletepoint)
+        DC.addpt_func(_addpoint)
+        DC.delpt_func(_deletepoint)
         DC.getdata()
     finally:
         DC.addpt_func(None)

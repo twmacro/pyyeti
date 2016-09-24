@@ -4,15 +4,15 @@ Tools for calculating the shock response spectrum. Adapted and
 enhanced from the Yeti version.
 """
 
-import scipy.signal as signal
-import scipy.interpolate as interp
-import numpy as np
-from math import sin, cos, exp, sqrt, pi
-from pyyeti import dsp, psd
 import itertools as it
 import multiprocessing as mp
 import ctypes
 import os
+from math import sin, cos, exp, sqrt, pi
+import numpy as np
+import scipy.signal as signal
+import scipy.interpolate as interp
+from pyyeti import dsp, psd
 
 #   SRS types:
 #    - absolute acceleration
@@ -87,6 +87,11 @@ import os
 #           Improvement of the Smallwood Algorithm",
 #           http://www.vibrationdata.com/tutorials/Ahlin_SRS.pdf
 
+HIST_ = None
+ICVALS_ = None
+SIG_ = None
+SRSmax_ = None
+WN_ = None
 
 def createSharedArray(dimensions, ctype=ctypes.c_double):
     """
@@ -452,106 +457,106 @@ def linroll(sig, sr, ppc, frq):
 
 
 def _mk_par_globals(wn, sig, srsmax, hist):
-    global WN, SIG, SRSmax, HIST
-    WN = np.frombuffer(wn[0]).reshape(wn[1])
-    SIG = np.frombuffer(sig[0]).reshape(sig[1])
-    SRSmax = np.frombuffer(srsmax[0]).reshape(srsmax[1])
+    global WN_, SIG_, SRSmax_, HIST_
+    WN_ = np.frombuffer(wn[0]).reshape(wn[1])
+    SIG_ = np.frombuffer(sig[0]).reshape(sig[1])
+    SRSmax_ = np.frombuffer(srsmax[0]).reshape(srsmax[1])
     if hist[0] is not None:
-        HIST = np.frombuffer(hist[0]).reshape(hist[1])
+        HIST_ = np.frombuffer(hist[0]).reshape(hist[1])
 
 
 def _dosrs_nohist(args):
     """Utility routine for parallel processing for when
     `getresp` is False"""
     (j, (coeffunc, Q, dT, methfunc, S)) = args
-    b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG, axis=0)
-    SRSmax[j] = methfunc(resphist[S:])
+    b, a = coeffunc(Q, dT, WN_[j])
+    resphist = signal.lfilter(b, a, SIG_, axis=0)
+    SRSmax_[j] = methfunc(resphist[S:])
 
 
 def _dosrs(args):
     """Utility routine for parallel processing for when
     `getresp` is True"""
     (j, (coeffunc, Q, dT, methfunc, S)) = args
-    b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG, axis=0)
-    SRSmax[j] = methfunc(resphist[S:])
-    HIST[:, :, j] = resphist[S:]
+    b, a = coeffunc(Q, dT, WN_[j])
+    resphist = signal.lfilter(b, a, SIG_, axis=0)
+    SRSmax_[j] = methfunc(resphist[S:])
+    HIST_[:, :, j] = resphist[S:]
 
 
 def _mk_par_globals_ic(wn, sig, icvals, srsmax, hist):
-    global WN, SIG, ICVALS, SRSmax, HIST
-    WN = np.frombuffer(wn[0]).reshape(wn[1])
-    SIG = np.frombuffer(sig[0]).reshape(sig[1])
-    ICVALS = np.frombuffer(icvals[0]).reshape(icvals[1])
-    SRSmax = np.frombuffer(srsmax[0]).reshape(srsmax[1])
+    global WN_, SIG_, ICVALS_, SRSmax_, HIST_
+    WN_ = np.frombuffer(wn[0]).reshape(wn[1])
+    SIG_ = np.frombuffer(sig[0]).reshape(sig[1])
+    ICVALS_ = np.frombuffer(icvals[0]).reshape(icvals[1])
+    SRSmax_ = np.frombuffer(srsmax[0]).reshape(srsmax[1])
     if hist[0] is not None:
-        HIST = np.frombuffer(hist[0]).reshape(hist[1])
+        HIST_ = np.frombuffer(hist[0]).reshape(hist[1])
 
 
 def _dosrs_nohist_ic(args):
     """Utility routine for parallel processing for when
     `getresp` is False"""
     (j, (coeffunc, Q, dT, methfunc, S, stype)) = args
-    b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG, axis=0)
+    b, a = coeffunc(Q, dT, WN_[j])
+    resphist = signal.lfilter(b, a, SIG_, axis=0)
     if stype == 'reldisp':
-        resphist += ICVALS/WN[j]**2
+        resphist += ICVALS_/WN_[j]**2
     elif stype == 'pvelo':
-        resphist += ICVALS/WN[j]
+        resphist += ICVALS_/WN_[j]
     else:
         # stype == 'pacce' or 'absacce'
-        resphist += ICVALS
-    SRSmax[j] = methfunc(resphist[S:])
+        resphist += ICVALS_
+    SRSmax_[j] = methfunc(resphist[S:])
 
 
 def _dosrs_ic(args):
     """Utility routine for parallel processing for when
     `getresp` is True"""
     (j, (coeffunc, Q, dT, methfunc, S, stype)) = args
-    b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG, axis=0)
+    b, a = coeffunc(Q, dT, WN_[j])
+    resphist = signal.lfilter(b, a, SIG_, axis=0)
     if stype == 'reldisp':
-        resphist += ICVALS/WN[j]**2
+        resphist += ICVALS_/WN_[j]**2
     elif stype == 'pvelo':
-        resphist += ICVALS/WN[j]
+        resphist += ICVALS_/WN_[j]
     else:
         # stype == 'pacce' or 'absacce'
-        resphist += ICVALS
-    SRSmax[j] = methfunc(resphist[S:])
-    HIST[:, :, j] = resphist[S:]
+        resphist += ICVALS_
+    SRSmax_[j] = methfunc(resphist[S:])
+    HIST_[:, :, j] = resphist[S:]
 
 
 def _process_inputs(stype, peak, rolloff, time):
     """Utility routine for srs"""
     coefs = {
-             "absacce": absacce,
-             "relacce": relacce,
-             "reldisp": reldisp,
-             "relvelo": relvelo,
-             "pvelo": pvelo,
-             "pacce": pacce
-            }
+        "absacce": absacce,
+        "relacce": relacce,
+        "reldisp": reldisp,
+        "relvelo": relvelo,
+        "pvelo": pvelo,
+        "pacce": pacce
+    }
     meth = {
-             "pos": _posmeth,
-             "neg": _negmeth,
-             "abs": _absmeth,
-             "rms": _rmsmeth,
-             "poss": _possmeth,
-             "negs": _negsmeth
-           }
+        "pos": _posmeth,
+        "neg": _negmeth,
+        "abs": _absmeth,
+        "rms": _rmsmeth,
+        "poss": _possmeth,
+        "negs": _negsmeth
+    }
     roll = {
-             "fft": fftroll,
-             "lanczos": lanroll,
-             "prefilter": preroll,
-             "linear": linroll,
-             "none": None
-           }
+        "fft": fftroll,
+        "lanczos": lanroll,
+        "prefilter": preroll,
+        "linear": linroll,
+        "none": None
+    }
     ptr = {
-             "primary": 0,
-             "total": 1,
-             "residual": 2
-          }
+        "primary": 0,
+        "total": 1,
+        "residual": 2
+    }
     coeffunc = coefs[stype]
     if isinstance(peak, str):
         methfunc = meth[peak]
@@ -961,7 +966,8 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
                                        maxcpu, getresp)
 
     if parallel == 'yes':
-        # global shared vars will be: SRSmax, WN, HIST, SIG, ICVALS
+        # global shared vars will be:
+        # SRSmax_, WN_, HIST_, SIG_, ICVALS_
         SRSmax = (createSharedArray((LF, H)), (LF, H))
         WN = (copyToSharedArray(wn), wn.shape)
         HIST = (None, None)
@@ -1076,7 +1082,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
 
 def vrs(spec, freq, Q, linear, Fn=None,
         getmiles=False, getresp=False):
-    """
+    r"""
     Vibration response specturm - RMS response of single DOF systems
     to base PSD(s).
 
@@ -1208,7 +1214,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
     array([ 2.69,  4.04,  1.47])
     """
     spec = np.atleast_2d(spec)
-    rp, cp = spec.shape
+    cp = spec.shape[1]
     freq = np.atleast_1d(freq)
     rf = len(freq)
     if Q <= .5:
@@ -1275,7 +1281,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
 
 def srs_frf(frf, frf_frq, srs_frq, Q):
-    """
+    r"""
     Compute SRS from frequency response functions.
 
     Parameters
@@ -1382,7 +1388,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
 
 
 def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
-    """
+    r"""
     Make a shock response spectral map ('waterfall') over time and
     frequency.
 
@@ -1484,6 +1490,6 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
     return dsp.waterfall(sig, sr, timeslice, tsoverlap, srs,
                          which=None, freq=freq,
                          kwargs=dict(sr=sr, freq=freq,
-                                     Q=Q, eqsine=1),
+                                     Q=Q, **srsargs),
                          slicefunc=dsp.windowends,
                          slicekwargs=dict(portion=wep))

@@ -14,15 +14,30 @@ import tkinter.ttk as ttk
 LASTOPENDIR = None
 LASTSAVEDIR = None
 
-__all__ = ['askopenfilename', 'asksaveasfilename', 'MultiColumnListbox']
+__all__ = ['get_file_name',
+           'askopenfilename',
+           'asksaveasfilename',
+           'MultiColumnListbox']
 
 
-def _get_file_name(f, read):
+def get_file_name(f, read):
     """
     Utility function to get the file name using guitools if needed.
 
-    If `f` is not None or is not a directory name, this routine just
-    returns it as is.
+    Parameters
+    ----------
+    f : string or None
+        File name or directory name or None. If `f` is not None or is
+        not a directory name, this routine just returns it as is. If
+        it is a directory name, it is used as the `initialdir` option
+        to :func:`askopenfilename` or :func:`asksaveasfilename`.
+    read : bool
+        If True, calls :func:`askopenfilename` to get file name.
+        Otherwise, :func:`asksaveasfilename` is called.
+
+    Returns
+    -------
+    File name.
     """
     if isinstance(f, str) and os.path.isdir(f):  # pragma: no cover
         initialdir = f
@@ -84,7 +99,8 @@ def askopenfilename(title=None,
         initialdir = LASTOPENDIR
     filename = filedialog.askopenfilename(parent=root,
                                           filetypes=filetypes,
-                                          initialdir=initialdir)
+                                          initialdir=initialdir,
+                                          title=title)
     root.destroy()
     if filename:
         LASTOPENDIR = os.path.dirname(filename)
@@ -138,7 +154,8 @@ def asksaveasfilename(title=None,
         initialdir = LASTSAVEDIR
     filename = filedialog.asksaveasfilename(parent=root,
                                             filetypes=filetypes,
-                                            initialdir=initialdir)
+                                            initialdir=initialdir,
+                                            title=title)
     # self.root.after_idle(self._quit)
     root.destroy()
     if filename:
@@ -261,7 +278,7 @@ class MultiColumnListbox(object):                 # pragma: no cover
                         borderwidth=5)
         # msg.grid(row=0, rowspan=2, column=0, padx=10)
         msg.grid(row=0, column=0, padx=10)
-        
+
         self.casesen = tk.IntVar()
         self.casesen.set(0)
         cbutton = ttk.Checkbutton(
@@ -302,7 +319,7 @@ class MultiColumnListbox(object):                 # pragma: no cover
 
         for i in range(len(self.lists[0])):
             for string, curlist in zip(filtervars,
-                                        self.lists):
+                                       self.lists):
                 if string and not _do_find(curlist[i], string):
                     break
             else:
@@ -336,7 +353,8 @@ class MultiColumnListbox(object):                 # pragma: no cover
     def _build_tree(self):
         for col in self.headers:
             self.tree.heading(col, text=col.title(),
-                command=lambda c=col: _sortby(self.tree, c, 0))
+                              command=lambda c=col:
+                              _sortby(self.tree, c, 0))
             # adjust the column's width to the header string
             # - add 15 pixels for a little buffer
             self.tree.column(

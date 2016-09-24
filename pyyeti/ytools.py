@@ -3,13 +3,12 @@
 Some math and I/O tools. Most are translated from Yeti to Python.
 """
 
-import numpy as np
-import scipy.linalg as linalg
 import pickle
 import gzip
 import bz2
 import sys
-import os
+import numpy as np
+import scipy.linalg as linalg
 from pyyeti import guitools
 
 
@@ -64,7 +63,7 @@ def histogram(data, binsize):
     """
     # use a generator to simplify the work; only yield a bin
     # if it has data:
-    def get_next_bin(data, binsize):
+    def _get_next_bin(data, binsize):
         data = np.atleast_1d(data)
         data = data[np.isfinite(data)]
         mn = data.min()
@@ -80,7 +79,7 @@ def histogram(data, binsize):
                 yield [i*binsize, count]
 
     bins = []
-    for b in get_next_bin(data, binsize):
+    for b in _get_next_bin(data, binsize):
         bins.append(b)
     histo = np.empty((len(bins), 3))
     histo[:, :2] = bins
@@ -225,10 +224,7 @@ def isdiag(A, tol=1e-12):
     d = np.diag(A)
     max_off = abs(np.diag(d) - A).max()
     max_on = abs(d).max()
-    if max_off < tol*max_on:
-        return True
-    else:
-        return False
+    return max_off < tol*max_on
 
 
 def mattype(A, mtype=None):
@@ -372,10 +368,7 @@ def mattype(A, mtype=None):
             if mtype == 'diagonal':
                 return True
             d = np.diag(A)
-            if np.allclose(1, d):
-                return True
-            else:
-                return False
+            return np.allclose(1, d)
         else:
             return False
 
@@ -422,7 +415,7 @@ def diagmat(*args):
     R = C = 0
     dtype = None
     args2d = []
-    for i, arg in enumerate(args):
+    for arg in args:
         if arg is not None:
             arg = np.atleast_2d(arg)
             args2d.append(arg)
@@ -439,7 +432,7 @@ def diagmat(*args):
 
     M = np.zeros((R, C), dtype)
     R = C = 0
-    for i, arg in enumerate(args2d):
+    for arg in args2d:
         r, c = arg.shape
         M[R:R+r, C:C+c] = arg
         R += r
@@ -679,7 +672,7 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
 
         # solve subspace eigenvalue problem:
         mtp = mattype(Mk)[0]
-        if not (mtp & posdef):
+        if not mtp & posdef:
             factor = 1000*eps
             pc = 0
             while 1:
@@ -825,7 +818,7 @@ def rdfile(f, rdfunc, *args, **kwargs):
     >>> s
     'param = 45.300\n'
     """
-    f = guitools._get_file_name(f, read=True)
+    f = guitools.get_file_name(f, read=True)
     if isinstance(f, str):
         with open(f, 'r') as fin:
             return rdfunc(fin, *args, **kwargs)
@@ -867,7 +860,7 @@ def wtfile(f, wtfunc, *args, **kwargs):
     >>> wtfile(1, dowrite, 'param', number=45.3)
     param = 45.300
     """
-    f = guitools._get_file_name(f, read=False)
+    f = guitools.get_file_name(f, read=False)
     if isinstance(f, str):
         with open(f, 'w') as fout:
             return wtfunc(fout, *args, **kwargs)
@@ -879,7 +872,7 @@ def wtfile(f, wtfunc, *args, **kwargs):
 
 def _get_fopen(name, read=True):
     """Utility for save/load"""
-    name = guitools._get_file_name(name, read)
+    name = guitools.get_file_name(name, read)
     if name.endswith('.pgz'):
         fopen = gzip.open
     elif name.endswith('.pbz2'):

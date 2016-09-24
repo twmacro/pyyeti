@@ -3,14 +3,14 @@
 Collection of tools for analysis of Craig-Bampton models.
 """
 
-import numpy as np
 import math
-import scipy.linalg as linalg
-import scipy.sparse.linalg as sp_la
 from collections import abc
 import numbers
 from types import SimpleNamespace
 from warnings import warn
+import numpy as np
+import scipy.linalg as linalg
+import scipy.sparse.linalg as sp_la
 from pyyeti import n2p, locate, ytools, writer, ode
 
 
@@ -684,9 +684,9 @@ def cgmass(m, all6=False):
     dz = m[0, 4]/mx
 
     # compute mass terms that will be subtracted off:
-    Md = np.array([[      0,     mx*dz,    -mz*dy],
-                   [ -my*dz,         0,     my*dx],
-                   [  mz*dy,    -my*dx,         0]])
+    Md = np.array([[     0,     mx*dz,    -mz*dy],
+                   [-my*dz,         0,     my*dx],
+                   [ mz*dy,    -my*dx,         0]])
 
     I = np.array([[mz*dy**2+my*dz**2, -mz*dx*dy, -my*dx*dz],
                   [-mz*dx*dy, mz*dx**2+mx*dz**2, -mx*dy*dz],
@@ -887,7 +887,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     rb_all = n2p.rbgeom_uset(uset, ref)
     bb = np.ix_(bset, bset)
     grfrc = Kcb[bb] @ rb_all
-    if (abs(grfrc).max() > abs(Kcb[bb]).max()*1e-8):
+    if abs(grfrc).max() > abs(Kcb[bb]).max()*1e-8:
         warn('Rigid-body grounding forces need to be checked. '
              'Correct `uset`?', RuntimeWarning)
         print('max grounding forces =\n', abs(grfrc).max(axis=0))
@@ -1037,9 +1037,8 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     headers = ['X', 'Y', 'Z']
     widths = [10, 10, 10]
     formats = ['{:10.4f}']*3
-    sep = 2
     hu, f = writer.formheader(headers, widths, formats,
-                              sep=sep, just=0)
+                              sep=2, just=0)
     hu = ''.join([' '*11+i+'\n' for i in hu.rstrip().split('\n')])
     fout.write(hu)
     if np.all(np.isnan(coords[:, 0])):
@@ -1050,7 +1049,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         writer.vecwrite(fout, '  Minimums:'+f, mn)
         writer.vecwrite(fout, '  Maximums:'+f, mx)
 
-    def pf(s):
+    def _pf(s):
         return s.replace(' nan,        nan,        nan         nan',
                          '    ,           ,                       ')
 
@@ -1093,7 +1092,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     fout.write(hu)
     if prtnullrows or np.all(nonnr):
         writer.vecwrite(fout, f, r, labels, coords, scales, drmrb,
-                        postfunc=pf)
+                        postfunc=_pf)
     else:
         if np.all(nr):
             fout.write('All rows in {} are NULL.\n'.format(name))
@@ -1101,7 +1100,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
             lbls = np.array(labels)
             writer.vecwrite(fout, f, r[nonnr], lbls[nonnr],
                             coords[nonnr], scales[nonnr],
-                            drmrb[nonnr], postfunc=pf)
+                            drmrb[nonnr], postfunc=_pf)
 
     fout.write('\nAbsolute Maximums from {} * RB results:\n'.
                format(name))
@@ -1118,7 +1117,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         jk = j[k]
         writer.vecwrite(fout, f, r[jk], labels[jk],
                         coords[jk:jk+1], scales[jk:jk+1],
-                        drmrb[jk:jk+1], postfunc=pf)
+                        drmrb[jk:jk+1], postfunc=_pf)
 
     # null row check:
     nr = np.nonzero(nr)[0]
@@ -1296,7 +1295,7 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     There are no NULL rows in ATM.
     """
     rb = np.atleast_2d(rb)
-    r, c = np.shape(rb)
+    c = np.shape(rb)[1]
     if c != 6:
         raise ValueError('`rb` does not have 6 columns')
     return ytools.wtfile(f, _rbmultchk, drm, name, rb, labels, drm2,
@@ -1598,7 +1597,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     if (lb // 6) * 6 != lb:
         raise ValueError('b-set not a multiple of 6.')
 
-    if 6 != len(refpoint):
+    if len(refpoint) != 6:
         raise ValueError('reference point must have length of 6.')
 
     kbb = K[np.ix_(bset, bset)]
@@ -1746,8 +1745,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         rb_normalizer = rbg[bref]
         ttl = ('Stiffness-based coordinates relative to `uref` '
                'because of normalization (`rb_norm`):\n '
-               ' (Note: locations are in basic coordinate system.)\n'
-               .format(bref[0]+1))
+               ' (Note: locations are in basic coordinate system.)\n')
     else:
         rb_normalizer = None
         ttl = ('Stiffness-based coordinates relative to node starting'
@@ -1859,19 +1857,19 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
 
     fout.write('MASS PROPERTIES CHECKS:\n\n')
 
-    def wrtmass(fout, mass, rbtype):
+    def _wrtmass(fout, mass, rbtype):
         fout.write('6x6 mass matrix from {}-based rb modes:\n\n'.
                    format(rbtype))
         writer.vecwrite(fout, '\t{:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}'
                         '  {:12.4f}  {:12.4f}\n', mass)
         fout.write('\n\n')
-    wrtmass(fout, ms, 'stiffness')
-    wrtmass(fout, mg, 'geometry')
-    wrtmass(fout, me, 'eigensolution')
+    _wrtmass(fout, ms, 'stiffness')
+    _wrtmass(fout, mg, 'geometry')
+    _wrtmass(fout, me, 'eigensolution')
 
     fout.write('Comparisons from mass properties:\n')
 
-    def wrtdist(fout, ds, dg, de, ttl, use123=False):
+    def _wrtdist(fout, ds, dg, de, ttl, use123=False):
         fout.write(ttl)
         if use123:
             fout.write('\t\tRB-Mode from                    1'
@@ -1889,16 +1887,16 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                    '{:14.6f}  {:14.6f}\n'.format(*de))
     ttl = ('\n\tDistance to CG location from relevant reference '
            'point:\n\n')
-    wrtdist(fout, ds, dg, de, ttl)
+    _wrtdist(fout, ds, dg, de, ttl)
     ttl = ('\n\n\tRadius of gyration about X, Y, Z axes '
            '(from CG):\n\n')
-    wrtdist(fout, gyr_s, gyr_g, gyr_e, ttl)
+    _wrtdist(fout, gyr_s, gyr_g, gyr_e, ttl)
     ttl = ('\n\tRadius of gyration about principal axes '
            '(from CG):\n\n')
-    wrtdist(fout, pgyr_s, pgyr_g, pgyr_e, ttl, use123=True)
+    _wrtdist(fout, pgyr_s, pgyr_g, pgyr_e, ttl, use123=True)
     fout.write('\n\n')
 
-    def wrtinertia(fout, I, Ip, rbtype):
+    def _wrtinertia(fout, I, Ip, rbtype):
         fout.write('{}-based Inertia Matrix @ CG about X,Y,Z:\n\n'.
                    format(rbtype.capitalize()))
         writer.vecwrite(fout, '\t\t{:12.4f}  {:12.4f}  {:12.4f}\n',
@@ -1908,13 +1906,13 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         fout.write('\t\t{:12.4f}  {:12.4f}  {:12.4f}\n'.
                    format(*np.sort(np.diag(Ip))))
         fout.write('\n\n')
-    wrtinertia(fout, I_s, Ip_s, 'stiffness')
-    wrtinertia(fout, I_g, Ip_g, 'geometry')
-    wrtinertia(fout, I_e, Ip_e, 'eigensolution')
+    _wrtinertia(fout, I_s, Ip_s, 'stiffness')
+    _wrtinertia(fout, I_g, Ip_g, 'geometry')
+    _wrtinertia(fout, I_e, Ip_e, 'eigensolution')
 
     fout.write('GROUNDING CHECKS:\n\n')
 
-    def wrtground(fout, uset, rbf, rbfsumm, rbtype):
+    def _wrtground(fout, uset, rbf, rbfsumm, rbtype):
         fout.write('                            K*RB using {}-'
                    'based rb modes:\n'.format(rbtype))
         fout.write('DOF                    X           Y           Z '
@@ -1940,9 +1938,9 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     rbfg = kbb @ rbg
     rbfe = k @ rbe
 
-    wrtground(fout, uset, rbfs, rbs.T @ rbfs, 'stiffness')
-    wrtground(fout, uset, rbfg, rbg.T @ rbfg, 'geometry')
-    wrtground(fout, uset, rbfe, rbe.T @ rbfe, 'eigensolution')
+    _wrtground(fout, uset, rbfs, rbs.T @ rbfs, 'stiffness')
+    _wrtground(fout, uset, rbfg, rbg.T @ rbfg, 'geometry')
+    _wrtground(fout, uset, rbfe, rbe.T @ rbfe, 'eigensolution')
 
     # free-free modes:
     fout.write('FREE-FREE MODES:\n\n')
@@ -1987,7 +1985,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
 
 
 def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
-            uref=[0, 0, 0], conv=None, em_filt=0, rb_norm=None,
+            uref=(0, 0, 0), conv=None, em_filt=0, rb_norm=None,
             reorder=True):
     """
     Run model checks on Craig-Bampton mass and stiffness matrices.
@@ -2024,7 +2022,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
-    uref : integer or array; optional
+    uref : integer or array_like; optional
         Defines reference for geometry-based rigid-body modes in a
         format compatible with :func:`n2p.rbgeom_uset`: either an
         integer grid id defined in `uset`, or a 3-element vector

@@ -3,14 +3,14 @@
 Power spectral density tools.
 """
 
+from warnings import warn
 import numpy as np
 import scipy.signal as signal
 from scipy.interpolate import interp1d
 from pyyeti import dsp
-from warnings import warn
 
 
-def get_freq_oct(n, frange=[1., 10000.], exact=False, trim='band',
+def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='band',
                  anchor=None):
     r"""
     Get frequency vector on an octave scale.
@@ -311,7 +311,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
     F = np.atleast_1d(F)
     P = np.atleast_1d(P)
 
-    def get_fl_fu(fcenter):
+    def _get_fl_fu(fcenter):
         Df = np.diff(fcenter)
         if np.all(Df == Df[0]):
             # linear scale
@@ -331,7 +331,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
         Wctr, FL, FU = get_freq_oct(n_oct, F, exact=True)
     else:
         freq = np.atleast_1d(freq)
-        FL, FU = get_fl_fu(freq)
+        FL, FU = _get_fl_fu(freq)
         Nmax = np.max(np.nonzero(FL <= F[-1])[0]) + 1
         Nmin = np.min(np.nonzero(FU >= F[0])[0])
         Wctr = freq[Nmin:Nmax]
@@ -354,7 +354,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
         FUin = F + Df[0]/2
     else:
         # not linear, assume log
-        FLin, FUin = get_fl_fu(F)
+        FLin, FUin = _get_fl_fu(F)
 
     Df = (FUin - FLin).reshape(-1, 1)
     ca = np.vstack((np.zeros((1, cols)), np.cumsum(Df*P, axis=0)))

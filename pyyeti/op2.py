@@ -6,11 +6,11 @@ Converted from the Yeti version.
 Can read files in big or little endian format.
 """
 
-import numpy as np
 import sys
 import os
 import struct
 import warnings
+import numpy as np
 from pyyeti import n2p, op4, guitools
 
 
@@ -140,7 +140,7 @@ class OP2(object):
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type_, value, traceback):
         if self._fileh:
             self._fileh.close()
             self._fileh = None
@@ -150,29 +150,29 @@ class OP2(object):
     def CodeFuncs(self):
         """See :func:`_check_code`."""
         if self._CodeFuncs is None:
-            def func1(item_code):
+            def _func1(item_code):
                 if item_code // 1000 in [2, 3, 6]:
                     return 2
                 return 1
 
-            def func2(item_code):
+            def _func2(item_code):
                 return item_code % 100
 
-            def func3(item_code):
+            def _func3(item_code):
                 return item_code % 1000
 
-            def func4(item_code):
+            def _func4(item_code):
                 return item_code // 10
 
-            def func5(item_code):
+            def _func5(item_code):
                 return item_code % 10
 
-            def func6(item_code):
+            def _func6(item_code):
                 if item_code & 8:
                     return 0
                 return 1
 
-            def func7(item_code):
+            def _func7(item_code):
                 v = item_code // 1000
                 if v in [0, 2]:
                     return 0
@@ -180,12 +180,12 @@ class OP2(object):
                     return 1
                 return 2
 
-            def funcbig(func_code, item_code):
+            def _funcbig(func_code, item_code):
                 return item_code & (func_code & 65535)
 
-            self._CodeFuncs = {1: func1, 2: func2, 3: func3, 4: func4,
-                               5: func5, 6: func6, 7: func7,
-                               'big': funcbig}
+            self._CodeFuncs = {1: _func1, 2: _func2, 3: _func3,
+                               4: _func4, 5: _func5, 6: _func6,
+                               7: _func7, 'big': _funcbig}
         return self._CodeFuncs
 
     def _op2open(self, filename):
@@ -328,7 +328,7 @@ class OP2(object):
         Returns a valid variable name from the byte string `bstr`.
         """
         return ''.join(chr(c) for c in bstr if (
-              47 < c < 58 or 64 < c < 91 or c == 95 or 96 < c < 123))
+            47 < c < 58 or 64 < c < 91 or c == 95 or 96 < c < 123))
 
     def _rdop2eot(self):
         """
@@ -915,9 +915,9 @@ class OP2(object):
             the start of the next block.
         """
         dbdir = self.dbnames[name]
-        for i in range(len(dbdir)):
-            start = dbdir[i][0][0]
-            stop = dbdir[i][0][1]
+        for dbdiri in dbdir:
+            start = dbdiri[0][0]
+            stop = dbdiri[0][1]
             if start <= pos < stop:
                 return start, stop
 
@@ -1281,7 +1281,7 @@ class OP2(object):
         """
         uset = self.rdop2record('uint')
         # clear the 2nd bit for all S-set:
-        sset = 0 != (uset & n2p.mkusetmask("s"))
+        sset = (uset & n2p.mkusetmask("s")) != 0
         if any(sset):
             uset[sset] = uset[sset] & ~2
         self._rdop2eot()
@@ -1396,7 +1396,6 @@ class OP2(object):
         if uset is None:
             warnings.warn('uset information not found.  Putting all '
                           'DOF in b-set.', RuntimeWarning)
-            from pyyeti import n2p
             b = n2p.mkusetmask('b')
             uset = np.zeros(len(doflist), int) + b
         uset = np.hstack((np.vstack((idlist, doflist, uset)).T,
@@ -1592,7 +1591,7 @@ class OP2(object):
         # type for each mode.
         # This routine assumes all values are written, even the zeros.
 
-        def _getdrm(pos, e, s, nwords, eids, etypes, ibytes):
+        def _getdrm(pos, e, s, eids, etypes, ibytes):
             bytes_per_col = pos - s
             nrows = len(eids)
             ncols = (e - s) // bytes_per_col
@@ -1641,7 +1640,7 @@ class OP2(object):
                 data = data.reshape(-1, nwords).T
                 if drm is None:
                     drm, elem_info = _getdrm(
-                        pos, e, s, nwords, eids, etypes, self._ibytes)
+                        pos, e, s, eids, etypes, self._ibytes)
                     drm[:, mode-2] = column
                 n = (nwords-1) * data.shape[1]
                 drm[r:r+n, mode-1] = data[1:].T.ravel()
@@ -1944,7 +1943,7 @@ class OP2(object):
 
 def _get_op2_op4(op2file, op4file):
     if op2file is None:        # pragma: no cover
-        op2file = guitools._get_file_name(None, read=True)
+        op2file = guitools.get_file_name(None, read=True)
     elif not os.path.exists(op2file):
         op2file = op2file+'.op2'
     if not op4file:
@@ -2873,7 +2872,7 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
         present.
     """
     # read op2 file:
-    op2file = guitools._get_file_name(op2file, read=True)
+    op2file = guitools.get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
         mats = {}
         selist = uset = cstm2 = sebulk = None

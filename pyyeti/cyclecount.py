@@ -3,10 +3,10 @@
 Tools for cycle counting. Adapted and enhanced from the Yeti version.
 """
 
+import warnings
 import numpy as np
 import pandas as pd
 from pyyeti import locate
-import warnings
 
 try:
     import pyyeti.rainflow.c_rain as rain
@@ -368,27 +368,27 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
     f = '{:.'+str(precision)+'f}'
     f = f+', '+f
     if right:
-        def inbin(v, low, upp):
+        def _inbin(v, low, upp):
             return np.logical_and(v > low, v <= upp)
         form = '(' + f + ']'
     else:
-        def inbin(v, low, upp):
+        def _inbin(v, low, upp):
             return np.logical_and(v >= low, v < upp)
         form = '[' + f + ')'
     for i in range(len(aveb)-1):
-        rows = inbin(rf['mean'], aveb[i], aveb[i+1])
+        rows = _inbin(rf['mean'], aveb[i], aveb[i+1])
         if np.any(rows):
             rfrows = rf[rows]
             for j in range(len(ampb)-1):
-                pv = inbin(rfrows['amp'], ampb[j], ampb[j+1])
+                pv = _inbin(rfrows['amp'], ampb[j], ampb[j+1])
                 if np.any(pv):
                     table[i, j] = np.sum(rfrows['count'][pv])
 
-    def getlabels(bins):
+    def _getlabels(bins):
         return [form.format(i, j)
                 for i, j in zip(bins[:-1], bins[1:])]
-    index = getlabels(aveb)
-    columns = getlabels(ampb)
+    index = _getlabels(aveb)
+    columns = _getlabels(ampb)
     df = pd.DataFrame(table, index=index, columns=columns)
     df.columns.name = 'Amp'
     df.index.name = 'Mean'

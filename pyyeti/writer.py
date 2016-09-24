@@ -162,22 +162,22 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
      5, ===a bit longer string=== :    10.1    10.2    10.30
 
     """
-    def get_scalar(a, i): return [a]
-    def get_scalar1(a, i): return [a[0]]
-    def get_itemi(a, i): return [a[i]]
-    def get_matrow(a, i): return a[i]
+    def _get_scalar(a, i): return [a]
+    def _get_scalar1(a, i): return [a[0]]
+    def _get_itemi(a, i): return [a[i]]
+    def _get_matrow(a, i): return a[i]
     length = 1
     fncs = []
     for i, arg in enumerate(args):
         if not isinstance(arg, str) and hasattr(arg, '__len__'):
             if np.ndim(arg) == 2:
-                fncs.append(get_matrow)
+                fncs.append(_get_matrow)
                 curlen = np.size(arg, 0)
             elif len(arg) == 1:
-                fncs.append(get_scalar1)
+                fncs.append(_get_scalar1)
                 curlen = 1
             else:
-                fncs.append(get_itemi)
+                fncs.append(_get_itemi)
                 curlen = len(arg)
             if curlen > 1:
                 if length > 1:
@@ -194,13 +194,13 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
                         raise ValueError(msg)
                 length = curlen
         else:
-            fncs.append(get_scalar)
+            fncs.append(_get_scalar)
     ytools.wtfile(f, _vecwrite, string, length, args, fncs,
                   postfunc, pfargs, so)
 
 
 def formheader(headers, widths, formats,
-               sep=[0, 2], just=-1, ulchar='-'):
+               sep=(0, 2), just=-1, ulchar='-'):
     """
     Form a nice table header for formatted output via f.write().
 
@@ -290,7 +290,7 @@ def formheader(headers, widths, formats,
         mxlengths = np.array([len(s) for s in headers])
         length = len(headers)
 
-    if not (length == len(formats) == len(widths)):
+    if not length == len(formats) == len(widths):
         s = ''
         if isinstance(headers[0], (list, tuple)):
             s = '[*]'

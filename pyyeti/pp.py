@@ -2,8 +2,8 @@
 """
 A pretty printer.
 """
-import numpy as np
 import collections
+import numpy as np
 import h5py
 
 
@@ -253,7 +253,7 @@ class PP(object):
             if isinstance(var, collections.Mapping):
                 s = self._dict_string(var, level, typename=typename)
             elif (hasattr(var, '__dict__') and
-                    not hasattr(var, 'keys')):
+                  not hasattr(var, 'keys')):
                 s = self._dict_string(var.__dict__, level,
                                       typename=typename, isns=True,
                                       showhidden=self._show_hidden)

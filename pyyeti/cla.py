@@ -3,12 +3,7 @@
 Collection of tools used for CLA - coupled loads analysis
 """
 
-import numpy as np
-import scipy.linalg as la
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 import itertools
-import pandas as pd
 import importlib
 import os
 import sys
@@ -22,6 +17,11 @@ from collections import abc, OrderedDict
 from io import StringIO
 from types import SimpleNamespace
 from warnings import warn
+import numpy as np
+import scipy.linalg as la
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+import pandas as pd
 import xlsxwriter
 from pyyeti import ytools, locate, srs, n2p, writer, ode
 from pyyeti.ytools import save, load
@@ -48,7 +48,8 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
     symbols : iterable or None; optional
         Plot marker iterable (eg: string, list, tuple) that specifies
         the marker for each column. Values in `symbols` are reused if
-        necessary. If None, :func:`get_marker_cycle` is used.
+        necessary. For example, ``symbols = 'ov^'``. If None,
+        :func:`get_marker_cycle` is used to get the symbols.
 
     Returns
     -------
@@ -87,7 +88,8 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         M1, M2, Ref = np.atleast_1d(M1, M2, Ref)
 
     if M1.shape != M2.shape or M1.shape != Ref.shape:
-        raise ValueError('`M1`, `M2` and `Ref` must all have the same shape')
+        raise ValueError('`M1`, `M2` and `Ref` must all have the'
+                         ' same shape')
 
     def _get_next_pds(M1, M2, Ref, ismax):
         def _getpds(m1, m2, ref, ismax):
@@ -109,7 +111,10 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
             for c in range(M1.shape[1]):
                 yield _getpds(M1[:, c], M2[:, c], Ref[:, c], ismax)
 
-    marker = get_marker_cycle()
+    if symbols:
+        marker = itertools.cycle(symbols)
+    else:
+        marker = get_marker_cycle()
     pds = []
     for curpd, ref in _get_next_pds(M1, M2, Ref, ismax):
         pds.append(curpd)
@@ -3291,64 +3296,6 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         del drmres.tmp
 
 
-#def PSD_nonconsistent_rss(resp,xr,yr,freq,forcepsd,drmres,case,i,ar,rssfactor,afactor):
-#    """For PSD analysis, compute NON - 'time-correlated' RSS + addon:  rssfactor.*RSS(xr,yr) + afactor.*ar
-#
-#This routine only exists as a easy way to do non-consistent RSS'ing using the same
-#call format as for the consistent RSS'ing routine.  Otherwise, works just like PSD_consistent_rss().
-#"""
-#    % drmres is a record:  drmres = results[drm]
-#    % i is psd force number
-#    F = forcepsd(i,:)
-#    drmres.psd[case] += F .* abs(resp)**2  % for the normal, non-rss rows ... and creating space
-#    N = size(forcepsd,1)
-#    if !locate(names(drmres),'xresp'):
-#        drmres.xresp = 0
-#        drmres.yresp = 0
-#        if ar:  drmres.aresp = 0
-#    drmres.xresp += F .* abs(resp(xr,:))**2
-#    drmres.yresp += F .* abs(resp(yr,:))**2
-#    if ar:  drmres.aresp += F .* abs(resp(ar,:))**2
-#
-#    if i == N:
-#        if ar:  resp = rssfactor .* sqrt(drmres.xresp**2 + drmres.yresp**2) + afactor.*drmres.aresp
-#        else:   resp = sqrt(drmres.xresp**2 + drmres.yresp**2)
-#        % to delete 'extra' info from the results record:
-#        del(drmres,['xresp','yresp','aresp'])
-#        return resp
-
-
-#def expand_results(results,bynum):
-#    """Expands results so more cases can be added efficiently
-#
-#Parameters
-#----------
-#  results = results dictionary as described in form_extreme; results[key] must be the
-#            data recovery items (eg, results['SC_atm'])
-#  bynum   = number of cases to add room for in results
-#
-#Expands:  results[drm].mx, .mn, mxt, .mintime, .cases, .hist, .PSD, .FRF, .srs members.
-#"""
-#    DRNames = keys(results)
-#    for name in DRNames:
-#        r = results[name]
-#        if !locate(names(r),'mx'):
-#            prterr.error('expand_results:  results inputs does not have member .mx\n')
-#        old = size(r.mx,2)
-#        n = old+bynum
-#        r.mx(1,n)=0
-#        r.mn(1,n)=0
-#        r.maxtime(1,n)=0
-#        r.mintime(1,n)=0
-#        r.cases(n) = []
-#        if locate(names(r),'hist'):  r.hist(1,1,n) = 0
-#        if locate(names(r),'PSD'):  r.PSD(1,1,n) = 0
-#        if locate(names(r),'FRF'):  r.FRF(1,1,n) = 0
-#        if locate(names(r),'srs'):
-#            for q in keys(r.srs):  r.srs.srs[q](1,1,n) = 0
-#    return [old+1,n]
-
-
 def _get_rpt_headers(res=None, desc=None, uf_reds=None,
                      units=None, misc=''):
     if res is not None:
@@ -4458,7 +4405,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                             (maxhdr, minhdr, absmhdr)):
             if lbl in pctinfo:
                 f.write(_get_histogram_str(
-                        desc, hdr, pctinfo[lbl]['hsto']))
+                    desc, hdr, pctinfo[lbl]['hsto']))
 
     ytools.wtfile(filename, _wtcmp, header, hu, frm,
                   printargs, perpage, prtpv, pctinfo, desc)
@@ -4712,7 +4659,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                        fontsize='small',
                        framealpha=0.5,
                        # labelspacing=legspace*.9,
-                       )
+                      )
             if sub == cols:
                 adjust4legend.append(leg)
                 adjust4legend.append(lbllen)

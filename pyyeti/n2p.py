@@ -9,11 +9,11 @@ data recovery matrices, make partition vectors based on sets, form
 RBE3-like interpolation matrices, etc.
 """
 
-import scipy.linalg as linalg
-import numpy as np
 import math
 import sys
 import warnings
+import numpy as np
+import scipy.linalg as linalg
 from pyyeti import locate
 
 
@@ -68,11 +68,11 @@ def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
         grids = grids - refpoint
     rbmodes = np.zeros((r*6, 6))
     rbmodes[1::6, 3] = -grids[:, 2]
-    rbmodes[2::6, 3] =  grids[:, 1]
-    rbmodes[::6, 4]  =  grids[:, 2]
+    rbmodes[2::6, 3] = grids[:, 1]
+    rbmodes[::6, 4] = grids[:, 2]
     rbmodes[2::6, 4] = -grids[:, 0]
-    rbmodes[::6, 5]  = -grids[:, 1]
-    rbmodes[1::6, 5] =  grids[:, 0]
+    rbmodes[::6, 5] = -grids[:, 1]
+    rbmodes[1::6, 5] = grids[:, 0]
     for i in range(6):
         rbmodes[i::6, i] = 1.
     return rbmodes
@@ -466,7 +466,7 @@ def expanddof(dof):
 
 
 def mkusetmask(nasset=None):
-    """
+    r"""
     Get bit-masks for use with the Nastran USET table.
 
     Parameters
@@ -571,15 +571,15 @@ def mkusetmask(nasset=None):
     if isinstance(nasset, str):
         sets = nasset.split('+')
         usetmask1 = 0
-        for i in range(len(sets)):
-            usetmask1 = usetmask1 | usetmask[sets[i]]
+        for set_ in sets:
+            usetmask1 = usetmask1 | usetmask[set_]
         return usetmask1
     return usetmask
 
 
 def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
             form=0, perpage=float('inf')):
-    """
+    r"""
     Print Nastran DOF set membership information from USET table.
 
     Parameters
@@ -743,30 +743,30 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     """
     usetmask = mkusetmask()
     dof = uset[:, 2:3].astype(np.int64)
-    table = 0 != np.hstack((dof & usetmask["m"],
-                            dof & usetmask["s"],
-                            dof & usetmask["o"],
-                            dof & usetmask["q"],
-                            dof & usetmask["r"],
-                            dof & usetmask["c"],
-                            dof & usetmask["b"],
-                            dof & usetmask["e"],
-                            dof & usetmask["l"],
-                            dof & usetmask["t"],
-                            dof & usetmask["a"],
-                            dof & usetmask["d"],
-                            dof & usetmask["f"],
-                            dof & usetmask["fe"],
-                            dof & usetmask["n"],
-                            dof & usetmask["ne"],
-                            dof & usetmask["g"],
-                            dof & usetmask["p"],
-                            dof & usetmask["u1"],
-                            dof & usetmask["u2"],
-                            dof & usetmask["u3"],
-                            dof & usetmask["u4"],
-                            dof & usetmask["u5"],
-                            dof & usetmask["u6"]))
+    table = np.hstack((dof & usetmask["m"],
+                       dof & usetmask["s"],
+                       dof & usetmask["o"],
+                       dof & usetmask["q"],
+                       dof & usetmask["r"],
+                       dof & usetmask["c"],
+                       dof & usetmask["b"],
+                       dof & usetmask["e"],
+                       dof & usetmask["l"],
+                       dof & usetmask["t"],
+                       dof & usetmask["a"],
+                       dof & usetmask["d"],
+                       dof & usetmask["f"],
+                       dof & usetmask["fe"],
+                       dof & usetmask["n"],
+                       dof & usetmask["ne"],
+                       dof & usetmask["g"],
+                       dof & usetmask["p"],
+                       dof & usetmask["u1"],
+                       dof & usetmask["u2"],
+                       dof & usetmask["u3"],
+                       dof & usetmask["u4"],
+                       dof & usetmask["u5"],
+                       dof & usetmask["u6"])) != 0
 
     # replace True's with set membership number:  1 to ?
     table = table.astype(np.int64)
@@ -815,7 +815,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
         curlines = 0
         printed = np.zeros((nsets), dtype=np.int64)
 
-        def pager():
+        def _pager():
             # nonlocal curlines
             if curlines >= perpage:
                 f.write(chr(12))
@@ -859,7 +859,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
                 if full_rows:
                     usetfr = uset_mod[:full_rows*10]
                     for j in range(full_rows):
-                        curlines = pager()
+                        curlines = _pager()
                         f.write('{:6d}='.format(count))
                         for k in range(10):
                             r = j*10+k
@@ -869,7 +869,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
                         curlines += 1
                         count += 10
                 if rem:
-                    curlines = pager()
+                    curlines = _pager()
                     uset_rem = uset_mod[-rem:].astype(np.int64)
                     f.write('{:6d}='.format(count))
                     for j in range(rem):
@@ -941,7 +941,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
 
 
 def mksetpv(uset, major, minor):
-    """
+    r"""
     Make a set partition vector from a Nastran USET table.
 
     Parameters
@@ -1025,8 +1025,8 @@ def mksetpv(uset, major, minor):
     if isinstance(minor, str):
         minor = mkusetmask(minor)
     uset_set = uset[:, 2].astype(np.int64)
-    pvmajor = 0 != (uset_set & major)
-    pvminor = 0 != (uset_set & minor)
+    pvmajor = (uset_set & major) != 0
+    pvminor = (uset_set & minor) != 0
     if np.any(~pvmajor & pvminor):
         raise ValueError("`minorset` is not completely contained"
                          "in `majorset`")
@@ -1247,7 +1247,7 @@ def coordcardinfo(uset, cid=None):
                              'has no grids?'.format(cid))
         return {}
 
-    def getlist(coordinfo):
+    def _getlist(coordinfo):
         A = coordinfo[1]
         # transpose so T transforms from basic to local:
         T = coordinfo[2:].T
@@ -1265,7 +1265,7 @@ def coordcardinfo(uset, cid=None):
         pv2 = pv2[0]
         r = pv[pv2]
         coordinfo = uset[r:r+5, 3:]
-        return getlist(coordinfo)
+        return _getlist(coordinfo)
 
     CI = {}
     pv2 = (uset[pv, 3] > 0).nonzero()[0]
@@ -1277,7 +1277,7 @@ def coordcardinfo(uset, cid=None):
         pv2 = (uset[pv, 3] == cid).nonzero()[0][0]
         r = pv[pv2]
         coordinfo = uset[r:r+5, 3:]
-        CI[cid] = getlist(coordinfo)
+        CI[cid] = _getlist(coordinfo)
     return CI
 
 
@@ -1906,7 +1906,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
     if coordref is None:
         coordref = {0: np.vstack((np.array([[0, 1, 0], [0., 0., 0.]]),
-                                 np.eye(3)))}
+                                  np.eye(3)))}
     else:
         try:
             coordref[0]
@@ -2755,7 +2755,7 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
         usetup = nas['uset'][seup]
         usetdn = nas['uset'][sedown]
         tqup = upasetpv(nas, seup)
-        ulvs1, outdof = formtran(nas, sedown, usetdn[tqup, :2], gset)
+        ulvs1 = formtran(nas, sedown, usetdn[tqup, :2], gset)[0]
         # get rid of c-set if required
         if not keepcset:
             noncrows = np.logical_not(mksetpv(usetup, "a", "c"))

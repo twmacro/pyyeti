@@ -4,26 +4,32 @@ Tools for calculating the fatigue damage equivalent PSD. Adapted and
 enhanced from the CAM versions.
 """
 
+from types import SimpleNamespace
+import itertools as it
+import multiprocessing as mp
 import numpy as np
 import scipy.signal as signal
 from pyyeti import cyclecount
 from pyyeti import srs
-from types import SimpleNamespace
-import itertools as it
-import multiprocessing as mp
 
+
+WN_ = None
+SIG_ = None
+ASV_ = None
+BinAmps_ = None
+Count_ = None
 
 def _to_np_array(sh_arr):
     return np.frombuffer(sh_arr[0]).reshape(sh_arr[1])
 
 
-def _mk_par_globals(wn, sig, avs, binamps, count):
-    global WN, SIG, ASV, BinAmps, Count
-    WN = _to_np_array(wn)
-    SIG = _to_np_array(sig)
-    ASV = _to_np_array(avs)
-    BinAmps = _to_np_array(binamps)
-    Count = _to_np_array(count)
+def _mk_par_globals(wn, sig, asv, binamps, count):
+    global WN_, SIG_, ASV_, BinAmps_, Count_
+    WN_ = _to_np_array(wn)
+    SIG_ = _to_np_array(sig)
+    ASV_ = _to_np_array(asv)
+    BinAmps_ = _to_np_array(binamps)
+    Count_ = _to_np_array(count)
 
 
 def _dofde(args):
@@ -31,11 +37,11 @@ def _dofde(args):
     (j, (coeffunc, Q, dT, verbose)) = args
     if verbose:
         print('Processing frequency {:8.2f} Hz'.
-              format(WN[j]/2/np.pi), end='\r')
-    b, a = coeffunc(Q, dT, WN[j])
-    resphist = signal.lfilter(b, a, SIG)
-    ASV[1, j] = abs(resphist).max()
-    ASV[2, j] = np.var(resphist)
+              format(WN_[j]/2/np.pi), end='\r')
+    b, a = coeffunc(Q, dT, WN_[j])
+    resphist = signal.lfilter(b, a, SIG_)
+    ASV_[1, j] = abs(resphist).max()
+    ASV_[2, j] = np.var(resphist)
 
     # use rainflow to count cycles:
     ind = cyclecount.findap(resphist)
@@ -43,13 +49,13 @@ def _dofde(args):
 
     amp = rf['amp']
     count = rf['count']
-    ASV[0, j] = amp.max()
-    BinAmps[j] *= ASV[0, j]
+    ASV_[0, j] = amp.max()
+    BinAmps_[j] *= ASV_[0, j]
 
     # cumulative bin count:
-    for jj in range(BinAmps.shape[1]):
-        pv = amp >= BinAmps[j, jj]
-        Count[j, jj] = np.sum(count[pv])
+    for jj in range(BinAmps_.shape[1]):
+        pv = amp >= BinAmps_[j, jj]
+        Count_[j, jj] = np.sum(count[pv])
 
 
 def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,

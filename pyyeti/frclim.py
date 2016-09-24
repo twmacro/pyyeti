@@ -3,14 +3,14 @@
 Tools for force limiting.
 """
 
+from types import SimpleNamespace
 import numpy as np
 import scipy.linalg as la
 from scipy.optimize import minimize_scalar
-from types import SimpleNamespace
 from pyyeti import cb, ode
 
 
-def calcAM(S, freq, name="structure"):
+def calcAM(S, freq):
     """
     Calculate apparent mass
 
@@ -23,8 +23,6 @@ def calcAM(S, freq, name="structure"):
         below.
     freq : 1d array_like
         Frequency vector (Hz)
-    name : string; optional
-        Name of structure; only used for error message.
 
     Returns
     -------
@@ -92,7 +90,7 @@ def calcAM(S, freq, name="structure"):
 
 
 def ntfl(Source, Load, As, freq):
-    """
+    r"""
     Norton Thevenin Force Limit
 
     Parameters
@@ -383,19 +381,19 @@ def ntfl(Source, Load, As, freq):
     """
     # Calculate apparent masses:
     if isinstance(Source, (list, tuple)):
-        SAM = calcAM(Source, freq, 'Source')
+        SAM = calcAM(Source, freq)
     else:
         SAM = Source
 
     if isinstance(Load, (list, tuple)):
-        LAM = calcAM(Load, freq, 'Load')
+        LAM = calcAM(Load, freq)
     else:
         LAM = Load
 
     TAM = SAM + LAM
 
     # Application of Norton-Thevenin equations
-    r, c, d = SAM.shape
+    r, c, _ = SAM.shape
     R = np.empty((r, c), dtype=complex)
     A = np.empty((r, c), dtype=complex)
     F = np.empty((r, c), dtype=complex)
@@ -465,7 +463,7 @@ def sefl(c, f, f0):
 
 
 def stdfs(mr, Q):
-    """
+    r"""
     Compute the normalized force limit for simple 2-DOF system.
 
     Parameters
@@ -579,8 +577,8 @@ def stdfs(mr, Q):
     return ifforce/spec_level/m2
 
 
-def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
-    """
+def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
+    r"""
     Compute the normalized force limit for complex 2-DOF system.
 
     Parameters
@@ -776,8 +774,8 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
     return nfl, nw2
 
 
-def ctdfs(mmr1, mmr2, rmr, Q, wr=[1/np.sqrt(2), np.sqrt(2)]):
-    """
+def ctdfs(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
+    r"""
     Compute the normalized force limit for complex 2-DOF system.
 
     Parameters

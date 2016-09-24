@@ -89,7 +89,32 @@ def test_rdtabled1():
     assert np.allclose(dct[1][:, 0], t)
     assert np.allclose(dct[1][:, 1], d)
 
-    
+
+def test_rdtabled1_2():
+    tab = """newname,    1
+  , 0.39700, 0.00066, 0.39708, 0.00064, 0.39717, 0.00062, 0.39725, 0.00059,
+  , 0.39733, 0.00057, 0.39742, 0.00054, 0.39750, 0.00051, 0.39758, 0.00048,
+  , 0.39767, 0.00046, 0.39775, 0.00043, 0.39783, 0.00040, 0.39792, 0.00037,
+  , 0.39800, 0.00035, 0.39808, 0.00032, 0.39817, 0.00030, 0.39825, 0.00027,
+  , 0.39833, 0.00025, 0.39842, 0.00022, 0.39850, 0.00020, 0.39858, 0.00018,
+  , 0.39867, 0.00016, 0.39875, 0.00014, 0.39883, 0.00012, 0.39892, 0.00010,
+  , 0.39900, 0.00009, 0.39908, 0.00007, 0.39917, 0.00006, 0.39925, 0.00005,
+  , 0.39933, 0.00004, 0.39942, 0.00003, 0.39950, 0.00002, 0.39958, 0.00001,
+  , 0.39967, 0.00001, 0.39975, 0.00000, 0.39983, 0.00000,15.00000, 0.00000,
+  ,    ENDT
+"""
+    with StringIO(tab) as f:
+        dct = nastran.rdtabled1(f, 'newname')
+    with StringIO(tab) as f:
+        lines = f.readlines()
+    mat = np.array([[float(num) for num in line[3:-2].split(',')]
+                    for line in lines[1:-1]]).ravel()
+    t = mat[::2]
+    d = mat[1::2]
+    assert np.allclose(dct[1][:, 0], t)
+    assert np.allclose(dct[1][:, 1], d)
+
+
 def test_rdwtbulk():
     with StringIO() as f:
         nastran.rdwtbulk('pyyeti/tests/nas2cam_csuper/inboard.out', f)
@@ -206,9 +231,9 @@ def test_rdeigen2():
     # hand-crafted example to trip an old error:
     data = """
 1    SYSTEM MODES                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    72
-                                                                                                        SUPERELEMENT 20              
-0                                                                                                                                   
- 
+                                                                                                        SUPERELEMENT 20
+0
+
                                               R E A L   E I G E N V A L U E S
                                          (BEFORE AUGMENTATION OF RESIDUAL VECTORS)
    MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
@@ -220,12 +245,12 @@ def test_rdeigen2():
         5         5        2.087500E-08        1.444818E-04        2.299500E-05        1.000000E+00        2.087500E-08
         6         6        8.327270E-08        2.885701E-04        4.592735E-05        1.000000E+00        8.327270E-08
 1    SYSTEM MODES                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    73
-                                                                                                        SUPERELEMENT 20              
-0                                                                                                                                   
+                                                                                                        SUPERELEMENT 20
+0
 1    SYSTEM MODES                                                              JUNE  10, 2015  NX NASTRAN  5/ 1/14   PAGE    74
-                                                                                                        SUPERELEMENT 0              
-0                                                                                                                                   
- 
+                                                                                                        SUPERELEMENT 0
+0
+
                                               R E A L   E I G E N V A L U E S
                                          (AFTER AUGMENTATION OF RESIDUAL VECTORS)
    MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
@@ -249,7 +274,7 @@ def test_rdeigen2():
     assert np.allclose(e[20]['cycles'].values, cyc20)
     assert np.allclose(e[0]['cycles'].values, cyc0)
 
-    
+
 def test_wtqcset():
     with StringIO() as f:
         nastran.wtqcset(f, 990001, 5)
@@ -383,7 +408,7 @@ def test_wtrspline_rings():
     uset2 = None
     for row in ring2:
         uset2 = n2p.addgrid(uset2, int(row[0]), 'b', 0, row[1:], 0)
-    
+
     with StringIO() as f:
         nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001, doplot=0)
         s1 = f.getvalue()

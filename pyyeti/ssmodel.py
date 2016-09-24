@@ -71,15 +71,15 @@ class SSModel(object):
         """Return representation of the :class:`SSModel` system."""
         return ('{0}(\nA={1},\nB={2},\nC={3},\nD={4},\nh={5},\n'
                 'method={6},\nprewarp={7}\n)').format(
-            self.__class__.__name__,
-            repr(self.A),
-            repr(self.B),
-            repr(self.C),
-            repr(self.D),
-            repr(self.h),
-            repr(self.method),
-            repr(self.prewarp)
-            )
+                    self.__class__.__name__,
+                    repr(self.A),
+                    repr(self.B),
+                    repr(self.C),
+                    repr(self.D),
+                    repr(self.h),
+                    repr(self.method),
+                    repr(self.prewarp)
+                )
 
     def getlti(self):
         """

@@ -10,11 +10,11 @@ Currently, all matrices are read into dense (non-sparse format)
 matrices even if they were written in a sparse format.
 """
 
-import numpy as np
 import itertools as it
 import struct
 import sys
 import warnings
+import numpy as np
 from pyyeti import guitools
 
 
@@ -212,7 +212,7 @@ class OP4(object):
             self._fileh.close()
             self._fileh = open(filename, 'r')
 
-    def _skipop4_ascii(self, perline, rows, cols, mtype, numlen):
+    def _skipop4_ascii(self, perline, rows, cols, mtype):
         """
         Skip an op4 matrix - ascii.
 
@@ -226,8 +226,6 @@ class OP4(object):
             Number of columns in matrix.
         mtype : integer
             Nastran matrix type.
-        numlen : integer
-            String length for each number.
 
         Returns
         -------
@@ -238,10 +236,7 @@ class OP4(object):
         so the next readline will get the next title line.
         """
         # read until next matrix:
-        if rows < 0 or rows >= self._rows4bigmat:
-            bigmat = True
-        else:
-            bigmat = False
+        bigmat = rows < 0 or rows >= self._rows4bigmat
         if mtype & 1:
             wper = 1
         else:
@@ -363,8 +358,7 @@ class OP4(object):
             else:
                 skip = 0
             if listonly or skip:
-                self._skipop4_ascii(perline, rows, cols,
-                                    mtype, numlen)
+                self._skipop4_ascii(perline, rows, cols, mtype)
                 if listonly:
                     return name, (abs(rows), cols), form, mtype
             else:
@@ -1424,7 +1418,7 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False):
     --------
     :func:`read`, :func:`write` (or :func:`save`), :func:`dir`.
     """
-    filename = guitools._get_file_name(filename, read=True)
+    filename = guitools.get_file_name(filename, read=True)
     if into == 'dct':
         return OP4().dctload(filename, namelist, justmatrix)
     elif into == 'list':
@@ -1505,7 +1499,7 @@ def dir(filename=None, verbose=True):
     --------
     :func:`load`, :func:`write` (or :func:`save`).
     """
-    filename = guitools._get_file_name(filename, read=True)
+    filename = guitools.get_file_name(filename, read=True)
     return OP4().dir(filename, verbose)
 
 
@@ -1577,7 +1571,7 @@ def write(filename, names, matrices=None,
     --------
     :func:`load`, :func:`dir`.
     """
-    filename = guitools._get_file_name(filename, read=False)
+    filename = guitools.get_file_name(filename, read=False)
     OP4().write(filename, names, matrices, binary,
                 digits, endian, sparse)
 

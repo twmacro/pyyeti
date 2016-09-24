@@ -3,10 +3,10 @@
 Tools for computing the matrix exponential and the integral.
 """
 
-import scipy.sparse.linalg.matfuncs as mf
-import numpy as np
-import scipy.linalg as la
 import warnings
+import numpy as np
+import scipy.sparse.linalg.matfuncs as mf
+import scipy.linalg as la
 
 
 class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
@@ -35,14 +35,14 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
     def A3(self):
         if self._A3 is None:
             self._A3 = mf._smart_matrix_product(
-                    self.A, self.A2, structure=self.structure)
+                self.A, self.A2, structure=self.structure)
         return self._A3
 
     @property
     def A5(self):
         if self._A5 is None:
             self._A5 = mf._smart_matrix_product(
-                    self.A, self.A4, structure=self.structure)
+                self.A, self.A4, structure=self.structure)
         return self._A5
 
     def pade3_i(self, h):
@@ -75,23 +75,23 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
         q = (259459200., -121080960., 25945920., -3326400., 277200.,
              -15120., 504., -8.)
         P = h*(mf._smart_matrix_product(
-                self.A,
-                p[7]*self.A6 +
-                p[5]*self.A4 +
-                p[3]*self.A2 +
-                p[1]*self.ident,
-                structure=self.structure) +
+            self.A,
+            p[7]*self.A6 +
+            p[5]*self.A4 +
+            p[3]*self.A2 +
+            p[1]*self.ident,
+            structure=self.structure) +
                p[6]*self.A6 +
                p[4]*self.A4 +
                p[2]*self.A2 +
                p[0]*self.ident)
         Q = (mf._smart_matrix_product(
-                self.A,
-                q[7]*self.A6 +
-                q[5]*self.A4 +
-                q[3]*self.A2 +
-                q[1]*self.ident,
-                structure=self.structure) +
+            self.A,
+            q[7]*self.A6 +
+            q[5]*self.A4 +
+            q[3]*self.A2 +
+            q[1]*self.ident,
+            structure=self.structure) +
              q[6]*self.A6 +
              q[4]*self.A4 +
              q[2]*self.A2 +
@@ -106,26 +106,26 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
              -4843238400., 454053600., -30270240., 1441440.,
              -47520., 990., -10.)
         P = h*(mf._smart_matrix_product(
-                self.A,
-                p[9]*self.A8 +
-                p[7]*self.A6 +
-                p[5]*self.A4 +
-                p[3]*self.A2 +
-                p[1]*self.ident,
-                structure=self.structure) +
+            self.A,
+            p[9]*self.A8 +
+            p[7]*self.A6 +
+            p[5]*self.A4 +
+            p[3]*self.A2 +
+            p[1]*self.ident,
+            structure=self.structure) +
                p[8]*self.A8 +
                p[6]*self.A6 +
                p[4]*self.A4 +
                p[2]*self.A2 +
                p[0]*self.ident)
         Q = (mf._smart_matrix_product(
-                self.A,
-                q[9]*self.A8 +
-                q[7]*self.A6 +
-                q[5]*self.A4 +
-                q[3]*self.A2 +
-                q[1]*self.ident,
-                structure=self.structure) +
+            self.A,
+            q[9]*self.A8 +
+            q[7]*self.A6 +
+            q[5]*self.A4 +
+            q[3]*self.A2 +
+            q[1]*self.ident,
+            structure=self.structure) +
              q[8]*self.A8 +
              q[6]*self.A6 +
              q[4]*self.A4 +
@@ -144,18 +144,18 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
         B4 = self.A4 * 2**(-4*s)
         B6 = self.A6 * 2**(-6*s)
         U2 = mf._smart_matrix_product(
-                B6,
-                b[13]*B6 + b[11]*B4 + b[9]*B2,
-                structure=self.structure)
+            B6,
+            b[13]*B6 + b[11]*B4 + b[9]*B2,
+            structure=self.structure)
         U = mf._smart_matrix_product(
-                B,
-                (U2 + b[7]*B6 + b[5]*B4 +
-                 b[3]*B2 + b[1]*self.ident),
-                structure=self.structure)
+            B,
+            (U2 + b[7]*B6 + b[5]*B4 +
+             b[3]*B2 + b[1]*self.ident),
+            structure=self.structure)
         V2 = mf._smart_matrix_product(
-                B6,
-                b[12]*B6 + b[10]*B4 + b[8]*B2,
-                structure=self.structure)
+            B6,
+            b[12]*B6 + b[10]*B4 + b[8]*B2,
+            structure=self.structure)
         V = V2 + b[6]*B6 + b[4]*B4 + b[2]*B2 + b[0]*self.ident
         p = (1748648318376960000., 32382376266240000.,
              64764752532480000., 1187353796428800., 593676898214400.,
@@ -167,44 +167,44 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
              -670442572800., 25141596480., -735134400., 16336320.,
              -262080., 2730., -14.)
         _P2 = mf._smart_matrix_product(
-                B6,
-                p[13]*B6 +
-                p[11]*B4 +
-                p[9]*B2,
-                structure=self.structure)
+            B6,
+            p[13]*B6 +
+            p[11]*B4 +
+            p[9]*B2,
+            structure=self.structure)
         P2 = mf._smart_matrix_product(
-                B, _P2 +
-                p[7]*B6 +
-                p[5]*B4 +
-                p[3]*B2 +
-                p[1]*self.ident,
-                structure=self.structure)
+            B, _P2 +
+            p[7]*B6 +
+            p[5]*B4 +
+            p[3]*B2 +
+            p[1]*self.ident,
+            structure=self.structure)
         P1 = mf._smart_matrix_product(
-                B6,
-                p[12]*B6 +
-                p[10]*B4 +
-                p[8]*B2,
-                structure=self.structure)
+            B6,
+            p[12]*B6 +
+            p[10]*B4 +
+            p[8]*B2,
+            structure=self.structure)
         P = h*(P2 + P1 + p[6]*B6 + p[4]*B4 + p[2]*B2 + p[0]*self.ident)
         _Q2 = mf._smart_matrix_product(
-                B6,
-                q[13]*B6 +
-                q[11]*B4 +
-                q[9]*B2,
-                structure=self.structure)
+            B6,
+            q[13]*B6 +
+            q[11]*B4 +
+            q[9]*B2,
+            structure=self.structure)
         Q2 = mf._smart_matrix_product(
-                B, _Q2 +
-                q[7]*B6 +
-                q[5]*B4 +
-                q[3]*B2 +
-                q[1]*self.ident,
-                structure=self.structure)
+            B, _Q2 +
+            q[7]*B6 +
+            q[5]*B4 +
+            q[3]*B2 +
+            q[1]*self.ident,
+            structure=self.structure)
         Q1 = mf._smart_matrix_product(
-                B6,
-                q[12]*B6 +
-                q[10]*B4 +
-                q[8]*B2,
-                structure=self.structure)
+            B6,
+            q[12]*B6 +
+            q[10]*B4 +
+            q[8]*B2,
+            structure=self.structure)
         Q = Q2 + Q1 + q[6]*B6 + q[4]*B4 + q[2]*B2 + q[0]*self.ident
         return U, V, P, Q
 
@@ -319,8 +319,8 @@ def expmint(A, h, geti2=False):
 
     # Track functions of A to help compute the matrix exponential.
     H = _ExpmIntPadeHelper(
-            A*h, structure=structure,
-            use_exact_onenorm=use_exact_onenorm)
+        A*h, structure=structure,
+        use_exact_onenorm=use_exact_onenorm)
 
     def Return(U, V, P, Q, geti2, pade):
         E = mf._solve_P_Q(U, V, structure=structure)
@@ -361,7 +361,7 @@ def expmint(A, h, geti2=False):
     E = mf._solve_P_Q(U, V, structure=structure)
     I = _solve_P_Q_2(P, Q, structure=structure)
     # E = r_13(A)^(2^s) by repeated squaring.
-    for i in range(s):
+    for _ in range(s):
         I += I.dot(E)
         E = E.dot(E)
     if geti2:
@@ -388,20 +388,20 @@ def _geti2(H, E, I, h, pade):
         q = (138726846720., -63346298400., 12740716800., -1425725280.,
              89937120., -2602278.)
         P = (h*h)*(mf._smart_matrix_product(
-                H.A,
-                p[5]*H.A4 +
-                p[3]*H.A2 +
-                p[1]*H.ident,
-                structure=H.structure) +
-               p[4]*H.A4 +
-               p[2]*H.A2 +
-               p[0]*H.ident)
+            H.A,
+            p[5]*H.A4 +
+            p[3]*H.A2 +
+            p[1]*H.ident,
+            structure=H.structure) +
+                   p[4]*H.A4 +
+                   p[2]*H.A2 +
+                   p[0]*H.ident)
         Q = (mf._smart_matrix_product(
-                H.A,
-                q[5]*H.A4 +
-                q[3]*H.A2 +
-                q[1]*H.ident,
-                structure=H.structure) +
+            H.A,
+            q[5]*H.A4 +
+            q[3]*H.A2 +
+            q[1]*H.ident,
+            structure=H.structure) +
              q[4]*H.A4 +
              q[2]*H.A2 +
              q[0]*H.ident)
@@ -415,23 +415,23 @@ def _geti2(H, E, I, h, pade):
              8411304436254720., -1081869058670400., 90503101180800.,
              -4959510549840., 166265789760., -2658297528.)
         P = (h*h)*(mf._smart_matrix_product(
-                H.A,
-                p[7]*H.A6 +
-                p[5]*H.A4 +
-                p[3]*H.A2 +
-                p[1]*H.ident,
-                structure=H.structure) +
-             p[6]*H.A6 +
-             p[4]*H.A4 +
-             p[2]*H.A2 +
-             p[0]*H.ident)
+            H.A,
+            p[7]*H.A6 +
+            p[5]*H.A4 +
+            p[3]*H.A2 +
+            p[1]*H.ident,
+            structure=H.structure) +
+                   p[6]*H.A6 +
+                   p[4]*H.A4 +
+                   p[2]*H.A2 +
+                   p[0]*H.ident)
         Q = (mf._smart_matrix_product(
-                H.A,
-                q[7]*H.A6 +
-                q[5]*H.A4 +
-                q[3]*H.A2 +
-                q[1]*H.ident,
-                structure=H.structure) +
+            H.A,
+            q[7]*H.A6 +
+            q[5]*H.A4 +
+            q[3]*H.A2 +
+            q[1]*H.ident,
+            structure=H.structure) +
              q[6]*H.A6 +
              q[4]*H.A4 +
              q[2]*H.A2 +
@@ -450,26 +450,26 @@ def _geti2(H, E, I, h, pade):
              604988181888330240., -20009929231749600.,
              418494695659920., -4247085597370.)
         P = (h*h)*(mf._smart_matrix_product(
-                H.A,
-                p[9]*H.A8 +
-                p[7]*H.A6 +
-                p[5]*H.A4 +
-                p[3]*H.A2 +
-                p[1]*H.ident,
-                structure=H.structure) +
-             p[8]*H.A8 +
-             p[6]*H.A6 +
-             p[4]*H.A4 +
-             p[2]*H.A2 +
-             p[0]*H.ident)
+            H.A,
+            p[9]*H.A8 +
+            p[7]*H.A6 +
+            p[5]*H.A4 +
+            p[3]*H.A2 +
+            p[1]*H.ident,
+            structure=H.structure) +
+                   p[8]*H.A8 +
+                   p[6]*H.A6 +
+                   p[4]*H.A4 +
+                   p[2]*H.A2 +
+                   p[0]*H.ident)
         Q = (mf._smart_matrix_product(
-                H.A,
-                q[9]*H.A8 +
-                q[7]*H.A6 +
-                q[5]*H.A4 +
-                q[3]*H.A2 +
-                q[1]*H.ident,
-                structure=H.structure) +
+            H.A,
+            q[9]*H.A8 +
+            q[7]*H.A6 +
+            q[5]*H.A4 +
+            q[3]*H.A2 +
+            q[1]*H.ident,
+            structure=H.structure) +
              q[8]*H.A8 +
              q[6]*H.A6 +
              q[4]*H.A4 +
@@ -955,7 +955,7 @@ class _ExpmPadeHelper_SS(mf._ExpmPadeHelper):
         return U, V
 
 
-def _expm_SS(A, ssA, order, use_exact_onenorm='auto'):
+def _expm_SS(A, ssA, order):  # , use_exact_onenorm='auto'):
     # Track functions of A to help compute the matrix exponential.
     h = _ExpmPadeHelper_SS(A, ssA, order)
     structure = None
@@ -990,7 +990,7 @@ def _expm_SS(A, ssA, order, use_exact_onenorm='auto'):
     U, V = h.pade13_scaled(s)
     X = mf._solve_P_Q(U, V, structure=structure)
     # X = r_13(A)^(2^s) by repeated squaring.
-    for i in range(s):
+    for _ in range(s):
         X = X.dot(X)
     return X
 

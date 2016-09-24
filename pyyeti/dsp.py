@@ -4,15 +4,15 @@ Digital signal processing tools.
 """
 
 import math
+import itertools
+from collections import abc
+from warnings import warn
+from types import SimpleNamespace
 import numpy as np
 import scipy.signal as signal
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import itertools
-from collections import abc
-from warnings import warn
-from types import SimpleNamespace
 
 
 def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
@@ -394,7 +394,7 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
         b[:] = 1/n
         n_pt = n // 2
     else:
-        if not (0 <= n_pt <= n-1):
+        if not 0 <= n_pt <= n-1:
             raise ValueError('invalid `exclude_point` integer')
         b[:] = 1/(n-1)
         # b is applied in reverse: y[1] = b[0]*x[1] + b[1]*x[0]
@@ -588,7 +588,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         ave = exclusive_sgfilter(x, n, exclude_point=None)
         return threshold_sigma * np.std(x-ave)
 
-    def _sweep_out_priors(y, i, n, limit, ave):
+    def _sweep_out_priors(y, i, limit, ave):
         # see if we can consider points before the detected outlier
         # also as outliers:
         pv = [i]
@@ -601,7 +601,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         pv.reverse()
         return pv
 
-    def _sweep_out_nexts(y, i, n, limit, ave):
+    def _sweep_out_nexts(y, i, limit, ave):
         # see if we can consider points after the detected outlier
         # also as outliers:
         pv = [i]
@@ -630,7 +630,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             if pv.size == 0:
                 yield None, ave+limit, ave-limit  # we're done
             # keep only last one ... previous ones can change
-            pv = _sweep_out_priors(y, pv[-1], n, limit, ave)
+            pv = _sweep_out_priors(y, pv[-1], limit, ave)
             yield pv, ave+limit, ave-limit
             i, j = pv[0], pv[-1]
             if i == 0:
@@ -668,7 +668,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             if pv.size == 0:
                 yield None, ave+limit, ave-limit  # we're done
             # keep only first one ... later ones can change
-            pv = _sweep_out_nexts(y, pv[0], n, limit, ave)
+            pv = _sweep_out_nexts(y, pv[0], limit, ave)
             yield pv, ave+limit, ave-limit
             i, j = pv[0], pv[-1]
             if j == y.size-1:
@@ -700,7 +700,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             PV[i:j] = y_delta[i:j] > limit[i:j]
 
     def _outs_gen(y, n, sigma, min_limit, xp,
-                  ave, y_delta, var, std, limit):
+                  ave, y_delta, limit):
         PV = np.zeros(y.size, bool)
         hi = ave+limit
         lo = ave-limit
@@ -729,7 +729,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
                                   ave, y_delta, var, std, limit)
         else:
             yield from _outs_gen(y, n, sigma, min_limit, xp,
-                                 ave, y_delta, var, std, limit)
+                                 ave, y_delta, limit)
 
     x = np.atleast_1d(x)
     if x.ndim > 1:
@@ -861,7 +861,7 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         ave = exclusive_sgfilter(x, n, exclude_point=None)
         return threshold_sigma * np.std(x-ave)
 
-    def _sweep_out_priors(y, i, n, limit, ave):
+    def _sweep_out_priors(y, i, limit, ave):
         # see if we can consider points before the detected outlier
         # also as outliers:
         pv = [i]
@@ -876,7 +876,7 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         pv.reverse()
         return pv
 
-    def _sweep_out_nexts(y, i, n, limit, ave):
+    def _sweep_out_nexts(y, i, limit, ave):
         # see if we can consider points after the detected outlier
         # also as outliers:
         pv = [i]
@@ -904,7 +904,7 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
                 # 2 -> 3-2
                 # say 1 of dy is last spike ... 2 isn't. So 3-2
                 # of original is okay. spike in original has to be 1.
-                pv = _sweep_out_priors(y, i, n, limit, ave)
+                pv = _sweep_out_priors(y, i, limit, ave)
             else:
                 pv = None
             yield pv
@@ -953,7 +953,7 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
                 # 2 -> 3-2
                 # say 1 of dy is first spike ... 0 isn't. So 1-0
                 # of original is okay. spike in original has to be 2.
-                pv = _sweep_out_nexts(y, i+1, n, limit, ave)
+                pv = _sweep_out_nexts(y, i+1, limit, ave)
             else:
                 pv = None
             yield pv
@@ -1553,7 +1553,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                     break
         return np.sort(np.hstack((tp, tp_drift)))
 
-    def _get_turning_points(told, dt, difft):
+    def _get_turning_points(told, dt):
         tp = np.empty(len(told), bool)
         tp[0] = True
         tp[1:] = abs(np.diff(told)-dt) > dt/4
@@ -1577,7 +1577,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         tnew = np.arange(L)/sr + told[0]
 
         # get turning points and see if we should try to align:
-        tp, align = _get_turning_points(told, dt, difft)
+        tp, align = _get_turning_points(told, dt)
 
         if align:
             if fixdrift:
@@ -1708,7 +1708,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
 
 def aligntime(dct, channels=None, mode='truncate', value=0):
-    """Aligns the time vectors for specified channels in dct.
+    """
+    Aligns the time vectors for specified channels in dct.
 
     Parameters
     ----------
@@ -1827,17 +1828,18 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
     return dctout
 
 
-def windowends(signal, portion=.01, ends='front', axis=-1):
-    """Apply a 1-cos (half-Hann) window to the ends of a signal.
+def windowends(sig, portion=.01, ends='front', axis=-1):
+    """
+    Apply a 1-cos (half-Hann) window to the ends of a signal.
 
     Parameters
     ----------
-    signal : 1d or 2d ndarray
+    sig : 1d or 2d ndarray
         Vector or matrix; input time signal(s).
     portion : scalar, optional
         If > 1, specifies the number of points to window at each end.
         If in (0, 1], specifies the fraction of signal to window at
-        each end: ``npts = int(portion * np.size(signal, axis))``.
+        each end: ``npts = int(portion * np.size(sig, axis))``.
     ends : string, optional
         Specify which ends of signal to operate on:
 
@@ -1887,16 +1889,16 @@ def windowends(signal, portion=.01, ends='front', axis=-1):
         >>> _ = plt.ylim(0, 1.2)
     """
     if ends == 'none':
-        return signal
-    signal = np.asarray(signal)
-    ln = signal.shape[axis]
+        return sig
+    sig = np.asarray(sig)
+    ln = sig.shape[axis]
     if portion <= 1:
         n = int(portion * ln)
     else:
         n = int(portion)
     if n < 3:
         n = 3
-    dims = np.ones(signal.ndim, int)
+    dims = np.ones(sig.ndim, int)
     dims[axis] = -1
     v = np.ones(ln, float)
     w = 0.5 - 0.5*np.cos(2*np.pi*np.arange(n)/(2*n-2))
@@ -1905,7 +1907,7 @@ def windowends(signal, portion=.01, ends='front', axis=-1):
     if ends == 'back' or ends == 'both':
         v[-n:] = w[::-1]
     v = v.reshape(*dims)
-    return signal*v
+    return sig*v
 
 
 def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
@@ -2037,7 +2039,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         if max(sig.shape) < sig.size:
             raise ValueError('`sig` must be a vector')
         sig = sig.ravel()
-    if not (0 <= tsoverlap < 1):
+    if not 0 <= tsoverlap < 1:
         raise ValueError('`tsoverlap` must be in [0, 1)')
 
     if args is None:
@@ -2310,7 +2312,7 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         ye_min, xe_min = get_turning_pts(ye_min, xe, getindex=0)
 
     if makeplot != 'no':
-        envlabel = '$\pm${}% envelope'.format(p)
+        envlabel = r'$\pm${}% envelope'.format(p)
         if makeplot == 'clear':
             plt.clf()
         ln = plt.plot(x, y, label=label)[0]
@@ -2755,7 +2757,7 @@ def fftcoef(x, sr, coef='mag', window='boxcar', dodetrend=False,
         X[n:] = 0.0
     else:
         X = x
-    even = not (N & 1)
+    even = not N & 1
     if even:
         m = N // 2 + 1
     else:

@@ -50,8 +50,8 @@ def find_vals(m, v):
     m = m.ravel(order='F')
     v = v.ravel()
     pv = np.zeros(len(m), dtype=bool)
-    for i in range(len(v)):
-        pv |= m == v[i]
+    for i in v:
+        pv |= m == i
     return pv.nonzero()[0]
 
 
@@ -131,7 +131,7 @@ def find_rows(matrix, row):
     array([[6, 8],
            [6, 8]])
     """
-    (r1, c1) = np.shape(matrix)
+    c1 = np.shape(matrix)[1]
     c2 = len(row)
     if c1 != c2:
         return np.array([], dtype=int)

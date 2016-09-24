@@ -3,11 +3,11 @@
 Statistics tools for tolerance bounds/intervals and order statistics.
 """
 
+import warnings
 import numpy as np
 from scipy.stats import norm, nct, chi2, binom
 from scipy.special import betainc
 from scipy.optimize import brentq
-import warnings
 
 
 def ksingle(p, c, n):
@@ -361,30 +361,30 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
             return int(r[()])
         return r.astype(int)
     elif which == 'n':
-        def func(n, p, s, pr):
+        def _func(n, p, s, pr):
             return p-(1-betainc(s+1, n-s, pr))
 
-        def run_brentq(c, r, p):
+        def _run_brentq(c, r, p):
             # find [a, b] interval by brute force:
             a = r
             b = 2*a
             loops = 0
-            while func(b, 1-c, r-1, 1-p) < 0 and loops < 30:
+            while _func(b, 1-c, r-1, 1-p) < 0 and loops < 30:
                 a = b
                 b = 2*a
                 loops += 1
-            return brentq(func, a, b, args=(1-c, r-1, 1-p))
+            return brentq(_func, a, b, args=(1-c, r-1, 1-p))
 
         b = np.broadcast(c, r, p)
         n = np.empty(b.shape)
-        n.flat = [run_brentq(c, r, p) for (c, r, p) in b]
+        n.flat = [_run_brentq(c, r, p) for (c, r, p) in b]
         return np.ceil(n).astype(int)
     elif which == 'p':
-        def func(pr, p, s, n):
+        def _func(pr, p, s, n):
             return p-binom.cdf(s, n, pr)
         b = np.broadcast(c, r, n)
         n = np.empty(b.shape)
-        n.flat = [1-brentq(func, 0, 1, args=(1-c, r-1, n))
+        n.flat = [1-brentq(_func, 0, 1, args=(1-c, r-1, n))
                   for (c, r, n) in b]
         if n.ndim == 0:
             return n[()]

@@ -3,11 +3,11 @@
 Collection of tools for reading/writing Nastran data.
 """
 
-import numpy as np
-import pandas as pd
 import os
 import re
 import warnings
+import numpy as np
+import pandas as pd
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
 from pyyeti import n2p, locate, writer, ytools, op4, guitools
@@ -111,21 +111,21 @@ def _rdgpwg(f, s1, s2, s3):
 
     f.readline()
     mass = []
-    for i in range(6):
+    for _ in range(6):
         line = f.readline().strip()
         mass.append([float(item) for item in line[1:-1].split()])
     mass = np.array(mass)
     line, p = fsearch(f, 'MASS AXIS SYSTEM')
 
     cg = []
-    for i in range(3):
+    for _ in range(3):
         line = f.readline().strip()
         cg.append([float(item) for item in line[1:].split()])
     cg = np.array(cg)
 
     f.readline()
     Is = []
-    for i in range(3):
+    for _ in range(3):
         line = f.readline().strip()
         Is.append([float(item) for item in line[1:-1].split()])
     Is = np.array(Is)
@@ -196,7 +196,7 @@ def _rdcards(fin, name, blank, dct, dtype, no_data_return):
     Routine used by :func:`rdcards`. See documentation for
     :func:`rdcards`.
     """
-    def get_line(f, s=None, trim=True):
+    def _get_line(f, s=None, trim=True):
         if s is None:
             s = f.readline()
         if len(s) > 0:
@@ -241,7 +241,7 @@ def _rdcards(fin, name, blank, dct, dtype, no_data_return):
                 if v is not None:
                     vals[i] = v
                 j += n
-            s = get_line(f)
+            s = _get_line(f)
             if len(s) == 0 or s == -1:
                 break
             if conchar.find(s[0]) < 0:
@@ -277,7 +277,7 @@ def _rdcards(fin, name, blank, dct, dtype, no_data_return):
                 v = nas_sscanf(tok[j])
                 if v is not None:
                     vals[i] = v
-            s = get_line(f, trim=0)
+            s = _get_line(f, trim=0)
             if len(s) == 0 or s == -1:
                 break
             if conchar.find(s[0]) < 0:
@@ -289,7 +289,7 @@ def _rdcards(fin, name, blank, dct, dtype, no_data_return):
     name = name.lower()
     c = 0
     for line in fin:
-        if 0 == line.lower().find(name):
+        if line.lower().find(name) == 0:
             c += 1
     mx = 0
     if c > 0:
@@ -300,9 +300,9 @@ def _rdcards(fin, name, blank, dct, dtype, no_data_return):
     fin.seek(0, 0)
     s = fin.readline()
     for j in range(c):
-        while 0 != s.lower().find(name):
+        while s.lower().find(name) != 0:
             s = fin.readline()
-        s = get_line(fin, s, trim=0)
+        s = _get_line(fin, s, trim=0)
         p = s.find(',')
         if p > -1:
             vals, s = rdcomma(fin, s, ' +,', blank)
@@ -568,7 +568,7 @@ def rdtabled1(f, name='tabled1'):
     >>> np.allclose(d, dct[4000][:, 1])
     True
     """
-    d = rdcards(f, 'tabled1', dct=1)
+    d = rdcards(f, name, dct=1)
     for tid in d:
         vec = d[tid]
         d[tid] = np.vstack([vec[8:-1:2], vec[9:-1:2]]).T
@@ -725,7 +725,7 @@ def bulk2uset(*args):
     no_data = np.zeros((0, 11))
     cord2r = cord2c = cord2s = no_data
     for f in args:
-        f = guitools._get_file_name(f, read=True)
+        f = guitools.get_file_name(f, read=True)
         cord2r = np.vstack((cord2r, rdcards(f, 'cord2r',
                                             no_data_return=no_data)))
         cord2c = np.vstack((cord2c, rdcards(f, 'cord2c',
@@ -736,7 +736,7 @@ def bulk2uset(*args):
         if g is not None:
             grids = np.vstack((grids, g))
 
-    def expand_cords(cord, v):
+    def _expand_cords(cord, v):
         r = np.size(cord, 0)
         if r > 0:
             O = np.ones((r, 1))*v
@@ -744,9 +744,9 @@ def bulk2uset(*args):
             return cord
         return np.zeros((0, 12))
 
-    cord2r = expand_cords(cord2r, 1.)
-    cord2c = expand_cords(cord2c, 2.)
-    cord2s = expand_cords(cord2s, 3.)
+    cord2r = _expand_cords(cord2r, 1.)
+    cord2c = _expand_cords(cord2c, 2.)
+    cord2s = _expand_cords(cord2s, 3.)
     # each cord matrix is 12 columns:
     #   [id, type, ref, a1, a2, a3, b1, b2, b3, c1, c2, c3]
     cords = np.vstack((cord2r, cord2c, cord2s))
@@ -884,7 +884,7 @@ def rdeigen(f, use_pandas=True):
                     break
                 if len(row) == 7:
                     table.append(row)
-            for i in range(8):
+            for _ in range(8):
                 line = f.readline()
                 if line.startswith('1 '):
                     continued = False
@@ -1379,7 +1379,7 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
                 format(eid, GRID_dep, DOF_dep))
         field = 5
 
-        def Inc_Field(f, field):
+        def _Inc_Field(f, field):
             field += 1
             if field == 10:
                 f.write('\n        ')
@@ -1395,16 +1395,16 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
                 wt = float(DOF_ind[1])
             else:
                 wt = 1.0
-            field = Inc_Field(f, field)
+            field = _Inc_Field(f, field)
             f.write('{:8.3f}'.format(wt))
-            field = Inc_Field(f, field)
+            field = _Inc_Field(f, field)
             f.write('{:8d}'.format(dof))
             for g in GRIDS_ind:
-                field = Inc_Field(f, field)
+                field = _Inc_Field(f, field)
                 f.write('{:8d}'.format(g))
         f.write('\n')
 
-        def Inc_UM_Field(f, field):
+        def _Inc_UM_Field(f, field):
             field += 1
             if field == 9:
                 f.write('\n                ')
@@ -1415,7 +1415,7 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
             f.write('        UM      ')
             field = 2
             for j in UM_List:
-                field = Inc_UM_Field(f, field)
+                field = _Inc_UM_Field(f, field)
                 f.write('{:8d}'.format(j))
             f.write('\n')
 
