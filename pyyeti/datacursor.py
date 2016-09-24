@@ -598,7 +598,7 @@ class DataCursor(object):
             self._max_points = maxpoints
             self._figs[0].canvas.start_event_loop(timeout=-1)
 
-    def pause(self, msg='Hit "t" inside axes when done'):
+    def pause(self, msg='Pausing, hit "t" inside axes to continue'):
         """
         Suspend python so user can interact with plots (such as moving
         previously added annotations) before continuing. Hit 't'
