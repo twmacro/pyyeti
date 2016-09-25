@@ -9,8 +9,6 @@ import os
 import sys
 import copy
 import datetime
-import pickle
-import gzip
 import numbers
 import inspect
 from collections import abc, OrderedDict
@@ -441,7 +439,7 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         curext.mincase = mincase
         return
 
-    def put_time(curext, mm, j, col):
+    def _put_time(curext, mm, j, col):
         if mm.exttime is not None:
             if curext.exttime is None:
                 curext.exttime = copy.copy(mm.exttime)
@@ -455,14 +453,14 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         for i in j:
             curext.maxcase[i] = maxcase[i]
         curext.ext[j, 0] = mm.ext[j, 0]
-        put_time(curext, mm, j, 0)
+        _put_time(curext, mm, j, 0)
 
     j = (mm.ext[:, 1] < curext.ext[:, 1]).nonzero()[0]
     if j.size > 0:
         for i in j:
             curext.mincase[i] = mincase[i]
         curext.ext[j, 1] = mm.ext[j, 1]
-        put_time(curext, mm, j, 1)
+        _put_time(curext, mm, j, 1)
 
 
 class DR_Def(object):
@@ -963,7 +961,12 @@ class DR_Def(object):
         # get dictionary of inputs and trim out specially handled
         # entries:
         frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
+        # inspect.getargvalues is deprecated
+        # args, _, _, values = inspect.getargvalues(frame)
+        co = frame.f_code
+        nargs = co.co_argcount + co.co_kwonlyargcount
+        args = co.co_varnames[:nargs]
+        values = frame.f_locals
         dr_def_args = {i: values[i] for i in args
                        if i not in ('self', 'name', 'drms',
                                     'nondrms', 'kwargs')}
@@ -1175,11 +1178,11 @@ class DR_Def(object):
 
         if excel_file is not None:
             with pd.ExcelWriter(excel_file,
-                                engine='xlsxwriter') as writer:
+                                engine='xlsxwriter') as xwriter:
                 shname = 'DR_Def'
-                df.to_excel(writer, sheet_name=shname)
-                workbook = writer.book
-                worksheet = writer.sheets[shname]
+                df.to_excel(xwriter, sheet_name=shname)
+                workbook = xwriter.book
+                worksheet = xwriter.sheets[shname]
                 worksheet.set_column('A:A', 10)
                 worksheet.set_column(1, len(cats), 25)
                 frm = workbook.add_format({'border': 1})
@@ -2158,7 +2161,6 @@ class DR_Results(OrderedDict):
         fs = ode.SolveUnc(m, b, k, rf=rfmodes)
         rpsd = forcepsd.shape[0]
         unitforce = np.ones_like(freq)
-        freqw = 2*np.pi*freq
 
         # initialize categories for data recovery
         drfuncs = {}
@@ -2352,7 +2354,7 @@ class DR_Results(OrderedDict):
         The `.maxcase`, `.mincase` and `.exttime` members are all set
         to None (since all cases contribute to the extrema).
         """
-        for name, res in self.items():
+        for res in self.values():
             mx = res.mx.mean(axis=1) + k*res.mx.std(ddof=1, axis=1)
             mn = res.mn.mean(axis=1) - k*res.mn.std(ddof=1, axis=1)
             res.ext = np.vstack([mx, mn]).T
@@ -2495,8 +2497,7 @@ class DR_Results(OrderedDict):
             l2 = ext2.drminfo.labels
             if l1 == l2:
                 return ext1, ext2
-            for lbls, extA, extB in ((l1, ext1, ext2),
-                                     (l2, ext2, ext1)):
+            for lbls in (l1, l2):
                 if len(lbls) != len(set(lbls)):
                     msg = ('Row labels for "{}" (event "{}") are not '
                            'all unique. Cannot compare to event "{}".'
@@ -2792,8 +2793,8 @@ class DR_Results(OrderedDict):
                  .format(str(skipdrms)), RuntimeWarning)
 
     def srs_plots(self, event=None, Q='auto', drms=None,
-                  inc0rb=True, fmt='pdf', onepdf=True, layout=[2, 3],
-                  figsize=[11, 8.5], showall=None, showboth=False,
+                  inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
+                  figsize=(11, 8.5), showall=None, showboth=False,
                   direc='srs_plots', sub_right=None):
         """
         Make SRS plots with optional printing to .pdf or .png files.
@@ -2891,8 +2892,8 @@ class DR_Results(OrderedDict):
                         cases=None)
 
     def resp_plots(self, event=None, drms=None, inc0rb=True,
-                   fmt='pdf', onepdf=True, layout=[2, 3],
-                   figsize=[11, 8.5], cases=None, direc='resp_plots',
+                   fmt='pdf', onepdf=True, layout=(2, 3),
+                   figsize=(11, 8.5), cases=None, direc='resp_plots',
                    sub_right=None):
         """
         Make time or frequency domain responses plots.
@@ -2979,178 +2980,6 @@ class DR_Results(OrderedDict):
                         cases=cases, direc=direc,
                         sub_right=sub_right, Q='auto',
                         showall=None, showboth=False)
-
-
-#def Time_Add_SRS(results,DR):
-#    """Adds SRSs to the results structure; see Time_DR_cols() for more information
-#
-#Normally not need since this is typically done during Time_DR_cols()"""
-#    DRNames = keys(results)
-#    for name in DRNames:
-#        dr = DR['Info'][name]  % record with: .drfunc, .psd_drfunc, .drminfo, .srsinfo
-#        if dr.srsinfo.rows:
-#            r = results[name]
-#            frq = dr.srsinfo.frq
-#            r.srs.frq = frq
-#            r.srs.units = dr.srsinfo.units
-#            sr = (length(r.time)-1)/(r.time(end)-r.time(1))
-#            rows = dr.srsinfo.rows
-#            conv = dr.srsinfo.conv
-#            if rows != dr.drminfo.histpv:
-#                prterr.error("Time_Add_SRS:  Cannot add SRS because 'histpv' != 'srspv'.\n")
-#            opts = dr.srsinfo.opts
-#            eqsine = _is_eqsine(opts)
-#            if eqsine:  r.srs.type = 'eqsine'
-#            else:       r.srs.type = 'srs'
-#            n = length(r.cases)
-#            for q in dr.srsinfo.Qs:
-#                if rows == 'all':
-#                    L = size(r.hist,2)
-#                    hist = r.hist(:,:)  % flatten to 2-D for SRS
-#                else:
-#                    L = length(rows)
-#                    hist = r.hist(:,rows,:)(:,:)  % flatten to 2-D for SRS routine
-#                r.srs.srs[q] = zeros(length(frq),L,n)
-#                r.srs.srs[q](:) = conv .* srs.srs(hist,sr,frq,q,**opts)
-#                r.srs.ext[q] = max(r.srs.srs[q],,3)
-
-
-#def FRF_DR_cols(results,sol,nrb,case,DR,n,j,dosrs=1):
-#    """Frequency response function data recovery function
-#
-#-- beta -- written but never used
-#
-#Parameters
-#----------
-#  results = results dictionary as described in form_extreme; results[key] must be the
-#            data recovery items (eg, results['SC_atm'])
-#  sol     = solution dictionary with each uf_reds vector as keys:
-#            - each sol[uf_reds] is a record, input only, expected to have (at least):
-#                .a = modal acceleration frequency response matrix (complex)
-#                .v = modal velocity frequency response matrix (complex)
-#                .d = modal displacement frequency response matrix (complex)
-#                .f = frequency-vector
-#  nrb     = scalar, number of rigid-body modes
-#  case  = string identifying the case; stored in the results[drm].cases list and in
-#            the results[drm].mincase & .maxcase lists
-#  DR      = dictionary containing data recovery info; see description in DRsetup()
-#  n       = total number of load cases
-#  j       = current load case number
-#  dosrs   = flag; if false, skip the calculation SRSs
-#            - still need to add: FRF_Add_SRS() for similar functionality to Time_Add_SRS()
-#
-#The results dictionary is updated; for example:
-#
-#    results['SC_atm'] members:
-#      .mx, .mn, .maxtime, .mintime <-- all r x cases
-#      .cases (list of cases)
-#      .freq (freq x 1)
-#      .FRF (freq x r x cases)
-#      .srs.srs[q] (srsfreq x r x cases)
-#      .srs.ext[q] (each srsfreq x r)
-#      .srs.frq (srsfreq x 1) (same as sol[uf_reds].f)
-#      .srs.type (string, either 'srs' or 'eqsine')
-#      .srs.units (string, eg: 'G, rad/sec^2')
-#      .ext (r x 2), .maxcase (length r), .mincase (length r)
-#"""
-#    DRNames = keys(results)
-#    for name in DRNames:
-#        r = results[name]
-#        first = r.ext == []
-#        dr = DR['Info'][name]  % record with: .drfunc, .psd_drfunc, .drminfo, .srsinfo
-#        uf_reds = dr.drminfo.uf_reds
-#        SOL = sol[uf_reds]
-#        resp = dr.drfunc(SOL,nrb,DR,dr.drminfo.se)
-#        mm = maxmin(abs(resp),SOL.f)
-#
-#        extrema(r,mm,case)
-#%        maxima(r,mm(:,:2),scase)
-#
-#        if first:
-#            r.domain = 'freq'
-#            r.mx = r.mn = r.maxtime = r.mintime = zeros(size(mm,1),n)
-#%            r.mx = r.maxtime = zeros(size(mm,1),n)
-#            r.cases = n*[[]]
-#            if dr.drminfo.histpv:
-#                if dr.drminfo.histpv == 'all':
-#                    r.FRF = zeros(length(SOL.f),size(resp,1),n)
-#                else:
-#                    r.FRF = zeros(length(SOL.f),length(dr.drminfo.histpv),n)
-#                r.freq = SOL.f
-#            if dr.srsinfo.rows and dosrs:
-#                frq = dr.srsinfo.frq
-#                r.srs.frq = frq
-#                r.srs.units = dr.srsinfo.units
-#                for q in dr.srsinfo.Qs:
-#                    if dr.srsinfo.rows == 'all':
-#                        r.srs.srs[q] = zeros(length(frq),size(resp,1),n)
-#                    else:
-#                        r.srs.srs[q] = zeros(length(frq),length(dr.srsinfo.rows),n)
-#
-#        r.mx[:, j] = mm[:, 0]
-#        r.maxtime[:, j] = mm[:, 1]
-#        r.mn[:, j] = mm[:, 2]
-#        r.mintime[:, j] = mm[:, 3]
-#        r.cases(j) = case
-#
-#        if dr.drminfo.histpv:  % save histories
-#            if dr.drminfo.histpv == 'all':
-#                r.FRF(:,:,j) = resp.'
-#            else:
-#                r.FRF(:,:,j) = resp(dr.drminfo.histpv,:).'
-#
-#        if dr.srsinfo.rows and dosrs:
-#            rows = dr.srsinfo.rows
-#            frq = dr.srsinfo.frq
-#            conv = dr.srsinfo.conv
-#            eqsine = _is_eqsine(dr.srsinfo.opts)
-#            if eqsine:  r.srs.type = 'eqsine'
-#            else:       r.srs.type = 'srs'
-#            for q in dr.srsinfo.Qs:
-#                if eqsine:  fact = conv/q
-#                else:       fact = conv
-#                if rows == 'all':
-#                    srs_cur = fact .* srs.srs_frf([SOL.f(:),resp.'],frq,q)
-#                else:
-#                    srs_cur = fact .* srs.srs_frf([SOL.f(:),resp(rows,:).'],frq,q)
-#                r.srs.srs[q](:,:,j) = srs_cur
-#                if first: r.srs.ext[q] = srs_cur
-#                else:     r.srs.ext[q] = max(r.srs.ext[q], srs_cur)
-
-
-
-#def PSD_Add_SRS(results,DR):
-#    """Adds SRSs to the results structure; see PSD_DR_cols() for more information
-#
-#Normally not need since this is typically done during PSD_DR_cols()"""
-#    DRNames = keys(results)
-#    for name in DRNames:
-#        dr = DR['Info'][name]  % record with: .drfunc, .psd_drfunc, .drminfo, .srsinfo
-#        if dr.srsinfo.rows:
-#            r = results[name]
-#            frq = dr.srsinfo.frq
-#            r.srs.frq = frq
-#            r.srs.units = dr.srsinfo.units
-#            rows = dr.srsinfo.rows
-#            conv = dr.srsinfo.conv
-#            if rows != dr.drminfo.histpv:
-#                prterr.error("PSD_Add_SRS:  Cannot add SRS because 'histpv' != 'srspv'.\n")
-#            eqsine = _is_eqsine(dr.srsinfo.opts)
-#            if eqsine:  r.srs.type = 'eqsine'
-#            else:       r.srs.type = 'srs'
-#            n = length(r.cases)
-#            for q in dr.srsinfo.Qs:
-#                if eqsine: fact = (3/q)*conv
-#                else:      fact = 3*conv
-#                if rows == 'all':
-#                    L = size(r.PSD,2)
-#                    psd = r.PSD(:,:)  % flatten to 2-D for VRS
-#                else:
-#                    L = length(rows)
-#                    psd = r.PSD(:,rows,:)(:,:)  % flatten to 2-D for VRS
-#                r.srs.srs[q] = zeros(length(frq),L,n)
-#                r.srs.srs[q](:) = fact .* srs.vrs([r.freq,psd],frq,q)
-#                r.srs.ext[q] = max(r.srs.srs[q],,3)
 
 
 def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
@@ -3542,7 +3371,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
                            ec['Abs-Max'][j]))
         return rowlabels, table
 
-    def _wttab_eventcount(f, header, res, ec, count_filter):
+    def _wttab_eventcount(f, res, ec, count_filter):
         # extrema count
         f.write('Extrema Count\nFilter: {}\n\n'
                 .format(count_filter))
@@ -3629,7 +3458,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
                             vals, ext, extcases)
             f.write('\n\n')
         _add_max_plus_min(ec)
-        _wttab_eventcount(f, header, res, ec, count_filter)
+        _wttab_eventcount(f, res, ec, count_filter)
 
     def _wtxlsx(workbook, header, headers, res, loop_vars, name):
         bold = workbook.add_format({'bold': True})
@@ -3654,8 +3483,8 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
             n = len(title) + 1
             labels = res.drminfo.labels
             ncases = vals.shape[1]
-            for i in range(len(rows)):
-                worksheet.write(n+i, 0, rows[i])
+            for i, rw in enumerate(rows):
+                worksheet.write(n+i, 0, rw)
                 worksheet.write(n+i, 1, labels[i])
                 worksheet.write_row(
                     n+i, 2, vals[i], number)
@@ -4345,8 +4174,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     mx1 = abs(mxmn1).max(axis=1)
     mx2 = abs(mxmn2).max(axis=1)
     if not doabsmax:
-        max1, min1 = (*mxmn1.T,)
-        max2, min2 = (*mxmn2.T,)
+        max1, min1 = mxmn1[:, 0], mxmn1[:, 1]
+        max2, min2 = mxmn2[:, 0], mxmn2[:, 1]
         mxmn_b = mxmn2 if use_range else None
         for i in zip(('mx', 'mn', 'amx'),
                      (max1, min1, mx1),
@@ -4413,8 +4242,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
 
 def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
-             inc0rb=True, fmt='pdf', onepdf=True, layout=[2, 3],
-             figsize=[11, 8.5], showall=None, showboth=False,
+             inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
+             figsize=(11, 8.5), showall=None, showboth=False,
              cases=None, direc='srs_plots', sub_right=None):
     """
     Make SRS or response history plots
@@ -4732,7 +4561,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
 
     pdffile = None
     try:
-        for J, name in enumerate(alldrms):
+        for name in alldrms:
             if name not in res:
                 raise ValueError('category {} does not exist.'
                                  .format(name))
