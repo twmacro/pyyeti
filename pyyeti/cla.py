@@ -3400,12 +3400,14 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         amx = res.mx.copy()
         pv = nan_argmax(abs(amx), abs(res.mn))
         amx[pv] = res.mn[pv]
-        amxcase = res.maxcase[:]
-        if amxcase is not None:
+        if res.maxcase is not None:
+            amxcase = res.maxcase[:]
             pv = nan_argmax(abs(res.ext[:, 0]), abs(res.ext[:, 1]))
             pv = pv.nonzero()[0]
             for j in pv:
                 amxcase[j] = res.mincase[j]
+        else:
+            amxcase = None
         aext = res.ext[:, 0].copy()
         amn = res.ext[:, 1]
         pv = nan_argmax(abs(aext), abs(amn))
