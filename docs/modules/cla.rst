@@ -59,6 +59,8 @@ Utility routines
     magpct
     maxmin
     mk_plots
+    nan_argmax
+    nan_argmin
     PrintCLAInfo
     PSD_consistent_rss
     rdext

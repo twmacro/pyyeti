@@ -334,6 +334,68 @@ def maxmin(response, time):
     # return mxmn
 
 
+def nan_argmax(v1, v2):
+    """
+    Find where `v2` is greater than `v1` ignoring NaNs.
+
+    Parameters
+    ----------
+    v1 : ndarray
+        First set of values to compare
+    v2 : ndarray
+        Second set of values to compare; must be broadcast-compatible
+        with `v1`.
+
+    Returns
+    -------
+    pv : bool ndarray
+        Contains True where `v2` is greater than `v1` ignoring NaNs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import cla
+    >>> v1 = np.array([1.0, np.nan, 2.0, np.nan])
+    >>> v2 = np.array([2.0, 3.0, np.nan, np.nan])
+    >>> cla.nan_argmax(v1, v2)
+    array([ True,  True, False, False], dtype=bool)
+    >>> cla.nan_argmin(v1, v2)
+    array([False,  True, False, False], dtype=bool)
+    """
+    return (v2 > v1) | (np.isnan(v1) & ~np.isnan(v2))
+
+
+def nan_argmin(v1, v2):
+    """
+    Find where `v2` is less than `v1` ignoring NaNs.
+
+    Parameters
+    ----------
+    v1 : ndarray
+        First set of values to compare
+    v2 : ndarray
+        Second set of values to compare; must be broadcast-compatible
+        with `v1`.
+
+    Returns
+    -------
+    pv : bool ndarray
+        Contains True where `v2` is less than `v1` ignoring NaNs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import cla
+    >>> v1 = np.array([1.0, np.nan, 2.0, np.nan])
+    >>> v2 = np.array([2.0, 3.0, np.nan, np.nan])
+    >>> cla.nan_argmax(v1, v2)
+    array([ True,  True, False, False], dtype=bool)
+    >>> cla.nan_argmin(v1, v2)
+    array([False,  True, False, False], dtype=bool)
+    """
+    return (v2 < v1) | (np.isnan(v1) & ~np.isnan(v2))
+
+
 def extrema(curext, mm, maxcase, mincase=None, casenum=None):
     """
     Update extrema values in 'curext'
@@ -377,7 +439,7 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
 
     Returns
     -------
-    None.
+    None
 
     Notes
     -----
@@ -409,7 +471,7 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
             return
 
         # keep sign but compare based on absolute
-        j = abs(mm.ext) > abs(curext.ext)
+        j = nan_argmax(abs(curext.ext), abs(mm.ext))
         if j.any():
             curext.maxcase[j] = maxcase[j]
             curext.ext[j] = mm.ext[j]
@@ -448,14 +510,15 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         elif curext.exttime is not None:
             curext.exttime[j, col] = np.nan
 
-    j = (mm.ext[:, 0] > curext.ext[:, 0]).nonzero()[0]
+    j = nan_argmax(curext.ext[:, 0], mm.ext[:, 0]).nonzero()[0]
     if j.size > 0:
         for i in j:
             curext.maxcase[i] = maxcase[i]
         curext.ext[j, 0] = mm.ext[j, 0]
         _put_time(curext, mm, j, 0)
 
-    j = (mm.ext[:, 1] < curext.ext[:, 1]).nonzero()[0]
+    j = nan_argmin(curext.ext[:, 1], mm.ext[:, 1]).nonzero()[0]
+    # j = (mm.ext[:, 1] < curext.ext[:, 1]).nonzero()[0]
     if j.size > 0:
         for i in j:
             curext.mincase[i] = mincase[i]
@@ -981,7 +1044,7 @@ class DR_Def(object):
             nondrms = {}
 
         # check for overlapping keys in drms and nondrms:
-        overlapping_names = set(nondrms.keys()) & set(drms.keys())
+        overlapping_names = set(nondrms) & set(drms)
         if len(overlapping_names) > 0:
             raise ValueError('`drms` and `nondrms` have overlapping '
                              'names: {}'.format(overlapping_names))
@@ -1134,11 +1197,11 @@ class DR_Def(object):
             etc). The columns are the categores (eg: 'SC_atm',
             'SC_ltm', etc).
         """
-        cats = sorted([i for i in self.dr_def.keys()
+        cats = sorted([i for i in self.dr_def
                        if not i.startswith('_')])
         if len(cats) == 0:
             raise RuntimeError('add data recovery categories first')
-        vals = sorted(self.dr_def[cats[0]].__dict__.keys())
+        vals = sorted(self.dr_def[cats[0]].__dict__)
         df = pd.DataFrame(index=vals, columns=cats)
 
         def _issame(old, new):
@@ -1893,7 +1956,7 @@ class DR_Results(OrderedDict):
         >>> # make up some CLA results:
         >>> events = ('Liftoff', 'Transonics', 'MECO')
         >>> rows = {'ATM': 34, 'LTM': 29}
-        >>> ext_results = {'ATM': {}, 'LTM': {}}
+        >>> ext_results = {i: {} for i in rows}
         >>> t = np.arange(200)/200
         >>> for event in events:
         ...     for drm, nrows in rows.items():
@@ -2514,19 +2577,17 @@ class DR_Results(OrderedDict):
 
         def _calc_extreme(dct, ext_name, case_order, doappend):
             if case_order is None:
-                # cases = sorted(list(dct.keys()), key=str)
-                cases = list(dct.keys())
-                # eg: 'Liftoff', 'MECO', etc
+                cases = list(dct)
             else:
                 cases = [str(i) for i in case_order]
             new_ext = DR_Results()
             domain = None
             for j, case in enumerate(cases):
                 try:
-                    curext = dct[cases[j]]['extreme']
+                    curext = dct[case]['extreme']
                     use_ext = True
                 except KeyError:
-                    curext = dct[cases[j]]
+                    curext = dct[case]
                     use_ext = False
                 domain = None
                 for drm, val in curext.items():
@@ -3337,17 +3398,17 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
     def _get_absmax(res):
         # form abs-max matrix keeping sign:
         amx = res.mx.copy()
-        pv = abs(res.mn) > abs(amx)
+        pv = nan_argmax(abs(amx), abs(res.mn))
         amx[pv] = res.mn[pv]
-        amxcase = res.maxcase
+        amxcase = res.maxcase[:]
         if amxcase is not None:
-            pv = abs(res.ext[:, 1]) > abs(res.ext[:, 0])
+            pv = nan_argmax(abs(res.ext[:, 0]), abs(res.ext[:, 1]))
             pv = pv.nonzero()[0]
             for j in pv:
                 amxcase[j] = res.mincase[j]
         aext = res.ext[:, 0].copy()
         amn = res.ext[:, 1]
-        pv = abs(amn) > abs(aext)
+        pv = nan_argmax(abs(aext), abs(amn))
         aext[pv] = amn[pv]
         return amx, amxcase, aext
 
@@ -3568,9 +3629,10 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     Parameters
     ----------
     mxmn1 : 2d ndarray or SimpleNamespace
-        If 2-column ndarray, its columns are: [max, min]. If
-        SimpleNamespace, it must be as defined in :class:`DR_Results`
-        and have these members::
+        The max/min data to compare to the `mxmn2` set. If 2-column
+        ndarray, its columns are: [max, min]. If SimpleNamespace, it
+        must be as defined in :class:`DR_Results` and have these
+        members::
 
             .ext = [max, min]
             .drminfo = SimpleNamespace which has (at least):
@@ -3584,9 +3646,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
         Note that the inputs `desc`, `labels`, etc, override the
         values above.
-
-    mxmn2 : 2d ndarray
-        2-column matrix of reference max, min data:  [max, min]
+    mxmn2 : 2d ndarray or SimpleNamespace
+        The reference set of max/min data. Format is the same as
+        `mxmn2`.
     filename : string, file handle or 1
         If a string, it is a filename that gets created. `filename`
         can also be a file handle or 1 to write to standard output
@@ -3839,6 +3901,28 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     <BLANKLINE>
         % Diff Statistics: [Min, Max, Mean, StdDev] = [-4.00, 4.00,...
     """
+    def _apply_pv(value, pv):
+        try:
+            newvalue = value[pv]
+        except (TypeError, IndexError):
+            pass
+        else:
+            value = newvalue
+        return value
+
+    def _align_mxmn(mxmn1, mxmn2, labels, labels2,
+                    row_number, filterval, napv):
+        if labels and labels != labels2:
+            pv1, pv2 = locate.list_intersect(labels, labels2)
+            mxmn1 = mxmn1[pv1]
+            mxmn2 = mxmn2[pv2]
+            labels = [labels[i] for i in pv1]
+            row_number = row_number[pv1]
+            filterval = _apply_pv(filterval, pv1)
+            napv = _apply_pv(napv, pv1)
+        return (mxmn1, mxmn2, labels,
+                row_number, filterval, napv)
+
     def _get_filtline(filterval):
         if isinstance(filterval, np.ndarray):
             if filterval.size == 1:
@@ -4116,8 +4200,24 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         if uf_reds is None:
             uf_reds = mxmn1.drminfo.uf_reds
         mxmn1 = mxmn1.ext
+    else:
+        mxmn1 = np.atleast_2d(mxmn1)
+    row_number = np.arange(1, mxmn1.shape[0]+1)
 
-    mxmn1, mxmn2 = np.atleast_2d(mxmn1, mxmn2)
+    # check mxmn2:
+    if isinstance(mxmn2, SimpleNamespace):
+        labels2 = mxmn2.drminfo.labels
+        mxmn2 = mxmn2.ext
+        # use labels and labels2 to align data; this is in case
+        # the two sets of results recover some of the same items,
+        # but not all
+        (mxmn1, mxmn2, labels,
+         row_number, filterval, napv) = _align_mxmn(
+             mxmn1, mxmn2, labels, labels2,
+             row_number, filterval, napv)
+    else:
+        mxmn2 = np.atleast_2d(mxmn2)
+
     R = mxmn1.shape[0]
     if R != mxmn2.shape[0]:
         raise ValueError('`mxmn1` and `mxmn2` have a different'
@@ -4148,7 +4248,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     headers1 = ['', '']
     headers2 = [rowhdr, deschdr]
     formats = ['{:7d}', frm]
-    printargs = [np.arange(1, R+1), labels]
+    printargs = [row_number, labels]
     widths = [7, w]
     seps = [0, 2]
     justs = ['c', 'l']
@@ -4551,7 +4651,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             figsize = figsize[1], figsize[0]
 
     if drms is None:
-        alldrms = sorted(list(res.keys()))
+        alldrms = sorted(list(res))
     else:
         alldrms = copy.copy(drms)
         if inc0rb:
