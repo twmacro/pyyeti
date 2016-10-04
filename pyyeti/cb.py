@@ -987,11 +987,10 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
 
     # get rb scale:
     xrss = np.sqrt(rb[:-2, 0]**2 + rb[1:-1, 0]**2 + rb[2:, 0]**2)
-    pv = xrss > 1e-6 * abs(xrss).max()  # np.nonzero(xrss)[0]
-    xrss = xrss[pv]
-    if xrss.size == 0 or not np.allclose(xrss, xrss[0]):
-        raise ValueError('failed to get scale of rb modes ... check `rb`')
-    rbscale = xrss[0]
+    rbscale = abs(xrss).max()
+    if rbscale == 0.0:
+        raise ValueError('failed to get scale of rb modes ...'
+                         ' check `rb`')
 
     # attempt to find xyz triples
     coords = np.empty((n, 3))
