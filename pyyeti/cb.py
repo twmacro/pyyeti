@@ -966,6 +966,63 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         Tsc2lv=Tsc2lv, rb=rb, rb_all=rb_all)
 
 
+def _find_triples(drmrb):
+    """
+    Find x, y, z triples in rigid-body motion.
+
+    The input could be just rigid-body modes or, for example,
+    ``drmrb = ATM @ rb``.
+
+    Can handle any coordinate system(s).
+    """
+#    drm = drm.copy()
+    # attempt to find xyz triples:
+    drmrb = np.atleast_2d(drmrb)
+    n = drmrb.shape[0]
+    coords = np.empty((n, 3))
+    coords[:] = np.nan
+    scales = np.empty(n)
+    scales[:] = np.nan
+    j = 0
+    while j+2 < n:
+        pv = slice(j, j+3)
+        T1 = drmrb[pv, :3]
+        # check for a scalar multiplier (like .00259, for example)
+        T1tT1 = T1.T @ T1
+        csqr = T1tT1[0, 0]
+        try:
+            T2 = linalg.inv(T1)
+            mx = abs(T1).max()
+            good = np.allclose(csqr*T2, T1.T,
+                               rtol=0.001, atol=max(0.001*mx, 1.e-5))
+        except linalg.LinAlgError:
+            good = False
+        if good:
+            rbrot = T2 @ drmrb[pv, 3:]
+            x = rbrot[1, 2]
+            y = rbrot[2, 0]
+            z = rbrot[0, 1]
+            rbrot_ideal = np.array([[0, z, -y],
+                                    [-z, 0, x],
+                                    [y, -x, 0]])
+            mx = abs(rbrot_ideal).max()
+            if np.allclose(rbrot, rbrot_ideal,
+                           rtol=0.001, atol=max(0.001*mx, 1.e-5)):
+#                drm[pv] = T2 @ drm[pv]
+                coords[pv, 0] = x
+                coords[pv, 1] = y
+                coords[pv, 2] = z
+                scales[pv] = np.sqrt(csqr)
+                j += 3
+            else:
+                j += 1
+        else:
+            j += 1
+    pv = ~np.isnan(coords[:, 0])
+#    return drm[pv], coords[pv], pv
+    return pv, coords, scales
+
+
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     """
     Routine used by :func:`rbmultchk`. See documentation for
@@ -986,51 +1043,22 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         drmrb = drm[:, :rbr] @ rb
 
     # get rb scale:
-    xrss = np.sqrt(rb[:-2, 0]**2 + rb[1:-1, 0]**2 + rb[2:, 0]**2)
-    rbscale = abs(xrss).max()
-    if rbscale == 0.0:
-        raise ValueError('failed to get scale of rb modes ...'
-                         ' check `rb`')
+    if 0:
+        pv, coords, scales = _find_triples(rb)
+        if not pv.any():
+            raise ValueError('failed to get scale of rb modes ...'
+                             ' check `rb`')
+        rbscale = scales[pv][0]
+    else:
+        xrss = np.sqrt(rb[:-2, 0]**2 + rb[1:-1, 0]**2 + rb[2:, 0]**2)
+        rbscale = abs(xrss).max()
+        if rbscale == 0.0:
+            raise ValueError('failed to get scale of rb modes ...'
+                             ' check `rb`')
 
-    # attempt to find xyz triples
-    coords = np.empty((n, 3))
-    coords[:] = np.nan
-    scales = np.empty(n)
-    scales[:] = np.nan
-    j = 0
-    while j+2 < n:
-        pv = j + np.array([0, 1, 2])
-        T1 = drmrb[pv, :3]
-        # check for a scalar multiplier (like .00259, for example)
-        T1tT1 = T1.T @ T1
-        csqr = T1tT1[0, 0]
-        try:
-            T2 = linalg.inv(T1)
-            mx = np.max(np.abs(T1))
-            good = np.allclose(csqr*T2, T1.T,
-                               rtol=0.001, atol=max(0.001*mx, 1.e-5))
-        except linalg.LinAlgError:
-            good = False
-        if good:
-            rbrot = T2 @ drmrb[pv, 3:]
-            x = rbrot[1, 2]
-            y = rbrot[2, 0]
-            z = rbrot[0, 1]
-            rbrot_ideal = np.array([[0, z, -y],
-                                    [-z, 0, x],
-                                    [y, -x, 0]])
-            mx = abs(rbrot_ideal).max()
-            if np.allclose(rbrot, rbrot_ideal,
-                           rtol=0.001, atol=max(0.001*mx, 1.e-5)):
-                coords[pv, 0] = x
-                coords[pv, 1] = y
-                coords[pv, 2] = z
-                scales[pv] = np.sqrt(csqr)/rbscale
-                j += 3
-            else:
-                j += 1
-        else:
-            j += 1
+    # attempt to find xyz triples:
+    pv, coords, scales = _find_triples(drmrb)
+    scales[pv] /= rbscale
 
     fout.write('\nExtreme Coordinates from {}\n'.format(name))
     headers = ['X', 'Y', 'Z']
