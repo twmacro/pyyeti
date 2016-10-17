@@ -994,6 +994,7 @@ class DR_Def(object):
                 yr = 1             # 'y' row(s)
                 rr = 2             # rss  rows
                 resp[rr] = np.sqrt(resp[xr]**2 + resp[yr]**2)
+                return resp
 
             def x_y_rss_psd(sol, nrb, Vars, se, freq, forcepsd,
                             drmres, case, i):

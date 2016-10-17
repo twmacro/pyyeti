@@ -975,6 +975,15 @@ def _find_triples(drmrb):
 
     Can handle any coordinate system(s).
     """
+    # todo:
+    # - promote to non-hidden function
+    # - add the input rb??
+    # - add the drm code
+    # - add a uset output option (with coords as defined)
+    # - output rb modes for trimmed drm with:  ?
+    #   - original coords?
+    #   - basic coords?
+
 #    drm = drm.copy()
     # attempt to find xyz triples:
     drmrb = np.atleast_2d(drmrb)
