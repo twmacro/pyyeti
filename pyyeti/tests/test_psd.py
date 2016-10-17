@@ -68,7 +68,7 @@ def test_spl():
     # oaspl should be around 170.75 (since variance = 1):
     abs(oaspl/shouldbe - 1) < .01
 
-    f, spl, oaspl = psd.spl(x, sr, sr)
+    f, spl, oaspl = psd.spl(x, sr)
     # oaspl should be greater than the one above:
     assert oaspl > oaspl1*1.01
 

@@ -7,9 +7,9 @@ http://stackoverflow.com/questions/13306519/\
 get-data-from-plot-with-matplotlib
 """
 
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.offsetbox as offsetbox
-import numpy as np
 
 
 def form1(x, y, n, ind):
@@ -415,9 +415,12 @@ class DataCursor(object):
         self.inds.append(ind)
         self.lines.append(lineh)
         self.linenums.append(n)
+        # if 3d, set visible to False (i don't know how to get proper
+        # coordinates for the dot):
+        vis = False if hasattr(ax, 'get_proj') else True
         self.pts.append(ax.scatter(x, y, s=130,
                                    color='red', alpha=0.4,
-                                   visible=True))
+                                   visible=vis))
         self.notes.append(self._annotation[ax])
         # offsetbox.DraggableAnnotation(self._annotation)
         # make a new annotation box so current one is static
@@ -520,7 +523,8 @@ class DataCursor(object):
             elif event.button == 3 and len(self.xypoints) > 0:
                 self._del_point(ax=ax)
         elif self.hover:
-            dot.set_visible(True)
+            if not hasattr(ax, 'get_proj'):
+                dot.set_visible(True)
             annotation.set_visible(True)
         event.canvas.draw()
 

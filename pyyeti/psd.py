@@ -441,10 +441,10 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
 
     Notes
     -----
-    This routine calls :func:`scipy.signal.welch` to calculate the
-    PSD. It then converts that to mean-square values per band (for
-    linear frequency steps, this is just PSD * delta_freq). Loosely,
-    the math is:
+    This routine ultimately calls :func:`scipy.signal.welch` (via
+    :func:`psdmod`) to calculate the PSD. It then converts that to
+    mean-square values per band (for linear frequency steps, this is
+    just ``PSD * delta_freq``). Loosely, the math is:
 
     .. math::
         \begin{aligned}
@@ -465,12 +465,12 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
     >>> abs(oaspl/shouldbe - 1) < .01
     True
     """
+    if nperseg is None:
+        nperseg = sr
     # compute psd
     F, P = psdmod(x, sr, nperseg=nperseg, window=window,
                   timeslice=timeslice, tsoverlap=tsoverlap,
                   noverlap=int(overlap*nperseg))
-    # F, P = signal.welch(x, sr, window=window, nperseg=nperseg,
-    #                     noverlap=int(overlap*n))
     if fs != 0:
         _, F, _, P = rescale(P, F, n_oct=fs)
     else:
