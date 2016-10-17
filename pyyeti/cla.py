@@ -617,7 +617,8 @@ class DR_Def(object):
     @staticmethod
     def addcat(func):
         """
-        Decorator to ensure function is called to add category.
+        Decorator to ensure :func:`DR_Def.add` is called to add
+        category.
 
         Notes
         -----
@@ -843,16 +844,20 @@ class DR_Def(object):
             to using `nondrms`.)
         drfile : string or None; optional
             Name of file that contains the data recovery function
-            named `name`. It can optionally also have the PSD data
-            recovery function named `name`_psd. See notes below for
-            more info. This file is imported during event simulation.
+            named `name`. It can optionally also have a PSD-specific
+            data recovery function; this must have the same name but
+            with "_psd" appended. See notes below for more info. This
+            file is imported during event simulation.
+
             DA: get value from `self.defaults`.
         se : integer or None; optional
             The superelement number.
+
             DA: get value from `self.defaults`.
         desc : string or None; optional
             One line description of category; eg:
             ``desc = 'S/C Internal Accelerations'``.
+
             DA: set to `name`.
         units : string; optional
             Specifies the units.
@@ -874,6 +879,7 @@ class DR_Def(object):
             unique filter value for each row.
         histlabels : list or None
             Analogous to `labels` but just for the `histpv` rows.
+
             DA: derive from `labels` according to `histpv` if
             needed.
         histpv : 1d bool array_like or 'all' or slice or None
@@ -885,6 +891,7 @@ class DR_Def(object):
             0-offset for standard Python indexing).
         histunits : string or None
             Units string for the `histpv`.
+
             DA: set to `units`.
         misc : any object
             Available for storing miscellaneous information for the
@@ -907,20 +914,24 @@ class DR_Def(object):
         srsQs : scalar or 1d array_like or None
             Q values for SRS calculation. If None, no SRS's will be
             calculated.
+
             DA: set to `self.defaults` if any other `srs*` option is
             not None; otherwise, leave it None.
         srsfrq : 1d array_like or None
             Frequency vector for SRS.
+
             DA: get value from `self.defaults` if `srsQs` is not None.
         srsconv : scalar or 1d array_like or None
             Conversion factor scalar or vector same length as
             `srspv`. None is the same as 1.0.
         srslabels : list or None
             Analogous to `labels` but just for the `srspv` rows.
+
             DA: derive from `labels` according to `srspv` if needed.
         srsopts : dict or None
             Dictionary of options for SRS; eg:
             ``dict(eqsine=True, ic='steady')``
+
             DA: set to ``{}`` if `srspv` is not None.
         srspv : 1d bool array_like or 'all' or slice or None
             Boolean vector specifying which rows to compute SRS
@@ -929,10 +940,12 @@ class DR_Def(object):
             directly. If None, the default action is taken. The stored
             version is either a slice or an index vector (uses
             0-offset for standard Python indexing).
+
             DA: if `srsQs` is not None, internally set to
             ``np.arange(len(labels))``; otherwise, leave it None.
         srsunits : string or None
             Units string for the `srspv`.
+
             DA: set to `units`.
         **kwargs : dict
             All other inputs are quietly ignored.
@@ -1427,7 +1440,7 @@ class DR_Event(object):
 
     def prepare_results(self, mission, event):
         """
-        Returns an instance of the class:`DR_Results` class.
+        Returns an instance of the :class:`DR_Results` class.
 
         Parameters
         ----------
@@ -2644,14 +2657,14 @@ class DR_Results(OrderedDict):
 
     def strip_hists(self):
         """
-        Strips out time and frequency domain histories and non-extreme
-        srs data
+        Strips out response histories and non-extreme srs data
 
         Notes
         -----
         This is typically to reduce file size of a summary results
-        structure where the histories are already saved in other
-        files. Run this before :func:`DR_Results.form_extreme`.
+        structure where the time and frequency domain histories are
+        already saved in other files. Run this before
+        :func:`DR_Results.form_extreme`.
 
         See example usage in :func:`DR_Results.merge`.
 
@@ -3047,7 +3060,7 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
                        case, i):
     """
     Compute phase-consistent (time-correlated) root-sum-square (RSS)
-    responses in a PSD analysis. Each RSS is of two rows.
+    responses in a PSD analysis; each RSS is of two rows.
 
     In the following, 'x' denotes DOF 1 for the RSS and 'y' denotes
     the perpendicular direction: resp = sqrt(x*x + y*y).
