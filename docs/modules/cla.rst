@@ -33,20 +33,21 @@ Class for storing and working with CLA results
     :toctree: generated/
 
     DR_Results
+    DR_Results.add_maxmin
+    DR_Results.delete_extreme
+    DR_Results.form_extreme
+    DR_Results.form_stat_ext
     DR_Results.init
     DR_Results.merge
-    DR_Results.add_maxmin
-    DR_Results.time_data_recovery
-    DR_Results.solvepsd
     DR_Results.psd_data_recovery
-    DR_Results.form_stat_ext
-    DR_Results.form_extreme
-    DR_Results.strip_hists
-    DR_Results.rptext
-    DR_Results.rpttab
-    DR_Results.rptpct
-    DR_Results.srs_plots
     DR_Results.resp_plots
+    DR_Results.rptext
+    DR_Results.rptpct
+    DR_Results.rpttab
+    DR_Results.solvepsd
+    DR_Results.srs_plots
+    DR_Results.strip_hists
+    DR_Results.time_data_recovery
 
 Utility routines
 ----------------

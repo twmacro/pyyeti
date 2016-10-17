@@ -2443,6 +2443,25 @@ class DR_Results(OrderedDict):
                     res.srs.ext[Q] = (arr.mean(axis=0) +
                                       k*arr.std(ddof=1, axis=0))
 
+    def delete_extreme(self):
+        """
+        Delete any 'extreme' entries
+
+        Notes
+        -----
+        This routine will delete the 'extreme' dictionaries at all
+        levels. Those entries are typically added by
+        :func:`form_extreme`. Note that :func:`form_extreme` calls
+        this routine to delete any stale 'extreme' entries before
+        forming any new entries.
+        """
+        self.pop('extreme', None)
+        for value in self.values():
+            if isinstance(value, DR_Results):
+                value.delete_extreme()
+            else:
+                return
+
     def form_extreme(self, ext_name='Envelope', case_order=None,
                      doappend=2):
         """
@@ -2632,14 +2651,6 @@ class DR_Results(OrderedDict):
                     val.domain = domain
             return new_ext
 
-        def _delete_extreme(dct):
-            dct.pop('extreme', None)
-            for value in dct.values():
-                if isinstance(value, DR_Results):
-                    _delete_extreme(value)
-                else:
-                    return
-
         def _add_extreme(dct, ext_name, case_order, doappend):
             for name, value in list(dct.items()):
                 if isinstance(value, SimpleNamespace):
@@ -2652,7 +2663,7 @@ class DR_Results(OrderedDict):
                 dct, ext_name, case_order, doappend)
 
         # main routine:
-        _delete_extreme(self)
+        self.delete_extreme()
         _add_extreme(self, ext_name, case_order, doappend)
 
     def strip_hists(self):
@@ -2664,10 +2675,10 @@ class DR_Results(OrderedDict):
         This is typically to reduce file size of a summary results
         structure where the time and frequency domain histories are
         already saved in other files. Run this before
-        :func:`DR_Results.form_extreme`.
+        :func:`DR_Results.form_extreme` (or rerun
+        :func:`DR_Results.form_extreme` afterward).
 
         See example usage in :func:`DR_Results.merge`.
-
         """
         def _delete_hists(dct):
             for value in dct.values():
