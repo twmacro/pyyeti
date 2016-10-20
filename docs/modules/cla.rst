@@ -57,6 +57,7 @@ Utility routines
     extrema
     freq3_augment
     get_marker_cycle
+    get_drfunc
     magpct
     maxmin
     mk_plots
