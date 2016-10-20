@@ -660,8 +660,9 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
             `ic`      Initial conditions
            ========   ===============================================
            'zero'     uses zero initial conditions
-           'shift'    shifts each signal to zero so there are no step
-                      inputs and then uses zero initial conditions
+           'shift'    shifts each signal to start at zero so there
+                      are no step inputs and then uses zero initial
+                      conditions
            'mshift'   shifts each signal by its mean, then uses zero
                       initial conditions
            'steady'   uses steady-state initial conditions
