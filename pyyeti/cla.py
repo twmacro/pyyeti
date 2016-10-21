@@ -1440,7 +1440,7 @@ class DR_Event(object):
             if se != 0 and se != se_last:
                 ulvs = nas['ulvs'][se]
                 uset = nas['uset'][se]
-                # Want bset partition from aset.  But note that in the
+                # Want bset partition from aset. But note that in the
                 # .asm, .pch approach to SE's, it is valid in Nastran
                 # to just put all b-set & q-set in a generic a-set.
                 # If that's the case, find q-set by finding the
