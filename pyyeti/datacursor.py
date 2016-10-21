@@ -22,6 +22,12 @@ def form2(x, y, n, ind):
     return 'x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.format(x=x, y=y, n=n)
 
 
+def _ensure_iterable(a):
+    if not isinstance(a, (list, tuple)):
+        return [a]
+    return a
+
+
 class DataCursor(object):
     r"""
     Class to show x, y data points and to allow selection of points
@@ -204,7 +210,7 @@ class DataCursor(object):
 
     """
 
-    def __init__(self, ax=None, hover=True,
+    def __init__(self, ax=None, figs=None, hover=True,
                  form1=form1, form2=form2,
                  offsets=(-20, 20)):
         """
@@ -214,8 +220,14 @@ class DataCursor(object):
         ----------
         ax : axes object(s) or None; optional
             Axes object or list of axes objects as created by
-            :func:`matplotlib.pyplot.subplot`. If None, all axes on
-            all figures will be automatically included.
+            :func:`matplotlib.pyplot.subplot` (for example). If None,
+            all axes on all selected figures will be automatically
+            included. Takes precedence over the `figs` input.
+        figs : figure object(s) or None; optional
+            Alternative to the `ax` input. If `ax` is not input,
+            `figs` specifies a figure object or list of figure objects
+            as created by :func:`matplotlib.pyplot.figure`. If None,
+            all applicable figures will be automatically included.
         hover : bool; optional
             Sets the `hover` attribute.
         form1 : function; optional
@@ -226,6 +238,7 @@ class DataCursor(object):
             Sets the `offsets` attribute.
         """
         self._ax_input = ax
+        self._figs_input = figs
         self.hover = hover
         self.form1 = form1
         self.form2 = form2
@@ -239,7 +252,11 @@ class DataCursor(object):
 
     def _init_all(self, errout=False):
         if self._ax_input is None:
-            self._figs = [plt.figure(i) for i in plt.get_fignums()]
+            if self._figs_input is None:
+                self._figs = [plt.figure(i)
+                              for i in plt.get_fignums()]
+            else:
+                self._figs = _ensure_iterable(self._figs_input)
             if len(self._figs) == 0:
                 if errout:
                     raise RuntimeError('no figures; '
@@ -247,12 +264,10 @@ class DataCursor(object):
                 else:
                     self._ax = []
                     return
-            self._ax = [a for fig in self._figs for a in fig.get_axes()]
+            self._ax = [a for fig in self._figs
+                        for a in fig.get_axes()]
         else:
-            if not isinstance(self._ax_input, list):
-                self._ax = [self._ax_input]
-            else:
-                self._ax = self._ax_input
+            self._ax = _ensure_iterable(self._ax_input)
             self._figs = [a.figure for a in self._ax]
         if len(self._ax) == 0:
             if errout:
@@ -266,18 +281,25 @@ class DataCursor(object):
         if maxlines == 0 and errout:
             raise RuntimeError('no lines; plot something first')
 
-    def on(self, newax=-1, callbacks=True):
+    def on(self, ax=-1, figs=-1, callbacks=True):
         """
         Turns on and (re-)initializes the DataCursor for current
         figures.
 
         Parameters
         ----------
-        newax : -1 or axes handle; optional
-            If `newax` is -1, the axes that the DataCursor uses remain
-            unchanged (all, if `ax` was originally None). Other values
-            reset the DataCursor as described in the main help for the
-            `ax` input.
+        ax : axes object(s) or None or -1; optional
+            Axes object or list of axes objects as created by
+            :func:`matplotlib.pyplot.subplot` (for example). If None,
+            all axes on all selected figures will be automatically
+            included. Takes precedence over the `figs` input. If -1,
+            leave this setting as specified during instantiation.
+        figs : figure object(s) or None or -1; optional
+            Alternative to the `ax` input. If `ax` is not input,
+            `figs` specifies a figure object or list of figure objects
+            as created by :func:`matplotlib.pyplot.figure`. If None,
+            all applicable figures will be automatically included. If
+            -1, leave this setting as specified during instantiation.
         callbacks : bool or str; optional
             If False, call-backs are not turned on. If True, all call-
             backs are turned on. If 'key_only', only the key-press
@@ -293,8 +315,10 @@ class DataCursor(object):
         The `xypoints` and other data members are reset to empty
         lists.
         """
-        if newax != -1:
-            self._ax_input = newax
+        if ax != -1:
+            self._ax_input = ax
+        if figs != -1:
+            self._figs_input = figs
         self._init_all()
         self.xypoints = []
         self.inds = []

@@ -2572,7 +2572,7 @@ def test_getmodepart():
         self._add_point(ax, x, y, n, ind, lineh)
         self.off()
         return 1
-    
+
     old_fake_getdata = DataCursor._fake_getdata
     DataCursor._fake_getdata = getdata
     mds3, frqs3, r = ode.modeselect('modeselect demo 2', ts,
@@ -2581,7 +2581,7 @@ def test_getmodepart():
                                     factor=.1, auto=None)
     plt.close('all')
     DataCursor._fake_getdata = old_fake_getdata
-    
+
     modes_sbe = [1, 2]
     freqs_sbe = [6.1315401651466273, 13.53671044272239]
     assert np.allclose(modes_sbe, mds3)
@@ -3232,7 +3232,7 @@ def test_ode_coupled_2_mNone_generator():
                 # resolve some time steps for test:
                 for i in range(nt-5, nt):
                     gen.send((i, f[:, i]))
-                
+
                 solu2 = tsu.finalize()
 
                 tsu0 = ode.SolveUnc(m, b, k, h=None,
