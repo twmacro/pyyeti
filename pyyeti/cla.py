@@ -300,10 +300,12 @@ def get_drfunc(drinfo, get_psd=False):
                                                   drinfo.drfile)
     drmod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(drmod)
-    func = eval('drmod.' + drinfo.drfunc)
+    # func = eval('drmod.' + drinfo.drfunc)
+    func = getattr(drmod, drinfo.drfunc)
     if get_psd:
         try:
-            psdfunc = eval('drmod.' + drinfo.drfunc + '_psd')
+            # psdfunc = eval('drmod.' + drinfo.drfunc + '_psd')
+            psdfunc = getattr(drmod, drinfo.drfunc + '_psd')
         except AttributeError:
             psdfunc = None
         return func, psdfunc
@@ -399,7 +401,8 @@ def nan_argmax(v1, v2):
     >>> cla.nan_argmin(v1, v2)
     array([False,  True, False, False], dtype=bool)
     """
-    return (v2 > v1) | (np.isnan(v1) & ~np.isnan(v2))
+    with np.errstate(invalid='ignore'):
+        return (v2 > v1) | (np.isnan(v1) & ~np.isnan(v2))
 
 
 def nan_argmin(v1, v2):
@@ -430,7 +433,47 @@ def nan_argmin(v1, v2):
     >>> cla.nan_argmin(v1, v2)
     array([False,  True, False, False], dtype=bool)
     """
-    return (v2 < v1) | (np.isnan(v1) & ~np.isnan(v2))
+    with np.errstate(invalid='ignore'):
+        return (v2 < v1) | (np.isnan(v1) & ~np.isnan(v2))
+
+
+def nan_absmax(v1, v2):
+    """
+    Get absolute maximum values between `v1` and `v2` while
+    retaining signs and ignoring NaNs.
+
+    Parameters
+    ----------
+    v1 : ndarray
+        First set of values to compare
+    v2 : ndarray
+        Second set of values to compare; must be broadcast-compatible
+        with `v1`.
+
+    Returns
+    -------
+    amax : ndarray
+        The absolute maximum values over `v1` and `v2`. The signs are
+        retained and NaNs are ignored as much as possible.
+    pv : bool ndarray
+        Contains True where ``abs(v2)`` is greater than ``abs(v1)``
+        ignoring NaNs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import cla
+    >>> v1 = np.array([[1, -4], [3, 5]])
+    >>> v2 = np.array([[-2, 3], [4, np.nan]])
+    >>> cla.nan_absmax(v1, v2)
+    (array([[-2, -4],
+           [ 4,  5]]), array([[ True, False],
+           [ True, False]], dtype=bool))
+    """
+    amx = v1.copy()
+    pv = nan_argmax(abs(v1), abs(v2))
+    amx[pv] = v2[pv]
+    return amx, pv
 
 
 def extrema(curext, mm, maxcase, mincase=None, casenum=None):
@@ -2450,14 +2493,15 @@ class DR_Results(OrderedDict):
         calculated as well. Each ``.srs.srs[q]`` is assumed to be
         cases x rows x freq.
 
-        The `.maxcase`, `.mincase` and `.exttime` members are all set
-        to None (since all cases contribute to the extrema).
+        The `.maxcase` and `.mincase` members are set to 'Statistical'
+        and the `.exttime` member is set to None.
         """
         for res in self.values():
             mx = res.mx.mean(axis=1) + k*res.mx.std(ddof=1, axis=1)
             mn = res.mn.mean(axis=1) - k*res.mn.std(ddof=1, axis=1)
-            res.ext = np.vstack([mx, mn]).T
-            res.maxcase = res.mincase = res.exttime = None
+            res.ext = np.column_stack((mx, mn))
+            res.maxcase = res.mincase = ['Statistical']*mx.shape[0]
+            res.exttime = None
 
             # handle SRS if it is there:
             if 'srs' in res.__dict__:
@@ -2524,9 +2568,9 @@ class DR_Results(OrderedDict):
 
         Notes
         -----
-        This routine will 'extreme' dictionaries at all appropriate
-        levels. Any old 'extreme' dictionaries (at all levels) are
-        deleted before anything else is done.
+        This routine will create 'extreme' dictionaries at all
+        appropriate levels. Any old 'extreme' dictionaries (at all
+        levels) are deleted before anything else is done.
         """
         DEFDOMAIN = 'X-Value'
 
@@ -2739,7 +2783,8 @@ class DR_Results(OrderedDict):
             Name of directory to put tables; will be created if
             doesn't exist
         doabsmax : bool; optional
-            If True, compare only absolute maximums.
+            If True, report only absolute maximums. Note that signs
+            are retained.
         numform : string; optional
             Format of the max & min numbers.
         perpage : integer; optional
@@ -3270,7 +3315,8 @@ def rptext1(res, filename,
     title : string; optional
         Title for report
     doabsmax : bool; optional
-        If True, compare only absolute maximums.
+        If True, report only absolute maximums. Note that signs are
+        retained.
     numform : string; optional
         Format of the max & min numbers.
     perpage : integer; optional
@@ -3326,7 +3372,7 @@ def rptext1(res, filename,
         # maximum or minimum
         w = len(numform.format(np.pi))
         if doabsmax and not one_col:
-            mx = res.ext.max(axis=1)
+            mx = nan_absmax(mx, mn)
         else:
             mx = res.ext if one_col else res.ext[:, col]
         _add_column(hdr, numform, mx, w, 4, 'c')
@@ -3435,7 +3481,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
     def _add_zero_case(mat, cases):
         pv = (mat == 0).all(axis=1).nonzero()[0]
         if cases is None:
-            new_cases = ['Statistical']*mat.shape[0]
+            new_cases = ['N/A']*mat.shape[0]
         else:
             new_cases = copy.copy(cases)
         for i in pv:
@@ -3443,22 +3489,14 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         return new_cases
 
     def _get_absmax(res):
-        # form abs-max matrix keeping sign:
-        amx = res.mx.copy()
-        pv = nan_argmax(abs(amx), abs(res.mn))
-        amx[pv] = res.mn[pv]
+        amx, pv = nan_absmax(res.mx, res.mn)
+        aext, pv = nan_absmax(res.ext[:, 0], res.ext[:, 1])
         if res.maxcase is not None:
             amxcase = res.maxcase[:]
-            pv = nan_argmax(abs(res.ext[:, 0]), abs(res.ext[:, 1]))
-            pv = pv.nonzero()[0]
-            for j in pv:
+            for j in pv.nonzero()[0]:
                 amxcase[j] = res.mincase[j]
         else:
             amxcase = None
-        aext = res.ext[:, 0].copy()
-        amn = res.ext[:, 1]
-        pv = nan_argmax(abs(aext), abs(amn))
-        aext[pv] = amn[pv]
         return amx, amxcase, aext
 
     def _add_max_plus_min(ec):
