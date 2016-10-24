@@ -56,11 +56,12 @@ Utility routines
 
     extrema
     freq3_augment
-    get_marker_cycle
     get_drfunc
+    get_marker_cycle
     magpct
     maxmin
     mk_plots
+    nan_absmax
     nan_argmax
     nan_argmin
     PrintCLAInfo
