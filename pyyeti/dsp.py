@@ -1764,7 +1764,7 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
                 print('Channel {} not found in `dct`.'.format(item))
         if err:
             raise ValueError('`dct` does not contain all requested'
-                             'channels. See above.')
+                             ' channels. See above.')
         parms = channels
     else:
         parms = list(dct.keys())
