@@ -867,6 +867,12 @@ def test_cbcoordchk():
     b2 = np.arange(6)
     assert_raises(ValueError, cb.cbcoordchk, k, b2, b)
 
+def compare_nets(net, net2):
+    for name in net.__dict__:
+        if isinstance(net.__dict__[name], list):
+            assert net.__dict__[name] == net2.__dict__[name]
+        else:
+            assert np.allclose(net.__dict__[name], net2.__dict__[name])
 
 def test_mk_net_drms():
     pth = os.path.dirname(inspect.getfile(cb))
@@ -988,8 +994,7 @@ def test_mk_net_drms():
     assert net.scaxial_sc == 0
     assert net.scaxial_lv == 2
 
-    for name in net.__dict__:
-        assert np.allclose(net.__dict__[name], net2.__dict__[name])
+    compare_nets(net, net2)
 
 
 def test_mk_net_drms_6dof():
@@ -1062,5 +1067,4 @@ def test_mk_net_drms_6dof():
     assert net.scaxial_sc == 0
     assert net.scaxial_lv == 0
 
-    for name in net.__dict__:
-        assert np.allclose(net.__dict__[name], net2.__dict__[name])
+    compare_nets(net, net2)

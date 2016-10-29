@@ -724,6 +724,8 @@ def bulk2uset(*args):
     grids = np.zeros((0, 8))
     no_data = np.zeros((0, 11))
     cord2r = cord2c = cord2s = no_data
+    if len(args) == 0:
+        args = [None]
     for f in args:
         f = guitools.get_file_name(f, read=True)
         cord2r = np.vstack((cord2r, rdcards(f, 'cord2r',

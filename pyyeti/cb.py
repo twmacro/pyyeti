@@ -840,6 +840,85 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         coordinates, respectively. These are based on interface
         forces. Acceleration-dependent. Units are 'g' and
         'rad/sec**2'.
+    ifltma : 2d ndarray with 12 rows
+        The acceleration-dependent portion of the net interface force
+        data recovery matrices in s/c and l/v units and coordinates
+        (s/c first). Along with `ifltmd`, recovers the net forces on
+        the s/c. See also `ifltm_labels`.
+    ifltmd : 2d ndarrays with 12 rows
+        The displacement-dependent portion of the net interface force
+        data recovery matrices. Should be zero unless `bsubset` is
+        used.
+    ifatm : 2d ndarray with 12 rows
+        The net interface acceleration data recovery matrices in s/c
+        and l/v coordinates (s/c first). Acceleration-dependent. Units
+        are 'g' and 'rad/sec**2'. See also `ifatm_labels`.
+    cglf : 2d ndarrays with 14 rows
+        The net CG load factor data recovery matrices in s/c and l/v
+        coordinates. The first 5 rows are in s/c coordinates and the
+        next 5 rows are in l/v coordinates. The last 4 rows are blank,
+        reserved for time-consistent root-sum-squaring. Recovers
+        axial, shear, and moment-based load factors. Row order is
+        *independent* of the models' coordinates and the units are
+        'g'. The signs of the moment based lateral CG load factors are
+        set to match the lateral directions (to match the shear-based
+        values). See the `cglf_labels` output for the row
+        descriptions.
+    ifltm_labels : list
+        List of strings describing the rows if the `ifltma` and
+        `ifltmd` recovery matrices. Label order depends on models. As
+        an example, assume s/c axial is 'Z' and and l/v axial is 'X'::
+
+            ['I/F Lateral Frc FX sc',
+             'I/F Lateral Frc FY sc',
+             'I/F Axial Frc   FZ sc',
+             'I/F Moment      MX sc',
+             'I/F Moment      MY sc',
+             'I/F Torsion     MZ sc',
+             'I/F Axial Frc   FX lv',
+             'I/F Lateral Frc FY lv',
+             'I/F Lateral Frc FZ lv',
+             'I/F Torsion     MX lv',
+             'I/F Moment      MY lv',
+             'I/F Moment      MZ lv']
+
+    ifatm_labels : list
+        List of strings describing the rows if the `ifatm` recovery
+        matrix. Label order depends on models. As an example, assume
+        s/c axial is 'Z' and and l/v axial is 'X'::
+
+            ['I/F Axial     X sc (g)',
+             'I/F Lateral   Y sc (g)',
+             'I/F Lateral   Z sc (g)',
+             'I/F Torsion  RX sc (r/s^2)',
+             'I/F Rotation RY sc (r/s^2)',
+             'I/F Rotation RZ sc (r/s^2)',
+             'I/F Axial     X lv (g)',
+             'I/F Lateral   Y lv (g)',
+             'I/F Lateral   Z lv (g)',
+             'I/F Torsion  RX lv (r/s^2)',
+             'I/F Rotation RY lv (r/s^2)',
+             'I/F Rotation RZ lv (r/s^2)']
+
+    cglf_labels : list
+        List of strings describing the rows if the `cglf` recovery
+        matrix. The return value is::
+
+            ['S/C CG Axial         sc',
+             'S/C CG Shear Lat 1   sc',
+             'S/C CG Shear Lat 2   sc',
+             'S/C CG Mom. Lat 1    sc',
+             'S/C CG Mom. Lat 2    sc',
+             'S/C CG Axial         lv',
+             'S/C CG Shear Lat 1   lv',
+             'S/C CG Shear Lat 2   lv',
+             'S/C CG Mom. Lat 1    lv',
+             'S/C CG Mom. Lat 2    lv',
+             'S/C CG Shear Lat RSS sc',
+             'S/C CG Mom. Lat RSS  sc',
+             'S/C CG Shear Lat RSS lv',
+             'S/C CG Mom. Lat RSS  lv']
+
     weight_sc, weight_lv : real scalars
         Weight of the s/c in s/c and l/v units.
     height_sc, height_lv : real scalars
@@ -859,6 +938,92 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         The geometry-based rigid-body modes corresponding to the
         the `uset` table. Same as `rb` if `bsubset` is None.
     """
+    def _get_cglf(cgatm_sc, ifltma_sc, ifltmd_sc,
+                  cgatm_lv, ifltma_lv, ifltmd_lv,
+                  cg_sc, scaxial_sc, weight_sc, height_sc,
+                  cg_lv, scaxial_lv, weight_lv, height_lv):
+        wh_sc = weight_sc*height_sc
+        wh_lv = weight_lv*height_lv
+        n = cgatm_sc.shape[1]
+        lat_sc = np.delete([0, 1, 2], scaxial_sc)
+        lat_lv = np.delete([0, 1, 2], scaxial_lv)
+        # define moment signs to match the shear directions:
+        # if x is positive up, then:
+        #   lat 1 (y) moment-based = +Zmoment/wh
+        #   lat 2 (z) moment-based = -Ymoment/wh
+        # After going through all 6 scenarios by hand:
+        s = np.sign(cg_sc[scaxial_sc])
+        sign_sc = (s, -s) if np.diff(lat_sc) == 1 else (-s, s)
+        s = np.sign(cg_lv[scaxial_lv])
+        sign_lv = (s, -s) if np.diff(lat_lv) == 1 else (-s, s)
+
+        cglfa = np.vstack((
+            # 5 s/c rows
+            cgatm_sc[scaxial_sc],
+            cgatm_sc[lat_sc],
+            sign_sc[0]*ifltma_sc[lat_sc[1]+3]/wh_sc,
+            sign_sc[1]*ifltma_sc[lat_sc[0]+3]/wh_sc,
+    
+            # 5 l/v rows
+            cgatm_lv[scaxial_lv],
+            cgatm_lv[lat_lv],
+            sign_lv[0]*ifltma_lv[lat_lv[1]+3]/wh_lv,
+            sign_lv[1]*ifltma_lv[lat_lv[0]+3]/wh_lv,
+    
+            # 4 RSS rows ... filled in during data recovery
+            np.zeros((4, n))
+        ))
+
+        cglfd = np.zeros((14, ifltmd_sc.shape[1]))
+        cglfd[3] = sign_sc[0]*ifltmd_sc[lat_sc[1]+3]/wh_sc
+        cglfd[4] = sign_sc[1]*ifltmd_sc[lat_sc[0]+3]/wh_sc
+        cglfd[8] = sign_lv[0]*ifltmd_lv[lat_lv[1]+3]/wh_lv
+        cglfd[9] = sign_lv[1]*ifltmd_lv[lat_lv[0]+3]/wh_lv
+
+        return cglfa, cglfd
+
+    def _putaxial(labels, ax, s, t_old, t_new, r_old, r_new):
+        lbls = [i.format(s) for i in labels]
+        lbls[ax] = lbls[ax].replace(t_old, t_new)
+        lbls[ax+3] = lbls[ax+3].replace(r_old, r_new)
+        return lbls
+
+    def _get_labels(scaxial_sc, scaxial_lv):
+        labels = ['I/F Lateral Frc FX {}',
+                  'I/F Lateral Frc FY {}',
+                  'I/F Lateral Frc FZ {}',
+                  'I/F Moment      MX {}',
+                  'I/F Moment      MY {}',
+                  'I/F Moment      MZ {}']
+        tr = 'Lateral Frc', 'Axial Frc  ', 'Moment ', 'Torsion'
+        ifltm_labels = (_putaxial(labels, scaxial_sc, ' sc', *tr) +
+                        _putaxial(labels, scaxial_lv, ' lv', *tr))
+        labels = ['I/F Lateral   X {} (g)',
+                  'I/F Lateral   Y {} (g)',
+                  'I/F Lateral   Z {} (g)',
+                  'I/F Rotation RX {} (r/s^2)',
+                  'I/F Rotation RY {} (r/s^2)',
+                  'I/F Rotation RZ {} (r/s^2)']
+        tr = 'Lateral', 'Axial  ', 'Rotation', 'Torsion '
+        ifatm_labels = (_putaxial(labels, scaxial_sc, ' sc', *tr) +
+                        _putaxial(labels, scaxial_lv, ' lv', *tr))
+        cglf_labels = ['S/C CG Axial         sc',
+                       'S/C CG Shear Lat 1   sc',
+                       'S/C CG Shear Lat 2   sc',
+                       'S/C CG Mom. Lat 1    sc',
+                       'S/C CG Mom. Lat 2    sc',
+                       'S/C CG Axial         lv',
+                       'S/C CG Shear Lat 1   lv',
+                       'S/C CG Shear Lat 2   lv',
+                       'S/C CG Mom. Lat 1    lv',
+                       'S/C CG Mom. Lat 2    lv',
+                       'S/C CG Shear Lat RSS sc',
+                       'S/C CG Mom. Lat RSS  sc',
+                       'S/C CG Shear Lat RSS lv',
+                       'S/C CG Mom. Lat RSS  lv']
+        return ifltm_labels, ifatm_labels, cglf_labels
+
+    # main routine
     if uset is None:
         uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
@@ -880,8 +1045,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     uset_if = uset[bset_if]
     rb = n2p.rbgeom_uset(uset_if, ref)
     bifb = np.ix_(bset_if, bset)
-    ifltma = rb.T @ Mcb[bset_if]
-    ifltmd = rb.T @ Kcb[bifb]  # should be zero if bsubset is None
+    ifltma_sc = rb.T @ Mcb[bset_if]
+    ifltmd_sc = rb.T @ Kcb[bifb]  # should be zero if bsubset is None
 
     # check grounding:
     rb_all = n2p.rbgeom_uset(uset, ref)
@@ -894,8 +1059,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
     if conv is not None:
         # make s/c version of ifltm compatible with system
-        ifltma = cbconvert(ifltma, bset, conv, drm=True)
-        ifltmd = cbconvert(ifltmd, bset, conv, drm=True)
+        ifltma_sc = cbconvert(ifltma_sc, bset, conv, drm=True)
+        ifltmd_sc = cbconvert(ifltmd_sc, bset, conv, drm=True)
 
         # make new M & K for l/v versions:
         Mcb = cbconvert(Mcb, bset, conv)
@@ -909,8 +1074,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         ifltma_lv = rb.T @ Mcb[bset_if]
         ifltmd_lv = rb.T @ Kcb[bifb]
     else:
-        ifltma_lv = ifltma
-        ifltmd_lv = ifltmd
+        ifltma_lv = ifltma_sc
+        ifltmd_lv = ifltmd_sc
 
     # use RBE3 for net accelerations
     if len(bset) > 6:
@@ -929,22 +1094,22 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     new_id = grids.max() + 1
     uset2 = n2p.addgrid(uset_if, new_id, 'b', 0, ref, 0)
     rbe3 = n2p.formrbe3(uset2, new_id, 123456, [dof_indep, grids])
-    ifatm = np.zeros((6, Mcb.shape[1]))
-    ifatm[:, xyz] = rbe3
+    ifatm_sc = np.zeros((6, Mcb.shape[1]))
+    ifatm_sc[:, xyz] = rbe3
 
     # calculate cg location and mass @ cg (l/v units but s/c coords):
     Mif = rb_all.T @ Mcb[bb] @ rb_all
-    Mcg, cg = cgmass(Mif)  # cg is relative to ref
+    Mcg, cg_sc = cgmass(Mif)  # cg is relative to ref
 
     # form rigid-body modes relative to CG:
-    rbcg = n2p.rbgeom_uset(uset_if, cg)
+    rbcg = n2p.rbgeom_uset(uset_if, cg_sc)
 
     # for net CG acceleration:
-    cgatm = linalg.solve(Mcg, rbcg.T @ Mcb[bset_if])
-    ifatm[:3] /= g
-    cgatm[:3] /= g
+    cgatm_sc = linalg.solve(Mcg, rbcg.T @ Mcb[bset_if])
+    ifatm_sc[:3] /= g
+    cgatm_sc[:3] /= g
     weight_lv = Mcg[0, 0]*g
-    height_lv = abs(cg).max()
+    height_lv = abs(cg_sc).max()
     if conv is not None:
         lengthconv, massconv = _get_conv_factors(conv)
         weight_sc = weight_lv / (massconv * lengthconv)
@@ -952,16 +1117,38 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     else:
         weight_sc = weight_lv
         height_sc = height_lv
-    scaxial_sc = np.argmax(abs(cg))
-    cg_lv = Tsc2lv[:3, :3] @ cg[:, None]
+    scaxial_sc = np.argmax(abs(cg_sc))
+    cg_lv = Tsc2lv[:3, :3] @ cg_sc
     scaxial_lv = np.argmax(abs(cg_lv))
+    ifltma_lv=Tsc2lv @ ifltma_lv
+    ifltmd_lv=Tsc2lv @ ifltmd_lv
+    ifatm_lv=Tsc2lv @ ifatm_sc
+    cgatm_lv=Tsc2lv @ cgatm_sc
+
+    # assemble ifltma, ifltmd, ifatm, cglf, and the companion
+    # label lists:
+    ifltma = np.vstack((ifltma_sc, ifltma_lv))
+    ifltmd = np.vstack((ifltmd_sc, ifltmd_lv))
+    ifatm = np.vstack((ifatm_sc, ifatm_lv))
+    cglfa, cglfd = _get_cglf(cgatm_sc, ifltma_sc, ifltmd_sc,
+                             cgatm_lv, ifltma_lv, ifltmd_lv,
+                             cg_sc, scaxial_sc, weight_sc, height_sc,
+                             cg_lv, scaxial_lv, weight_lv, height_lv)
+    ifltm_labels, ifatm_labels, cglf_labels = _get_labels(scaxial_sc,
+                                                          scaxial_lv)
+
     return SimpleNamespace(
-        ifltma_sc=ifltma, ifltma_lv=Tsc2lv @ ifltma_lv,
-        ifltmd_sc=ifltmd, ifltmd_lv=Tsc2lv @ ifltmd_lv,
-        ifatm_sc=ifatm, ifatm_lv=Tsc2lv @ ifatm,
-        cgatm_sc=cgatm, cgatm_lv=Tsc2lv @ cgatm,
+        ifltma=ifltma, ifltmd=ifltmd, ifatm=ifatm,
+        cglfa=cglfa, cglfd=cglfd,
+        ifltm_labels=ifltm_labels, ifatm_labels=ifatm_labels,
+        cglf_labels=cglf_labels,
+        ifltma_sc=ifltma_sc, ifltma_lv=ifltma_lv,
+        ifltmd_sc=ifltmd_sc, ifltmd_lv=ifltmd_lv,
+        ifatm_sc=ifatm_sc, ifatm_lv=ifatm_lv,
+        cgatm_sc=cgatm_sc, cgatm_lv=cgatm_lv,
         weight_sc=weight_sc, weight_lv=weight_lv,
         height_sc=height_sc, height_lv=height_lv,
+        cg_sc=cg_sc, cg_lv=cg_lv,
         scaxial_sc=scaxial_sc, scaxial_lv=scaxial_lv,
         Tsc2lv=Tsc2lv, rb=rb, rb_all=rb_all)
 
