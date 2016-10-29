@@ -979,11 +979,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         ))
 
         cglfd = np.zeros((14, ifltmd_sc.shape[1]))
-        cglfd[3] = sign_sc[0]*ifltmd_sc[lat_sc[1]+3]/wh_sc
-        cglfd[4] = sign_sc[1]*ifltmd_sc[lat_sc[0]+3]/wh_sc
-        cglfd[8] = sign_lv[0]*ifltmd_lv[lat_lv[1]+3]/wh_lv
-        cglfd[9] = sign_lv[1]*ifltmd_lv[lat_lv[0]+3]/wh_lv
-
+        cglfd[3:5] = sign_sc * ifltmd_sc[lat_sc[::-1]+3]/wh_sc
+        cglfd[8:10] = sign_lv * ifltmd_lv[lat_lv[::-1]+3]/wh_lv
         return cglfa, cglfd
 
     def _putaxial(labels, ax, s, t_old, t_new, r_old, r_new):
