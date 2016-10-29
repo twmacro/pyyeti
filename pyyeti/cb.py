@@ -842,28 +842,30 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         'rad/sec**2'.
     ifltma : 2d ndarray with 12 rows
         The acceleration-dependent portion of the net interface force
-        data recovery matrices in s/c and l/v units and coordinates
+        data recovery matrix in s/c and l/v units and coordinates
         (s/c first). Along with `ifltmd`, recovers the net forces on
         the s/c. See also `ifltm_labels`.
-    ifltmd : 2d ndarrays with 12 rows
+    ifltmd : 2d ndarray with 12 rows
         The displacement-dependent portion of the net interface force
-        data recovery matrices. Should be zero unless `bsubset` is
-        used.
+        data recovery matrix. Should be zero unless `bsubset` is used.
     ifatm : 2d ndarray with 12 rows
-        The net interface acceleration data recovery matrices in s/c
-        and l/v coordinates (s/c first). Acceleration-dependent. Units
-        are 'g' and 'rad/sec**2'. See also `ifatm_labels`.
-    cglf : 2d ndarrays with 14 rows
-        The net CG load factor data recovery matrices in s/c and l/v
-        coordinates. The first 5 rows are in s/c coordinates and the
-        next 5 rows are in l/v coordinates. The last 4 rows are blank,
-        reserved for time-consistent root-sum-squaring. Recovers
-        axial, shear, and moment-based load factors. Row order is
-        *independent* of the models' coordinates and the units are
-        'g'. The signs of the moment based lateral CG load factors are
-        set to match the lateral directions (to match the shear-based
-        values). See the `cglf_labels` output for the row
-        descriptions.
+        The net interface acceleration data recovery matrix in s/c and
+        l/v coordinates (s/c first). Acceleration-dependent. Units are
+        'g' and 'rad/sec**2'. See also `ifatm_labels`.
+    cglfa : 2d ndarray with 14 rows
+        The acceleration-dependent portion of the net CG load factor
+        data recovery matrix in s/c and l/v coordinates. The first 5
+        rows are in s/c coordinates and the next 5 rows are in l/v
+        coordinates. The last 4 rows are blank, reserved for
+        time-consistent root-sum-squaring. Recovers axial, shear, and
+        moment-based load factors. Row order is *independent* of the
+        models' coordinates and the units are 'g'. The signs of the
+        moment based lateral CG load factors are set to match the
+        lateral directions (to match the shear-based directions).  See
+        the `cglf_labels` output for the row descriptions.
+    cglfd : 2d ndarray with 14 rows
+        The displacement-dependent portion of the net CG load factor
+        data recovery matrix. Should be zero unless `bsubset` is used.
     ifltm_labels : list
         List of strings describing the rows if the `ifltma` and
         `ifltmd` recovery matrices. Label order depends on models. As
@@ -901,8 +903,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
              'I/F Rotation RZ lv (r/s^2)']
 
     cglf_labels : list
-        List of strings describing the rows if the `cglf` recovery
-        matrix. The return value is::
+        List of strings describing the rows if the `cglfa` and `cglfd`
+        recovery matrices. The return value is::
 
             ['S/C CG Axial         sc',
              'S/C CG Shear Lat 1   sc',
@@ -938,6 +940,17 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         The geometry-based rigid-body modes corresponding to the
         the `uset` table. Same as `rb` if `bsubset` is None.
     """
+
+    def _moment_signs(cg, ax, lat):
+        # define moment signs to match the shear directions:
+        # if x is positive up, then:
+        #   lat 1 (y) moment-based = +Zmoment/wh
+        #   lat 2 (z) moment-based = -Ymoment/wh
+        # After going through all 6 scenarios by hand:
+        s = np.sign(cg[ax])    # is axial up or down?
+        mom_signs = [s, -s] if np.diff(lat) == 1 else [-s, s]
+        return np.array(mom_signs)[:, None]
+
     def _get_cglf(cgatm_sc, ifltma_sc, ifltmd_sc,
                   cgatm_lv, ifltma_lv, ifltmd_lv,
                   cg_sc, scaxial_sc, weight_sc, height_sc,
@@ -947,29 +960,20 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         n = cgatm_sc.shape[1]
         lat_sc = np.delete([0, 1, 2], scaxial_sc)
         lat_lv = np.delete([0, 1, 2], scaxial_lv)
-        # define moment signs to match the shear directions:
-        # if x is positive up, then:
-        #   lat 1 (y) moment-based = +Zmoment/wh
-        #   lat 2 (z) moment-based = -Ymoment/wh
-        # After going through all 6 scenarios by hand:
-        s = np.sign(cg_sc[scaxial_sc])
-        sign_sc = (s, -s) if np.diff(lat_sc) == 1 else (-s, s)
-        s = np.sign(cg_lv[scaxial_lv])
-        sign_lv = (s, -s) if np.diff(lat_lv) == 1 else (-s, s)
+        sign_sc = _moment_signs(cg_sc, scaxial_sc, lat_sc)
+        sign_lv = _moment_signs(cg_lv, scaxial_lv, lat_lv)
 
         cglfa = np.vstack((
             # 5 s/c rows
             cgatm_sc[scaxial_sc],
             cgatm_sc[lat_sc],
-            sign_sc[0]*ifltma_sc[lat_sc[1]+3]/wh_sc,
-            sign_sc[1]*ifltma_sc[lat_sc[0]+3]/wh_sc,
-    
+            sign_sc * ifltma_sc[lat_sc[::-1]+3]/wh_sc,
+
             # 5 l/v rows
             cgatm_lv[scaxial_lv],
             cgatm_lv[lat_lv],
-            sign_lv[0]*ifltma_lv[lat_lv[1]+3]/wh_lv,
-            sign_lv[1]*ifltma_lv[lat_lv[0]+3]/wh_lv,
-    
+            sign_lv * ifltma_lv[lat_lv[::-1]+3]/wh_lv,
+
             # 4 RSS rows ... filled in during data recovery
             np.zeros((4, n))
         ))
@@ -1136,21 +1140,19 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
                              cg_lv, scaxial_lv, weight_lv, height_lv)
     ifltm_labels, ifatm_labels, cglf_labels = _get_labels(scaxial_sc,
                                                           scaxial_lv)
-
-    return SimpleNamespace(
-        ifltma=ifltma, ifltmd=ifltmd, ifatm=ifatm,
-        cglfa=cglfa, cglfd=cglfd,
-        ifltm_labels=ifltm_labels, ifatm_labels=ifatm_labels,
-        cglf_labels=cglf_labels,
-        ifltma_sc=ifltma_sc, ifltma_lv=ifltma_lv,
-        ifltmd_sc=ifltmd_sc, ifltmd_lv=ifltmd_lv,
-        ifatm_sc=ifatm_sc, ifatm_lv=ifatm_lv,
-        cgatm_sc=cgatm_sc, cgatm_lv=cgatm_lv,
-        weight_sc=weight_sc, weight_lv=weight_lv,
-        height_sc=height_sc, height_lv=height_lv,
-        cg_sc=cg_sc, cg_lv=cg_lv,
-        scaxial_sc=scaxial_sc, scaxial_lv=scaxial_lv,
-        Tsc2lv=Tsc2lv, rb=rb, rb_all=rb_all)
+    # make output variable:
+    namelist = ['ifltma', 'ifltmd', 'ifatm', 'cglfa', 'cglfd',
+                'ifltm_labels', 'ifatm_labels', 'cglf_labels',
+                'ifltma_sc', 'ifltmd_sc', 'ifatm_sc', 'cgatm_sc',
+                'ifltma_lv', 'ifltmd_lv', 'ifatm_lv', 'cgatm_lv',
+                'weight_sc', 'height_sc', 'cg_sc', 'scaxial_sc',
+                'weight_lv', 'height_lv', 'cg_lv', 'scaxial_lv',
+                'Tsc2lv', 'rb', 'rb_all']
+    dct = locals()
+    s = SimpleNamespace()
+    for name in namelist:
+        setattr(s, name, dct[name])
+    return s
 
 
 def _find_triples(drmrb):
