@@ -1190,7 +1190,9 @@ class DR_Def(object):
                              uf_reds=(0, 1, 1.25, 1))
 
         would add 'SC_ifa_0rb' and 'SC_atm_0rb' copy categories
-        without the rigid-body component.
+        without the rigid-body component. (Note that, as a
+        convenience, :func:`DR_Def.add_0rb` exists for this specific
+        task.)
 
         For another example, recover the 'SC_cg' (cg load factors)
         in "static" and "dynamic" pieces::
