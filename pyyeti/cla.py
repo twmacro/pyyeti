@@ -765,9 +765,10 @@ class DR_Def(object):
         finally:
             sys.path.pop(0)
 
-    def _handle_defaults(self, ns):
+    def _handle_defaults(self, name):
         """Handle default values and take default actions"""
         # first, the defaults:
+        ns = self.dr_def[name]
         if ns.drfile is None:
             ns.drfile = self.defaults
 
@@ -807,7 +808,7 @@ class DR_Def(object):
 
         # next, the default actions:
         if ns.desc is None:
-            ns.desc = ns.name
+            ns.desc = name
 
         if isinstance(ns.labels, numbers.Integral):
             ns.labels = ['Row {:6d}'.format(i+1)
@@ -852,7 +853,6 @@ class DR_Def(object):
             ns.srsQs = _ensure_iter(ns.srsQs)
             if ns.srspv is None:
                 ns.srspv = slice(len(ns.labels))
-                # ns.srspv = np.ones(len(ns.labels), bool)
 
         if ns.srspv is not None and ns.srsopts is None:
             ns.srsopts = {}
@@ -992,8 +992,7 @@ class DR_Def(object):
             alternative option is to include data you need in
             `drfile` with the data recovery functions.
         srsQs : scalar or 1d array_like or None
-            Q values for SRS calculation. If None, no SRS's will be
-            calculated.
+            Q values for SRS calculation or None.
 
             DA: set to `self.defaults` if any other `srs*` option is
             not None; otherwise, leave it None.
@@ -1148,7 +1147,7 @@ class DR_Def(object):
         self.dr_def[name] = SimpleNamespace(**dr_def_args)
 
         # hand defaults and default actions:
-        self._handle_defaults(self.dr_def[name])
+        self._handle_defaults(name)
 
         # add drms and nondrms to self.dr_def:
         self._add_vars(name, drms, nondrms)
