@@ -1272,8 +1272,8 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         writer.vecwrite(fout, '  Maximums:'+f, mx)
 
     def _pf(s):
-        return s.replace(' nan,        nan,        nan         nan',
-                         '    ,           ,                       ')
+        return s.replace(' nan,        nan,        nan           nan',
+                         '    ,           ,                         ')
 
     r = np.arange(1, n+1)
     nonnr = np.any(drm, axis=1)
@@ -1291,7 +1291,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
         fout.write('\n{} * RB results:  '
                    '(NOT including NULL rows)\n'.format(name))
     fout.write('  Note: "Unit Scale" is output/input, so is '
-               'independent of\n  current rb scaling which is: {}'
+               'independent of current rb scaling which is: {}'
                '\n\n'.format(rbscale))
     if labels is None:
         labels = [''] * n
@@ -1302,11 +1302,11 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     headers = ['Row', 'Label', 'Coordinates (x, y, z)',
                'Unit Scale',
                name+' * RB Responses (x, y, z, rx, ry, rz)']
-    widths = [6, lablen, 10*3+4, 10, 65]
+    widths = [6, lablen, 10*3+4, 12, 65]
     labform = '{{:{}s}}'.format(lablen)
     formats = ['{:6d}', labform,
                '{:10.4f}, '*2+'{:10.4f}',
-               '{:10.6}',
+               '{:12.6}',
                '{:10.3f} '*5+'{:10.3f}']
     sep = [2, 2, 2, 2, 2]
     hu, f = writer.formheader(headers, widths, formats,
@@ -1486,8 +1486,7 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     ATM has 12 (100.0%) non-NULL rows and 0 (0.0%) NULL rows.
     <BLANKLINE>
     ATM * RB results:  (NOT including NULL rows)
-      Note: "Unit Scale" is output/input, so is independent of
-      current rb scaling which is: 1.0
+      Note: "Unit Scale" is output/input, ... scaling which is: 1.0
     <BLANKLINE>
        Row     Label          Coordinates (x, y, z)         ...
       ------  --------  ----------------------------------  ...

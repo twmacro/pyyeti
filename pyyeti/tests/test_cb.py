@@ -680,7 +680,7 @@ def test_rbmultchk():
 
     j = [2]
     assert comptable(s, sy, j, label='Extreme ', skip=3, col=11)
-    assert comptable(s, sy, j, label=' Row ', skip=2, col=66)
+    assert comptable(s, sy, j, label=' Row ', skip=2, col=68)
     assert comptable(s, sy, j, label=' Row ', skip=2)
     assert comptable(s, sy, j, label=' Row ', skip=2)
 
@@ -901,7 +901,7 @@ def test_mk_net_drms():
 
     # x s/c is axial (see figure in cbtf or cbcheck tutorial)
     # - make z l/v axial, but pointing down
-    
+
     # z s/c  ^ y l/v
     #    \   |   / y s/c
     #       \|/
@@ -1068,3 +1068,83 @@ def test_mk_net_drms_6dof():
     assert net.scaxial_lv == 0
 
     compare_nets(net, net2)
+
+
+def test_cglf_moment_signs():
+    pth = os.path.dirname(inspect.getfile(cb))
+    pth = os.path.join(pth, 'tests')
+    pth = os.path.join(pth, 'cla_model')
+
+    se = 101
+    uset, coords = nastran.bulk2uset(os.path.join(pth, 'outboard.asm'))
+    dct = op4.read(os.path.join(pth, 'outboard.op4'))
+    maa = dct['mxx']
+    kaa = dct['kxx']
+    atm = dct['mug1']
+    ltm = dct['mef1']
+    pch = os.path.join(pth, 'outboard.pch')
+    atm_labels = ['Grid {:4d}-{:1d}'.format(grid, dof)
+                  for grid, dof in nastran.rddtipch(pch)]
+    ltm_labels = ['CBAR {:4d}-{:1d}'.format(cbar, arg)
+                  for cbar, arg in nastran.rddtipch(pch, 'tef1')]
+
+    nb = uset.shape[0]
+    nq = maa.shape[0] - nb
+    bset = np.arange(nb)
+    qset = np.arange(nq) + nb
+    ref = [600., 150., 150.]
+    g = 9806.65
+
+    # use addgrid to get coordinate transformations from lv to sc:
+    cid = [1, 0, 0]
+    A = [0, 0, 0]
+    # define sc in terms of lv coords:
+    # (all drawn out by hand)
+    BC = [
+        [[0, 0, 1.], [1., 0, 0]],      # lv x is up
+        [[0, 0, -1.], [0, 1., 0]],     # lv y is up
+        [[-1., 0, 0.], [0, 0, 1.]],    # lv z is up
+
+        [[0, 0, -1.], [-1., 0, 0]],    # lv x is down
+        [[0, 0, 1.], [0, -1., 0]],     # lv y is down
+        [[0, -1., 0], [0, 0, -1.]],    # lv z is down
+    ]
+    Ts = []
+    nets = []
+    rb = n2p.rbgeom_uset(uset, ref)
+    rbcglfa = []
+    for bc in BC:
+        CI = n2p.get_coordinfo([cid, A, *bc], None, {})
+        T = CI[2:]
+        Ts.append(T)
+        net = cb.mk_net_drms(maa, kaa, bset, uset=uset, ref=ref, g=g,
+                             sccoord=T)
+        nets.append(net)
+        rba = net.cglfa[:, :24] @ rb
+        rbcglfa.append(rba)
+        # sc rows:
+        assert np.all(np.sign(rba[1, [1, 5]]) == np.sign(rba[3, [1, 5]]))
+        assert np.all(np.sign(rba[2, [2, 4]]) == np.sign(rba[4, [2, 4]]))
+        # lv rows:
+        assert np.all(np.sign(rba[6, [1, 5]]) == np.sign(rba[8, [1, 5]]))
+        assert np.all(np.sign(rba[7, [2, 4]]) == np.sign(rba[9, [2, 4]]))
+
+    wh_sc = nets[0].weight_sc*nets[0].height_sc
+    wh_lv = nets[0].weight_lv*nets[0].height_lv
+    n = nets[0].cgatm_sc.shape[1]
+    # x is down:
+    cgdrm = np.vstack((
+        # 5 s/c rows
+        nets[0].cgatm_sc[:3],
+        -nets[0].ifltma_sc[5]/wh_sc,
+        nets[0].ifltma_sc[4]/wh_sc,
+
+        # 5 l/v rows
+        nets[0].cgatm_lv[:3],
+        -nets[0].ifltma_lv[5]/wh_lv,
+        nets[0].ifltma_lv[4]/wh_lv,
+
+        # 4 RSS rows ... filled in during data recovery
+        np.zeros((4, n))
+    ))
+    assert np.allclose(cgdrm, nets[0].cglfa)

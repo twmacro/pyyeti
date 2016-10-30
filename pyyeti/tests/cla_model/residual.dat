@@ -1,0 +1,93 @@
+NASTRAN SYSTEM(402) = 0  $ AUTOMATICALLY DELETE DUPLICATE CARDS
+NASTRAN NLINES = 10000
+
+ASSIGN INPUTT4='outboard.op4',UNIT=101
+
+INIT MASTER(S)  $ delete .MASTER and .DBALL files on exit
+
+$ NAS2CAM op2/op4 files:
+assign output2 = 'nas2cam.op2', status=new,
+                 unit=29,delete $
+assign output4 = 'nas2cam.op4', status=new,
+                 unit=30,form=unformatted,delete $
+
+DIAG    8,47
+SOL 111
+echooff
+include '/loads/nx_dmaps/v9/nas2cam_111.v9'
+include '/loads/nx_dmaps/v9/nas2cam_subdmap.v9'
+INCLUDE '/loads/nx_dmaps/v9/getqpart.v9'
+INCLUDE '/loads/nx_dmaps/v9/dbdalter.v9'
+INCLUDE '/loads/nx_dmaps/v9/sysmodes.v9'
+echoon
+CEND
+
+TITLE = System Modes
+ECHO = Sort
+
+METHOD = 1
+FREQ = 1
+DISPLACEMENT(PLOT) = ALL
+WEIGHTCHECK(SET=ALL) = YES
+GROUNDCHECK(SET=ALL,DATAREC=YES) = YES
+
+PARAM,PRFMODES,1
+$
+$ TO GENERATE GRAVITY FORCE, SET GRAVDIR EQUAL TO GRAVITY DIRECTION
+$  AND SET THE GRAVITY FIELD:
+$
+PARAM,GRAVDIR,3
+PARAM,GRAVFELD,9806.65  $ mm/sec**2
+
+SUBCASE 1
+	LABEL = Modes run with BHH matrix
+	ANALYSIS = MODES
+	SUPER=0
+$        RESVEC(RVDOF) = YES
+	FORCE(PLOT) = ALL
+SUBCASE 2
+	SUPER=101
+SUBCASE 10
+	LABEL = Dummy Case
+	DLOAD = 1
+BEGIN BULK
+$-------------------------------------------------------------------
+$ NAS2CAM input:
+PARAM,DBDICT,0
+$ PARAM,RMCSET,1
+$ PARAM,PRFMODES,1
+$
+DTI,TMAA,1,101,0
+DTI,TKAA,1,101,0
+$
+$ DTI,TKAA,1,0
+$ DTI,TGOT,1,100
+$ DTI,TGOQ,1,100
+DTI,TGM,1,0
+DTI,TPHG,1,0
+DTI,TPHA,1,0
+DTI,TBHH,1,0
+$
+$-------------------------------------------------------------------
+PARAM,POST,-1
+PARAM,SESDAMP,YES
+
+$ EIGR           1    AHOU                          100000
+EIGRL          1           150.0
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+FREQ           1      2.
+RLOAD2         1       1                       1
+DAREA          1      11       1    1.0
+TABLED1        1
+            0.01     1.0   150.0    1.0     ENDT
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+$ for residual flexibility vectors:
+RVDOF1,123,8,22,24
+
+INCLUDE 'outboard.asm'
+include 'inboard.blk'
+INCLUDE 'outboard.pch'
+
+ENDDATA
