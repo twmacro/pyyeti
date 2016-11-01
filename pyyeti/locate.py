@@ -338,7 +338,7 @@ def list_intersect(L1, L2):
     ----------
     L1 : list
        List 1; the output vectors maintain the order of `L1`.
-    L1 : list
+    L2 : list
        List 2.
 
     Returns
