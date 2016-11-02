@@ -2589,7 +2589,7 @@ class DR_Results(OrderedDict):
             cases=cases, drminfo=drminfo, mission=oldcat.mission,
             event=ext_name, ext=None, exttime=None, maxcase=None,
             mincase=None, mx=mx, mn=mn, maxtime=maxtime,
-            mintime=mintime, domain=DEFDOMAIN)
+            mintime=mintime, domain=domain)
 
         # handle SRS if present:
         osrs = getattr(oldcat, 'srs', None)
