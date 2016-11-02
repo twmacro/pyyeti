@@ -2530,6 +2530,82 @@ class DR_Results(OrderedDict):
             else:
                 return
 
+    @staticmethod
+    def init_extreme_cat(cases, oldcat, ext_name='Envelope',
+                         domain='X-Value'):
+        """
+        Initialize an "extrema" data recovery category
+
+        Parameters
+        ----------
+        cases : list
+            List of strings, each naming a column for the `.mx` and
+            `.mn` members.
+        oldcat : SimpleNamespace
+            Results data structure with attributes `.ext`, `.mx`, etc
+            (see example in :class:`DR_Results`). Only used for
+            determining sizing information.
+        ext_name : string; optional
+            Name to use for extreme results (stored in, for example,
+            ``self['extreme']['SC_atm'].event``)
+        domain : string or None; optional
+            Typically 'time' or 'freq', but can be any string or
+            None. Use None to not define a domain.
+
+        Returns
+        -------
+        newcat : SimpleNamespace
+            New results data structure with attributes `.ext`, `.mx`,
+            etc (see example in :class:`DR_Results`).
+
+            The `.cases` attribute is set to the input `cases` and the
+            `.event` attribute is set to the input `ext_name`.
+
+            The `.drminfo` is a copy and `.mission` is a reference to
+            the ones in `oldcat`.
+
+            The `.ext`, `.exttime`, `.maxcase`, `.mincase` attributes
+            are all set to None.
+
+            The `.mx`, `.mn`, `.maxtime`, `.mintime`. `.srs.srs` (if
+            present) are all filled with ``np.nan``.
+
+            The `.srs.ext` dictionary is a deep copy of the one in
+            `oldcat`.
+        """
+        ncases = len(cases)
+        nrows = oldcat.ext.shape[0]
+        mx = np.empty((nrows, ncases))
+        mn = np.empty((nrows, ncases))
+        maxtime = np.empty((nrows, ncases))
+        mintime = np.empty((nrows, ncases))
+        mx[:] = np.nan
+        mn[:] = np.nan
+        maxtime[:] = np.nan
+        mintime[:] = np.nan
+        drminfo = copy.copy(oldcat.drminfo)
+
+        ret = SimpleNamespace(
+            cases=cases, drminfo=drminfo, mission=oldcat.mission,
+            event=ext_name, ext=None, exttime=None, maxcase=None,
+            mincase=None, mx=mx, mn=mn, maxtime=maxtime,
+            mintime=mintime, domain=DEFDOMAIN)
+
+        # handle SRS if present:
+        osrs = getattr(oldcat, 'srs', None)
+        if osrs is not None:
+            srs_ns = copy.copy(osrs)
+            srs_ns.ext = copy.deepcopy(osrs.ext)
+            srs_ns.srs = {}
+            # ndof, nf = list(osrs.ext.values())[0].shape
+            ndof, nf = next(iter(osrs.ext.values())).shape
+            for q in srs_ns.ext:
+                srs_ns.srs[q] = np.empty((ncases, ndof, nf))
+                srs_ns.srs[q][:] = np.nan
+            ret.srs = srs_ns
+
+        return ret
+            
     def form_extreme(self, ext_name='Envelope', case_order=None,
                      doappend=2):
         """
@@ -2574,39 +2650,6 @@ class DR_Results(OrderedDict):
         levels) are deleted before anything else is done.
         """
         DEFDOMAIN = 'X-Value'
-
-        def _init_drm_ext(cases, val, ext_name):
-            ncases = len(cases)
-            nrows = val.ext.shape[0]
-            mx = np.empty((nrows, ncases))
-            mn = np.empty((nrows, ncases))
-            maxtime = np.empty((nrows, ncases))
-            mintime = np.empty((nrows, ncases))
-            mx[:] = np.nan
-            mn[:] = np.nan
-            maxtime[:] = np.nan
-            mintime[:] = np.nan
-            drminfo = copy.copy(val.drminfo)
-
-            ret = SimpleNamespace(
-                cases=cases, drminfo=drminfo, mission=val.mission,
-                event=ext_name, ext=None, exttime=None, maxcase=None,
-                mincase=None, mx=mx, mn=mn, maxtime=maxtime,
-                mintime=mintime, domain=DEFDOMAIN)
-
-            # handle SRS if present:
-            osrs = getattr(val, 'srs', None)
-            if osrs is not None:
-                srs_ns = copy.copy(osrs)
-                srs_ns.ext = copy.deepcopy(osrs.ext)
-                srs_ns.srs = {}
-                ndof, nf = list(osrs.ext.values())[0].shape
-                for q in srs_ns.ext:
-                    srs_ns.srs[q] = np.empty((ncases, ndof, nf))
-                    srs_ns.srs[q][:] = np.nan
-                ret.srs = srs_ns
-
-            return ret
 
         def _mk_case_lbls(case, val, use_ext, doappend):
             case = str(case)
@@ -2692,8 +2735,8 @@ class DR_Results(OrderedDict):
                 domain = None
                 for drm, val in curext.items():
                     if drm not in new_ext:
-                        new_ext[drm] = _init_drm_ext(
-                            cases, val, ext_name)
+                        new_ext[drm] = new_ext.init_extreme_cat(
+                            cases, val, ext_name, DEFDOMAIN)
                     else:
                         new_ext[drm], val = _check_row_compatibility(
                             new_ext[drm], val)

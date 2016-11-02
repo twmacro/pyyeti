@@ -38,6 +38,7 @@ Class for storing and working with CLA results
     DR_Results.form_extreme
     DR_Results.form_stat_ext
     DR_Results.init
+    DR_Results.init_extreme_cat
     DR_Results.merge
     DR_Results.psd_data_recovery
     DR_Results.resp_plots
