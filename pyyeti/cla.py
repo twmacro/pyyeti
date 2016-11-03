@@ -2648,6 +2648,13 @@ class DR_Results(OrderedDict):
         This routine will create 'extreme' dictionaries at all
         appropriate levels. Any old 'extreme' dictionaries (at all
         levels) are deleted before anything else is done.
+
+        The extreme values from the events (eg,
+        ``self['Liftoff']['SC_atm'].ext``) are collected the max/min
+        attributes in the new 'extreme' category (eg, into
+        ``self['extreme']['SC_atm'].mx`` and ``<...>.mn``). The
+        ``.cases`` attribute lists the events in the order they are
+        assembled.
         """
         DEFDOMAIN = 'X-Value'
 
@@ -3072,6 +3079,8 @@ class DR_Results(OrderedDict):
 
         Notes
         -----
+        This routine is an interface to the :func:`mk_plots` routine.
+
         Example::
 
             # write a pdf file to 'srs_plots/':

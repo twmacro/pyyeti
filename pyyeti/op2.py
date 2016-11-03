@@ -1797,13 +1797,13 @@ class OP2(object):
 
         For grids, Coord_Info is a 6 row by 3 column matrix::
 
-            Coord_Info = [[x   y    z]    # location of node in basic
-                          [id  type 0]    # coord. id and type
-                          [xo  yo  zo]    # origin of coord. system
-                          [    T     ]]   # 3x3 transformation to basic
-                                          #  for coordinate system
+            Coord_Info = [[x   y    z]   # location of node in basic
+                          [id  type 0]   # coord. id and type
+                          [xo  yo  zo]   # origin of coord. system
+                          [    T     ]]  # 3x3 transformation to basic
+                                         #  for coordinate system
 
-            Coord_Info = [ 0 0 0 ]        # for SPOINTs
+            Coord_Info = [ 0 0 0 ]       # for SPOINTs
 
 
         *'cstm' description*
@@ -1874,13 +1874,12 @@ class OP2(object):
 
         Example::
 
-          from pyyeti import op2
-          from pyyeti import n2p
-          # list superelement 100 DOF that are in the B set:
-          o2 = op2.OP2('nas2cam.op2')
-          nas = op2.rdn2cop2()
-          bset = n2p.mksetpv(nas['uset'][100], 'p', 'b')
-          print('bset of se100 = ', nas['uset'][100][bset, :2])
+            from pyyeti import op2, n2p
+            # list superelement 100 DOF that are in the B set:
+            o2 = op2.OP2('nas2cam.op2')
+            nas = op2.rdn2cop2()
+            bset = n2p.mksetpv(nas['uset'][100], 'p', 'b')
+            print('bset of se100 =', nas['uset'][100][bset, :2])
 
         See also
         --------
