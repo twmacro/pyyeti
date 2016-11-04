@@ -2999,7 +2999,7 @@ class DR_Results(OrderedDict):
     def srs_plots(self, event=None, Q='auto', drms=None,
                   inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
                   figsize=(11, 8.5), showall=None, showboth=False,
-                  direc='srs_plots', sub_right=None):
+                  direc='srs_plots', sub_right=None, plot=plt.plot):
         """
         Make SRS plots with optional printing to .pdf or .png files.
 
@@ -3071,6 +3071,14 @@ class DR_Results(OrderedDict):
             a legend is placed outside the plots. If None, this
             routine tries to make an educated guess from the longest
             label.
+        plot : function; optional
+            The function that will draw each curve. Defaults to
+            :func:`matplotlib.pyplot.plot`. As an example, for a plot
+            with a linear X-axis but a log Y-axis, set `plot` to
+            :func:`matplotlib.pyplot.semilogy`. You can also use a
+            custom function of your own devising, but it is expected
+            to accept the same arguments as
+            :func:`matplotlib.pyplot.plot`.
 
         Returns
         -------
@@ -3081,11 +3089,10 @@ class DR_Results(OrderedDict):
         -----
         This routine is an interface to the :func:`mk_plots` routine.
 
-        Example::
+        For example::
 
             # write a pdf file to 'srs_plots/':
             results.srs_plots()
-
             # write png file(s) to 'png/':
             results.srs_plots(fmt='png', direc='png')
 
@@ -3095,12 +3102,12 @@ class DR_Results(OrderedDict):
                         layout=layout, figsize=figsize,
                         showall=showall, showboth=showboth,
                         direc=direc, sub_right=sub_right,
-                        cases=None)
+                        cases=None, plot=plot)
 
     def resp_plots(self, event=None, drms=None, inc0rb=True,
                    fmt='pdf', onepdf=True, layout=(2, 3),
                    figsize=(11, 8.5), cases=None, direc='resp_plots',
-                   sub_right=None):
+                   sub_right=None, plot=plt.plot):
         """
         Make time or frequency domain responses plots.
 
@@ -3163,6 +3170,14 @@ class DR_Results(OrderedDict):
             a legend is placed outside the plots. If None, this
             routine tries to make an educated guess from the longest
             label.
+        plot : function; optional
+            The function that will draw each curve. Defaults to
+            :func:`matplotlib.pyplot.plot`. As an example, for a plot
+            with a linear X-axis but a log Y-axis, set `plot` to
+            :func:`matplotlib.pyplot.semilogy`. You can also use a
+            custom function of your own devising, but it is expected
+            to accept the same arguments as
+            :func:`matplotlib.pyplot.plot`.
 
         Returns
         -------
@@ -3171,11 +3186,12 @@ class DR_Results(OrderedDict):
 
         Notes
         -----
-        Example::
+        This routine is an interface to the :func:`mk_plots` routine.
+
+        For example::
 
             # write a pdf file to 'resp_plots/':
             results.resp_plots()
-
             # write png file(s) to 'png/':
             results.resp_plots(fmt='png', direc='png')
 
@@ -3185,7 +3201,7 @@ class DR_Results(OrderedDict):
                         layout=layout, figsize=figsize,
                         cases=cases, direc=direc,
                         sub_right=sub_right, Q='auto',
-                        showall=None, showboth=False)
+                        showall=None, showboth=False, plot=plot)
 
 
 def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
@@ -4484,7 +4500,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
              inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
              figsize=(11, 8.5), showall=None, showboth=False,
-             cases=None, direc='srs_plots', sub_right=None):
+             cases=None, direc='srs_plots', sub_right=None,
+             plot=plt.plot):
     """
     Make SRS or response history plots
 
@@ -4563,6 +4580,13 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         a legend is placed outside the plots. If None, this
         routine tries to make an educated guess from the longest
         label.
+    plot : function; optional
+        The function that will draw each curve. Defaults to
+        :func:`matplotlib.pyplot.plot`. As an example, for a plot with
+        a linear X-axis but a log Y-axis, set `plot` to
+        :func:`matplotlib.pyplot.semilogy`. You can also use a custom
+        function of your own devising, but it is expected to accept
+        the same arguments as :func:`matplotlib.pyplot.plot`.
     """
     def _get_Qs(Q, srsQs, showall, name):
         if Q == 'auto':
@@ -4701,23 +4725,19 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             h = []
             marker = get_marker_cycle()
             for n, case in enumerate(cases):
-                h += plt.plot(x, srsall[n, j],
-                              linestyle='-',
-                              marker=next(marker),
-                              markevery=every,
-                              label=case)
+                h += plot(x, srsall[n, j], linestyle='-',
+                          marker=next(marker), markevery=every,
+                          label=case)
                 every += 1
             if showboth:
                 h.insert(0,
-                         plt.plot(x, srsext[j], 'k-', lw=2,
-                                  label='Envelope', zorder=-1)[0])
+                         plot(x, srsext[j], 'k-', lw=2,
+                              label='Envelope', zorder=-1)[0])
         else:
             # hist (cases x rows x time | freq)
             h = []
             for n, case in enumerate(cases):
-                h += plt.plot(x, hist[n, j],
-                              linestyle='-',
-                              label=case)
+                h += plot(x, hist[n, j], linestyle='-', label=case)
         if sub == maxcol:
             lbls = [_.get_label() for _ in h]
             lbllen = len(max(lbls, key=len))
@@ -4740,11 +4760,11 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         srsext = curres.srs.ext[q]
         # srsext (each rows x freq)
         if sub == maxcol:
-            plt.plot(frq, srsext[j], label='Q={}'.format(q))
+            plot(frq, srsext[j], label='Q={}'.format(q))
             plt.legend(loc='best', fontsize='small',
                        fancybox=True, framealpha=0.5)
         else:
-            plt.plot(frq, srsext[j])
+            plot(frq, srsext[j])
         if q == Qs[0]:
             _add_title(name, label, maxlen, sname,
                        rowpv[j]+1, cols)
