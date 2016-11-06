@@ -610,11 +610,6 @@ class DR_Def(object):
     """
     Data recovery definitions.
 
-    Parameters
-    ----------
-    defaults : dict or None; optional
-        Sets the `defaults` attribute; see below.
-
     Attributes
     ----------
     defaults : dict or None; optional
@@ -721,6 +716,12 @@ class DR_Def(object):
             raise RuntimeError(msg)
 
     def __init__(self, defaults=None):
+        """
+        Parameters
+        ----------
+        defaults : dict or None; optional
+            Sets the `defaults` attribute; see :class:`DR_Def`.
+        """
         self.defaults = {} if defaults is None else defaults
         self.dr_def = {}
         self.dr_def['_vars'] = SimpleNamespace(drms={}, nondrms={})
@@ -802,7 +803,9 @@ class DR_Def(object):
             ns.drfile = self._drfilemap[ns.drfile]
         except KeyError:
             drfile = ns.drfile
-            ns.drfile = os.path.realpath(drfile)
+            callerdir = os.path.dirname(
+                os.path.realpath(inspect.stack()[2][1]))
+            ns.drfile = os.path.join(callerdir, drfile)
             self._drfilemap[drfile] = ns.drfile
         self._check_for_drfunc(ns.drfile, ns.drfunc)
 
@@ -927,7 +930,10 @@ class DR_Def(object):
             named `name`. It can optionally also have a PSD-specific
             data recovery function; this must have the same name but
             with "_psd" appended. See notes below for more info. This
-            file is imported during event simulation.
+            file is imported during event simulation. If not included
+            in `drfile`, the full path of `drfile` is defined to be
+            relative to the path of the file that contains the
+            function that called this routine.
 
             DA: get value from `self.defaults`.
         se : integer or None; optional
@@ -1042,17 +1048,17 @@ class DR_Def(object):
 
         For a typical ATM::
 
-            def SC_atm(sol, nrb, Vars, se):
+            def SC_atm(sol, nas, Vars, se):
                 return Vars[se]['atm'] @ sol.a
 
         For a typical mode-displacement DTM::
 
-            def SC_dtm(sol, nrb, Vars, se):
+            def SC_dtm(sol, nas, Vars, se):
                 return Vars[se]['dtm'] @ sol.d
 
         For a typical mode-acceleration LTM::
 
-            def SC_ltm(sol, nrb, Vars, se):
+            def SC_ltm(sol, nas, Vars, se):
                 return (Vars[se]['ltma'] @ sol.a +
                         Vars[se]['ltmd'] @ sol.d)
 
@@ -1067,7 +1073,7 @@ class DR_Def(object):
         row. In this example, it is assumed the data recovery matrix
         has 3 rows where the 3rd row could be all zeros::
 
-            def x_y_rss(sol, nrb, Vars, se):
+            def x_y_rss(sol, nas, Vars, se):
                 resp = Vars[se]['xyrss'] @ sol.a
                 xr = 0             # 'x' row(s)
                 yr = 1             # 'y' row(s)
@@ -1075,7 +1081,7 @@ class DR_Def(object):
                 resp[rr] = np.sqrt(resp[xr]**2 + resp[yr]**2)
                 return resp
 
-            def x_y_rss_psd(sol, nrb, Vars, se, freq, forcepsd,
+            def x_y_rss_psd(sol, nas, Vars, se, freq, forcepsd,
                             drmres, case, i):
                 # drmres is a results namespace, eg:
                 #   drmres = results['x_y_rss']
@@ -1103,7 +1109,7 @@ class DR_Def(object):
                    .d members (modal accelerations, velocities and
                    displacements). See
                    :func:`pyyeti.ode.SolveUnc.tsolve`.
-            nrb    Number of rigid-body modes
+            nas    The nas2cam dict: ``nas = pyyeti.op2.rdnas2cam()``
             DR     Defines data recovery for an event simulation (and
                    is created in the simulation script via
                    ``DR = cla.DR_Event()``). It is an event specific
