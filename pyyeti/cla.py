@@ -670,7 +670,7 @@ class DR_Def(object):
             .uf_reds   : [n=4]: (1, 1, 1.25, 1)
             .units     : 'G, rad/sec^2'
 
-    PP(claparams['drdefs'].dr_def['_vars'], 3)
+    PP(claparams['drdefs'].dr_def['_vars'], 3)::
 
         <class 'types.SimpleNamespace'>[n=2]
             .drms   : <class 'dict'>[n=1]
