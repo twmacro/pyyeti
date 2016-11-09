@@ -1037,7 +1037,8 @@ class DR_Def(object):
 
         Returns
         -------
-        None. Updates the attribute `dr_def` (see :class:`DR_Def`).
+        None
+            Updates the attribute `dr_def` (see :class:`DR_Def`).
 
         Notes
         -----
@@ -1181,7 +1182,8 @@ class DR_Def(object):
 
         Returns
         -------
-        None. Updates the member `dr_def`.
+        None
+            Updates the member `dr_def`.
 
         Notes
         -----
@@ -1428,7 +1430,10 @@ class DR_Event(object):
         ----------
         nas : dictionary
             This is the nas2cam dictionary:
-            ``nas = pyyeti.op2.rdnas2cam()``
+            ``nas = pyyeti.op2.rdnas2cam()``. Only used if at least
+            one category in `drdefs` has a data recovery matrix and
+            has a non-zero "se" setting. Can be anything (like None)
+            if not needed.
         drdefs : DR_Def instance or None
             Contains the data recovery definitions for, typically, one
             superelement. See :class:`DR_Def`. If None, this routine
