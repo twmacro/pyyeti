@@ -1909,6 +1909,13 @@ class DR_Results(OrderedDict):
             .time   : float32 ndarray 10001 elems: (10001,)
 
     """
+    def __repr__(self):
+        return object.__repr__(self)
+
+    def __str__(self):
+        cats = ', '.join(name for name in self)
+        return ('{} with {} categories: [{}]'
+                .format(type(self).__name__, len(self), cats))
 
     def init(self, Info, mission, event):
         """
