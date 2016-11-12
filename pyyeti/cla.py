@@ -66,6 +66,8 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
 
     If desired, setup the plot axes before calling this routine.
 
+    This routine is called by :func:`rptpct1`.
+
     Examples
     --------
     .. plot::
@@ -249,7 +251,27 @@ def get_marker_cycle():
     """
     Return an ``itertools.cycle`` of plot markers.
 
-    The list is taken from `matplotlib.markers`.
+    The list is taken from `matplotlib.markers`. Currently::
+
+        'o',          # circle marker
+        'v',          # triangle_down marker
+        '^',          # triangle_up marker
+        '<',          # triangle_left marker
+        '>',          # triangle_right marker
+        '1',          # tri_down marker
+        '2',          # tri_up marker
+        '3',          # tri_left marker
+        '4',          # tri_right marker
+        's',          # square marker
+        'p',          # pentagon marker
+        '*',          # star marker
+        'h',          # hexagon1 marker
+        'H',          # hexagon2 marker
+        '+',          # plus marker
+        'x',          # x marker
+        'D',          # diamond marker
+        'd',          # thin_diamond marker
+
     """
     return itertools.cycle([
         'o',          # circle marker
@@ -395,11 +417,11 @@ def nan_argmax(v1, v2):
     >>> import numpy as np
     >>> from pyyeti import cla
     >>> v1 = np.array([1.0, np.nan, 2.0, np.nan])
-    >>> v2 = np.array([2.0, 3.0, np.nan, np.nan])
+    >>> v2 = np.array([-2.0, 3.0, np.nan, np.nan])
     >>> cla.nan_argmax(v1, v2)
-    array([ True,  True, False, False], dtype=bool)
-    >>> cla.nan_argmin(v1, v2)
     array([False,  True, False, False], dtype=bool)
+    >>> cla.nan_argmin(v1, v2)
+    array([ True,  True, False, False], dtype=bool)
     """
     with np.errstate(invalid='ignore'):
         return (v2 > v1) | (np.isnan(v1) & ~np.isnan(v2))
@@ -427,11 +449,11 @@ def nan_argmin(v1, v2):
     >>> import numpy as np
     >>> from pyyeti import cla
     >>> v1 = np.array([1.0, np.nan, 2.0, np.nan])
-    >>> v2 = np.array([2.0, 3.0, np.nan, np.nan])
+    >>> v2 = np.array([-2.0, 3.0, np.nan, np.nan])
     >>> cla.nan_argmax(v1, v2)
-    array([ True,  True, False, False], dtype=bool)
-    >>> cla.nan_argmin(v1, v2)
     array([False,  True, False, False], dtype=bool)
+    >>> cla.nan_argmin(v1, v2)
+    array([ True,  True, False, False], dtype=bool)
     """
     with np.errstate(invalid='ignore'):
         return (v2 < v1) | (np.isnan(v1) & ~np.isnan(v2))
@@ -523,7 +545,10 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
 
     Notes
     -----
-    This routine updates the `curext` variable.
+    This routine updates the `curext` variable. This routine is
+    typically called indirectly via
+    :func:`DR_Results.time_data_recovery` and
+    :func:`DR_Results.psd_data_recovery`.
     """
     r, c = mm.ext.shape
     if c not in [1, 2]:
@@ -619,9 +644,9 @@ class DR_Def(object):
     dr_def : dict
         This is a dictionary that defines how data recovery will be
         done. This is created through calls to member function
-        :func:`DR_Def.add` (typically from a "prepare_4_cla.py"
-        script). See the notes section below for an example showing
-        what is in this dict.
+        :func:`add` (typically from a "prepare_4_cla.py" script). See
+        the notes section below for an example showing what is in this
+        dict.
     ncats : integer
         The number of data recovery categories defined.
 
@@ -634,14 +659,14 @@ class DR_Def(object):
     PP(claparams['drdefs'].dr_def)::
 
         <class 'dict'>[n=9]
-            'SC_atm'    : <class 'types.SimpleNamespace'>[n=19]
-            'SC_dtm'    : <class 'types.SimpleNamespace'>[n=19]
-            'SC_ifl'    : <class 'types.SimpleNamespace'>[n=19]
-            'SC_ltma'   : <class 'types.SimpleNamespace'>[n=19]
-            'SC_ltmd'   : <class 'types.SimpleNamespace'>[n=19]
-            'SC_cg'     : <class 'types.SimpleNamespace'>[n=19]
-            'SC_ifa'    : <class 'types.SimpleNamespace'>[n=19]
-            'SC_ifa_0rb': <class 'types.SimpleNamespace'>[n=19]
+            'SC_atm'    : <class 'types.SimpleNamespace'>[n=20]
+            'SC_dtm'    : <class 'types.SimpleNamespace'>[n=20]
+            'SC_ifl'    : <class 'types.SimpleNamespace'>[n=20]
+            'SC_ltma'   : <class 'types.SimpleNamespace'>[n=20]
+            'SC_ltmd'   : <class 'types.SimpleNamespace'>[n=20]
+            'SC_cg'     : <class 'types.SimpleNamespace'>[n=20]
+            'SC_ifa'    : <class 'types.SimpleNamespace'>[n=20]
+            'SC_ifa_0rb': <class 'types.SimpleNamespace'>[n=20]
             '_vars'     : <class 'types.SimpleNamespace'>[n=2]
 
     PP(claparams['drdefs'].dr_def['SC_ifa'])::
@@ -684,7 +709,6 @@ class DR_Def(object):
                     'scltmd'    : float64 ndarray 15768 ... (146, 108)
             .nondrms: <class 'dict'>[n=1]
                 500: <class 'dict'>[n=0]
-
     """
     # static variable:
     ncats = 0
@@ -692,8 +716,7 @@ class DR_Def(object):
     @staticmethod
     def addcat(func):
         """
-        Decorator to ensure :func:`DR_Def.add` is called to add
-        category.
+        Decorator to ensure :func:`add` is called to add category.
 
         Notes
         -----
@@ -1175,10 +1198,9 @@ class DR_Def(object):
             make the new names. If list, contains the new names with
             no regard to old names.
         **kwargs :
-            Any options to modify. See :func:`DR_Def.add` for
-            complete list (except `drfunc` is also available ... that
-            is the name of the data recovery function inside
-            `drfile`).
+            Any options to modify. See :func:`add` for complete list
+            (except `drfunc` is also available ... that is the name of
+            the data recovery function inside `drfile`).
 
         Returns
         -------
@@ -1188,7 +1210,7 @@ class DR_Def(object):
         Notes
         -----
         The data recovery categories are copies of the originals with
-        the `name` changed (has `name_addon` appended) and new values
+        the `name` changed (according to `name_addon`) and new values
         set according to `**kwargs`.
 
         One very common usage is to add a zero-rigid-body version of a
@@ -1199,8 +1221,7 @@ class DR_Def(object):
 
         would add 'SC_ifa_0rb' and 'SC_atm_0rb' copy categories
         without the rigid-body component. (Note that, as a
-        convenience, :func:`DR_Def.add_0rb` exists for this specific
-        task.)
+        convenience, :func:`add_0rb` exists for this specific task.)
 
         For another example, recover the 'SC_cg' (cg load factors)
         in "static" and "dynamic" pieces::
@@ -1296,9 +1317,9 @@ class DR_Def(object):
         -------
         drinfo : panda DataFrame
             Summary table of data recovery information. The index
-            values are those set via :func:`DR_Def.add` (name, desc,
-            etc). The columns are the categores (eg: 'SC_atm',
-            'SC_ltm', etc).
+            values are those set via :func:`add` (name, desc, etc).
+            The columns are the categores (eg: 'SC_atm', 'SC_ltm',
+            etc).
         """
         cats = sorted([i for i in self.dr_def
                        if not i.startswith('_')])
@@ -1377,7 +1398,7 @@ class DR_Event(object):
         category names are the keys. This is a copy of the information
         created during data recovery setup; eg, in a
         "prepare_4_cla.py" script. See description of `dr_def` in
-        :class:`DR_Def`.
+        :class:`DR_Def` and the example below.
     UF_reds : list
         List of all unique 4-element uncertainty factor tuples. See
         :func:`DR_Def.add` for more information.
@@ -1390,34 +1411,61 @@ class DR_Event(object):
 
     Notes
     -----
-    Here is an example `Vars`:
+    Here are some views of example data via :func:`pyyeti.pp.PP`. This
+    would be after, for example::
+
+        DR = cla.DR_Event()
+        DR.add(nas, drdefs_for_se100)   # PAF data recovery
+        DR.add(nas, drdefs_for_se500)   # SC data recovery
+        DR.add(nas, drdefs_for_se0)     # recover "Node4"
+
+    PP(DR, 2)::
+
+        <class 'pyyeti.cla.DR_Event'>[n=3]
+            .Info   : <class 'dict'>[n=6]
+                'PAF_ifatm': <class 'types.SimpleNamespace'>[n=20]
+                'PAF_ifltm': <class 'types.SimpleNamespace'>[n=20]
+                'SC_atm'   : <class 'types.SimpleNamespace'>[n=20]
+                'SC_dtm'   : <class 'types.SimpleNamespace'>[n=20]
+                'SC_ltm'   : <class 'types.SimpleNamespace'>[n=20]
+                'Node4'    : <class 'types.SimpleNamespace'>[n=20]
+            .UF_reds: [n=2]: [[n=4]: (1, 1, 1.25, 1),
+                              [n=4]: (0, 1, 1.25, 1)]
+            .Vars   : <class 'dict'>[n=3]
+                0  : <class 'dict'>[n=1]
+                100: <class 'dict'>[n=3]
+                500: <class 'dict'>[n=4]
 
     PP(DR.Vars)::
 
-        <class 'dict'>[n=2]
+        <class 'dict'>[n=3]
             0  : <class 'dict'>[n=1]
-                'Tnode4': float64 ndarray 732 elems: (3, 244)
+                'Tnode4': float64 ndarray 732 elems: (3, 977)
             100: <class 'dict'>[n=3]
                 'ifatm' : float64 ndarray 46896 elems: (48, 977)
                 'ifltma': float64 ndarray 17586 elems: (18, 977)
                 'ifltmd': float64 ndarray 17586 elems: (18, 977)
-            500: <class 'dict'>[n=7]
-                'SC_ifl_drm': float64 ndarray 11724 elems: (12, 977)
-                'SC_cg_drm' : float64 ndarray 13678 elems: (14, 977)
-                'SC_ifa_drm': float64 ndarray 11724 elems: (12, 977)
-                'scatm'     : float64 ndarray 261836 elems: (268, 977)
-                'scdtmd'    : float64 ndarray 84999 elems: (87, 977)
-                'scltma'    : float64 ndarray 142642 elems: (146, 977)
-                'scltmd'    : float64 ndarray 142642 elems: (146, 977)
+            500: <class 'dict'>[n=4]
+                'scatm' : float64 ndarray 261836 elems: (268, 977)
+                'scdtmd': float64 ndarray 84999 elems: (87, 977)
+                'scltma': float64 ndarray 142642 elems: (146, 977)
+                'scltmd': float64 ndarray 142642 elems: (146, 977)
 
-    In that example, all the variables except 'Tnode4' are
-    multiplied by the appropriate ULVS matrix. That is, the SE 100 and
-    500 matrices all came from the ``dr_def['_vars'].drms`` entry and
-    none came from the ``dr_def['_vars'].nondrms`` entry. The SE 0
-    matrix could come from either the `.drms` or `.nondrms` entry.
+    In that example, all the ``DR.Vars`` variables except 'Tnode4'
+    have been multiplied by the appropriate ULVS matrix in the call to
+    :func:`add`. That is, the SE 100 and 500 matrices all came from
+    the ``dr_def['_vars'].drms`` entry and none came from the
+    ``dr_def['_vars'].nondrms`` entry. The SE 0 matrix 'Tnode4' could
+    come from either the `.drms` or `.nondrms` entry.
     """
 
     def __init__(self):
+        """
+        Initializes the attributes `Info`, `UF_reds`, and `Vars` to
+        empty values.
+
+        The attributes are filled by calls to :func:`add`.
+        """
         self.Info = {}
         self.UF_reds = []
         self.Vars = {}
@@ -1431,9 +1479,9 @@ class DR_Event(object):
         nas : dictionary
             This is the nas2cam dictionary:
             ``nas = pyyeti.op2.rdnas2cam()``. Only used if at least
-            one category in `drdefs` has a data recovery matrix and
-            has a non-zero "se" setting. Can be anything (like None)
-            if not needed.
+            one category in `drdefs` is for an upstream superelement
+            (se != 0) and has a data recovery matrix. Can be anything
+            (like None) if not needed.
         drdefs : DR_Def instance or None
             Contains the data recovery definitions for, typically, one
             superelement. See :class:`DR_Def`. If None, this routine
@@ -1541,6 +1589,12 @@ class DR_Event(object):
             Identifies the CLA
         event : str
             Name of event
+
+        Notes
+        -----
+        Uses the `Info` attribute (see :class:`DR_Event`) and calls
+        :func:`DR_Results.init` to build the initial results data
+        structure for all data recovery categories.
         """
         results = DR_Results()
         results.init(self.Info, mission, event)
@@ -1581,7 +1635,7 @@ class DR_Event(object):
             separated into static and dynamic parts: `.d_static`,
             `.d_dynamic`. On output, ``.d = .d_static + d_dynamic``.
             For example, if one of the "uf_reds" tuples is:
-            ``(1, 1, 1.25, 1)``, then::
+            ``(1, 1, 1.25, 1)``, then these variables will exist::
 
                 solout[(1, 1, 1.25, 1)].a
                 solout[(1, 1, 1.25, 1)].v
@@ -1720,10 +1774,10 @@ class DR_Event(object):
         Returns
         -------
         solout : dict
-            Dictionary of solution namespaces with scaled versions
-            of `.a`, `.v`, `.d` and `.pg`. The keys are all the
-            "uf_reds" values. For example, if one of the "uf_reds"
-            tuples is: ``(1, 1, 1.25, 1)``, then::
+            Dictionary of solution namespaces with scaled versions of
+            `.a`, `.v`, `.d` and `.pg`. The keys are all the "uf_reds"
+            values. For example, if one of the "uf_reds" tuples is:
+            ``(1, 1, 1.25, 1)``, then these variables will exist::
 
                 solout[(1, 1, 1.25, 1)].a
                 solout[(1, 1, 1.25, 1)].v
@@ -1742,7 +1796,6 @@ class DR_Event(object):
 
            .a_rb, .v_rb, d_rb - scaled by ruf*suf
            .a_el, .v_el, d_el - scaled by euf*duf
-
         """
         solout = {}
         for item in self.UF_reds:
@@ -1773,9 +1826,9 @@ class DR_Results(OrderedDict):
     Notes
     -----
     Below are a couple example :class:`DR_Results` instances named
-    `results`. Note that this structure contains all the data
-    recovery matrix information originally collected in a
-    "prepare_4_cla.py" script.
+    `results`. Note that this structure contains all the data recovery
+    matrix information originally collected by calls to
+    :func:`DR_Def.add` (in a "prepare_4_cla.py" script, for example).
 
     The first example is from a PSD buffet run (after running
     ``results.form_extreme()``):
@@ -1907,7 +1960,6 @@ class DR_Results(OrderedDict):
                 .type : 'eqsine'
                 .units: 'G, rad/sec^2'
             .time   : float32 ndarray 10001 elems: (10001,)
-
     """
     def __repr__(self):
         return object.__repr__(self)
@@ -1925,7 +1977,8 @@ class DR_Results(OrderedDict):
         ----------
         Info : dict
             Contains data recovery information for each category. The
-            category names are the keys.
+            category names are the keys. See the `Info` attribute of
+            the :class:`DR_Event`.
         mission : str
             Identifies the CLA
         event : str
@@ -1942,7 +1995,8 @@ class DR_Results(OrderedDict):
 
     def merge(self, results_iter, rename_dict=None):
         """
-        Merge CLA results together
+        Merge CLA results together in a larger :class:`DR_Results`
+        hierarchy.
 
         Parameters
         ----------
@@ -1970,15 +2024,15 @@ class DR_Results(OrderedDict):
         `results` be the current instance of :class:`DR_Results`:
 
             1. If any element of `results` is a SimpleNamespace:
-               ``return results['SC_atm'].event``
+               ``event = results['SC_atm'].event``
 
             2. Else, if any element from `results` is another
                :class:`DR_Results` structure, then:
 
                a. If ``results['extreme']`` exists:
-                  ``return results['extreme']['SC_atm'].event``
+                  ``event = results['extreme']['SC_atm'].event``
 
-               b. Else ``return ', '.join(key for key in results)``
+               b. Else ``event = ', '.join(key for key in results)``
 
             3. Else, raise TypeError
 
@@ -2174,20 +2228,8 @@ class DR_Results(OrderedDict):
         Parameters
         ----------
         sol : dict
-            Keys are the "uf_reds" values and the values are a
-            solution namespace. For example, if one of the "uf_reds"
-            tuples is: ``(1, 1, 1.25, 1)``, then `sol` would look like
-            this for a time domain event::
-
-                sol[(1, 1, 1.25, 1)].a
-                sol[(1, 1, 1.25, 1)].v
-                sol[(1, 1, 1.25, 1)].d
-                sol[(1, 1, 1.25, 1)].d_static
-                sol[(1, 1, 1.25, 1)].d_dynamic
-                sol[(1, 1, 1.25, 1)].pg        # optional
-                sol[(1, 1, 1.25, 1)].h         # time step
-                sol[(1, 1, 1.25, 1)].t         # time vector
-
+            SimpleNamespace containing the modal solution as output
+            from :func:`DR_Event.apply_uf`.
         nas : dictionary
             This is the nas2cam dictionary:
             ``nas = pyyeti.op2.rdnas2cam()``
@@ -2393,7 +2435,9 @@ class DR_Results(OrderedDict):
             of all combined :class:`DR_Def` objects with all ULVS
             matrices applied.
         n : integer
-            Total number of load cases
+            Total number of load cases. This is the number of times
+            :func:`solvepsd` and this routine get called, not the
+            number of forces in a particular PSD force matrix.
         j : integer
             Current load case number starting at zero
         dosrs : bool; optional
@@ -2501,8 +2545,8 @@ class DR_Results(OrderedDict):
 
         Notes
         -----
-        Each results record (eg, ``self['SECO1']['SC_ifa']``) is
-        expected to have `.mx` and `.mn` members. Each of these is
+        Each results SimpleNamespace (eg, ``self['SECO1']['SC_ifa']``)
+        is expected to have `.mx` and `.mn` members. Each of these is
         data-recovery rows x load cases. This routine will calculate a
         new `.ext` member by::
 
@@ -2514,6 +2558,9 @@ class DR_Results(OrderedDict):
 
         The `.maxcase` and `.mincase` members are set to 'Statistical'
         and the `.exttime` member is set to None.
+
+        To compute k-factors, see :func:`pyyeti.stats.ksingle` and
+        :func:`pyyeti.stats.kdouble`.
         """
         for res in self.values():
             mx = res.mx.mean(axis=1) + k*res.mx.std(ddof=1, axis=1)
@@ -2590,6 +2637,39 @@ class DR_Results(OrderedDict):
 
             The `.srs.ext` dictionary is a deep copy of the one in
             `oldcat`.
+
+        Notes
+        -----
+        This is normally called indirectly via the
+        :func:`form_extreme` routine. However, it can also be handy
+        when implementing combination equations, for example.
+
+        Here is an example combination equation implementation. Both
+        `ss` and `noise` are instances of the :class:`DR_Results` and
+        those analyses are complete. The combination equation is
+        simply to add the peaks of these two components::
+
+            comb = cla.DR_Results()
+            for cat, ss_sns in ss.items():
+                sns = comb.init_extreme_cat(
+                    ['ss', 'noise'], ss_sns, domain='combination')
+                ssext = ss[cat].mx
+                noiseext = abs(noise[cat].ext).max(axis=1)[:, None]
+                sns.mx = np.column_stack((ssext, noise[cat].mx))
+                sns.mn = np.column_stack((ssext, noise[cat].mn))
+                sns.ext = np.column_stack((ssext+noiseext,
+                                           ssext-noiseext))
+                sns.maxcase = ['Combination']*ssext.shape[0]
+                sns.mincase = sns.maxcase
+
+                # srs:
+                if getattr(sns, 'srs', None):
+                    _srs = sns.srs
+                    for Q, ss_srs in ss[cat].srs.ext.items():
+                        _srs.srs[Q][0] = ss_srs
+                        _srs.srs[Q][1] = noise[cat].srs.ext[Q]
+                        _srs.ext[Q][:] = _srs.srs[Q].sum(axis=0)
+                comb[cat] = sns
         """
         ncases = len(cases)
         nrows = oldcat.ext.shape[0]
@@ -2668,8 +2748,8 @@ class DR_Results(OrderedDict):
         levels) are deleted before anything else is done.
 
         The extreme values from the events (eg,
-        ``self['Liftoff']['SC_atm'].ext``) are collected the max/min
-        attributes in the new 'extreme' category (eg, into
+        ``self['Liftoff']['SC_atm'].ext``) are collected into the
+        max/min attributes in the new 'extreme' category (eg, into
         ``self['extreme']['SC_atm'].mx`` and ``<...>.mn``). The
         ``.cases`` attribute lists the events in the order they are
         assembled.
@@ -2863,7 +2943,8 @@ class DR_Results(OrderedDict):
         Notes
         -----
         The output files contain the maximums, minimums and cases as
-        applicable.
+        applicable. The file names are determined from the category
+        names.
         """
         if not os.path.exists(direc):
             os.mkdir(direc)
@@ -2908,6 +2989,9 @@ class DR_Results(OrderedDict):
 
         After those three tables, a table of bin counts is printed
         showing the number of extrema values produced by each event.
+
+        The file names are determined from the category names (unless
+        `excel` provides the single '.xlsx' filename).
         """
         if not os.path.exists(direc):
             os.mkdir(direc)
@@ -3067,9 +3151,12 @@ class DR_Results(OrderedDict):
                 'SC_atm_srs_0.png', 'SC_atm_srs_1.png', ...
                 'SC_atm_eqsine_0.png', 'SC_atm_eqsine_1.png', ...
 
-        onepdf : bool; optional
-            If True (and `fmt` == "pdf") write all plots to one PDF
-            file; otherwise, each figure is put in its own file.
+        onepdf : bool or string; optional
+            If `onepdf` evaluates to True and `fmt` is 'pdf', all
+            plots are written to one file where the name is either:
+            `event` + ".pdf" if `onepdf` is a bool type, or `onepdf` +
+            ".pdf" if `onepdf` is a string. Otherwise, each figure is
+            saved to its own file named as described above.
         layout : 2-element tuple/list; optional
             Subplot layout, eg: (2, 3) for 2 rows by 3 columns
         figsize : 2-element tuple/list; optional
@@ -3107,13 +3194,15 @@ class DR_Results(OrderedDict):
         -----
         This routine is an interface to the :func:`mk_plots` routine.
 
+        Set the `onepdf` parameter to a string to specify the name of
+        the PDF file.
+
         For example::
 
             # write a pdf file to 'srs_plots/':
             results.srs_plots()
             # write png file(s) to 'png/':
             results.srs_plots(fmt='png', direc='png')
-
         """
         return mk_plots(self, issrs=True, event=event, Q=Q, drms=drms,
                         inc0rb=inc0rb, fmt=fmt, onepdf=onepdf,
@@ -3171,9 +3260,12 @@ class DR_Results(OrderedDict):
                 'SC_atm_srs_0.png', 'SC_atm_srs_1.png', ...
                 'SC_atm_eqsine_0.png', 'SC_atm_eqsine_1.png', ...
 
-        onepdf : bool; optional
-            If True (and `fmt` == "pdf") write all plots to one PDF
-            file; otherwise, each figure is put in its own file.
+        onepdf : bool or string; optional
+            If `onepdf` evaluates to True and `fmt` is 'pdf', all
+            plots are written to one file where the name is either:
+            `event` + ".pdf" if `onepdf` is a bool type, or `onepdf` +
+            ".pdf" if `onepdf` is a string. Otherwise, each figure is
+            saved to its own file named as described above.
         layout : 2-element tuple/list; optional
             Subplot layout, eg: (2, 3) for 2 rows by 3 columns
         figsize : 2-element tuple/list; optional
@@ -3205,6 +3297,9 @@ class DR_Results(OrderedDict):
         Notes
         -----
         This routine is an interface to the :func:`mk_plots` routine.
+
+        Set the `onepdf` parameter to a string to specify the name of
+        the PDF file.
 
         For example::
 
@@ -3284,6 +3379,10 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
 
     Notes
     -----
+    This function is typically called by a "drfunc" specified in a
+    call to :func:`DR_Def.add`. An example function that uses this
+    routine is provided there.
+
     The `drmres` input is modified on each call::
 
          ._psd[case] is updated (size = drm rows x freq)
@@ -4573,9 +4672,12 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             'SC_atm_srs_0.png', 'SC_atm_srs_1.png', ...
             'SC_atm_eqsine_0.png', 'SC_atm_eqsine_1.png', ...
 
-    onepdf : bool; optional
-        If True (and `fmt` == "pdf") write all plots to one PDF
-        file; otherwise, each figure is put in its own file.
+    onepdf : bool or string; optional
+        If `onepdf` evaluates to True and `fmt` is 'pdf', all plots
+        are written to one file where the name is either: `event` +
+        ".pdf" if `onepdf` is a bool type, or `onepdf` + ".pdf" if
+        `onepdf` is a string. Otherwise, each figure is saved to its
+        own file named as described above.
     layout : 2-element tuple/list; optional
         Subplot layout, eg: (2, 3) for 2 rows by 3 columns
     figsize : 2-element tuple/list; optional
@@ -4605,6 +4707,14 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         :func:`matplotlib.pyplot.semilogy`. You can also use a custom
         function of your own devising, but it is expected to accept
         the same arguments as :func:`matplotlib.pyplot.plot`.
+
+    Notes
+    -----
+    Set the `onepdf` parameter to a string to specify the name of the
+    PDF file.
+
+    Used by :func:`DR_Results.srs_plots` and
+    :func:`DR_Results.resp_plots` for plot generation.
     """
     def _get_Qs(Q, srsQs, showall, name):
         if Q == 'auto':
@@ -4887,7 +4997,12 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                                         showboth, cases)
 
             if fmt == 'pdf' and onepdf and pdffile is None:
-                fname = os.path.join(direc, sname+'.'+fmt)
+                if isinstance(onepdf, str):
+                    fname = os.path.join(direc, onepdf)
+                    if not fname.endswith('.pdf'):
+                        fname = fname + '.pdf'
+                else:
+                    fname = os.path.join(direc, sname+'.pdf')
                 pdffile = PdfPages(fname)
 
             filenum = 0
