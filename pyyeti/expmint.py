@@ -237,11 +237,13 @@ def expmint(A, h, geti2=False):
     -----
     This routine is modeled after and augments
     :func:`scipy.linalg.expm`. The power series expansions for these
-    matrices are (I = identity)::
+    matrices are (I = identity):
 
-        E = I + A*h + (A*h)**2/2! + (A*h)**3/3! + ...
-        I1 = h*(I + A*h/2 + (A*h)**2/3! + (A*h)**3/4! + ...)
-        I2 = h*h*(I/2 + A*h/3 + (A*h)**2/(4*2!) + (A*h)**3/(5*3!) + ...)
+    .. code-block:: none
+
+      E = I + A*h + (A*h)**2/2! + (A*h)**3/3! + ...
+      I1 = h*(I + A*h/2 + (A*h)**2/3! + (A*h)**3/4! + ...)
+      I2 = h*h*(I/2 + A*h/3 + (A*h)**2/(4*2!) + (A*h)**3/(5*3!) + ...)
 
     If `A` is non-singular, the exact solutions for `I1` and `I2` are::
 
@@ -567,11 +569,13 @@ def expmint_pow(A, h):
     -----
     This routine is a simple brute-force alternative to the more
     elegant and optimized :func:`expmint`. The power series expansions
-    for these matrices are (I = identity)::
+    for these matrices are (I = identity):
 
-        E = I + A*h + (A*h)**2/2! + (A*h)**3/3! + ...
-        I1 = h*(I + A*h/2 + (A*h)**2/3! + (A*h)**3/4! + ...)
-        I2 = h*h*(I/2 + A*h/3 + (A*h)**2/(4*2!) + (A*h)**3/(5*3!) + ...)
+    .. code-block:: none
+
+      E = I + A*h + (A*h)**2/2! + (A*h)**3/3! + ...
+      I1 = h*(I + A*h/2 + (A*h)**2/3! + (A*h)**3/4! + ...)
+      I2 = h*h*(I/2 + A*h/3 + (A*h)**2/(4*2!) + (A*h)**3/(5*3!) + ...)
 
     Examples
     --------

@@ -794,7 +794,7 @@ class SolveExp1(object):
                 d0 = d[:, j] = E @ d0 + PQF[:, j-1]
             t = self.h * np.arange(nt)
         else:
-            t = 0.
+            t = np.array([0.0])
         return SimpleNamespace(d=d, v=force+self.A @ d, h=self.h, t=t)
 
 
@@ -863,7 +863,7 @@ class _BaseODE(object):
         if self.h:
             t = self.h * np.arange(a.shape[1])
         else:
-            t = 0.
+            t = np.array([0.0])
         if self.pre_eig:
             d = self.phi @ d
             v = self.phi @ v

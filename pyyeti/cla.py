@@ -817,9 +817,9 @@ class DR_Def(object):
                 try:
                     dct[key] = self.defaults[key]
                 except KeyError:
-                    print('{} set to `defaults` but is not found in '
-                          '`defaults`!'.format(key))
-                    raise
+                    msg = ('{} set to `defaults` but is not found in'
+                           ' `defaults`!'.format(key))
+                    raise ValueError(msg)
 
         # add path to `drfile` if needed:
         try:
@@ -1754,18 +1754,19 @@ class DR_Event(object):
                 SOL.d = SOL.d_static + SOL.d_dynamic
         return solout
 
-    def psd_apply_uf(self, sol, nrb):
+    def frf_apply_uf(self, sol, nrb):
         """
-        Applies the uncertainty factors to the PSD solution
+        Applies the uncertainty factors to the frequency response
+        functions (FRFs).
 
         Parameters
         ----------
         sol : SimpleNamespace
             Solution, input only; expected to have::
 
-                .a = modal acceleration PSD matrix
-                .v = modal velocity PSD matrix
-                .d = modal displacement PSD matrix
+                .a = modal acceleration FRF matrix
+                .v = modal velocity FRF matrix
+                .d = modal displacement FRF matrix
                 .pg = g-set forces; optional
 
         nrb : scalar
@@ -2214,6 +2215,13 @@ class DR_Results(OrderedDict):
         self[cat].domain = domain
 
     def _store_maxmin(self, res, mm, j, case):
+        try:
+            i = res.cases.index(case)
+        except ValueError:
+            pass
+        else:
+            raise ValueError("case '{}' already defined!"
+                             .format(case))
         res.mx[:, j] = mm.ext[:, 0]
         res.maxtime[:, j] = mm.exttime[:, 0]
         res.mn[:, j] = mm.ext[:, 1]
@@ -2234,9 +2242,9 @@ class DR_Results(OrderedDict):
             This is the nas2cam dictionary:
             ``nas = pyyeti.op2.rdnas2cam()``
         case : string
-            String identifying the case; stored in the
-            ``self.cat[name].cases`` and the `.mincase` and `.maxcase`
-            lists
+            Unique string identifying the case; stored in, for
+            example, the ``self['SC_atm'].cases`` and the `.mincase`
+            and `.maxcase` lists
         DR : instance of :class:`DR_Event`
             Defines data recovery for an event simulation (and is
             created in the simulation script via
@@ -2301,7 +2309,7 @@ class DR_Results(OrderedDict):
                 res.srs.type = ('eqsine' if _is_eqsine(dr.srsopts)
                                 else 'srs')
                 rr = resp[dr.srspv]
-                sr = 1/SOL.h
+                sr = 1/SOL.h if SOL.h else None
                 for q in dr.srsQs:
                     srs_cur = dr.srsconv*srs.srs(rr.T, sr, dr.srsfrq,
                                                  q, **dr.srsopts).T
@@ -2313,7 +2321,7 @@ class DR_Results(OrderedDict):
                                                  srs_cur)
 
     def solvepsd(self, nas, case, DR, m, b, k, forcepsd, t_frc, freq,
-                 rfmodes=None):
+                 rfmodes=None, verbose=False):
         """
         Solve equations of motion in frequency domain with PSD forces
 
@@ -2323,9 +2331,10 @@ class DR_Results(OrderedDict):
             This is the nas2cam dictionary:
             ``nas = pyyeti.op2.rdnas2cam()``
         case : string
-            String identifying the case; stored in the
-            ``self.cat[name].cases`` and the `.mincase` and `.maxcase`
-            lists
+            Unique string identifying the case; stored in, for
+            example, the ``self['SC_atm'].cases`` and the `.mincase`
+            and `.maxcase` lists. Also used to index the temporary
+            dictionary ``self['SC_atm']._psd`` (see Notes below).
         DR : instance of :class:`DR_Event`
             Defines data recovery for an event simulation (and is
             created in the simulation script via
@@ -2346,17 +2355,32 @@ class DR_Results(OrderedDict):
         rfmodes : 1d array_like or None; optional
             Specifies where the res-flex modes are; if None, no
             resflex
+        verbose : bool; optional
+            If True, print status messages and timer results.
 
         Notes
         -----
         The `self` results dictionary is updated (see
         :class:`DR_Results` for an example).
+
+        This routine calls :func:`DR_Event.frf_apply_uf` to apply the
+        uncertainty factors.
+
+        The response PSDs are stored in a temporary dictionary index
+        by the case; eg: ``self['SC_atm'][case]._psd``. The routine
+        :func:`psd_data_recovery` operates on this variable and
+        deletes it after processing that last case. Note that some or
+        all rows of this variable might be saved in
+        ``self['SC_atm'].psd``; this is determined according to the
+        `histpv` setting defined through the call to
+        :func:`DR_Def.add`.
         """
         forcepsd, t_frc = np.atleast_2d(forcepsd, t_frc)
         nonzero_forces = np.any(forcepsd, axis=1).nonzero()[0]
         if nonzero_forces.size:
-            print('Trimming off {} zero forces'
-                  .format(forcepsd.shape[0]-nonzero_forces.size))
+            if verbose:
+                print('Trimming off {} zero forces'
+                      .format(forcepsd.shape[0]-nonzero_forces.size))
             forcepsd = forcepsd[nonzero_forces]
             t_frc = t_frc[nonzero_forces]
         freq = np.atleast_1d(freq)
@@ -2386,7 +2410,9 @@ class DR_Results(OrderedDict):
         import time
         timers = [0, 0, 0]
         for i in range(rpsd):
-            print('Processing force {} of {}'.format(i+1, rpsd))
+            if verbose:
+                print('{}: processing force {} of {}'
+                      .format(case, i+1, rpsd))
             # solve for unit FRF for i'th force:
             genforce = t_frc[i][:, None] * unitforce
             t1 = time.time()
@@ -2396,7 +2422,7 @@ class DR_Results(OrderedDict):
 
             # apply uncertainty factors:
             t1 = time.time()
-            sol = DR.psd_apply_uf(sol, nas['nrb'])
+            sol = DR.frf_apply_uf(sol, nas['nrb'])
             # sol = DR.apply_uf(sol, *mbk, nas['nrb'], rfmodes)
             timers[1] += time.time() - t1
 
@@ -2415,7 +2441,8 @@ class DR_Results(OrderedDict):
                                            DR.Vars, se)
                     value._psd[case] += forcepsd[i] * abs(resp)**2
             timers[2] += time.time() - t1
-        print('timers =', timers)
+        if verbose:
+            print('timers =', timers)
 
     def psd_data_recovery(self, case, DR, n, j, dosrs=True,
                           peak_factor=3.0):
@@ -2425,8 +2452,8 @@ class DR_Results(OrderedDict):
         Parameters
         ----------
         case : string
-            String identifying the case; stored in the
-            ``self.cat[name].cases`` and the `.mincase` and `.maxcase`
+            Unique string identifying the case; stored in the
+            ``self[name].cases`` and the `.mincase` and `.maxcase`
             lists
         DR : instance of :class:`DR_Event`
             Defines data recovery for an event simulation (and is
@@ -2451,10 +2478,11 @@ class DR_Results(OrderedDict):
         Notes
         -----
         The `self` results dictionary is updated (see
-        :class:`DR_Results` for an example). Note that the "time"
-        entries (eg, `maxtime`, `exttime`) are really the "apparent
-        frequency" values, an estimate for the number of positive
-        slope zero crossings per second.
+        :class:`DR_Results` for an example).
+
+        Note that the "time" entries (eg, `maxtime`, `exttime`) are
+        really the "apparent frequency" values, an estimate for the
+        number of positive slope zero crossings per second.
         """
         def _calc_rms(df, p):
             sumpsd = p[:, :-1] + p[:, 1:]
@@ -3365,8 +3393,8 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
            .ext (r x 2), .maxcase (length r), .mincase ([])
 
     case : string
-        Case identifier (like 'MaxQ') for storing the PSD results,
-        eg::
+        Unique case identifier (like 'MaxQ') for storing the PSD
+        results, eg::
 
             results['ifa']._psd[case]
 
@@ -4858,9 +4886,11 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                           label=case)
                 every += 1
             if showboth:
+                # set zorder=-1 ?
                 h.insert(0,
-                         plot(x, srsext[j], 'k-', lw=2,
-                              label='Envelope', zorder=-1)[0])
+                         plot(x, srsext[j], 'k-', lw=2, alpha=0.5,
+                              marker=next(marker), markevery=every,
+                              label=curres.event)[0])
         else:
             # hist (cases x rows x time | freq)
             h = []
@@ -4915,7 +4945,14 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             else:
                 plt.ylabel('SRS ({})'.format(u))
         else:
-            plt.ylabel(ylab + ' ({})'.format(u))
+            if ylab.startswith('PSD'):
+                if len(u) == 1:
+                    uu = ' ({}$^2$/Hz)'.format(u)
+                else:
+                    uu = ' ({})$^2$/Hz'.format(u)
+                plt.ylabel(ylab + uu)
+            else:
+                plt.ylabel(ylab + ' ({})'.format(u))
         plt.xlabel(xlab)
         return uj
 
@@ -4974,17 +5011,17 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     x = res[name].time
                     y = res[name].hist
                     xlab = 'Time (s)'
-                    ylab = 'Time Response'
+                    ylab = 'Response'
                 elif 'psd' in res[name].__dict__:
                     x = res[name].freq
                     y = res[name].psd
                     xlab = 'Frequency (Hz)'
-                    ylab = 'PSD Response'
+                    ylab = 'PSD'
                 elif 'frf' in res[name].__dict__:
                     x = res[name].freq
                     y = abs(res[name].FRF)
                     xlab = 'Frequency (Hz)'
-                    ylab = 'FRF Response'
+                    ylab = 'FRF'
                 else:
                     if drms and name in drms:
                         warn('no response data for {}'.

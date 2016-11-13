@@ -644,9 +644,12 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     sig : 1d or 2d array_like
         Base acceleration signal; vector or matrix where column is a
         signal. If size is 1 x n (2d), that means there are n signals,
-        each with length 1 (only initial conditions are calculated).
-    sr : scalar
-        Sample rate.
+        each with length 1 (only initial conditions are
+        calculated). For length 1 signal(s), you'll probably want to
+        set `ic` to 'steady'.
+    sr : scalar or None
+        Sample rate. Can be None if signal(s) are length 1 and `ic` is
+        not 'zero' (see note below).
     freq : 1d array_like
         Frequency vector in Hz. This defines the single DOF systems
         to use.
@@ -895,7 +898,11 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         The 'zero' and 'mshift' initial conditions may be handled in a
         slightly different manner than one might think: the zero
         initial displacement and velocity conditions occur one time
-        step before `sig` begins (where `sig` is also assumed zero).
+        step before `sig` begins (where `sig` is also assumed
+        zero). This means one time step is analyzed even if the
+        signal(s) are length 1; this is why `sr` cannot be None when
+        ``ic = 'zero'`` ('mshift' is okay because it behaves like
+        'shift' when there is only one time step).
 
     References
     ----------
@@ -914,6 +921,12 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     .. [#srs4] Kjell Ahlin, "Shock Response Spectrum Calculation - An
            Improvement of the Smallwood Algorithm",
            http://www.vibrationdata.com/tutorials/Ahlin_SRS.pdf
+
+    Raises
+    ------
+    ValueError
+        When `sr` is None but number of time steps is greater than 1
+        OR `ic` is set to 'zero'.
 
     Examples
     --------
@@ -962,6 +975,12 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         oneD = False
     N = sig.shape[0]  # number of time steps
     H = sig.shape[1]  # number of histories
+
+    if sr is None:
+        if N > 1 or ic == 'zero':
+            raise ValueError("`sr` can only be None if signal(s) are "
+                             "length 1 AND `ic` is not 'zero'")
+        sr = 1.0   # can be anything, just needed for calculations
 
     parallel, ncpu = _process_parallel(parallel, LF, N*H,
                                        maxcpu, getresp)

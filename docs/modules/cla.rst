@@ -25,7 +25,7 @@ Class for getting data recovery ready for running a specific event
     DR_Event.add
     DR_Event.prepare_results
     DR_Event.apply_uf
-    DR_Event.psd_apply_uf
+    DR_Event.frf_apply_uf
 
 Class for storing and working with CLA results
 ----------------------------------------------
