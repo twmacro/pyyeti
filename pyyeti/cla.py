@@ -3062,7 +3062,7 @@ class DR_Results(OrderedDict):
             Dictionary of reference results to compare to. Keys are
             the event names and values are either:
 
-              1. A 2-column matrix of [max, min], or
+              1. A 2-column array_like of [max, min], or
               2. A namespace with the .ext member = [max, min]
 
             Notes:
@@ -3929,10 +3929,10 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
     Parameters
     ----------
-    mxmn1 : 2d ndarray or SimpleNamespace
+    mxmn1 : 2d array_like or SimpleNamespace
         The max/min data to compare to the `mxmn2` set. If 2-column
-        ndarray, its columns are: [max, min]. If SimpleNamespace, it
-        must be as defined in :class:`DR_Results` and have these
+        array_like, its columns are: [max, min]. If SimpleNamespace,
+        it must be as defined in :class:`DR_Results` and have these
         members::
 
             .ext = [max, min]
@@ -3947,7 +3947,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
         Note that the inputs `desc`, `labels`, etc, override the
         values above.
-    mxmn2 : 2d ndarray or SimpleNamespace
+    mxmn2 : 2d array_like or SimpleNamespace
         The reference set of max/min data. Format is the same as
         `mxmn2`.
     filename : string, file handle or 1
