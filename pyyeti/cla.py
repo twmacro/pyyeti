@@ -1066,7 +1066,7 @@ class DR_Def(object):
             0-offset for standard Python indexing).
 
             DA: if `srsQs` is not None, internally set to
-            ``np.arange(len(labels))``; otherwise, leave it None.
+            ``slice(len(labels))``; otherwise, leave it None.
         srsunits : string or None
             Units string for the `srspv`.
 
