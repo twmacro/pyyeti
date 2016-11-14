@@ -906,20 +906,20 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         List of strings describing the rows if the `cglfa` and `cglfd`
         recovery matrices. The return value is::
 
-            ['S/C CG Axial         sc',
-             'S/C CG Shear Lat 1   sc',
-             'S/C CG Shear Lat 2   sc',
-             'S/C CG Mom. Lat 1    sc',
-             'S/C CG Mom. Lat 2    sc',
-             'S/C CG Axial         lv',
-             'S/C CG Shear Lat 1   lv',
-             'S/C CG Shear Lat 2   lv',
-             'S/C CG Mom. Lat 1    lv',
-             'S/C CG Mom. Lat 2    lv',
-             'S/C CG Shear Lat RSS sc',
-             'S/C CG Mom. Lat RSS  sc',
-             'S/C CG Shear Lat RSS lv',
-             'S/C CG Mom. Lat RSS  lv']
+            ['S/C CG Axial         sc',    # 0
+             'S/C CG Shear Lat 1   sc',    # 1
+             'S/C CG Shear Lat 2   sc',    # 2
+             'S/C CG Mom. Lat 1    sc',    # 3
+             'S/C CG Mom. Lat 2    sc',    # 4
+             'S/C CG Axial         lv',    # 5
+             'S/C CG Shear Lat 1   lv',    # 6
+             'S/C CG Shear Lat 2   lv',    # 7
+             'S/C CG Mom. Lat 1    lv',    # 8
+             'S/C CG Mom. Lat 2    lv',    # 9
+             'S/C CG Shear Lat RSS sc',    # 10, for RSS of 1, 2
+             'S/C CG Mom. Lat RSS  sc',    # 11, for RSS of 3, 4
+             'S/C CG Shear Lat RSS lv',    # 12, for RSS of 6, 7
+             'S/C CG Mom. Lat RSS  lv']    # 13, for RSS of 8, 9
 
     weight_sc, weight_lv : real scalars
         Weight of the s/c in s/c and l/v units.
