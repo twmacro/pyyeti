@@ -1045,7 +1045,7 @@ class DR_Def(object):
             otherwise, leave it None.
         srsconv : scalar or 1d array_like or None
             Conversion factor scalar or vector same length as
-            `srspv`. None is the same as 1.0.
+            `srspv`. If None, it is internally reset to 1.0.
         srslabels : list or None
             Analogous to `labels` but just for the `srspv` rows.
 
