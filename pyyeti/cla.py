@@ -656,7 +656,9 @@ class DR_Def(object):
     :func:`pyyeti.pp.PP` to display sections of it for an example
     mission:
 
-    PP(claparams['drdefs'].dr_def)::
+    PP(claparams['drdefs'].dr_def):
+
+    .. code-block:: none
 
         <class 'dict'>[n=9]
             'SC_atm'    : <class 'types.SimpleNamespace'>[n=20]
@@ -669,7 +671,9 @@ class DR_Def(object):
             'SC_ifa_0rb': <class 'types.SimpleNamespace'>[n=20]
             '_vars'     : <class 'types.SimpleNamespace'>[n=2]
 
-    PP(claparams['drdefs'].dr_def['SC_ifa'])::
+    PP(claparams['drdefs'].dr_def['SC_ifa']):
+
+    .. code-block:: none
 
         <class 'types.SimpleNamespace'>[n=20]
             .desc      : 'S/C Interface Accelerations'
@@ -695,7 +699,9 @@ class DR_Def(object):
             .uf_reds   : [n=4]: (1, 1, 1.25, 1)
             .units     : 'G, rad/sec^2'
 
-    PP(claparams['drdefs'].dr_def['_vars'], 3)::
+    PP(claparams['drdefs'].dr_def['_vars'], 3):
+
+    .. code-block:: none
 
         <class 'types.SimpleNamespace'>[n=2]
             .drms   : <class 'dict'>[n=1]
@@ -795,6 +801,9 @@ class DR_Def(object):
         ns = self.dr_def[name]
         if ns.drfile is None:
             ns.drfile = self.defaults
+
+        if ns.drfunc is None:
+            ns.drfunc = name
 
         if ns.se is None:
             ns.se = self.defaults
@@ -900,12 +909,13 @@ class DR_Def(object):
                 if dct[unt] is None:
                     dct[unt] = ns.units
 
-    def add(self, *, name, labels, drms=None, drfile=None, se=None,
-            desc=None, units='Not specified', uf_reds=None,
-            filterval=1.e-6, histlabels=None, histpv=None,
-            histunits=None, misc=None, napv=None, nondrms=None,
-            srsQs=None, srsfrq=None, srsconv=None, srslabels=None,
-            srsopts=None, srspv=None, srsunits=None, **kwargs):
+    def add(self, *, name, labels, drms=None, drfile=None,
+            drfunc=None, se=None, desc=None, units='Not specified',
+            uf_reds=None, filterval=1.e-6, histlabels=None,
+            histpv=None, histunits=None, misc=None, napv=None,
+            nondrms=None, srsQs=None, srsfrq=None, srsconv=None,
+            srslabels=None, srsopts=None, srspv=None, srsunits=None,
+            **kwargs):
         """
         Adds a data recovery category.
 
@@ -929,9 +939,9 @@ class DR_Def(object):
         ----------
         name : string
             Short name of data recovery category, eg: 'SC_atm'. This
-            is also the name of the function in `drfile` that is
-            called to do data recovery and so it must be a valid
-            Python variable name.
+            typically also defines `drfunc`, the name of the function
+            in `drfile` that is called to do data recovery; in that
+            case, it must be a valid Python variable name.
         labels : string or integer
             List of strings, describing each row. Can also be an
             integer specifying number of rows being recovered; in this
@@ -950,7 +960,7 @@ class DR_Def(object):
             to using `nondrms`.)
         drfile : string or None; optional
             Name of file that contains the data recovery function
-            named `name`. It can optionally also have a PSD-specific
+            named `drfunc`. It can optionally also have a PSD-specific
             data recovery function; this must have the same name but
             with "_psd" appended. See notes below for more info. This
             file is imported during event simulation. If not included
@@ -959,6 +969,10 @@ class DR_Def(object):
             function that called this routine.
 
             DA: get value from `self.defaults`.
+        drfunc : string or None; optional
+            The name of the data recovery function in `drfile`.
+
+            DA: set to `name`.
         se : integer or None; optional
             The superelement number.
 
@@ -980,7 +994,6 @@ class DR_Def(object):
                 (1, 1, 1, 0)     - Recover dynamic part only
 
             DA: get value from `self.defaults`.
-
         filterval : scalar or 1d array_like; optional
             Response values smaller than `filterval` will be skipped
             during comparison to another set of results. If 1d
@@ -990,7 +1003,7 @@ class DR_Def(object):
             Analogous to `labels` but just for the `histpv` rows.
 
             DA: derive from `labels` according to `histpv` if
-            needed.
+            needed; otherwise, leave it None.
         histpv : 1d bool array_like or 'all' or slice or None
             Boolean vector specifying which rows to save the response
             histories of. If 'all', it is reset internally to
@@ -1028,19 +1041,22 @@ class DR_Def(object):
         srsfrq : 1d array_like or None
             Frequency vector for SRS.
 
-            DA: get value from `self.defaults` if `srsQs` is not None.
+            DA: get value from `self.defaults` if `srsQs` is not None;
+            otherwise, leave it None.
         srsconv : scalar or 1d array_like or None
             Conversion factor scalar or vector same length as
             `srspv`. None is the same as 1.0.
         srslabels : list or None
             Analogous to `labels` but just for the `srspv` rows.
 
-            DA: derive from `labels` according to `srspv` if needed.
+            DA: derive from `labels` according to `srspv` if needed;
+            otherwise, leave it None.
         srsopts : dict or None
             Dictionary of options for SRS; eg:
             ``dict(eqsine=True, ic='steady')``
 
-            DA: set to ``{}`` if `srspv` is not None.
+            DA: set to ``{}`` if `srspv` is not None; otherwise, leave
+            it None.
         srspv : 1d bool array_like or 'all' or slice or None
             Boolean vector specifying which rows to compute SRS
             for. If 'all', it is reset internally to
@@ -1173,7 +1189,6 @@ class DR_Def(object):
                              'names: {}'.format(overlapping_names))
 
         # define dr_def[name] entry:
-        dr_def_args['drfunc'] = name
         self.dr_def[name] = SimpleNamespace(**dr_def_args)
 
         # hand defaults and default actions:
@@ -1419,7 +1434,9 @@ class DR_Event(object):
         DR.add(nas, drdefs_for_se500)   # SC data recovery
         DR.add(nas, drdefs_for_se0)     # recover "Node4"
 
-    PP(DR, 2)::
+    PP(DR, 2):
+
+    .. code-block:: none
 
         <class 'pyyeti.cla.DR_Event'>[n=3]
             .Info   : <class 'dict'>[n=6]
@@ -1436,7 +1453,9 @@ class DR_Event(object):
                 100: <class 'dict'>[n=3]
                 500: <class 'dict'>[n=4]
 
-    PP(DR.Vars)::
+    PP(DR.Vars):
+
+    .. code-block:: none
 
         <class 'dict'>[n=3]
             0  : <class 'dict'>[n=1]
@@ -1834,13 +1853,17 @@ class DR_Results(OrderedDict):
     The first example is from a PSD buffet run (after running
     ``results.form_extreme()``):
 
-    PP(results)::
+    PP(results):
+
+    .. code-block:: none
 
         <class 'cla.DR_Results'>[n=2]
             'MaxQ' : <class 'cla.DR_Results'>[n=12]
             'extreme': <class 'cla.DR_Results'>[n=12]
 
-    PP(results['MaxQ'])::
+    PP(results['MaxQ']):
+
+    .. code-block:: none
 
         <class 'cla.DR_Results'>[n=12]
             'PAF_ifatm'    : <class 'types.SimpleNamespace'>[n=17]
@@ -1856,7 +1879,9 @@ class DR_Results(OrderedDict):
             'SC_ifa_0rb'   : <class 'types.SimpleNamespace'>[n=17]
             'Box_CG'       : <class 'types.SimpleNamespace'>[n=17]
 
-    PP(results['MaxQ']['SC_ifa'], 3)::
+    PP(results['MaxQ']['SC_ifa'], 3):
+
+    .. code-block:: none
 
         <class 'types.SimpleNamespace'>[n=17]
             .cases  : [n=1]: ['MaxQ']
@@ -1911,7 +1936,9 @@ class DR_Results(OrderedDict):
     Here is another example from a time-domain case where the extreme
     values are computed statistically from all cases:
 
-    PP(results['SC_ifa'], 4)::
+    PP(results['SC_ifa'], 4):
+
+    .. code-block:: none
 
         <class 'types.SimpleNamespace'>[n=16]
             .cases  : [n=21]: ['SECO2 1', 'SECO2 2', 'SECO2 3 ... 21']
@@ -3933,7 +3960,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         The max/min data to compare to the `mxmn2` set. If 2-column
         array_like, its columns are: [max, min]. If SimpleNamespace,
         it must be as defined in :class:`DR_Results` and have these
-        members::
+        members:
+
+        .. code-block:: none
 
             .ext = [max, min]
             .drminfo = SimpleNamespace which has (at least):
@@ -3988,7 +4017,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         & min for each row is the absolute maximum of the reference
         max & min for that row. If False, the denominator is the
         applicable reference max or min. A quick example shows why
-        ``use_range=True`` might be useful::
+        ``use_range=True`` might be useful:
+
+        .. code-block:: none
 
             If [max1, min1] = [12345, -10] and
                [max2, min2] = [12300,  50]
@@ -4066,7 +4097,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     Returns
     -------
     pdiff_info : dict
-        Dictionary with 'amx' (abs-max), 'mx' (max), and 'mn' keys::
+        Dictionary with 'amx' (abs-max), 'mx' (max), and 'mn' keys:
+
+        .. code-block:: none
 
             <class 'dict'>[n=3]
                 'amx': <class 'dict'>[n=5]
@@ -4088,7 +4121,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                     'prtpv': bool ndarray 100 elems: (100,)
                     'spct' : [n=100]: ['  -2.46', '  -1.50', ...
 
-        Where::
+        Where:
+
+        .. code-block:: none
 
             'hsto'  : output of :func:`histogram`: [center, count, %]
             'mag'   : inputs to :func:`magpct`

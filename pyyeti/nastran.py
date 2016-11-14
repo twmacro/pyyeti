@@ -538,7 +538,9 @@ def rdtabled1(f, name='tabled1'):
     Returns
     -------
     dct : dictionary
-        Dictionary of TABLED1 (or similar) cards::
+        Dictionary of TABLED1 (or similar) cards:
+
+        .. code-block:: none
 
             {ID1: [time, data],
              ID2: [time, data], ...}
@@ -706,11 +708,11 @@ def bulk2uset(*args):
         Dictionary with the keys being the coordinate system id and
         the values being the 5x3 matrix::
 
-             [id  type 0]  # output coord. sys. id and type
-             [xo  yo  zo]  # origin of coord. system
-             [    T     ]  # 3x3 transformation to basic
-             Note that T is for the coordinate system, not a grid
-             (unless type = 0 which means rectangular)
+            [id  type 0]  # output coord. sys. id and type
+            [xo  yo  zo]  # origin of coord. system
+            [    T     ]  # 3x3 transformation to basic
+            Note that T is for the coordinate system, not a grid
+            (unless type = 0 which means rectangular)
 
     Notes
     -----

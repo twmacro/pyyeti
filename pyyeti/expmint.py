@@ -672,8 +672,8 @@ def _getEPQ2(A, h, order=1, B=None, half=False):
     Returns
     -------
     E, P, Q : 2d ndarrays, except if ``order == 0``, ``Q = 0.``
-        These are the coefficient matrices used to solve the ODE::
-
+        These are the coefficient matrices used to solve the ODE:
+        ::
             for j in range(nt):
                 d[:, j+1] = E*d[:, j] + P*F[:, j] + Q*F[:, j+1]
 
@@ -766,7 +766,8 @@ def getEPQ_pow(A, h, order=1, B=None, half=False):
     Returns
     -------
     E, P, Q : 2d ndarrays, except if ``order == 0``, ``Q = 0.``
-        These are the matrices used to solve the ODE::
+        These are the coefficient matrices used to solve the ODE:
+        ::
 
             for j in range(nt):
                 d[:, j+1] = E*d[:, j] + P*F[:, j] + Q*F[:, j+1]
@@ -1033,8 +1034,8 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
     Returns
     -------
     E, P, Q : 2d ndarrays, except if ``order == 0``, ``Q = 0.``
-        These are the coefficient matrices used to solve the ODE::
-
+        These are the coefficient matrices used to solve the ODE:
+        ::
             for j in range(nt):
                 d[:, j+1] = E*d[:, j] + P*F[:, j] + Q*F[:, j+1]
 
@@ -1205,7 +1206,8 @@ def getEPQ(A, h, order=1, B=None, half=False):
     Returns
     -------
     E, P, Q : 2d ndarrays, except if ``order == 0``, ``Q = 0.``
-        These are the coefficient matrices used to solve the ODE::
+        These are the coefficient matrices used to solve the ODE:
+        ::
 
             for j in range(nt):
                 d[:, j+1] = E*d[:, j] + P*F[:, j] + Q*F[:, j+1]

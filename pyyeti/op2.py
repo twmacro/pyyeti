@@ -1685,7 +1685,9 @@ class OP2(object):
         Notes
         -----
         File is created with a header and then these data blocks are
-        written::
+        written:
+
+        .. code-block:: none
 
             OUTPUT2  XYCDBDRS//0/OP2UNIT $
             OUTPUT2  TOUGV1,TOUGS1,TOUGD1//0/OP2UNIT $
@@ -2084,7 +2086,9 @@ def get_dof_descs():
     Returns
     -------
     desc : dictionary
-        Has keys: 'acce', 'spcf', 'stress', 'force'::
+        Has keys: 'acce', 'spcf', 'stress', 'force':
+
+        .. code-block:: none
 
             desc['acce'] : numpy string array
                 ['T1', 'T2', 'T3',  'R1', 'R2', 'R3']

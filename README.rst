@@ -22,6 +22,7 @@ pyYeti has tools mostly related to structural dynamics:
     * Read/write Nastran output4 (.op4) files
     * Limited capability to read Nastran output2 (.op2) files
     * Hurty-Craig-Bampton model checks
+    * Coupled loads analysis tools
     * Tools for working with the "nas2cam" Nastran DMAP
     * Other miscellaneous tools
 

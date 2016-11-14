@@ -27,7 +27,9 @@ def calcAM(S, freq):
     Returns
     -------
     AM : 3d ndarray
-        Apparent mass matrix in a 3d array::
+        Apparent mass matrix in a 3d array:
+
+        .. code-block:: none
 
             boundary DOF x Frequencies x boundary DOF
              (response)                   (input)
@@ -131,7 +133,9 @@ def ntfl(Source, Load, As, freq):
         Norton Thevenin interface force, complex,
         # bdof x len(freq)
     LAM, SAM, TAM : 3d ndarrays
-        Load, Source and Total apparent mass matrices::
+        Load, Source and Total apparent mass matrices:
+
+        .. code-block:: none
 
             boundary DOF x Frequencies x boundary DOF
              (response)                   (input)
@@ -226,7 +230,9 @@ def ntfl(Source, Load, As, freq):
       8. plot normalized response ratio (can be thought of as force
          limiting factor)
 
-    1. Setup system::
+    1. Setup system:
+
+    .. code-block:: none
 
                 |--> x1       |--> x2        |--> x3        |--> x4
                 |             |              |              |
@@ -424,7 +430,9 @@ def sefl(c, f, f0):
     Returns
     -------
     nfl : scalar
-        The normalized force limit::
+        The normalized force limit:
+
+        .. code-block:: none
 
             nfl = c                 f <= f0
             nfl = c / (f/f0)        f > f0
@@ -478,13 +486,17 @@ def stdfs(mr, Q):
     Returns
     -------
     nfl : scalar
-        The normalized force limit for m2::
+        The normalized force limit for m2:
+
+        .. code-block:: none
 
             force_limit / (m2 * max(a1))
 
     Notes
     -----
-    The simple 2-DOF system::
+    The simple 2-DOF system:
+
+    .. code-block:: none
 
             |---> a0
             |                     |---> a1           |---> a2
