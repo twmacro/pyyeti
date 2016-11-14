@@ -3396,7 +3396,7 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         3 rows with ``xr = 0``, ``yr = 1``, and ``rr = 2``. The 3rd
         row would be the RSS of the first two.
 
-        One the other hand, if the RSS is to be stored alone in its
+        On the other hand, if the RSS is to be stored alone in its
         category, set `rr` to None. For example, `resp` could have 2
         rows with ``xr = 0``, ``yr = 1``. Then, the category would
         only have 1 data recovery item
@@ -3406,6 +3406,8 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         Matrix of force PSDs; nforces x len(freq)
     drmres : input/output SimpleNamespace
         Results for a DRM; eg if drmres = results['ifa']:
+
+        .. code-block:: none
 
            .rms (r x cases)
            .cases (list of cases)
