@@ -782,15 +782,29 @@ class DR_Def(object):
             _add_drms(curdrms[se], newdrms)
 
     def _check_for_drfunc(self, filename, funcname):
+        def _get_msg():
+            s0 = ('When checking for the data recovery '
+                  'function "{}",'.format(funcname))
+            s1 = ('This can be safely ignored if you plan to '
+                  'implement the data recovery functions later.')
+            return s0, s1
+
         modpath, modfile = os.path.split(filename)
         if modfile.endswith('.py'):
             modfile = modfile[:-3]
+        sys.path.insert(0, modpath)
         try:
-            sys.path.insert(0, modpath)
             drmod = importlib.import_module(modfile)
+        except ImportError:
+            s0, s1 = _get_msg()
+            msg = ('{} import of "{}" failed. {}'
+                   .format(s0, modfile, s1))
+            warn(msg, RuntimeWarning)
+        else:
             if funcname not in dir(drmod):
-                msg = ('"{}" not found in: {}.'
-                       .format(funcname, filename))
+                s0, s1 = _get_msg()
+                msg = ('{} "{}" not found in: {}. {}'
+                       .format(s0, funcname, filename, s1))
                 warn(msg, RuntimeWarning)
         finally:
             sys.path.pop(0)
@@ -800,7 +814,10 @@ class DR_Def(object):
         # first, the defaults:
         ns = self.dr_def[name]
         if ns.drfile is None:
-            ns.drfile = self.defaults
+            # this is set to defaults only if it is in defaults,
+            # otherwise, leave it None
+            if 'drfile' in self.defaults:
+                ns.drfile = self.defaults
 
         if ns.drfunc is None:
             ns.drfunc = name
@@ -834,10 +851,13 @@ class DR_Def(object):
         try:
             ns.drfile = self._drfilemap[ns.drfile]
         except KeyError:
-            drfile = ns.drfile
-            callerdir = os.path.dirname(
-                os.path.realpath(inspect.stack()[2][1]))
-            ns.drfile = os.path.join(callerdir, drfile)
+            calling_file = os.path.realpath(inspect.stack()[2][1])
+            if ns.drfile is None:
+                ns.drfile = drfile = calling_file
+            else:
+                drfile = ns.drfile
+                callerdir = os.path.dirname(calling_file)
+                ns.drfile = os.path.join(callerdir, drfile)
             self._drfilemap[drfile] = ns.drfile
         self._check_for_drfunc(ns.drfile, ns.drfunc)
 
@@ -968,7 +988,10 @@ class DR_Def(object):
             relative to the path of the file that contains the
             function that called this routine.
 
-            DA: get value from `self.defaults`.
+            DA: if `drfile` is set in `self.defaults`, that is used;
+            otherwise, it is set to the name of the file (with full
+            path) that called this routine.
+
         drfunc : string or None; optional
             The name of the data recovery function in `drfile`.
 
@@ -1330,7 +1353,7 @@ class DR_Def(object):
 
         Returns
         -------
-        drinfo : panda DataFrame
+        drinfo : pandas DataFrame
             Summary table of data recovery information. The index
             values are those set via :func:`add` (name, desc, etc).
             The columns are the categores (eg: 'SC_atm', 'SC_ltm',
@@ -1367,8 +1390,8 @@ class DR_Def(object):
                         s = fill_char
                 if s is None:
                     s = str(new)
-                    if len(s) > 30:
-                        s = s[:10] + ' ... ' + s[-10:]
+                    if len(s) > 80:
+                        s = s[:35] + ' ... ' + s[-35:]
                     if not isinstance(new, str):
                         try:
                             slen = len(new)
@@ -1379,18 +1402,29 @@ class DR_Def(object):
                 df[cat].loc[val] = s
 
         if excel_file is not None:
-            with pd.ExcelWriter(excel_file,
-                                engine='xlsxwriter') as xwriter:
-                shname = 'DR_Def'
-                df.to_excel(xwriter, sheet_name=shname)
-                workbook = xwriter.book
-                worksheet = xwriter.sheets[shname]
+            with xlsxwriter.Workbook(excel_file) as workbook:
+                hform = workbook.add_format({'bold': True,
+                                             'align': 'center',
+                                             'valign': 'vcenter',
+                                             'border': 1})
+                tform = workbook.add_format({'border': 1,
+                                             'text_wrap': True})
+                worksheet = workbook.add_worksheet('DR_Def')
                 worksheet.set_column('A:A', 10)
                 worksheet.set_column(1, len(cats), 25)
-                frm = workbook.add_format({'border': 1})
-                worksheet.conditional_format(
-                    0, 0, df.shape[0], df.shape[1],
-                    {'type': 'no_errors', 'format': frm})
+                # worksheet.set_default_row(20)
+                # write header:
+                for i, cat in enumerate(df.columns):
+                    worksheet.write(0, i+1, cat, hform)
+                # write labels:
+                for i, lbl in enumerate(df.index):
+                    worksheet.write(i+1, 0, lbl, hform)
+                # write table:
+                for i, cat in enumerate(df.columns):
+                    for j, lbl in enumerate(df.index):
+                        worksheet.write(
+                            j+1, i+1, df[cat].loc[lbl], tform)
+                # write notes at bottom:
                 bold = workbook.add_format({'bold': True})
                 worksheet.write(df.shape[0]+2, 1, 'Notes:', bold)
                 tab = '    '
@@ -2146,6 +2180,7 @@ class DR_Results(OrderedDict):
         for an "ATM" and an "LTM" for 3 events:
 
         >>> import numpy as np
+        >>> import pandas as pd
         >>> from pyyeti import cla
         >>>
         >>> # make up some CLA results:
@@ -2165,14 +2200,7 @@ class DR_Results(OrderedDict):
         >>> suf = 1.0
         >>>
         >>> # defaults for data recovery
-        >>> defaults = dict(
-        ...     se = 0,
-        ...     uf_reds = (1, 1, duf, 1),
-        ...     # drfile is required, but can just use __name__ for
-        ...     # a dummy placeholder (will see a warning)
-        ...     drfile = __name__
-        ...     )
-        >>>
+        >>> defaults = dict(se=0, uf_reds=(1, 1, duf, 1))
         >>> drdefs = cla.DR_Def(defaults)
         >>>
         >>> def _get_labels(name):
@@ -2198,28 +2226,29 @@ class DR_Results(OrderedDict):
         >>> # for checking, make a pandas DataFrame to summarize data
         >>> # recovery definitions (but skip the excel file for this
         >>> # demo)
+        >>> pd.set_option('display.max_colwidth', 25)
         >>> drdefs.excel_summary(None)   # doctest: +ELLIPSIS
-                                              ATM ...            LTM
-        desc           S/C Internal Accelerations ... Internal Loads
+                                         ATM                       LTM
+        desc        S/C Internal Accelera...        S/C Internal Loads
         drfile      ...
-        drfunc                                ATM ...            LTM
-        filterval                           1e-06 ...              -
-        histlabels                           None ...              -
-        histpv                               None ...              -
-        histunits                            None ...              -
-        labels      34: ['ATM Row  ... w     34'] ... ... w     29']
-        misc                                 None ...              -
-        napv                                 None ...              -
-        se                                      0 ...              -
-        srsQs                                None ...              -
-        srsconv                                 1 ...              -
-        srsfrq                               None ...              -
-        srslabels                            None ...              -
-        srsopts                              None ...              -
-        srspv                                None ...              -
-        srsunits                             None ...              -
-        uf_reds                 4: (1, 1, 1.2, 1) ...              -
-        units                  m/sec^2, rad/sec^2 ...         N, N-m
+        drfunc                           ATM                       LTM
+        filterval                      1e-06                         -
+        histlabels                      None                         -
+        histpv                          None                         -
+        histunits                       None                         -
+        labels      34: ['ATM Row      1'...  29: ['LTM Row      1'...
+        misc                            None                         -
+        napv                            None                         -
+        se                                 0                         -
+        srsQs                           None                         -
+        srsconv                            1                         -
+        srsfrq                          None                         -
+        srslabels                       None                         -
+        srsopts                         None                         -
+        srspv                           None                         -
+        srsunits                        None                         -
+        uf_reds            4: (1, 1, 1.2, 1)                         -
+        units             m/sec^2, rad/sec^2                    N, N-m
         >>>
         >>> # prepare results data structure:
         >>> DR = cla.DR_Event()

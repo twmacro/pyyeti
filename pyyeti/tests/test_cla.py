@@ -134,7 +134,7 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
         uf_reds = (1, 1, duf, 1),
         # drfile is required, but can just use __name__ for
         # a dummy placeholder (will see a warning)
-        drfile = __name__
+        # drfile = __name__
         )
 
     drdefs = cla.DR_Def(defaults)
