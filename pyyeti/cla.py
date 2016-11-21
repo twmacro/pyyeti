@@ -2295,8 +2295,11 @@ class DR_Results(OrderedDict):
             SimpleNamespace containing the modal solution as output
             from :func:`DR_Event.apply_uf`.
         nas : dictionary
-            This is the nas2cam dictionary:
-            ``nas = pyyeti.op2.rdnas2cam()``
+            Typically, this is the nas2cam dictionary:
+            ``nas = pyyeti.op2.rdnas2cam()``. Can be None if not
+            needed: it is not used in this routine; it is only passed
+            to the data recovery routines (the `drfunc` setting in
+            :func:`DR_Def.add`).
         case : string
             Unique string identifying the case; stored in, for
             example, the ``self['SC_atm'].cases`` and the `.mincase`
@@ -2384,8 +2387,12 @@ class DR_Results(OrderedDict):
         Parameters
         ----------
         nas : dictionary
-            This is the nas2cam dictionary:
-            ``nas = pyyeti.op2.rdnas2cam()``
+            Typically, this is the nas2cam dictionary:
+            ``nas = pyyeti.op2.rdnas2cam()``. However, only the "nrb"
+            member is needed directly by this routine (for uncertainty
+            factor application). It is also passed to the data
+            recovery routines (the `drfunc` setting in
+            :func:`DR_Def.add`).
         case : string
             Unique string identifying the case; stored in, for
             example, the ``self['SC_atm'].cases`` and the `.mincase`
