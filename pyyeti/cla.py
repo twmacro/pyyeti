@@ -683,9 +683,9 @@ class DR_Def(object):
             .histlabels: [n=12]: ['I/F Axial Accel     X sc', ... lv']
             .histpv    : slice(None, 12, None)
             .histunits : 'G, rad/sec^2'
+            .ignorepv  : None
             .labels    : [n=12]: ['I/F Axial Accel     X sc', ... lv']
             .misc      : None
-            .napv      : None
             .se        : 500
             .srsQs     : [n=2]: (25, 50)
             .srsconv   : 1
@@ -891,15 +891,27 @@ class DR_Def(object):
             if (not isinstance(pv, str) and
                     isinstance(pv, abc.Sequence)):
                 pv = np.atleast_1d(pv)
-            if isinstance(pv, np.ndarray) and pv.dtype == bool:
-                if len(pv) != length:
-                    raise ValueError('length of `{}` ({}) does not '
-                                     'match length of labels ({})'
-                                     .format(name, len(pv), length))
-                return pv.nonzero()[0]
+            if isinstance(pv, np.ndarray):
+                pv = pv.ravel()
+                if pv.dtype == bool:
+                    if len(pv) != length:
+                        msg = ('length of `{}` ({}) does not '
+                               'match length of labels ({})'
+                               .format(name, len(pv), length))
+                        raise ValueError(msg)
+                    return pv.nonzero()[0]
+                elif issubclass(pv.dtype.type, np.integer):
+                    if pv.max() > length or pv.min() < 0:
+                        msg = ('values in `{}` range from [{}, {}], '
+                               'but should be in range [0, {}] for '
+                               'this category'
+                               .format(name, pv.min(), pv.max(),
+                                       length))
+                        raise ValueError(msg)
+                    return pv
             raise TypeError('`{}` input not understood'.format(name))
 
-        ns.napv = _get_pv(ns.napv, 'napv', len(ns.labels))
+        ns.ignorepv = _get_pv(ns.ignorepv, 'ignorepv', len(ns.labels))
 
         if ns.srsconv is None:
             ns.srsconv = 1
@@ -932,7 +944,7 @@ class DR_Def(object):
     def add(self, *, name, labels, drms=None, drfile=None,
             drfunc=None, se=None, desc=None, units='Not specified',
             uf_reds=None, filterval=1.e-6, histlabels=None,
-            histpv=None, histunits=None, misc=None, napv=None,
+            histpv=None, histunits=None, misc=None, ignorepv=None,
             nondrms=None, srsQs=None, srsfrq=None, srsconv=None,
             srslabels=None, srsopts=None, srspv=None, srsunits=None,
             **kwargs):
@@ -982,16 +994,15 @@ class DR_Def(object):
             Name of file that contains the data recovery function
             named `drfunc`. It can optionally also have a PSD-specific
             data recovery function; this must have the same name but
-            with "_psd" appended. See notes below for more info. This
-            file is imported during event simulation. If not included
-            in `drfile`, the full path of `drfile` is defined to be
-            relative to the path of the file that contains the
-            function that called this routine.
+            with "_psd" appended. See notes below for example
+            functions. `drfile` is imported during event simulation.
+            If not already provided in `drfile`, the full path of
+            `drfile` is defined to be relative to the path of the file
+            that contains the function that called this routine.
 
             DA: if `drfile` is set in `self.defaults`, that is used;
             otherwise, it is set to the name of the file (with full
             path) that called this routine.
-
         drfunc : string or None; optional
             The name of the data recovery function in `drfile`.
 
@@ -1027,28 +1038,23 @@ class DR_Def(object):
 
             DA: derive from `labels` according to `histpv` if
             needed; otherwise, leave it None.
-        histpv : 1d bool array_like or 'all' or slice or None
-            Boolean vector specifying which rows to save the response
-            histories of. If 'all', it is reset internally to
-            ``slice(len(labels))``. It can be entered as a slice
-            directly. Set to None to save no histories. The stored
-            version is either a slice or an index vector (uses
-            0-offset for standard Python indexing).
+        histpv : 1d array_like or 'all' or slice or None
+            Specifies which rows to save the response histories of.
+            See note below about inputting partition vectors.
         histunits : string or None
             Units string for the `histpv`.
 
             DA: set to `units`.
+        ignorepv : 1d array_like or 'all' or slice or None
+            Typically, this is left as None (default) so that all rows
+            are compared. `ignorepv` specifies rows that need to be
+            ignored during comparisons against a reference data set.
+            If set to 'all', all rows will ignored ... meaning no
+            comparisons will be done for this category. See note below
+            about inputting partition vectors.
         misc : any object
             Available for storing miscellaneous information for the
             category. It is not used within this module.
-        napv : 1d bool array_like or 'all' or slice or None
-            "Not applicable" boolean partition vector specifying which
-            rows that should be skipped in a comparison to another set
-            of results. If 'all', it is reset internally to
-            ``slice(len(labels))``. It can also be entered as a slice
-            directly. If None, all rows are considered applicable. The
-            stored version is either a slice or an index vector (uses
-            0-offset for standard Python indexing).
         nondrms : dict or None
             With one important exception, this input is used
             identically to `drms`. The exception is that the values in
@@ -1080,13 +1086,9 @@ class DR_Def(object):
 
             DA: set to ``{}`` if `srspv` is not None; otherwise, leave
             it None.
-        srspv : 1d bool array_like or 'all' or slice or None
-            Boolean vector specifying which rows to compute SRS
-            for. If 'all', it is reset internally to
-            ``slice(len(labels))``. It can be entered as a slice
-            directly. If None, the default action is taken. The stored
-            version is either a slice or an index vector (uses
-            0-offset for standard Python indexing).
+        srspv : 1d array_like or 'all' or slice or None
+            Specifies which rows to compute SRS for. See note below
+            about inputting partition vectors.
 
             DA: if `srsQs` is not None, internally set to
             ``slice(len(labels))``; otherwise, leave it None.
@@ -1104,10 +1106,19 @@ class DR_Def(object):
 
         Notes
         -----
-        The `drfile` must contain the appropriate data recovery
-        function(s) named ``name`` and, optionally, ``name_psd``. For
-        a typical data recovery category, only one data recovery
-        function would be needed. Here are some examples:
+        **Entering partition vectors.** The `histpv`, `srspv` and
+        `ignorepv` inputs are handled similarly. Can be input as
+        either an index or boolean style partition vector. If input as
+        'all', they are reset internally to ``slice(len(labels))``.
+        They can also be entered as a slice directly. The stored
+        versions are either a slice or an index vector (uses 0-offset
+        for standard Python indexing).
+
+        **`drfile`, `drfunc` notes.** The `drfile` must contain the
+        appropriate data recovery function(s) named ``name`` and,
+        optionally, ``name_psd``. For a typical data recovery
+        category, only one data recovery function would be
+        needed. Here are some examples:
 
         For a typical ATM::
 
@@ -1928,9 +1939,9 @@ class DR_Results(OrderedDict):
                 .histlabels: [n=12]: ['I/F Axial Accel     X sc', ...]
                 .histpv    : slice(None, 12, None)
                 .histunits : 'G, rad/sec^2'
+                .ignorepv  : None
                 .labels    : [n=12]: ['I/F Axial Accel     X sc', ...]
                 .misc      : None
-                .napv      : None
                 .se        : 500
                 .srsQs     : [n=2]: (25, 50)
                 .srsconv   : 1
@@ -1985,9 +1996,9 @@ class DR_Results(OrderedDict):
                 .histlabels: [n=12]: ['I/F Axial Accel     X sc', ...]
                 .histpv    : slice(None, 12, None)
                 .histunits : 'G, rad/sec^2'
+                .ignorepv  : None
                 .labels    : [n=12]: ['I/F Axial Accel     X sc', ...]
                 .misc      : None
-                .napv      : None
                 .se        : 500
                 .srsQs     : [n=2]: (25, 50)
                 .srsconv   : 1
@@ -2236,9 +2247,9 @@ class DR_Results(OrderedDict):
         histlabels                      None                         -
         histpv                          None                         -
         histunits                       None                         -
+        ignorepv                        None                         -
         labels      34: ['ATM Row      1'...  29: ['LTM Row      1'...
         misc                            None                         -
-        napv                            None                         -
         se                                 0                         -
         srsQs                           None                         -
         srsconv                            1                         -
@@ -2283,6 +2294,28 @@ class DR_Results(OrderedDict):
         res.mn[:, j] = mm.ext[:, 1]
         res.mintime[:, j] = mm.exttime[:, 1]
         res.cases[j] = case
+
+    def _check_labels_len(self, name, res=None, m=None):
+        if res is None:
+            res = self[name]
+        if m is None:
+            m = res.ext.shape[0]
+        lbllen = len(res.drminfo.labels)
+        if lbllen != m:
+            raise ValueError('for {}, length of `labels` ({}) does '
+                             'not match number of data recovery '
+                             'items ({})'.format(name, lbllen, m))
+        
+    def _init_mxmn(self, name, res, domain, mm, n):
+        m = mm.ext.shape[0]
+        self._check_labels_len(name, res, m)
+        res.domain = domain
+        res.mx = np.zeros((m, n))
+        res.mn = np.zeros((m, n))
+        res.maxtime = np.zeros((m, n))
+        res.mintime = np.zeros((m, n))
+        res.cases = n*[[]]
+        return m
 
     def time_data_recovery(self, sol, nas, case, DR, n, j,
                            dosrs=True):
@@ -2339,13 +2372,7 @@ class DR_Results(OrderedDict):
             extrema(res, mm, case)
 
             if first:
-                res.domain = 'time'
-                m = mm.ext.shape[0]
-                res.mx = np.zeros((m, n))
-                res.mn = np.zeros((m, n))
-                res.maxtime = np.zeros((m, n))
-                res.mintime = np.zeros((m, n))
-                res.cases = n*[[]]
+                m = self._init_mxmn(name, res, 'time', mm, n)
                 if dr.histpv is not None:
                     res.time = SOL.t
                     m = len(resp[dr.histpv, 0])
@@ -2533,6 +2560,13 @@ class DR_Results(OrderedDict):
         dosrs : bool; optional
             If False, do not calculate SRSs; default is to calculate
             them.
+        peak_factor : scalar; optional
+            Factor to multiply each RMS by to get a peak value. RMS
+            stands for root-mean-square: the square-root of the area
+            under the PSD curve, and the area is the mean-square
+            value. The default value of 3.0 is often used to get a
+            3-sigma value (for zero mean responses, the RMS
+            value is the same as the standard deviation).
 
         Returns
         -------
@@ -2575,15 +2609,8 @@ class DR_Results(OrderedDict):
             extrema(res, mm, case)
 
             if first:
-                res.domain = 'freq'
-                m = mm.ext.shape[0]
+                m = self._init_mxmn(name, res, 'freq', mm, n)
                 res.rms = np.zeros((m, n))
-                res.mx = np.zeros((m, n))
-                res.mn = np.zeros((m, n))
-                res.maxtime = np.zeros((m, n))
-                res.mintime = np.zeros((m, n))
-                res.cases = n*[[]]
-
                 if dr.histpv is not None:
                     m = len(psd[dr.histpv, 0])
                     res.psd = np.zeros((n, m, len(res.freq)))
@@ -3040,6 +3067,7 @@ class DR_Results(OrderedDict):
         if not os.path.exists(direc):
             os.mkdir(direc)
         for name, res in self.items():
+            self._check_labels_len(name, res)
             mission = res.mission
             if event is None:
                 event = res.event
@@ -3097,6 +3125,7 @@ class DR_Results(OrderedDict):
         try:
             for name in sorted(self):
                 res = self[name]
+                self._check_labels_len(name, res)
                 mission = res.mission
                 if event is None:
                     event = res.event
@@ -3172,6 +3201,7 @@ class DR_Results(OrderedDict):
                 skipdrms.append(drm)
             else:
                 res = self[drm]
+                self._check_labels_len(name, res)
                 mission = res.mission
                 if event is None:
                     event = res.event
@@ -3627,8 +3657,12 @@ def rptext1(res, filename,
     _add_column('Row', '{:7d}', np.arange(1, nrows+1), 7, 0, 'c')
 
     # labels
-    labels = res.drminfo.labels
+    labels = getattr(res.drminfo, 'labels', None)
     if labels is not None:
+        if len(res.drminfo.labels) != res.ext.shape[0]:
+            raise ValueError('length of `labels` does not match '
+                             'number of rows in `res.ext` (`desc`'
+                             ' = {})'.format(res.drminfo.desc))
         w = max(11, len(max(labels, key=len)))
         frm = '{{:{:d}}}'.format(w)
         _add_column('Description', frm, labels, w, 2, 'l')
@@ -3721,8 +3755,8 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
     Parameters
     ----------
     res : SimpleNamespace
-        Results data structure with attributes `.ext`, `.cases`, etc
-        (see example in :class:`DR_Results`)
+        Results data structure with attributes `.ext`, `.cases`,
+        `.drminfo`, etc (see example in :class:`DR_Results`)
     filename : string, file handle or 1
         If a string, it is a filename that gets created. `filename`
         can also be a file handle or 1 to write to standard output
@@ -3928,6 +3962,12 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         _add_max_plus_min(ec)
         _wtxlsx_eventcount(workbook, header, bold, hform, res, ec,
                            name, count_filter)
+
+    if len(res.drminfo.labels) != res.mx.shape[0]:
+        raise ValueError('length of `labels` does not match number of'
+                         ' rows in `res.mx` (`desc` = {})'
+                         .format(res.drminfo.desc))
+
     rows = np.arange(res.mx.shape[0]) + 1
     headers = ['Row', 'Description', *res.cases,
                'Maximum', 'Case']
@@ -3980,7 +4020,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             title='PERCENT DIFFERENCE REPORT',
             names=('Self', 'Reference'),
             desc=None, filterval=None, labels=None,
-            units=None, napv=None, uf_reds=None,
+            units=None, ignorepv=None, uf_reds=None,
             use_range=True, numform=None,
             prtbad=None, prtbadh=None, prtbadl=None,
             flagbad=None, flagbadh=None, flagbadl=None,
@@ -4008,8 +4048,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                .filterval = the filter value; (see `filterval`
                             description below)
                .labels    = a list of descriptions; one per row
+               .ignorepv  = these rows will get 'n/a' for % diff
                .units     = string with units
-               .napv      = these rows will get 'n/a' for % diff
                .uf_reds   = uncertainty factors
 
         Note that the inputs `desc`, `labels`, etc, override the
@@ -4041,7 +4081,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     units : string or None; must be named; optional
         Specifies the units. Overrides `mxmn1.drminfo.units`. If
         neither are input, 'Not specified' is used.
-    napv : 1d array or None; must be named; optional
+    ignorepv : 1d array or None; must be named; optional
         0-offset index vector specifying which rows to ignore (they
         get the 'n/a' % diff). Overrides `mxmn1.drminfo.units`. If
         neither are input, no rows are ignored (though `filterval` is
@@ -4109,7 +4149,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     domagpct : bool; must be named; optional
         If True, plot the % diffs versus magnitude via :func:`magpct`.
         Plots will be written to "`filename`.magpct.png". No filters
-        are applied but `napv` is used.
+        are applied but `ignorepv` is used.
     doabsmax : bool; must be named; optional
         If True, compare only absolute maximums.
     shortabsmax : bool; must be named; optional
@@ -4285,7 +4325,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         return value
 
     def _align_mxmn(mxmn1, mxmn2, labels, labels2,
-                    row_number, filterval, napv):
+                    row_number, filterval, ignorepv):
         if labels and labels != labels2:
             pv1, pv2 = locate.list_intersect(labels, labels2)
             mxmn1 = mxmn1[pv1]
@@ -4293,9 +4333,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             labels = [labels[i] for i in pv1]
             row_number = row_number[pv1]
             filterval = _apply_pv(filterval, pv1)
-            napv = _apply_pv(napv, pv1)
+            ignorepv = _apply_pv(ignorepv, pv1)
         return (mxmn1, mxmn2, labels,
-                row_number, filterval, napv)
+                row_number, filterval, ignorepv)
 
     def _get_filtline(filterval):
         if isinstance(filterval, np.ndarray):
@@ -4440,11 +4480,11 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         return ''.join(s)
 
     def _proc_pct(ext1, ext2, filterval, *, names, mxmn1,
-                  not_napv, mxmn_b, ismax, histogram_inc,
+                  comppv, mxmn_b, ismax, histogram_inc,
                   prtbads, flagbads, numform, valhdr, maxhdr,
                   minhdr, absmhdr, pdhdr):
-        pv = not_napv.copy()
-        mag = ext1[not_napv], ext2[not_napv]  # good here?
+        pv = comppv.copy()
+        mag = ext1[comppv], ext2[comppv]  # good here?
         pct, spct = _get_pct_diff(ext1, ext2, filterval, pv,
                                   mxmn_b=mxmn_b, ismax=ismax,
                                   flagbads=flagbads)
@@ -4561,18 +4601,13 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
     # check mxmn1:
     if isinstance(mxmn1, SimpleNamespace):
-        if desc is None:
-            desc = mxmn1.drminfo.desc
-        if filterval is None:
-            filterval = mxmn1.drminfo.filterval
-        if labels is None:
-            labels = mxmn1.drminfo.labels
-        if units is None:
-            units = mxmn1.drminfo.units
-        if napv is None:
-            napv = mxmn1.drminfo.napv
-        if uf_reds is None:
-            uf_reds = mxmn1.drminfo.uf_reds
+        dct = locals()
+        sns = mxmn1.drminfo
+        for item in ('desc', 'filterval', 'labels',
+                     'units', 'ignorepv', 'uf_reds'):
+            if dct[item] is None:
+                dct[item] = getattr(sns, item, None)
+        del dct, sns
         mxmn1 = mxmn1.ext
     else:
         mxmn1 = np.atleast_2d(mxmn1)
@@ -4586,9 +4621,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         # the two sets of results recover some of the same items,
         # but not all
         (mxmn1, mxmn2, labels,
-         row_number, filterval, napv) = _align_mxmn(
+         row_number, filterval, ignorepv) = _align_mxmn(
              mxmn1, mxmn2, labels, labels2,
-             row_number, filterval, napv)
+             row_number, filterval, ignorepv)
     else:
         mxmn2 = np.atleast_2d(mxmn2)
 
@@ -4603,6 +4638,10 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     if labels is None:
         labels = ['Row {:6d}'.format(i+1)
                   for i in range(R)]
+    elif len(labels) != R:
+        raise ValueError('length of `labels` does not match number of'
+                         ' rows in `mxmn1` (`desc` = {})'
+                         .format(desc))
     if units is None:
         units = 'Not specified'
     if numform is None:
@@ -4610,9 +4649,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
     pdhdr = '% Diff'
     nastring = 'n/a '
-    not_napv = np.ones(R, bool)
-    if napv is not None:
-        not_napv[napv] = False
+    comppv = np.ones(R, bool)
+    if ignorepv is not None:
+        comppv[ignorepv] = False
 
     # for row labels:
     w = max(11, len(max(labels, key=len)))
@@ -4640,7 +4679,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
     # compute percent differences
     pctinfo = {}
-    kwargs = dict(names=names, mxmn1=mxmn1, not_napv=not_napv,
+    kwargs = dict(names=names, mxmn1=mxmn1, comppv=comppv,
                   histogram_inc=histogram_inc, numform=numform,
                   prtbads=prtbads, flagbads=flagbads,
                   maxhdr=maxhdr, minhdr=minhdr, absmhdr=absmhdr,
@@ -4839,6 +4878,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
 
     def _set_vars(res, name, event, showall, showboth, cases):
         curres = res[name]
+        res._check_labels_len(name, curres)
         if issrs:
             labels = curres.drminfo.srslabels
             rowpv = curres.drminfo.srspv

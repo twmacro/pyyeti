@@ -2445,7 +2445,11 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         Signal(s) to filter. If 2d, each column is filtered
     w : scalar or 1d array_like
         Edge (cutoff) frequencies where ``0.0 < w[i] < nyq`` for all
-        ``i`` (`w` must not include 0.0 or `nyq`). Units are relative
+        ``i`` (`w` must not include 0.0 or `nyq`). Can be any length
+        and filter will alternate between pass and stop (starting
+        according to `pass_zero`). For example, if leaving `pass_zero`
+        as default, a low pass filter is created for scalar `w` and a
+        band-pass is created for a 2-element `w`. Units are relative
         to the `nyq` input; so, for example, if `nyq` is the Nyquist
         frequency in Hz, `w` would be in Hz.
     bw : scalar, 1d array_like, or None; optional

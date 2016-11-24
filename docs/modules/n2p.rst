@@ -6,8 +6,8 @@ Nastran-to-Python tools (n2p)
 .. autosummary::
     :toctree: generated/
 
-    AddULVS
     addgrid
+    addulvs
     build_coords
     coordcardinfo
     expanddof

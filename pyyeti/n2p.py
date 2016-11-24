@@ -2736,6 +2736,10 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
     multiplying them together to form the total ULVS from sedn DOF to
     seup T & Q-set DOF.
 
+    The routine :func:`addulvs` is an interface routine to this
+    routine that simplifies the creation of the standard ULVS matrices
+    (`sedn` = 0) for inclusion in the `nas` data structure.
+
     Example usage::
 
         # From recovery matrix from se 0 q-set to t & q set of se 500:
@@ -2746,7 +2750,7 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
 
     See also
     --------
-    :func:`formdrm`, :func:`formtran`
+    :func:`addulvs`, :func:`formdrm`, :func:`formtran`
     """
     # work from up to down:
     r = _findse(nas, seup)
@@ -2788,9 +2792,17 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
         This is the nas2cam dictionary:  ``nas = op2.rdnas2cam()``
     seup : integer
         The id of the upstream superelement.
-    dof : 1d or 2d array
-        One or two column matrix: [ids] or [ids, dofs]; if one column,
-        the second column is internally set to 123456 for each id
+    dof : 1d or 2d integer array
+        One or two column matrix: [ids] or [[ids, dofs]]; if 1d, the
+        DOF for each node is internally set to 123456. The DOF can be
+        entered in Nastran style, eg: 123 for the three
+        translations. For example, all of these are equivalent::
+
+            dof = 99
+            dof = [99]
+            dof = [[99, 123456]]
+            dof = [[99, 1], [99, 2], [99, 3], [99, 4], [99, 5], [99, 6]]
+
     sedn : integer
         The id of the downstream superelement.
     gset : bool; optional
@@ -2827,8 +2839,11 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
         # 3002 of se 300:
         from pyyeti import n2p
         import op2
-        nas = op2.rdnas2cam('nas2cam')
+        nas = op2.rdnas2cam()
         drm, dof = n2p.formdrm(nas, 300, [3001, 3002])
+
+        # for only the translations:
+        drm, dof = n2p.formdrm(nas, 300, [[3001, 123], [3002, 123])
 
     See also
     --------
@@ -2846,7 +2861,7 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
     return np.dot(t, u), outdof
 
 
-def AddULVS(nas, *ses, **kwargs):
+def addulvs(nas, *ses, **kwargs):
     """
     Add ULVS matrices to the nas (nas2cam) record.
 
@@ -2859,9 +2874,23 @@ def AddULVS(nas, *ses, **kwargs):
         ULVS via :func:`formulvs`.
     **kwargs : dict; optional
         Named arguments to pass to :func:`formulvs`
+
+    Notes
+    -----
+    Example usage::
+
+        addulvs(nas, 100, 200, 300)
     """
     if 'ulvs' not in nas:
         nas['ulvs'] = {}
 
     for se in ses:
         nas['ulvs'][se] = formulvs(nas, se, **kwargs)
+
+
+def AddULVS(*args, **kwargs):
+    """
+    This routine is deprecated. See :func:`addulvs` instead.
+    """
+    warnings.warn('Use :func:`addulvs` instead.', DeprecationWarning)
+    return addulvs(*args, **kwargs)
