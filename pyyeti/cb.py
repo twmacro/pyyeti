@@ -1918,7 +1918,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     mattol = 1.0e-12
 
     def _prt_chk_str(fout, formstr, err, tol,
-                     good='Okay', bad='CHECK!'):
+                     good='Okay', bad='CHECK!', switch=False):
         if err > tol:
             flag = 1
             status = bad
@@ -1926,6 +1926,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
             flag = 0
             status = good
         formstr = formstr + ' {}\n'
+        if switch:
+            err = tol
         fout.write(formstr.format(err, status))
         return flag
 
@@ -1955,7 +1957,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                '  (should be zero)'), mxkqqerr, mattol)
     error_flag += _prt_chk_str(
         fout, ('\tMinimum diagonal value of KQQ     = {:11g}'
-               '  (should be > zero)'), 1.0, mnkqq)
+               '  (should be > zero)'), 1.0, mnkqq, switch=True)
 
     if error_flag > 0:
         fout.write('\n\nWARNING!: check mass and stiffness carefully'
