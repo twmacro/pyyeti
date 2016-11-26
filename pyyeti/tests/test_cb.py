@@ -1073,7 +1073,7 @@ def test_mk_net_drms_6dof():
 def test_cglf_moment_signs():
     pth = os.path.dirname(inspect.getfile(cb))
     pth = os.path.join(pth, 'tests')
-    pth = os.path.join(pth, 'cla_model')
+    pth = os.path.join(pth, 'cla_test_data')
 
     se = 101
     uset, coords = nastran.bulk2uset(os.path.join(pth, 'outboard.asm'))

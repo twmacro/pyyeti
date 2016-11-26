@@ -1914,28 +1914,53 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     mqq = m[Q]
     kbb = k[B]
     kqq = k[Q]
+    error_flag = 0
+    mattol = 1.0e-12
+
+    def _prt_chk_str(fout, formstr, err, tol,
+                     good='Okay', bad='CHECK!'):
+        if err > tol:
+            flag = 1
+            status = bad
+        else:
+            flag = 0
+            status = good
+        formstr = formstr + ' {}\n'
+        fout.write(formstr.format(err, status))
+        return flag
+
     fout.write('\nMass values check:\n')
-    mxmqqerr = np.max(np.abs(mqq - np.eye(nq)))
-    fout.write('\tMaximum value of MQQ-I            = {:11g}'
-               '  (should be zero)\n'.format(mxmqqerr))
+    mxmqqerr = np.max(np.abs(np.diag(mqq) - 1.0))
+    error_flag += _prt_chk_str(
+        fout, ('\tMaximum value of diag(MQQ)-1.0    = {:11g}'
+               '  (should be zero)'), mxmqqerr, mattol)
+    error_flag += _prt_chk_str(
+        fout, ('\tMaximum off-diagonal value of MQQ = {:11g}'
+               '  (should be zero)'), mxmqqerr, mattol)
+
     mnkqq = np.min(np.diag(kqq))
     mxkqqerr = np.max(np.abs(kqq - np.diag(np.diag(kqq))))
     mxkbb = np.max(np.abs(kbb))
+    mxkbq = abs(k[bset][:, qset]).max()
     fout.write('\nStiffness values checks:\n')
-    fout.write('\tMaximum value of KBB              = {:11g}'
-               '  (should be zero only if statically-determinate)'
-               '\n'.format(mxkbb))
-    fout.write('\tMaximum value of KBQ              = {:11g}'
-               '  (should be zero)\n'.
-               format(np.max(np.abs(k[np.ix_(bset, qset)]))))
-    fout.write('\tMaximum off-diagonal value of KQQ = {:11g}'
-               '  (should be zero)\n'.format(mxkqqerr))
-    fout.write('\tMinimum diagonal value of KQQ     = {:11g}'
-               '  (should be > zero)\n\n'.format(mnkqq))
-    if mxkqqerr > 0 or mxmqqerr > 0:
-        fout.write('\n\nFATAL: check off-diagonals of MQQ and KQQ'
-                   ' -- they should be zero. This needs to be resolved'
-                   ' before CLA.\n')
+    _prt_chk_str(
+        fout, ('\tMaximum value of KBB              = {:11g}'
+               '  (should be zero only if statically-determinate)'),
+        mxkbb, mattol, good='check', bad='check')
+    error_flag += _prt_chk_str(
+        fout, ('\tMaximum value of KBQ              = {:11g}'
+               '  (should be zero)'), mxkbq, mattol)
+    error_flag += _prt_chk_str(
+        fout, ('\tMaximum off-diagonal value of KQQ = {:11g}'
+               '  (should be zero)'), mxkqqerr, mattol)
+    error_flag += _prt_chk_str(
+        fout, ('\tMinimum diagonal value of KQQ     = {:11g}'
+               '  (should be > zero)'), 1.0, mnkqq)
+
+    if error_flag > 0:
+        fout.write('\n\nWARNING!: check mass and stiffness carefully'
+                   ' (see above).\nAny failed checks need to be '
+                   'resolved before CLA.\n')
 
     if nb == 6 and mxkbb > 0:
         fout.write('Echoing KBB for visual inspection since max(KBB)'

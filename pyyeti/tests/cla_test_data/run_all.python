@@ -1,0 +1,31 @@
+# run with python -u run_all.py
+import os
+from subprocess import run
+
+class cd():
+    def __init__(self, newdir):
+        self.olddir = os.getcwd()
+        self.newdir = newdir
+
+    def __enter__(self):
+        os.chdir(self.newdir)
+
+    def __exit__(self, *args):
+        os.chdir(self.olddir)
+
+files = [
+    './prepare_4_cla.py',
+    './toes/toes.py',
+    './owlab/owlab.py',
+    './toeco/toeco.py',
+    './summary/summarize.py',
+    './summary/compare.py',
+    ]
+
+for fn in files:
+    direc, name = os.path.split(fn)
+    print('Running {}'.format(name))
+    with cd(direc):
+        run(['python', '-u', name], check=True)
+
+print('Finished')
