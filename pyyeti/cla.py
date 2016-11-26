@@ -974,7 +974,7 @@ class DR_Def(object):
             typically also defines `drfunc`, the name of the function
             in `drfile` that is called to do data recovery; in that
             case, it must be a valid Python variable name.
-        labels : string or integer
+        labels : list or integer
             List of strings, describing each row. Can also be an
             integer specifying number of rows being recovered; in this
             case, the list is ``['Row 1', 'Row 2', ...]``. This input
