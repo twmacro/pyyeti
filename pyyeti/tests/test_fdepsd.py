@@ -24,7 +24,7 @@ def compare(fde1, fde2):
 def test_fdepsd_absacce():
     TF = 60  # make a 60 second signal
     sp = 1.
-    spec = [[20, sp], [50, sp]]
+    spec = np.array([[20, sp], [50, sp]])
     sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
                               df=1/TF, winends=dict(portion=10),
                               gettime=True)
@@ -55,7 +55,7 @@ def test_fdepsd_absacce():
 def test_fdepsd_pvelo():
     TF = 60  # make a 60 second signal
     sp = 1.
-    spec = [[20, sp], [50, sp]]
+    spec = np.array([[20, sp], [50, sp]])
     sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
                               df=1/TF, winends=dict(portion=10),
                               gettime=True)

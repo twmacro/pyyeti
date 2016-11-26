@@ -889,7 +889,7 @@ class DR_Def(object):
             if isinstance(pv, slice):
                 return pv
             if (not isinstance(pv, str) and
-                    isinstance(pv, abc.Sequence)):
+                isinstance(pv, (abc.Sequence, numbers.Integral))):
                 pv = np.atleast_1d(pv)
             if isinstance(pv, np.ndarray):
                 pv = pv.ravel()
@@ -2636,7 +2636,8 @@ class DR_Results(OrderedDict):
                 else:
                     res.srs.type = 'srs'
                     eqsine = False
-                spec = np.hstack((freq[:, None], psd[dr.srspv].T))
+                #spec = np.hstack((freq[:, None], psd[dr.srspv].T))
+                spec = (freq, psd[dr.srspv].T)
                 for q in dr.srsQs:
                     fact = peak_factor * dr.srsconv
                     if eqsine:
@@ -3154,8 +3155,11 @@ class DR_Results(OrderedDict):
             Dictionary of reference results to compare to. Keys are
             the event names and values are either:
 
-              1. A 2-column array_like of [max, min], or
-              2. A namespace with the .ext member = [max, min]
+              1. A 2-column array_like of ``[max, min]``, or
+              2. A SimpleNamespace with the ``.ext`` (``[max, min]``)
+                 member and, optionally, the ``.drminfo.labels``
+                 member. If present, the labels will be used to
+                 compare only the rows with the same labels.
 
             Notes:
 
@@ -3163,7 +3167,7 @@ class DR_Results(OrderedDict):
                  ``self[event]`` (eg, 'SC_ifa', 'SC_atm', etc), then
                  the input `keyconv` is necessary.
               2. If a key in ``self[event]`` is not found in `refres`,
-                 a message is printed and that item is skipped
+                 a message is printed and that item is skipped.
 
         names : list/tuple; optional
             2-element list or tuple identifying the two sets of
@@ -3201,18 +3205,15 @@ class DR_Results(OrderedDict):
                 skipdrms.append(drm)
             else:
                 res = self[drm]
-                self._check_labels_len(name, res)
+                self._check_labels_len(drm, res)
                 mission = res.mission
                 if event is None:
                     event = res.event
                 title = ('{}, {} - {} vs. {}'
                          .format(mission, event, *names))
                 filename = os.path.join(direc, drm+fileext)
-                try:
-                    refext = refres[refdrm].ext
-                except AttributeError:
-                    refext = refres[refdrm]
-                rptpct1(res, refext, filename, title=title,
+                refext = refres[refdrm]
+                rptpct1(res, refres[refdrm], filename, title=title,
                         names=names, **rptpct1_args)
         if len(skipdrms) > 0:
             warn('Some comparisons were skipped (not found in'
@@ -4324,18 +4325,18 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             value = newvalue
         return value
 
-    def _align_mxmn(mxmn1, mxmn2, labels, labels2,
-                    row_number, filterval, ignorepv):
-        if labels and labels != labels2:
-            pv1, pv2 = locate.list_intersect(labels, labels2)
+    def _align_mxmn(mxmn1, mxmn2, labels2, row_number, infodct):
+        if infodct['labels'] and infodct['labels'] != labels2:
+            pv1, pv2 = locate.list_intersect(
+                infodct['labels'], labels2)
             mxmn1 = mxmn1[pv1]
             mxmn2 = mxmn2[pv2]
-            labels = [labels[i] for i in pv1]
+            infodct['labels'] = [infodct['labels'][i] for i in pv1]
             row_number = row_number[pv1]
-            filterval = _apply_pv(filterval, pv1)
-            ignorepv = _apply_pv(ignorepv, pv1)
-        return (mxmn1, mxmn2, labels,
-                row_number, filterval, ignorepv)
+            infodct['filterval'] = _apply_pv(
+                infodct['filterval'], pv1)
+            infodct['ignorepv'] = _apply_pv(infodct['ignorepv'], pv1)
+        return mxmn1, mxmn2, row_number
 
     def _get_filtline(filterval):
         if isinstance(filterval, np.ndarray):
@@ -4599,38 +4600,49 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         if isinstance(filename, str):
             plt.savefig(filename+'.histogram.png')
 
+    # main routine
+    infovars = ('desc', 'filterval', 'labels',
+                'units', 'ignorepv', 'uf_reds')
+    dct = locals()
+    infodct = {n: dct[n] for n in infovars}
+    del dct
+
     # check mxmn1:
     if isinstance(mxmn1, SimpleNamespace):
-        dct = locals()
         sns = mxmn1.drminfo
-        for item in ('desc', 'filterval', 'labels',
-                     'units', 'ignorepv', 'uf_reds'):
-            if dct[item] is None:
-                dct[item] = getattr(sns, item, None)
-        del dct, sns
+        for key, value in infodct.items():
+            if value is None:
+                infodct[key] = getattr(sns, key, None)
+        del sns
         mxmn1 = mxmn1.ext
     else:
         mxmn1 = np.atleast_2d(mxmn1)
     row_number = np.arange(1, mxmn1.shape[0]+1)
 
     # check mxmn2:
-    if isinstance(mxmn2, SimpleNamespace):
+    if (isinstance(mxmn2, SimpleNamespace) and
+            getattr(mxmn2, 'drminfo', None)):
         labels2 = mxmn2.drminfo.labels
         mxmn2 = mxmn2.ext
         # use labels and labels2 to align data; this is in case
         # the two sets of results recover some of the same items,
         # but not all
-        (mxmn1, mxmn2, labels,
-         row_number, filterval, ignorepv) = _align_mxmn(
-             mxmn1, mxmn2, labels, labels2,
-             row_number, filterval, ignorepv)
+        mxmn1, mxmn2, row_number = _align_mxmn(
+            mxmn1, mxmn2, labels2, row_number, infodct)
     else:
         mxmn2 = np.atleast_2d(mxmn2)
+
+    desc = infodct['desc']
+    filterval = infodct['filterval']
+    labels = infodct['labels']
+    units = infodct['units']
+    ignorepv = infodct['ignorepv']
+    uf_reds = infodct['uf_reds']
 
     R = mxmn1.shape[0]
     if R != mxmn2.shape[0]:
         raise ValueError('`mxmn1` and `mxmn2` have a different'
-                         ' number of rows')
+                         ' number of rows (`desc` = {})'.format(desc))
     if desc is None:
         desc = 'No description provided'
     if filterval is None:
@@ -4639,8 +4651,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         labels = ['Row {:6d}'.format(i+1)
                   for i in range(R)]
     elif len(labels) != R:
-        raise ValueError('length of `labels` does not match number of'
-                         ' rows in `mxmn1` (`desc` = {})'
+        raise ValueError('length of `labels` does not match number'
+                         ' of rows in `mxmn1` (`desc` = {})'
                          .format(desc))
     if units is None:
         units = 'Not specified'

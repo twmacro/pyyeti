@@ -5,8 +5,8 @@ import scipy.signal as signal
 
 
 def test_interp():
-    spec = [[20, 0.5],
-            [50, 1.0]]
+    spec = np.array([[20, 0.5],
+                     [50, 1.0]])
     freq = [15, 35, 60]
     psdlinear = psd.interp(spec, freq, linear=True).ravel()
     psdlog = psd.interp(spec, freq, linear=False).ravel()
@@ -74,9 +74,9 @@ def test_spl():
 
 
 def test_psd2time():
-    spec = [[20,  .0768],
-            [50,  .48],
-            [100, .48]]
+    spec = np.array([[20,  .0768],
+                     [50,  .48],
+                     [100, .48]])
     sig, sr = psd.psd2time(spec, ppc=10, fstart=35, fstop=70,
                               df=.01, winends=dict(portion=.01))
     assert np.allclose(700., sr)  # 70*10
@@ -89,8 +89,8 @@ def test_psd2time():
     assert abs(speci - psdi).max() < .05
     assert abs(np.trapz(psdi, fi) - np.trapz(speci, fi)) < .25
 
-    spec = [[.1,  .1],
-            [5,  .1]]
+    spec = ([.1,  5],
+            [.1,  .1])
     sig, sr = psd.psd2time(spec, ppc=10, fstart=.1, fstop=5,
                               df=.2, winends=dict(portion=.01))
     # df gets internally reset to fstart
@@ -105,15 +105,15 @@ def test_psd2time():
     assert abs(np.trapz(psdi, fi) - np.trapz(speci, fi)) < .065
 
     # ppc gets reset to 2 case:
-    spec = [[.1,  2.],
-            [5,  2.]]
+    spec = np.array([[.1,  2.],
+                     [5,  2.]])
     sig, sr = psd.psd2time(spec, ppc=1, fstart=.1, fstop=5,
                               df=.2, winends=dict(portion=.01))
     assert (np.sum(np.mean(sig**2)) - 2.*4.9)/(2.*4.9) < .1
 
     # odd length FFT case:
-    spec = [[.1,  2.],
-            [5,  2.]]
+    spec = np.array([[.1,  2.],
+                     [5,  2.]])
     sig, sr, t = psd.psd2time(spec, ppc=3, fstart=.2, fstop=5,
                                  df=.2, winends=dict(portion=.01),
                                  gettime=1)
@@ -125,7 +125,7 @@ def test_psd2time():
 
 def test_psdmod():
     TF = 30  # make a 30 second signal
-    spec = [[20, 1], [50, 1]]
+    spec = [[20, 50], [1, 1]]
     sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
                                  df=1/TF, winends=dict(portion=10),
                                  gettime=True)

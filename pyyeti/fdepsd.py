@@ -327,7 +327,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         >>> import scipy.signal as signal
         >>>
         >>> TF = 60  # make a 60 second signal
-        >>> spec = [[20, 1], [50, 1]]
+        >>> spec = np.array([[20, 1], [50, 1]])
         >>> sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20,
         ...                           fstop=50, df=1/TF,
         ...                           winends=dict(portion=10),
@@ -354,8 +354,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         ...     fde = fdepsd.fdepsd(sig, sr, freq, q)
         ...     psd = np.fmax(psd, fde.psd)
         >>> #
-        >>> spec = np.array(spec).T
-        >>> _ = plt.plot(*spec, 'k-', lw=1.5, label='Spec')
+        >>> _ = plt.plot(*spec.T, 'k-', lw=1.5, label='Spec')
         >>> _ = plt.plot(f, p, label='Welch PSD')
         >>> _ = plt.plot(f2, p2, label='PSDmod')
         >>> _ = plt.xlim(20, 50)

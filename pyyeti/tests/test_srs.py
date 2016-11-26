@@ -585,18 +585,20 @@ def test_srs_bad_parallel():
 def test_vrs():
     import numpy as np
     from pyyeti import srs
-    spec = [[20, .0053],
-            [150, .04],
-            [600, .04],
-            [2000, .0036]]
+    spec = np.array([[20, .0053],
+                     [150, .04],
+                     [600, .04],
+                     [2000, .0036]])
     frq = np.arange(20, 2000, 2.)
     Q = 10
     fn = [100, 200, 1000]
     v, m, resp = srs.vrs(spec, frq, Q, linear=False, Fn=fn,
                          getresp=True)
     assert np.all(resp['f'] == frq)
-    assert np.all(np.abs(v - np.array([6.38, 11.09, 16.06])) < .01)
-    assert np.all(np.abs(m - np.array([6.47, 11.21, 15.04])) < .01)
+    v_sbe = np.array([6.38, 11.09, 16.06])
+    m_sbe = np.array([6.47, 11.21, 15.04])
+    assert np.all(np.abs(v - v_sbe[:, None]) < .01)
+    assert np.all(np.abs(m - m_sbe[:, None]) < .01)
     assert np.all(np.abs(np.max(resp['psd'][:, 0], axis=1) -
                          np.array([2.69, 4.04, 1.47])) < .01)
 
@@ -618,24 +620,23 @@ def test_vrs():
     v2 = srs.vrs(spec, frq, Q, linear=False, Fn=frq)
     assert np.all(v1 == v2)
 
-    spec = np.array(spec)
     spec = np.hstack((spec, spec[:, 1:]))
     v4, m4, resp4 = srs.vrs(spec, frq, Q, linear=False, Fn=fn,
                             getresp=True)
     rtol = 1e-13
     atol = 1e-13
-    assert np.allclose(v4[:, 0], v, rtol, atol)
-    assert np.allclose(v4[:, 1], v, rtol, atol)
-    assert np.allclose(m4[:, 0], m, rtol, atol)
-    assert np.allclose(m4[:, 1], m, rtol, atol)
+    assert np.allclose(v4[:, 0:1], v, rtol, atol)
+    assert np.allclose(v4[:, 1:2], v, rtol, atol)
+    assert np.allclose(m4[:, 0:1], m, rtol, atol)
+    assert np.allclose(m4[:, 1:2], m, rtol, atol)
     assert np.allclose(resp4['psd'][:, :1], resp['psd'], rtol, atol)
     assert np.allclose(resp4['psd'][:, 1:], resp['psd'], rtol, atol)
     assert resp4['psd'].shape == (3, 2, len(frq))
 
-    v5, m5 = srs.vrs(spec[:, :2], frq, Q, linear=True,
+    v5, m5 = srs.vrs((spec[:, 0], spec[:, 1]), frq, Q, linear=True,
                      Fn=fn, getmiles=True)
-    assert np.all(np.abs(v5 - np.array([6.38, 11.09, 21.78])) < .01)
-    assert np.all(np.abs(m5 - np.array([6.47, 11.21, 21.56])) < .01)
+    assert np.all(np.abs(v5 - [6.38, 11.09, 21.78]) < .01)
+    assert np.all(np.abs(m5 - [6.47, 11.21, 21.56]) < .01)
     assert_raises(ValueError, srs.vrs, spec[:, :2], frq, Q=.1,
                   linear=True)
 

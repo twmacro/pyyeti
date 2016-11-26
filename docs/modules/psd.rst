@@ -21,3 +21,4 @@ Utility routines
     :toctree: generated/
 
     get_freq_oct
+    proc_psd_spec

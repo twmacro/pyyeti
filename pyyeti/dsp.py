@@ -1036,7 +1036,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     Parameters
     ----------
-    olddata : 2d ndarray or 2-element tuple
+    olddata : 2d ndarray or 2-element tuple/list
         If ndarray, it must have 2 columns: ``[time, signal]``.
         Otherwise, it must be a 2-element tuple or list, eg:
         ``(time, signal)``

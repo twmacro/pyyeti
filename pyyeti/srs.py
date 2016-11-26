@@ -810,7 +810,8 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     -------
     sh : 1d or 2d ndarray
         The SRS results; ``sh.shape = (len(freq), nsignals)``. If
-        there is 1 signal, ``sh.shape = (len(freq),)``.
+        `sig` is 1d, `sh` will also be 1d:
+        ``sh.shape = (len(freq),)``.
     resp : dictionary; optional
         Only returned if `getresp` is True. Members:
 
@@ -1108,9 +1109,12 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
     Parameters
     ----------
-    spec : 2d array_like
-        Matrix containing the PSD specification(s) of the base
-        excitation. Columns are: [ Freq PSD1 PSD2 ... PSDn ]. The
+    spec : 2d ndarray or 2-element tuple/list
+        If ndarray, its columns are ``[Freq, PSD1, PSD2, ... PSDn]``.
+        Otherwise, it must be a 2-element tuple or list, eg:
+        ``(Freq, PSD)`` where PSD is: ``[PSD1, PSD2, ... PSDn]``. In
+        the second usage, PSD can be 1d in which case the outputs will
+        also be 1d; in the first usage, the outputs will be 2d. The
         frequency vector must be monotonically increasing.
     freq : 1d array_like
         Vector of frequencies to define the integration step; see
@@ -1143,10 +1147,13 @@ def vrs(spec, freq, Q, linear, Fn=None,
         The SDOF RMS acceleration response spectrum. For example, the
         response spectrum is in Grms if the spec is given in G^2/Hz.
         ``Zvrs.shape = (len(Fn), n)``, where n is the number of input
-        specifications. If n == 1, ``Zvrs.shape = (len(Fn),)``.
+        specifications. Will be 1d only if the PSD input in `spec` was
+        1d (in the second usage); in that case,
+        ``Zvrs.shape = (len(Fn),)``.
     Zmiles : 1d or 2d ndarray; optional
         The Miles' estimate of `Zvrs`. Only returned if `getmiles` or
-        `getresp` is True. ``Zmiles(f) = sqrt(pi/2*Fn*Q*psd(f))``
+        `getresp` is True. ``Zmiles(f) = sqrt(pi/2*Fn*Q*psd(f))``.
+        Shape will be the same as `Zvrs`.
     PSDresp : dictionary; optional
         Only returned if `getresp` is True. Members:
 
@@ -1216,15 +1223,15 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
     >>> import numpy as np
     >>> from pyyeti import srs
-    >>> spec = [[20, .0053],
-    ...        [150, .04],
-    ...        [600, .04],
-    ...        [2000, .0036]]
+    >>> spec = np.array([[20, .0053],
+    ...                  [150, .04],
+    ...                  [600, .04],
+    ...                  [2000, .0036]])
     >>> frq = np.arange(20, 2000, 2.)
     >>> Q = 10
     >>> fn = [100, 200, 1000]
-    >>> v, m, resp = srs.vrs(spec, frq, Q, linear=False, Fn=fn,
-    ...                     getresp=True)
+    >>> v, m, resp = srs.vrs((spec[:, 0], spec[:, 1]), frq, Q,
+    ...                      linear=False, Fn=fn, getresp=True)
     >>> np.set_printoptions(precision=2)
     >>> v
     array([  6.38,  11.09,  16.06])
@@ -1233,15 +1240,18 @@ def vrs(spec, freq, Q, linear, Fn=None,
     >>> resp['psd'][:, 0].max(axis=1)
     array([ 2.69,  4.04,  1.47])
     """
-    spec = np.atleast_2d(spec)
-    cp = spec.shape[1]
+    Freq, PSD, npsds = psd.proc_psd_spec(spec)
+    # spec = np.atleast_2d(spec)
+    # cp = spec.shape[1]
     freq = np.atleast_1d(freq)
     rf = len(freq)
     if Q <= .5:
         raise ValueError('Q must be > 0.5 since VRS assumes'
                          ' underdamped equations.')
     # expand PSD:
-    psdfull = psd.interp(spec, freq, linear)
+    psdfull = psd.interp((Freq, PSD), freq, linear)
+    if PSD.ndim == 1:
+        psdfull = psdfull[:, None]
 
     # Create delta_f
     df = np.empty(rf)
@@ -1266,25 +1276,24 @@ def vrs(spec, freq, Q, linear, Fn=None,
             z_miles = np.sqrt((np.pi/2*Fn*Q) * psdf2.T).T
         else:
             z_miles = np.sqrt((np.pi/2*freq*Q) * psdfull.T).T
-        if cp == 2:
+        if PSD.ndim == 1:
             z_miles = z_miles.ravel()
 
     # Compute VRS at each frequency
-    z_vrs = np.empty((len(Fn), cp-1))
+    z_vrs = np.empty((len(Fn), npsds))
     zeta = 1/2/Q
     if getresp:
-        N = spec.shape[1] - 1
-        psd_vrs = np.empty((len(Fn), N, len(freq)))
+        psd_vrs = np.empty((len(Fn), npsds, len(freq)))
         for i, fn in enumerate(Fn):
             t = ((1+(2*zeta*freq/fn)**2) /
                  ((1-(freq/fn)**2)**2 +
-                  (2*zeta*freq/fn)**2)) * psdfull.T  # N x len(freq)
-            psd_vrs[i] = t
+                  (2*zeta*freq/fn)**2)) * psdfull.T
+            psd_vrs[i] = t   # npsds x len(freq)
             z_vrs[i] = np.sqrt(np.sum(df*t, axis=1))
         resp = {}
         resp['f'] = freq
         resp['psd'] = psd_vrs
-        if cp == 2:
+        if PSD.ndim == 1:
             z_vrs = z_vrs.ravel()
         return z_vrs, z_miles, resp
 
@@ -1293,7 +1302,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
              ((1-(freq/fn)**2)**2 +
               (2*zeta*freq/fn)**2) * df) * psdfull.T
         z_vrs[i] = np.sqrt(np.sum(t, axis=1))
-    if cp == 2:
+    if PSD.ndim == 1:
         z_vrs = z_vrs.ravel()
     if getmiles:
         return z_vrs, z_miles

@@ -1,3 +1,6 @@
+import os
+from subprocess import run
+    
 import itertools
 import shutil
 import numpy as np
@@ -192,3 +195,37 @@ def test_rptpct1():
     finally:
         shutil.rmtree('./temp_tab', ignore_errors=True)
         shutil.rmtree('./temp_fdlc_tab', ignore_errors=True)
+
+
+class cd():
+    def __init__(self, newdir):
+        self.olddir = os.getcwd()
+        self.newdir = newdir
+    
+    def __enter__(self):
+        os.chdir(self.newdir)
+    
+    def __exit__(self, *args):
+        os.chdir(self.olddir)
+
+
+def test_transfer_orbit_cla():
+    files = [
+        './temp_cla/prepare_4_cla.py',
+        './temp_cla/toes/toes.py',
+        './temp_cla/owlab/owlab.py',
+        './temp_cla/toeco/toeco.py',
+        './temp_cla/summary/summarize.py',
+        './temp_cla/summary/compare.py',
+        ]
+
+    try:
+        shutil.copytree('pyyeti/tests/cla_test_data', './temp_cla')
+        for fn in files:
+            direc, name = os.path.split(fn)
+            # print('Running {}'.format(name))
+            with cd(direc):
+                run(['python', name], check=True)
+    finally:
+        pass
+        # shutil.rmtree('./temp_cla', ignore_errors=True)

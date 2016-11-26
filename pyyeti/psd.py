@@ -133,16 +133,68 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='band',
     return F, FL, FU
 
 
+def proc_psd_spec(spec):
+    """
+    Process PSD specification for other routines
+
+    Parameters
+    ----------
+    spec : 2d ndarray or 2-element tuple/list
+        If ndarray, its columns are ``[Freq, PSD1, PSD2, ... PSDn]``.
+        Otherwise, it must be a 2-element tuple or list, eg:
+        ``(Freq, PSD)`` where PSD is: ``[PSD1, PSD2, ... PSDn]``. In
+        the second usage, PSD can be 1d; in the first usage, PSD is
+        always considered 2d.
+
+    Returns
+    -------
+    freq : 1d ndarray
+        The frequency vector in `spec`.
+    PSD : 1d or 2d ndarray
+        The PSD matrix or vector as noted above. Will be 1d only if
+        the second usage of `spec` was used and `PSD` is 1d. Shape is
+        either ``(len(freq), n)`` or ``(len(freq),)``.
+    npsds : integer
+        Number of PSDs in `PSD`.
+    """
+    if isinstance(spec, np.ndarray):
+        if spec.ndim != 2 or spec.shape[1] <= 1:
+            raise ValueError('incorrectly sized ndarray for '
+                             '`spec` input (must be 2d with more'
+                             ' than 1 column)')
+        Freq = spec[:, 0]
+        PSD = spec[:, 1:]
+        npsds = PSD.shape[1]
+    else:
+        if len(spec) != 2:
+            msg = ('incorrectly sized `spec` input: for tuple/'
+                   'list input, must have length 2, not {}'
+                   .format(len(spec)))
+            raise ValueError(msg)
+        Freq, PSD = np.atleast_1d(*spec)
+        if len(Freq) != PSD.shape[0]:
+            raise ValueError('Freq and PSD inputs in `spec` are'
+                             ' incompatibly sized')
+        if PSD.ndim > 2:
+            raise ValueError('the PSD input in `spec` has more '
+                             'than 2 dimensions.')
+        npsds = 1 if PSD.ndim == 1 else PSD.shape[1]
+    return Freq, PSD, npsds
+
+
 def interp(spec, freq, linear=False):
     """
     Interpolate values on a PSD specification (or analysis curve).
 
     Parameters
     ----------
-    spec : 2d array
-        Matrix containing the PSD specification(s) of the base
-        excitation. Columns are: [ Freq PSD1 PSD2 ... PSDn ]. The
-        frequency vector must be monotonically increasing.
+    spec : 2d ndarray or 2-element tuple/list
+        If ndarray, its columns are ``[Freq, PSD1, PSD2, ... PSDn]``.
+        Otherwise, it must be a 2-element tuple or list, eg:
+        ``(Freq, PSD)`` where PSD is: ``[PSD1, PSD2, ... PSDn]``. In
+        the second usage, PSD can be 1d; in the first usage, PSD is
+        always considered 2d. The frequency vector must be
+        monotonically increasing.
     freq : 1d array
         Vector of frequencies to interpolate the specification to.
     linear : bool
@@ -154,9 +206,11 @@ def interp(spec, freq, linear=False):
 
     Returns
     -------
-    spec2 : 2d array
-        Matrix of the interpolated PSD values. Has one fewer columns
-        than `spec` because the frequency column is not included.
+    psdfull : 1d or 2d array
+        Matrix of the interpolated PSD values. If 2d, has "n" columns
+        (which will be one less than `spec` in the first usage above
+        because the frequency column is not included). Will be 1d if
+        PSD was 1d on input.
 
     Notes
     -----
@@ -167,31 +221,38 @@ def interp(spec, freq, linear=False):
     --------
     >>> import numpy as np
     >>> from pyyeti import psd
-    >>> spec = [[20, .0053],
-    ...        [150, .04],
-    ...        [600, .04],
-    ...        [2000, .0036]]
+    >>> spec = np.array([[20, .0053],
+    ...                  [150, .04],
+    ...                  [600, .04],
+    ...                  [2000, .0036]])
     >>> freq = [100, 200, 600, 1200]
     >>> np.set_printoptions(precision=3)
     >>> psd.interp(spec, freq).ravel()
     array([ 0.027,  0.04 ,  0.04 ,  0.01 ])
     >>> psd.interp(spec, freq, linear=True).ravel()
     array([ 0.027,  0.04 ,  0.04 ,  0.024])
+
+    Using the second form of the spec input:
+
+    >>> spec = ([   20, 150, 600,  2000],
+    ...         [.0053, .04, .04, .0036])
+    >>> psd.interp(spec, freq, linear=True)
+    array([ 0.027,  0.04 ,  0.04 ,  0.024])
     """
-    spec = np.atleast_2d(spec)
+    Freq, PSD, npsds = proc_psd_spec(spec)
+    #    spec = np.atleast_2d(spec)
     freq = np.atleast_1d(freq)
     if linear:
-        ifunc = interp1d(spec[:, 0], spec[:, 1:], axis=0,
+        ifunc = interp1d(Freq, PSD, axis=0,
                          bounds_error=False, fill_value=0,
                          assume_sorted=True)
         psdfull = ifunc(freq)
     else:
-        sp = np.log(spec)
-        ifunc = interp1d(sp[:, 0], sp[:, 1:], axis=0,
+        ifunc = interp1d(np.log(Freq), np.log(PSD), axis=0,
                          bounds_error=False, fill_value=0,
                          assume_sorted=True)
         psdfull = ifunc(np.log(freq))
-        pv = (freq >= spec[0, 0]) & (freq <= spec[-1, 0])
+        pv = (freq >= Freq[0]) & (freq <= Freq[-1])
         psdfull[pv] = np.exp(psdfull[pv])
     return psdfull
 
@@ -534,9 +595,9 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         :context: close-figs
 
         >>> from pyyeti import psd
-        >>> spec = [[20,  .0768],
-        ...         [50,  .48],
-        ...         [100, .48]]
+        >>> spec = np.array([[20,  .0768],
+        ...                  [50,  .48],
+        ...                  [100, .48]])
         >>> sig, sr = psd.psd2time(spec, ppc=10, fstart=35,
         ...                        fstop=70, df=.01,
         ...                        winends=dict(portion=.01))
@@ -562,7 +623,6 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         >>> line = plt.plot(np.arange(len(sig))/sr, sig)
         >>> plt.grid()
         >>> a = plt.subplot(212)
-        >>> spec = np.array(spec)
         >>> line = plt.loglog(spec[:, 0], spec[:, 1], label='spec')
         >>> line = plt.loglog(f, p, label='PSD of time signal')
         >>> leg = plt.legend(loc='best')
@@ -713,7 +773,7 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
         >>> from pyyeti import psd
         >>> from scipy import signal
         >>> TF = 30  # make a 30 second signal
-        >>> spec = [[20, 1], [50, 1]]
+        >>> spec = np.array([[20, 1], [50, 1]])
         >>> sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20,
         ...                           fstop=50, df=1/TF,
         ...                           winends=dict(portion=10),
@@ -722,7 +782,7 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
         >>> f2, p2 = psd.psdmod(sig, sr, nperseg=sr, timeslice=4,
         ...                     tsoverlap=0.5)
         >>> f3, p3 = psd.psdmod(sig, sr, nperseg=sr)
-        >>> spec = np.array(spec).T
+        >>> spec = spec.T
         >>> fig = plt.figure('psdmod')
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(t, sig)

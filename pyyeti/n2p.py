@@ -2892,5 +2892,6 @@ def AddULVS(*args, **kwargs):
     """
     This routine is deprecated. See :func:`addulvs` instead.
     """
-    warnings.warn('Use :func:`addulvs` instead.', DeprecationWarning)
+    warnings.warn(':func:`AddULVS` is deprecated, use :func:`addulvs`'
+                  ' instead.', RuntimeWarning)
     return addulvs(*args, **kwargs)
