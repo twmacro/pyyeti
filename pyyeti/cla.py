@@ -2881,8 +2881,8 @@ class DR_Results(OrderedDict):
         `.maxcase` values for each setting. This :class:`DR_Results`
         structure has two-levels: 'Gust' at the highest level and
         'Yaw' at the lower level. The 'extreme' entries are added by
-        this routine. The `.maxcase` setting shown in this example
-        could be shorthand for, for example,
+        this routine. The first `.maxcase` setting shown in this
+        example could be shorthand for, for example,
         ``self['Gust']['Yaw']['SC_atm'].maxcase[0]``.
 
         .. code-block:: none
