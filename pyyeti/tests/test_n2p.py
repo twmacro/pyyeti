@@ -1148,16 +1148,16 @@ def test_formulvs_1():
     assert 1. == n2p.formulvs(nas, seup=101, sedn=101)
     old = nas['ulvs']
     del nas['ulvs']
-    n2p.AddULVS(nas, 101, 102)
+    n2p.addulvs(nas, 101, 102)
     for se in [101, 102]:
         assert np.allclose(old[se], nas['ulvs'][se])
 
     old = {i: v for i, v in nas['ulvs'].items()}
-    n2p.AddULVS(nas, 101, 102)
+    n2p.addulvs(nas, 101, 102)
     for se in [101, 102]:
         assert id(old[se]) == id(nas['ulvs'][se])
 
-    n2p.AddULVS(nas, 101, 102, shortcut=False)
+    n2p.addulvs(nas, 101, 102, shortcut=False)
     for se in [101, 102]:
         assert id(old[se]) != id(nas['ulvs'][se])
         assert np.allclose(old[se], nas['ulvs'][se])
@@ -1184,7 +1184,7 @@ def test_formulvs_multilevel():
     old = nas['ulvs']
     del nas['ulvs']
     ses = [100, 200, 300, 400]
-    n2p.AddULVS(nas, *ses)
+    n2p.addulvs(nas, *ses)
     for se in ses:
         assert np.allclose(old[se], nas['ulvs'][se])
     u300_100 = n2p.formulvs(nas, seup=300, sedn=100, keepcset=True)

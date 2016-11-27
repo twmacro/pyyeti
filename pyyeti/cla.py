@@ -2842,22 +2842,25 @@ class DR_Results(OrderedDict):
             defines the 'cases' member variable (for example,
             ``self['extreme']['SC_atm'].cases``).
         doappend : integer; optional
-            Flag that defines how to keep track of lower level
-            `.maxcase` and `.mincase` ids as extreme envelopes are
-            computed:
+            Flag that defines how to build the extreme `.maxcase` and
+            `.mincase` values. Both the lower level `.maxcase` and
+            `.mincase` values and the dictionary key (which is
+            typically the event name) can be used/combined. See the
+            notes section below for an example of the different
+            options. The options are:
 
             ==========  ==============================================
             `doappend`  Description
             ==========  ==============================================
-                 0      ignore lower level `.maxcase` & `.mincase` and
-                        just use higher level key for case
-                 1      keep lower level `.maxcase` & `.mincase` and
-                        prepend higher level keys as levels are
-                        traversed
-                 2      ignore lowest level `.maxcase` & `.mincase`,
-                        but prepend after that
-                 3      keep only lowest level `.maxcase` & `.mincase`
-                        (do not append any keys)
+                 0      Ignore all lower level `.maxcase` & `.mincase`
+                        and just use higher level key.
+                 1      Keep all lower level `.maxcase` & `.mincase`
+                        and prepend higher level keys as levels are
+                        traversed.
+                 2      Ignore lowest level `.maxcase` & `.mincase`,
+                        but prepend higher level keys after that.
+                 3      Keep only lowest level `.maxcase` & `.mincase`
+                        (do not append any keys).
             ==========  ==============================================
 
         Notes
@@ -2872,6 +2875,28 @@ class DR_Results(OrderedDict):
         ``self['extreme']['SC_atm'].mx`` and ``<...>.mn``). The
         ``.cases`` attribute lists the events in the order they are
         assembled.
+
+        To demonstrate the different `doappend` options, here is an
+        example :class:`DR_Results` structure showing the extreme
+        `.maxcase` values for each setting. This :class:`DR_Results`
+        structure has two-levels: 'Gust' at the highest level and
+        'Yaw' at the lower level. The 'extreme' entries are added by
+        this routine. The `.maxcase` setting shown in this example
+        could be shorthand for, for example,
+        ``self['Gust']['Yaw']['SC_atm'].maxcase[0]``.
+
+        .. code-block:: none
+
+            'Gust'   :
+                'Yaw'    : .maxcase = 'Frq 3'
+                'extreme': .maxcase = 'Yaw'        if doappend = 0
+                           .maxcase = 'Yaw,Frq 3'  if doappend = 1
+                           .maxcase = 'Yaw'        if doappend = 2
+                           .maxcase = 'Frq 3'      if doappend = 3
+            'extreme': .maxcase = 'Gust'             if doappend = 0
+                       .maxcase = 'Gust,Yaw,Frq 3'   if doappend = 1
+                       .maxcase = 'Gust,Yaw'         if doappend = 2
+                       .maxcase = 'Frq 3'            if doappend = 3
         """
         DEFDOMAIN = 'X-Value'
 
