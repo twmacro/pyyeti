@@ -84,7 +84,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     Parameters
     ----------
     uset : ndarray
-        A 6-column matrix as output by :func:`pyyeti.op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
     refpoint : integer or vector
         Defines location that rb modes will be relative to. Either an
         integer specifying the node ID (which is in the uset table),
@@ -112,7 +113,7 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     See also
     --------
     :func:`pyyeti.nastran.bulk2uset`, :func:`rbgeom`,
-    :func:`pyyeti.op2.rdnas2cam`, :func:`pyyeti.op2.rdn2cop2`,
+    :func:`pyyeti.op2.rdnas2cam`, :func:`pyyeti.op2.OP2.rdn2cop2`,
     :func:`usetprt`.
 
     Examples
@@ -509,15 +510,15 @@ def mkusetmask(nasset=None):
     Sometimes the 2nd bit goes to the B-set and sometimes it goes to
     the S-set. However, so far, the S-set always has other bits set
     that can be (and are) checked. Therefore, to work around this
-    difficulty, the :func:`pyyeti.op2.rdn2cop2` routine clears the 2nd
-    bit for all S-set DOF. Because of that, this routine can safely
-    assume that the 2nd bit belongs to the B-set and no manual changes
-    are required.
+    difficulty, the :func:`pyyeti.op2.OP2.rdn2cop2` routine clears the
+    2nd bit for all S-set DOF. Because of that, this routine can
+    safely assume that the 2nd bit belongs to the B-set and no manual
+    changes are required.
 
     See also
     --------
     :func:`mksetpv`, :func:`pyyeti.op2.rdnas2cam`,
-    :func:`pyyeti.op2.rdn2cop2`, :func:`usetprt`
+    :func:`pyyeti.op2.OP2.rdn2cop2`, :func:`usetprt`
 
     Examples
     --------
@@ -589,7 +590,8 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
         :func:`open`. Use 1 to write to the screen, 0 to write nothing
         -- just get output.
     uset : ndarray
-        A 6-column matrix as output by :func:`pyyeti.op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
     printsets : string; optional
         A comma delimited string specifying which sets to print, see
         description below.
@@ -651,7 +653,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
 
     See also
     --------
-    :func:`pyyeti.op2.rdn2cop2`, :func:`mksetpv`,
+    :func:`pyyeti.op2.OP2.rdn2cop2`, :func:`mksetpv`,
     :func:`rbgeom_uset`, :func:`pyyeti.op2.rdnas2cam`
 
     Examples
@@ -947,7 +949,8 @@ def mksetpv(uset, major, minor):
     Parameters
     ----------
     uset : ndarray
-        A 6-column matrix as output by :func:`pyyeti.op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
     majorset : integer or string
         An integer bitmask or a set letter or letters (see below).
     minorset : integer or string
@@ -982,9 +985,9 @@ def mksetpv(uset, major, minor):
 
     See also
     --------
-    :func:`mkdofpv`, :func:`upqsetpv`, :func:`pyyeti.op2.rdnas2cam`,
+    :func:`mkdofpv`, :func:`pyyeti.op2.rdnas2cam`,
     :func:`formulvs`, :func:`usetprt`, :func:`rbgeom_uset`,
-    :func:`mkusetmask`, :func:`pyyeti.op2.rdn2cop2`
+    :func:`mkusetmask`, :func:`pyyeti.op2.OP2.rdn2cop2`
 
     Raises
     ------
@@ -1043,7 +1046,7 @@ def mkdofpv(uset, nasset, dof):
     ----------
     uset : ndarray
         A 6-column matrix as output by
-        :func:`pyyeti.op2.rdn2cop2`. Can have only the first two
+        :func:`pyyeti.op2.OP2.rdn2cop2`. Can have only the first two
         columns if ``nasset == 'p'``.
     nasset : string or integer
         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
@@ -1146,7 +1149,8 @@ def coordcardinfo(uset, cid=None):
     Parameters
     ----------
     uset : ndarray
-        A 6-column matrix as output by :func:`pyyeti.op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
     cid : None or integer
         If integer, it is the id of the coordinate system to get data
         for. If None, all coordinate system information is returned.
@@ -1292,7 +1296,8 @@ def _get_coordinfo_byid(refid, uset):
     refid : integer
         Coordinate system id.
     uset : ndarray
-        A 6-column matrix as output by :func:`pyyeti.op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
 
     Returns
     -------
@@ -1336,7 +1341,7 @@ def get_coordinfo(cord, uset, coordref):
         (spherical).
     uset : ndarray
         A 6-column matrix as output by
-        :func:`pyyeti.op2.rdn2cop2`. Not used unless needed.
+        :func:`pyyeti.op2.OP2.rdn2cop2`. Not used unless needed.
     coordref : dictionary
         Read/write dictionary with the keys being the coordinate
         system id and the values being the 5x3 matrix returned below.
@@ -1363,7 +1368,7 @@ def get_coordinfo(cord, uset, coordref):
 
     See also
     --------
-    :func:`addgrid`, :func:`pyyeti.op2.rdn2cop2`
+    :func:`addgrid`, :func:`pyyeti.op2.OP2.rdn2cop2`
     """
     if np.size(cord) == 1:
         try:
@@ -1515,7 +1520,8 @@ def getcoords(uset, gid, csys, coordref=None):
     Parameters
     ----------
     uset : ndarray
-        A 6-column matrix as output by :func:`pyyeti.op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
     gid : integer or 3 element vector
         If integer, it is a grid id in `uset`. Otherwise, it is a 3
         element vector:  [x, y, z] specifiy location in basic.
@@ -1682,7 +1688,7 @@ def getcoords(uset, gid, csys, coordref=None):
 
     See also
     --------
-    :func:`pyyeti.op2.rdn2cop2`, :func:`pyyeti.nastran.bulk2uset`,
+    :func:`pyyeti.op2.OP2.rdn2cop2`, :func:`pyyeti.nastran.bulk2uset`,
     :func:`coordcardinfo`, :func:`pyyeti.nastran.wtcoordcards`,
     :func:`rbgeom_uset`.
 
@@ -1783,8 +1789,8 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     Parameters
     ----------
     uset : ndarray or None
-        A 6-column matrix as output by :func:`pyyeti.op2.rdn2cop2`;
-        can be None.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`; can be None.
     gid : integer
         Grid id, must be unique.
     nasset : string
@@ -1870,7 +1876,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     --------
     :func:`pyyeti.nastran.bulk2uset`, :func:`rbgeom_uset`,
     :func:`formrbe3`, :func:`pyyeti.op2.rdnas2cam`,
-    :func:`pyyeti.op2.rdn2cop2`, :func:`usetprt`
+    :func:`pyyeti.op2.OP2.rdn2cop2`, :func:`usetprt`
 
     Raises
     ------
@@ -1974,7 +1980,8 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     Parameters
     ----------
     uset : ndarray
-        A 6-column matrix as output by :func:`pyyeti.op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
     GRID_dep : integer
         Id of dependent grid.
     DOF_dep : integer
