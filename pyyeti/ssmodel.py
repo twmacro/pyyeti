@@ -128,11 +128,11 @@ class SSModel(object):
         returns itself.
 
         The conversion is based on the matrix exponential (see
-        :func:`expmint.expmint`). Letting `z` and `s` represent the
-        discrete and continuous versions of the :class:`SSModel` the
-        following equations show the conversion methods. First (noting
-        that `E`, `I1`, and `I2` can be calculated by
-        :func:`expmint.expmint` once `s.A` has been computed)::
+        :func:`pyyeti.expmint.expmint`). Letting `z` and `s` represent
+        the discrete and continuous versions of the :class:`SSModel`
+        the following equations show the conversion methods. First
+        (noting that `E`, `I1`, and `I2` can be calculated by
+        :func:`pyyeti.expmint.expmint` once `s.A` has been computed)::
 
             lambda, phi = eig(z.A)
             E = exp(s.A*h)
@@ -260,11 +260,11 @@ class SSModel(object):
         :func:`d2c` first.
 
         The conversion is based on the matrix exponential (see
-        :func:`expmint.expmint`). Letting `z` and `s` represent the
-        discrete and continuous versions of the :class:`SSModel`, the
-        following equations show the conversion methods. First (noting
-        that `E`, `I1`, and `I2` can be calculated by
-        :func:`expmint.expmint`)::
+        :func:`pyyeti.expmint.expmint`). Letting `z` and `s` represent
+        the discrete and continuous versions of the :class:`SSModel`,
+        the following equations show the conversion methods. First
+        (noting that `E`, `I1`, and `I2` can be calculated by
+        :func:`pyyeti.expmint.expmint`)::
 
             lambda, phi = eig(z.A)
             E = exp(s.A*h)

@@ -106,11 +106,11 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         'fft'          Use FFT to upsample data as needed.  See
                        :func:`scipy.signal.resample`.
         'lanczos'      Use Lanczos resampling to upsample as
-                       needed. See :func:`dsp.resample`.
+                       needed. See :func:`pyyeti.dsp.resample`.
         'prefilter'    Apply a high freq. gain filter to account
                        for the SRS roll-off. See
-                       :func:`srs.preroll` for more information.
-                       This option ignores `ppc`.
+                       :func:`pyyeti.srs.preroll` for more
+                       information. This option ignores `ppc`.
         'linear'       Use linear interpolation to increase the
                        points per cycle (this is not recommended;
                        method; it's only here as a test case).
@@ -242,9 +242,9 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
 
           a.  Compute the SDOF base-drive response
           b.  Calculate `srs` and `var` outputs
-          c.  Use :func:`cyclecount.findap` to find cycle peaks
-          d.  Use :func:`cyclecount.rainflow` to count cycles and
-              amplitudes
+          c.  Use :func:`pyyeti.cyclecount.findap` to find cycle peaks
+          d.  Use :func:`pyyeti.cyclecount.rainflow` to count cycles
+              and amplitudes
           e.  Put counts into amplitude bins
 
       3.  Calculate `g1` based on cycle amplitudes from maximum
@@ -278,7 +278,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
     Those two equations assume a flat acceleration PSD. Therefore, it
     is recommended to compare SDOF responses from flight data (SRS) to
     SDOF VRS responses from the developed specification (see
-    :func:`srs.vrs` to compute the VRS response in the
+    :func:`pyyeti.srs.vrs` to compute the VRS response in the
     absolute-acceleration case). This is to check for conservatism.
     Instead of using 3 for peak factor (for 3-rms or 3-sigma) , use
     ``sqrt(2*log(f*T0))`` for the peak factor. Also, enveloping
@@ -301,8 +301,8 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
 
     See also
     --------
-    :func:`scipy.signal.welch`, :func:`psd.psdmod`,
-    :func:`cyclecount.rainflow`, :func:`srs.srs`.
+    :func:`scipy.signal.welch`, :func:`pyyeti.psd.psdmod`,
+    :func:`pyyeti.cyclecount.rainflow`, :func:`pyyeti.srs.srs`.
 
     Examples
     --------

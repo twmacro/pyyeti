@@ -19,7 +19,7 @@ def calcAM(S, freq):
     S : list/tuple
         Contains: ``[mass, damp, stiff, bdof]`` for structure. These
         are the source mass, damping, and stiffness matrices (see
-        :class:`ode.SolveUnc`) and `bdof`, which is described
+        :class:`pyyeti.ode.SolveUnc`) and `bdof`, which is described
         below.
     freq : 1d array_like
         Frequency vector (Hz)
@@ -43,12 +43,12 @@ def calcAM(S, freq):
        1.  If `bdof` is a 2d array_like, it is interpreted to be a
            data recovery matrix to the b-set (number b-set =
            ``bdof.shape[0]``). Structure is treated generically (uses
-           :class:`ode.SolveUnc` with ``pre_eig=True`` to compute
-           apparent mass).
+           :class:`pyyeti.ode.SolveUnc` with ``pre_eig=True`` to
+           compute apparent mass).
        2.  Otherwise, `bdof` is assumed to be a 1d partition vector
            from full `N` size to b-set and structure is assumed to be
-           in Craig-Bampton form (uses :func:`cb.cbtf` to compute
-           apparent mass).
+           in Craig-Bampton form (uses :func:`pyyeti.cb.cbtf` to
+           compute apparent mass).
 
     The routine :func:`ntfl` example demonstrates this function.
 
@@ -103,8 +103,8 @@ def ntfl(Source, Load, As, freq):
            1. list/tuple of ``[mass, damp, stiff, bdof]`` for source
               (eg, launch vehicle). These are the source mass,
               damping, and stiffness matrices (see
-              :class:`ode.SolveUnc`) and `bdof`, which is described
-              below.
+              :class:`pyyeti.ode.SolveUnc`) and `bdof`, which is
+              described below.
            2. SAM, a 3d ndarray of source apparent mass (from a
               previous run). See description of outputs.
 
@@ -154,12 +154,12 @@ def ntfl(Source, Load, As, freq):
        1.  If `bdof` is a 2d array_like, it is interpreted to be a
            data recovery matrix to the b-set (number b-set =
            ``bdof.shape[0]``). Structure is treated generically (uses
-           :class:`ode.SolveUnc` with ``pre_eig=True`` to compute
-           apparent mass).
+           :class:`pyyeti.ode.SolveUnc` with ``pre_eig=True`` to
+           compute apparent mass).
        2.  Otherwise, `bdof` is assumed to be a 1d partition vector
            from full `N` size to b-set and structure is assumed to be
-           in Craig-Bampton form (uses :func:`cb.cbtf` to compute
-           apparent mass).
+           in Craig-Bampton form (uses :func:`pyyeti.cb.cbtf` to
+           compute apparent mass).
 
     Note that the Source and Load `bdof` must define the same number
     of boundary DOF and both sets of boundary DOF must be in the same

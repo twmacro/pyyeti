@@ -717,18 +717,18 @@ class SolveExp1(object):
         -----
         The class instance is populated with the following members:
 
-        =======   ================================================
+        =======   =================================================
         Member    Description
-        =======   ================================================
+        =======   =================================================
         A         the input `A`
         h         time step
         n         number of total DOF (``A.shape[0]``)
         order     order of solver (0 or 1; see above)
-        E, P, Q   output of :func:`expmint.getEPQ`; they are
+        E, P, Q   output of :func:`pyyeti.expmint.getEPQ`; they are
                   matrices used to solve the ODE
         pc        True if E, P, and Q member have been calculated;
                   False otherwise
-        =======   ================================================
+        =======   =================================================
 
         The E, P, and Q entries are used to solve the ODE::
 
@@ -1474,12 +1474,12 @@ class SolveExp2(_BaseODE):
                    matrix; False otherwise
         order      order of solver (0 or 1; see above)
         E_vv       partition of "E" which is output of
-                   :func:`expmint.getEPQ`
+                   :func:`pyyeti.expmint.getEPQ`
         E_vd       another partition of "E"
         E_dv       another partition of "E"
         E_dd       another partition of "E"
-        P, Q       output of :func:`expmint.getEPQ`; they are matrices
-                   used to solve the ODE
+        P, Q       output of :func:`pyyeti.expmint.getEPQ`; they are
+                   matrices used to solve the ODE
         pc         True if E*, P, and Q member have been calculated;
                    False otherwise
         pre_eig    True if the "pre" eigensolution was done; False

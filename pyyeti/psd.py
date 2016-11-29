@@ -561,9 +561,10 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         routine gives poor results, try refining `df`. If `df` is
         greater than `fstart`, it is reset internally to `fstart`.
     winends : None or dictionary; optional
-        If None, :func:`dsp.windowends` is not called. Otherwise,
-        `winends` must be a dictionary of arguments that will be
-        passed to :func:`dsp.windowends` (not including `signal`).
+        If None, :func:`pyyeti.dsp.windowends` is not
+        called. Otherwise, `winends` must be a dictionary of arguments
+        that will be passed to :func:`pyyeti.dsp.windowends` (not
+        including `signal`).
     gettime : bool; optional
         If True, a time vector is output.
 
@@ -587,7 +588,7 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
 
     See also
     --------
-    :func:`interp`, :func:`dsp.windowends`
+    :func:`interp`, :func:`pyyeti.dsp.windowends`
 
     Examples
     --------
@@ -750,7 +751,7 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
 
     Notes
     -----
-    This routine calls :func:`dsp.waterfall` for handling the
+    This routine calls :func:`pyyeti.dsp.waterfall` for handling the
     timeslices and preparing the output and :func:`scipy.signal.welch`
     to process each time slice. So, the "modified" method is to use
     the PSD averaging (via welch) for each time slice but then take

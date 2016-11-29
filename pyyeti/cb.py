@@ -68,7 +68,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
     This is analogous to doing a seismic mass baseshake, so the
     interface force F should have peaks at fixed-base Craig-Bampton
     frequencies. To exercise a free-free system, see
-    :class:`ode.SolveUnc` or :func:`ode.FreqDirect`.
+    :class:`pyyeti.ode.SolveUnc` or :func:`pyyeti.ode.FreqDirect`.
 
     The Craig-Bampton equations of motion in the frequency domain are:
 
@@ -105,9 +105,9 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         &= \left(-M_{qb} + i B_{qb}/\Omega \right) \ddot{X}_b(\Omega)
         \end{aligned}
 
-    That equation is solved via :func:`ode.SolveUnc.fsolve`. After
-    solution, :math:`F_b(\Omega)` is computed from the top equation
-    above.
+    That equation is solved via
+    :func:`pyyeti.ode.SolveUnc.fsolve`. After solution,
+    :math:`F_b(\Omega)` is computed from the top equation above.
 
     Examples
     --------
@@ -762,16 +762,16 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         boundary DOF that are connected to other superelements, the CG
         recovery transforms are probably not very useful.
     uset : 2d ndarray; optional for single point interface
-        A 6-column matrix as output by :func:`op2.rdn2cop2` or
-        :func:`n2p.addgrid`. For information on the format of this
-        matrix, see :func:`op2.rdn2cop2`. This defines the
-        Craig-Bampton interface nodes in s/c coordinates, *not* in l/v
-        coordinates. Use `sccoord` to define the transformation from
-        l/v to s/c coordinates.
+        A 6-column matrix as output by :func:`pyyeti.op2.OP2.rdn2cop2`
+        or :func:`pyyeti.n2p.addgrid`. For information on the format
+        of this matrix, see :func:`pyyeti.op2.OP2.rdn2cop2`. This
+        defines the Craig-Bampton interface nodes in s/c coordinates,
+        *not* in l/v coordinates. Use `sccoord` to define the
+        transformation from l/v to s/c coordinates.
 
         If `uset` is None, a single grid with id 1 will be
-        automatically created at (0, 0, 0). The :func:`n2p.addgrid`
-        call for this is::
+        automatically created at (0, 0, 0). The
+        :func:`pyyeti.n2p.addgrid` call for this is::
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
@@ -791,7 +791,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
             [ Bx   By   Bz          ]
             [ Cx   Cy   Cz          ]
 
-        This is further described in :func:`n2p.addgrid`. The
+        This is further described in :func:`pyyeti.n2p.addgrid`. The
         transform from l/v basic to s/c is computed from this
         information.
 
@@ -1463,7 +1463,7 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     See also
     --------
     :func:`cbcheck`, :func:`rbdispchk`, :func:`cbcoordchk`,
-    :func:`n2p.rbgeom`, :func:`n2p.rbgeom_uset`.
+    :func:`pyyeti.n2p.rbgeom`, :func:`pyyeti.n2p.rbgeom_uset`.
 
     Examples
     --------
@@ -1660,7 +1660,7 @@ def rbdispchk(f, rbdisp, grids=None,
     See also
     --------
     :func:`cbcheck`, :func:`rbmultchk`, :func:`cbcoordchk`,
-    :func:`n2p.rbgeom`, :func:`n2p.rbgeom_uset`.
+    :func:`pyyeti.n2p.rbgeom`, :func:`pyyeti.n2p.rbgeom_uset`.
 
     Examples
     --------
@@ -1809,7 +1809,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     --------
     :func:`rbdispchk`, :func:`rbmultchk`, :func:`cbcheck`,
     :func:`cbconvert`, :func:`cbreorder`, :func:`cgmass`,
-    :func:`n2p.rbgeom`, :func:`n2p.rbgeom_uset`
+    :func:`pyyeti.n2p.rbgeom`, :func:`pyyeti.n2p.rbgeom_uset`
     """
     lt = np.size(K, 0)
     lb = len(bset)
@@ -2261,19 +2261,19 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         based rigid-body modes. If `bref` is not all 6-DOF of a single
         node, you'll also want to set `rb_norm` to True.
     uset : 2d ndarray; optional
-        A 6-column matrix as output by :func:`op2.rdn2cop2` or
-        :func:`n2p.addgrid`. For information on the format of this
-        matrix, see :func:`op2.rdn2cop2`. If `uset` is None, a single
-        grid with id 1 will be automatically created at (0, 0, 0) and
-        `uref` will be set to 1. The :func:`n2p.addgrid` call for this
-        is::
+        A 6-column matrix as output by :func:`pyyeti.op2.OP2.rdn2cop2`
+        or :func:`pyyeti.n2p.addgrid`. For information on the format
+        of this matrix, see :func:`pyyeti.op2.OP2.rdn2cop2`. If `uset`
+        is None, a single grid with id 1 will be automatically created
+        at (0, 0, 0) and `uref` will be set to 1. The
+        :func:`pyyeti.n2p.addgrid` call for this is::
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
     uref : integer or array_like; optional
         Defines reference for geometry-based rigid-body modes in a
-        format compatible with :func:`n2p.rbgeom_uset`: either an
-        integer grid id defined in `uset`, or a 3-element vector
+        format compatible with :func:`pyyeti.n2p.rbgeom_uset`: either
+        an integer grid id defined in `uset`, or a 3-element vector
         specifying a location in the basic coordinate system. If a
         3-element vector, it is in the old units (before `conv` is
         used to convert units).
@@ -2407,8 +2407,8 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     See also
     --------
     :func:`rbmultchk`, :func:`rbdispchk`, :func:`cbcoordchk`,
-    :func:`n2p.addgrid`, :func:`cbconvert`, :func:`cbreorder`,
-    :func:`op2.rdn2cop2`
+    :func:`pyyeti.n2p.addgrid`, :func:`cbconvert`, :func:`cbreorder`,
+    :func:`pyyeti.op2.OP2.rdn2cop2`
 
     """
     return ytools.wtfile(f, _cbcheck, Mcb, Kcb, bseto, bref, uset,

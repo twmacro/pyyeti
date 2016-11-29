@@ -665,9 +665,9 @@ def _getEPQ2(A, h, order=1, B=None, half=False):
         `half` is False, a full size identity (same size as `A`) is
         used for `B`. If `half` is True, only the first half of the
         columns are retained (which is handy for converting a 2nd
-        order ODE into a 1st order ODE as :class:`ode.SolveExp2` does
-        -- where there are force inputs only for the first half of the
-        equations).
+        order ODE into a 1st order ODE as
+        :class:`pyyeti.ode.SolveExp2` does -- where there are force
+        inputs only for the first half of the equations).
 
     Returns
     -------
@@ -688,7 +688,8 @@ def _getEPQ2(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`expmint`, :class:`ode.SolveExp1`, :class:`ode.SolveExp2`
+    :func:`expmint`, :class:`pyyeti.ode.SolveExp1`,
+    :class:`pyyeti.ode.SolveExp2`
 
     Examples
     --------
@@ -759,9 +760,9 @@ def getEPQ_pow(A, h, order=1, B=None, half=False):
         `half` is False, a full size identity (same size as `A`) is
         used for `B`. If `half` is True, only the first half of the
         columns are retained (which is handy for converting a 2nd
-        order ODE into a 1st order ODE as :class:`ode.SolveExp2` does
-        -- where there are force inputs only for the first half of the
-        equations).
+        order ODE into a 1st order ODE as
+        :class:`pyyeti.ode.SolveExp2` does -- where there are force
+        inputs only for the first half of the equations).
 
     Returns
     -------
@@ -783,8 +784,8 @@ def getEPQ_pow(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`getEPQ`, :func:`expmint_pow`, :class:`ode.SolveExp1`,
-    :class:`ode.SolveExp2`
+    :func:`getEPQ`, :func:`expmint_pow`,
+    :class:`pyyeti.ode.SolveExp1`, :class:`pyyeti.ode.SolveExp2`
 
     Examples
     --------
@@ -1022,14 +1023,13 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
         If array, it multiplies the inputs; if None, it is assumed
         identity.
     half : bool; optional
-
         If `B` is a 2d ndarray, `half` is ignored. Otherwise, if
         `half` is False, a full size identity (same size as `A`) is
         used for `B`. If `half` is True, only the first half of the
         columns are retained (which is handy for converting a 2nd
-        order ODE into a 1st order ODE as :class:`ode.SolveExp2` does
-        -- where there are force inputs only for the first half of the
-        equations).
+        order ODE into a 1st order ODE as
+        :class:`pyyeti.ode.SolveExp2` does -- where there are force
+        inputs only for the first half of the equations).
 
     Returns
     -------
@@ -1085,8 +1085,8 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`_getEPQ2`, :func:`getEPQ_pow`, :class:`ode.SolveExp1`,
-    :class:`ode.SolveExp2`
+    :func:`_getEPQ2`, :func:`getEPQ_pow`,
+    :class:`pyyeti.ode.SolveExp1`, :class:`pyyeti.ode.SolveExp2`
 
     Examples
     --------
@@ -1199,9 +1199,9 @@ def getEPQ(A, h, order=1, B=None, half=False):
         `half` is False, a full size identity (same size as `A`) is
         used for `B`. If `half` is True, only the first half of the
         columns are retained (which is handy for converting a 2nd
-        order ODE into a 1st order ODE as :class:`ode.SolveExp2` does
-        -- where there are force inputs only for the first half of the
-        equations).
+        order ODE into a 1st order ODE as
+        :class:`pyyeti.ode.SolveExp2` does -- where there are force
+        inputs only for the first half of the equations).
 
     Returns
     -------
@@ -1229,7 +1229,8 @@ def getEPQ(A, h, order=1, B=None, half=False):
 
     See also
     --------
-    :func:`getEPQ_pow`, :class:`ode.SolveExp1`, :class:`ode.SolveExp2`
+    :func:`getEPQ_pow`, :class:`pyyeti.ode.SolveExp1`,
+    :class:`pyyeti.ode.SolveExp2`
 
     Examples
     --------

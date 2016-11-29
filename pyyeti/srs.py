@@ -341,7 +341,7 @@ def fftroll(sig, sr, ppc, frq):
 
 def lanroll(sig, sr, ppc, frq):
     """
-    Increase sample rate using :func:`dsp.resample` for the SRS
+    Increase sample rate using :func:`pyyeti.dsp.resample` for the SRS
     routine.
 
     Parameters
@@ -364,9 +364,9 @@ def lanroll(sig, sr, ppc, frq):
 
     Notes
     -----
-    The `pts` parameter for the :func:`dsp.resample` is set to 65.
-    This was determined from trial and error and comparison to the FFT
-    method.
+    The `pts` parameter for the :func:`pyyeti.dsp.resample` is set to
+    65.  This was determined from trial and error and comparison to
+    the FFT method.
     """
     N = sig.shape[0]
     if N > 1:
@@ -737,7 +737,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
            'fft'          Use FFT to upsample data as needed.  See
                           :func:`scipy.signal.resample`.
            'lanczos'      Use Lanczos resampling to upsample as
-                          needed. See :func:`dsp.resample`.
+                          needed. See :func:`pyyeti.dsp.resample`.
            'prefilter'    Apply a high freq. gain filter to account
                           for the SRS roll-off. See
                           :func:`preroll` for more information. This
@@ -1204,7 +1204,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
     See also
     --------
-    :func:`srs`, :func:`srs_frf`, :func:`psd.interp`
+    :func:`srs`, :func:`srs_frf`, :func:`pyyeti.psd.interp`
 
     References
     ----------
@@ -1461,13 +1461,14 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
 
     Notes
     -----
-    This routine calls :func:`dsp.waterfall` for handling the
+    This routine calls :func:`pyyeti.dsp.waterfall` for handling the
     timeslices and preparing the output.  :func:`srs` and
-    :func:`dsp.windowends` are passed to that function.
+    :func:`pyyeti.dsp.windowends` are passed to that function.
 
     See also
     --------
-    :func:`srs`, :func:`dsp.waterfall`, :func:`dsp.windowends`
+    :func:`srs`, :func:`pyyeti.dsp.waterfall`,
+    :func:`pyyeti.dsp.windowends`
 
     Examples
     --------

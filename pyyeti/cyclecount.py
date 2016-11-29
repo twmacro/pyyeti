@@ -122,7 +122,7 @@ def findap(y, tol=1e-6):
         y-axis data vector
     tol : scalar; optional
         Tolerance value for detecting unique values; see
-        :func:`locate.find_unique`
+        :func:`pyyeti.locate.find_unique`
 
     Returns
     -------

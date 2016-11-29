@@ -691,7 +691,7 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
 def bulk2uset(*args):
     """
     Read CORD2* and GRID cards from file(s) to make a USET table and
-    coordinate system dictionary via :func:`n2p.addgrid`.
+    coordinate system dictionary via :func:`pyyeti.n2p.addgrid`.
 
     Parameters
     ----------
@@ -703,7 +703,8 @@ def bulk2uset(*args):
     Returns
     -------
     uset : ndarray
-        A 6-column matrix as output by :func:`op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
     coordref : dictionary
         Dictionary with the keys being the coordinate system id and
         the values being the 5x3 matrix::
@@ -720,7 +721,7 @@ def bulk2uset(*args):
 
     See also
     --------
-    :func:`rdcards`, :func:`rdgrids`, :func:`op2.rdn2cop2`,
+    :func:`rdcards`, :func:`rdgrids`, :func:`pyyeti.op2.OP2.rdn2cop2`,
     :mod:`n2p`.
     """
     grids = np.zeros((0, 8))
@@ -1050,7 +1051,7 @@ def rdextrn(f, expand=True):
 
     Notes
     -----
-    The expansion is done by :func:`n2p.expanddof`.
+    The expansion is done by :func:`pyyeti.n2p.expanddof`.
 
     Examples
     --------
@@ -1929,7 +1930,8 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
 
           - If 4 columns: ``[id, x, y, z]``  <-- basic coordinates
           - If 6 columns: input is assumed to be USET table of ring 1
-            grids (see :func:`op2.rdn2cop2` for description).
+            grids (see :func:`pyyeti.op2.OP2.rdn2cop2` for
+            description).
 
     r2grids : 2d array_like
         4 or 6 column matrix of info on ring 2 grids (same format as
@@ -2142,8 +2144,8 @@ def wtcoordcards(f, ci):
         opened for file selection.
     ci : dictionary or None
         Dictionary of coordinate card info as returned by
-        :func:`n2p.coordcardinfo`. If None or if dict is empty, this
-        routine quietly does nothing.
+        :func:`pyyeti.n2p.coordcardinfo`. If None or if dict is empty,
+        this routine quietly does nothing.
 
     Returns
     -------
@@ -2252,7 +2254,8 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
     bset : 1d array_like
         Index partition vector for the bset
     uset : ndarray
-        A 6-column matrix as output by :func:`op2.rdn2cop2`.
+        A 6-column matrix as output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
     spoint1 : integer
         Starting value for the SPOINTs (for modal DOF)
     sedn : integer; optional

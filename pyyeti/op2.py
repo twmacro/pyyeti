@@ -1764,12 +1764,12 @@ class OP2(object):
             superelement.  When using the CSUPER entry, these will be
             the ids on that entry.  (Does not have each DOF, just ids.)
         'upids' : dictionary
-            Indexed by the SE number.  Each member is a vector of ids of
-            the A-set grids and spoints for upstream se's that connect
-            to SE.  These ids are internally generated and should match
-            with 'dnids'.  This allows, for example, the routine
-            :func:`n2p.upasetpv` to work.  (Does not have each DOF, just
-            ids.)
+            Indexed by the SE number.  Each member is a vector of ids
+            of the A-set grids and spoints for upstream se's that
+            connect to SE.  These ids are internally generated and
+            should match with 'dnids'.  This allows, for example, the
+            routine :func:`pyyeti.n2p.upasetpv` to work.  (Does not
+            have each DOF, just ids.)
 
         Notes
         -----
@@ -1791,10 +1791,10 @@ class OP2(object):
         integer for each DOF. The integer has bits set to specify
         which Nastran set that particular DOF belongs to. For example,
         if the integer has the 1 bit set, the DOF is in the m-set. See
-        the source code in :func:`n2p.mkusetmask` for all the bit
-        positions. Note that you rarely (if ever) need to call
-        :func:`n2p.mkusetmask` directly since the function
-        :func:`n2p.mksetpv` does this behind the scenes to make
+        the source code in :func:`pyyeti.n2p.mkusetmask` for all the
+        bit positions. Note that you rarely (if ever) need to call
+        :func:`pyyeti.n2p.mkusetmask` directly since the function
+        :func:`pyyeti.n2p.mksetpv` does this behind the scenes to make
         partition vectors.
 
         For grids, Coord_Info is a 6 row by 3 column matrix::
@@ -1856,7 +1856,7 @@ class OP2(object):
         second column is typically 1.0; if not, these routines will
         print an error message and stop.  Together with DNIDS, a
         partition vector can be formed for the A-set of an upstream
-        superelement (see :func:`n2p.upasetpv`).
+        superelement (see :func:`pyyeti.n2p.upasetpv`).
 
         The op2 file that this routine reads is written by the Nastran
         DMAP NAS2CAM.  The data in the file are expected to be in this
@@ -1871,10 +1871,10 @@ class OP2(object):
               MAPS     (if required)
 
         Note: The 2nd bit for the DOF column of all USET tables is
-        cleared for all S-set.  See :func:`n2p.mkusetmask` for more
-        information.
+        cleared for all S-set.  See :func:`pyyeti.n2p.mkusetmask` for
+        more information.
 
-        Example::
+        Example usage::
 
             from pyyeti import op2, n2p
             # list superelement 100 DOF that are in the B set:
@@ -1885,7 +1885,7 @@ class OP2(object):
 
         See also
         --------
-        :func:`rdnas2cam`, :mod:`n2p`.
+        :func:`rdnas2cam`, :mod:`pyyeti.n2p`.
         """
         # setup basic coordinate system info and a dummy for spoints:
         bc = np.array([[+0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
@@ -1969,8 +1969,9 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
     Returns
     -------
     nas : dictionary
-        Dictionary with all members created by :func:`rdn2cop2` (see
-        that routine's help) and the following additional members.
+        Dictionary with all members created by :func:`OP2.rdn2cop2`
+        (see that routine's help) and the following additional
+        members.
 
     'nrb' : integer
         The number of rigid-body modes for residual.
@@ -2013,7 +2014,7 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
         G-set rigid-body modes; see also drg output and rbgeom_uset
     'drg' : dictionary indexed be SE
         G-set transpose of rigid-body modes; see also 'rbg' and
-        :func:`n2p.rbgeom_uset`.  `drg` = `rbg.T` if both are
+        :func:`pyyeti.n2p.rbgeom_uset`.  `drg` = `rbg.T` if both are
         present.
     'pg' : dictionary indexed be SE
         G-set loads
@@ -2024,10 +2025,10 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
 
     Notes
     -----
-    See :func:`rdn2cop2` for a description of what is expected of the
-    `op2file`.  The `op4file` is expected to contain certain marker
-    matrices.  Scalar SE_START starts each superelement and can be
-    followed by any matrices for that superelement.  The end of the
+    See :func:`OP2.rdn2cop2` for a description of what is expected of
+    the `op2file`.  The `op4file` is expected to contain certain
+    marker matrices.  Scalar SE_START starts each superelement and can
+    be followed by any matrices for that superelement.  The end of the
     superelement input is marked by a matrix named LOOP_END.
 
     See also the Nastran DMAP NAS2CAM.
@@ -2575,7 +2576,9 @@ def get_drm(drminfo, otm, drms, drmkeys, dr, desc):
     desc : dictionary
         Output of :func:`get_dof_descs`.
 
-    Examples usages::
+    Notes
+    -----
+    Example usages::
 
         get_drm(('DTM', 'oug', 'acce'), otm, drms, drmkeys, dr, desc)
         get_drm(('ATM', 'ougv1', 'acce'), ...)
@@ -2857,16 +2860,18 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
     pop2 : dictionary
         With following members.
     'uset' : array
-        6-column matrix as described in class OP2, member function
-        :func:`rdn2cop2`.
+        6-column matrix as described in :class:`OP2`, member function
+        :func:`OP2.rdn2cop2`.
     'cstm' : array
         14-column matrix containing the coordinate system
         transformation matrix for each coordinate system.  See
-        description in class OP2, member function :func:`rdn2cop2`.
+        description in class OP2, member function
+        :func:`OP2.rdn2cop2`.
     'cstm2' : dictionary
         Dictionary indexed by the coordinate system id number.  This
         has the same information as 'cstm', but in a different format.
-        See description in class OP2, member function :func:`rdn2cop2`.
+        See description in class OP2, member function
+        :func:`OP2.rdn2cop2`.
     'mats' : dictionary
         Dictionary of matrices read from op2 file and indexed by the
         name.  The 'tload' entry is a typical entry.  Will also
