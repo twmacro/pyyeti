@@ -4436,7 +4436,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         pv &= (abs(a) > filt) | (abs(b) > filt)
 
         if mxmn_b is not None:
-            denom = abs(mxmn_b).max(axis=1)
+            denom = np.nanmax(abs(mxmn_b), axis=1)
         else:
             denom = abs(b)
 
@@ -4721,8 +4721,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                   prtbads=prtbads, flagbads=flagbads,
                   maxhdr=maxhdr, minhdr=minhdr, absmhdr=absmhdr,
                   pdhdr=pdhdr)
-    mx1 = abs(mxmn1).max(axis=1)
-    mx2 = abs(mxmn2).max(axis=1)
+    mx1 = np.nanmax(abs(mxmn1), axis=1)
+    mx2 = np.nanmax(abs(mxmn2), axis=1)
     if not doabsmax:
         max1, min1 = mxmn1[:, 0], mxmn1[:, 1]
         max2, min2 = mxmn2[:, 0], mxmn2[:, 1]
