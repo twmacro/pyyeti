@@ -847,6 +847,9 @@ class DR_Def(object):
                            ' `defaults`!'.format(key))
                     raise ValueError(msg)
 
+        if ns.drfile == '.':
+            ns.drfile = None
+
         # add path to `drfile` if needed:
         try:
             ns.drfile = self._drfilemap[ns.drfile]
@@ -990,7 +993,7 @@ class DR_Def(object):
             event simulation since system modes are often
             needed. (Also, when `se` is 0, using `drms` is equivalent
             to using `nondrms`.)
-        drfile : string or None; optional
+        drfile : string or '.' or None; optional
             Name of file that contains the data recovery function
             named `drfunc`. It can optionally also have a PSD-specific
             data recovery function; this must have the same name but
@@ -998,11 +1001,13 @@ class DR_Def(object):
             functions. `drfile` is imported during event simulation.
             If not already provided in `drfile`, the full path of
             `drfile` is defined to be relative to the path of the file
-            that contains the function that called this routine.
+            that contains the function that called this routine. If
+            input as '.', `drfile` is set to the full name of the file
+            that called this routine.
 
             DA: if `drfile` is set in `self.defaults`, that is used;
-            otherwise, it is set to the name of the file (with full
-            path) that called this routine.
+            otherwise, it is set to the full name of the file that
+            called this routine (as if it was input as '.').
         drfunc : string or None; optional
             The name of the data recovery function in `drfile`.
 
