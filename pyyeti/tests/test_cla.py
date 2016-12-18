@@ -308,6 +308,7 @@ def prepare_4_cla(pth):
         labels = net.cglf_labels
         drms = {'cglf': net.cglfa}
         histpv = slice(1)
+        srspv = 0
         drdefs.add(**locals())
 
     @cla.DR_Def.addcat
@@ -689,3 +690,166 @@ def test_transfer_orbit_cla():
 #    finally:
 #        pass
 #        # shutil.rmtree('./temp_cla', ignore_errors=True)
+
+
+def test_maxmin():
+    assert_raises(ValueError, cla.maxmin, np.ones((2, 2)),
+                  np.ones((5)))
+
+def test_extrema_1():
+    mm = SimpleNamespace(ext=np.ones((5, 3)))
+    assert_raises(ValueError, cla.extrema, [], mm, 'test')
+
+    rows = 5
+    curext = SimpleNamespace(ext=None, exttime=None,
+                             maxcase=None, mincase=None,
+                             mx=np.empty((rows, 2)),
+                             mn=np.empty((rows, 2)),
+                             maxtime=np.empty((rows, 2)),
+                             mintime=np.empty((rows, 2)))
+    mm = SimpleNamespace(ext=np.ones((rows, 1)),
+                         exttime=np.zeros((rows, 1)))
+    maxcase = 'Case 1'
+    mincase = None
+    casenum = 0
+    cla.extrema(curext, mm, maxcase, mincase, casenum)
+
+    mm = SimpleNamespace(ext=np.arange(rows)[:, None],
+                         exttime=np.ones((rows, 1)))
+    maxcase = 'Case 2'
+    mincase = None
+    casenum = 1
+    cla.extrema(curext, mm, maxcase, mincase, casenum)
+
+    assert np.all(curext.ext == np.array([[ 1.,  0.],
+                                          [ 1.,  1.],
+                                          [ 2.,  1.],
+                                          [ 3.,  1.],
+                                          [ 4.,  1.]]))
+
+    assert np.all(curext.exttime == np.array([[ 0.,  1.],
+                                              [ 0.,  0.],
+                                              [ 1.,  0.],
+                                              [ 1.,  0.],
+                                              [ 1.,  0.]]))
+    assert curext.maxcase == ['Case 1', 'Case 1',
+                              'Case 2', 'Case 2', 'Case 2']
+    assert curext.mincase == ['Case 2', 'Case 1',
+                              'Case 1', 'Case 1', 'Case 1']
+
+    assert np.all(curext.mx == np.array([[ 1.,  0.],
+                                         [ 1.,  1.],
+                                         [ 1.,  2.],
+                                         [ 1.,  3.],
+                                         [ 1.,  4.]]))
+
+    assert np.all(curext.mn == np.array([[ 1.,  0.],
+                                         [ 1.,  1.],
+                                         [ 1.,  2.],
+                                         [ 1.,  3.],
+                                         [ 1.,  4.]]))
+
+    assert np.all(curext.maxtime == np.array([[ 0.,  1.],
+                                              [ 0.,  1.],
+                                              [ 0.,  1.],
+                                              [ 0.,  1.],
+                                              [ 0.,  1.]]))
+
+    assert np.all(curext.mintime == np.array([[ 0.,  1.],
+                                              [ 0.,  1.],
+                                              [ 0.,  1.],
+                                              [ 0.,  1.],
+                                              [ 0.,  1.]]))
+
+
+def test_extrema_2():
+    rows = 5
+    curext = SimpleNamespace(ext=None, exttime=None,
+                             maxcase=None, mincase=None,
+                             mx=np.empty((rows, 2)),
+                             mn=np.empty((rows, 2)),
+                             maxtime=np.empty((rows, 2)),
+                             mintime=np.empty((rows, 2)))
+    mm = SimpleNamespace(ext=np.ones((rows, 1)),
+                         exttime=None)
+    maxcase = 'Case 1'
+    mincase = None
+    casenum = 0
+    cla.extrema(curext, mm, maxcase, mincase, casenum)
+
+    mm = SimpleNamespace(ext=np.arange(rows)[:, None],
+                         exttime=None)
+    maxcase = 'Case 2'
+    mincase = None
+    casenum = 1
+    cla.extrema(curext, mm, maxcase, mincase, casenum)
+
+    assert np.all(curext.ext == np.array([[ 1.,  0.],
+                                          [ 1.,  1.],
+                                          [ 2.,  1.],
+                                          [ 3.,  1.],
+                                          [ 4.,  1.]]))
+
+    assert curext.exttime is None
+    assert curext.maxcase == ['Case 1', 'Case 1',
+                              'Case 2', 'Case 2', 'Case 2']
+    assert curext.mincase == ['Case 2', 'Case 1',
+                              'Case 1', 'Case 1', 'Case 1']
+
+    assert np.all(curext.mx == np.array([[ 1.,  0.],
+                                         [ 1.,  1.],
+                                         [ 1.,  2.],
+                                         [ 1.,  3.],
+                                         [ 1.,  4.]]))
+
+    assert np.all(curext.mn == np.array([[ 1.,  0.],
+                                         [ 1.,  1.],
+                                         [ 1.,  2.],
+                                         [ 1.,  3.],
+                                         [ 1.,  4.]]))
+    assert np.isnan(curext.maxtime).sum() == 10
+    assert np.isnan(curext.mintime).sum() == 10
+
+
+def test_addcat():
+    def _():
+        name = 'ATM'
+        labels = 12
+    assert_raises(RuntimeError, cla.DR_Def.addcat, _)
+
+    defaults = dict(
+        se = 0,
+        uf_reds = (1, 1, 1, 1),
+        drfile = '.',
+        )
+    drdefs = cla.DR_Def(defaults)
+
+    drm = np.ones((4, 4))
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM'
+        labels = 12
+        drms = {'drm': drm}
+        drdefs.add(**locals())
+
+    import sys
+    for v in list(sys.modules.values()):
+        if getattr(v, '__warningregistry__', None):
+            v.__warningregistry__ = {}
+
+    def _():
+        name = 'LTM'
+        labels = 12
+        drms = {'drm': drm}
+        drdefs.add(**locals())
+    with assert_warns(RuntimeWarning) as cm:
+        cla.DR_Def.addcat(_)
+    the_warning = str(cm.warning)
+    assert 0 == the_warning.find('"drm" already')
+
+    def _():
+        name = 'DTM'
+        labels = 12
+        drms = {'drm': 0+drm}
+        drdefs.add(**locals())
+    assert_raises(ValueError, cla.DR_Def.addcat, _)

@@ -76,9 +76,9 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         >>> import numpy as np
         >>> from pyyeti import cla
         >>> n = 500
-        >>> m1 = 5 + np.arange(n)/5 + np.random.randn(n)
-        >>> m2 = m1 + np.random.randn(n)
-        >>> pds = cla.magpct(m1, m2)
+        >>> m1 = 5 + np.arange(n)[:, None]/5 + np.random.randn(n, 2)
+        >>> m2 = m1 + np.random.randn(n, 2)
+        >>> pds = cla.magpct(m1, m2, symbols='ox')
 
     """
     if Ref is None:
@@ -118,20 +118,19 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
     pds = []
     for curpd, ref in _get_next_pds(M1, M2, Ref, ismax):
         pds.append(curpd)
-        if curpd is None:
-            continue
-        apd = abs(curpd)
-        _marker = next(marker)
-        for pv, c in [((apd <= 5).nonzero()[0], 'b'),
-                      (((apd > 5) & (apd <= 10)).nonzero()[0], 'm'),
-                      ((apd > 10).nonzero()[0], 'r')]:
-            plt.plot(ref[pv], curpd[pv], c+_marker)
+        if curpd is not None:
+            apd = abs(curpd)
+            _marker = next(marker)
+            for pv, c in [(apd <= 5, 'b'),
+                          ((apd > 5) & (apd <= 10), 'm'),
+                          (apd > 10, 'r')]:
+                plt.plot(ref[pv], curpd[pv], c+_marker)
     plt.xlabel('Reference Magnitude')
     plt.ylabel('% Difference')
     return pds
 
 
-def rdext(name):
+def rdext(name):              # pragma: no cover
     """
     Function to read file written by rptext.cam. Probably temporary
 
@@ -508,22 +507,25 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         Has extrema information (members may be None on first call)::
 
             .ext     = 1 or 2 columns: [max, min]
-            .exttime = 1 or 2 columns: [max_time, min_time]
+            .exttime = None or 1 or 2 columns: [max_time, min_time]
             .maxcase = list of strings identifying maximum case
             .mincase = list of strings identifying minimum case
 
-        Also has these members if casenum > 0::
+        Also has these members if casenum is an integer::
 
             .mx      = [case1_max, case2_max, ...]
             .mn      = [case1_min, case2_min, ...]
             .maxtime = [case1_max_time, case2_max_time, ...]
             .mintime = [case1_min_time, case2_min_time, ...]
 
+        The `maxtime` and `mintime` will have ``np.nan`` values if
+        `exttime` is None.
+
     mm : SimpleNamespace
         Has min/max information for a case (or over cases)::
 
             .ext     = 1 or 2 columns: [max, min]
-            .exttime = 1 or 2 columns: [max_time, min_time]
+            .exttime = None or 1 or 2 columns: [max_time, min_time]
 
     maxcase : string or list of strings
         String identifying new case, or list of strings analogous to
@@ -550,6 +552,15 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
     :func:`DR_Results.time_data_recovery` and
     :func:`DR_Results.psd_data_recovery`.
     """
+    def _put_time(curext, mm, j, col_lhs, col_rhs):
+        if mm.exttime is not None:
+            if curext.exttime is None:
+                curext.exttime = copy.copy(mm.exttime)
+            else:
+                curext.exttime[j, col_lhs] = mm.exttime[j, col_rhs]
+        elif curext.exttime is not None:          # pragma: no cover
+            curext.exttime[j, col_lhs] = np.nan
+
     r, c = mm.ext.shape
     if c not in [1, 2]:
         raise ValueError('mm.ext has {} cols, but must have 1 or 2.'
@@ -563,23 +574,42 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
 
     if c == 1:
         if casenum is not None:  # record current results
-            curext.mx[:, casenum] = mm.ext
-            curext.mn[:, casenum] = mm.ext
-            curext.maxtime = copy.copy(mm.exttime)  # okay if None
-            curext.mintime = copy.copy(mm.exttime)
+            curext.mx[:, casenum] = mm.ext[:, 0]
+            curext.mn[:, casenum] = mm.ext[:, 0]
+            # curext.maxtime = copy.copy(mm.exttime)  # okay if None
+            # curext.mintime = copy.copy(mm.exttime)
+            if mm.exttime is not None:
+                curext.maxtime[:, casenum] = mm.exttime[:, 0]
+                curext.mintime[:, casenum] = mm.exttime[:, 0]
+            else:
+                curext.maxtime[:, casenum] = np.nan
+                curext.mintime[:, casenum] = np.nan
 
         if curext.ext is None:
-            curext.ext = mm.ext.copy()
-            curext.exttime = copy.copy(mm.exttime)
+            curext.ext = mm.ext @ [[1, 1]]
+            # curext.exttime = copy.copy(mm.exttime)
+            if mm.exttime is not None:
+                curext.exttime = mm.exttime @ [[1, 1]]
+            else:
+                curext.exttime = None
             curext.maxcase = maxcase
             curext.mincase = maxcase[:]
             return
 
         # keep sign but compare based on absolute
-        j = nan_argmax(abs(curext.ext), abs(mm.ext))
-        if j.any():
-            curext.maxcase[j] = maxcase[j]
-            curext.ext[j] = mm.ext[j]
+        j = nan_argmax(abs(curext.ext), abs(mm.ext)).nonzero()[0]
+        if j.size > 0:
+            for i in j:
+                curext.maxcase[i] = maxcase[i]
+            curext.ext[j, 0] = mm.ext[j, 0]
+            _put_time(curext, mm, j, 0, 0)
+
+        j = nan_argmin(abs(curext.ext), abs(mm.ext)).nonzero()[0]
+        if j.size > 0:
+            for i in j:
+                curext.mincase[i] = maxcase[i]
+            curext.ext[j, 1] = mm.ext[j, 0]
+            _put_time(curext, mm, j, 1, 0)
         return
 
     if mincase is None:
@@ -606,29 +636,19 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         curext.mincase = mincase
         return
 
-    def _put_time(curext, mm, j, col):
-        if mm.exttime is not None:
-            if curext.exttime is None:
-                curext.exttime = copy.copy(mm.exttime)
-            else:
-                curext.exttime[j, col] = mm.exttime[j, col]
-        elif curext.exttime is not None:
-            curext.exttime[j, col] = np.nan
-
     j = nan_argmax(curext.ext[:, 0], mm.ext[:, 0]).nonzero()[0]
     if j.size > 0:
         for i in j:
             curext.maxcase[i] = maxcase[i]
         curext.ext[j, 0] = mm.ext[j, 0]
-        _put_time(curext, mm, j, 0)
+        _put_time(curext, mm, j, 0, 0)
 
     j = nan_argmin(curext.ext[:, 1], mm.ext[:, 1]).nonzero()[0]
-    # j = (mm.ext[:, 1] < curext.ext[:, 1]).nonzero()[0]
     if j.size > 0:
         for i in j:
             curext.mincase[i] = mincase[i]
         curext.ext[j, 1] = mm.ext[j, 1]
-        _put_time(curext, mm, j, 1)
+        _put_time(curext, mm, j, 1, 1)
 
 
 class DR_Def(object):
