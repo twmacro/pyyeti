@@ -2592,17 +2592,16 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         raise ValueError('value(s) in `w` exceed `nyq`')
 
     n = sig.shape[0]
-    freq = np.fft.rfftfreq(n, 0.5/nyq)
+    n2 = nextpow2(n)
+    freq = np.fft.rfftfreq(n2, 0.5/nyq)
     h = _make_h(freq, w, bw, pass_zero, mag)
     t = np.arange(n)
     ylines = interp.interp1d(t[[0, -1]],
                              sig[[0, -1], :],
                              axis=0)(t)
     y2 = sig - ylines
-    n2 = nextpow2(n)
     Y = np.fft.rfft(y2, n2, axis=0)
-    nf = freq.shape[0]
-    Y[:nf] *= h[:, None]
+    Y *= h[:, None]
     y_h = np.fft.irfft(Y, n2, axis=0)[:n]
     if pass_zero:
         y_h += ylines

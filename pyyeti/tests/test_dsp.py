@@ -875,10 +875,12 @@ def test_fftfilt():
 
     yf, freq, H = dsp.fftfilt(y, [7, 18, 45], nyq=nyq)
     assert freq.shape == H.shape
-    t_end = t[-1] + h
     assert freq[0] == 0.0
-    assert np.allclose(freq[1], 1/t_end)
     assert nyq - freq[-1] < freq[1]
+
+    n2 = dsp.nextpow2(len(t))
+    period = n2 * h
+    assert np.allclose(freq[1], 1/period)
 
 
 def test_despike1():
