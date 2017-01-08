@@ -708,7 +708,7 @@ class DR_Def(object):
             .misc      : None
             .se        : 500
             .srsQs     : [n=2]: (25, 50)
-            .srsconv   : 1
+            .srsconv   : 1.0
             .srsfrq    : float64 ndarray 990 elems: (990,)
             .srslabels : [n=12]: ['$X_{SC}$', '$Y_{SC}$', '$Z_ ...}$']
             .srsopts   : <class 'dict'>[n=2]
@@ -924,7 +924,7 @@ class DR_Def(object):
                         raise ValueError(msg)
                     return pv.nonzero()[0]
                 elif issubclass(pv.dtype.type, np.integer):
-                    if pv.max() > length or pv.min() < 0:
+                    if pv.max() >= length or pv.min() < 0:
                         msg = ('values in `{}` range from [{}, {}], '
                                'but should be in range [0, {}] for '
                                'this category'
@@ -937,7 +937,7 @@ class DR_Def(object):
         ns.ignorepv = _get_pv(ns.ignorepv, 'ignorepv', len(ns.labels))
 
         if ns.srsconv is None:
-            ns.srsconv = 1
+            ns.srsconv = 1.0
 
         if ns.srsQs is not None:
             ns.srsQs = _ensure_iter(ns.srsQs)
@@ -1272,9 +1272,7 @@ class DR_Def(object):
             make the new names. If list, contains the new names with
             no regard to old names.
         **kwargs :
-            Any options to modify. See :func:`add` for complete list
-            (except `drfunc` is also available ... that is the name of
-            the data recovery function inside `drfile`).
+            Any options to modify. See :func:`add` for complete list.
 
         Returns
         -------
@@ -1815,7 +1813,7 @@ class DR_Event(object):
                 else:
                     avterm = m[nrb:, nrb:] @ SOL.a[nrb:]
 
-                if not use_velo:
+                if not use_velo:  # pragma: no cover
                     msg = ('not including velocity term in mode-'
                            'acceleration formulation for displacements.')
                     warn(msg, RuntimeWarning)
@@ -1886,23 +1884,24 @@ class DR_Event(object):
 
            .a_rb, .v_rb, d_rb - scaled by ruf*suf
            .a_el, .v_el, d_el - scaled by euf*duf
+           .pg   - scaled by suf
         """
         solout = {}
         for item in self.UF_reds:
             ruf, euf, duf, suf = item
             solout[item] = copy.deepcopy(sol)
             SOL = solout[item]
-            if nrb > 0:
-                SOL.a[:nrb] *= (ruf*suf)
-                SOL.v[:nrb] *= (ruf*suf)
-                SOL.d[:nrb] *= (ruf*suf)
-                SOL.a[nrb:] *= (euf*duf)
-                SOL.v[nrb:] *= (euf*duf)
-                SOL.d[nrb:] *= (euf*duf)
-            else:
-                SOL.a *= (euf*duf)
-                SOL.v *= (euf*duf)
-                SOL.d *= (euf*duf)
+            # if nrb > 0:
+            SOL.a[:nrb] *= (ruf*suf)
+            SOL.v[:nrb] *= (ruf*suf)
+            SOL.d[:nrb] *= (ruf*suf)
+            SOL.a[nrb:] *= (euf*duf)
+            SOL.v[nrb:] *= (euf*duf)
+            SOL.d[nrb:] *= (euf*duf)
+            # else:
+            #     SOL.a *= (euf*duf)
+            #     SOL.v *= (euf*duf)
+            #     SOL.d *= (euf*duf)
             if 'pg' in SOL.__dict__:
                 SOL.pg *= suf
         return solout
@@ -1969,7 +1968,7 @@ class DR_Results(OrderedDict):
                 .misc      : None
                 .se        : 500
                 .srsQs     : [n=2]: (25, 50)
-                .srsconv   : 1
+                .srsconv   : 1.0
                 .srsfrq    : float64 ndarray 990 elems: (990,)
                 .srslabels : [n=12]: ['$X_{SC}$', '$Y_{SC}$', ...LV}$']
                 .srsopts   : <class 'dict'>[n=2]
@@ -2026,7 +2025,7 @@ class DR_Results(OrderedDict):
                 .misc      : None
                 .se        : 500
                 .srsQs     : [n=2]: (25, 50)
-                .srsconv   : 1
+                .srsconv   : 1.0
                 .srsfrq    : float64 ndarray 990 elems: (990,)
                 .srslabels : [n=12]: ['$X_{SC}$', '$Y_{SC}$', ...LV}$']
                 .srsopts   : <class 'dict'>[n=2]
@@ -2277,7 +2276,7 @@ class DR_Results(OrderedDict):
         misc                            None                         -
         se                                 0                         -
         srsQs                           None                         -
-        srsconv                            1                         -
+        srsconv                          1.0                         -
         srsfrq                          None                         -
         srslabels                       None                         -
         srsopts                         None                         -

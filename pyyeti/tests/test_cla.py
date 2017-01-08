@@ -195,6 +195,9 @@ def test_rptpct1():
          'PostVLC': 'VCL2'})
 
     results.form_extreme()
+    assert repr(results).startswith('<pyyeti.cla.DR_Results object')
+    assert str(results) == ('DR_Results with 4 categories: '
+                            '[FDLC, VLC, VCL2, extreme]')
     try:
         results['extreme'].rpttab(direc='./temp_tab', excel='results')
         results['extreme'].rpttab(direc='./temp_tab')
@@ -815,12 +818,14 @@ def test_addcat():
     def _():
         name = 'ATM'
         labels = 12
+    # doesn't call DR_Def.add:
     assert_raises(RuntimeError, cla.DR_Def.addcat, _)
 
     defaults = dict(
         se = 0,
         uf_reds = (1, 1, 1, 1),
         drfile = '.',
+        srsQs = 10,
         )
     drdefs = cla.DR_Def(defaults)
 
@@ -841,15 +846,331 @@ def test_addcat():
         name = 'LTM'
         labels = 12
         drms = {'drm': drm}
+        curfile = os.path.realpath(inspect.stack()[0][1])
+        drfile = os.path.split(curfile)[1]
+        drfunc = 'ATM'
         drdefs.add(**locals())
     with assert_warns(RuntimeWarning) as cm:
         cla.DR_Def.addcat(_)
     the_warning = str(cm.warning)
     assert 0 == the_warning.find('"drm" already')
 
+    assert drdefs.dr_def['LTM'].drfile == drdefs.dr_def['ATM'].drfile
+
     def _():
         name = 'DTM'
         labels = 12
         drms = {'drm': 0+drm}
+        drfunc = 'ATM'
         drdefs.add(**locals())
+    # uses a different "drm":
     assert_raises(ValueError, cla.DR_Def.addcat, _)
+
+    def _():
+        name = 'DTM'
+        labels = 2
+        drdefs.add(**locals())
+    # already defined data recovery category:
+    assert_raises(ValueError, cla.DR_Def.addcat, _)
+
+    def _():
+        name = 'SDTM'
+        labels = 12
+        drms = {'sdrm': 1}
+        desc = defaults
+        drfunc = 'ATM'
+        drdefs.add(**locals())
+    # `desc` not in defaults:
+    assert_raises(ValueError, cla.DR_Def.addcat, _)
+
+    def _():
+        name = 'TDTM'
+        labels = 12
+        drms = {'tdrm': 1}
+        filterval = [0.003, 0.004]
+        drfunc = 'ATM'
+        drdefs.add(**locals())
+    # length of `filterval` does not match length of labels:
+    assert_raises(ValueError, cla.DR_Def.addcat, _)
+
+    # this length does match, so no error:
+    @cla.DR_Def.addcat
+    def _():
+        name = 'TDTM2'
+        labels = 2
+        drms = {'tdrm2': 1}
+        filterval = [0.003, 0.004]
+        drfunc = 'ATM'
+        drdefs.add(**locals())
+
+    # a good bool `histpv`
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM2'
+        labels = 4
+        drms = {'atm2': 1}
+        histpv = [True, False, False, True]
+        drfunc = 'ATM'
+        drdefs.add(**locals())
+
+    # a bad bool `histpv`
+    def _():
+        name = 'ATM3'
+        labels = 4
+        drms = {'atm3': 1}
+        histpv = [True, False, False]
+        drfunc = 'ATM'
+        drdefs.add(**locals())
+    # length of `histpv` does not match length of labels:
+    assert_raises(ValueError, cla.DR_Def.addcat, _)
+
+    # a good integer `histpv`
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM4'
+        labels = 4
+        drms = {'atm4': 1}
+        histpv = [0, 3]
+        drfunc = 'ATM'
+        srsfrq = np.arange(1.0, 10.0)
+        drdefs.add(**locals())
+
+    # a bad integer `histpv`
+    def _():
+        name = 'ATM5'
+        labels = 4
+        drms = {'atm5': 1}
+        histpv = [1, 4]
+        drfunc = 'ATM'
+        drdefs.add(**locals())
+    # `histpv` exceeds dimensions:
+    assert_raises(ValueError, cla.DR_Def.addcat, _)
+
+    # a bad type for `histpv`
+    def _():
+        name = 'ATM6'
+        labels = 4
+        drms = {'atm6': 1}
+        histpv = {}
+        # drfunc = 'ATM' ... so that an error message is triggered
+        drdefs.add(**locals())
+    # `histpv` is bad type:
+    assert_raises(TypeError, cla.DR_Def.addcat, _)
+
+    # overlapping drms and nondrms names:
+    def _():
+        name = 'ATM7'
+        labels = 4
+        drms = {'atm7': 1}
+        nondrms = {'atm7': 1}
+        drfunc = 'ATM'
+        drdefs.add(**locals())
+    # overlapping names in `drms` and `nondrms`
+    assert_raises(ValueError, cla.DR_Def.addcat, _)
+
+    drdefs.copycat('ATM', '_dummy',
+                   uf_reds=(0, 1, 1., 1))
+
+    assert drdefs.dr_def['ATM_dummy'].labels == drdefs.dr_def['ATM'].labels
+
+    # modify category that doesn't exist
+    assert_raises(ValueError, drdefs.copycat, 'notexist', '_2',
+                  uf_reds=(0, 1, 1., 1))
+
+    # modify parameter that doesn't exist
+    assert_raises(ValueError, drdefs.copycat, 'ATM', '_2',
+                  notexist=1)
+
+    drdefs.copycat('ATM', ['ATM_2'],
+                   uf_reds=(0, 1, 1., 1))
+
+    assert drdefs.dr_def['ATM_2'].labels == drdefs.dr_def['ATM'].labels
+
+    # atm_2 already exists:
+    assert_raises(ValueError, drdefs.copycat, 'ATM', '_2')
+
+    # add a 0rb version of non-existent category:
+    assert_raises(ValueError, drdefs.add_0rb, 'net_ifatm')
+
+
+def test_addcat_2():
+    defaults = dict(
+        se = 0,
+        uf_reds = (1, 1, 1, 1),
+        drfile = '.',
+        srsQs = 10,
+        )
+    drdefs = cla.DR_Def(defaults)
+    assert_raises(RuntimeError, drdefs.excel_summary, None)
+    
+    
+def test_addcat_3():
+    defaults = dict(
+        se = 0,
+        uf_reds = (1, 1, 1, 1),
+        drfile = '.',
+        srsQs = 10,
+        )
+    drdefs = cla.DR_Def(defaults)
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM'
+        labels = 4
+        drms = {'drm': 1}
+        misc = np.arange(10)
+        drdefs.add(**locals())
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM2'
+        labels = 4
+        drms = {'drm2': 1}
+        drfunc = 'ATM'
+        misc = np.arange(10)
+        drdefs.add(**locals())
+
+    df = drdefs.excel_summary(None)
+    assert df['ATM2']['misc'] == '-'
+
+
+def test_event_add():
+    #    ext_name = 'FLAC'
+    _get_labels = _get_labels0
+    cyclenumber = 0
+
+    # make up some CLA results:
+    events = ('Liftoff', 'Transonics', 'MECO')
+    rows = {'ATM': 34, 'LTM': 29}
+    ext_results = {i: {} for i in rows}
+    for i, event in enumerate(events):
+        for drm, nrows in rows.items():
+            ext_results[drm][event] = _get_minmax(
+                drm, i, cyclenumber)
+
+    # setup CLA parameters:
+    mission = "Rocket / Spacecraft CLA"
+    duf = 1.2
+    suf = 1.0
+
+    # defaults for data recovery
+    defaults = dict(
+        se = 10,
+        uf_reds = (1, 1, duf, 1),
+        drfile = '.',
+        )
+
+    drdefs = cla.DR_Def(defaults)
+    drdefs2 = cla.DR_Def(defaults)
+    drdefs3 = cla.DR_Def(defaults)
+    drdefs4 = cla.DR_Def(defaults)
+
+    uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+    nas = {
+        'ulvs': {10: np.ones((1, 1), float)},
+        'uset': {10: uset[:1]},
+    }
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM'
+        desc = 'S/C Internal Accelerations'
+        units = 'm/sec^2, rad/sec^2'
+        labels = _get_labels(rows, name)
+        drms = {'atm': np.ones((4, 1), float)}
+        nondrms = {'var': 'any value'}
+        drdefs.add(**locals())
+
+    # so that "ATM data recovery category alread defined" error
+    # gets triggered in DR_Event.add:
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM'
+        desc = 'S/C Internal Accelerations'
+        units = 'm/sec^2, rad/sec^2'
+        labels = _get_labels(rows, name)
+        drdefs2.add(**locals())
+
+    # so that nondrms "atm is already in Vars[10]'" error
+    # gets triggered in DR_Event.add:
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM3'
+        desc = 'S/C Internal Accelerations'
+        units = 'm/sec^2, rad/sec^2'
+        labels = _get_labels(rows, 'ATM')
+        drfunc = 'ATM'
+        drms = {'atm': np.ones((4, 1), float)}
+        drdefs3.add(**locals())
+
+    # so that nondrms "atm is already in Vars[10]'" error
+    # gets triggered in DR_Event.add:
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM4'
+        desc = 'S/C Internal Accelerations'
+        units = 'm/sec^2, rad/sec^2'
+        labels = _get_labels(rows, 'ATM')
+        drfunc = 'ATM'
+        nondrms = {'var': 'any value'}
+        drdefs4.add(**locals())
+
+    # for checking, make a pandas DataFrame to summarize data
+    # recovery definitions (but skip the excel file for this
+    # demo)
+    df = drdefs.excel_summary(None)
+    # prepare results data structure:
+    DR = cla.DR_Event()
+
+    # test for DR.add:
+    DR.add(None, None)
+    assert len(DR.Info) == 0
+
+    DR.add(nas, drdefs, uf_reds=(2, 2, 2, 2))
+    assert_raises(ValueError, DR.add, nas, drdefs2)
+    assert_raises(ValueError, DR.add, nas, drdefs3)
+    assert_raises(ValueError, DR.add, nas, drdefs4)
+
+    # for testing apply_uf:
+    sol = SimpleNamespace()
+    sol.a = np.ones((1, 10), float)
+    sol.v = sol.a + 1.0
+    sol.d = sol.a + 2.0
+    sol.pg = np.array([45])
+    SOL1 = DR.apply_uf(sol, None, np.ones(1, float),
+                       np.ones(1, float)+1.0, 0, None)
+    SOL2 = DR.apply_uf(sol, np.ones(1, float), np.ones((1, 1), float),
+                       np.ones((1, 1), float)+1.0, 0, None)
+    SOL3 = DR.apply_uf(sol, np.ones((1, 1), float),
+                       np.ones((1, 1), float),
+                       np.ones((1, 1), float)+1.0, 0, None)
+
+    for k, d1 in SOL1.items():   # loop over uf_reds
+        d2 = SOL2[k]
+        d3 = SOL3[k]
+        for k, v1 in d1.__dict__.items():  # loop over a, v, d, ...
+            v2 = getattr(d2, k)
+            v3 = getattr(d3, k)
+            assert np.all(v2 == v1)
+            assert np.all(v3 == v1)
+
+    assert SOL1[(2, 2, 2, 2)].pg == 90
+
+    SOL = DR.frf_apply_uf(sol, 0)
+    
+    assert np.all(SOL[(2, 2, 2, 2)].a == 4*sol.a)
+    assert np.all(SOL[(2, 2, 2, 2)].v == 4*sol.v)
+    assert np.all(SOL[(2, 2, 2, 2)].d == 4*sol.d)
+    assert np.all(SOL[(2, 2, 2, 2)].pg == 2*sol.pg)
+
+# pyyeti/cla.py 1801 168 91% 91, 98, 2162-2163, 2166,
+# 2314, 2324, 2329, 2496, 2515, 2528, 2559, 2936-2937, 2941, 2946,
+# 2981-2986, 2998, 3018, 3080-3083, 3186, 3254, 3268, 3611-3612,
+# 3620-3622, 3634, 3713, 3725, 3738, 3745-3746, 3753, 3769, 3785,
+# 3795, 3847, 3862, 3871, 4017, 4038, 4058, 4061-4063, 4374,
+# 4392-4393, 4395, 4404, 4417-4425, 4430-4438, 4445-4451, 4465, 4489,
+# 4491, 4521, 4562-4582, 4592, 4619, 4638, 4693, 4703, 4715, 4731,
+# 4733, 4735-4736, 4764, 4794-4795, 4800, 4930, 4933, 4936, 4951,
+# 4965-4967, 4976, 4984-4990, 5023-5024, 5026-5027, 5041, 5064,
+# 5108-5115, 5123-5127, 5135, 5146-5150, 5155-5159, 5165, 5172-5174,
+# 5178, 5190-5193, 5195-5198, 5201-5203, 5212-5214, 5259-5261
