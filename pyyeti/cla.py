@@ -2062,7 +2062,7 @@ class DR_Results(OrderedDict):
         return object.__repr__(self)
 
     def __str__(self):
-        cats = ', '.join(name for name in self)
+        cats = ', '.join("'{}'".format(name) for name in self)
         return ('{} with {} categories: [{}]'
                 .format(type(self).__name__, len(self), cats))
 
@@ -2319,9 +2319,10 @@ class DR_Results(OrderedDict):
         res.mintime[:, j] = mm.exttime[:, 1]
         res.cases[j] = case
 
-    def _check_labels_len(self, name, res=None, m=None):
-        if res is None:
-            res = self[name]
+    # def _check_labels_len(self, name, res=None, m=None):
+    #     if res is None:
+    #         res = self[name]
+    def _check_labels_len(self, name, res, m=None):
         if m is None:
             m = res.ext.shape[0]
         lbllen = len(res.drminfo.labels)

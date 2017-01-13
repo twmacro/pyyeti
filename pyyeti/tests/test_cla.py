@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from glob import glob
 import numpy as np
 from scipy.io import matlab
+from scipy import linalg
 import scipy.interpolate as interp
 from nose.tools import *
 import matplotlib as mpl
@@ -192,12 +193,12 @@ def test_rptpct1():
          get_fake_cla_results('VLC', _get_labels1, 1),
          get_fake_cla_results('PostVLC', _get_labels2, 2)),
         {'FLAC': 'FDLC',
-         'PostVLC': 'VCL2'})
+         'PostVLC': 'VLC2'})
 
     results.form_extreme()
     assert repr(results).startswith('<pyyeti.cla.DR_Results object')
     assert str(results) == ('DR_Results with 4 categories: '
-                            '[FDLC, VLC, VCL2, extreme]')
+                            "['FDLC', 'VLC', 'VLC2', 'extreme']")
     try:
         results['extreme'].rpttab(direc='./temp_tab', excel='results')
         results['extreme'].rpttab(direc='./temp_tab')
@@ -1163,14 +1164,155 @@ def test_event_add():
     assert np.all(SOL[(2, 2, 2, 2)].d == 4*sol.d)
     assert np.all(SOL[(2, 2, 2, 2)].pg == 2*sol.pg)
 
-# pyyeti/cla.py 1801 168 91% 91, 98, 2162-2163, 2166,
-# 2314, 2324, 2329, 2496, 2515, 2528, 2559, 2936-2937, 2941, 2946,
-# 2981-2986, 2998, 3018, 3080-3083, 3186, 3254, 3268, 3611-3612,
-# 3620-3622, 3634, 3713, 3725, 3738, 3745-3746, 3753, 3769, 3785,
-# 3795, 3847, 3862, 3871, 4017, 4038, 4058, 4061-4063, 4374,
-# 4392-4393, 4395, 4404, 4417-4425, 4430-4438, 4445-4451, 4465, 4489,
-# 4491, 4521, 4562-4582, 4592, 4619, 4638, 4693, 4703, 4715, 4731,
-# 4733, 4735-4736, 4764, 4794-4795, 4800, 4930, 4933, 4936, 4951,
-# 4965-4967, 4976, 4984-4990, 5023-5024, 5026-5027, 5041, 5064,
-# 5108-5115, 5123-5127, 5135, 5146-5150, 5155-5159, 5165, 5172-5174,
-# 5178, 5190-5193, 5195-5198, 5201-5203, 5212-5214, 5259-5261
+
+def test_merge():
+    results = cla.DR_Results()
+    r1 = get_fake_cla_results('FLAC', _get_labels0, 0)
+    r2 = get_fake_cla_results('VLC', _get_labels1, 1)
+    r3 = get_fake_cla_results('PostVLC', _get_labels2, 2)
+    del r3['extreme']
+    results.merge((r1, r2, r3),
+        {'FLAC': 'FDLC',
+         'PostVLC': 'VLC2'})
+
+    results.form_extreme()
+    assert repr(results).startswith('<pyyeti.cla.DR_Results object')
+    assert str(results) == ('DR_Results with 4 categories: '
+                            "['FDLC', 'VLC', "
+                            "'Liftoff, Transonics, MECO', 'extreme']")
+
+    results = cla.DR_Results()
+    r1 = {'FLAC': 'this is a bad entry'}
+    assert_raises(TypeError, results.merge, (r1, r2))
+
+
+def kc_forces(sol, nas, Vars, se):
+    return np.vstack((Vars[se]['springdrm'] @ sol.d,
+                      Vars[se]['damperdrm'] @ sol.v))
+
+
+def test_case_defined():
+    """
+    
+                    |--> x1       |--> x2        |--> x3
+    
+    
+                 |----|    k1   |----|    k2   |----|
+              f  |    |--\/\/\--|    |--\/\/\--|    |
+            ====>| m1 |         | m2 |         | m3 |
+                 |    |---| |---|    |---| |---|    |
+                 |----|    c1   |----|    c2   |----|
+                   |                             |
+                   |             k3              |
+                   |-----------\/\/\-------------|
+                   |                             |
+                   |------------| |--------------|
+                                 c3
+    
+        m1 = 2 kg
+        m2 = 4 kg
+        m3 = 6 kg
+    
+        k1 = 12000 N/m
+        k2 = 16000 N/m
+        k3 = 10000 N/m
+    
+        c1 = 70 N s/m
+        c2 = 75 N s/m
+        c3 = 30 N s/m
+    
+        h = 0.001
+        t = np.arange(0, 1.0, h)
+        f = np.zeros((3, len(t)))
+        f[0, 20:250] = 10.0  # N
+    
+    """
+    m1 = 2.
+    m2 = 4.
+    m3 = 6.
+    k1 = 12000.
+    k2 = 16000.
+    k3 = 10000.
+    c1 = 70.
+    c2 = 75.
+    c3 = 30.
+    mass = np.diag([m1, m2, m3])
+    stiff = np.array([[k1+k3, -k1, -k3],
+                      [-k1, k1+k2, -k2],
+                      [-k3, -k2, k2+k3]])
+    damp = np.array([[c1+c3, -c1, -c3],
+                     [-c1, c1+c2, -c2],
+                     [-c3, -c2, c2+c3]])
+    lam, u = linalg.eigh(stiff, mass, check_finite=False)
+
+    # define some defaults for data recovery:
+    uf_reds = (1, 1, 1, 1)
+    defaults = dict(se=0, uf_reds=uf_reds)
+    drdefs = cla.DR_Def(defaults)
+
+    # drm for subtracting 1 from 2, 2 from 3, 1 from 3:
+    sub = np.array([[-1., 1., 0],
+                    [0., -1., 1.],
+                    [-1., 0, 1.]])
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'kc_forces'
+        desc = 'Spring & Damper Forces'
+        units = 'N'
+        labels = ['{} {}'.format(j, i+1)
+                  for j in ('Spring', 'Damper')
+                  for i in range(3)]
+        # force will be positive for tension
+        drms = {'springdrm': [[k1], [k2], [k3]] * sub,
+                'damperdrm': [[c1], [c2], [c3]] * sub}
+        histpv = 'all'
+        drdefs.add(**locals())
+
+    # prepare spacecraft data recovery matrices
+    DR = cla.DR_Event()
+    DR.add(None, drdefs)
+
+    # define forces:
+    h = 0.001
+    t = np.arange(0, 1.0, h)
+    f = np.zeros((3, len(t)))
+    f[0, 20:250] = 10.0
+
+    # setup solver:
+    # ts = ode.SolveExp2(mass, damp, stiff, h)
+    ts = ode.SolveUnc(mass, damp, stiff, h, pre_eig=True)
+    sol = {uf_reds: ts.tsolve(f)}
+
+    # initialize results (ext, mnc, mxc for all drms)
+    event = 'Case 1'
+    results = DR.prepare_results('Spring & Damper Forces', event)
+
+    # perform data recovery:
+    results.time_data_recovery(sol, None, event, DR, 1, 0)
+
+    assert np.allclose(results['kc_forces'].ext,
+                       np.array([[ 1.71124021, -5.94610295],
+                                 [ 1.10707637, -1.99361428],
+                                 [ 1.89895824, -5.99096572],
+                                 [ 2.01946488, -2.01871227],
+                                 [ 0.46376154, -0.45142869],
+                                 [ 0.96937744, -0.96687706]]))
+
+    # test for some errors:
+    results = DR.prepare_results('Spring & Damper Forces', event)
+    results.time_data_recovery(sol, None, event, DR, 2, 0)
+    assert_raises(ValueError, results.time_data_recovery, sol, None,
+                  event, DR, 2, 1)
+    
+
+# pyyeti/cla.py 1799 160 91% 91, 98, 2330, 2497, 2516, 2529, 2560,
+# 2937-2938, 2942, 2947, 2982-2987, 2999, 3019, 3081-3084, 3187, 3255,
+# 3269, 3612-3613, 3621-3623, 3635, 3714, 3726, 3739, 3746-3747, 3754,
+# 3770, 3786, 3796, 3848, 3863, 3872, 4018, 4039, 4059, 4062-4064,
+# 4375, 4393-4394, 4396, 4405, 4418-4426, 4431-4439, 4446-4452, 4466,
+# 4490, 4492, 4522, 4563-4583, 4593, 4620, 4639, 4694, 4704, 4716,
+# 4732, 4734, 4736-4737, 4765, 4795-4796, 4801, 4931, 4934, 4937,
+# 4952, 4966-4968, 4977, 4985-4991, 5024-5025, 5027-5028, 5042, 5065,
+# 5109-5116, 5124-5128, 5136, 5147-5151, 5156-5160, 5166, 5173-5175,
+# 5179, 5191-5194, 5196-5199, 5202-5204, 5213-5215, 5260-5262
