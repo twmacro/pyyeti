@@ -520,7 +520,6 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
 
         The `maxtime` and `mintime` will have ``np.nan`` values if
         `exttime` is None.
-
     mm : SimpleNamespace
         Has min/max information for a case (or over cases)::
 
@@ -528,11 +527,13 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
             .exttime = None or 1 or 2 columns: [max_time, min_time]
 
     maxcase : string or list of strings
-        String identifying new case, or list of strings analogous to
-        `curext.maxcase` but pertaining to `mm` (handy if `mm` is
-        from another extrema data set)
+        String or list of strings identifying the load case(s) for the
+        maximum values. This is analogous to `curext.maxcase` but
+        pertaining to `mm` (handy if `mm` is from another extrema data
+        set).
     mincase : string or list of strings or None; optional
-        Similar to `maxcase` or None. If None, it is set to `maxcase`.
+        Analogous to `maxcase` for the minimum values or None. If
+        None, it is a copy of the `maxcase` values.
     casenum : integer or None; optional
         If integer, it is case number (starting at 0); `curext` will
         have the `.mx`, `.mn`, `.maxtime`, `.mintime` members and the
@@ -2180,7 +2181,8 @@ class DR_Results(OrderedDict):
             self[event] = results
         return events
 
-    def add_maxmin(self, cat, mxmn, mxmn_xvalue=None, domain=None):
+    def add_maxmin(self, cat, mxmn, maxcase, mincase=None,
+                   mxmn_xvalue=None, domain=None):
         """
         Add maximum and minimum values from an external source
 
@@ -2190,6 +2192,12 @@ class DR_Results(OrderedDict):
             Data recovery category, eg: 'SC_atm'
         mxmn : 2d array_like
             2 column matrix of [max, min]
+        maxcase : string or list of strings
+            String or list of strings identifying the load case(s) for
+            the maximum values.
+        mincase : string or list of strings or None; optional
+            Analogous to `maxcase` for the minimum values or None. If
+            None, it is a copy of the `maxcase` values.
         mxmn_xvalue : 2d array_like or None; optional
             2 column matrix of [max_xvalue, min_xvalue]. Use None to
             not set the x-values (typically times or frequencies) of
@@ -2207,7 +2215,8 @@ class DR_Results(OrderedDict):
         This routine is not normally needed. It is only here for
         situations where the results were calculated elsewhere but you
         want to use these tools (eg, for reports or doing
-        comparisons).
+        comparisons). This routine does not check to see if `cat`
+        already exists; if it does, it is overriden.
 
         Examples
         --------
@@ -2293,7 +2302,7 @@ class DR_Results(OrderedDict):
         ...     results[event] = DR.prepare_results(mission, event)
         ...     for drm in rows:
         ...         results[event].add_maxmin(
-        ...             drm, ext_results[drm][event])
+        ...             drm, ext_results[drm][event], event)
         >>>
         >>> # Done with setup; now we can use the standard cla tools:
         >>> results.form_extreme()
@@ -2301,9 +2310,25 @@ class DR_Results(OrderedDict):
         >>> # following line:
         >>> # results['extreme'].rpttab(excel='Results')
         """
-        self[cat].ext = mxmn
+        self[cat].ext = np.atleast_2d(mxmn)
+        if mxmn_xvalue is not None:
+            mxmn_xvalue = np.atleast_2d(mxmn_xvalue)
         self[cat].exttime = mxmn_xvalue
         self[cat].domain = domain
+
+        # process maxcase, mincase:
+        r = self[cat].ext.shape[0]
+        if isinstance(maxcase, str):
+            self[cat].maxcase = r*[maxcase]
+        else:
+            self[cat].maxcase = maxcase[:]
+
+        if mincase is None:
+            self[cat].mincase = self[cat].maxcase[:]
+        elif isinstance(mincase, str):
+            self[cat].mincase = r*[mincase]
+        else:
+            self[cat].mincase = mincase[:]
 
     def _store_maxmin(self, res, mm, j, case):
         try:
@@ -2330,7 +2355,7 @@ class DR_Results(OrderedDict):
             raise ValueError('for {}, length of `labels` ({}) does '
                              'not match number of data recovery '
                              'items ({})'.format(name, lbllen, m))
-        
+
     def _init_mxmn(self, name, res, domain, mm, n):
         m = mm.ext.shape[0]
         self._check_labels_len(name, res, m)
@@ -2847,7 +2872,7 @@ class DR_Results(OrderedDict):
             ret.srs = srs_ns
 
         return ret
-            
+
     def form_extreme(self, ext_name='Envelope', case_order=None,
                      doappend=2):
         """
@@ -2929,6 +2954,8 @@ class DR_Results(OrderedDict):
             case = str(case)
             if use_ext and doappend == 2:
                 doappend = 1
+            maxcase = mincase = case
+            # handle 1 and 3 settings:
             if 'maxcase' in val.__dict__:   # always true?
                 if doappend == 1:
                     maxcase = [case+','+i for i in val.maxcase]
@@ -2936,18 +2963,13 @@ class DR_Results(OrderedDict):
                 elif doappend == 3:
                     maxcase = val.maxcase
                     mincase = val.mincase
-                elif doappend == 0 or doappend == 2:
-                    maxcase = mincase = case
-            else:
-                maxcase = mincase = case
             return maxcase, mincase
 
         def _expand(ext_old, labels, pv):
-            if ext_old.drminfo.labels == labels:
-                return ext_old
             # Expand:
             #   ext, exttime, maxcase, mincase,
             #   mx, mn, maxtime, mintime
+            # Note: this function only called when expansion is needed
             n = len(labels)
             ext_new = copy.copy(ext_old)
             ext_new.drminfo = copy.copy(ext_old.drminfo)
@@ -3078,7 +3100,7 @@ class DR_Results(OrderedDict):
                     if hasattr(value, 'srs'):
                         try:
                             delattr(value.srs, 'srs')
-                        except AttributeError:
+                        except AttributeError:  # pragma: no cover
                             pass
                 else:
                     raise TypeError('unexpected type: {}'

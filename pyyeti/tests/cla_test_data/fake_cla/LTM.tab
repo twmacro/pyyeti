@@ -1,0 +1,257 @@
+Rocket / Spacecraft CLA - Envelope Extrema Results and Bin Count Tables
+
+Description: S/C Internal Loads
+Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1.2, 1]
+Units:       N, N-m
+Date:        18-Jan-2017
+
+Maximum Responses
+
+ Row     Description        FDLC          VLC           VLC2        Maximum         Case
+====== =============== ============= ============= ============= ============= =============
+     1 LTM Row       1  2.724816e+00  2.694816e+00           nan  2.724816e+00 FDLC,Liftoff
+     2 LTM Row       2  2.657860e+00           nan           nan  2.657860e+00 FDLC,Transonics
+     3 LTM Row       3  3.224405e+00  2.717860e+00           nan  3.224405e+00 FDLC,MECO
+     4 LTM Row       4  2.532867e+00           nan           nan  2.532867e+00 FDLC,Liftoff
+     5 LTM Row       5  2.683485e+00  3.164405e+00           nan  3.164405e+00 VLC,MECO
+     6 LTM Row       6  4.027290e+00           nan           nan  4.027290e+00 FDLC,MECO
+     7 LTM Row       7  3.353355e+00  2.562867e+00           nan  3.353355e+00 FDLC,Liftoff
+     8 LTM Row       8  3.261105e+00           nan           nan  3.261105e+00 FDLC,Transonics
+     9 LTM Row       9  2.346062e+00  2.653485e+00           nan  2.653485e+00 VLC,Transonics
+    10 LTM Row      10  2.546512e+00           nan           nan  2.546512e+00 FDLC,Liftoff
+    11 LTM Row      11  2.717671e+00  4.087290e+00           nan  4.087290e+00 VLC,MECO
+    12 LTM Row      12  2.387826e+00           nan           nan  2.387826e+00 FDLC,MECO
+    13 LTM Row      13  2.647718e+00  3.293355e+00           nan  3.293355e+00 VLC,Liftoff
+    14 LTM Row      14  4.270222e+00           nan           nan  4.270222e+00 FDLC,Transonics
+    15 LTM Row      15  3.338035e+00  3.291105e+00           nan  3.338035e+00 FDLC,MECO
+    16 LTM Row      16  2.192748e+00           nan           nan  2.192748e+00 FDLC,Liftoff
+    17 LTM Row      17  2.752241e+00  2.316062e+00           nan  2.752241e+00 FDLC,Transonics
+    18 LTM Row      18  2.572208e+00           nan           nan  2.572208e+00 FDLC,MECO
+    19 LTM Row      19  2.701073e+00  2.606512e+00           nan  2.701073e+00 FDLC,Liftoff
+    20 LTM Row      20  2.836413e+00           nan           nan  2.836413e+00 FDLC,Transonics
+    21 LTM Row      21  3.399880e+00  2.657671e+00           nan  3.399880e+00 FDLC,MECO
+    22 LTM Row      22  3.268288e+00           nan           nan  3.268288e+00 FDLC,Liftoff
+    23 LTM Row      23  3.031990e+00  2.417826e+00           nan  3.031990e+00 FDLC,Transonics
+    24 LTM Row      24  3.100499e+00           nan           nan  3.100499e+00 FDLC,MECO
+    25 LTM Row      25  2.065761e+00  2.617718e+00           nan  2.617718e+00 VLC,Liftoff
+    26 LTM Row      26  2.909732e+00           nan           nan  2.909732e+00 FDLC,Transonics
+    27 LTM Row      27  2.729179e+00  4.330222e+00           nan  4.330222e+00 VLC,Transonics
+    28 LTM Row      28  2.553471e+00           nan           nan  2.553471e+00 FDLC,Liftoff
+    29 LTM Row      29  3.155820e+00  3.278035e+00           nan  3.278035e+00 VLC,MECO
+    30 LTM Row      31           nan  2.222748e+00           nan  2.222748e+00 VLC,Liftoff
+    31 LTM Row      33           nan  2.722241e+00           nan  2.722241e+00 VLC,Transonics
+    32 LTM Row      35           nan  2.632208e+00           nan  2.632208e+00 VLC,MECO
+    33 LTM Row      37           nan  2.641073e+00           nan  2.641073e+00 VLC,Liftoff
+    34 LTM Row      39           nan  2.866413e+00           nan  2.866413e+00 VLC,Transonics
+    35 LTM Row      41           nan  3.369880e+00           nan  3.369880e+00 VLC,MECO
+    36 LTM Row      43           nan  3.328288e+00           nan  3.328288e+00 VLC,Liftoff
+    37 LTM Row      45           nan  2.971990e+00           nan  2.971990e+00 VLC,Transonics
+    38 LTM Row      47           nan  3.130499e+00           nan  3.130499e+00 VLC,MECO
+    39 LTM Row      49           nan  2.035761e+00           nan  2.035761e+00 VLC,Liftoff
+    40 LTM Row      51           nan  2.969732e+00           nan  2.969732e+00 VLC,Transonics
+    41 LTM Row      53           nan  2.669179e+00           nan  2.669179e+00 VLC,MECO
+    42 LTM Row      55           nan  2.583471e+00           nan  2.583471e+00 VLC,Liftoff
+    43 LTM Row      57           nan  3.125820e+00           nan  3.125820e+00 VLC,Transonics
+    44 LTM Item      1           nan           nan  2.664816e+00  2.664816e+00 VLC2,Liftoff
+    45 LTM Item      2           nan           nan  2.777860e+00  2.777860e+00 VLC2,Transonics
+    46 LTM Item      3           nan           nan  3.104405e+00  3.104405e+00 VLC2,MECO
+    47 LTM Item      4           nan           nan  2.592867e+00  2.592867e+00 VLC2,Liftoff
+    48 LTM Item      5           nan           nan  2.623485e+00  2.623485e+00 VLC2,Transonics
+    49 LTM Item      6           nan           nan  4.147290e+00  4.147290e+00 VLC2,MECO
+    50 LTM Item      7           nan           nan  3.233355e+00  3.233355e+00 VLC2,Liftoff
+    51 LTM Item      8           nan           nan  3.321105e+00  3.321105e+00 VLC2,Transonics
+    52 LTM Item      9           nan           nan  2.286062e+00  2.286062e+00 VLC2,MECO
+    53 LTM Item     10           nan           nan  2.666512e+00  2.666512e+00 VLC2,Liftoff
+    54 LTM Item     11           nan           nan  2.597671e+00  2.597671e+00 VLC2,Transonics
+    55 LTM Item     12           nan           nan  2.447826e+00  2.447826e+00 VLC2,MECO
+    56 LTM Item     13           nan           nan  2.587718e+00  2.587718e+00 VLC2,Liftoff
+    57 LTM Item     14           nan           nan  4.390222e+00  4.390222e+00 VLC2,Transonics
+    58 LTM Item     15           nan           nan  3.218035e+00  3.218035e+00 VLC2,MECO
+    59 LTM Item     16           nan           nan  2.252748e+00  2.252748e+00 VLC2,Liftoff
+    60 LTM Item     17           nan           nan  2.692241e+00  2.692241e+00 VLC2,Transonics
+    61 LTM Item     18           nan           nan  2.692208e+00  2.692208e+00 VLC2,MECO
+    62 LTM Item     19           nan           nan  2.581073e+00  2.581073e+00 VLC2,Liftoff
+    63 LTM Item     20           nan           nan  2.896413e+00  2.896413e+00 VLC2,Transonics
+    64 LTM Item     21           nan           nan  3.339880e+00  3.339880e+00 VLC2,MECO
+    65 LTM Item     22           nan           nan  3.388288e+00  3.388288e+00 VLC2,Liftoff
+    66 LTM Item     23           nan           nan  2.911990e+00  2.911990e+00 VLC2,Transonics
+    67 LTM Item     24           nan           nan  3.160499e+00  3.160499e+00 VLC2,MECO
+    68 LTM Item     25           nan           nan  2.005761e+00  2.005761e+00 VLC2,Liftoff
+    69 LTM Item     26           nan           nan  3.029732e+00  3.029732e+00 VLC2,Transonics
+    70 LTM Item     27           nan           nan  2.609179e+00  2.609179e+00 VLC2,MECO
+    71 LTM Item     28           nan           nan  2.613471e+00  2.613471e+00 VLC2,Liftoff
+    72 LTM Item     29           nan           nan  3.095820e+00  3.095820e+00 VLC2,Transonics
+
+
+Minimum Responses
+
+ Row     Description        FDLC          VLC           VLC2        Minimum         Case
+====== =============== ============= ============= ============= ============= =============
+     1 LTM Row       1 -3.290791e+00 -3.320791e+00           nan -3.320791e+00 VLC,MECO
+     2 LTM Row       2 -2.886267e+00           nan           nan -2.886267e+00 FDLC,Liftoff
+     3 LTM Row       3 -3.007805e+00 -2.826267e+00           nan -3.007805e+00 FDLC,Transonics
+     4 LTM Row       4 -3.804859e+00           nan           nan -3.804859e+00 FDLC,MECO
+     5 LTM Row       5 -3.538631e+00 -3.067805e+00           nan -3.538631e+00 FDLC,Liftoff
+     6 LTM Row       6 -2.816848e+00           nan           nan -2.816848e+00 FDLC,Transonics
+     7 LTM Row       7 -3.007369e+00 -3.774859e+00           nan -3.774859e+00 VLC,MECO
+     8 LTM Row       8 -2.564072e+00           nan           nan -2.564072e+00 FDLC,Liftoff
+     9 LTM Row       9 -2.755178e+00 -3.568631e+00           nan -3.568631e+00 VLC,Liftoff
+    10 LTM Row      10 -3.415475e+00           nan           nan -3.415475e+00 FDLC,MECO
+    11 LTM Row      11 -2.471198e+00 -2.756848e+00           nan -2.756848e+00 VLC,Transonics
+    12 LTM Row      12 -2.706389e+00           nan           nan -2.706389e+00 FDLC,Transonics
+    13 LTM Row      13 -3.309065e+00 -3.067369e+00           nan -3.309065e+00 FDLC,MECO
+    14 LTM Row      14 -2.844716e+00           nan           nan -2.844716e+00 FDLC,Liftoff
+    15 LTM Row      15 -3.160410e+00 -2.534072e+00           nan -3.160410e+00 FDLC,Transonics
+    16 LTM Row      16 -2.546615e+00           nan           nan -2.546615e+00 FDLC,MECO
+    17 LTM Row      17 -2.246187e+00 -2.785178e+00           nan -2.785178e+00 VLC,Transonics
+    18 LTM Row      18 -2.579273e+00           nan           nan -2.579273e+00 FDLC,Transonics
+    19 LTM Row      19 -2.951674e+00 -3.355475e+00           nan -3.355475e+00 VLC,MECO
+    20 LTM Row      20 -2.539737e+00           nan           nan -2.539737e+00 FDLC,Liftoff
+    21 LTM Row      21 -2.478767e+00 -2.531198e+00           nan -2.531198e+00 VLC,Liftoff
+    22 LTM Row      22 -3.394540e+00           nan           nan -3.394540e+00 FDLC,MECO
+    23 LTM Row      23 -2.546308e+00 -2.676389e+00           nan -2.676389e+00 VLC,Transonics
+    24 LTM Row      24 -2.901558e+00           nan           nan -2.901558e+00 FDLC,Transonics
+    25 LTM Row      25 -3.411457e+00 -3.339065e+00           nan -3.411457e+00 FDLC,MECO
+    26 LTM Row      26 -2.572723e+00           nan           nan -2.572723e+00 FDLC,Liftoff
+    27 LTM Row      27 -3.078739e+00 -2.784716e+00           nan -3.078739e+00 FDLC,Transonics
+    28 LTM Row      28 -2.806174e+00           nan           nan -2.806174e+00 FDLC,MECO
+    29 LTM Row      29 -1.968668e+00 -3.220410e+00           nan -3.220410e+00 VLC,Transonics
+    30 LTM Row      31           nan -2.516615e+00           nan -2.516615e+00 VLC,MECO
+    31 LTM Row      33           nan -2.276187e+00           nan -2.276187e+00 VLC,Liftoff
+    32 LTM Row      35           nan -2.519273e+00           nan -2.519273e+00 VLC,Transonics
+    33 LTM Row      37           nan -3.011674e+00           nan -3.011674e+00 VLC,MECO
+    34 LTM Row      39           nan -2.509737e+00           nan -2.509737e+00 VLC,Liftoff
+    35 LTM Row      41           nan -2.508767e+00           nan -2.508767e+00 VLC,Transonics
+    36 LTM Row      43           nan -3.334540e+00           nan -3.334540e+00 VLC,MECO
+    37 LTM Row      45           nan -2.606308e+00           nan -2.606308e+00 VLC,Liftoff
+    38 LTM Row      47           nan -2.871558e+00           nan -2.871558e+00 VLC,Transonics
+    39 LTM Row      49           nan -3.441457e+00           nan -3.441457e+00 VLC,MECO
+    40 LTM Row      51           nan -2.512723e+00           nan -2.512723e+00 VLC,Liftoff
+    41 LTM Row      53           nan -3.138739e+00           nan -3.138739e+00 VLC,Transonics
+    42 LTM Row      55           nan -2.776174e+00           nan -2.776174e+00 VLC,MECO
+    43 LTM Row      57           nan -1.998668e+00           nan -1.998668e+00 VLC,Liftoff
+    44 LTM Item      1           nan           nan -3.350791e+00 -3.350791e+00 VLC2,MECO
+    45 LTM Item      2           nan           nan -2.766267e+00 -2.766267e+00 VLC2,Liftoff
+    46 LTM Item      3           nan           nan -3.127805e+00 -3.127805e+00 VLC2,Transonics
+    47 LTM Item      4           nan           nan -3.744859e+00 -3.744859e+00 VLC2,MECO
+    48 LTM Item      5           nan           nan -3.598631e+00 -3.598631e+00 VLC2,Liftoff
+    49 LTM Item      6           nan           nan -2.696848e+00 -2.696848e+00 VLC2,Transonics
+    50 LTM Item      7           nan           nan -3.127369e+00 -3.127369e+00 VLC2,MECO
+    51 LTM Item      8           nan           nan -2.504072e+00 -2.504072e+00 VLC2,Liftoff
+    52 LTM Item      9           nan           nan -2.815178e+00 -2.815178e+00 VLC2,Transonics
+    53 LTM Item     10           nan           nan -3.295475e+00 -3.295475e+00 VLC2,MECO
+    54 LTM Item     11           nan           nan -2.591198e+00 -2.591198e+00 VLC2,Liftoff
+    55 LTM Item     12           nan           nan -2.646389e+00 -2.646389e+00 VLC2,Transonics
+    56 LTM Item     13           nan           nan -3.369065e+00 -3.369065e+00 VLC2,MECO
+    57 LTM Item     14           nan           nan -2.724716e+00 -2.724716e+00 VLC2,Liftoff
+    58 LTM Item     15           nan           nan -3.280410e+00 -3.280410e+00 VLC2,Transonics
+    59 LTM Item     16           nan           nan -2.486614e+00 -2.486614e+00 VLC2,MECO
+    60 LTM Item     17           nan           nan -2.306187e+00 -2.306187e+00 VLC2,Liftoff
+    61 LTM Item     18           nan           nan -2.459273e+00 -2.459273e+00 VLC2,Transonics
+    62 LTM Item     19           nan           nan -3.071674e+00 -3.071674e+00 VLC2,MECO
+    63 LTM Item     20           nan           nan -2.479737e+00 -2.479737e+00 VLC2,Liftoff
+    64 LTM Item     21           nan           nan -2.538767e+00 -2.538767e+00 VLC2,Transonics
+    65 LTM Item     22           nan           nan -3.274540e+00 -3.274540e+00 VLC2,MECO
+    66 LTM Item     23           nan           nan -2.666308e+00 -2.666308e+00 VLC2,Liftoff
+    67 LTM Item     24           nan           nan -2.841558e+00 -2.841558e+00 VLC2,Transonics
+    68 LTM Item     25           nan           nan -3.471457e+00 -3.471457e+00 VLC2,MECO
+    69 LTM Item     26           nan           nan -2.452723e+00 -2.452723e+00 VLC2,Liftoff
+    70 LTM Item     27           nan           nan -3.198739e+00 -3.198739e+00 VLC2,Transonics
+    71 LTM Item     28           nan           nan -2.746174e+00 -2.746174e+00 VLC2,MECO
+    72 LTM Item     29           nan           nan -2.028668e+00 -2.028668e+00 VLC2,Liftoff
+
+
+Abs-Max Responses
+
+ Row     Description        FDLC          VLC           VLC2        Abs-Max         Case
+====== =============== ============= ============= ============= ============= =============
+     1 LTM Row       1 -3.290791e+00 -3.320791e+00           nan -3.320791e+00 VLC,MECO
+     2 LTM Row       2 -2.886267e+00           nan           nan -2.886267e+00 FDLC,Liftoff
+     3 LTM Row       3  3.224405e+00 -2.826267e+00           nan  3.224405e+00 FDLC,MECO
+     4 LTM Row       4 -3.804859e+00           nan           nan -3.804859e+00 FDLC,MECO
+     5 LTM Row       5 -3.538631e+00  3.164405e+00           nan -3.538631e+00 FDLC,Liftoff
+     6 LTM Row       6  4.027290e+00           nan           nan  4.027290e+00 FDLC,MECO
+     7 LTM Row       7  3.353355e+00 -3.774859e+00           nan -3.774859e+00 VLC,MECO
+     8 LTM Row       8  3.261105e+00           nan           nan  3.261105e+00 FDLC,Transonics
+     9 LTM Row       9 -2.755178e+00 -3.568631e+00           nan -3.568631e+00 VLC,Liftoff
+    10 LTM Row      10 -3.415475e+00           nan           nan -3.415475e+00 FDLC,MECO
+    11 LTM Row      11  2.717671e+00  4.087290e+00           nan  4.087290e+00 VLC,MECO
+    12 LTM Row      12 -2.706389e+00           nan           nan -2.706389e+00 FDLC,Transonics
+    13 LTM Row      13 -3.309065e+00  3.293355e+00           nan -3.309065e+00 FDLC,MECO
+    14 LTM Row      14  4.270222e+00           nan           nan  4.270222e+00 FDLC,Transonics
+    15 LTM Row      15  3.338035e+00  3.291105e+00           nan  3.338035e+00 FDLC,MECO
+    16 LTM Row      16 -2.546615e+00           nan           nan -2.546615e+00 FDLC,MECO
+    17 LTM Row      17  2.752241e+00 -2.785178e+00           nan -2.785178e+00 VLC,Transonics
+    18 LTM Row      18 -2.579273e+00           nan           nan -2.579273e+00 FDLC,Transonics
+    19 LTM Row      19 -2.951674e+00 -3.355475e+00           nan -3.355475e+00 VLC,MECO
+    20 LTM Row      20  2.836413e+00           nan           nan  2.836413e+00 FDLC,Transonics
+    21 LTM Row      21  3.399880e+00  2.657671e+00           nan  3.399880e+00 FDLC,MECO
+    22 LTM Row      22 -3.394540e+00           nan           nan -3.394540e+00 FDLC,MECO
+    23 LTM Row      23  3.031990e+00 -2.676389e+00           nan  3.031990e+00 FDLC,Transonics
+    24 LTM Row      24  3.100499e+00           nan           nan  3.100499e+00 FDLC,MECO
+    25 LTM Row      25 -3.411457e+00 -3.339065e+00           nan -3.411457e+00 FDLC,MECO
+    26 LTM Row      26  2.909732e+00           nan           nan  2.909732e+00 FDLC,Transonics
+    27 LTM Row      27 -3.078739e+00  4.330222e+00           nan  4.330222e+00 VLC,Transonics
+    28 LTM Row      28 -2.806174e+00           nan           nan -2.806174e+00 FDLC,MECO
+    29 LTM Row      29  3.155820e+00  3.278035e+00           nan  3.278035e+00 VLC,MECO
+    30 LTM Row      31           nan -2.516615e+00           nan -2.516615e+00 VLC,MECO
+    31 LTM Row      33           nan  2.722241e+00           nan  2.722241e+00 VLC,Transonics
+    32 LTM Row      35           nan  2.632208e+00           nan  2.632208e+00 VLC,MECO
+    33 LTM Row      37           nan -3.011674e+00           nan -3.011674e+00 VLC,MECO
+    34 LTM Row      39           nan  2.866413e+00           nan  2.866413e+00 VLC,Transonics
+    35 LTM Row      41           nan  3.369880e+00           nan  3.369880e+00 VLC,MECO
+    36 LTM Row      43           nan -3.334540e+00           nan -3.334540e+00 VLC,MECO
+    37 LTM Row      45           nan  2.971990e+00           nan  2.971990e+00 VLC,Transonics
+    38 LTM Row      47           nan  3.130499e+00           nan  3.130499e+00 VLC,MECO
+    39 LTM Row      49           nan -3.441457e+00           nan -3.441457e+00 VLC,MECO
+    40 LTM Row      51           nan  2.969732e+00           nan  2.969732e+00 VLC,Transonics
+    41 LTM Row      53           nan -3.138739e+00           nan -3.138739e+00 VLC,Transonics
+    42 LTM Row      55           nan -2.776174e+00           nan -2.776174e+00 VLC,MECO
+    43 LTM Row      57           nan  3.125820e+00           nan  3.125820e+00 VLC,Transonics
+    44 LTM Item      1           nan           nan -3.350791e+00 -3.350791e+00 VLC2,MECO
+    45 LTM Item      2           nan           nan  2.777860e+00  2.777860e+00 VLC2,Transonics
+    46 LTM Item      3           nan           nan -3.127805e+00 -3.127805e+00 VLC2,Transonics
+    47 LTM Item      4           nan           nan -3.744859e+00 -3.744859e+00 VLC2,MECO
+    48 LTM Item      5           nan           nan -3.598631e+00 -3.598631e+00 VLC2,Liftoff
+    49 LTM Item      6           nan           nan  4.147290e+00  4.147290e+00 VLC2,MECO
+    50 LTM Item      7           nan           nan  3.233355e+00  3.233355e+00 VLC2,Liftoff
+    51 LTM Item      8           nan           nan  3.321105e+00  3.321105e+00 VLC2,Transonics
+    52 LTM Item      9           nan           nan -2.815178e+00 -2.815178e+00 VLC2,Transonics
+    53 LTM Item     10           nan           nan -3.295475e+00 -3.295475e+00 VLC2,MECO
+    54 LTM Item     11           nan           nan  2.597671e+00  2.597671e+00 VLC2,Transonics
+    55 LTM Item     12           nan           nan -2.646389e+00 -2.646389e+00 VLC2,Transonics
+    56 LTM Item     13           nan           nan -3.369065e+00 -3.369065e+00 VLC2,MECO
+    57 LTM Item     14           nan           nan  4.390222e+00  4.390222e+00 VLC2,Transonics
+    58 LTM Item     15           nan           nan -3.280410e+00 -3.280410e+00 VLC2,Transonics
+    59 LTM Item     16           nan           nan -2.486614e+00 -2.486614e+00 VLC2,MECO
+    60 LTM Item     17           nan           nan  2.692241e+00  2.692241e+00 VLC2,Transonics
+    61 LTM Item     18           nan           nan  2.692208e+00  2.692208e+00 VLC2,MECO
+    62 LTM Item     19           nan           nan -3.071674e+00 -3.071674e+00 VLC2,MECO
+    63 LTM Item     20           nan           nan  2.896413e+00  2.896413e+00 VLC2,Transonics
+    64 LTM Item     21           nan           nan  3.339880e+00  3.339880e+00 VLC2,MECO
+    65 LTM Item     22           nan           nan  3.388288e+00  3.388288e+00 VLC2,Liftoff
+    66 LTM Item     23           nan           nan  2.911990e+00  2.911990e+00 VLC2,Transonics
+    67 LTM Item     24           nan           nan  3.160499e+00  3.160499e+00 VLC2,MECO
+    68 LTM Item     25           nan           nan -3.471457e+00 -3.471457e+00 VLC2,MECO
+    69 LTM Item     26           nan           nan  3.029732e+00  3.029732e+00 VLC2,Transonics
+    70 LTM Item     27           nan           nan -3.198739e+00 -3.198739e+00 VLC2,Transonics
+    71 LTM Item     28           nan           nan -2.746174e+00 -2.746174e+00 VLC2,MECO
+    72 LTM Item     29           nan           nan  3.095820e+00  3.095820e+00 VLC2,Transonics
+
+
+Extrema Count
+Filter: 1e-06
+
+         Description        FDLC          VLC           VLC2
+       =============== ============= ============= =============
+       Maxima Count               22            21            29
+       Minima Count               20            23            29
+       Max+Min Count              42            44            58
+       Abs-Max Count              21            22            29
+
+         Description        FDLC          VLC           VLC2
+       =============== ============= ============= =============
+       Maxima Percent           30.6          29.2          40.3
+       Minima Percent           27.8          31.9          40.3
+       Max+Min Percent          29.2          30.6          40.3
+       Abs-Max Percent          29.2          30.6          40.3

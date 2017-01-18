@@ -6,6 +6,7 @@ import itertools
 import shutil
 import inspect
 import re
+import warnings
 from types import SimpleNamespace
 from glob import glob
 import numpy as np
@@ -179,14 +180,65 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
         results[event] = DR.prepare_results(mission, event)
         for drm in rows:
             results[event].add_maxmin(
-                drm, ext_results[drm][event])
+                drm, ext_results[drm][event], event)
 
     # Done with setup; now we can use the standard cla tools:
     results.form_extreme(ext_name)
+
+    # Test some features of add_maxmin:
+    res2 = cla.DR_Results()
+    for event in events:
+        res2[event] = DR.prepare_results(mission, event)
+
+    ext = ext_results['ATM']['Liftoff']
+    r = ext.shape[0]
+    maxcase = ['LO {}'.format(i+1) for i in range(r)]
+    mincase = 'LO Min'
+    res2['Liftoff'].add_maxmin('ATM', ext, maxcase, mincase,
+                               ext, 'Time')
+    assert res2['Liftoff']['ATM'].maxcase == maxcase
+    assert res2['Liftoff']['ATM'].mincase == r*[mincase]
+
+    res2['Liftoff'].add_maxmin('LTM', ext, maxcase, r*[mincase],
+                               ext, 'Time')
+    assert res2['Liftoff']['LTM'].maxcase == maxcase
+    assert res2['Liftoff']['LTM'].mincase == r*[mincase]
+
+    res2 = cla.DR_Results()
+    for event in events:
+        res2[event] = DR.prepare_results(mission, event)
+        for drm in rows:
+            res2[event].add_maxmin(
+                drm, ext_results[drm][event], event,
+                domain=event+drm)
+    res2.form_extreme(ext_name)
+
+    assert results['extreme']['ATM'].domain is None
+    assert res2['extreme']['ATM'].domain == 'X-Value'
+
+    res2 = cla.DR_Results()
+    for event in events:
+        res2[event] = DR.prepare_results(mission, event)
+        for drm in rows:
+            res2[event].add_maxmin(
+                drm, ext_results[drm][event], event,
+                domain='Time')
+    res2.form_extreme(ext_name)
+    assert res2['extreme']['ATM'].domain == 'Time'
+
     return results
 
 
-def test_rptpct1():
+def compresults(f1, f2):
+    # - some values in "f2" were spot checked, not all
+    # - this routine simply compares lines, skipping the date line
+    with open(f1) as F1, open(f2) as F2:
+        for l1, l2 in zip(F1, F2):
+            if not l1.startswith('Date:'):
+                assert l1 == l2
+
+
+def test_form_extreme():
     results = cla.DR_Results()
     results.merge(
         (get_fake_cla_results('FLAC', _get_labels0, 0),
@@ -195,18 +247,70 @@ def test_rptpct1():
         {'FLAC': 'FDLC',
          'PostVLC': 'VLC2'})
 
+    # Add non-unique label to mess up the expanding of results
+    # for form_extreme:
+    events = ('Liftoff', 'Transonics', 'MECO')
+    lbl_keep = results['FDLC']['Liftoff']['ATM'].drminfo.labels[1]
+    for e in events:
+        lbls = results['FDLC'][e]['ATM'].drminfo.labels
+        lbls[1] = lbls[0]
+    assert_raises(ValueError, results.form_extreme)
+
+    # change it back to being correct:
+    for e in events:
+        lbls = results['FDLC'][e]['ATM'].drminfo.labels
+        lbls[1] = lbl_keep
+
     results.form_extreme()
     assert repr(results).startswith('<pyyeti.cla.DR_Results object')
     assert str(results) == ('DR_Results with 4 categories: '
                             "['FDLC', 'VLC', 'VLC2', 'extreme']")
     try:
-        results['extreme'].rpttab(direc='./temp_tab', excel='results')
+        # results['extreme'].rpttab(direc='./temp_tab', excel='results')
+        results['extreme'].rpttab(direc='./temp_tab', excel=True)
+        assert os.path.exists('./temp_tab/ATM.xlsx')
+        assert os.path.exists('./temp_tab/LTM.xlsx')
+
         results['extreme'].rpttab(direc='./temp_tab')
         results['FDLC']['extreme'].rpttab(direc='./temp_fdlc_tab')
-        # check results somehow
+        # check results:
+        compresults('./temp_tab/ATM.tab',
+                    'pyyeti/tests/cla_test_data/fake_cla/ATM.tab')
+        compresults('./temp_tab/LTM.tab',
+                    'pyyeti/tests/cla_test_data/fake_cla/LTM.tab')
+        compresults('./temp_fdlc_tab/ATM.tab',
+                    'pyyeti/tests/cla_test_data/fake_cla/ATM_fdlc.tab')
+        compresults('./temp_fdlc_tab/LTM.tab',
+                    'pyyeti/tests/cla_test_data/fake_cla/LTM_fdlc.tab')
     finally:
         shutil.rmtree('./temp_tab', ignore_errors=True)
         shutil.rmtree('./temp_fdlc_tab', ignore_errors=True)
+
+    # test the different "doappend" options:
+    maxcase = results['extreme']['ATM'].maxcase[:]
+    mincase = results['extreme']['ATM'].mincase[:]
+
+    # doappend = 1 (keep lowest with higher):
+    results.form_extreme(doappend=1)
+
+    def _newcase(s):
+        i, j = s.split(',')
+        return '{},{},{}'.format(i, j, j)
+    mxc = [_newcase(s) for s in maxcase]
+    mnc = [_newcase(s) for s in mincase]
+    assert mxc == results['extreme']['ATM'].maxcase
+    assert mnc == results['extreme']['ATM'].mincase
+
+    # doappend = 3 (keep only lowest):
+    results.form_extreme(doappend=3)
+    mxc = [s.split(',')[1] for s in maxcase]
+    mnc = [s.split(',')[1] for s in mincase]
+    assert mxc == results['extreme']['ATM'].maxcase
+    assert mnc == results['extreme']['ATM'].mincase
+
+    cases = ['VLC2', 'FDLC', 'VLC']
+    results.form_extreme(case_order=cases)
+    assert results['extreme']['ATM'].cases == cases
 
 
 # run a cla:
@@ -485,18 +589,33 @@ def owlab(pth):
 
         # save results:
         cla.save('results.pgz', results)
-
-        # make some srs plots and tab files:
-        # results.rptext()
-        # results.rpttab()
-        #results.rpttab(excel=event.lower())
-        #results.srs_plots()
         results.srs_plots(Q=10, direc='srs_cases', showall=True,
                           plot=plt.semilogy)
-        #results.resp_plots()
+
+        # for testing:
+        results = DR.prepare_results(sc['mission'], event)
+        verbose = True  # for testing
+        for j, ff in enumerate(rnd):
+            caseid = '{} {:2d}'.format(event, j+1)
+            print('Running {} case {}'.format(event, j+1))
+            F = interp.interp1d(ff[:, 0], ff[:, 1:].T,
+                                axis=1, fill_value=0.0)(freq)
+            if j == 0:
+                results.solvepsd(nas, caseid, DR, *mbk, F, T, freq,
+                                 verbose=verbose)
+                verbose = not verbose
+                freq = +freq  # make copy
+                freq[-1] = 49.7  # to cause error on next 'solvepsd'
+                results.psd_data_recovery(caseid, DR, len(rnd), j)
+            else:
+                assert_raises(ValueError, results.solvepsd, nas,
+                              caseid, DR, *mbk, F, T, freq,
+                              verbose=verbose)
+
 
 def alphajoint(sol, nas, Vars, se):
     return Vars[se]['alphadrm'] @ sol.a
+
 
 def get_drdefs(nas, sc):
     drdefs = cla.DR_Def(sc['drdefs'].defaults)
@@ -634,12 +753,30 @@ def summarize(pth):
 
 
 def compare(pth):
+    import sys
+    for v in list(sys.modules.values()):
+        if getattr(v, '__warningregistry__', None):
+            v.__warningregistry__ = {}
+
     with cd('summary'):
         pth = '../' + pth
         # Load both sets of results and report percent differences:
         results = cla.load('results.pgz')
         lvc = cla.load(pth+'summary/contractor_results_no_srs.pgz')
-        results['extreme'].rptpct(lvc, names=('LSP', 'Contractor'))
+
+        # to check for warning message, add a category not in lvc:
+        print('keys = ', results['extreme'].keys())
+        print('lvckeys = ', lvc.keys())
+
+        results['extreme']['ifa2'] = results['extreme']['net_ifatm']
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            results['extreme'].rptpct(
+                lvc, names=('LSP', 'Contractor'))
+            assert issubclass(w[-1].category, RuntimeWarning)
+            assert 'Some comparisons' in str(w[-1].message)
+            assert 'ifa2' in str(w[-1].message)
 
 
 def confirm(pth):
@@ -674,26 +811,6 @@ def test_transfer_orbit_cla():
             confirm(pth)
     finally:
         shutil.rmtree('./temp_cla', ignore_errors=True)
-
-
-#    files = [
-#        './temp_cla/prepare_4_cla.py',
-#        './temp_cla/toes/toes.py',
-#        './temp_cla/owlab/owlab.py',
-#        './temp_cla/toeco/toeco.py',
-#        './temp_cla/summary/summarize.py',
-#        './temp_cla/summary/compare.py',
-#        ]
-#    try:
-#        shutil.copytree('pyyeti/tests/cla_test_data', './temp_cla')
-#        for fn in files:
-#            direc, name = os.path.split(fn)
-#            # print('Running {}'.format(name))
-#            with cd(direc):
-#                run(['python', name], check=True)
-#    finally:
-#        pass
-#        # shutil.rmtree('./temp_cla', ignore_errors=True)
 
 
 def test_maxmin():
@@ -1181,6 +1298,9 @@ def test_merge():
                             "['FDLC', 'VLC', "
                             "'Liftoff, Transonics, MECO', 'extreme']")
 
+    results['newentry'] = 'should cause type error'
+    assert_raises(TypeError, results.strip_hists)
+
     results = cla.DR_Results()
     r1 = {'FLAC': 'this is a bad entry'}
     assert_raises(TypeError, results.merge, (r1, r2))
@@ -1304,15 +1424,41 @@ def test_case_defined():
     results.time_data_recovery(sol, None, event, DR, 2, 0)
     assert_raises(ValueError, results.time_data_recovery, sol, None,
                   event, DR, 2, 1)
-    
 
-# pyyeti/cla.py 1799 160 91% 91, 98, 2330, 2497, 2516, 2529, 2560,
-# 2937-2938, 2942, 2947, 2982-2987, 2999, 3019, 3081-3084, 3187, 3255,
-# 3269, 3612-3613, 3621-3623, 3635, 3714, 3726, 3739, 3746-3747, 3754,
-# 3770, 3786, 3796, 3848, 3863, 3872, 4018, 4039, 4059, 4062-4064,
-# 4375, 4393-4394, 4396, 4405, 4418-4426, 4431-4439, 4446-4452, 4466,
-# 4490, 4492, 4522, 4563-4583, 4593, 4620, 4639, 4694, 4704, 4716,
-# 4732, 4734, 4736-4737, 4765, 4795-4796, 4801, 4931, 4934, 4937,
-# 4952, 4966-4968, 4977, 4985-4991, 5024-5025, 5027-5028, 5042, 5065,
-# 5109-5116, 5124-5128, 5136, 5147-5151, 5156-5160, 5166, 5173-5175,
-# 5179, 5191-5194, 5196-5199, 5202-5204, 5213-5215, 5260-5262
+
+    # mess the labels up:
+    drdefs = cla.DR_Def(defaults)
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'kc_forces'
+        desc = 'Spring & Damper Forces'
+        units = 'N'
+        labels = ['one', 'two']
+        drms = {'springdrm': [[k1], [k2], [k3]] * sub,
+                'damperdrm': [[c1], [c2], [c3]] * sub}
+        drdefs.add(**locals())
+
+    # prepare spacecraft data recovery matrices
+    DR = cla.DR_Event()
+    DR.add(None, drdefs)
+
+    # initialize results (ext, mnc, mxc for all drms)
+    results = DR.prepare_results('Spring & Damper Forces', event)
+
+    # perform data recovery:
+    assert_raises(ValueError, results.time_data_recovery, sol, None,
+                  event, DR, 1, 0)
+
+
+
+# pyyeti/cla.py 1806 149 92% 91, 98, 3103-3106, 3209,
+# 3277, 3291, 3634-3635, 3643-3645, 3657, 3736, 3748, 3761, 3768-3769,
+# 3776, 3792, 3808, 3818, 3870, 3885, 3894, 4040, 4061, 4081,
+# 4084-4086, 4397, 4415-4416, 4418, 4427, 4440-4448, 4453-4461,
+# 4468-4474, 4488, 4512, 4514, 4544, 4585-4605, 4615, 4642, 4661,
+# 4716, 4726, 4738, 4754, 4756, 4758-4759, 4787, 4817-4818, 4823,
+# 4953, 4956, 4959, 4974, 4988-4990, 4999, 5007-5013, 5046-5047,
+# 5049-5050, 5064, 5087, 5131-5138, 5146-5150, 5158, 5169-5173,
+# 5178-5182, 5188, 5195-5197, 5201, 5213-5216, 5218-5221, 5224-5226,
+# 5235-5237, 5282-5284

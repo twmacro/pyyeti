@@ -1,0 +1,296 @@
+Rocket / Spacecraft CLA - Envelope Extrema Results and Bin Count Tables
+
+Description: S/C Internal Accelerations
+Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1.2, 1]
+Units:       m/sec^2, rad/sec^2
+Date:        18-Jan-2017
+
+Maximum Responses
+
+ Row     Description        FDLC          VLC           VLC2        Maximum         Case
+====== =============== ============= ============= ============= ============= =============
+     1 ATM Row       1  4.155474e+00  4.125474e+00           nan  4.155474e+00 FDLC,Liftoff
+     2 ATM Row       2  3.709885e+00           nan           nan  3.709885e+00 FDLC,Transonics
+     3 ATM Row       3  2.721368e+00  3.769885e+00           nan  3.769885e+00 VLC,Transonics
+     4 ATM Row       4  2.718798e+00           nan           nan  2.718798e+00 FDLC,Liftoff
+     5 ATM Row       5  2.802339e+00  2.661368e+00           nan  2.802339e+00 FDLC,Transonics
+     6 ATM Row       6  3.488598e+00           nan           nan  3.488598e+00 FDLC,MECO
+     7 ATM Row       7  2.118168e+00  2.748798e+00           nan  2.748798e+00 VLC,Liftoff
+     8 ATM Row       8  3.551672e+00           nan           nan  3.551672e+00 FDLC,Transonics
+     9 ATM Row       9  2.617310e+00  2.772339e+00           nan  2.772339e+00 VLC,Transonics
+    10 ATM Row      10  3.291678e+00           nan           nan  3.291678e+00 FDLC,Liftoff
+    11 ATM Row      11  2.676119e+00  3.548598e+00           nan  3.548598e+00 VLC,MECO
+    12 ATM Row      12  2.610057e+00           nan           nan  2.610057e+00 FDLC,MECO
+    13 ATM Row      13  2.639182e+00  2.058168e+00           nan  2.639182e+00 FDLC,Liftoff
+    14 ATM Row      14  2.957843e+00           nan           nan  2.957843e+00 FDLC,Transonics
+    15 ATM Row      15  3.251607e+00  3.581672e+00           nan  3.581672e+00 VLC,Transonics
+    16 ATM Row      16  2.615736e+00           nan           nan  2.615736e+00 FDLC,Liftoff
+    17 ATM Row      17  3.106902e+00  2.587310e+00           nan  3.106902e+00 FDLC,Transonics
+    18 ATM Row      18  2.193854e+00           nan           nan  2.193854e+00 FDLC,MECO
+    19 ATM Row      19  2.272051e+00  3.351678e+00           nan  3.351678e+00 VLC,Liftoff
+    20 ATM Row      20  3.059689e+00           nan           nan  3.059689e+00 FDLC,Transonics
+    21 ATM Row      21  2.740241e+00  2.616119e+00           nan  2.740241e+00 FDLC,MECO
+    22 ATM Row      22  2.626736e+00           nan           nan  2.626736e+00 FDLC,Liftoff
+    23 ATM Row      23  2.899459e+00  2.640057e+00           nan  2.899459e+00 FDLC,Transonics
+    24 ATM Row      24  3.151438e+00           nan           nan  3.151438e+00 FDLC,MECO
+    25 ATM Row      25  3.354689e+00  2.609182e+00           nan  3.354689e+00 FDLC,Liftoff
+    26 ATM Row      26  2.636645e+00           nan           nan  2.636645e+00 FDLC,Transonics
+    27 ATM Row      27  3.220781e+00  3.017843e+00           nan  3.220781e+00 FDLC,MECO
+    28 ATM Row      28  2.696536e+00           nan           nan  2.696536e+00 FDLC,Liftoff
+    29 ATM Row      29  3.587885e+00  3.191607e+00           nan  3.587885e+00 FDLC,Transonics
+    30 ATM Row      30  3.238105e+00           nan           nan  3.238105e+00 FDLC,MECO
+    31 ATM Row      31  2.605974e+00  2.645736e+00           nan  2.645736e+00 VLC,Liftoff
+    32 ATM Row      32  3.015594e+00           nan           nan  3.015594e+00 FDLC,Transonics
+    33 ATM Row      33  2.909120e+00  3.076902e+00           nan  3.076902e+00 VLC,Transonics
+    34 ATM Row      34  2.582071e+00           nan           nan  2.582071e+00 FDLC,Liftoff
+    35 ATM Row      35           nan  2.253854e+00           nan  2.253854e+00 VLC,MECO
+    36 ATM Row      37           nan  2.212051e+00           nan  2.212051e+00 VLC,Liftoff
+    37 ATM Row      39           nan  3.089689e+00           nan  3.089689e+00 VLC,Transonics
+    38 ATM Row      41           nan  2.710241e+00           nan  2.710241e+00 VLC,MECO
+    39 ATM Row      43           nan  2.686736e+00           nan  2.686736e+00 VLC,Liftoff
+    40 ATM Row      45           nan  2.839459e+00           nan  2.839459e+00 VLC,Transonics
+    41 ATM Row      47           nan  3.181438e+00           nan  3.181438e+00 VLC,MECO
+    42 ATM Row      49           nan  3.324689e+00           nan  3.324689e+00 VLC,Liftoff
+    43 ATM Row      51           nan  2.696645e+00           nan  2.696645e+00 VLC,Transonics
+    44 ATM Row      53           nan  3.160781e+00           nan  3.160781e+00 VLC,MECO
+    45 ATM Row      55           nan  2.726536e+00           nan  2.726536e+00 VLC,Liftoff
+    46 ATM Row      57           nan  3.557885e+00           nan  3.557885e+00 VLC,Transonics
+    47 ATM Row      59           nan  3.298105e+00           nan  3.298105e+00 VLC,MECO
+    48 ATM Row      61           nan  2.545974e+00           nan  2.545974e+00 VLC,Liftoff
+    49 ATM Row      63           nan  3.045594e+00           nan  3.045594e+00 VLC,Transonics
+    50 ATM Row      65           nan  2.879120e+00           nan  2.879120e+00 VLC,MECO
+    51 ATM Row      67           nan  2.642071e+00           nan  2.642071e+00 VLC,Liftoff
+    52 ATM Item      1           nan           nan  4.095474e+00  4.095474e+00 VLC2,Liftoff
+    53 ATM Item      2           nan           nan  3.829885e+00  3.829885e+00 VLC2,Transonics
+    54 ATM Item      3           nan           nan  2.601368e+00  2.601368e+00 VLC2,MECO
+    55 ATM Item      4           nan           nan  2.778798e+00  2.778798e+00 VLC2,Liftoff
+    56 ATM Item      5           nan           nan  2.742339e+00  2.742339e+00 VLC2,Transonics
+    57 ATM Item      6           nan           nan  3.608598e+00  3.608598e+00 VLC2,MECO
+    58 ATM Item      7           nan           nan  1.998168e+00  1.998168e+00 VLC2,Liftoff
+    59 ATM Item      8           nan           nan  3.611672e+00  3.611672e+00 VLC2,Transonics
+    60 ATM Item      9           nan           nan  2.557310e+00  2.557310e+00 VLC2,MECO
+    61 ATM Item     10           nan           nan  3.411678e+00  3.411678e+00 VLC2,Liftoff
+    62 ATM Item     11           nan           nan  2.556119e+00  2.556119e+00 VLC2,Transonics
+    63 ATM Item     12           nan           nan  2.670057e+00  2.670057e+00 VLC2,MECO
+    64 ATM Item     13           nan           nan  2.579182e+00  2.579182e+00 VLC2,Liftoff
+    65 ATM Item     14           nan           nan  3.077843e+00  3.077843e+00 VLC2,Transonics
+    66 ATM Item     15           nan           nan  3.131607e+00  3.131607e+00 VLC2,MECO
+    67 ATM Item     16           nan           nan  2.675736e+00  2.675736e+00 VLC2,Liftoff
+    68 ATM Item     17           nan           nan  3.046902e+00  3.046902e+00 VLC2,Transonics
+    69 ATM Item     18           nan           nan  2.313854e+00  2.313854e+00 VLC2,MECO
+    70 ATM Item     19           nan           nan  2.152051e+00  2.152051e+00 VLC2,Liftoff
+    71 ATM Item     20           nan           nan  3.119689e+00  3.119689e+00 VLC2,Transonics
+    72 ATM Item     21           nan           nan  2.680241e+00  2.680241e+00 VLC2,MECO
+    73 ATM Item     22           nan           nan  2.746736e+00  2.746736e+00 VLC2,Liftoff
+    74 ATM Item     23           nan           nan  2.779459e+00  2.779459e+00 VLC2,Transonics
+    75 ATM Item     24           nan           nan  3.211438e+00  3.211438e+00 VLC2,MECO
+    76 ATM Item     25           nan           nan  3.294689e+00  3.294689e+00 VLC2,Liftoff
+    77 ATM Item     26           nan           nan  2.756645e+00  2.756645e+00 VLC2,Transonics
+    78 ATM Item     27           nan           nan  3.100781e+00  3.100781e+00 VLC2,MECO
+    79 ATM Item     28           nan           nan  2.756536e+00  2.756536e+00 VLC2,Liftoff
+    80 ATM Item     29           nan           nan  3.527885e+00  3.527885e+00 VLC2,Transonics
+    81 ATM Item     30           nan           nan  3.358105e+00  3.358105e+00 VLC2,MECO
+    82 ATM Item     31           nan           nan  2.485974e+00  2.485974e+00 VLC2,Liftoff
+    83 ATM Item     32           nan           nan  3.075594e+00  3.075594e+00 VLC2,Transonics
+    84 ATM Item     33           nan           nan  2.849120e+00  2.849120e+00 VLC2,MECO
+    85 ATM Item     34           nan           nan  2.702071e+00  2.702071e+00 VLC2,Liftoff
+
+
+Minimum Responses
+
+ Row     Description        FDLC          VLC           VLC2        Minimum         Case
+====== =============== ============= ============= ============= ============= =============
+     1 ATM Row       1 -3.002503e+00 -3.032503e+00           nan -3.032503e+00 VLC,MECO
+     2 ATM Row       2 -2.953352e+00           nan           nan -2.953352e+00 FDLC,Liftoff
+     3 ATM Row       3 -2.358857e+00 -2.893352e+00           nan -2.893352e+00 VLC,Liftoff
+     4 ATM Row       4 -2.879222e+00           nan           nan -2.879222e+00 FDLC,MECO
+     5 ATM Row       5 -3.127991e+00 -2.418857e+00           nan -3.127991e+00 FDLC,Liftoff
+     6 ATM Row       6 -3.162606e+00           nan           nan -3.162606e+00 FDLC,Transonics
+     7 ATM Row       7 -2.808058e+00 -2.849222e+00           nan -2.849222e+00 VLC,MECO
+     8 ATM Row       8 -3.016578e+00           nan           nan -3.016578e+00 FDLC,Liftoff
+     9 ATM Row       9 -2.733919e+00 -3.157991e+00           nan -3.157991e+00 VLC,Liftoff
+    10 ATM Row      10 -2.531054e+00           nan           nan -2.531054e+00 FDLC,MECO
+    11 ATM Row      11 -3.464334e+00 -3.102606e+00           nan -3.464334e+00 FDLC,Liftoff
+    12 ATM Row      12 -3.594385e+00           nan           nan -3.594385e+00 FDLC,Transonics
+    13 ATM Row      13 -3.082091e+00 -2.868058e+00           nan -3.082091e+00 FDLC,MECO
+    14 ATM Row      14 -2.297104e+00           nan           nan -2.297104e+00 FDLC,Liftoff
+    15 ATM Row      15 -2.663841e+00 -2.986578e+00           nan -2.986578e+00 VLC,Liftoff
+    16 ATM Row      16 -2.708902e+00           nan           nan -2.708902e+00 FDLC,MECO
+    17 ATM Row      17 -2.692874e+00 -2.763919e+00           nan -2.763919e+00 VLC,Transonics
+    18 ATM Row      18 -2.568571e+00           nan           nan -2.568571e+00 FDLC,Transonics
+    19 ATM Row      19 -3.297221e+00 -2.471054e+00           nan -3.297221e+00 FDLC,MECO
+    20 ATM Row      20 -3.386457e+00           nan           nan -3.386457e+00 FDLC,Liftoff
+    21 ATM Row      21 -2.559128e+00 -3.524334e+00           nan -3.524334e+00 VLC,Liftoff
+    22 ATM Row      22 -3.478190e+00           nan           nan -3.478190e+00 FDLC,MECO
+    23 ATM Row      23 -2.566372e+00 -3.564385e+00           nan -3.564385e+00 VLC,Transonics
+    24 ATM Row      24 -2.540521e+00           nan           nan -2.540521e+00 FDLC,Transonics
+    25 ATM Row      25 -2.838422e+00 -3.112091e+00           nan -3.112091e+00 VLC,MECO
+    26 ATM Row      26 -2.778862e+00           nan           nan -2.778862e+00 FDLC,Liftoff
+    27 ATM Row      27 -3.048296e+00 -2.237104e+00           nan -3.048296e+00 FDLC,Transonics
+    28 ATM Row      28 -2.563595e+00           nan           nan -2.563595e+00 FDLC,MECO
+    29 ATM Row      29 -2.560548e+00 -2.723841e+00           nan -2.723841e+00 VLC,Transonics
+    30 ATM Row      30 -2.438004e+00           nan           nan -2.438004e+00 FDLC,Transonics
+    31 ATM Row      31 -2.979641e+00 -2.678902e+00           nan -2.979641e+00 FDLC,MECO
+    32 ATM Row      32 -2.504134e+00           nan           nan -2.504134e+00 FDLC,Liftoff
+    33 ATM Row      33 -3.071918e+00 -2.722874e+00           nan -3.071918e+00 FDLC,Transonics
+    34 ATM Row      34 -3.352432e+00           nan           nan -3.352432e+00 FDLC,MECO
+    35 ATM Row      35           nan -2.508571e+00           nan -2.508571e+00 VLC,Transonics
+    36 ATM Row      37           nan -3.357221e+00           nan -3.357221e+00 VLC,MECO
+    37 ATM Row      39           nan -3.356457e+00           nan -3.356457e+00 VLC,Liftoff
+    38 ATM Row      41           nan -2.589128e+00           nan -2.589128e+00 VLC,Transonics
+    39 ATM Row      43           nan -3.418190e+00           nan -3.418190e+00 VLC,MECO
+    40 ATM Row      45           nan -2.626372e+00           nan -2.626372e+00 VLC,Liftoff
+    41 ATM Row      47           nan -2.510521e+00           nan -2.510521e+00 VLC,Transonics
+    42 ATM Row      49           nan -2.868422e+00           nan -2.868422e+00 VLC,MECO
+    43 ATM Row      51           nan -2.718862e+00           nan -2.718862e+00 VLC,Liftoff
+    44 ATM Row      53           nan -3.108296e+00           nan -3.108296e+00 VLC,Transonics
+    45 ATM Row      55           nan -2.533595e+00           nan -2.533595e+00 VLC,MECO
+    46 ATM Row      57           nan -2.590548e+00           nan -2.590548e+00 VLC,Liftoff
+    47 ATM Row      59           nan -2.378004e+00           nan -2.378004e+00 VLC,Transonics
+    48 ATM Row      61           nan -3.039641e+00           nan -3.039641e+00 VLC,MECO
+    49 ATM Row      63           nan -2.474134e+00           nan -2.474134e+00 VLC,Liftoff
+    50 ATM Row      65           nan -3.101918e+00           nan -3.101918e+00 VLC,Transonics
+    51 ATM Row      67           nan -3.292432e+00           nan -3.292432e+00 VLC,MECO
+    52 ATM Item      1           nan           nan -3.062503e+00 -3.062503e+00 VLC2,MECO
+    53 ATM Item      2           nan           nan -2.833352e+00 -2.833352e+00 VLC2,Liftoff
+    54 ATM Item      3           nan           nan -2.478857e+00 -2.478857e+00 VLC2,Transonics
+    55 ATM Item      4           nan           nan -2.819222e+00 -2.819222e+00 VLC2,MECO
+    56 ATM Item      5           nan           nan -3.187991e+00 -3.187991e+00 VLC2,Liftoff
+    57 ATM Item      6           nan           nan -3.042606e+00 -3.042606e+00 VLC2,Transonics
+    58 ATM Item      7           nan           nan -2.928058e+00 -2.928058e+00 VLC2,MECO
+    59 ATM Item      8           nan           nan -2.956578e+00 -2.956578e+00 VLC2,Liftoff
+    60 ATM Item      9           nan           nan -2.793919e+00 -2.793919e+00 VLC2,Transonics
+    61 ATM Item     10           nan           nan -2.411054e+00 -2.411054e+00 VLC2,MECO
+    62 ATM Item     11           nan           nan -3.584334e+00 -3.584334e+00 VLC2,Liftoff
+    63 ATM Item     12           nan           nan -3.534385e+00 -3.534385e+00 VLC2,Transonics
+    64 ATM Item     13           nan           nan -3.142091e+00 -3.142091e+00 VLC2,MECO
+    65 ATM Item     14           nan           nan -2.177104e+00 -2.177104e+00 VLC2,Liftoff
+    66 ATM Item     15           nan           nan -2.783841e+00 -2.783841e+00 VLC2,Transonics
+    67 ATM Item     16           nan           nan -2.648902e+00 -2.648902e+00 VLC2,MECO
+    68 ATM Item     17           nan           nan -2.752874e+00 -2.752874e+00 VLC2,Liftoff
+    69 ATM Item     18           nan           nan -2.448571e+00 -2.448571e+00 VLC2,Transonics
+    70 ATM Item     19           nan           nan -3.417221e+00 -3.417221e+00 VLC2,MECO
+    71 ATM Item     20           nan           nan -3.326457e+00 -3.326457e+00 VLC2,Liftoff
+    72 ATM Item     21           nan           nan -2.619128e+00 -2.619128e+00 VLC2,Transonics
+    73 ATM Item     22           nan           nan -3.358190e+00 -3.358190e+00 VLC2,MECO
+    74 ATM Item     23           nan           nan -2.686372e+00 -2.686372e+00 VLC2,Liftoff
+    75 ATM Item     24           nan           nan -2.480521e+00 -2.480521e+00 VLC2,Transonics
+    76 ATM Item     25           nan           nan -2.898422e+00 -2.898422e+00 VLC2,MECO
+    77 ATM Item     26           nan           nan -2.658862e+00 -2.658862e+00 VLC2,Liftoff
+    78 ATM Item     27           nan           nan -3.168296e+00 -3.168296e+00 VLC2,Transonics
+    79 ATM Item     28           nan           nan -2.503595e+00 -2.503595e+00 VLC2,MECO
+    80 ATM Item     29           nan           nan -2.620548e+00 -2.620548e+00 VLC2,Liftoff
+    81 ATM Item     30           nan           nan -2.318004e+00 -2.318004e+00 VLC2,Transonics
+    82 ATM Item     31           nan           nan -3.099641e+00 -3.099641e+00 VLC2,MECO
+    83 ATM Item     32           nan           nan -2.444134e+00 -2.444134e+00 VLC2,Liftoff
+    84 ATM Item     33           nan           nan -3.131918e+00 -3.131918e+00 VLC2,Transonics
+    85 ATM Item     34           nan           nan -3.232432e+00 -3.232432e+00 VLC2,MECO
+
+
+Abs-Max Responses
+
+ Row     Description        FDLC          VLC           VLC2        Abs-Max         Case
+====== =============== ============= ============= ============= ============= =============
+     1 ATM Row       1  4.155474e+00  4.125474e+00           nan  4.155474e+00 FDLC,Liftoff
+     2 ATM Row       2  3.709885e+00           nan           nan  3.709885e+00 FDLC,Transonics
+     3 ATM Row       3  2.721368e+00  3.769885e+00           nan  3.769885e+00 VLC,Transonics
+     4 ATM Row       4 -2.879222e+00           nan           nan -2.879222e+00 FDLC,MECO
+     5 ATM Row       5 -3.127991e+00  2.661368e+00           nan -3.127991e+00 FDLC,Liftoff
+     6 ATM Row       6  3.488598e+00           nan           nan  3.488598e+00 FDLC,MECO
+     7 ATM Row       7 -2.808058e+00 -2.849222e+00           nan -2.849222e+00 VLC,MECO
+     8 ATM Row       8  3.551672e+00           nan           nan  3.551672e+00 FDLC,Transonics
+     9 ATM Row       9 -2.733919e+00 -3.157991e+00           nan -3.157991e+00 VLC,Liftoff
+    10 ATM Row      10  3.291678e+00           nan           nan  3.291678e+00 FDLC,Liftoff
+    11 ATM Row      11 -3.464334e+00  3.548598e+00           nan  3.548598e+00 VLC,MECO
+    12 ATM Row      12 -3.594385e+00           nan           nan -3.594385e+00 FDLC,Transonics
+    13 ATM Row      13 -3.082091e+00 -2.868058e+00           nan -3.082091e+00 FDLC,MECO
+    14 ATM Row      14  2.957843e+00           nan           nan  2.957843e+00 FDLC,Transonics
+    15 ATM Row      15  3.251607e+00  3.581672e+00           nan  3.581672e+00 VLC,Transonics
+    16 ATM Row      16 -2.708902e+00           nan           nan -2.708902e+00 FDLC,MECO
+    17 ATM Row      17  3.106902e+00 -2.763919e+00           nan  3.106902e+00 FDLC,Transonics
+    18 ATM Row      18 -2.568571e+00           nan           nan -2.568571e+00 FDLC,Transonics
+    19 ATM Row      19 -3.297221e+00  3.351678e+00           nan  3.351678e+00 VLC,Liftoff
+    20 ATM Row      20 -3.386457e+00           nan           nan -3.386457e+00 FDLC,Liftoff
+    21 ATM Row      21  2.740241e+00 -3.524334e+00           nan -3.524334e+00 VLC,Liftoff
+    22 ATM Row      22 -3.478190e+00           nan           nan -3.478190e+00 FDLC,MECO
+    23 ATM Row      23  2.899459e+00 -3.564385e+00           nan -3.564385e+00 VLC,Transonics
+    24 ATM Row      24  3.151438e+00           nan           nan  3.151438e+00 FDLC,MECO
+    25 ATM Row      25  3.354689e+00 -3.112091e+00           nan  3.354689e+00 FDLC,Liftoff
+    26 ATM Row      26 -2.778862e+00           nan           nan -2.778862e+00 FDLC,Liftoff
+    27 ATM Row      27  3.220781e+00  3.017843e+00           nan  3.220781e+00 FDLC,MECO
+    28 ATM Row      28  2.696536e+00           nan           nan  2.696536e+00 FDLC,Liftoff
+    29 ATM Row      29  3.587885e+00  3.191607e+00           nan  3.587885e+00 FDLC,Transonics
+    30 ATM Row      30  3.238105e+00           nan           nan  3.238105e+00 FDLC,MECO
+    31 ATM Row      31 -2.979641e+00 -2.678902e+00           nan -2.979641e+00 FDLC,MECO
+    32 ATM Row      32  3.015594e+00           nan           nan  3.015594e+00 FDLC,Transonics
+    33 ATM Row      33 -3.071918e+00  3.076902e+00           nan  3.076902e+00 VLC,Transonics
+    34 ATM Row      34 -3.352432e+00           nan           nan -3.352432e+00 FDLC,MECO
+    35 ATM Row      35           nan -2.508571e+00           nan -2.508571e+00 VLC,Transonics
+    36 ATM Row      37           nan -3.357221e+00           nan -3.357221e+00 VLC,MECO
+    37 ATM Row      39           nan -3.356457e+00           nan -3.356457e+00 VLC,Liftoff
+    38 ATM Row      41           nan  2.710241e+00           nan  2.710241e+00 VLC,MECO
+    39 ATM Row      43           nan -3.418190e+00           nan -3.418190e+00 VLC,MECO
+    40 ATM Row      45           nan  2.839459e+00           nan  2.839459e+00 VLC,Transonics
+    41 ATM Row      47           nan  3.181438e+00           nan  3.181438e+00 VLC,MECO
+    42 ATM Row      49           nan  3.324689e+00           nan  3.324689e+00 VLC,Liftoff
+    43 ATM Row      51           nan -2.718862e+00           nan -2.718862e+00 VLC,Liftoff
+    44 ATM Row      53           nan  3.160781e+00           nan  3.160781e+00 VLC,MECO
+    45 ATM Row      55           nan  2.726536e+00           nan  2.726536e+00 VLC,Liftoff
+    46 ATM Row      57           nan  3.557885e+00           nan  3.557885e+00 VLC,Transonics
+    47 ATM Row      59           nan  3.298105e+00           nan  3.298105e+00 VLC,MECO
+    48 ATM Row      61           nan -3.039641e+00           nan -3.039641e+00 VLC,MECO
+    49 ATM Row      63           nan  3.045594e+00           nan  3.045594e+00 VLC,Transonics
+    50 ATM Row      65           nan -3.101918e+00           nan -3.101918e+00 VLC,Transonics
+    51 ATM Row      67           nan -3.292432e+00           nan -3.292432e+00 VLC,MECO
+    52 ATM Item      1           nan           nan  4.095474e+00  4.095474e+00 VLC2,Liftoff
+    53 ATM Item      2           nan           nan  3.829885e+00  3.829885e+00 VLC2,Transonics
+    54 ATM Item      3           nan           nan  2.601368e+00  2.601368e+00 VLC2,MECO
+    55 ATM Item      4           nan           nan -2.819222e+00 -2.819222e+00 VLC2,MECO
+    56 ATM Item      5           nan           nan -3.187991e+00 -3.187991e+00 VLC2,Liftoff
+    57 ATM Item      6           nan           nan  3.608598e+00  3.608598e+00 VLC2,MECO
+    58 ATM Item      7           nan           nan -2.928058e+00 -2.928058e+00 VLC2,MECO
+    59 ATM Item      8           nan           nan  3.611672e+00  3.611672e+00 VLC2,Transonics
+    60 ATM Item      9           nan           nan -2.793919e+00 -2.793919e+00 VLC2,Transonics
+    61 ATM Item     10           nan           nan  3.411678e+00  3.411678e+00 VLC2,Liftoff
+    62 ATM Item     11           nan           nan -3.584334e+00 -3.584334e+00 VLC2,Liftoff
+    63 ATM Item     12           nan           nan -3.534385e+00 -3.534385e+00 VLC2,Transonics
+    64 ATM Item     13           nan           nan -3.142091e+00 -3.142091e+00 VLC2,MECO
+    65 ATM Item     14           nan           nan  3.077843e+00  3.077843e+00 VLC2,Transonics
+    66 ATM Item     15           nan           nan  3.131607e+00  3.131607e+00 VLC2,MECO
+    67 ATM Item     16           nan           nan  2.675736e+00  2.675736e+00 VLC2,Liftoff
+    68 ATM Item     17           nan           nan  3.046902e+00  3.046902e+00 VLC2,Transonics
+    69 ATM Item     18           nan           nan -2.448571e+00 -2.448571e+00 VLC2,Transonics
+    70 ATM Item     19           nan           nan -3.417221e+00 -3.417221e+00 VLC2,MECO
+    71 ATM Item     20           nan           nan -3.326457e+00 -3.326457e+00 VLC2,Liftoff
+    72 ATM Item     21           nan           nan  2.680241e+00  2.680241e+00 VLC2,MECO
+    73 ATM Item     22           nan           nan -3.358190e+00 -3.358190e+00 VLC2,MECO
+    74 ATM Item     23           nan           nan  2.779459e+00  2.779459e+00 VLC2,Transonics
+    75 ATM Item     24           nan           nan  3.211438e+00  3.211438e+00 VLC2,MECO
+    76 ATM Item     25           nan           nan  3.294689e+00  3.294689e+00 VLC2,Liftoff
+    77 ATM Item     26           nan           nan  2.756645e+00  2.756645e+00 VLC2,Transonics
+    78 ATM Item     27           nan           nan -3.168296e+00 -3.168296e+00 VLC2,Transonics
+    79 ATM Item     28           nan           nan  2.756536e+00  2.756536e+00 VLC2,Liftoff
+    80 ATM Item     29           nan           nan  3.527885e+00  3.527885e+00 VLC2,Transonics
+    81 ATM Item     30           nan           nan  3.358105e+00  3.358105e+00 VLC2,MECO
+    82 ATM Item     31           nan           nan -3.099641e+00 -3.099641e+00 VLC2,MECO
+    83 ATM Item     32           nan           nan  3.075594e+00  3.075594e+00 VLC2,Transonics
+    84 ATM Item     33           nan           nan -3.131918e+00 -3.131918e+00 VLC2,Transonics
+    85 ATM Item     34           nan           nan -3.232432e+00 -3.232432e+00 VLC2,MECO
+
+
+Extrema Count
+Filter: 1e-06
+
+         Description        FDLC          VLC           VLC2
+       =============== ============= ============= =============
+       Maxima Count               26            25            34
+       Minima Count               24            27            34
+       Max+Min Count              50            52            68
+       Abs-Max Count              25            26            34
+
+         Description        FDLC          VLC           VLC2
+       =============== ============= ============= =============
+       Maxima Percent           30.6          29.4          40.0
+       Minima Percent           28.2          31.8          40.0
+       Max+Min Percent          29.4          30.6          40.0
+       Abs-Max Percent          29.4          30.6          40.0
