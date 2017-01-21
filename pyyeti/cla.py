@@ -3624,15 +3624,12 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         varx = np.trapz(tmp.varx, freq)
         vary = np.trapz(tmp.vary, freq)
         covar = np.trapz(tmp.covar, freq)
-        term = (vary-varx) / (2*covar)
-        th = np.arctan(term - np.sqrt(term**2 + 1))
 
         # check for covar == 0:
-        pv = np.nonzero(abs(covar) < 1e-12)[0]
-        if pv.size > 0:
-            # assume zero degrees and check for 90:
-            th[pv] = 0
-            th[pv[vary[pv] > varx[pv]]] = np.pi/2
+        covar[abs(covar) < 1e-12] = 1e-12
+        term = (vary-varx) / (2*covar)
+        th = np.arctan(term + np.sqrt(term**2 + 1))
+
         c = np.cos(th)
         s = np.sin(th)
 
@@ -3640,7 +3637,7 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         second = 2*(vary - varx)*(c*c - s*s) - 8*covar*s*c
         pv = np.nonzero(second > 0)[0]
         if pv.size > 0:
-            th[pv] = np.arctan(term[pv] + np.sqrt(term[pv]**2 + 1))
+            th[pv] = np.arctan(term[pv] - np.sqrt(term[pv]**2 + 1))
             c[pv] = np.cos(th[pv])
             s[pv] = np.sin(th[pv])
 
@@ -3758,7 +3755,7 @@ def rptext1(res, filename,
         # maximum or minimum
         w = len(numform.format(np.pi))
         if doabsmax and not one_col:
-            mx = nan_absmax(mx, mn)
+            mx = nan_absmax(res.ext[:, 0], res.ext[:, 1])[0]
         else:
             mx = res.ext if one_col else res.ext[:, col]
         _add_column(hdr, numform, mx, w, 4, 'c')
@@ -3772,7 +3769,7 @@ def rptext1(res, filename,
         if case is not None:
             _add_column('Case', casefrm, case, casewidth, 2, 'l')
 
-        if doabsmax or res.ext.ndim == 1 or res.ext.shape[1] == 1:
+        if doabsmax or one_col:
             break
 
     hu, frm = writer.formheader(headers, widths, formats,

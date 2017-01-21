@@ -9,6 +9,7 @@ import re
 import warnings
 from types import SimpleNamespace
 from glob import glob
+from io import StringIO
 import numpy as np
 from scipy.io import matlab
 from scipy import linalg
@@ -1311,7 +1312,7 @@ def kc_forces(sol, nas, Vars, se):
                       Vars[se]['damperdrm'] @ sol.v))
 
 
-def test_case_defined():
+def mass_spring_system():
     """
     
                     |--> x1       |--> x2        |--> x3
@@ -1363,17 +1364,17 @@ def test_case_defined():
     damp = np.array([[c1+c3, -c1, -c3],
                      [-c1, c1+c2, -c2],
                      [-c3, -c2, c2+c3]])
-    lam, u = linalg.eigh(stiff, mass, check_finite=False)
+    # drm for subtracting 1 from 2, 2 from 3, 1 from 3:
+    sub = np.array([[-1., 1., 0],
+                    [0., -1., 1.],
+                    [-1., 0, 1.]])
+    drms1 = {'springdrm': [[k1], [k2], [k3]] * sub,
+             'damperdrm': [[c1], [c2], [c3]] * sub}
 
     # define some defaults for data recovery:
     uf_reds = (1, 1, 1, 1)
     defaults = dict(se=0, uf_reds=uf_reds)
     drdefs = cla.DR_Def(defaults)
-
-    # drm for subtracting 1 from 2, 2 from 3, 1 from 3:
-    sub = np.array([[-1., 1., 0],
-                    [0., -1., 1.],
-                    [-1., 0, 1.]])
 
     @cla.DR_Def.addcat
     def _():
@@ -1384,14 +1385,20 @@ def test_case_defined():
                   for j in ('Spring', 'Damper')
                   for i in range(3)]
         # force will be positive for tension
-        drms = {'springdrm': [[k1], [k2], [k3]] * sub,
-                'damperdrm': [[c1], [c2], [c3]] * sub}
+        drms = drms1
         histpv = 'all'
         drdefs.add(**locals())
 
     # prepare spacecraft data recovery matrices
     DR = cla.DR_Event()
     DR.add(None, drdefs)
+
+    return mass, damp, stiff, drms1, uf_reds, defaults, DR
+
+
+def test_case_defined():
+    (mass, damp, stiff,
+     drms1, uf_reds, defaults, DR) = mass_spring_system()
 
     # define forces:
     h = 0.001
@@ -1425,7 +1432,6 @@ def test_case_defined():
     assert_raises(ValueError, results.time_data_recovery, sol, None,
                   event, DR, 2, 1)
 
-
     # mess the labels up:
     drdefs = cla.DR_Def(defaults)
 
@@ -1435,8 +1441,7 @@ def test_case_defined():
         desc = 'Spring & Damper Forces'
         units = 'N'
         labels = ['one', 'two']
-        drms = {'springdrm': [[k1], [k2], [k3]] * sub,
-                'damperdrm': [[c1], [c2], [c3]] * sub}
+        drms = drms1
         drdefs.add(**locals())
 
     # prepare spacecraft data recovery matrices
@@ -1451,14 +1456,146 @@ def test_case_defined():
                   event, DR, 1, 0)
 
 
+def test_PSD_consistent():
+    # resp:
+    #   0   0.
+    #   1   0.
+    #     2   1.
+    #     3   0.
+    #   4   0.
+    #   5   1.
+    #     6   1.
+    #     7   1.
+    #   8   1.
+    #   9   0.5
+    #     10  0.5
+    #     11  1.
+    freq = np.arange(1., 6.)
+    resp = np.zeros((12, 5))
+    forcepsd = np.ones((1, 5))
+    resp[[2, 5, 6, 7, 8, 11]] = 1.0
+    resp[[9, 10]] = 0.5
+    xr = np.arange(0, 12, 2)
+    yr = xr + 1
+    rr = None
+    drmres = SimpleNamespace(_psd={})
+    case = 'test'
+    cla.PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
+                           case, 0)
+    sbe = np.zeros((6, 5))
+    sbe[1:3] = 1.0
+    sbe[3] = 2.
+    sbe[4:] = 1.0 + 0.5**2
+    assert np.allclose(drmres._psd[case], sbe)
+    
 
-# pyyeti/cla.py 1806 149 92% 91, 98, 3103-3106, 3209,
-# 3277, 3291, 3634-3635, 3643-3645, 3657, 3736, 3748, 3761, 3768-3769,
-# 3776, 3792, 3808, 3818, 3870, 3885, 3894, 4040, 4061, 4081,
-# 4084-4086, 4397, 4415-4416, 4418, 4427, 4440-4448, 4453-4461,
-# 4468-4474, 4488, 4512, 4514, 4544, 4585-4605, 4615, 4642, 4661,
-# 4716, 4726, 4738, 4754, 4756, 4758-4759, 4787, 4817-4818, 4823,
-# 4953, 4956, 4959, 4974, 4988-4990, 4999, 5007-5013, 5046-5047,
-# 5049-5050, 5064, 5087, 5131-5138, 5146-5150, 5158, 5169-5173,
-# 5178-5182, 5188, 5195-5197, 5201, 5213-5216, 5218-5221, 5224-5226,
-# 5235-5237, 5282-5284
+def test_rptext1():
+    (mass, damp, stiff,
+     drms1, uf_reds, defaults, DR) = mass_spring_system()
+
+    # define forces:
+    h = 0.01
+    t = np.arange(0, 1.0, h)
+    f = np.zeros((3, len(t)))
+    f[0, 2:25] = 10.0
+
+    # setup solver:
+    ts = ode.SolveUnc(mass, damp, stiff, h, pre_eig=True)
+    sol = {uf_reds: ts.tsolve(f)}
+
+    # initialize results (ext, mnc, mxc for all drms)
+    event = 'Case 1'
+    results = DR.prepare_results('Spring & Damper Forces', event)
+
+    # perform data recovery:
+    results.time_data_recovery(sol, None, event, DR, 1, 0)
+
+    with StringIO() as f:
+        cla.rptext1(results['kc_forces'], f)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'M A X / M I N  S U M M A R Y',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Date:        21-Jan-2017',
+        '',
+        '  Row    Description       Maximum       Time    Case      '
+        '   Minimum       Time    Case',
+        '-------  -----------    -------------  --------  ------    '
+        '-------------  --------  ------',
+        '      1  Spring 1         1.51883e+00     0.270  Case 1    '
+        ' -5.75316e+00     0.040  Case 1',
+        '      2  Spring 2         1.04111e+00     0.280  Case 1    '
+        ' -1.93144e+00     0.050  Case 1',
+        '      3  Spring 3         1.59375e+00     0.280  Case 1    '
+        ' -5.68091e+00     0.050  Case 1',
+        '      4  Damper 1         1.76099e+00     0.260  Case 1    '
+        ' -1.76088e+00     0.030  Case 1',
+        '      5  Damper 2         4.23522e-01     0.270  Case 1    '
+        ' -4.11612e-01     0.040  Case 1',
+        '      6  Damper 3         8.93351e-01     0.260  Case 1    '
+        ' -8.90131e-01     0.030  Case 1',
+        '']
+    for i, j in zip(s, sbe):
+        if not j.startswith('Date:'):
+            assert i == j
+
+    lbls = results['kc_forces'].drminfo.labels[:]
+    results['kc_forces'].drminfo.labels = lbls[:-1]
+    with StringIO() as f:
+        assert_raises(ValueError, cla.rptext1, results['kc_forces'], f)
+    
+    results['kc_forces'].drminfo.labels = lbls
+    del results['kc_forces'].domain
+
+    with StringIO() as f:
+        cla.rptext1(results['kc_forces'], f, doabsmax=True, perpage=3)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'M A X / M I N  S U M M A R Y',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Date:        21-Jan-2017',
+        '',
+        '  Row    Description       Maximum     X-Value   Case',
+        '-------  -----------    -------------  --------  ------',
+        '      1  Spring 1        -5.75316e+00     0.270  Case 1',
+        '      2  Spring 2        -1.93144e+00     0.280  Case 1',
+        '      3  Spring 3        -5.68091e+00     0.280  Case 1',
+        '\x0cM A X / M I N  S U M M A R Y',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Date:        21-Jan-2017',
+        '',
+        '  Row    Description       Maximum     X-Value   Case',
+        '-------  -----------    -------------  --------  ------',
+        '      4  Damper 1         1.76099e+00     0.260  Case 1',
+        '      5  Damper 2         4.23522e-01     0.270  Case 1',
+        '      6  Damper 3         8.93351e-01     0.260  Case 1',
+        '']
+    for i, j in zip(s, sbe):
+        if not j.startswith('Date:'):
+            assert i == j
+
+
+def test_get_numform():
+    assert cla._get_numform(0.0) == '{:13.0f}'
+    assert cla._get_numform(np.array([1e12, 1e4])) == '{:13.6e}'
+    assert cla._get_numform(np.array([1e8, 1e4])) == '{:13.1f}'
+    assert cla._get_numform(np.array([1e10, 1e5])) == '{:13.0f}'
+
+
+# pyyeti/cla.py 1801 127 93% 91, 98, 3758, 3773, 3789, 3805, 3815,
+# 3867, 3882, 3891, 4037, 4078, 4394, 4412-4413, 4415, 4424,
+# 4437-4445, 4450-4458, 4465-4471, 4485, 4509, 4511, 4541, 4582-4602,
+# 4612, 4639, 4658, 4713, 4723, 4735, 4751, 4753, 4755-4756, 4784,
+# 4814-4815, 4820, 4950, 4953, 4956, 4971, 4985-4987, 4996, 5004-5010,
+# 5043-5044, 5046-5047, 5061, 5084, 5128-5135, 5143-5147, 5155,
+# 5166-5170, 5175-5179, 5185, 5192-5194, 5198, 5210-5213, 5215-5218,
+# 5221-5223, 5232-5234, 5279-5281
