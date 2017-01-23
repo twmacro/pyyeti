@@ -1121,8 +1121,8 @@ def test_addcat_2():
         )
     drdefs = cla.DR_Def(defaults)
     assert_raises(RuntimeError, drdefs.excel_summary, None)
-    
-    
+
+
 def test_addcat_3():
     defaults = dict(
         se = 0,
@@ -1276,7 +1276,7 @@ def test_event_add():
     assert SOL1[(2, 2, 2, 2)].pg == 90
 
     SOL = DR.frf_apply_uf(sol, 0)
-    
+
     assert np.all(SOL[(2, 2, 2, 2)].a == 4*sol.a)
     assert np.all(SOL[(2, 2, 2, 2)].v == 4*sol.v)
     assert np.all(SOL[(2, 2, 2, 2)].d == 4*sol.d)
@@ -1314,10 +1314,10 @@ def kc_forces(sol, nas, Vars, se):
 
 def mass_spring_system():
     """
-    
+
                     |--> x1       |--> x2        |--> x3
-    
-    
+
+
                  |----|    k1   |----|    k2   |----|
               f  |    |--\/\/\--|    |--\/\/\--|    |
             ====>| m1 |         | m2 |         | m3 |
@@ -1329,24 +1329,24 @@ def mass_spring_system():
                    |                             |
                    |------------| |--------------|
                                  c3
-    
+
         m1 = 2 kg
         m2 = 4 kg
         m3 = 6 kg
-    
+
         k1 = 12000 N/m
         k2 = 16000 N/m
         k3 = 10000 N/m
-    
+
         c1 = 70 N s/m
         c2 = 75 N s/m
         c3 = 30 N s/m
-    
+
         h = 0.001
         t = np.arange(0, 1.0, h)
         f = np.zeros((3, len(t)))
         f[0, 20:250] = 10.0  # N
-    
+
     """
     m1 = 2.
     m2 = 4.
@@ -1487,7 +1487,7 @@ def test_PSD_consistent():
     sbe[3] = 2.
     sbe[4:] = 1.0 + 0.5**2
     assert np.allclose(drmres._psd[case], sbe)
-    
+
 
 def _comp_rpt(s, sbe):
     for i, j in zip(s, sbe):
@@ -1550,7 +1550,7 @@ def test_rptext1():
     results['kc_forces'].drminfo.labels = lbls[:-1]
     with StringIO() as f:
         assert_raises(ValueError, cla.rptext1, results['kc_forces'], f)
-    
+
     results['kc_forces'].drminfo.labels = lbls
     del results['kc_forces'].domain
 
@@ -1876,15 +1876,127 @@ def test_rptpct1():
         '    % Diff Statistics: [Min, Max, Mean, StdDev] = [4.00, 4.00, 4.0000, 0.0000]',
         '']
     _comp_rpt(s, sbe)
-    
+
+
+def test_rptpct1_2():
+    (mass, damp, stiff,
+     drms1, uf_reds, defaults, DR) = mass_spring_system()
+
+    # define forces:
+    h = 0.01
+    t = np.arange(0, 1.0, h)
+    f = {0: np.zeros((3, len(t))),
+         1: np.zeros((3, len(t)))}
+    f[0][0, 2:25] = 10.0
+    f[1][0, 2:25] = 10.0
+    f[1][0, 3:25:3] = 9.5
+
+    # initialize results
+    results = cla.DR_Results()
+    # setup solver:
+    ts = ode.SolveUnc(mass, damp, stiff, h, pre_eig=True)
+    for i in range(2):
+        sol = {uf_reds: ts.tsolve(f[i])}
+        case = 'FFN {}'.format(i)
+        # perform data recovery:
+        results[case] = DR.prepare_results('Spring & Damper Forces', 'Steps')
+        results[case].time_data_recovery(sol, None, case, DR, 1, 0)
+
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'filterval': 0.3*np.ones(6)}
+    drminfo = results['FFN 0']['kc_forces'].drminfo
+    drminfo.labels = drminfo.labels[:]
+    drminfo.labels[2] = 'SPRING 3'
+    with StringIO() as f:
+        dct = cla.rptpct1(results['FFN 0']['kc_forces'],
+                          results['FFN 1']['kc_forces'],
+                          f, **opts)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'PERCENT DIFFERENCE REPORT',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Filter:      <defined row-by-row>',
+        'Notes:       % Diff = +/- abs(Self-Reference)/max(abs(Reference(max,min)))*100',
+        '             Sign set such that positive % differences indicate exceedances',
+        'Date:        23-Jan-2017',
+        '',
+        '                             Self        Reference                    Self    '
+        '    Reference                    Self        Reference',
+        '  Row    Description       Maximum        Maximum      % Diff       Minimum   '
+        '     Minimum      % Diff       Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  -------    -------------'
+        '  -------------  -------    -------------  -------------  -------',
+        '      1  Spring 1            1.518830       1.509860     0.16        -5.753157'
+        '      -5.603161     2.68         5.753157       5.603161     2.68',
+        '      2  Spring 2            1.041112       1.031179     0.53        -1.931440'
+        '      -1.887905     2.31         1.931440       1.887905     2.31',
+        '      4  Damper 1            1.760988       1.714232     2.73        -1.760881'
+        '      -1.697650     3.69         1.760988       1.714232     2.73',
+        '      5  Damper 2            0.423522       0.415255     1.99        -0.411612'
+        '      -0.399434     2.93         0.423522       0.415255     1.99',
+        '      6  Damper 3            0.893351       0.873861     2.23        -0.890131'
+        '      -0.861630     3.26         0.893351       0.873861     2.23',
+        '',
+        '',
+        '',
+        '    Spring & Damper Forces - Maximum Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         0.00          1     20.00',
+        '         1.00          1     20.00',
+        '         2.00          2     40.00',
+        '         3.00          1     20.00',
+        '',
+        '    40.0% of values are within 1%',
+        '    80.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [0.00, 3.00, 1.6000, 1.1402]',
+        '',
+        '',
+        '    Spring & Damper Forces - Minimum Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          1     20.00',
+        '         3.00          3     60.00',
+        '         4.00          1     20.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    20.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 4.00, 3.0000, 0.7071]',
+        '',
+        '',
+        '    Spring & Damper Forces - Abs-Max Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          3     60.00',
+        '         3.00          2     40.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    60.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '']
+    _comp_rpt(s, sbe)
 
 
 
-    
-# pyyeti/cla.py 1802 117 94% 91, 98, 4395, 4413-4414, 4416, 4425,
-# 4438-4446, 4451-4459, 4466-4472, 4486, 4510, 4512, 4542, 4583-4603,
-# 4613, 4640, 4659, 4714, 4724, 4736, 4752, 4754, 4756-4757, 4785,
-# 4815-4816, 4821, 4951, 4954, 4957, 4972, 4986-4988, 4997, 5005-5011,
-# 5044-5045, 5047-5048, 5062, 5085, 5129-5136, 5144-5148, 5156,
-# 5167-5171, 5176-5180, 5186, 5193-5195, 5199, 5211-5214, 5216-5219,
-# 5222-5224, 5233-5235, 5280-5282
+
+
+# pyyeti/cla.py 1802 113 94% 91, 98, 4413, 4424, 4437-4445,
+# 4450-4458, 4465-4471, 4485, 4509, 4582-4602, 4612, 4639, 4658, 4713,
+# 4723, 4735, 4751, 4753, 4755-4756, 4784, 4814-4815, 4820, 4950,
+# 4953, 4956, 4971, 4985-4987, 4996, 5004-5010, 5043-5044, 5046-5047,
+# 5061, 5084, 5128-5135, 5143-5147, 5155, 5166-5170, 5175-5179, 5185,
+# 5192-5194, 5198, 5210-5213, 5215-5218, 5221-5223, 5232-5234,
+# 5279-5281
