@@ -3859,7 +3859,8 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
             j = j[pv]
             for k in range(n):
                 count[k] = np.sum(j == k)
-        return count, count/len(pv) * 100
+            return count, count/len(pv) * 100
+        return count, count
 
     def _add_zero_case(mat, cases):
         pv = (mat == 0).all(axis=1).nonzero()[0]
@@ -4054,7 +4055,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
 
     if isinstance(filename, xlsxwriter.workbook.Workbook):
         excel = 'old'
-    elif filename.endswith('.xlsx'):
+    elif isinstance(filename, str) and filename.endswith('.xlsx'):
         excel = 'new'
     else:
         excel = ''
@@ -4285,7 +4286,6 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     plots with minimal inputs:
 
     >>> import numpy as np
-    >>> from numpy.random import randn
     >>> from pyyeti import cla
     >>> ext1 = [[120.0, -8.0],
     ...         [8.0, -120.0]]

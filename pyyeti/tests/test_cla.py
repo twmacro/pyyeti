@@ -1489,6 +1489,12 @@ def test_PSD_consistent():
     assert np.allclose(drmres._psd[case], sbe)
     
 
+def _comp_rpt(s, sbe):
+    for i, j in zip(s, sbe):
+        if not j.startswith('Date:'):
+            assert i == j
+
+
 def test_rptext1():
     (mass, damp, stiff,
      drms1, uf_reds, defaults, DR) = mass_spring_system()
@@ -1538,9 +1544,7 @@ def test_rptext1():
         '      6  Damper 3         8.93351e-01     0.260  Case 1    '
         ' -8.90131e-01     0.030  Case 1',
         '']
-    for i, j in zip(s, sbe):
-        if not j.startswith('Date:'):
-            assert i == j
+    _comp_rpt(s, sbe)
 
     lbls = results['kc_forces'].drminfo.labels[:]
     results['kc_forces'].drminfo.labels = lbls[:-1]
@@ -1579,9 +1583,38 @@ def test_rptext1():
         '      5  Damper 2         4.23522e-01     0.270  Case 1',
         '      6  Damper 3         8.93351e-01     0.260  Case 1',
         '']
-    for i, j in zip(s, sbe):
-        if not j.startswith('Date:'):
-            assert i == j
+    _comp_rpt(s, sbe)
+
+    results['kc_forces'].ext = results['kc_forces'].ext[:, :1]
+    results['kc_forces'].exttime = results['kc_forces'].exttime[:, :1]
+    with StringIO() as f:
+        cla.rptext1(results['kc_forces'], f)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'M A X / M I N  S U M M A R Y',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Date:        22-Jan-2017',
+        '',
+        '  Row    Description       Maximum     X-Value   Case',
+        '-------  -----------    -------------  --------  ------',
+        '      1  Spring 1         1.51883e+00     0.270  Case 1',
+        '      2  Spring 2         1.04111e+00     0.280  Case 1',
+        '      3  Spring 3         1.59375e+00     0.280  Case 1',
+        '      4  Damper 1         1.76099e+00     0.260  Case 1',
+        '      5  Damper 2         4.23522e-01     0.270  Case 1',
+        '      6  Damper 3         8.93351e-01     0.260  Case 1',
+        '']
+    _comp_rpt(s, sbe)
+
+    results['kc_forces'].ext = results['kc_forces'].ext[:, 0]
+    results['kc_forces'].exttime = results['kc_forces'].exttime[:, 0]
+    with StringIO() as f:
+        cla.rptext1(results['kc_forces'], f)
+        s = f.getvalue().split('\n')
+    _comp_rpt(s, sbe)
 
 
 def test_get_numform():
@@ -1591,11 +1624,267 @@ def test_get_numform():
     assert cla._get_numform(np.array([1e10, 1e5])) == '{:13.0f}'
 
 
-# pyyeti/cla.py 1801 127 93% 91, 98, 3758, 3773, 3789, 3805, 3815,
-# 3867, 3882, 3891, 4037, 4078, 4394, 4412-4413, 4415, 4424,
-# 4437-4445, 4450-4458, 4465-4471, 4485, 4509, 4511, 4541, 4582-4602,
-# 4612, 4639, 4658, 4713, 4723, 4735, 4751, 4753, 4755-4756, 4784,
-# 4814-4815, 4820, 4950, 4953, 4956, 4971, 4985-4987, 4996, 5004-5010,
-# 5043-5044, 5046-5047, 5061, 5084, 5128-5135, 5143-5147, 5155,
-# 5166-5170, 5175-5179, 5185, 5192-5194, 5198, 5210-5213, 5215-5218,
-# 5221-5223, 5232-5234, 5279-5281
+def test_rpttab1():
+    (mass, damp, stiff,
+     drms1, uf_reds, defaults, DR) = mass_spring_system()
+
+    # define forces:
+    h = 0.01
+    t = np.arange(0, 1.0, h)
+    f = {0: np.zeros((3, len(t))),
+         1: np.zeros((3, len(t)))}
+    f[0][0, 2:25] = 10.0
+    f[1][0, 2:25] = np.arange(23.0)
+    f[1][0, 25:48] = np.arange(22.0, -1.0, -1.0)
+
+    # initialize results (ext, mnc, mxc for all drms)
+    results = DR.prepare_results('Spring & Damper Forces', 'Steps')
+    # setup solver:
+    ts = ode.SolveUnc(mass, damp, stiff, h, pre_eig=True)
+    for i in range(2):
+        sol = {uf_reds: ts.tsolve(f[i])}
+        case = 'FFN {}'.format(i)
+        # perform data recovery:
+        results.time_data_recovery(sol, None, case, DR, 2, i)
+
+    with StringIO() as f:
+        cla.rpttab1(results['kc_forces'], f, 'Title')
+        s = f.getvalue().split('\n')
+    sbe = [
+        'Title',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Date:        22-Jan-2017',
+        '',
+        'Maximum Responses',
+        '',
+        ' Row     Description       FFN 0         FFN 1        Maximum         Case',
+        '====== =============== ============= ============= ============= =============',
+        '     1 Spring 1         1.518830e+00  1.858805e-01  1.518830e+00 FFN 0',
+        '     2 Spring 2         1.041112e+00  1.335839e-01  1.041112e+00 FFN 0',
+        '     3 Spring 3         1.593752e+00  2.383903e-01  1.593752e+00 FFN 0',
+        '     4 Damper 1         1.760988e+00  3.984896e-01  1.760988e+00 FFN 0',
+        '     5 Damper 2         4.235220e-01  1.315805e-01  4.235220e-01 FFN 0',
+        '     6 Damper 3         8.933514e-01  2.115629e-01  8.933514e-01 FFN 0',
+        '',
+        '',
+        'Minimum Responses',
+        '',
+        ' Row     Description       FFN 0         FFN 1        Minimum         Case',
+        '====== =============== ============= ============= ============= =============',
+        '     1 Spring 1        -5.753157e+00 -9.464095e+00 -9.464095e+00 FFN 1',
+        '     2 Spring 2        -1.931440e+00 -2.116412e+00 -2.116412e+00 FFN 1',
+        '     3 Spring 3        -5.680914e+00 -9.182364e+00 -9.182364e+00 FFN 1',
+        '     4 Damper 1        -1.760881e+00 -3.428864e-01 -1.760881e+00 FFN 0',
+        '     5 Damper 2        -4.116117e-01 -9.167583e-02 -4.116117e-01 FFN 0',
+        '     6 Damper 3        -8.901312e-01 -1.797676e-01 -8.901312e-01 FFN 0',
+        '',
+        '',
+        'Abs-Max Responses',
+        '',
+        ' Row     Description       FFN 0         FFN 1        Abs-Max         Case',
+        '====== =============== ============= ============= ============= =============',
+        '     1 Spring 1        -5.753157e+00 -9.464095e+00 -9.464095e+00 FFN 1',
+        '     2 Spring 2        -1.931440e+00 -2.116412e+00 -2.116412e+00 FFN 1',
+        '     3 Spring 3        -5.680914e+00 -9.182364e+00 -9.182364e+00 FFN 1',
+        '     4 Damper 1         1.760988e+00  3.984896e-01  1.760988e+00 FFN 0',
+        '     5 Damper 2         4.235220e-01  1.315805e-01  4.235220e-01 FFN 0',
+        '     6 Damper 3         8.933514e-01  2.115629e-01  8.933514e-01 FFN 0',
+        '',
+        '',
+        'Extrema Count',
+        'Filter: 1e-06',
+        '',
+        '         Description       FFN 0         FFN 1',
+        '       =============== ============= =============',
+        '       Maxima Count                6             0',
+        '       Minima Count                3             3',
+        '       Max+Min Count               9             3',
+        '       Abs-Max Count               3             3',
+        '',
+        '         Description       FFN 0         FFN 1',
+        '       =============== ============= =============',
+        '       Maxima Percent          100.0           0.0',
+        '       Minima Percent           50.0          50.0',
+        '       Max+Min Percent          75.0          25.0',
+        '       Abs-Max Percent          50.0          50.0',
+        '']
+    _comp_rpt(s, sbe)
+
+    results['kc_forces'].maxcase = None
+    results['kc_forces'].mincase = None
+    with StringIO() as f:
+        cla.rpttab1(results['kc_forces'], f, 'Title')
+        s = f.getvalue().split('\n')
+    sbe2 = sbe[:]
+    for i in range(len(sbe2)):
+        if len(sbe2[i]) > 60 and 'FFN ' in sbe2[i][60:]:
+            sbe2[i] = (sbe2[i].replace('FFN 0', 'N/A').
+                       replace('FFN 1', 'N/A'))
+    _comp_rpt(s, sbe2)
+
+    results['kc_forces'].ext[:] = 0.
+    results['kc_forces'].mn[:] = 0.
+    results['kc_forces'].mx[:] = 0.
+    with StringIO() as f:
+        cla.rpttab1(results['kc_forces'], f, 'Title')
+        s = f.getvalue().split('\n')
+    sbe = [
+        'Title',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Date:        22-Jan-2017',
+        '',
+        'Maximum Responses',
+        '',
+        ' Row     Description       FFN 0         FFN 1        Maximum         Case',
+        '====== =============== ============= ============= ============= =============',
+        '     1 Spring 1         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     2 Spring 2         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     3 Spring 3         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     4 Damper 1         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     5 Damper 2         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     6 Damper 3         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '',
+        '',
+        'Minimum Responses',
+        '',
+        ' Row     Description       FFN 0         FFN 1        Minimum         Case',
+        '====== =============== ============= ============= ============= =============',
+        '     1 Spring 1         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     2 Spring 2         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     3 Spring 3         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     4 Damper 1         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     5 Damper 2         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     6 Damper 3         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '',
+        '',
+        'Abs-Max Responses',
+        '',
+        ' Row     Description       FFN 0         FFN 1        Abs-Max         Case',
+        '====== =============== ============= ============= ============= =============',
+        '     1 Spring 1         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     2 Spring 2         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     3 Spring 3         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     4 Damper 1         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     5 Damper 2         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '     6 Damper 3         0.000000e+00  0.000000e+00  0.000000e+00 zero row',
+        '',
+        '',
+        'Extrema Count',
+        'Filter: 1e-06',
+        '',
+        '         Description       FFN 0         FFN 1',
+        '       =============== ============= =============',
+        '       Maxima Count                0             0',
+        '       Minima Count                0             0',
+        '       Max+Min Count               0             0',
+        '       Abs-Max Count               0             0',
+        '',
+        '         Description       FFN 0         FFN 1',
+        '       =============== ============= =============',
+        '       Maxima Percent            0.0           0.0',
+        '       Minima Percent            0.0           0.0',
+        '       Max+Min Percent           0.0           0.0',
+        '       Abs-Max Percent           0.0           0.0',
+        '']
+    _comp_rpt(s, sbe)
+
+    lbls = results['kc_forces'].drminfo.labels[:]
+    results['kc_forces'].drminfo.labels = lbls[:-1]
+    with StringIO() as f:
+        assert_raises(ValueError, cla.rpttab1,
+                      results['kc_forces'], f, 'Title')
+
+    results['kc_forces'].drminfo.labels = lbls
+    assert_raises(ValueError, cla.rpttab1,
+                  results['kc_forces'], 't.xlsx', 'Title')
+
+
+def test_rptpct1():
+    ext1 = [[120.0, -8.0],
+            [8.0, -120.0]]
+    ext2 = [[115.0, -5.0],
+            [10.0, -125.0]]
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'filterval': np.array([5.0, 1000.])}
+    with StringIO() as f:
+        dct = cla.rptpct1(ext1, ext2, f, **opts)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'PERCENT DIFFERENCE REPORT',
+        '',
+        'Description: No description provided',
+        'Uncertainty: Not specified',
+        'Units:       Not specified',
+        'Filter:      <defined row-by-row>',
+        'Notes:       % Diff = +/- abs(Self-Reference)/max(abs(Reference(max,min)))*100',
+        '             Sign set such that positive % differences indicate exceedances',
+        'Date:        22-Jan-2017',
+        '',
+        '                             Self        Reference                    Self    '
+        '    Reference                    Self        Reference',
+        '  Row    Description       Maximum        Maximum      % Diff       Minimum   '
+        '     Minimum      % Diff       Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  -------    -------------'
+        '  -------------  -------    -------------  -------------  -------',
+        '      1  Row      1         120.00000      115.00000     4.35         -8.00000'
+        '       -5.00000     2.61        120.00000      115.00000     4.35',
+        '      2  Row      2           8.00000       10.00000  n/a           -120.00000'
+        '     -125.00000  n/a            120.00000      125.00000  n/a    ',
+        '',
+        '',
+        '',
+        '    No description provided - Maximum Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         4.00          1    100.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [4.00, 4.00, 4.0000, 0.0000]',
+        '',
+        '',
+        '    No description provided - Minimum Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         3.00          1    100.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [3.00, 3.00, 3.0000, 0.0000]',
+        '',
+        '',
+        '    No description provided - Abs-Max Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         4.00          1    100.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [4.00, 4.00, 4.0000, 0.0000]',
+        '']
+    _comp_rpt(s, sbe)
+    
+
+
+
+    
+# pyyeti/cla.py 1802 117 94% 91, 98, 4395, 4413-4414, 4416, 4425,
+# 4438-4446, 4451-4459, 4466-4472, 4486, 4510, 4512, 4542, 4583-4603,
+# 4613, 4640, 4659, 4714, 4724, 4736, 4752, 4754, 4756-4757, 4785,
+# 4815-4816, 4821, 4951, 4954, 4957, 4972, 4986-4988, 4997, 5005-5011,
+# 5044-5045, 5047-5048, 5062, 5085, 5129-5136, 5144-5148, 5156,
+# 5167-5171, 5176-5180, 5186, 5193-5195, 5199, 5211-5214, 5216-5219,
+# 5222-5224, 5233-5235, 5280-5282
