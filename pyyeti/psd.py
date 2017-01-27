@@ -806,6 +806,10 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
     """
     if nperseg is None:
         nperseg = sr
+    if nperseg > timeslice*sr:
+        raise ValueError(
+            '``nperseg > timeslice*sr``; either decrease `nperseg`'
+            ' or increase `timeslice`')
     welch_inputs = dict(fs=sr, nperseg=nperseg, **kwargs)
     pmap, t, f = dsp.waterfall(sig, sr, timeslice, tsoverlap,
                                signal.welch, which=1, freq=0,

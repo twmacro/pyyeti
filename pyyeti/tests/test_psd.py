@@ -72,6 +72,8 @@ def test_spl():
     # oaspl should be greater than the one above:
     assert oaspl > oaspl1*1.01
 
+    assert_raises(ValueError, psd.spl, x, sr, sr, timeslice=0.5)
+
 
 def test_psd2time():
     spec = np.array([[20,  .0768],
