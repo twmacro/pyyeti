@@ -4771,6 +4771,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         max1, min1 = mxmn1[:, 0], mxmn1[:, 1]
         max2, min2 = mxmn2[:, 0], mxmn2[:, 1]
         mxmn_b = mxmn2 if use_range else None
+        prtpv = np.zeros(R, bool)
         for i in zip(('mx', 'mn', 'amx'),
                      (max1, min1, mx1),
                      (max2, min2, mx2),
@@ -4780,11 +4781,13 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             pctinfo[lbl] = _proc_pct(ext1, ext2, filterval,
                                      mxmn_b=mxmn_b, ismax=ismax,
                                      valhdr=valhdr, **kwargs)
+            prtpv |= pctinfo[lbl]['prtpv']
+        prtpv &= comppv
     else:
         pctinfo['amx'] = _proc_pct(mx1, mx2, filterval,
                                    mxmn_b=None, ismax=True,
                                    valhdr=absmhdr, **kwargs)
-    prtpv = pctinfo['amx']['prtpv']
+        prtpv = pctinfo['amx']['prtpv']
     hu, frm = writer.formheader([headers1, headers2], widths,
                                 formats, sep=seps, just=justs)
 

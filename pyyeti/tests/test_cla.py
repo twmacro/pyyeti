@@ -1924,22 +1924,14 @@ def test_rptpct1_2():
         '             Sign set such that positive % differences indicate exceedances',
         'Date:        23-Jan-2017',
         '',
-        '                             Self        Reference                    Self    '
-        '    Reference                    Self        Reference',
-        '  Row    Description       Maximum        Maximum      % Diff       Minimum   '
-        '     Minimum      % Diff       Abs-Max        Abs-Max      % Diff',
-        '-------  -----------    -------------  -------------  -------    -------------'
-        '  -------------  -------    -------------  -------------  -------',
-        '      1  Spring 1            1.518830       1.509860     0.16        -5.753157'
-        '      -5.603161     2.68         5.753157       5.603161     2.68',
-        '      2  Spring 2            1.041112       1.031179     0.53        -1.931440'
-        '      -1.887905     2.31         1.931440       1.887905     2.31',
-        '      4  Damper 1            1.760988       1.714232     2.73        -1.760881'
-        '      -1.697650     3.69         1.760988       1.714232     2.73',
-        '      5  Damper 2            0.423522       0.415255     1.99        -0.411612'
-        '      -0.399434     2.93         0.423522       0.415255     1.99',
-        '      6  Damper 3            0.893351       0.873861     2.23        -0.890131'
-        '      -0.861630     3.26         0.893351       0.873861     2.23',
+        '                             Self        Reference                    Self        Reference                    Self        Reference',
+        '  Row    Description       Maximum        Maximum      % Diff       Minimum        Minimum      % Diff       Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  -------    -------------  -------------  -------    -------------  -------------  -------',
+        '      1  Spring 1            1.518830       1.509860     0.16        -5.753157      -5.603161     2.68         5.753157       5.603161     2.68',
+        '      2  Spring 2            1.041112       1.031179     0.53        -1.931440      -1.887905     2.31         1.931440       1.887905     2.31',
+        '      4  Damper 1            1.760988       1.714232     2.73        -1.760881      -1.697650     3.69         1.760988       1.714232     2.73',
+        '      5  Damper 2            0.423522       0.415255     1.99        -0.411612      -0.399434     2.93         0.423522       0.415255     1.99',
+        '      6  Damper 3            0.893351       0.873861     2.23        -0.890131      -0.861630     3.26         0.893351       0.873861     2.23',
         '',
         '',
         '',
@@ -1989,14 +1981,356 @@ def test_rptpct1_2():
         '']
     _comp_rpt(s, sbe)
 
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'filterval': 0.3*np.ones(1),
+            'use_range': False}
+    with StringIO() as f:
+        dct = cla.rptpct1(results['FFN 0']['kc_forces'],
+                          results['FFN 1']['kc_forces'],
+                          f, **opts)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'PERCENT DIFFERENCE REPORT',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Filter:      0.3',
+        'Notes:       % Diff = +/- abs((Self-Reference)/Reference)*100',
+        '             Sign set such that positive % differences indicate exceedances',
+        'Date:        30-Jan-2017',
+        '',
+        '                             Self        Reference                    Self    '
+        '    Reference                    Self        Reference',
+        '  Row    Description       Maximum        Maximum      % Diff       Minimum   '
+        '     Minimum      % Diff       Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  -------    -------------'
+        '  -------------  -------    -------------  -------------  -------',
+        '      1  Spring 1            1.518830       1.509860     0.59        -5.753157'
+        '      -5.603161     2.68         5.753157       5.603161     2.68',
+        '      2  Spring 2            1.041112       1.031179     0.96        -1.931440'
+        '      -1.887905     2.31         1.931440       1.887905     2.31',
+        '      4  Damper 1            1.760988       1.714232     2.73        -1.760881'
+        '      -1.697650     3.72         1.760988       1.714232     2.73',
+        '      5  Damper 2            0.423522       0.415255     1.99        -0.411612'
+        '      -0.399434     3.05         0.423522       0.415255     1.99',
+        '      6  Damper 3            0.893351       0.873861     2.23        -0.890131'
+        '      -0.861630     3.31         0.893351       0.873861     2.23',
+        '',
+        '',
+        '',
+        '    Spring & Damper Forces - Maximum Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         1.00          2     40.00',
+        '         2.00          2     40.00',
+        '         3.00          1     20.00',
+        '',
+        '    40.0% of values are within 1%',
+        '    80.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [1.00, 3.00, 1.8000, 0.8367]',
+        '',
+        '',
+        '    Spring & Damper Forces - Minimum Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          1     20.00',
+        '         3.00          3     60.00',
+        '         4.00          1     20.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    20.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 4.00, 3.0000, 0.7071]',
+        '',
+        '',
+        '    Spring & Damper Forces - Abs-Max Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          3     60.00',
+        '         3.00          2     40.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    60.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '']
+    _comp_rpt(s, sbe)
 
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'prtbad': 2.5,
+            'flagbad': 2.7,
+            }
+    with StringIO() as f:
+        dct = cla.rptpct1(results['FFN 0']['kc_forces'],
+                          results['FFN 1']['kc_forces'],
+                          f, **opts)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'PERCENT DIFFERENCE REPORT',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Filter:      1e-06',
+        'Notes:       % Diff = +/- abs(Self-Reference)/max(abs(Reference(max,min)))*100',
+        '             Sign set such that positive % differences indicate exceedances',
+        '             Printing rows where abs(% Diff) > 2.5%',
+        '             Flagging (*) rows where abs(% Diff) > 2.7%',
+        'Date:        30-Jan-2017',
+        '',
+        '                             Self        Reference                     Self        Reference                     Self        Reference',
+        '  Row    Description       Maximum        Maximum      % Diff        Minimum        Minimum      % Diff        Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  --------    -------------  -------------  --------    -------------  -------------  --------',
+        '      1  Spring 1            1.518830       1.509860     0.16         -5.753157      -5.603161     2.68          5.753157       5.603161     2.68 ',
+        '      4  Damper 1            1.760988       1.714232     2.73*        -1.760881      -1.697650     3.69*         1.760988       1.714232     2.73*',
+        '      5  Damper 2            0.423522       0.415255     1.99         -0.411612      -0.399434     2.93*         0.423522       0.415255     1.99 ',
+        '      6  Damper 3            0.893351       0.873861     2.23         -0.890131      -0.861630     3.26*         0.893351       0.873861     2.23 ',
+        '',
+        '',
+        '',
+        '    Spring & Damper Forces - Maximum Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         0.00          1     20.00',
+        '         1.00          1     20.00',
+        '         2.00          2     40.00',
+        '         3.00          1     20.00',
+        '',
+        '    40.0% of values are within 1%',
+        '    80.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [0.00, 3.00, 1.6000, 1.1402]',
+        '',
+        '',
+        '    Spring & Damper Forces - Minimum Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          1     20.00',
+        '         3.00          3     60.00',
+        '         4.00          1     20.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    20.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 4.00, 3.0000, 0.7071]',
+        '',
+        '',
+        '    Spring & Damper Forces - Abs-Max Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          3     60.00',
+        '         3.00          2     40.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    60.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '']
+    _comp_rpt(s, sbe)
 
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'prtbadh': 2.5,
+            'flagbadh': 2.7,
+            }
+    with StringIO() as f:
+        dct = cla.rptpct1(results['FFN 0']['kc_forces'],
+                          results['FFN 1']['kc_forces'],
+                          f, **opts)
+        s = f.getvalue().split('\n')
+    sbe[8] = '             Printing rows where % Diff > 2.5%'
+    sbe[9] = '             Flagging (*) rows where % Diff > 2.7%'
+    _comp_rpt(s, sbe)
 
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'prtbadl': 2.0,
+            'flagbadl': 2.2,
+            }
+    with StringIO() as f:
+        dct = cla.rptpct1(results['FFN 0']['kc_forces'],
+                          results['FFN 1']['kc_forces'],
+                          f, **opts)
+        s = f.getvalue().split('\n')
+    sbe[8] = '             Printing rows where % Diff < 2.0%'
+    sbe[9] = '             Flagging (*) rows where % Diff < 2.2%'
+    sbe[12:19] = [
+        '                             Self        Reference                     Self        Reference                    Self        Reference',
+        '  Row    Description       Maximum        Maximum      % Diff        Minimum        Minimum      % Diff       Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  --------    -------------  -------------  -------    -------------  -------------  --------',
+        '      1  Spring 1            1.518830       1.509860     0.16*        -5.753157      -5.603161     2.68         5.753157       5.603161     2.68 ',
+        '      2  Spring 2            1.041112       1.031179     0.53*        -1.931440      -1.887905     2.31         1.931440       1.887905     2.31 ',
+        '      5  Damper 2            0.423522       0.415255     1.99*        -0.411612      -0.399434     2.93         0.423522       0.415255     1.99*',
+        ]
+    _comp_rpt(s, sbe)
 
-# pyyeti/cla.py 1802 113 94% 91, 98, 4413, 4424, 4437-4445,
-# 4450-4458, 4465-4471, 4485, 4509, 4582-4602, 4612, 4639, 4658, 4713,
-# 4723, 4735, 4751, 4753, 4755-4756, 4784, 4814-4815, 4820, 4950,
-# 4953, 4956, 4971, 4985-4987, 4996, 5004-5010, 5043-5044, 5046-5047,
-# 5061, 5084, 5128-5135, 5143-5147, 5155, 5166-5170, 5175-5179, 5185,
-# 5192-5194, 5198, 5210-5213, 5215-5218, 5221-5223, 5232-5234,
-# 5279-5281
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'prtbadl': 2.0,
+            'flagbadl': 2.2,
+            'doabsmax': True,
+            }
+    with StringIO() as f:
+        dct = cla.rptpct1(results['FFN 0']['kc_forces'],
+                          results['FFN 1']['kc_forces'],
+                          f, **opts)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'PERCENT DIFFERENCE REPORT',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Filter:      1e-06',
+        'Notes:       % Diff = +/- abs((Self-Reference)/Reference)*100',
+        '             Sign set such that positive % differences indicate exceedances',
+        '             Printing rows where % Diff < 2.0%',
+        '             Flagging (*) rows where % Diff < 2.2%',
+        'Date:        30-Jan-2017',
+        '',
+        '                             Self           Self           Self        Reference',
+        '  Row    Description       Maximum        Minimum        Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  -------------  -------------  --------',
+        '      5  Damper 2            0.423522      -0.411612       0.423522       0.415255     1.99*',
+        '',
+        '',
+        '',
+        '    Spring & Damper Forces - Abs-Max Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          3     60.00',
+        '         3.00          2     40.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    60.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '']
+    _comp_rpt(s, sbe)
+
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'prtbadl': 2.0,
+            'flagbadl': 2.2,
+            'shortabsmax': True,
+            }
+    with StringIO() as f:
+        dct = cla.rptpct1(results['FFN 0']['kc_forces'],
+                          results['FFN 1']['kc_forces'],
+                          f, **opts)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'PERCENT DIFFERENCE REPORT',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Filter:      1e-06',
+        'Notes:       % Diff = +/- abs((Self-Reference)/Reference)*100',
+        '             Sign set such that positive % differences indicate exceedances',
+        '             Printing rows where % Diff < 2.0%',
+        '             Flagging (*) rows where % Diff < 2.2%',
+        'Date:        30-Jan-2017',
+        '',
+        '                             Self        Reference',
+        '  Row    Description       Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  --------',
+        '      5  Damper 2            0.423522       0.415255     1.99*',
+        '',
+        '',
+        '',
+        '    Spring & Damper Forces - Abs-Max Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          3     60.00',
+        '         3.00          2     40.00',
+        '',
+        '    0.0% of values are within 1%',
+        '    60.0% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '']
+    _comp_rpt(s, sbe)
+
+    with StringIO() as f:
+        assert_raises(
+            ValueError, cla.rptpct1, results['FFN 0']['kc_forces'],
+            results['FFN 1']['kc_forces'].ext[:4], f, **opts)
+
+    opts = {'domagpct': False,
+            'dohistogram': False,
+            'shortabsmax': True,
+            'ignorepv' : np.array([False, False, True,
+                                   False, True, True]),
+            }
+    drminfo0 = results['FFN 0']['kc_forces'].drminfo
+    drminfo1 = results['FFN 1']['kc_forces'].drminfo
+    drminfo0.labels = drminfo1.labels[:]
+    with StringIO() as f:
+        cla.rptpct1(results['FFN 0']['kc_forces'],
+                    results['FFN 1']['kc_forces'].ext, f, **opts)
+        s = f.getvalue().split('\n')
+    sbe = [
+        'PERCENT DIFFERENCE REPORT',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Filter:      1e-06',
+        'Notes:       % Diff = +/- abs((Self-Reference)/Reference)*100',
+        '             Sign set such that positive % differences indicate exceedances',
+        'Date:        30-Jan-2017',
+        '',
+        '                             Self        Reference',
+        '  Row    Description       Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  -------',
+        '      1  Spring 1            5.753157       5.603161     2.68',
+        '      2  Spring 2            1.931440       1.887905     2.31',
+        '      3  Spring 3            5.680914       5.572208  n/a    ',
+        '      4  Damper 1            1.760988       1.714232     2.73',
+        '      5  Damper 2            0.423522       0.415255  n/a    ',
+        '      6  Damper 3            0.893351       0.873861  n/a    ',
+        '',
+        '',
+        '',
+        '    Spring & Damper Forces - Abs-Max Comparison Histogram',
+        '',
+        '      % Diff      Count    Percent',
+        '     --------   --------   -------',
+        '         2.00          1     33.33',
+        '         3.00          2     66.67',
+        '',
+        '    0.0% of values are within 1%',
+        '    33.3% of values are within 2%',
+        '    100.0% of values are within 5%',
+        '',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.6667, 0.5774]',
+        '']
+    _comp_rpt(s, sbe)
+
+    
+# pyyeti/cla.py 1805 70 96% 91, 98, 4612, 4639, 4658, 4735, 4755-4756,
+# 4823, 4953, 4956, 4959, 4974, 4988-4990, 4999, 5007-5013, 5046-5047,
+# 5049-5050, 5064, 5087, 5131-5138, 5146-5150, 5158, 5169-5173,
+# 5178-5182, 5188, 5195-5197, 5201, 5213-5216, 5218-5221, 5224-5226,
+# 5235-5237, 5282-5284
