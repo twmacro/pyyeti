@@ -4097,7 +4097,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             flagbad=None, flagbadh=None, flagbadl=None,
             dohistogram=True, histogram_inc=1.0,
             domagpct=True, doabsmax=False, shortabsmax=False,
-            roundvals=-1.0, rowhdr='Row', deschdr='Description',
+            roundvals=-1, rowhdr='Row', deschdr='Description',
             maxhdr='Maximum', minhdr='Minimum', absmhdr='Abs-Max',
             perpage=-1):
     """

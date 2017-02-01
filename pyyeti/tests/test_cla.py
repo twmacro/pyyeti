@@ -771,6 +771,7 @@ def compare(pth):
 
         results['extreme']['ifa2'] = results['extreme']['net_ifatm']
 
+        plt.close('all')
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             results['extreme'].rptpct(
@@ -779,21 +780,38 @@ def compare(pth):
             assert 'Some comparisons' in str(w[-1].message)
             assert 'ifa2' in str(w[-1].message)
 
+        plt.close('all')
+        results['extreme'].rptpct(
+            lvc, names=('LSP', 'Contractor'),
+            direc='absmax_compare', doabsmax=True)
 
-def confirm(pth):
-    cmp_files = glob('summary/compare/*.cmp')
-    assert len(cmp_files) == 6
-    for n in cmp_files:
-        with open(n) as f:
-            count = 0
-            for line in f:
-                if '% Diff Statistics:' in line:
-                    count += 1
-                    p = line.index(' = [')
-                    stats = np.array([float(i)
-                                      for i in line[p+4:-2].split(',')])
-                    assert np.all(stats == 0.0)
-        assert count == 3
+
+def confirm():
+    for (direc, cnt) in (('compare', 3),
+                         ('absmax_compare', 1)):
+        cmp_files = glob('summary/{}/*.cmp'.format(direc))
+        assert len(cmp_files) == 6
+        png_files = glob('summary/{}/*.png'.format(direc))
+        assert len(png_files) == 12
+        for n in cmp_files:
+            with open(n) as f:
+                count = 0
+                for line in f:
+                    if '% Diff Statistics:' in line:
+                        count += 1
+                        p = line.index(' = [')
+                        stats = np.array([float(i)
+                                          for i in line[p+4:-2].split(',')])
+                        assert np.all(stats == 0.0)
+            assert count == cnt
+
+
+def do_srs_plots():
+    with cd('summary'):
+        pth = '../' + pth
+        # Load both sets of results and report percent differences:
+        results = cla.load('results.pgz')
+        # FIX: results['extreme'].srs_plots(Q=10, showall=True)
 
 
 def test_transfer_orbit_cla():
@@ -803,13 +821,15 @@ def test_transfer_orbit_cla():
         os.mkdir('temp_cla')
         pth = '../pyyeti/tests/cla_test_data/'
         with cd('temp_cla'):
+            plt.close('all')
             prepare_4_cla(pth)
             toes(pth)
             owlab(pth)
             toeco(pth)
             summarize(pth)
             compare(pth)
-            confirm(pth)
+            confirm()
+            # do_srs_plots()
     finally:
         shutil.rmtree('./temp_cla', ignore_errors=True)
 
@@ -2273,18 +2293,28 @@ def test_rptpct1_2():
     _comp_rpt(s, sbe)
 
     with StringIO() as f:
+        # mxmn2 has different number of rows:
         assert_raises(
             ValueError, cla.rptpct1, results['FFN 0']['kc_forces'],
             results['FFN 1']['kc_forces'].ext[:4], f, **opts)
+
+    drminfo0 = results['FFN 0']['kc_forces'].drminfo
+    drminfo1 = results['FFN 1']['kc_forces'].drminfo
+    drminfo0.labels = drminfo1.labels[:4]
+    with StringIO() as f:
+        # labels is wrong length
+        assert_raises(
+            ValueError, cla.rptpct1, results['FFN 0']['kc_forces'],
+            results['FFN 1']['kc_forces'].ext, f, **opts)
 
     opts = {'domagpct': False,
             'dohistogram': False,
             'shortabsmax': True,
             'ignorepv' : np.array([False, False, True,
                                    False, True, True]),
+            'roundvals': 3,
+            'perpage': 3,
             }
-    drminfo0 = results['FFN 0']['kc_forces'].drminfo
-    drminfo1 = results['FFN 1']['kc_forces'].drminfo
     drminfo0.labels = drminfo1.labels[:]
     with StringIO() as f:
         cla.rptpct1(results['FFN 0']['kc_forces'],
@@ -2304,12 +2334,26 @@ def test_rptpct1_2():
         '                             Self        Reference',
         '  Row    Description       Abs-Max        Abs-Max      % Diff',
         '-------  -----------    -------------  -------------  -------',
-        '      1  Spring 1            5.753157       5.603161     2.68',
-        '      2  Spring 2            1.931440       1.887905     2.31',
-        '      3  Spring 3            5.680914       5.572208  n/a    ',
-        '      4  Damper 1            1.760988       1.714232     2.73',
-        '      5  Damper 2            0.423522       0.415255  n/a    ',
-        '      6  Damper 3            0.893351       0.873861  n/a    ',
+        '      1  Spring 1            5.753000       5.603000     2.68',
+        '      2  Spring 2            1.931000       1.888000     2.28',
+        '      3  Spring 3            5.681000       5.572000  n/a    ',
+        '',
+        'PERCENT DIFFERENCE REPORT',
+        '',
+        'Description: Spring & Damper Forces',
+        'Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1, 1]',
+        'Units:       N',
+        'Filter:      1e-06',
+        'Notes:       % Diff = +/- abs((Self-Reference)/Reference)*100',
+        '             Sign set such that positive % differences indicate exceedances',
+        'Date:        30-Jan-2017',
+        '',
+        '                             Self        Reference',
+        '  Row    Description       Abs-Max        Abs-Max      % Diff',
+        '-------  -----------    -------------  -------------  -------',
+        '      4  Damper 1            1.761000       1.714000     2.74',
+        '      5  Damper 2            0.424000       0.415000  n/a    ',
+        '      6  Damper 3            0.893000       0.874000  n/a    ',
         '',
         '',
         '',
@@ -2328,7 +2372,7 @@ def test_rptpct1_2():
         '']
     _comp_rpt(s, sbe)
 
-    
+
 # pyyeti/cla.py 1805 70 96% 91, 98, 4612, 4639, 4658, 4735, 4755-4756,
 # 4823, 4953, 4956, 4959, 4974, 4988-4990, 4999, 5007-5013, 5046-5047,
 # 5049-5050, 5064, 5087, 5131-5138, 5146-5150, 5158, 5169-5173,
