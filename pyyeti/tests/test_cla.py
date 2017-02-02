@@ -418,6 +418,7 @@ def prepare_4_cla(pth):
         drms = {'cglf': net.cglfa}
         histpv = slice(1)
         srspv = 0
+        srsQs = 10
         drdefs.add(**locals())
 
     @cla.DR_Def.addcat
@@ -766,9 +767,6 @@ def compare(pth):
         lvc = cla.load(pth+'summary/contractor_results_no_srs.pgz')
 
         # to check for warning message, add a category not in lvc:
-        print('keys = ', results['extreme'].keys())
-        print('lvckeys = ', lvc.keys())
-
         results['extreme']['ifa2'] = results['extreme']['net_ifatm']
 
         plt.close('all')
@@ -781,6 +779,9 @@ def compare(pth):
             assert 'ifa2' in str(w[-1].message)
 
         plt.close('all')
+        # modify lvc['cglf'] for testing:
+        lvc['cglf'].ext[0, 0] = 0.57   # cause a -7.3% diff
+        lvc['cglf'].ext[5, 0] = 0.449  # cause a 17.7% diff
         results['extreme'].rptpct(
             lvc, names=('LSP', 'Contractor'),
             direc='absmax_compare', doabsmax=True)
@@ -800,18 +801,59 @@ def confirm():
                     if '% Diff Statistics:' in line:
                         count += 1
                         p = line.index(' = [')
-                        stats = np.array([float(i)
-                                          for i in line[p+4:-2].split(',')])
-                        assert np.all(stats == 0.0)
+                        stats = np.array(
+                            [float(i)
+                             for i in line[p+4:-2].split(',')])
+                        if direc == 'absmax_compare' and 'cglf' in n:
+                            mean = (18-7)/14
+                            std = np.sqrt(((18-mean)**2 + (-7-mean)**2
+                                           + 12*(0-mean)**2)/13)
+                            sbe = np.round([-7.0, 18.0, mean, std], 4)
+                            assert np.allclose(stats, sbe)
+                        else:
+                            assert np.all(stats == 0.0)
             assert count == cnt
 
 
 def do_srs_plots():
     with cd('summary'):
-        pth = '../' + pth
         # Load both sets of results and report percent differences:
         results = cla.load('results.pgz')
-        # FIX: results['extreme'].srs_plots(Q=10, showall=True)
+        with assert_warns(RuntimeWarning) as cm:
+            results['extreme'].srs_plots(
+                Q=33, showall=True, direc='srs2',
+                # drms=['net_ifltm', 'cglf'])
+                drms=['cglf'])
+        the_warning = str(cm.warning)
+        print(the_warning)
+        assert 0 == the_warning.find('no Q=')
+
+        with assert_warns(RuntimeWarning) as cm:
+            results['extreme'].srs_plots(
+                Q=33, showall=True, direc='srs2',
+                drms=['net_ifltm', 'cglf'])
+        the_warning = str(cm.warning)
+        print(the_warning)
+        assert 0 == the_warning.find('no SRS data')
+
+        assert_raises(
+            ValueError, results['extreme'].srs_plots,
+            Q=[10, 33], showall=True, direc='srs2')
+
+        results['extreme'].srs_plots(
+            event='EXTREME',
+            Q=10, showall=True, direc='srs2',
+            drms=['cglf'], showboth=True)
+        assert os.path.exists('srs2/EXTREME.pdf')
+
+
+def do_time_plots():
+    with cd('toeco'):
+        # Load both sets of results and report percent differences:
+        results = cla.load('results.pgz')
+        assert_raises(
+            ValueError, results.resp_plots,
+            direc='time2', cases=['TOECO  1', 'bad case name'])
 
 
 def test_transfer_orbit_cla():
@@ -829,7 +871,8 @@ def test_transfer_orbit_cla():
             summarize(pth)
             compare(pth)
             confirm()
-            # do_srs_plots()
+            do_srs_plots()
+            do_time_plots()
     finally:
         shutil.rmtree('./temp_cla', ignore_errors=True)
 
@@ -2373,8 +2416,6 @@ def test_rptpct1_2():
     _comp_rpt(s, sbe)
 
 
-# pyyeti/cla.py 1805 70 96% 91, 98, 4612, 4639, 4658, 4735, 4755-4756,
-# 4823, 4953, 4956, 4959, 4974, 4988-4990, 4999, 5007-5013, 5046-5047,
-# 5049-5050, 5064, 5087, 5131-5138, 5146-5150, 5158, 5169-5173,
-# 5178-5182, 5188, 5195-5197, 5201, 5213-5216, 5218-5221, 5224-5226,
-# 5235-5237, 5282-5284
+# pyyeti/cla.py 1803 45 98% 91, 98, 5007-5013, 5046-5047, 5049-5050,
+# 5064, 5131-5138, 5146-5150, 5158, 5169-5173, 5182, 5188, 5211-5214,
+# 5216-5219, 5222-5224, 5233-5235, 5280-5282

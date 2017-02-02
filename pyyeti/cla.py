@@ -5187,8 +5187,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             if name not in res:
                 raise ValueError('category {} does not exist.'
                                  .format(name))
-            if event is None:
-                _event = res[name].event
             if issrs:
                 if 'srs' not in res[name].__dict__:
                     if drms and name in drms:
@@ -5227,7 +5225,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
 
             (labels, rowpv, maxlen,
              sname, srstype, lbl,
-             units, _cases) = _set_vars(res, name, _event, showall,
+             units, _cases) = _set_vars(res, name, event, showall,
                                         showboth, cases)
 
             if fmt == 'pdf' and onepdf and pdffile is None:
