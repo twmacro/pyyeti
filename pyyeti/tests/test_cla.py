@@ -405,7 +405,7 @@ def prepare_4_cla(pth):
         prog = re.compile(' [2]-[1]')
         histpv = [i for i, s in enumerate(atm_labels)
                   if prog.search(s)]
-        srspv = histpv
+        srspv = np.arange(4)
         srsopts = dict(eqsine=1, ic='steady')
         drdefs.add(**locals())
 
@@ -816,6 +816,7 @@ def confirm():
 
 
 def do_srs_plots():
+    plt.close('all')
     with cd('summary'):
         # Load both sets of results and report percent differences:
         results = cla.load('results.pgz')
@@ -846,8 +847,14 @@ def do_srs_plots():
             drms=['cglf'], showboth=True)
         assert os.path.exists('srs2/EXTREME.pdf')
 
+        results['extreme'].srs_plots(
+            Q=10, showall=True, direc='srs3',
+            layout=(2, 1))
+        # assert os.path.exists('srs2/EXTREME.pdf')
+
 
 def do_time_plots():
+    plt.close('all')
     with cd('toeco'):
         # Load both sets of results and report percent differences:
         results = cla.load('results.pgz')

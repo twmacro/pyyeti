@@ -4903,9 +4903,10 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         `onepdf` is a string. Otherwise, each figure is saved to its
         own file named as described above.
     layout : 2-element tuple/list; optional
-        Subplot layout, eg: (2, 3) for 2 rows by 3 columns
+        Subplot layout, eg: (2, 3) for 2 rows by 3 columns. See also
+        `figsize`.
     figsize : 2-element tuple/list; optional
-        Define page size in inches.
+        Define page size in inches. See also `layout`.
     showall : bool or None; optional
         If True, show all SRS curves for all cases; otherwise just
         plot envelope. If None and `showboth` is True, `showall`
@@ -5163,14 +5164,16 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     rows = layout[0]
     cols = layout[1]
     perpage = rows*cols
-    if cols > rows:
-        orientation = 'landscape'
-        if figsize[0] < figsize[1]:
-            figsize = figsize[1], figsize[0]
-    else:
-        orientation = 'portrait'
-        if figsize[0] > figsize[1]:
-            figsize = figsize[1], figsize[0]
+    orientation = ('landscape' if figsize[0] > figsize[1]
+                   else 'portrait')
+    # if cols > rows:
+    #     orientation = 'landscape'
+    #     if figsize[0] < figsize[1]:
+    #         figsize = figsize[1], figsize[0]
+    # else:
+    #     orientation = 'portrait'
+    #     if figsize[0] > figsize[1]:
+    #         figsize = figsize[1], figsize[0]
 
     if drms is None:
         alldrms = sorted(list(res))
@@ -5273,9 +5276,16 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     plt.tight_layout(pad=3, w_pad=2.0, h_pad=2.0)
                     if len(adjust4legend) > 0:
                         if sub_right is None:
-                            # try every 4 chars = 0.03
+                            # try every 4 chars = 0.05
+                            # - that is based on trial and error with
+                            #   11 inch width
+                            # - scale up for thinner paper (words take
+                            #   up bigger percentage)
+                            w = 0.05*11.0/figsize[0]
                             n4s = adjust4legend[1] // 4 + 1
-                            _sub_right = 0.94 - 0.03 * n4s
+                            ax = plt.subplot(rows, cols, cols)
+                            pos = ax.get_position()
+                            _sub_right = pos.xmax - w * n4s
                             if _sub_right < 0.5:
                                 _sub_right = 0.8
                         else:
