@@ -849,8 +849,21 @@ def do_srs_plots():
 
         results['extreme'].srs_plots(
             Q=10, showall=True, direc='srs3',
-            layout=(2, 1))
-        # assert os.path.exists('srs2/EXTREME.pdf')
+            layout=(2, 1), onepdf=False)
+        files = [
+            'alphajoint_eqsine_all.pdf',
+            'cglf_srs_all.pdf',
+            'net_ifatm_0rb_eqsine_all.pdf',
+            'net_ifatm_eqsine_all.pdf',
+            'scatm_eqsine_all_0.pdf',
+            'scatm_eqsine_all_1.pdf']
+        for f in files:
+            assert os.path.exists('srs3/'+f)
+
+        results['extreme'].srs_plots(
+            Q=10, showall=True, direc='srs3',
+            layout=(2, 1), onepdf='srs3_onepdf_file')
+        assert os.path.exists('srs3/srs3_onepdf_file.pdf')
 
 
 def do_time_plots():
@@ -2423,6 +2436,6 @@ def test_rptpct1_2():
     _comp_rpt(s, sbe)
 
 
-# pyyeti/cla.py 1803 45 98% 91, 98, 5007-5013, 5046-5047, 5049-5050,
-# 5064, 5131-5138, 5146-5150, 5158, 5169-5173, 5182, 5188, 5211-5214,
-# 5216-5219, 5222-5224, 5233-5235, 5280-5282
+# pyyeti/cla.py 1803 31 98% 91, 98, 5050-5051, 5065, 5132-5139,
+# 5147-5151, 5159, 5185, 5191, 5214-5217, 5219-5222, 5225-5227,
+# 5290-5292

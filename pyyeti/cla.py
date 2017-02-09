@@ -4900,7 +4900,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         If `onepdf` evaluates to True and `fmt` is 'pdf', all plots
         are written to one file where the name is either: `event` +
         ".pdf" if `onepdf` is a bool type, or `onepdf` + ".pdf" if
-        `onepdf` is a string. Otherwise, each figure is saved to its
+        `onepdf` is a string. If False, each figure is saved to its
         own file named as described above.
     layout : 2-element tuple/list; optional
         Subplot layout, eg: (2, 3) for 2 rows by 3 columns. See also
@@ -5299,9 +5299,13 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     elif fmt:
                         fname = os.path.join(direc,
                                              prefix+'.'+fmt)
-                        plt.savefig(fname, format=fmt,
-                                    orientation=orientation,
-                                    dpi=200, bbox_inches='tight')
+                        if fmt != 'pdf':
+                            kwargs = dict(
+                                orientation=orientation,
+                                dpi=200, bbox_inches='tight')
+                        else:
+                            kwargs = {}
+                        plt.savefig(fname, format=fmt, **kwargs)
     finally:
         if pdffile:
             pdffile.close()
