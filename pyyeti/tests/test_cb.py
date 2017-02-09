@@ -269,9 +269,7 @@ def comptable(s1, s2, j, col=0, label=None, skip=0, sort2=0):
     if sort2:
         table2 = np.sort(table2, axis=1)
     j[0] = min(nj1, nj2)
-    print('table1 =\n', table1)
-    print('table2 =\n', table2)
-    return np.allclose(table1, table2, atol=1e-2)
+    return np.allclose(table1, table2, atol=5e-2)
 
 
 def compare_cbcheck_output(s, sy):

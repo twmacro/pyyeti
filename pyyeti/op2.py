@@ -1975,48 +1975,48 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
 
     'nrb' : integer
         The number of rigid-body modes for residual.
-    'ulvs' : dictionary indexed be SE
+    'ulvs' : dictionary indexed by SE
         The ULVS matrices (row partitions of residual modes to the
         A-set DOF of the SE).
-    'lambda' : dictionary indexed be SE
+    'lambda' : dictionary indexed by SE
         The eigenvalues for each SE.
-    'gm' : dictionary indexed be SE
+    'gm' : dictionary indexed by SE
         N-set to M-set transformation matrix GM:  M = GM N.
-    'got' : dictionary indexed be SE
+    'got' : dictionary indexed by SE
         constraint modes
-    'goq' : dictionary indexed be SE
+    'goq' : dictionary indexed by SE
         normal modes
-    'rfmodes' : dictionary indexed be SE
+    'rfmodes' : dictionary indexed by SE
         index partition vector for res-flex modes
-    'maa' : dictionary indexed be SE
+    'maa' : dictionary indexed by SE
         A-set mass
-    'baa' : dictionary indexed be SE
+    'baa' : dictionary indexed by SE
         A-set damping
-    'kaa' : dictionary indexed be SE
+    'kaa' : dictionary indexed by SE
         A-set stiffness
-    'pha' : dictionary indexed be SE
+    'pha' : dictionary indexed by SE
         A-set modes
-    'mdd' : dictionary indexed be SE
+    'mdd' : dictionary indexed by SE
         D-set mass
-    'bdd' : dictionary indexed be SE
+    'bdd' : dictionary indexed by SE
         D-set damping
-    'kdd' : dictionary indexed be SE
+    'kdd' : dictionary indexed by SE
         D-set stiffness
-    'pdt' : dictionary indexed be SE
+    'pdt' : dictionary indexed by SE
         D-set loads
-    'mgg' : dictionary indexed be SE
+    'mgg' : dictionary indexed by SE
         G-set mass
-    'kgg' : dictionary indexed be SE
+    'kgg' : dictionary indexed by SE
         G-set stiffness
-    'phg' : dictionary indexed be SE
+    'phg' : dictionary indexed by SE
         G-set mode shape matrix
-    'rbg' : dictionary indexed be SE
+    'rbg' : dictionary indexed by SE
         G-set rigid-body modes; see also drg output and rbgeom_uset
-    'drg' : dictionary indexed be SE
+    'drg' : dictionary indexed by SE
         G-set transpose of rigid-body modes; see also 'rbg' and
         :func:`pyyeti.n2p.rbgeom_uset`.  `drg` = `rbg.T` if both are
         present.
-    'pg' : dictionary indexed be SE
+    'pg' : dictionary indexed by SE
         G-set loads
     'fgravh' : array
         gravity on generalized dof for se 0
