@@ -4656,8 +4656,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                               (pv2, 'r')):
                     for i in pv:
                         colors[i] = c
-                plt.bar(x-width/2, y,
-                        width=width, color=colors)
+                plt.bar(x, y, width=width, color=colors,
+                        align='center')
                 plt.title(ptitle.format(hdr))
                 plt.xlabel(xl)
                 plt.ylabel(yl)
