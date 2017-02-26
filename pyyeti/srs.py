@@ -961,7 +961,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         >>> _ = plt.legend(loc='best')
         >>> ttl = '85 Hz peak should approach 150'
         >>> _ = plt.title(ttl)
-        >>> _ = plt.grid()
+        >>> _ = plt.grid(True)
     """
     (coeffunc, methfunc,
      rollfunc, ptr) = _process_inputs(stype, peak, rolloff, time)

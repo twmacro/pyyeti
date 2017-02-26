@@ -6,8 +6,19 @@ output files created by this class are always double precision, and
 all matrices are read in as double precision. The binary files can be
 in big or little endian format.
 
-Currently, all matrices are read into dense (non-sparse format)
-matrices even if they were written in a sparse format.
+Notes on sparse matrices:
+
+  1. By default, matrices read from .op4 files will be regular
+     `numpy.ndarray` matrices. However, `scipy.sparse` matrices can be
+     created instead. See the `sparse` option in :func:`read` and
+     :func:`load`.
+
+  2. By default, matrices written to .op4 files will follow the Python
+     type: `numpy.ndarray` matrices will be written in dense format
+     and `scipy.sparse` matrices will be written in "bigmat" sparse
+     format. This can be overridden by specifying the `sparse` option
+     in :func:`write`.
+
 """
 
 import itertools as it
@@ -15,21 +26,8 @@ import struct
 import sys
 import warnings
 import numpy as np
+import scipy.sparse as sp
 from pyyeti import guitools
-
-
-def _view_as_complex(X):
-    """
-    Bug avoidance for numpy version 1.10.1??
-
-    Previously, just saying ``X.dtype = complex`` worked.
-    """
-    if X.shape[1] == 1:
-        X.shape = X.shape[0]
-        X.dtype = complex
-        X.shape = (-1, 1)
-    else:
-        X.dtype = complex
 
 
 class OP4(object):
@@ -283,7 +281,8 @@ class OP4(object):
                 c = int(line[:8]) - 1
         self._fileh.readline()
 
-    def _check_name(self, name):
+    @staticmethod
+    def _check_name(name):
         """
         Check name read from op4 file and put '_' on front if needed.
 
@@ -296,7 +295,201 @@ class OP4(object):
                           RuntimeWarning)
         return name
 
-    def _loadop4_ascii(self, patternlist=None, listonly=False):
+    def _get_ascii_block(self, L, perline, linelen):
+        fh = self._fileh
+        nlines = (L - 1) // perline + 1
+        blocklist = [ln[:linelen] for ln in it.islice(fh, nlines)]
+        s = ''.join(blocklist)
+        if self._dformat:
+            s = s.replace('D', 'E')
+        return s
+
+    @staticmethod
+    def _init_dense_real(rows, cols):
+        return np.zeros((rows, cols), dtype=float, order='F')
+
+    @staticmethod
+    def _init_dense_complex(rows, cols):
+        return np.zeros((rows, cols), dtype=complex, order='F')
+
+    @staticmethod
+    def _put_ascii_values(X, r, c, s, L, numlen):
+        a = 0
+        for i in range(L):
+            b = a + numlen
+            X[r+i, c] = s[a:b]
+            a = b
+
+    @staticmethod
+    def _put_ascii_values_c(X, r, c, s, L, numlen):
+        a = 0
+        for i in range(L // 2):
+            b = a + numlen
+            real = float(s[a:b])
+            a = b
+            b = a + numlen
+            imag = float(s[a:b])
+            a = b
+            X[r+i, c] = real+1j*imag
+
+    @staticmethod
+    def _dense_matrix(rows, cols, X):
+        return X
+
+    @staticmethod
+    def _init_sparse(rows, cols):
+        return [], [], []
+
+    @staticmethod
+    def _put_ascii_values_sparse(X, r, c, s, L, numlen):
+        I, J, V = X
+        a = 0
+        for i in range(L):
+            b = a + numlen
+            I.append(r+i)
+            J.append(c)
+            V.append(float(s[a:b]))
+            a = b
+
+    @staticmethod
+    def _put_ascii_values_sparse_c(X, r, c, s, L, numlen):
+        I, J, V = X
+        a = 0
+        for i in range(L // 2):
+            b = a + numlen
+            real = float(s[a:b])
+            a = b
+            b = a + numlen
+            imag = float(s[a:b])
+            a = b
+            I.append(r+i)
+            J.append(c)
+            V.append(real+1j*imag)
+
+    @staticmethod
+    def _sparse_matrix(rows, cols, X):
+        I, J, V = X
+        return sp.coo_matrix((V, (I, J)), shape=(rows, cols))
+
+    def _rd_dense_ascii(self, wper, r, c, rows, cols, line,
+                        numlen, perline, linelen, funcs):
+        init, put, retrn = funcs
+        X = init(rows, cols)
+        while c < cols:
+            elems = int(line[16:24])
+            r -= 1
+            # read column as a long string
+            s = self._get_ascii_block(elems, perline, linelen)
+            put(X, r, c, s, elems, numlen)
+            line = self._fileh.readline()
+            c = int(line[:8]) - 1
+            r = int(line[8:16])
+        return retrn(rows, cols, X)
+
+    def _rd_bigmat_ascii(self, wper, r, c, rows, cols, line,
+                         numlen, perline, linelen, funcs):
+        init, put, retrn = funcs
+        X = init(rows, cols)
+        while c < cols:
+            elems = int(line[16:24])
+            while elems > 0:
+                line = self._fileh.readline()
+                L = int(line[:8])-1    # L
+                r = int(line[8:16])-1  # irow-1
+                elems -= L + 2
+                L //= wper
+                s = self._get_ascii_block(L, perline, linelen)
+                put(X, r, c, s, L, numlen)
+            line = self._fileh.readline()
+            c = int(line[:8]) - 1
+            # r = int(line[8:16])
+        return retrn(rows, cols, X)
+
+    def _rd_nonbigmat_ascii(self, wper, r, c, rows, cols, line,
+                            numlen, perline, linelen, funcs):
+        init, put, retrn = funcs
+        X = init(rows, cols)
+        while c < cols:
+            elems = int(line[16:24])
+            while elems > 0:
+                line = self._fileh.readline()
+                IS = int(line)  # [:8])
+                L = (IS >> 16) - 1        # L
+                r = IS - ((L+1) << 16)-1  # irow-1
+                elems -= L + 1
+                L //= wper
+                s = self._get_ascii_block(L, perline, linelen)
+                put(X, r, c, s, L, numlen)
+            line = self._fileh.readline()
+            c = int(line[:8]) - 1
+            # r = int(line[8:16])
+        return retrn(rows, cols, X)
+
+    def _get_funcs(self, a_or_b, rows, r, mtype, sparse):
+        if a_or_b == 'ascii':
+            rd_dense = self._rd_dense_ascii
+            rd_bigmat = self._rd_bigmat_ascii
+            rd_nonbigmat = self._rd_nonbigmat_ascii
+            put_values = OP4._put_ascii_values
+            put_values_c = OP4._put_ascii_values_c
+            put_values_sparse = OP4._put_ascii_values_sparse
+            put_values_sparse_c = OP4._put_ascii_values_sparse_c
+        else:
+            rd_dense = self._rd_dense_binary
+            rd_bigmat = self._rd_bigmat_binary
+            rd_nonbigmat = self._rd_nonbigmat_binary
+            put_values = OP4._put_binary_values
+            put_values_c = OP4._put_binary_values_c
+            put_values_sparse = OP4._put_binary_values_sparse
+            put_values_sparse_c = OP4._put_binary_values_sparse_c
+
+        if self._rows4bigmat > rows > 0 and r > 0:
+            # dense format
+            rdfunc = rd_dense
+            if sparse is None:
+                sparse = False
+        else:
+            # either bigmat or nonbigmat sparse format:
+            if sparse is None:
+                sparse = True
+            if rows < 0 or rows >= self._rows4bigmat:
+                # bigmat sparse format
+                rdfunc = rd_bigmat
+            else:
+                # nonbigmat sparse format
+                rdfunc = rd_nonbigmat
+
+        if not sparse:
+            if mtype < 3:
+                funcs = (OP4._init_dense_real,
+                         put_values,
+                         OP4._dense_matrix)
+            else:
+                # uses "real" put function because matrix is read as
+                # real and converted at the end to complex via a view
+                funcs = (OP4._init_dense_complex,
+                         put_values_c,
+                         OP4._dense_matrix)
+        else:
+            if mtype < 3:
+                put = put_values_sparse
+            else:
+                put = put_values_sparse_c
+            funcs = (OP4._init_sparse,
+                     put,
+                     OP4._sparse_matrix)
+        return rdfunc, funcs
+
+    @staticmethod
+    def _get_sparsefunc(sparse):
+        try:
+            sparse, sparsefunc = sparse
+        except TypeError:
+            sparsefunc = None
+        return sparse, sparsefunc
+
+    def _loadop4_ascii(self, patternlist=None, listonly=False,
+                       sparse=False):
         """
         Reads next matching matrix or returns information on the next
         matrix in the ascii op4 file.
@@ -309,6 +502,32 @@ class OP4(object):
             is read in.
         listonly : bool
             True if only reading name.
+        sparse : bool or None or two-tuple-like; optional
+            Specifies whether output matrices will be regular numpy
+            arrays or sparse arrays. If not tuple-like:
+
+            ========   ===============================================
+            `sparse`   Action
+            ========   ===============================================
+             None      Auto setting: each matrix will be sparse if and
+                       only if it was written in a sparse format
+             True      Matrices will be returned in sparse format
+             False     Matrices will be returned in regular (dense)
+                       numpy arrays
+            ========   ===============================================
+
+            If `sparse` is two-tuple-like, the first element is either
+            None, True, or False (see table above) and the second
+            element is a callable, as in: ``X = callable(X)``. A
+            common usage of the callable would be to convert from
+            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
+            a more desirable form. For example, to ensure *all*
+            matrices are returned in CSR form (see
+            :func:`scipy.sparse.csr_matrix`) use::
+
+                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+
+            The callable is ignored for non-sparse matrices.
 
         Returns
         -------
@@ -322,10 +541,14 @@ class OP4(object):
             mtype : integer
                 Nastran matrix type.
 
-        Notes:
+        Notes
+        -----
         - All outputs will be None if reached EOF.
         - The `matrix` output will be [rows, cols] of the matrix if
           the matrix is skipped.
+        - The default form for sparse matrices is the "COO" sparse
+          form (see :func:`scipy.sparse.coo_matrix`). To override,
+          provide a callable in the `sparse` option (see above).
         """
         while 1:
             line = self._fileh.readline()
@@ -364,104 +587,21 @@ class OP4(object):
             else:
                 break
 
-        if rows < 0 or rows >= self._rows4bigmat:
-            rows = abs(rows)
-            bigmat = True
-        else:
-            bigmat = False
-
-        if mtype > 2:
-            # complex matrix ... just read as if it's real rows *= 2
-            # (must also use fortran ordering for this to work)
-            multiplier = 2
-        else:
-            multiplier = 1
-
-        # real matrix
-        X = np.zeros((rows*multiplier, cols), dtype=float, order='F')
-        if mtype & 1:
-            wper = 1
-        else:
-            wper = 2
-
+        wper = 1 if mtype & 1 else 2
         line = self._fileh.readline()
         linelen = perline * numlen
         c = int(line[:8]) - 1
         r = int(line[8:16])
-        if r > 0:
-            while c < cols:
-                elems = int(line[16:24])
-                r = (r-1)*multiplier
-                # read column as a long string
-                nlines = (elems - 1) // perline
-                blocklist = [ln[:linelen]
-                             for ln in it.islice(self._fileh,
-                                                 nlines)]
-                s = ''.join(blocklist) + self._fileh.readline()
-                if self._dformat:
-                    s = s.replace('D', 'E')
-                a = 0
-                for i in range(elems):
-                    b = a + numlen
-                    X[r+i, c] = s[a:b]
-                    a = b
-                line = self._fileh.readline()
-                c = int(line[:8]) - 1
-                r = int(line[8:16])
-        elif bigmat:
-            while c < cols:
-                elems = int(line[16:24])
-                while elems > 0:
-                    line = self._fileh.readline()
-                    L = int(line[:8])-1    # L
-                    r = int(line[8:16])-1  # irow-1
-                    elems -= L + 2
-                    r *= multiplier
-                    L //= wper
-                    nlines = (L - 1) // perline
-                    blocklist = [ln[:linelen]
-                                 for ln in it.islice(self._fileh,
-                                                     nlines)]
-                    s = ''.join(blocklist) + self._fileh.readline()
-                    if self._dformat:
-                        s = s.replace('D', 'E')
-                    a = 0
-                    for i in range(L):
-                        b = a + numlen
-                        X[r+i, c] = s[a:b]
-                        a = b
-                line = self._fileh.readline()
-                c = int(line[:8]) - 1
-                r = int(line[8:16])
-        else:
-            while c < cols:
-                elems = int(line[16:24])
-                while elems > 0:
-                    line = self._fileh.readline()
-                    IS = int(line)  # [:8])
-                    L = (IS >> 16) - 1        # L
-                    r = IS - ((L+1) << 16)-1  # irow-1
-                    elems -= L + 1
-                    r *= multiplier
-                    L //= wper
-                    nlines = (L - 1) // perline
-                    blocklist = [ln[:linelen]
-                                 for ln in it.islice(self._fileh,
-                                                     nlines)]
-                    s = ''.join(blocklist) + self._fileh.readline()
-                    if self._dformat:
-                        s = s.replace('D', 'E')
-                    a = 0
-                    for i in range(L):
-                        b = a + numlen
-                        X[r+i, c] = s[a:b]
-                        a = b
-                line = self._fileh.readline()
-                c = int(line[:8]) - 1
-                r = int(line[8:16])
+        sparse, sparsefunc = OP4._get_sparsefunc(sparse)
+
+        rdfunc, funcs = self._get_funcs(
+            'ascii', rows, r, mtype, sparse)
+        X = rdfunc(wper, r, c, abs(rows), cols, line, numlen,
+                   perline, linelen, funcs)
+
+        if sparsefunc and sp.issparse(X):
+            X = sparsefunc(X)
         self._fileh.readline()
-        if mtype > 2:
-            _view_as_complex(X)
         return name, X, form, mtype
 
     def _skipop4_binary(self, cols):
@@ -484,7 +624,124 @@ class OP4(object):
             icol = self._Str_i.unpack(self._fileh.read(bi))[0]
             self._fileh.seek(reclen + delta, 1)
 
-    def _loadop4_binary(self, patternlist=None, listonly=False):
+    def _get_cutoff_etc(self):
+        return (self._rowsCutoff, self._Str_iii.unpack,
+                self._bytes_iii, self._Str_i4.unpack,)
+
+    def _get_s2(self):
+        return self._Str_ii.unpack, self._bytes_ii
+
+    def _get_s1(self):
+        return self._Str_i.unpack, self._bytes_i
+
+    @staticmethod
+    def _put_binary_values(X, r, c, Y):
+        X[r:r+len(Y), c] = Y
+
+    @staticmethod
+    def _put_binary_values_c(X, r, c, Y):
+        if not isinstance(Y, np.ndarray):
+            Y = np.array(Y)
+        Y = Y.astype('float', copy=False)
+        Y.dtype = complex
+        X[r:r+len(Y), c] = Y
+
+    @staticmethod
+    def _put_binary_values_sparse(X, r, c, Y):
+        I, J, V = X
+        for i, v in enumerate(Y):
+            I.append(r+i)
+            J.append(c)
+            V.append(v)
+
+    @staticmethod
+    def _put_binary_values_sparse_c(X, r, c, Y):
+        I, J, V = X
+        for i, j in enumerate(range(0, len(Y), 2)):
+            I.append(r+i)
+            J.append(c)
+            V.append(Y[j] + 1j*Y[j+1])
+
+    def _rd_dense_binary(self, fp, wper, r, c, rows, cols,
+                         nwords, reclen, bytesreal, numform,
+                         numform2, funcs):
+        init, put, retrn = funcs
+        X = init(rows, cols)
+        cutoff, s3, b3, s4 = self._get_cutoff_etc()
+        while c < cols:
+            r -= 1
+            nwords //= wper
+            if nwords < cutoff:
+                Y = struct.unpack(
+                    numform % nwords, fp.read(bytesreal*nwords))
+            else:
+                Y = np.fromfile(fp, numform2, nwords)
+            put(X, r, c, Y)
+            fp.read(4)
+            reclen = s4(fp.read(4))[0]
+            c, r, nwords = s3(fp.read(b3))
+            c -= 1
+        return retrn(rows, cols, X), reclen
+
+    def _rd_bigmat_binary(self, fp, wper, r, c, rows, cols,
+                          nwords, reclen, bytesreal, numform,
+                          numform2, funcs):
+        init, put, retrn = funcs
+        X = init(rows, cols)
+        cutoff, s3, b3, s4 = self._get_cutoff_etc()
+        s2, b2 = self._get_s2()
+        while c < cols:
+            # bigmat sparse format
+            # Read column data, one string of numbers at a time
+            # (strings of zeros are skipped)
+            while nwords > 0:
+                L, r = s2(fp.read(b2))
+                nwords -= L + 1
+                L = (L-1) // wper
+                r -= 1
+                if L < cutoff:
+                    Y = struct.unpack(
+                        numform % L, fp.read(bytesreal*L))
+                else:
+                    Y = np.fromfile(fp, numform2, L)
+                put(X, r, c, Y)
+            fp.read(4)
+            reclen = s4(fp.read(4))[0]
+            c, r, nwords = s3(fp.read(b3))
+            c -= 1
+        return retrn(rows, cols, X), reclen
+
+    def _rd_nonbigmat_binary(self, fp, wper, r, c, rows, cols,
+                             nwords, reclen, bytesreal, numform,
+                             numform2, funcs):
+        init, put, retrn = funcs
+        X = init(rows, cols)
+        cutoff, s3, b3, s4 = self._get_cutoff_etc()
+        s1, b1 = self._get_s1()
+        while c < cols:
+            # non-bigmat sparse format
+            # Read column data, one string of numbers at a time
+            # (strings of zeros are skipped)
+            while nwords > 0:
+                IS = s1(fp.read(b1))[0]
+                L = (IS >> 16) - 1             # L
+                r = IS - ((L+1) << 16) - 1     # irow-1
+                nwords -= L + 1                # words left
+                L //= wper
+                if L < cutoff:
+                    Y = struct.unpack(
+                        numform % L, fp.read(bytesreal*L))
+                else:
+                    Y = np.fromfile(fp, numform2, L)
+                put(X, r, c, Y)
+            fp.read(4)
+            reclen = s4(fp.read(4))[0]
+            c, r, nwords = s3(fp.read(b3))
+            c -= 1
+        return retrn(rows, cols, X), reclen
+
+    def _loadop4_binary(self, patternlist=None, listonly=False,
+                        sparse=False):
         """
         Reads next matching matrix or returns information on the next
         matrix in the binary op4 file.
@@ -497,6 +754,32 @@ class OP4(object):
             is read in.
         listonly : bool
             True if only reading name.
+        sparse : bool or None or two-tuple-like; optional
+            Specifies whether output matrices will be regular numpy
+            arrays or sparse arrays. If not two-tuple-like:
+
+            ========   ===============================================
+            `sparse`   Action
+            ========   ===============================================
+             None      Auto setting: each matrix will be sparse if and
+                       only if it was written in a sparse format
+             True      Matrices will be returned in sparse format
+             False     Matrices will be returned in regular (dense)
+                       numpy arrays
+            ========   ===============================================
+
+            If `sparse` is two-tuple-like, the first element is either
+            None, True, or False (see table above) and the second
+            element is a callable, as in: ``X = callable(X)``. A
+            common usage of the callable would be to convert from
+            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
+            a more desirable form. For example, to ensure *all*
+            matrices are returned in CSR form (see
+            :func:`scipy.sparse.csr_matrix`) use::
+
+                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+
+            The callable is ignored for non-sparse matrices.
 
         Returns
         -------
@@ -539,20 +822,14 @@ class OP4(object):
             else:
                 break
 
-        if rows < 0 or rows >= self._rows4bigmat:
-            rows = abs(rows)
-            bigmat = True
-        else:
-            bigmat = False
-        if mtype > 2:
-            # complex matrix ... just read as if it's real rows *= 2
-            # (must also use fortran ordering for this to work)
-            multiplier = 2
-        else:
-            multiplier = 1
+        reclen = self._Str_i4.unpack(fp.read(4))[0]
+        c, r, nwords = self._Str_iii.unpack(
+            fp.read(self._bytes_iii))
+        c -= 1
+        sparse, sparsefunc = OP4._get_sparsefunc(sparse)
 
-        # real matrix
-        X = np.zeros((rows*multiplier, cols), dtype=float, order='F')
+        rdfunc, funcs = self._get_funcs(
+            'binary', rows, r, mtype, sparse)
         if mtype & 1:
             numform = self._str_sr
             numform2 = self._str_sr_fromfile
@@ -564,85 +841,28 @@ class OP4(object):
             bytesreal = 8
             wper = self._wordsperdouble
 
-        reclen = self._Str_i4.unpack(fp.read(4))[0]
-        c, r, nwords =\
-            self._Str_iii.unpack(fp.read(self._bytes_iii))
-        c -= 1
-        if r > 0:  # non sparse format
-            while c < cols:
-                r = (r-1)*multiplier
-                nwords //= wper
-                if nwords < self._rowsCutoff:
-                    X[r:r+nwords, c] =\
-                        struct.unpack(numform % nwords,
-                                      fp.read(bytesreal*nwords))
-                else:
-                    X[r:r+nwords, c] = np.fromfile(fp, numform2,
-                                                   nwords)
-                fp.read(4)
-                reclen = self._Str_i4.unpack(fp.read(4))[0]
-                c, r, nwords =\
-                    self._Str_iii.unpack(fp.read(self._bytes_iii))
-                c -= 1
-        elif bigmat:
-            while c < cols:
-                # bigmat sparse format
-                # Read column data, one string of numbers at a time
-                # (strings of zeros are skipped)
-                while nwords > 0:
-                    L, r = self._Str_ii.unpack(fp.read(self._bytes_ii))
-                    nwords -= L + 1
-                    L = (L-1) // wper
-                    r = (r-1) * multiplier
-                    if L < self._rowsCutoff:
-                        X[r:r+L, c] =\
-                            struct.unpack(numform % L,
-                                          fp.read(bytesreal*L))
-                    else:
-                        X[r:r+L, c] = np.fromfile(fp, numform2, L)
-                fp.read(4)
-                reclen = self._Str_i4.unpack(fp.read(4))[0]
-                c, r, nwords =\
-                    self._Str_iii.unpack(fp.read(self._bytes_iii))
-                c -= 1
-        else:
-            while c < cols:
-                # non-bigmat sparse format
-                # Read column data, one string of numbers at a time
-                # (strings of zeros are skipped)
-                while nwords > 0:
-                    IS = self._Str_i.unpack(fp.read(self._bytes_i))[0]
-                    L = (IS >> 16) - 1             # L
-                    r = IS - ((L+1) << 16) - 1     # irow-1
-                    nwords -= L + 1                # words left
-                    L //= wper
-                    r *= multiplier
-                    if L < self._rowsCutoff:
-                        X[r:r+L, c] =\
-                            struct.unpack(numform % L,
-                                          fp.read(bytesreal*L))
-                    else:
-                        X[r:r+L, c] = np.fromfile(fp, numform2, L)
-                fp.read(4)
-                reclen = self._Str_i4.unpack(fp.read(4))[0]
-                c, r, nwords =\
-                    self._Str_iii.unpack(fp.read(self._bytes_iii))
-                c -= 1
+        X, reclen = rdfunc(fp, wper, r, c, abs(rows), cols,
+                           nwords, reclen, bytesreal, numform,
+                           numform2, funcs)
+
+        if sparsefunc and sp.issparse(X):
+            X = sparsefunc(X)
+
         # read final bytes of record and record marker
         fp.read(reclen-3*self._bytes_i+4)
-        if mtype > 2:
-            _view_as_complex(X)
         return name, X, form, mtype
 
-    def _sparse_col_stats(self, v):
+    @staticmethod
+    def _sparse_col_stats(r):
         """
         Returns locations of non-zero values and length of each
         series.
 
         Parameters
         ----------
-        v : ndarray
-            1d ndarray (the column of the matrix).
+        r : ndarray
+            1d ndarray containing the indices of the values in the
+            data column
 
         Returns
         -------
@@ -652,29 +872,109 @@ class OP4(object):
             sequence and the second column contains the length of
             the sequence.
 
-        For example, if v is:
-        ::
+        For example, if v is::
+
           v = [ 0.,  0.,  0.,  7.,  5.,  0.,  6.,  0.,  2.,  3.]
 
-        Then, ind will be:
-        ::
+        which makes r be::
+
+          r = [ 3, 4, 6, 8, 9 ]
+
+        Then, ind will be::
+
           ind = [[3 2]
                  [6 1]
                  [8 2]]
         """
-        pv = np.nonzero(v)[0]
-        dpv = np.diff(pv)
-        starts = np.nonzero(dpv != 1)[0] + 1
+        dr = np.diff(r)
+        starts = np.nonzero(dr != 1)[0] + 1
         nrows = len(starts)+1
         ind = np.zeros((nrows, 2), int)
-        ind[0, 0] = pv[0]
+        ind[0, 0] = r[0]
         if nrows > 1:
-            ind[1:, 0] = pv[starts]
+            ind[1:, 0] = r[starts]
             ind[0, 1] = starts[0] - 1
             ind[1:-1, 1] = np.diff(starts) - 1
-        ind[-1, 1] = len(dpv) - len(starts) - sum(ind[:, 1])
+        ind[-1, 1] = len(dr) - len(starts) - sum(ind[:, 1])
         ind[:, 1] += 1
         return ind
+
+    # @staticmethod
+    # def _is_symmetric(m, tol=1e-12):
+    #     """
+    #     returns True if `m` is approx symmetric; sparse or not sparse
+    #     """
+    #     return abs(m - m.transpose()).max() <= tol * abs(m).max()
+
+    @staticmethod
+    def _is_symmetric(m):
+        """
+        Returns True if matrix `m` is approx symmetric.
+
+        Works for sparse and non-sparse matrices. Only called for
+        square matrices, so that check is not done here.
+
+        Note: if m is sparse, what gets input to the routine is a
+        tuple: (m, r, c, v) where m is the original sparse matrix and
+        r, c, v is the output from scipy.sparse.find(m).
+        """
+        # if sp.issparse(m):
+        #     r, c, v = sp.find(m)
+        if isinstance(m, tuple):
+            r, c, v = m[1:]
+            low = r > c  # values in lower triangle
+            upp = c > r  # values in upper triangle
+
+            if np.count_nonzero(low) != np.count_nonzero(upp):
+                return False
+
+            rl = r[low]
+            cl = c[low]
+            vl = v[low]
+            ru = r[upp]
+            cu = c[upp]
+            vu = v[upp]
+
+            sortl = np.lexsort((cl, rl))
+            sortu = np.lexsort((ru, cu))
+            return (np.all(cl[sortl] == ru[sortu]) and
+                    np.all(rl[sortl] == cu[sortu]) and
+                    np.allclose(vl[sortl], vu[sortu]))
+        return np.allclose(m.transpose(), m)
+
+    @staticmethod
+    def _sparse_sort(matrix):
+        # sparse matrix:
+        m, r, c, v = matrix
+        pv = np.lexsort((r, c))  # sort by column, then by row
+        rs = r[pv]
+        cs = c[pv]
+        vs = v[pv]
+        cols_with_data = sorted(set(cs))
+        return rs, cs, vs, cols_with_data
+
+    @staticmethod
+    def _get_header_info(matrix):
+        if isinstance(matrix, tuple):
+            mat = matrix[0]
+            vals = matrix[3]
+        else:
+            mat = vals = matrix
+        rows, cols = mat.shape
+        if rows == cols:
+            if OP4._is_symmetric(matrix):
+                form = 6
+            else:
+                form = 1
+        else:
+            form = 2
+        if np.iscomplexobj(vals):
+            mtype = 4
+            multiplier = 2
+        else:
+            mtype = 2
+            multiplier = 1
+        return rows, cols, form, mtype, multiplier
 
     def _write_ascii_header(self, f, name, matrix,
                             digits, bigmat=False):
@@ -711,20 +1011,10 @@ class OP4(object):
         """
         numlen = digits + 5 + self._expdigits  # -1.digitsE-009
         perline = 80 // numlen
-        rows, cols = matrix.shape
-        if rows == cols:
-            if np.allclose(matrix.T, matrix):
-                form = 6
-            else:
-                form = 1
-        else:
-            form = 2
-        if np.iscomplexobj(matrix):
-            mtype = 4
-            multiplier = 2
-        else:
-            mtype = 2
-            multiplier = 1
+
+        (rows, cols, form,
+         mtype, multiplier) = OP4._get_header_info(matrix)
+
         if bigmat:
             if rows < self._rows4bigmat:
                 rows = -rows
@@ -754,29 +1044,86 @@ class OP4(object):
          perline, numlen,
          numform) = self._write_ascii_header(f, name, matrix,
                                              digits, bigmat=False)
-        for c in range(cols):
-            v = matrix[:, c]
-            if np.any(v):
-                pv = np.nonzero(v)[0]
-                s = pv[0]
-                e = pv[-1]
-                elems = (e - s + 1) * multiplier
-                f.write('{:8}{:8}{:8}\n'.format(c+1, s+1, elems))
-                v = np.asarray(v[s:e+1]).ravel()
-                v.dtype = float
-                neven = ((elems - 1) // perline) * perline
-                for i in range(0, neven, perline):
-                    for j in range(perline):
-                        f.write(numform % v[i+j])
-                    f.write('\n')
-                for i in range(neven, elems):
-                    f.write(numform % v[i])
+
+        def _write_col_data(f, v, c, s, elems, perline, numform):
+            f.write('{:8}{:8}{:8}\n'.format(c+1, s+1, elems))
+            neven = ((elems - 1) // perline) * perline
+            for i in range(0, neven, perline):
+                for j in range(perline):
+                    f.write(numform % v[i+j])
                 f.write('\n')
+            for i in range(neven, elems):
+                f.write(numform % v[i])
+            f.write('\n')
+
+        if isinstance(matrix, np.ndarray):
+            for c in range(cols):
+                v = matrix[:, c]
+                if np.any(v):
+                    pv = np.nonzero(v)[0]
+                    s = pv[0]
+                    e = pv[-1]
+                    elems = (e - s + 1) * multiplier
+                    v = np.asarray(v[s:e+1]).ravel()
+                    v.dtype = float
+                    _write_col_data(f, v, c, s, elems,
+                                    perline, numform)
+        else:
+            # sparse matrix:
+            rs, cs, vs, cols_with_data = OP4._sparse_sort(matrix)
+            dt = float if multiplier == 1 else complex
+            for c in cols_with_data:
+                pv = (cs == c).nonzero()[0]  # find data for column c
+                s = rs[pv[0]]   # first row with value
+                e = rs[pv[-1]]  # last row with value
+                elems = (e - s + 1)
+                vec = np.zeros(elems, dt)
+                vec[rs[pv]-s] = vs[pv]
+                elems *= multiplier
+                vec.dtype = float
+                _write_col_data(f, vec, c, s, elems, perline, numform)
         f.write('{:8}{:8}{:8}\n'.format(cols+1, 1, 1))
-        f.write(numform % 2**.5)
+        f.write(numform % 2**0.5)
         f.write('\n')
 
-    def _write_ascii_sparse_nonbigmat(self, f, name, matrix, digits):
+    @staticmethod
+    def _write_ascii_sparse(f, matrix, cols, _write_col_header,
+                            _write_data_string, multiplier,
+                            perline, numform):
+        if isinstance(matrix, np.ndarray):
+            for c in range(cols):
+                v = matrix[:, c]
+                if np.any(v):
+                    v = np.asarray(v).ravel()
+                    ind = OP4._sparse_col_stats(v.nonzero()[0])
+                    _write_col_header(f, ind, c, multiplier)
+                    for r0, r1 in ind:
+                        string = v[r0:r0+r1]
+                        string.dtype = float
+                        _write_data_string(
+                            f, string, r0, r1, multiplier,
+                            perline, numform)
+        else:
+            # sparse matrix:
+            rs, cs, vs, cols_with_data = OP4._sparse_sort(matrix)
+            for c in cols_with_data:
+                pv = (cs == c).nonzero()[0]  # find data for column c
+                ind = OP4._sparse_col_stats(rs[pv])
+                _write_col_header(f, ind, c, multiplier)
+                coldata = vs[pv]
+                j = 0
+                for r0, r1 in ind:
+                    string = coldata[j:j+r1]
+                    j += r1
+                    string.dtype = float
+                    _write_data_string(
+                        f, string, r0, r1, multiplier,
+                        perline, numform)
+        f.write('{:8}{:8}{:8}\n'.format(cols+1, 1, 1))
+        f.write(numform % 2**0.5)
+        f.write('\n')
+
+    def _write_ascii_nonbigmat(self, f, name, matrix, digits):
         """
         Write a matrix to a file in ascii, non-bigmat sparse format.
 
@@ -793,45 +1140,47 @@ class OP4(object):
             in the ascii output.
 
         Note: if rows > 65535, bigmat is turned on and the
-        :func:`write_ascii_sparse_bigmat` function is called ...
+        :func:`write_ascii_bigmat` function is called ...
         that's a Nastran rule.
         """
-        rows, cols = matrix.shape
+        if isinstance(matrix, tuple):
+            rows, cols = matrix[0].shape
+        else:
+            rows, cols = matrix.shape
+
         if rows >= self._rows4bigmat:
-            self._write_ascii_sparse_bigmat(f, name, matrix, digits)
+            self._write_ascii_bigmat(f, name, matrix, digits)
             return
         (cols, multiplier,
          perline, numlen,
          numform) = self._write_ascii_header(f, name, matrix,
                                              digits, bigmat=False)
-        for c in range(cols):
-            v = matrix[:, c]
-            if np.any(v):
-                v = np.asarray(v).ravel()
-                ind = self._sparse_col_stats(v)
-                nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
-                f.write('{:8}{:8}{:8}\n'.format(c+1, 0, nwords))
-                for row in ind:
-                    r = row[0]
-                    L = row[1]*2*multiplier
-                    IS = (r+1) + ((L+1) << 16)
-                    f.write('{:12}\n'.format(IS))
-                    string = v[r:r+row[1]]
-                    string.dtype = float
-                    elems = L // 2
-                    neven = ((elems - 1) // perline) * perline
-                    for i in range(0, neven, perline):
-                        for j in range(perline):
-                            f.write(numform % string[i+j])
-                        f.write('\n')
-                    for i in range(neven, elems):
-                        f.write(numform % string[i])
-                    f.write('\n')
-        f.write('{:8}{:8}{:8}\n'.format(cols+1, 1, 1))
-        f.write(numform % 2**.5)
-        f.write('\n')
 
-    def _write_ascii_sparse_bigmat(self, f, name, matrix, digits):
+        def _write_col_header(f, ind, c, multiplier):
+            nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
+            f.write('{:8}{:8}{:8}\n'.format(c+1, 0, nwords))
+
+        def _write_data_string(f, string, r0, r1, multiplier,
+                               perline, numform):
+            r = r0
+            L = r1*2*multiplier
+            IS = (r0+1) + ((L+1) << 16)
+            f.write('{:12}\n'.format(IS))
+            elems = L // 2
+            neven = ((elems - 1) // perline) * perline
+            for i in range(0, neven, perline):
+                for j in range(perline):
+                    f.write(numform % string[i+j])
+                f.write('\n')
+            for i in range(neven, elems):
+                f.write(numform % string[i])
+            f.write('\n')
+
+        OP4._write_ascii_sparse(f, matrix, cols, _write_col_header,
+                                _write_data_string, multiplier,
+                                perline, numform)
+
+    def _write_ascii_bigmat(self, f, name, matrix, digits):
         """
         Write a matrix to a file in ascii, bigmat sparse format.
 
@@ -851,31 +1200,28 @@ class OP4(object):
          perline, numlen,
          numform) = self._write_ascii_header(f, name, matrix,
                                              digits, bigmat=True)
-        for c in range(cols):
-            v = matrix[:, c]
-            if np.any(v):
-                v = np.asarray(v).ravel()
-                ind = self._sparse_col_stats(v)
-                nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
-                f.write('{:8}{:8}{:8}\n'.format(c+1, 0, nwords))
-                for row in ind:
-                    r = row[0]
-                    L = row[1]*2*multiplier
-                    f.write('{:8}{:8}\n'.format(L+1, r+1))
-                    string = v[r:r+row[1]]
-                    string.dtype = float
-                    elems = L // 2
-                    neven = ((elems - 1) // perline) * perline
-                    for i in range(0, neven, perline):
-                        for j in range(perline):
-                            f.write(numform % string[i+j])
-                        f.write('\n')
-                    for i in range(neven, elems):
-                        f.write(numform % string[i])
-                    f.write('\n')
-        f.write('{:8}{:8}{:8}\n'.format(cols+1, 1, 1))
-        f.write(numform % 2**.5)
-        f.write('\n')
+
+        def _write_col_header(f, ind, c, multiplier):
+            nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
+            f.write('{:8}{:8}{:8}\n'.format(c+1, 0, nwords))
+
+        def _write_data_string(f, string, r0, r1, multiplier,
+                               perline, numform):
+            L = r1*2*multiplier
+            f.write('{:8}{:8}\n'.format(L+1, r0+1))
+            elems = L // 2
+            neven = ((elems - 1) // perline) * perline
+            for i in range(0, neven, perline):
+                for j in range(perline):
+                    f.write(numform % string[i+j])
+                f.write('\n')
+            for i in range(neven, elems):
+                f.write(numform % string[i])
+            f.write('\n')
+
+        OP4._write_ascii_sparse(f, matrix, cols, _write_col_header,
+                                _write_data_string, multiplier,
+                                perline, numform)
 
     def _write_binary_header(self, f, name, matrix,
                              endian, bigmat=False):
@@ -904,20 +1250,8 @@ class OP4(object):
             multiplier : integer
                 2 for complex, 1 for real.
         """
-        rows, cols = matrix.shape
-        if rows == cols:
-            if np.allclose(matrix.T, matrix):
-                form = 6
-            else:
-                form = 1
-        else:
-            form = 2
-        if np.iscomplexobj(matrix):
-            mtype = 4
-            multiplier = 2
-        else:
-            mtype = 2
-            multiplier = 1
+        (rows, cols, form,
+         mtype, multiplier) = OP4._get_header_info(matrix)
 
         # write 1st record (24 bytes: 4 4-byte ints, 1 8-byte string)
         name = ('{:<8}'.format(name.upper())).encode()
@@ -944,29 +1278,91 @@ class OP4(object):
             Endian setting for binary output:  '' for native, '>' for
             big-endian and '<' for little-endian.
         """
-        cols, multiplier = self._write_binary_header(f, name,
-                                                     matrix, endian)
+        cols, multiplier = self._write_binary_header(
+            f, name, matrix, endian)
+
+        def _write_col_data(f, v, c, s, elems, endian,
+                            colHeader, colTrailer):
+            reclen = 3*4 + elems*8
+            f.write(colHeader.pack(reclen, c+1, s+1, 2*elems))
+            f.write(struct.pack(endian+('%dd' % elems), *v))
+            f.write(colTrailer.pack(reclen))
+
         colHeader = struct.Struct(endian+'4i')
         colTrailer = struct.Struct(endian+'i')
-        for c in range(cols):
-            v = matrix[:, c]
-            if np.any(v):
-                pv = np.nonzero(v)[0]
-                s = pv[0]
-                e = pv[-1]
-                elems = (e - s + 1) * multiplier
-                reclen = 3*4 + elems*8
-                f.write(colHeader.pack(reclen, c+1, s+1, 2*elems))
-                v = np.asarray(v[s:e+1]).ravel()
-                v.dtype = float
-                f.write(struct.pack(endian+('%dd' % elems), *v))
+        if isinstance(matrix, np.ndarray):
+            for c in range(cols):
+                v = matrix[:, c]
+                if np.any(v):
+                    pv = np.nonzero(v)[0]
+                    s = pv[0]
+                    e = pv[-1]
+                    elems = (e - s + 1) * multiplier
+                    v = np.asarray(v[s:e+1]).ravel()
+                    v.dtype = float
+                    _write_col_data(f, v, c, s, elems, endian,
+                                    colHeader, colTrailer)
+        else:
+            # sparse matrix:
+            rs, cs, vs, cols_with_data = OP4._sparse_sort(matrix)
+            dt = float if multiplier == 1 else complex
+            for c in cols_with_data:
+                pv = (cs == c).nonzero()[0]  # find data for column c
+                s = rs[pv[0]]   # first row with value
+                e = rs[pv[-1]]  # last row with value
+                elems = (e - s + 1)
+                vec = np.zeros(elems, dt)
+                vec[rs[pv]-s] = vs[pv]
+                elems *= multiplier
+                vec.dtype = float
+                _write_col_data(f, vec, c, s, elems, endian,
+                                colHeader, colTrailer)
+        reclen = 3*4 + 8
+        f.write(colHeader.pack(reclen, cols+1, 1, 2))
+        f.write(struct.pack(endian+'d', 2**0.5))
+        f.write(colTrailer.pack(reclen))
+
+    @staticmethod
+    def _write_binary_sparse(f, matrix, cols, _write_col_header,
+                             _write_data_string, multiplier,
+                             colHeader, colTrailer, LrStruct, endian):
+        if isinstance(matrix, np.ndarray):
+            for c in range(cols):
+                v = matrix[:, c]
+                if np.any(v):
+                    v = np.asarray(v).ravel()
+                    ind = OP4._sparse_col_stats(v.nonzero()[0])
+                    reclen = _write_col_header(
+                        f, ind, c, multiplier, colHeader)
+                    for r0, r1 in ind:
+                        string = v[r0:r0+r1]
+                        string.dtype = float
+                        _write_data_string(f, string, r0, r1, multiplier,
+                                           LrStruct, endian)
+                    f.write(colTrailer.pack(reclen))
+        else:
+            # sparse matrix:
+            rs, cs, vs, cols_with_data = OP4._sparse_sort(matrix)
+            for c in cols_with_data:
+                pv = (cs == c).nonzero()[0]  # find data for column c
+                ind = OP4._sparse_col_stats(rs[pv])
+                reclen = _write_col_header(
+                    f, ind, c, multiplier, colHeader)
+                coldata = vs[pv]
+                j = 0
+                for r0, r1 in ind:
+                    string = coldata[j:j+r1]
+                    j += r1
+                    string.dtype = float
+                    _write_data_string(f, string, r0, r1, multiplier,
+                                       LrStruct, endian)
                 f.write(colTrailer.pack(reclen))
         reclen = 3*4 + 8
         f.write(colHeader.pack(reclen, cols+1, 1, 2))
-        f.write(struct.pack(endian+'d', 2**.5))
+        f.write(struct.pack(endian+'d', 2**0.5))
         f.write(colTrailer.pack(reclen))
 
-    def _write_binary_sparse_nonbigmat(self, f, name, matrix, endian):
+    def _write_binary_nonbigmat(self, f, name, matrix, endian):
         """
         Write a matrix to a file in double precision binary, non-bigmat
         sparse format.
@@ -984,41 +1380,43 @@ class OP4(object):
             big-endian and '<' for little-endian.
 
         Note: if rows > 65535, bigmat is turned on and the
-        :func:`write_binary_sparse_bigmat` function is called ...
+        :func:`write_binary_bigmat` function is called ...
         that's a Nastran rule.
         """
-        rows, cols = matrix.shape
+        if isinstance(matrix, tuple):
+            rows, cols = matrix[0].shape
+        else:
+            rows, cols = matrix.shape
+
         if rows >= self._rows4bigmat:
-            self._write_binary_sparse_bigmat(f, name, matrix, endian)
+            self._write_binary_bigmat(f, name, matrix, endian)
             return
-        cols, multiplier = self._write_binary_header(f, name,
-                                                     matrix, endian)
+
+        cols, multiplier = self._write_binary_header(
+            f, name, matrix, endian)
         colHeader = struct.Struct(endian+'4i')
         colTrailer = struct.Struct(endian+'i')
-        for c in range(cols):
-            v = matrix[:, c]
-            if np.any(v):
-                v = np.asarray(v).ravel()
-                ind = self._sparse_col_stats(v)
-                nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
-                reclen = (3 + nwords)*4
-                f.write(colHeader.pack(reclen, c+1, 0, nwords))
-                for row in ind:
-                    r = row[0]
-                    L = row[1]*2*multiplier
-                    IS = (r+1) + ((L+1) << 16)
-                    f.write(colTrailer.pack(IS))
-                    string = v[r:r+row[1]]
-                    string.dtype = float
-                    f.write(struct.pack(endian+('%dd' % len(string)),
-                                        *string))
-                f.write(colTrailer.pack(reclen))
-        reclen = 3*4 + 8
-        f.write(colHeader.pack(reclen, cols+1, 1, 2))
-        f.write(struct.pack(endian+'d', 2**.5))
-        f.write(colTrailer.pack(reclen))
 
-    def _write_binary_sparse_bigmat(self, f, name, matrix, endian):
+        def _write_col_header(f, ind, c, multiplier, colHeader):
+            nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
+            reclen = (3 + nwords)*4
+            f.write(colHeader.pack(reclen, c+1, 0, nwords))
+            return reclen
+
+        def _write_data_string(f, string, r0, r1, multiplier,
+                               colTrailer, endian):
+            L = r1*2*multiplier
+            IS = (r0+1) + ((L+1) << 16)
+            f.write(colTrailer.pack(IS))
+            f.write(struct.pack(endian+('%dd' % len(string)),
+                                *string))
+
+        OP4._write_binary_sparse(
+            f, matrix, cols, _write_col_header,
+            _write_data_string, multiplier,
+            colHeader, colTrailer, colTrailer, endian)
+
+    def _write_binary_bigmat(self, f, name, matrix, endian):
         """
         Write a matrix to a file in double precision binary, bigmat
         sparse format.
@@ -1035,34 +1433,32 @@ class OP4(object):
             Endian setting for binary output:  '' for native, '>' for
             big-endian and '<' for little-endian.
         """
-        cols, multiplier = self._write_binary_header(f, name, matrix,
-                                                     endian, True)
+        cols, multiplier = self._write_binary_header(
+            f, name, matrix, endian, True)
         colHeader = struct.Struct(endian+'4i')
         colTrailer = struct.Struct(endian+'i')
         LrStruct = struct.Struct(endian+'ii')
-        for c in range(cols):
-            v = matrix[:, c]
-            if np.any(v):
-                v = np.asarray(v).ravel()
-                ind = self._sparse_col_stats(v)
-                nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
-                reclen = (3 + nwords)*4
-                f.write(colHeader.pack(reclen, c+1, 0, nwords))
-                for row in ind:
-                    r = row[0]
-                    L = row[1]*2*multiplier
-                    f.write(LrStruct.pack(L+1, r+1))
-                    string = v[r:r+row[1]]
-                    string.dtype = float
-                    f.write(struct.pack(endian+('%dd' % len(string)),
-                                        *string))
-                f.write(colTrailer.pack(reclen))
-        reclen = 3*4 + 8
-        f.write(colHeader.pack(reclen, cols+1, 1, 2))
-        f.write(struct.pack(endian+'d', 2**.5))
-        f.write(colTrailer.pack(reclen))
 
-    def dctload(self, filename, namelist=None, justmatrix=False):
+        def _write_col_header(f, ind, c, multiplier, colHeader):
+            nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
+            reclen = (3 + nwords)*4
+            f.write(colHeader.pack(reclen, c+1, 0, nwords))
+            return reclen
+
+        def _write_data_string(f, string, r0, r1, multiplier,
+                               LrStruct, endian):
+            L = r1*2*multiplier
+            f.write(LrStruct.pack(L+1, r0+1))
+            f.write(struct.pack(endian+('%dd' % len(string)),
+                                *string))
+
+        OP4._write_binary_sparse(
+            f, matrix, cols, _write_col_header,
+            _write_data_string, multiplier,
+            colHeader, colTrailer, LrStruct, endian)
+
+    def dctload(self, filename, namelist=None, justmatrix=False,
+                sparse=False):
         """
         Read all matching matrices from op4 file into dictionary.
 
@@ -1077,6 +1473,32 @@ class OP4(object):
         justmatrix : bool; optional
             If True, only the matrix is stored in the dictionary. If
             False, a tuple of ``(matrix, form, mtype)`` is stored.
+        sparse : bool or None or two-tuple-like; optional
+            Specifies whether output matrices will be regular numpy
+            arrays or sparse arrays. If not two-tuple-like:
+
+            ========   ===============================================
+            `sparse`   Action
+            ========   ===============================================
+             None      Auto setting: each matrix will be sparse if and
+                       only if it was written in a sparse format
+             True      Matrices will be returned in sparse format
+             False     Matrices will be returned in regular (dense)
+                       numpy arrays
+            ========   ===============================================
+
+            If `sparse` is two-tuple-like, the first element is either
+            None, True, or False (see table above) and the second
+            element is a callable, as in: ``X = callable(X)``. A
+            common usage of the callable would be to convert from
+            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
+            a more desirable form. For example, to ensure *all*
+            matrices are returned in CSR form (see
+            :func:`scipy.sparse.csr_matrix`) use::
+
+                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+
+            The callable is ignored for non-sparse matrices.
 
         Returns
         -------
@@ -1084,6 +1506,12 @@ class OP4(object):
             Keys are the lower-case matrix names and the values are
             either just the matrix or a tuple of:
             ``(matrix, form, mtype)`` depending on `justmatrix`.
+
+        Notes
+        -----
+        The default form for sparse matrices is the "COO" sparse form
+        (see :func:`scipy.sparse.coo_matrix`). To override, provide a
+        callable in the `sparse` option (see above).
 
         See also
         --------
@@ -1101,7 +1529,7 @@ class OP4(object):
                 loadfunc = self._loadop4_binary
             while 1:
                 name, X, form, mtype = loadfunc(
-                    patternlist=namelist)
+                    patternlist=namelist, sparse=sparse)
                 if not name:
                     break
                 if justmatrix:
@@ -1112,7 +1540,7 @@ class OP4(object):
             self._op4close()
         return dct
 
-    def listload(self, filename, namelist=None):
+    def listload(self, filename, namelist=None, sparse=False):
         """
         Read all matching matrices from op4 file into a list; useful
         if op4 file has duplicate names.
@@ -1125,6 +1553,32 @@ class OP4(object):
             List of variable names to read in, or string with name of
             the single variable to read in, or None. If None, all
             matrices are read in.
+        sparse : bool or None or two-tuple-like; optional
+            Specifies whether output matrices will be regular numpy
+            arrays or sparse arrays. If not two-tuple-like:
+
+            ========   ===============================================
+            `sparse`   Action
+            ========   ===============================================
+             None      Auto setting: each matrix will be sparse if and
+                       only if it was written in a sparse format
+             True      Matrices will be returned in sparse format
+             False     Matrices will be returned in regular (dense)
+                       numpy arrays
+            ========   ===============================================
+
+            If `sparse` is two-tuple-like, the first element is either
+            None, True, or False (see table above) and the second
+            element is a callable, as in: ``X = callable(X)``. A
+            common usage of the callable would be to convert from
+            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
+            a more desirable form. For example, to ensure *all*
+            matrices are returned in CSR form (see
+            :func:`scipy.sparse.csr_matrix`) use::
+
+                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+
+            The callable is ignored for non-sparse matrices.
 
         Returns
         -------
@@ -1138,6 +1592,12 @@ class OP4(object):
         mtypes : list
             List of integers specifying the Nastran type of each
             matrix.
+
+        Notes
+        -----
+        The default form for sparse matrices is the "COO" sparse form
+        (see :func:`scipy.sparse.coo_matrix`). To override, provide a
+        callable in the `sparse` option (see above).
 
         See also
         --------
@@ -1156,8 +1616,8 @@ class OP4(object):
             else:
                 loadfunc = self._loadop4_binary
             while 1:
-                name, X, form, mtype =\
-                    loadfunc(patternlist=namelist)
+                name, X, form, mtype = loadfunc(
+                    patternlist=namelist, sparse=sparse)
                 if not name:
                     break
                 names.append(name)
@@ -1169,7 +1629,7 @@ class OP4(object):
         return names, matrices, forms, mtypes
 
     def load(self, filename, namelist=None, into='dct',
-             justmatrix=False):
+             justmatrix=False, sparse=False):
         """
         Read all matching matrices from op4 file into dictionary or
         list; interface to :func:`dctload` and :func:`listload`.
@@ -1189,6 +1649,32 @@ class OP4(object):
             If True, only the matrix is stored in the dictionary. If
             False, a tuple of ``(matrix, form, mtype)`` is stored.
             This option is ignored if ``into == 'list'``.
+        sparse : bool or None or two-tuple-like; optional
+            Specifies whether output matrices will be regular numpy
+            arrays or sparse arrays. If not two-tuple-like:
+
+            ========   ===============================================
+            `sparse`   Action
+            ========   ===============================================
+             None      Auto setting: each matrix will be sparse if and
+                       only if it was written in a sparse format
+             True      Matrices will be returned in sparse format
+             False     Matrices will be returned in regular (dense)
+                       numpy arrays
+            ========   ===============================================
+
+            If `sparse` is two-tuple-like, the first element is either
+            None, True, or False (see table above) and the second
+            element is a callable, as in: ``X = callable(X)``. A
+            common usage of the callable would be to convert from
+            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
+            a more desirable form. For example, to ensure *all*
+            matrices are returned in CSR form (see
+            :func:`scipy.sparse.csr_matrix`) use::
+
+                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+
+            The callable is ignored for non-sparse matrices.
 
         Returns
         -------
@@ -1200,14 +1686,21 @@ class OP4(object):
         tup : tuple, if ``into == 'list'``
             Tuple of 4 lists: ``(names, matrices, forms, mtypes)``
 
+        Notes
+        -----
+        The default form for sparse matrices is the "COO" sparse form
+        (see :func:`scipy.sparse.coo_matrix`). To override, provide a
+        callable in the `sparse` option (see above).
+
         See also
         --------
         :func:`write` (or :func:`save`), :func:`dir`.
         """
         if into == 'dct':
-            return self.dctload(filename, namelist, justmatrix)
+            return self.dctload(filename, namelist,
+                                justmatrix, sparse)
         elif into == 'list':
-            return self.listload(filename, namelist)
+            return self.listload(filename, namelist, sparse)
         raise ValueError('invalid "into" option')
 
     def dir(self, filename, verbose=True):
@@ -1269,7 +1762,7 @@ class OP4(object):
 
     def write(self, filename, names, matrices=None,
               binary=True, digits=16, endian='',
-              sparse=''):
+              sparse='auto'):
         """
         Write op4 file.
 
@@ -1293,10 +1786,22 @@ class OP4(object):
             Endian setting for binary output:  '' for native, '>' for
             big-endian and '<' for little-endian.
         sparse : string; optional
-            Empty or 'bigmat' or 'nonbigmat'. If set to 'bigmat' or
-            'nonbigmat', that sparse format is selected. Note that if
-            the number of rows is > 65535, then both the 'bigmat' and
-            'nonbigmat' options become 'bigmat'.
+            Specifies the output format:
+
+            ===========   ===========================================
+             `sparse`     Action
+            ===========   ===========================================
+            'auto'        Each 2d ndarray will be written in "dense"
+                          format and each sparse matrix will be
+                          written in "bigmat" sparse format
+            'bigmat'      Each matrix (whether sparse or not) is
+                          written in "bigmat" sparse format
+            'dense'       Each matrix will be written in "dense"
+                          format
+            'nonbigmat'   Each matrix is written in "nonbigmat"
+                          format. Note that if the number of rows is
+                          > 65535, then the "bigmat" format is used.
+            ===========   ===========================================
 
         Returns
         -------
@@ -1341,48 +1846,74 @@ class OP4(object):
             if not isinstance(matrices, list):
                 matrices = [matrices]
 
-        # ensure double precision 2d arrays:
-        def ensure_2d_dp(m):
-            """Ensures 2d double precision array"""
-            m = np.atleast_2d(m)
-            if m.ndim > 2:
-                raise ValueError('found array with greater than '
-                                 '2 dimensions.')
+        def ensure_dp(m):
+            """
+            Ensure double precision values
+            """
             if np.iscomplexobj(m):
                 if m.dtype != np.complex128:
                     return m.astype(np.complex128)
             elif m.dtype != np.float64:
                 return m.astype(np.float64)
             return m
-        matrices = [ensure_2d_dp(m) for m in matrices]
+
+        # ensure double precision 2d arrays or tuple as returned by
+        # scipy.sparse.find:
+        def ensure_2d_dp(m):
+            """
+            Ensures 2d double precision array or tuple as returned by
+            scipy.sparse.find
+            """
+            if sp.issparse(m):
+                # return m
+                i, j, v = sp.find(m)
+                return m, i, j, ensure_dp(v)
+            m = np.atleast_2d(m)
+            if m.ndim > 2:
+                raise ValueError('found array with greater than '
+                                 '2 dimensions.')
+            return ensure_dp(m)
 
         if binary:
-            if sparse == '':
+            if sparse == 'dense':
                 wrtfunc = self._write_binary
             elif sparse == 'bigmat':
-                wrtfunc = self._write_binary_sparse_bigmat
+                wrtfunc = self._write_binary_bigmat
             elif sparse == 'nonbigmat':
-                wrtfunc = self._write_binary_sparse_nonbigmat
-            else:
+                wrtfunc = self._write_binary_nonbigmat
+            elif sparse != 'auto':
                 raise ValueError('invalid sparse option')
             with open(filename, 'wb') as f:
                 for name, matrix in zip(names, matrices):
-                    wrtfunc(f, name, matrix, endian)
+                    m = ensure_2d_dp(matrix)
+                    if sparse == 'auto':
+                        if isinstance(m, tuple):
+                            wrtfunc = self._write_binary_bigmat
+                        else:
+                            wrtfunc = self._write_binary
+                    wrtfunc(f, name, m, endian)
         else:
-            if sparse == '':
+            if sparse == 'dense':
                 wrtfunc = self._write_ascii
             elif sparse == 'bigmat':
-                wrtfunc = self._write_ascii_sparse_bigmat
+                wrtfunc = self._write_ascii_bigmat
             elif sparse == 'nonbigmat':
-                wrtfunc = self._write_ascii_sparse_nonbigmat
-            else:
+                wrtfunc = self._write_ascii_nonbigmat
+            elif sparse != 'auto':
                 raise ValueError('invalid sparse option')
             with open(filename, 'w') as f:
                 for name, matrix in zip(names, matrices):
-                    wrtfunc(f, name, matrix, digits)
+                    m = ensure_2d_dp(matrix)
+                    if sparse == 'auto':
+                        if isinstance(m, tuple):
+                            wrtfunc = self._write_ascii_bigmat
+                        else:
+                            wrtfunc = self._write_ascii
+                    wrtfunc(f, name, m, digits)
 
 
-def load(filename=None, namelist=None, into='dct', justmatrix=False):
+def load(filename=None, namelist=None, into='dct', justmatrix=False,
+         sparse=False):
     """
     Read all matching matrices from op4 file into dictionary or list;
     non-member version of :func:`OP4.load`.
@@ -1403,6 +1934,31 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False):
         If True, only the matrix is stored in the dictionary. If
         False, a tuple of ``(matrix, form, mtype)`` is stored.
         This option is ignored if ``into == 'list'``.
+    sparse : bool or None or two-tuple-like; optional
+        Specifies whether output matrices will be regular numpy arrays
+        or sparse arrays. If not two-tuple-like:
+
+        ========   ===============================================
+        `sparse`   Action
+        ========   ===============================================
+         None      Auto setting: each matrix will be sparse if and
+                   only if it was written in a sparse format
+         True      Matrices will be returned in sparse format
+         False     Matrices will be returned in regular (dense)
+                   numpy arrays
+        ========   ===============================================
+
+        If `sparse` is two-tuple-like, the first element is either
+        None, True, or False (see table above) and the second element
+        is a callable, as in: ``X = callable(X)``. A common usage of
+        the callable would be to convert from "COO" sparse form (see
+        :func:`scipy.sparse.coo_matrix`) to a more desirable form. For
+        example, to ensure *all* matrices are returned in CSR form
+        (see :func:`scipy.sparse.csr_matrix`) use::
+
+            sparse=(True, scipy.sparse.coo_matrix.tocsr)
+
+        The callable is ignored for non-sparse matrices.
 
     Returns
     -------
@@ -1414,19 +1970,26 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False):
     tup : tuple, if ``into == 'list'``
         Tuple of 4 lists: ``(names, matrices, forms, mtypes)``
 
+    Notes
+    -----
+    The default form for sparse matrices is the "COO" sparse form (see
+    :func:`scipy.sparse.coo_matrix`). To override, provide a callable
+    in the `sparse` option (see above).
+
     See also
     --------
     :func:`read`, :func:`write` (or :func:`save`), :func:`dir`.
     """
     filename = guitools.get_file_name(filename, read=True)
     if into == 'dct':
-        return OP4().dctload(filename, namelist, justmatrix)
+        return OP4().dctload(filename, namelist, justmatrix, sparse)
     elif into == 'list':
-        return OP4().listload(filename, namelist)
+        return OP4().listload(filename, namelist, sparse)
     raise ValueError('invalid "into" option')
 
 
-def read(filename=None, namelist=None, into='dct', justmatrix=True):
+def read(filename=None, namelist=None, into='dct', justmatrix=True,
+         sparse=False):
     """
     Read all matching matrices from op4 file into dictionary or list;
     non-member version of :func:`OP4.load`.
@@ -1450,6 +2013,31 @@ def read(filename=None, namelist=None, into='dct', justmatrix=True):
         If True, only the matrix is stored in the dictionary. If
         False, a tuple of ``(matrix, form, mtype)`` is stored.
         This option is ignored if ``into == 'list'``.
+    sparse : bool or None or two-tuple-like; optional
+        Specifies whether output matrices will be regular numpy arrays
+        or sparse arrays. If not two-tuple-like:
+
+        ========   ===============================================
+        `sparse`   Action
+        ========   ===============================================
+         None      Auto setting: each matrix will be sparse if and
+                   only if it was written in a sparse format
+         True      Matrices will be returned in sparse format
+         False     Matrices will be returned in regular (dense)
+                   numpy arrays
+        ========   ===============================================
+
+        If `sparse` is two-tuple-like, the first element is either
+        None, True, or False (see table above) and the second element
+        is a callable, as in: ``X = callable(X)``. A common usage of
+        the callable would be to convert from "COO" sparse form (see
+        :func:`scipy.sparse.coo_matrix`) to a more desirable form. For
+        example, to ensure *all* matrices are returned in CSR form
+        (see :func:`scipy.sparse.csr_matrix`) use::
+
+            sparse=(True, scipy.sparse.coo_matrix.tocsr)
+
+        The callable is ignored for non-sparse matrices.
 
     Returns
     -------
@@ -1461,11 +2049,17 @@ def read(filename=None, namelist=None, into='dct', justmatrix=True):
     tup : tuple, if ``into == 'list'``
         Tuple of 4 lists: ``(names, matrices, forms, mtypes)``
 
+    Notes
+    -----
+    The default form for sparse matrices is the "COO" sparse form (see
+    :func:`scipy.sparse.coo_matrix`). To override, provide a callable
+    in the `sparse` option (see above).
+
     See also
     --------
     :func:`load`, :func:`write` (or :func:`save`), :func:`dir`.
     """
-    return load(filename, namelist, into, justmatrix)
+    return load(filename, namelist, into, justmatrix, sparse)
 
 
 def dir(filename=None, verbose=True):
@@ -1505,7 +2099,7 @@ def dir(filename=None, verbose=True):
 
 def write(filename, names, matrices=None,
           binary=True, digits=16, endian='',
-          sparse=''):
+          sparse='auto'):
     """
     Write op4 file; non-member version of :func:`OP4.write`.
 
@@ -1532,10 +2126,22 @@ def write(filename, names, matrices=None,
         Endian setting for binary output:  '' for native, '>' for
         big-endian and '<' for little-endian.
     sparse : string; optional
-        Empty or 'bigmat' or 'nonbigmat'. If set to 'bigmat' or
-        'nonbigmat', that sparse format is selected. Note that if
-        the number of rows is > 65535, then both the 'bigmat' and
-        'nonbigmat' options become 'bigmat'.
+        Specifies the output format:
+
+        ===========   ===========================================
+         `sparse`     Action
+        ===========   ===========================================
+        'auto'        Each 2d ndarray will be written in "dense"
+                      format and each sparse matrix will be
+                      written in "bigmat" sparse format
+        'bigmat'      Each matrix (whether sparse or not) is
+                      written in "bigmat" sparse format
+        'dense'       Each matrix will be written in "dense"
+                      format
+        'nonbigmat'   Each matrix is written in "nonbigmat"
+                      format. Note that if the number of rows is
+                      > 65535, then the "bigmat" format is used.
+        ===========   ===========================================
 
     Returns
     -------

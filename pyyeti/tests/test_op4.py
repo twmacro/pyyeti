@@ -3,6 +3,8 @@ from pyyeti import op4
 from scipy.io import matlab
 import os
 from glob import glob
+import tempfile
+import scipy.sparse as sp
 from nose.tools import *
 
 
@@ -507,3 +509,126 @@ def test_bad_dimensions():
     matfile = 'temp.op4'
     r = np.ones((2, 2, 2))
     assert_raises(ValueError, op4.save, matfile, dict(r=r))
+
+
+def test_sparse_read():
+    direc = 'pyyeti/tests/nastran_op4_data/'
+    fnames = glob(direc+'*.op4') + glob(direc+'*.other')
+
+    for fname in fnames:
+        m = op4.read(fname)
+        m2 = op4.read(fname, sparse=None)
+        m3 = op4.read(fname, sparse=True)
+        m4 = op4.read(fname, sparse=False)
+        m5 = op4.read(fname, sparse=(None, sp.coo_matrix.tocsr))
+        if 'bigmat' in fname:
+            for k, v in m.items():
+                assert sp.issparse(m2[k])
+                assert sp.isspmatrix_csr(m5[k])
+                assert np.all(m2[k].toarray() == v)
+                assert np.all(m5[k].toarray() == v)
+        else:
+            for k, v in m.items():
+                assert np.all(m2[k] == v)
+                assert np.all(m5[k] == v)
+
+        for k, v in m.items():
+            assert sp.issparse(m3[k])
+            assert np.all(m3[k].toarray() == v)
+            assert np.all(m4[k] == v)
+
+
+def write_read(m, binary, sparse):
+    f = tempfile.NamedTemporaryFile(delete=False)
+    name = f.name
+    f.close()
+    try:
+        op4.write(name, m, binary=binary, sparse=sparse)
+        m2 = op4.read(name, sparse=None)
+    finally:
+        os.remove(name)
+    return m2
+
+
+def test_sparse_write():
+    fnames = [
+        '../../code/pyyeti/pyyeti/tests/nastran_op4_data/cdbin.op4',
+        '../../code/pyyeti/pyyeti/tests/nastran_op4_data/rs.op4',
+        '../../code/pyyeti/pyyeti/tests/nastran_op4_data/r_c_rc.op4',
+        '../../code/pyyeti/pyyeti/tests/nastran_op4_data/double_bigmat_le.op4',
+        '../../code/pyyeti/pyyeti/tests/nastran_op4_data/double_nonbigmat_be.op4',
+        '../../code/pyyeti/pyyeti/tests/nastran_op4_data/single_dense_be.op4']
+
+    for fname in fnames:
+        for rd_sparse in (True, False, None):
+            m = op4.read(fname, sparse=rd_sparse)
+            m2 = write_read(m, binary=True, sparse='dense')
+            m3 = write_read(m, binary=False, sparse='dense')
+            m4 = write_read(m, binary=False, sparse='nonbigmat')
+            m5 = write_read(m, binary=True, sparse='nonbigmat')
+            m6 = write_read(m, binary=False, sparse='bigmat')
+            m7 = write_read(m, binary=True, sparse='bigmat')
+            m8 = write_read(m, binary=False, sparse='auto')
+            m9 = write_read(m, binary=True, sparse='auto')
+
+            for k, v in m.items():
+                if rd_sparse:
+                    assert sp.issparse(v)
+                elif rd_sparse is None and 'bigmat' in fname:
+                    if 'nonbigmat' in fname and not sp.issparse(v):
+                        # v could be dense if all zeros
+                        assert np.all(v == 0.0)
+                    else:
+                        assert sp.issparse(v)
+                va = v.toarray() if sp.issparse(v) else v
+
+                assert np.all(va == m2[k])
+                assert np.all(va == m3[k])
+
+                if sp.issparse(m4[k]):
+                    assert np.all(va == m4[k].A)
+                else:
+                    assert np.allclose(va, m4[k])
+                    assert np.all(m4[k] == 0.0)
+
+                if sp.issparse(m5[k]):
+                    assert np.all(va == m5[k].A)
+                else:
+                    assert np.allclose(va, m5[k])
+                    assert np.all(m5[k] == 0.0)
+
+                assert sp.issparse(m6[k])
+                assert np.all(va == m6[k].A)
+
+                assert sp.issparse(m7[k])
+                assert np.all(va == m7[k].A)
+
+                if (rd_sparse or
+                        (rd_sparse is None and sp.issparse(v))):
+                    assert sp.issparse(m8[k])
+                    assert np.all(va == m8[k].A)
+                    assert sp.issparse(m9[k])
+                    assert np.all(va == m9[k].A)
+                else:
+                    assert np.all(va == m8[k])
+                    assert np.all(va == m9[k])
+
+def test_large_sparse():
+    data = [2.3, 5, -100.4]
+    rows = [2, 500000, 3500000]
+    cols = [3750000, 500000, 4999999]
+    a = sp.csr_matrix((data, (rows, cols)), shape=(5000000, 5000000))
+
+    f = tempfile.NamedTemporaryFile(delete=False)
+    name = f.name
+    f.close()
+    try:
+        op4.write(name, dict(a=a))
+        a2 = op4.read(name, sparse=None)
+    finally:
+        os.remove(name)
+    
+    assert sp.issparse(a2['a'])
+    a2 = a2['a'].tocsr()
+    for i, j, v in zip(rows, cols, data):
+        assert np.allclose(a2[i, j], v)

@@ -8,7 +8,7 @@ before_install:
     - export PATH=/home/travis/miniconda2/bin:$PATH
     - conda update --yes conda
 install:
-    - travis_retry conda install --yes python=$TRAVIS_PYTHON_VERSION pip setuptools numpy scipy matplotlib pandas
+    - travis_retry conda install --yes python=$TRAVIS_PYTHON_VERSION pip setuptools numpy>=1.11 scipy matplotlib pandas
     - pip install coverage
     - pip install nose
     - pip install coveralls

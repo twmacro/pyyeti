@@ -40,7 +40,7 @@ def check_dependencies():
     try:
         import numpy
     except ImportError:
-        install_requires.append('numpy')
+        install_requires.append('numpy>=1.11')
     try:
         import scipy
     except ImportError:
