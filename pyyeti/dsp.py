@@ -65,11 +65,28 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     steps:
 
         0. Removes the mean from `data`: ``mdata = data-mean(data)``.
-        1. Inserts `p` zeros after every point in `mdata`.
+
+        1. Inserts ``p-1`` zeros after every point in `mdata`.
+
         2. Forms an averaging, anti-aliasing FIR filter based on the
            'sinc' function and the Kaiser window to filter `mdata`.
+
+           a. Each original point gets retained as-is (it gets 
+              multiplied by 1.0 and the other original data points
+              get multiplied by 0.0).
+
+           b. The new zero points are a weighted average (by distance)
+              of the original points. The averaging coefficients (in
+              the FIR filter) sum to 1.0
+
+           c. The frequency cutoff for the filter is the minimum of
+              the original sample rate divided by two, or the final
+              sample rate divided by two. This ensures there is no
+              aliasing.
+
         3. Downsamples by selecting every `q` points in filtered
            data.
+
         4. Adds the mean value(s) back on to final result.
 
     Using more points in the averaging results in more accuracy at the
@@ -194,8 +211,8 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     n = np.arange(M+1)
 
     # compute cutoff relative to highest sample rate (P*sr where sr=1)
-    #  eg, if Q = 1, cutoff = .5 of old sample rate = .5/P of new
-    #      if P = 1, cutoff = .5 of new sample rate = .5/Q of old
+    #  eg, if Q = 1, cutoff = 0.5 of old sample rate = 0.5/P of new
+    #      if P = 1, cutoff = 0.5 of new sample rate = 0.5/Q of old
     cutoff = min(1/q, 1/p)/2
     # sinc(x) = sin(pi*x)/(pi*x)
     s = 2*cutoff*np.sinc(2*cutoff*(n-M/2))
@@ -203,9 +220,13 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     m = np.mean(data, axis=0)
 
     # insert zeros
-    updata1 = np.zeros((ln*p, cols))
-    for j in range(cols):
-        updata1[::p, j] = data[:, j] - m[j]
+    if p > 1:
+        updata1 = np.zeros((ln*p, cols))
+        # for j in range(cols):
+        #    updata1[::p, j] = data[:, j] - m[j]
+        updata1[::p] = data - m
+    else:
+        updata1 = data - m
 
     # take care of lag by shifting with zeros:
     nz = M//2
@@ -216,9 +237,13 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
 
     # downsample:
     n = int(np.ceil(ln*p/q))
-    RData = np.zeros((n, cols), float)
-    for j in range(cols):
-        RData[:, j] = updata[::q, j] + m[j]
+    if q > 1:
+        RData = np.zeros((n, cols), float)
+        # for j in range(cols):
+        #    RData[:, j] = updata[::q, j] + m[j]
+        RData = updata[::q] + m
+    else:
+        RData = updata + m
     if ndim == 1:
         RData = RData.ravel()
     if t is None:

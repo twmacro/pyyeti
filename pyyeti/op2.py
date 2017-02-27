@@ -446,7 +446,7 @@ class OP2(object):
             dtype = self._getkey()
         self._rdop2eot()
         if mtype > 2:
-            op4._view_as_complex(matrix)
+            matrix.dtype = complex
         return matrix
 
     def skipop2matrix(self, trailer):
