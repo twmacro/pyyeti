@@ -622,7 +622,7 @@ def expmint_pow(A, h):
 
 
 def _procBhalf(E, P, Q, order, B, half):
-    """Helper function for _getEPQ2 and getEPQ_pow"""
+    """Helper function for getEPQ1 and getEPQ_pow"""
     if B is not None:
         P = P.dot(B)
         if order == 1:
@@ -639,7 +639,7 @@ def _procBhalf(E, P, Q, order, B, half):
     return E, P, Q
 
 
-def _getEPQ2(A, h, order=1, B=None, half=False):
+def getEPQ1(A, h, order=1, B=None, half=False):
     """
     Returns E, P, Q for the exponential solver given the state-space
     matrix `A`.
@@ -674,17 +674,26 @@ def _getEPQ2(A, h, order=1, B=None, half=False):
     E, P, Q : 2d ndarrays, except if ``order == 0``, ``Q = 0.``
         These are the coefficient matrices used to solve the ODE:
         ::
+
             for j in range(nt):
                 d[:, j+1] = E*d[:, j] + P*F[:, j] + Q*F[:, j+1]
 
     Notes
     -----
     Normally, :func:`getEPQ` would be called and that routine will
-    call this one or :func:`_getEPQ1`.
+    call this one or :func:`getEPQ2`.
 
     `E` is the matrix exponential ``exp(A*h)`` and `P` and `Q` are
-    functions of the integral(s) of the matrix exponential. See
-    :func:`expmint`.
+    functions of the integral(s) of the matrix exponential::
+
+            if order == 1:
+                E, I, I2 = expmint(A, h, 1)
+                P = (I2/h) @ B
+                Q = (I - I2/h) @ B
+            else:
+                E, I = expmint(A, h)
+                P = I @ B
+                Q = 0.
 
     See also
     --------
@@ -699,7 +708,7 @@ def _getEPQ2(A, h, order=1, B=None, half=False):
     >>> np.set_printoptions(4)
     >>> A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> B = np.array([[0, 1, 0]]).T
-    >>> E, P, Q = expmint._getEPQ2(A, .05, order=1, B=B)
+    >>> E, P, Q = expmint.getEPQ1(A, .05, order=1, B=B)
     >>> E
     array([[ 1.0996,  0.1599,  0.2202],
            [ 0.3099,  1.3849,  0.46  ],
@@ -712,7 +721,7 @@ def _getEPQ2(A, h, order=1, B=None, half=False):
     array([[ 0.0011],
            [ 0.0276],
            [ 0.0041]])
-    >>> E, P, Q = expmint._getEPQ2(A, .05, order=0, B=B)
+    >>> E, P, Q = expmint.getEPQ1(A, .05, order=0, B=B)
     >>> E
     array([[ 1.0996,  0.1599,  0.2202],
            [ 0.3099,  1.3849,  0.46  ],
@@ -779,8 +788,16 @@ def getEPQ_pow(A, h, order=1, B=None, half=False):
     :func:`getEPQ` instead.
 
     `E` is the matrix exponential ``exp(A*h)`` and `P` and `Q` are
-    functions of the integral(s) of the matrix exponential. See
-    :func:`expmint_pow`.
+    functions of the integral(s) of the matrix exponential::
+
+            if order == 1:
+                E, I, I2 = expmint(A, h, 1)
+                P = (I2/h) @ B
+                Q = (I - I2/h) @ B
+            else:
+                E, I = expmint(A, h)
+                P = I @ B
+                Q = 0.
 
     See also
     --------
@@ -1001,7 +1018,7 @@ def _expm_SS(A, ssA, order):  # , use_exact_onenorm='auto'):
     return X
 
 
-def _getEPQ1(A, h, order=1, B=None, half=False):
+def getEPQ2(A, h, order=1, B=None, half=False):
     """
     Returns E, P, Q for the exponential solver given the state-space
     matrix `A`.
@@ -1036,18 +1053,19 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
     E, P, Q : 2d ndarrays, except if ``order == 0``, ``Q = 0.``
         These are the coefficient matrices used to solve the ODE:
         ::
+
             for j in range(nt):
                 d[:, j+1] = E*d[:, j] + P*F[:, j] + Q*F[:, j+1]
 
     Notes
     -----
     Normally, :func:`getEPQ` would be called and that routine will
-    call this one or :func:`_getEPQ2`.
+    call this one or :func:`getEPQ1`.
 
-    This routine is an alternative to :func:`_getEPQ2` and is
+    This routine is an alternative to :func:`getEPQ1` and is
     generally slower but more robust for large time steps. (If `B` has
     only a few columns, it could also be faster than
-    :func:`_getEPQ2`.) `E` is the matrix exponential ``exp(A*h)`` and
+    :func:`getEPQ1`.) `E` is the matrix exponential ``exp(A*h)`` and
     `P` and `Q` are functions of the integral(s) of the matrix
     exponential. They are calculated as follows (text from
     :func:`scipy.signal.lsim`).
@@ -1063,7 +1081,7 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
           [ x(dt) ]       [ A*dt   B*dt ] [ x0 ]
           [ u(dt) ] = exp [  0     0    ] [ u0 ]
 
-    The `E`, and `P` matrices are extracted from the matrix
+    The `E`, and `P` matrices are partitions of the matrix
     exponential and `Q` is zero.
 
     If order == 1::
@@ -1080,12 +1098,12 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
           [ u(dt) ] = exp [  0     0    I ] [  u0   ]
           [u1 - u0]       [  0     0    0 ] [u1 - u0]
 
-    The `E`, `P` and `Q` matrices are extracted from the matrix
+    The `E`, `P` and `Q` matrices are partitions of the matrix
     exponential.
 
     See also
     --------
-    :func:`_getEPQ2`, :func:`getEPQ_pow`,
+    :func:`getEPQ1`, :func:`getEPQ_pow`,
     :class:`pyyeti.ode.SolveExp1`, :class:`pyyeti.ode.SolveExp2`
 
     Examples
@@ -1096,7 +1114,7 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
     >>> np.set_printoptions(4)
     >>> A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     >>> B = np.array([[0, 1, 0]]).T
-    >>> E, P, Q = expmint._getEPQ1(A, .05, order=1, B=B)
+    >>> E, P, Q = expmint.getEPQ2(A, .05, order=1, B=B)
     >>> E
     array([[ 1.0996,  0.1599,  0.2202],
            [ 0.3099,  1.3849,  0.46  ],
@@ -1109,7 +1127,7 @@ def _getEPQ1(A, h, order=1, B=None, half=False):
     array([[ 0.0011],
            [ 0.0276],
            [ 0.0041]])
-    >>> E, P, Q = expmint._getEPQ1(A, .05, order=0, B=B)
+    >>> E, P, Q = expmint.getEPQ2(A, .05, order=0, B=B)
     >>> E
     array([[ 1.0996,  0.1599,  0.2202],
            [ 0.3099,  1.3849,  0.46  ],
@@ -1214,10 +1232,10 @@ def getEPQ(A, h, order=1, B=None, half=False):
 
     Notes
     -----
-    This routine calls either :func:`_getEPQ1` or :func:`_getEPQ2` for
+    This routine calls either :func:`getEPQ1` or :func:`getEPQ2` for
     the bulk of the work. If the 1-norm of `A` is less than
-    2.097847961257068 [#exp4]_, :func:`_getEPQ2` is called; otherwise,
-    :func:`_getEPQ1` is called.
+    2.097847961257068 [#exp4]_, :func:`getEPQ1` is called; otherwise,
+    :func:`getEPQ2` is called.
 
     References
     ----------
@@ -1267,5 +1285,5 @@ def getEPQ(A, h, order=1, B=None, half=False):
     """
     norm1 = h*np.linalg.norm(A, 1)
     if norm1 <= 2.097847961257068:
-        return _getEPQ2(A, h, order, B, half)
-    return _getEPQ1(A, h, order, B, half)
+        return getEPQ1(A, h, order, B, half)
+    return getEPQ2(A, h, order, B, half)

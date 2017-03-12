@@ -51,8 +51,8 @@ def test_getEPQ1_2_order0():
     order = 0
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     for h in [.0001, .001, .01, .05, .1, .2, 1]:
-        e, p, q = expmint._getEPQ1(A, h, order=order)
-        et, pt, qt = expmint._getEPQ2(A, h, order=order)
+        e, p, q = expmint.getEPQ1(A, h, order=order)
+        et, pt, qt = expmint.getEPQ2(A, h, order=order)
         assert np.allclose(e, et)
         assert np.allclose(p, pt)
         assert np.allclose(q, qt)
@@ -62,8 +62,8 @@ def test_getEPQ1_2_order1():
     order = 1
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     for h in [.0001, .001, .01, .05, .1]:
-        e, p, q = expmint._getEPQ1(A, h, order=order)
-        et, pt, qt = expmint._getEPQ2(A, h, order=order)
+        e, p, q = expmint.getEPQ1(A, h, order=order)
+        et, pt, qt = expmint.getEPQ2(A, h, order=order)
         assert np.allclose(e, et)
         assert np.allclose(p, pt)
         assert np.allclose(q, qt)
@@ -71,9 +71,9 @@ def test_getEPQ1_2_order1():
     # these last 2 use the power series expansion for I2 ... check
     # for the warning
     for h in [.2, 1]:
-        e, p, q = expmint._getEPQ1(A, h, order=order)
+        e, p, q = expmint.getEPQ2(A, h, order=order)
         with assert_warns(RuntimeWarning) as cm:
-            et, pt, qt = expmint._getEPQ2(A, h, order=order)
+            et, pt, qt = expmint.getEPQ1(A, h, order=order)
         the_warning = str(cm.warning)
         assert 0 == the_warning.find('Using power series expansion')
         assert np.allclose(e, et)
@@ -85,7 +85,7 @@ def test_getEPQ1():
     for order in (0, 1):
         A = np.random.randn(50, 50)
         for h in [.0001, .001, .01, .05, .1, .2, 1]:
-            e, p, q = expmint._getEPQ1(A, h, order=order)
+            e, p, q = expmint.getEPQ1(A, h, order=order)
             et, pt, qt = expmint.getEPQ_pow(A, h, order=order)
             assert np.allclose(e, et)
             assert np.allclose(p, pt)
@@ -97,7 +97,7 @@ def test_getEPQ():
         A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         for h in [.0001, .001, .01, .05, .1, .2, 1]:
             e, p, q = expmint.getEPQ(A, h, order=order)
-            et, pt, qt = expmint._getEPQ1(A, h, order=order)
+            et, pt, qt = expmint.getEPQ2(A, h, order=order)
             assert np.allclose(e, et)
             assert np.allclose(p, pt)
             assert np.allclose(q, qt)
@@ -108,8 +108,8 @@ def test_getEPQ_half():
         A = np.random.randn(50, 50)
         for h in [.001]:
             e, p, q = expmint.getEPQ(A, h, order=order, half=True)
-            e1, p1, q1 = expmint._getEPQ1(A, h, order=order, half=True)
-            e2, p2, q2 = expmint._getEPQ2(A, h, order=order, half=True)
+            e1, p1, q1 = expmint.getEPQ1(A, h, order=order, half=True)
+            e2, p2, q2 = expmint.getEPQ2(A, h, order=order, half=True)
             et, pt, qt = expmint.getEPQ_pow(A, h, order=order,
                                             half=True)
             assert np.allclose(e, e1)
@@ -129,8 +129,8 @@ def test_getEPQ_B():
         B = np.random.randn(50, 2)
         for h in [.001]:
             e, p, q = expmint.getEPQ(A, h, order=order, B=B)
-            e1, p1, q1 = expmint._getEPQ1(A, h, order=order, B=B)
-            e2, p2, q2 = expmint._getEPQ2(A, h, order=order, B=B)
+            e1, p1, q1 = expmint.getEPQ1(A, h, order=order, B=B)
+            e2, p2, q2 = expmint.getEPQ2(A, h, order=order, B=B)
             et, pt, qt = expmint.getEPQ_pow(A, h, order=order,
                                             B=B)
             assert np.allclose(e, e1)

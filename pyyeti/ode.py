@@ -48,7 +48,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     under-damped, critically-damped, and over-damped equations. The
     solver is exact with the assumption that the forces vary linearly
     during a time step (1st order hold). `pvrb` is a boolean vector
-    with True specifying where rigid-body modes are).
+    with True specifying where rigid-body modes are.
 
     The coefficients are used as follows::
 
@@ -286,7 +286,7 @@ def _eigc_dups(lam, tol=1.e-10):
 
     Notes
     -----
-    Input lam is the vector of eigenvalues of A defined by::
+    Input `lam` is the vector of eigenvalues of `A` defined by::
 
         yd - A y = 0
 
@@ -633,7 +633,8 @@ class SolveExp1(object):
     This class is for solving: ``yd - A y = f``
 
     This solver is exact assuming either piece-wise linear or
-    piece-wise constant forces.
+    piece-wise constant forces. See :class:`SolveExp2` for more
+    details on how this algorithm solves the ODE.
 
     Examples
     --------
@@ -1283,7 +1284,7 @@ class SolveExp2(_BaseODE):
     r"""
     2nd order ODE time domain solver based on the matrix exponential.
 
-    This class is for solving:
+    This class is for solving matrix equations of motion:
 
     .. math::
         M \ddot{q} + B \dot{q} + K q = F
@@ -1306,13 +1307,41 @@ class SolveExp2(_BaseODE):
     .. math::
         \dot{y} - A y = w
 
+    The general solution is:
+
+    .. math::
+        y = e^{A t} \left (
+        y(0) + \int_0^t {e^{-A \tau} w d\tau}
+        \right )
+
+    By only requiring the solution at every time step and assuming a
+    constant step size of `h`:
+
+    .. math::
+        y_{n+1} = e^{A h} \left (
+        y_{n} + \int_0^h {e^{-A \tau} w(t_n+\tau) d\tau}
+        \right )
+
+    By assuming :math:`w(t_n+\tau)` is piece-wise linear (if `order`
+    is 1) or piece-wise constant (if `order` is 0) for each step, an
+    exact, closed form solution can be calculated. The function
+    :func:`pyyeti.expmint.getEPQ` computes the matrix exponential `E`
+    (:math:`e^{A h}`), and solves the integral(s) needed to compute
+    `P` and `Q` so that a solution can be computed by:
+
+    .. math::
+        y_{n+1} = E y_{n} + P w_{n} + Q w_{n+1}
+
     Unlike for the uncoupled solver :class:`SolveUnc`, this solver
     doesn't need or use the `rb` input unless static initial
     conditions are requested when solving equations.
 
-    Like :class:`SolveUnc`, this solver is exact assuming piece-wise
-    linear forces (if `order` is 1) or piece-wise constant forces (if
-    `order` is 0).
+    Note that :class:`SolveUnc` is also an exact solver assuming
+    piece-wise linear or piece-wise constant forces. :class:`SolveUnc`
+    is often faster than :class:`SolveExp2` since it uncouples the
+    equations and therefore doesn't need to work with matrices in the
+    inner loop. However, it is recommended to experiment with both
+    solvers for any particular application.
 
     The above equations are for the non-residual-flexibility
     modes. The 'rf' modes are solved statically and any initial
@@ -1864,10 +1893,60 @@ class SolveUnc(_BaseODE):
         \dot{y} - A y = w
 
     The above state-space equations are for the dynamic elastic modes
-    only. Then, the complex eigensolution is used to decouple the
-    equations. The rigid-body and residual-flexibility modes are
-    solved independently. Note that the res-flex modes are solved
-    statically and any initial conditions are ignored for them.
+    only. The rigid-body and residual-flexibility modes are solved
+    independently. Note that the res-flex modes are solved statically
+    and any initial conditions are ignored for them.
+
+    For the elastic part, the complex eigensolution is used to decouple the
+    equations:
+
+    .. math::
+       A \Phi = \Phi \lambda
+
+    Where :math:`\Phi` is a matrix of right eigenvectors and
+    :math:`\lambda` is a diagonal matrix of eigenvalues. By defining:
+
+    .. math::
+        y = \Phi u
+
+    The equations become:
+
+    .. math::
+        \Phi \dot{u} - A \Phi u = w
+
+        \Phi^{-1} \Phi \dot{u} - \Phi^{-1} A \Phi u = \Phi w
+
+        \dot{u} - \lambda u = v
+
+    Since those equations are uncoupled, they can be solved very
+    efficiently assuming the forces are piece-wise linear or
+    piece-wise constant. For the i-th equation:
+
+    .. math::
+        u_i = e^{\lambda_i t} \left (
+        u_i(0) + \int_0^t {e^{-\lambda_i \tau} v_i d\tau}
+        \right )
+
+    By only requiring the solution at every time step and assuming a
+    constant step size of `h`:
+
+    .. math::
+        u_{i, n+1} = e^{\lambda_i h} \left (
+        y_{i, n} + \int_0^h {e^{-\lambda_i \tau} v_i(t_n+\tau) d\tau}
+        \right )
+
+    By assuming :math:`v(t_n+\tau)` is piece-wise linear or constant
+    for each step, an exact, closed form solution can be calculated.
+
+    The class function :func:`SolveUnc._get_complex_su_coefs` computes
+    the vectors `Fe` (:math:`e^{\lambda h}`), `Ae`, and `Be` so that a
+    solution (for all equations) can be computed by:
+
+    .. math::
+        u_{n+1} = Fe \circ u_{n} + Ae \circ w_{n} + Be \circ w_{n+1}
+
+    The :math:`\circ` symbol represents a term-by-term (or Hadamard)
+    product.
 
     For a static solution:
 

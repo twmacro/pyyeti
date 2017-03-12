@@ -10,3 +10,11 @@ Matrix exponential and its integral (expmint)
     expmint_pow
     getEPQ
     getEPQ_pow
+
+Utility routines
+----------------
+.. autosummary::
+    :toctree: generated/
+
+    getEPQ1
+    getEPQ2
