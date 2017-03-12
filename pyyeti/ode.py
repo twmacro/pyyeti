@@ -1343,9 +1343,11 @@ class SolveExp2(_BaseODE):
     inner loop. However, it is recommended to experiment with both
     solvers for any particular application.
 
-    The above equations are for the non-residual-flexibility
-    modes. The 'rf' modes are solved statically and any initial
-    conditions are ignored for them.
+    .. note::
+
+        The above equations are for the non-residual-flexibility
+        modes. The 'rf' modes are solved statically and any initial
+        conditions are ignored for them.
 
     For a static solution:
 
@@ -1874,8 +1876,9 @@ class SolveUnc(_BaseODE):
     For uncoupled equations, pre-formulated integration coefficients
     are used (see :func:`get_su_coef`).
 
-    For coupled systems, the elastic modes part of the equation is
-    transformed into state-space:
+    For coupled systems, the rigid-body modes are solved as described
+    above: using the pre-formulated coefficients. The elastic modes
+    part of the equations of motion are transformed into state-space:
 
     .. math::
         \left\{
@@ -1892,13 +1895,7 @@ class SolveUnc(_BaseODE):
     .. math::
         \dot{y} - A y = w
 
-    The above state-space equations are for the dynamic elastic modes
-    only. The rigid-body and residual-flexibility modes are solved
-    independently. Note that the res-flex modes are solved statically
-    and any initial conditions are ignored for them.
-
-    For the elastic part, the complex eigensolution is used to decouple the
-    equations:
+    The complex eigensolution is used to decouple the equations:
 
     .. math::
        A \Phi = \Phi \lambda
@@ -1914,7 +1911,7 @@ class SolveUnc(_BaseODE):
     .. math::
         \Phi \dot{u} - A \Phi u = w
 
-        \Phi^{-1} \Phi \dot{u} - \Phi^{-1} A \Phi u = \Phi w
+        \Phi^{-1} \Phi \dot{u} - \Phi^{-1} A \Phi u = \Phi^{-1} w
 
         \dot{u} - \lambda u = v
 
@@ -1932,21 +1929,27 @@ class SolveUnc(_BaseODE):
 
     .. math::
         u_{i, n+1} = e^{\lambda_i h} \left (
-        y_{i, n} + \int_0^h {e^{-\lambda_i \tau} v_i(t_n+\tau) d\tau}
+        u_{i, n} + \int_0^h {e^{-\lambda_i \tau} v_i(t_n+\tau) d\tau}
         \right )
 
     By assuming :math:`v(t_n+\tau)` is piece-wise linear or constant
-    for each step, an exact, closed form solution can be calculated.
-
-    The class function :func:`SolveUnc._get_complex_su_coefs` computes
-    the vectors `Fe` (:math:`e^{\lambda h}`), `Ae`, and `Be` so that a
-    solution (for all equations) can be computed by:
+    for each step, an exact, closed form solution can be
+    calculated. The class function
+    :func:`SolveUnc._get_complex_su_coefs` computes the vectors `Fe`
+    (:math:`e^{\lambda h}`), `Ae`, and `Be` so that a solution (for
+    all equations) can be computed by:
 
     .. math::
         u_{n+1} = Fe \circ u_{n} + Ae \circ w_{n} + Be \circ w_{n+1}
 
     The :math:`\circ` symbol represents a term-by-term (or Hadamard)
     product.
+
+    .. note::
+
+        The above equations are for the non-residual-flexibility
+        modes. The 'rf' modes are solved statically and any initial
+        conditions are ignored for them.
 
     For a static solution:
 
@@ -2150,7 +2153,7 @@ class SolveUnc(_BaseODE):
             The force matrix; ndof x time
         d0 : 1d ndarray; optional
             Displacement initial conditions; if None, zero ic's are
-            used.
+            used. Note that initial conditions are ignored for residual flexibility modes.
         v0 : 1d ndarray; optional
             Velocity initial conditions; if None, zero ic's are used.
         static_ic : bool; optional
