@@ -815,9 +815,16 @@ class _BaseODE(object):
 
     def generator(self):
         """
-        'Abstract' method to get Python "generator" version of
-        :class:`SolveExp2` solver. This is to interactively solve (or
-        re-solve) one step at a time.
+        'Abstract' method to get Python "generator" version of the ODE
+        solver. This is to interactively solve (or re-solve) one step
+        at a time.
+        """
+        raise NotImplementedError
+
+    def get_f2x(self):
+        """
+        'Abstract' method to get the force to displacement tranform used
+        in Henkel-Mar simulations.
         """
         raise NotImplementedError
 
@@ -1271,6 +1278,25 @@ class _BaseODE(object):
                                           check_finite=False)
                 else:
                     a[kdof] = F - B - K
+
+    def _add_rf_flex(self, flex, phi, velo, unc):
+        if not velo and self.rfsize:
+            rf = self.rf
+            ikrf = self.ikrf
+            phirf = phi[:, rf]
+            if unc:
+                flexrf = ikrf.ravel()[:, None] * phirf.T
+            else:
+                flexrf = la.lu_solve(ikrf, phirf.T,
+                                     check_finite=False)
+            flex = flex + phirf @ flexrf
+        return flex
+
+    def _flex(self, flex, phi):
+        if isinstance(flex, float):
+            n = phi.shape[0]
+            flex = np.zeros((n, n))
+        return flex
 
     def _force_freq_compat_chk(self, force, freq):
         """Check compatibility between force matrix and freq vector"""
@@ -1855,6 +1881,82 @@ class SolveExp2(_BaseODE):
                 v[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
                 i, F1 = yield
 
+    def get_f2x(self, phi, velo=False):
+        """
+        Get force to displacement transform, typically for Henkel-Mar
+
+        Parameters
+        ----------
+        phi : 2d ndarray
+            Transform from ODE coordinates to physical DOF on boundary
+        velo : bool; optional
+            If True, get force to velocity transform instead
+
+        Returns
+        -------
+        flex : 2d ndarray
+            Force to displacement (or velocity) transform
+
+        Notes
+        -----
+        This routine was written to support Henkel-Mar simulations;
+        see [#hm]_. The equations of motion for two separate bodies
+        are solved simultaneously while enforcing joint
+        compatibility. This is handy for allowing the two bodies two
+        separate from each other. The `flex` matrix is part of the
+        matrix in the upper right quadrant of equation 27 in ref
+        [#hm]_; the other part comes from the other body.
+
+        The matrix `flex` is::
+
+            flex = (phi[:, kdof] @ (B * phi[:, kdof].T) +
+                    phi[:, rf] @ (ikrf * phi[:, rf]))
+
+        .. note::
+
+            A zeros matrix is returned if `order` is 0.
+
+        Raises
+        ------
+        NotImplementedError
+            When `systype` is not float.
+
+        References
+        ----------
+
+        .. [#hm] E. E. Henkel, and R. Mar "Improved Method for
+            Calculating Booster to Launch Pad Interface Transient
+            Forces", Journal of Spacecraft and Rockets, Dated Nov-Dec,
+            1988, pp 433-438
+        """
+        if self.systype is not float:
+            raise NotImplementedError(
+                ':func:`get_f2x` can only handle real equations of'
+                ' motion')
+
+        flex = 0.0
+        unc = self.unc
+        if self.order == 1:
+            if self.ksize:
+                # non-rf equations:
+                Q = self.Q
+                kdof = self.kdof
+                phik = phi[:, kdof]
+                if self.m is not None:
+                    if unc:
+                        invm = self.invm.ravel()
+                        Q = Q * invm
+                    else:
+                        Q = la.lu_solve(self.invm, Q.T, trans=1,
+                                        check_finite=False).T
+                n = self.n
+                if velo:
+                    flex = phik @ Q[:n] @ phik.T
+                else:
+                    flex = phik @ Q[n:] @ phik.T
+            flex = self._add_rf_flex(flex, phi, velo, unc)
+        return self._flex(flex, phi)
+
 
 class SolveUnc(_BaseODE):
     r"""
@@ -1940,7 +2042,7 @@ class SolveUnc(_BaseODE):
     all equations) can be computed by:
 
     .. math::
-        u_{n+1} = Fe \circ u_{n} + Ae \circ w_{n} + Be \circ w_{n+1}
+        u_{n+1} = Fe \circ u_{n} + Ae \circ v_{n} + Be \circ v_{n+1}
 
     The :math:`\circ` symbol represents a term-by-term (or Hadamard)
     product.
@@ -2153,7 +2255,7 @@ class SolveUnc(_BaseODE):
             The force matrix; ndof x time
         d0 : 1d ndarray; optional
             Displacement initial conditions; if None, zero ic's are
-            used. Note that initial conditions are ignored for residual flexibility modes.
+            used.
         v0 : 1d ndarray; optional
             Velocity initial conditions; if None, zero ic's are used.
         static_ic : bool; optional
@@ -2331,6 +2433,67 @@ class SolveUnc(_BaseODE):
             generator = self._solve_complex_unc_generator(d, v, a, F0)
             next(generator)
             return generator, d, v
+
+    def get_f2x(self, phi, velo=False):
+        """
+        Get force to displacement transform, typically for Henkel-Mar
+
+        Parameters
+        ----------
+        phi : 2d ndarray
+            Transform from ODE coordinates to physical DOF on boundary
+        velo : bool; optional
+            If True, get force to velocity transform instead
+
+        Returns
+        -------
+        flex : 2d ndarray
+            Force to displacement (or velocity) transform
+
+        Notes
+        -----
+        This routine was written to support Henkel-Mar simulations;
+        see [#hm]_. The equations of motion for two separate bodies
+        are solved simultaneously while enforcing joint
+        compatibility. This is handy for allowing the two bodies two
+        separate from each other. The `flex` matrix is part of the
+        matrix in the upper right quadrant of equation 27 in ref
+        [#hm]_; the other part comes from the other body.
+
+        For real, uncoupled equations::
+
+            flex = (phi[:, kdof] @ (B * phi[:, kdof].T) +
+                    phi[:, rf] @ (ikrf * phi[:, rf]))
+
+        .. note::
+
+            A zeros matrix is returned if `order` is 0.
+
+        Raises
+        ------
+        NotImplementedError
+            When `systype` is not float.
+
+        References
+        ----------
+
+        .. [#hm] E. E. Henkel, and R. Mar "Improved Method for
+            Calculating Booster to Launch Pad Interface Transient
+            Forces", Journal of Spacecraft and Rockets, Dated Nov-Dec,
+            1988, pp 433-438
+        """
+        if self.systype is not float:
+            raise NotImplementedError(
+                ':func:`get_f2x` can only handle real equations of'
+                ' motion')
+        if self.order == 0:
+            flex = 0.0
+        else:
+            if self.unc:
+                flex = self._get_f2x_real_unc(phi, velo)
+            else:
+                flex = self._get_f2x_complex_unc(phi, velo)
+        return self._flex(flex, phi)
 
     def fsolve(self, force, freq, incrb=2):
         """
@@ -2585,6 +2748,25 @@ class SolveUnc(_BaseODE):
                     v[:, i] = Fp*di + Gp*vi + ABp*F0
                     i, F1 = yield
 
+    def _get_f2x_real_unc(self, phi, velo):
+        """
+        Get f2x transform for henkel-mar
+        """
+        if self.ksize:
+            # rb and el equations:
+            pc = self.pc
+            kdof = self.kdof
+            phik = phi[:, kdof]
+            if velo:
+                B = pc.Bp[:, None]
+            else:
+                B = pc.B[:, None]
+            flex = phik @ (B * phik.T)
+        else:
+            flex = 0.0
+        flex = self._add_rf_flex(flex, phi, velo, True)
+        return flex
+
     def _solve_complex_unc(self, d, v, a, force):
         """Solve the complex uncoupled equations for
         :class:`SolveUnc`"""
@@ -2684,6 +2866,7 @@ class SolveUnc(_BaseODE):
         """Solve the complex uncoupled equations for
         :class:`SolveUnc`"""
         nt = d.shape[1]
+        order = self.order
 
         # need to handle up to 3 types of equations every loop:
         # - rb, el, rf
@@ -2713,6 +2896,9 @@ class SolveUnc(_BaseODE):
             G = pc.G
             A = pc.A
             Ap = pc.Ap
+            if order == 0:
+                A = 1.5*A
+                Ap = 2.0*Ap
             drb = d[rb]
             vrb = v[rb]
             arb = a[rb]
@@ -2727,6 +2913,8 @@ class SolveUnc(_BaseODE):
             Fe = pc.Fe
             Ae = pc.Ae
             Be = pc.Be
+            if order == 0:
+                Ae = Ae + Be
             ur_d = pc.ur_d
             ur_v = pc.ur_v
             rur_d = pc.rur_d
@@ -2757,9 +2945,8 @@ class SolveUnc(_BaseODE):
                                    check_finite=False)
             drf = d[rf]
 
-        order = self.order
-        i, F1 = yield
         while True:
+            i, F1 = yield
             Force[:, i] = F1
             F0 = Force[:, i-1]
             if rbsize:
@@ -2777,29 +2964,36 @@ class SolveUnc(_BaseODE):
                     AF = A*(F0rb + 0.5*F1rb)
                     AFp = Ap*(F0rb + F1rb)
                 else:
-                    AF = (1.5*A)*F0rb
-                    AFp = (2.0*Ap)*F0rb
+                    AF = A*F0rb
+                    AFp = Ap*F0rb
                 vi = vrb[:, i-1]
                 drb[:, i] = drb[:, i-1] + G*vi + AF
                 vrb[:, i] = vi + AFp
                 arb[:, i] = F1rb
 
             if ksize:
-                F0k = Force[kdof, i-1]
-                F1k = F1[kdof]
-                if m is not None:
-                    if unc:
-                        F0k = invm * F0k
-                        F1k = invm * F1k
-                    else:
-                        F0k = invm @ F0k
-                        F1k = invm @ F1k
-                w0 = ur_inv_v @ F0k
-                w1 = ur_inv_v @ F1k
-                if self.order == 1:
+                # F0k = Force[kdof, i-1]
+                F0k = F0[kdof]
+                if order == 1:
+                    F1k = F1[kdof]
+                    if m is not None:
+                        if unc:
+                            F0k = invm * F0k
+                            F1k = invm * F1k
+                        else:
+                            F0k = invm @ F0k
+                            F1k = invm @ F1k
+                    w0 = ur_inv_v @ F0k
+                    w1 = ur_inv_v @ F1k
                     ABF = Ae*w0 + Be*w1
                 else:
-                    ABF = (Ae+Be)*w0
+                    if m is not None:
+                        if unc:
+                            F0k = invm * F0k
+                        else:
+                            F0k = invm @ F0k
+                    w0 = ur_inv_v @ F0k
+                    ABF = Ae*w0
                 # [V; D] = ur @ y
                 # y = ur_inv @ [V; D] = [ur_inv_v, ur_inv_d] @ [V; D]
                 y = ur_inv_v @ V[:, i-1] + ur_inv_d @ D[:, i-1]
@@ -2808,8 +3002,8 @@ class SolveUnc(_BaseODE):
                     # Can do real math for recovery. Note that the
                     # imaginary part of 'd' and 'v' would be zero if
                     # no modes were deleted of the complex conjugate
-                    # pairs. The real part is correct however, and
-                    # that's all we need.
+                    # pairs. The real part is correct whether or not
+                    # modes were deleted, and that's all we need.
                     ry = yn.real
                     iy = yn.imag
                     D[:, i] = rur_d @ ry - iur_d @ iy
@@ -2818,20 +3012,69 @@ class SolveUnc(_BaseODE):
                     # [V; D] = ur @ y
                     D[:, i] = ur_d @ yn
                     V[:, i] = ur_v @ yn
-                    # ry = yn.real
-                    # iy = yn.imag
-                    # D[:, i].real = rur_d @ ry - iur_d @ iy
-                    # D[:, i].imag = rur_d @ iy + iur_d @ ry
-                    # V[:, i].real = rur_v @ ry - iur_v @ iy
-                    # V[:, i].imag = rur_v @ iy + iur_v @ ry
 
             if rfsize:
                 if unc:
                     drf[:, i] = ikrf * F1[rf]
                 else:
                     drf[:, i] = ikrf @ F1[rf]
-            i, F1 = yield
 
+    def _get_f2x_complex_unc(self, phi, velo):
+        """
+        Get f2x transform for henkel-mar
+        """
+        unc = self.unc
+        rbsize = self.rbsize
+        m = self.m
+        pc = self.pc
+
+        flex = 0.0
+        if self.ksize:
+            self._delconj()
+            Be = pc.Be
+            rur_d = pc.rur_d
+            iur_d = pc.iur_d
+            rur_v = pc.rur_v
+            iur_v = pc.iur_v
+            ur_inv_v = pc.ur_inv_v
+
+            kdof = self.kdof
+            phik = phi[:, kdof]
+            flexe = phik.T
+            if m is not None:
+                invm = self.invm
+                if unc:
+                    flexe = invm.ravel()[:, None] * flexe
+                else:
+                    flexe = la.lu_solve(invm, flexe,
+                                        check_finite=False)
+            flexe = Be[:, None] * (ur_inv_v @ flexe)
+            if velo:
+                flexe = rur_v @ flexe.real - iur_v @ flexe.imag
+            else:
+                flexe = rur_d @ flexe.real - iur_d @ flexe.imag
+            flex = flex + phik @ flexe
+
+        if self.rbsize:
+            rb = self.rb
+            phir = phi[:, rb]
+            flexr = phir.T
+            if m is not None:
+                imrb = self.imrb
+                if unc:
+                    flexr = imrb.ravel()[:, None] * flexr
+                else:
+                    flexr = la.lu_solve(imrb, flexr,
+                                        check_finite=False)
+            if velo:
+                flexr = pc.Ap*flexr
+            else:
+                flexr = (0.5*pc.A)*flexr
+            flex = flex + phir @ flexr
+
+        flex = self._add_rf_flex(flex, phi, velo, unc)
+        return flex
+                    
     def _get_su_eig(self, delcc):
         """
         Does pre-calcs for the `SolveUnc` solver via the complex

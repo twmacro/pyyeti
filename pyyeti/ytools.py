@@ -224,7 +224,7 @@ def isdiag(A, tol=1e-12):
     d = np.diag(A)
     max_off = abs(np.diag(d) - A).max()
     max_on = abs(d).max()
-    return max_off < tol*max_on
+    return max_off <= tol*max_on
 
 
 def mattype(A, mtype=None):
