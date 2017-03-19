@@ -1850,35 +1850,57 @@ class SolveExp2(_BaseODE):
             V = v[kdof]
             drf = d[rf]
             while True:
-                i, F1 = yield
-                Force[:, i] = F1
-                F0 = Force[:, i-1]
-                if self.order == 1:
-                    PQF = P @ F0[kdof] + Q @ F1[kdof]
+                j, F1 = yield
+                if j < 0:
+                    # add new force to previous solution
+                    Force[:, i] += F1
+                    if self.order == 1:
+                        PQF = Q @ F1[kdof]
+                        D[:, i] += PQF[ksize:]
+                        V[:, i] += PQF[:ksize]
+                    if unc:
+                        drf[:, i] += ikrf * F1[rf]
+                    else:
+                        drf[:, i] += ikrf @ F1[rf]
                 else:
-                    PQF = P @ F0[kdof]
-                d0 = D[:, i-1]
-                v0 = V[:, i-1]
-                D[:, i] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:]
-                V[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
-                if unc:
-                    drf[:, i] = ikrf * F1[rf]
-                else:
-                    drf[:, i] = ikrf @ F1[rf]
+                    i = j
+                    Force[:, i] = F1
+                    F0 = Force[:, i-1]
+                    if self.order == 1:
+                        PQF = P @ F0[kdof] + Q @ F1[kdof]
+                    else:
+                        PQF = P @ F0[kdof]
+                    d0 = D[:, i-1]
+                    v0 = V[:, i-1]
+                    D[:, i] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:]
+                    V[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
+                    if unc:
+                        drf[:, i] = ikrf * F1[rf]
+                    else:
+                        drf[:, i] = ikrf @ F1[rf]
         else:
             # only non-rf modes present
             while True:
-                i, F1 = yield
-                Force[:, i] = F1
-                F0 = Force[:, i-1]
-                if self.order == 1:
-                    PQF = P @ F0 + Q @ F1
+                j, F1 = yield
+                if j < 0:
+                    # add new force to previous solution
+                    Force[:, i] += F1
+                    if self.order == 1:
+                        PQF = Q @ F1
+                        d[:, i] += PQF[ksize:]
+                        v[:, i] += PQF[:ksize]
                 else:
-                    PQF = P @ F0
-                d0 = d[:, i-1]
-                v0 = v[:, i-1]
-                d[:, i] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:]
-                v[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
+                    i = j
+                    Force[:, i] = F1
+                    F0 = Force[:, i-1]
+                    if self.order == 1:
+                        PQF = P @ F0 + Q @ F1
+                    else:
+                        PQF = P @ F0
+                    d0 = d[:, i-1]
+                    v0 = v[:, i-1]
+                    d[:, i] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:]
+                    v[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
 
     def get_f2x(self, phi, velo=False):
         """
