@@ -1844,13 +1844,13 @@ class SolveExp2(_BaseODE):
         E_dv = self.E_dv
         E_vd = self.E_vd
         E_vv = self.E_vv
-        i, F1 = yield
         if rfsize:
             # both rf and non-rf modes present
             D = d[kdof]
             V = v[kdof]
             drf = d[rf]
             while True:
+                i, F1 = yield
                 Force[:, i] = F1
                 F0 = Force[:, i-1]
                 if self.order == 1:
@@ -1865,10 +1865,10 @@ class SolveExp2(_BaseODE):
                     drf[:, i] = ikrf * F1[rf]
                 else:
                     drf[:, i] = ikrf @ F1[rf]
-                i, F1 = yield
         else:
             # only non-rf modes present
             while True:
+                i, F1 = yield
                 Force[:, i] = F1
                 F0 = Force[:, i-1]
                 if self.order == 1:
@@ -1879,7 +1879,6 @@ class SolveExp2(_BaseODE):
                 v0 = v[:, i-1]
                 d[:, i] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:]
                 v[:, i] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize]
-                i, F1 = yield
 
     def get_f2x(self, phi, velo=False):
         """
@@ -1888,7 +1887,7 @@ class SolveExp2(_BaseODE):
         Parameters
         ----------
         phi : 2d ndarray
-            Transform from ODE coordinates to physical DOF on boundary
+            Transform from ODE coordinates to physical DOF
         velo : bool; optional
             If True, get force to velocity transform instead
 
@@ -1902,15 +1901,23 @@ class SolveExp2(_BaseODE):
         This routine was written to support Henkel-Mar simulations;
         see [#hm]_. The equations of motion for two separate bodies
         are solved simultaneously while enforcing joint
-        compatibility. This is handy for allowing the two bodies two
+        compatibility. This is handy for allowing the two bodies to
         separate from each other. The `flex` matrix is part of the
         matrix in the upper right quadrant of equation 27 in ref
-        [#hm]_; the other part comes from the other body.
+        [#hm]_; the remaining part comes from the other body.
 
-        The matrix `flex` is::
+        Let (see also :func:`__init__`)::
 
-            flex = (phi[:, kdof] @ (B * phi[:, kdof].T) +
-                    phi[:, rf] @ (ikrf * phi[:, rf]))
+            phik = phi[:, kdof]
+            phirf = phi[:, rf]
+
+        If `velo` is False::
+
+            flex = phik @ Q[n:] @ phik.T + phirf @ ikrf @ phirf
+
+        If `velo` is True::
+
+            flex = phik @ Q[:n] @ phik.T
 
         .. note::
 
@@ -2441,7 +2448,7 @@ class SolveUnc(_BaseODE):
         Parameters
         ----------
         phi : 2d ndarray
-            Transform from ODE coordinates to physical DOF on boundary
+            Transform from ODE coordinates to physical DOF
         velo : bool; optional
             If True, get force to velocity transform instead
 
@@ -2455,15 +2462,49 @@ class SolveUnc(_BaseODE):
         This routine was written to support Henkel-Mar simulations;
         see [#hm]_. The equations of motion for two separate bodies
         are solved simultaneously while enforcing joint
-        compatibility. This is handy for allowing the two bodies two
+        compatibility. This is handy for allowing the two bodies to
         separate from each other. The `flex` matrix is part of the
         matrix in the upper right quadrant of equation 27 in ref
-        [#hm]_; the other part comes from the other body.
+        [#hm]_; the remaining part comes from the other body.
 
-        For real, uncoupled equations::
+        Let (see also :func:`__init__`)::
 
-            flex = (phi[:, kdof] @ (B * phi[:, kdof].T) +
-                    phi[:, rf] @ (ikrf * phi[:, rf]))
+            phir = phi[:, rb]       # for complex
+            phik = phi[:, kdof]     # for both; if real, includes rb
+            phirf = phi[:, rf]      # for both
+            B = pc.B[:, None]       # for real
+            Bp = pc.Bp[:, None]     # for real
+            A = pc.A                # for complex
+            Ap = pc.Ap              # for complex
+            Be = pc.Be[:, None]     # for complex
+            ur_inv_v = pc.ur_inv_v  # for complex
+            rur_d = pc.rur_d        # for complex
+            iur_d = pc.iur_d        # for complex
+            rur_v = pc.rur_v        # for complex
+            iur_v = pc.iur_v        # for complex
+
+        For real, if `velo` is False::
+
+            flex = phik @ (B * phik.T) + phirf @ (ikrf * phirf)
+
+        For real, if `velo` is True::
+
+            flex = phik @ (Bp * phik.T)
+
+        For complex, if `velo` is False::
+
+            flex_rb = phir @ (0.5*A*(imrb @ phir.T))
+            temp = Be*(ur_inv_v @ invm @ phik.T)
+            flex_el = phik @ (rur_d @ temp.real - iur_d @ temp.imag)
+            flex_rf = phirf @ ikrf @ phirf.T
+            flex = flex_rb + flex_el + flex_rf
+
+        For complex, if `velo` is True::
+
+            flex_rb = phir @ (Ap*(imrb @ phir.T))
+            temp = Be*(ur_inv_v @ invm @ phik.T)  # same as above
+            flex_el = phik @ (rur_v @ temp.real - iur_v @ temp.imag)
+            flex = flex_rb + flex_el
 
         .. note::
 
@@ -3074,7 +3115,7 @@ class SolveUnc(_BaseODE):
 
         flex = self._add_rf_flex(flex, phi, velo, unc)
         return flex
-                    
+
     def _get_su_eig(self, delcc):
         """
         Does pre-calcs for the `SolveUnc` solver via the complex

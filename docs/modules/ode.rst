@@ -22,6 +22,7 @@ Time and frequency domain equation of motion solvers (ode)
     SolveUnc.fsolve
     SolveUnc.generator
     SolveUnc.finalize
+    SolveUnc.get_f2x
 
 2nd Order ODE Solver `SolveExp2`
 --------------------------------
@@ -32,6 +33,7 @@ Time and frequency domain equation of motion solvers (ode)
     SolveExp2.tsolve
     SolveExp2.generator
     SolveExp2.finalize
+    SolveExp2.get_f2x
 
 2nd Order ODE Frequency Domain Solver `FreqDirect`
 --------------------------------------------------

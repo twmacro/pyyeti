@@ -2731,6 +2731,15 @@ def fftcoef(x, sr, coef='mag', window='boxcar', dodetrend=False,
         >>> x = np.random.randn(n)
         >>> t = np.arange(n)
         >>> mag, phase, frq = dsp.fftcoef(x, 1.0)
+        >>> _ = plt.figure()
+        >>> _ = plt.subplot(211)
+        >>> _ = plt.plot(frq, mag)
+        >>> _ = plt.ylabel('Magnitude')
+        >>> _ = plt.subplot(212)
+        >>> _ = plt.plot(frq, np.rad2deg(np.unwrap(phase)))
+        >>> _ = plt.ylabel('Phase (deg)')
+        >>> _ = plt.xlabel('Frequency (Hz)')
+        >>> #
         >>> w = 2*np.pi*frq[1]
         >>> #
         >>> # use a finer time vector for reconstructions:
@@ -2747,9 +2756,10 @@ def fftcoef(x, sr, coef='mag', window='boxcar', dodetrend=False,
         >>> for k, (a, b, f) in enumerate(zip(A, B, frq)):
         ...     x3 = x3 + a*np.cos(k*w*t2) + b*np.sin(k*w*t2)
         >>> #
+        >>> _ = plt.figure()
         >>> _ = plt.plot(t, x, 'o', label='Original')
-        >>> _ = plt.plot(t2, x2, label='FFT fit 1')
-        >>> _ = plt.plot(t2, x3, '--', label='FFT fit 2')
+        >>> _ = plt.plot(t2, x2, label='FFT fit w/ Mag & Phase')
+        >>> _ = plt.plot(t2, x3, '--', label='FFT fit w/ A & B')
         >>> _ = plt.legend(loc='best')
         >>> _ = plt.title('Using `fftcoef` for FFT curve fit')
         >>> _ = plt.xlabel('Time (s)')
