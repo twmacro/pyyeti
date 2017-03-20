@@ -1708,6 +1708,24 @@ class SolveExp2(_BaseODE):
                        # - note: d[:, :i] and v[:, :i] are available
                        gen.send((i, fi))
 
+               There is a second usage of :func:`gen.send`: if the
+               index is negative, the force is treated as an addon to
+               forces already included for the i'th step. This is for
+               efficiency and only does the necessary calculations.
+               This feature was originally written for running
+               Henkel-Mar simulations, where interface forces are
+               computed after computing the solution with all the
+               other forces applied. There may be other similar
+               situations. To demonstrate this usage::
+
+                   for i in range(1, len(time)):
+                       # Do whatever to get i'th force
+                       # - note: d[:, :i] and v[:, :i] are available
+                       gen.send((i, fi))
+                       # Do more calculations to compute an addon
+                       # force. Then, update the i'th solution:
+                       gen.send((-1, fi_addon))
+
                The class instance will have the attributes `_d`, `_v`
                (same objects as `d` and `v`), `_a`, and `_force`. `d`,
                `v` and `ts._force` are updated on every
@@ -1810,17 +1828,28 @@ class SolveExp2(_BaseODE):
         ksize = self.ksize
         if not ksize:
             # only rf modes
-            i, F1 = yield
             if unc:
                 while True:
-                    Force[:, i] = F1
-                    d[:, i] = ikrf * F1[rf]
-                    i, F1 = yield
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                        d[:, i] += ikrf * F1[rf]
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        d[:, i] = ikrf * F1[rf]
             else:
                 while True:
-                    Force[:, i] = F1
-                    d[:, i] = ikrf @ F1[rf]
-                    i, F1 = yield
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                        d[:, i] += ikrf @ F1[rf]
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        d[:, i] = ikrf @ F1[rf]
 
         # there are rb/el modes if here
         kdof = self.kdof
@@ -2376,6 +2405,24 @@ class SolveUnc(_BaseODE):
                        # - note: d[:, :i] and v[:, :i] are available
                        gen.send((i, fi))
 
+               There is a second usage of :func:`gen.send`: if the
+               index is negative, the force is treated as an addon to
+               forces already included for the i'th step. This is for
+               efficiency and only does the necessary calculations.
+               This feature was originally written for running
+               Henkel-Mar simulations, where interface forces are
+               computed after computing the solution with all the
+               other forces applied. There may be other similar
+               situations. To demonstrate this usage::
+
+                   for i in range(1, len(time)):
+                       # Do whatever to get i'th force
+                       # - note: d[:, :i] and v[:, :i] are available
+                       gen.send((i, fi))
+                       # Do more calculations to compute an addon
+                       # force. Then, update the i'th solution:
+                       gen.send((-1, fi_addon))
+
                The class instance will have the attributes `_d`, `_v`
                (same objects as `d` and `v`), `_a`, and `_force`. `d`,
                `v` and `ts._force` are updated on every
@@ -2725,11 +2772,16 @@ class SolveUnc(_BaseODE):
             ikrf = self.ikrf.ravel()
 
         if not self.ksize:
-            i, F1 = yield
             while True:
-                Force[:, i] = F1
-                d[:, i] = ikrf * F1[rf]
-                i, F1 = yield
+                j, F1 = yield
+                if j < 0:
+                    # add to previous soln
+                    Force[:, i] += F1
+                    d[:, i] += ikrf * F1[rf]
+                else:
+                    i = j
+                    Force[:, i] = F1
+                    d[:, i] = ikrf * F1[rf]
 
         # there are rb/el modes if here
         pc = self.pc
@@ -2743,7 +2795,6 @@ class SolveUnc(_BaseODE):
         Ap = pc.Ap
         Bp = pc.Bp
 
-        i, F1 = yield
         if self.order == 1:
             if self.rfsize:
                 # rigid-body and elastic equations:
@@ -2753,29 +2804,44 @@ class SolveUnc(_BaseODE):
                 drf = d[rf]
                 # for i in range(nt-1):
                 while True:
-                    Force[:, i] = F1
-                    # rb + el:
-                    F0k = Force[kdof, i-1]
-                    F1k = F1[kdof]
-                    di = D[:, i-1]
-                    vi = V[:, i-1]
-                    D[:, i] = F*di + G*vi + A*F0k + B*F1k
-                    V[:, i] = Fp*di + Gp*vi + Ap*F0k + Bp*F1k
-
-                    # rf:
-                    drf[:, i] = ikrf * F1[rf]
-                    i, F1 = yield
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                        F1k = F1[kdof]
+                        D[:, i] += B*F1k
+                        V[:, i] += Bp*F1k
+                        drf[:, i] += ikrf * F1[rf]
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        # rb + el:
+                        F0k = Force[kdof, i-1]
+                        F1k = F1[kdof]
+                        di = D[:, i-1]
+                        vi = V[:, i-1]
+                        D[:, i] = F*di + G*vi + A*F0k + B*F1k
+                        V[:, i] = Fp*di + Gp*vi + Ap*F0k + Bp*F1k
+                        # rf:
+                        drf[:, i] = ikrf * F1[rf]
             else:
                 # only rigid-body and elastic equations:
                 while True:
-                    Force[:, i] = F1
-                    # rb + el:
-                    F0 = Force[:, i-1]
-                    di = d[:, i-1]
-                    vi = v[:, i-1]
-                    d[:, i] = F*di + G*vi + A*F0 + B*F1
-                    v[:, i] = Fp*di + Gp*vi + Ap*F0 + Bp*F1
-                    i, F1 = yield
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                        d[:, i] += B*F1
+                        v[:, i] += Bp*F1
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        # rb + el:
+                        F0 = Force[:, i-1]
+                        di = d[:, i-1]
+                        vi = v[:, i-1]
+                        d[:, i] = F*di + G*vi + A*F0 + B*F1
+                        v[:, i] = Fp*di + Gp*vi + Ap*F0 + Bp*F1
         else:
             # order == 0
             AB = A + B
@@ -2788,28 +2854,38 @@ class SolveUnc(_BaseODE):
                 drf = d[rf]
                 # for i in range(nt-1):
                 while True:
-                    Force[:, i] = F1
-                    # rb + el:
-                    F0k = Force[kdof, i-1]
-                    di = D[:, i-1]
-                    vi = V[:, i-1]
-                    D[:, i] = F*di + G*vi + AB*F0k
-                    V[:, i] = Fp*di + Gp*vi + ABp*F0k
-
-                    # rf:
-                    drf[:, i] = ikrf * F1[rf]
-                    i, F1 = yield
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                        drf[:, i] += ikrf * F1[rf]
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        # rb + el:
+                        F0k = Force[kdof, i-1]
+                        di = D[:, i-1]
+                        vi = V[:, i-1]
+                        D[:, i] = F*di + G*vi + AB*F0k
+                        V[:, i] = Fp*di + Gp*vi + ABp*F0k
+                        # rf:
+                        drf[:, i] = ikrf * F1[rf]
             else:
                 # only rigid-body and elastic equations:
                 while True:
-                    Force[:, i] = F1
-                    # rb + el:
-                    F0 = Force[:, i-1]
-                    di = d[:, i-1]
-                    vi = v[:, i-1]
-                    d[:, i] = F*di + G*vi + AB*F0
-                    v[:, i] = Fp*di + Gp*vi + ABp*F0
-                    i, F1 = yield
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        # rb + el:
+                        F0 = Force[:, i-1]
+                        di = d[:, i-1]
+                        vi = v[:, i-1]
+                        d[:, i] = F*di + G*vi + AB*F0
+                        v[:, i] = Fp*di + Gp*vi + ABp*F0
 
     def _get_f2x_real_unc(self, phi, velo):
         """
@@ -3009,78 +3085,124 @@ class SolveUnc(_BaseODE):
             drf = d[rf]
 
         while True:
-            i, F1 = yield
-            Force[:, i] = F1
-            F0 = Force[:, i-1]
-            if rbsize:
-                if m is not None:
+            j, F1 = yield
+            if j < 0:
+                # add to previous soln
+                Force[:, i] += F1
+                if order == 1:
+                    if rbsize:
+                        if m is not None:
+                            if unc:
+                                F1rb = imrb * F1[rb]
+                            else:
+                                F1rb = imrb @ F1[rb]
+                        else:
+                            F1rb = F1[rb]
+
+                        AF = A*0.5*F1rb
+                        AFp = Ap*F1rb
+                        drb[:, i] += AF
+                        vrb[:, i] += AFp
+                        arb[:, i] += F1rb
+
+                    if ksize:
+                        F1k = F1[kdof]
+                        if m is not None:
+                            if unc:
+                                F1k = invm * F1k
+                            else:
+                                F1k = invm @ F1k
+                        w1 = ur_inv_v @ F1k
+                        yn = Be*w1
+                        if systype is float:
+                            ry = yn.real
+                            iy = yn.imag
+                            D[:, i] += rur_d @ ry - iur_d @ iy
+                            V[:, i] += rur_v @ ry - iur_v @ iy
+                        else:
+                            D[:, i] += ur_d @ yn
+                            V[:, i] += ur_v @ yn
+
+                if rfsize:
                     if unc:
-                        F0rb = imrb * F0[rb]
-                        F1rb = imrb * F1[rb]
+                        drf[:, i] += ikrf * F1[rf]
                     else:
-                        F0rb = imrb @ F0[rb]
-                        F1rb = imrb @ F1[rb]
-                else:
-                    F0rb = F0[rb]
-                    F1rb = F1[rb]
-                if order == 1:
-                    AF = A*(F0rb + 0.5*F1rb)
-                    AFp = Ap*(F0rb + F1rb)
-                else:
-                    AF = A*F0rb
-                    AFp = Ap*F0rb
-                vi = vrb[:, i-1]
-                drb[:, i] = drb[:, i-1] + G*vi + AF
-                vrb[:, i] = vi + AFp
-                arb[:, i] = F1rb
+                        drf[:, i] += ikrf @ F1[rf]
+            else:
+                i = j
+                Force[:, i] = F1
+                F0 = Force[:, i-1]
+                if rbsize:
+                    if m is not None:
+                        if unc:
+                            F0rb = imrb * F0[rb]
+                            F1rb = imrb * F1[rb]
+                        else:
+                            F0rb = imrb @ F0[rb]
+                            F1rb = imrb @ F1[rb]
+                    else:
+                        F0rb = F0[rb]
+                        F1rb = F1[rb]
+                    if order == 1:
+                        AF = A*(F0rb + 0.5*F1rb)
+                        AFp = Ap*(F0rb + F1rb)
+                    else:
+                        AF = A*F0rb
+                        AFp = Ap*F0rb
+                    vi = vrb[:, i-1]
+                    drb[:, i] = drb[:, i-1] + G*vi + AF
+                    vrb[:, i] = vi + AFp
+                    arb[:, i] = F1rb
 
-            if ksize:
-                # F0k = Force[kdof, i-1]
-                F0k = F0[kdof]
-                if order == 1:
-                    F1k = F1[kdof]
-                    if m is not None:
-                        if unc:
-                            F0k = invm * F0k
-                            F1k = invm * F1k
-                        else:
-                            F0k = invm @ F0k
-                            F1k = invm @ F1k
-                    w0 = ur_inv_v @ F0k
-                    w1 = ur_inv_v @ F1k
-                    ABF = Ae*w0 + Be*w1
-                else:
-                    if m is not None:
-                        if unc:
-                            F0k = invm * F0k
-                        else:
-                            F0k = invm @ F0k
-                    w0 = ur_inv_v @ F0k
-                    ABF = Ae*w0
-                # [V; D] = ur @ y
-                # y = ur_inv @ [V; D] = [ur_inv_v, ur_inv_d] @ [V; D]
-                y = ur_inv_v @ V[:, i-1] + ur_inv_d @ D[:, i-1]
-                yn = Fe * y + ABF
-                if systype is float:
-                    # Can do real math for recovery. Note that the
-                    # imaginary part of 'd' and 'v' would be zero if
-                    # no modes were deleted of the complex conjugate
-                    # pairs. The real part is correct whether or not
-                    # modes were deleted, and that's all we need.
-                    ry = yn.real
-                    iy = yn.imag
-                    D[:, i] = rur_d @ ry - iur_d @ iy
-                    V[:, i] = rur_v @ ry - iur_v @ iy
-                else:
+                if ksize:
+                    # F0k = Force[kdof, i-1]
+                    F0k = F0[kdof]
+                    if order == 1:
+                        F1k = F1[kdof]
+                        if m is not None:
+                            if unc:
+                                F0k = invm * F0k
+                                F1k = invm * F1k
+                            else:
+                                F0k = invm @ F0k
+                                F1k = invm @ F1k
+                        w0 = ur_inv_v @ F0k
+                        w1 = ur_inv_v @ F1k
+                        ABF = Ae*w0 + Be*w1
+                    else:
+                        if m is not None:
+                            if unc:
+                                F0k = invm * F0k
+                            else:
+                                F0k = invm @ F0k
+                        w0 = ur_inv_v @ F0k
+                        ABF = Ae*w0
                     # [V; D] = ur @ y
-                    D[:, i] = ur_d @ yn
-                    V[:, i] = ur_v @ yn
+                    # y = ur_inv @ [V; D] =
+                    #  [ur_inv_v, ur_inv_d] @ [V; D]
+                    y = ur_inv_v @ V[:, i-1] + ur_inv_d @ D[:, i-1]
+                    yn = Fe * y + ABF
+                    if systype is float:
+                        # Can do real math for recovery. Note that the
+                        # imaginary part of 'd' and 'v' would be zero
+                        # if no modes were deleted of the complex
+                        # conjugate pairs. The real part is correct
+                        # whether or not modes were deleted, and
+                        # that's all we need.
+                        ry = yn.real
+                        iy = yn.imag
+                        D[:, i] = rur_d @ ry - iur_d @ iy
+                        V[:, i] = rur_v @ ry - iur_v @ iy
+                    else:
+                        # [V; D] = ur @ y
+                        D[:, i] = ur_d @ yn
+                        V[:, i] = ur_v @ yn
 
-            if rfsize:
-                if unc:
-                    drf[:, i] = ikrf * F1[rf]
-                else:
-                    drf[:, i] = ikrf @ F1[rf]
+                if rfsize:
+                    if unc:
+                        drf[:, i] = ikrf * F1[rf]
+                    else:
+                        drf[:, i] = ikrf @ F1[rf]
 
     def _get_f2x_complex_unc(self, phi, velo):
         """
