@@ -443,7 +443,8 @@ class OP4(object):
             put_values_sparse = OP4._put_binary_values_sparse
             put_values_sparse_c = OP4._put_binary_values_sparse_c
 
-        if self._rows4bigmat > rows > 0 and r > 0:
+        # if self._rows4bigmat > rows > 0 and r > 0:
+        if rows > 0 and r > 0:
             # dense format
             rdfunc = rd_dense
             if sparse is None:
