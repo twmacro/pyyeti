@@ -3089,22 +3089,22 @@ class SolveUnc(_BaseODE):
             if j < 0:
                 # add to previous soln
                 Force[:, i] += F1
-                if order == 1:
-                    if rbsize:
-                        if m is not None:
-                            if unc:
-                                F1rb = imrb * F1[rb]
-                            else:
-                                F1rb = imrb @ F1[rb]
+                if rbsize:
+                    if m is not None:
+                        if unc:
+                            F1rb = imrb * F1[rb]
                         else:
-                            F1rb = F1[rb]
-
+                            F1rb = imrb @ F1[rb]
+                    else:
+                        F1rb = F1[rb]
+                    if order == 1:
                         AF = A*0.5*F1rb
                         AFp = Ap*F1rb
                         drb[:, i] += AF
                         vrb[:, i] += AFp
-                        arb[:, i] += F1rb
+                    arb[:, i] += F1rb
 
+                if order == 1:
                     if ksize:
                         F1k = F1[kdof]
                         if m is not None:

@@ -2011,6 +2011,34 @@ def test_ode_complex_coefficients():
         assert np.allclose(sol.v, sol2.v)
         assert np.allclose(sol.d, sol2.d)
 
+        # test the generator solver w/ partial update:
+        nt = len(sol.t)
+        gen, d, v = ts.generator(nt, f[:, 0])
+        for i in range(1, nt):
+            fi = f[:, i]/2
+            gen.send((i, fi))
+            gen.send((-1, fi))
+        sol2 = ts.finalize(1)
+        assert np.allclose(f, sol2.force)
+        assert np.allclose(sol.a, sol2.a)
+        assert np.allclose(sol.v, sol2.v)
+        assert np.allclose(sol.d, sol2.d)
+
+        if use_diag:
+            ts = ode.SolveUnc(m, b, k, h, order=0)
+            sol = ts.tsolve(f, static_ic=0)
+            nt = len(sol.t)
+            gen, d, v = ts.generator(nt, f[:, 0])
+            for i in range(1, nt):
+                fi = f[:, i]/2
+                gen.send((i, fi))
+                gen.send((-1, fi))
+            sol2 = ts.finalize(1)
+            assert np.allclose(f, sol2.force)
+            assert np.allclose(sol.a, sol2.a)
+            assert np.allclose(sol.v, sol2.v)
+            assert np.allclose(sol.d, sol2.d)
+        
 
 def test_ode_complex_coefficients_with_rf():
     aa = np.ones((2, 2)) * (1. + 1j)
@@ -2075,6 +2103,19 @@ def test_ode_complex_coefficients_with_rf():
         assert np.allclose(sol.v, sol2.v)
         assert np.allclose(sol.d, sol2.d)
 
+        # test the generator solver w/ partial update:
+        nt = len(sol.t)
+        gen, d, v = ts.generator(nt, f[:, 0])
+        for i in range(1, nt):
+            fi = f[:, i]/2
+            gen.send((i, fi))
+            gen.send((-1, fi))
+        sol2 = ts.finalize(1)
+        assert np.allclose(f, sol2.force)
+        assert np.allclose(sol.a, sol2.a)
+        assert np.allclose(sol.v, sol2.v)
+        assert np.allclose(sol.d, sol2.d)
+
 
 def test_ode_complex_coefficients_mNone():
     aa = np.ones((2, 2)) * (1. + 1j)
@@ -2109,6 +2150,19 @@ def test_ode_complex_coefficients_mNone():
         gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
             gen.send((i, f[:, i]))
+        sol2 = ts.finalize(1)
+        assert np.allclose(f, sol2.force)
+        assert np.allclose(sol.a, sol2.a)
+        assert np.allclose(sol.v, sol2.v)
+        assert np.allclose(sol.d, sol2.d)
+
+        # test the generator solver w/ partial update:
+        nt = len(sol.t)
+        gen, d, v = ts.generator(nt, f[:, 0])
+        for i in range(1, nt):
+            fi = f[:, i]/2
+            gen.send((i, fi))
+            gen.send((-1, fi))
         sol2 = ts.finalize(1)
         assert np.allclose(f, sol2.force)
         assert np.allclose(sol.a, sol2.a)
@@ -2171,6 +2225,19 @@ def test_ode_complex_coefficients_rb():
         gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
             gen.send((i, f[:, i]))
+        sol2 = ts.finalize(1)
+        assert np.allclose(f, sol2.force)
+        assert np.allclose(sol.a, sol2.a)
+        assert np.allclose(sol.v, sol2.v)
+        assert np.allclose(sol.d, sol2.d)
+
+        # test the generator solver w/ partial update:
+        nt = len(sol.t)
+        gen, d, v = ts.generator(nt, f[:, 0])
+        for i in range(1, nt):
+            fi = f[:, i]/2
+            gen.send((i, fi))
+            gen.send((-1, fi))
         sol2 = ts.finalize(1)
         assert np.allclose(f, sol2.force)
         assert np.allclose(sol.a, sol2.a)
@@ -2680,6 +2747,29 @@ def test_ode_ic_generator():
             assert np.allclose(v0, solu.v[:, 0])
             assert np.allclose(d0, solu.d[:, 0])
 
+            # test the generator solver w/ partial update:
+            gen, d, v = su.generator(nt, f[:, 0], d0, v0)
+            for i in range(1, nt):
+                fi = f[:, i]/2
+                gen.send((i, fi))
+                gen.send((-1, fi))
+            solu2 = su.finalize(get_force)
+
+            gen, d, v = se.generator(nt, f[:, 0], d0, v0)
+            for i in range(1, nt):
+                fi = f[:, i]/2
+                gen.send((i, fi))
+                gen.send((-1, fi))
+            sole2 = se.finalize(get_force)
+
+            assert np.allclose(solu2.a, solu.a)
+            assert np.allclose(solu2.v, solu.v)
+            assert np.allclose(solu2.d, solu.d)
+
+            assert np.allclose(sole2.a, solu.a)
+            assert np.allclose(sole2.v, solu.v)
+            assert np.allclose(sole2.d, solu.d)
+
 
 def test_ode_uncoupled_generator():
     # uncoupled equations
@@ -2738,6 +2828,37 @@ def test_ode_uncoupled_generator():
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
 
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tsu.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                solu2 = tsu.finalize(get_force)
+
+                nt = 1
+                gen, d, v = tsu0.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                solu20 = tsu0.finalize(get_force)
+
+                assert np.allclose(solu2.a, solu.a)
+                assert np.allclose(solu2.v, solu.v)
+                assert np.allclose(solu2.d, solu.d)
+
+                assert np.allclose(solu0.a, solu.a[:, :1])
+                assert np.allclose(solu0.v, solu.v[:, :1])
+                assert np.allclose(solu0.d, solu.d[:, :1])
+
+                assert np.allclose(solu20.a, solu2.a[:, :1])
+                assert np.allclose(solu20.v, solu2.v[:, :1])
+                assert np.allclose(solu20.d, solu2.d[:, :1])
+                
                 # se2
                 tse = ode.SolveExp2(m, b, k, h,
                                   order=order, rf=rf)
@@ -2759,6 +2880,41 @@ def test_ode_uncoupled_generator():
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
                     gen.send((i, f[:, i]))
+                sole20 = tse0.finalize(get_force)
+
+                assert np.allclose(solu.a, sole.a)
+                assert np.allclose(solu.v, sole.v)
+                assert np.allclose(solu.d, sole.d)
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
+
+                assert np.allclose(sole0.a, sole.a[:, :1])
+                assert np.allclose(sole0.v, sole.v[:, :1])
+                assert np.allclose(sole0.d, sole.d[:, :1])
+
+                assert np.allclose(sole20.a, sole2.a[:, :1])
+                assert np.allclose(sole20.v, sole2.v[:, :1])
+                assert np.allclose(sole20.d, sole2.d[:, :1])
+
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                sole2 = tse.finalize(get_force)
+
+                nt = 1
+                gen, d, v = tse0.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
                 sole20 = tse0.finalize(get_force)
 
                 assert np.allclose(solu.a, sole.a)
@@ -2862,6 +3018,20 @@ def test_ode_uncoupled_2_generator():
                     assert np.allclose(solu2.force, f)
                     assert np.allclose(solu20.force, f[:, :1])
 
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tsu.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                solu2 = tsu.finalize(get_force)
+
+                assert np.allclose(solu2.a, solu.a)
+                assert np.allclose(solu2.v, solu.v)
+                assert np.allclose(solu2.d, solu.d)
+
                 # se2
                 tse = ode.SolveExp2(m, b, k, h,
                                   order=order, rf=rf)
@@ -2900,6 +3070,20 @@ def test_ode_uncoupled_2_generator():
                 if get_force:
                     assert np.allclose(sole2.force, f)
                     assert np.allclose(sole20.force, f[:, :1])
+
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                sole2 = tse.finalize(get_force)
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
 
 
 def test_ode_coupled_generator():
@@ -2961,6 +3145,20 @@ def test_ode_coupled_generator():
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
 
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tsu.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                solu2 = tsu.finalize()
+
+                assert np.allclose(solu2.a, solu.a)
+                assert np.allclose(solu2.v, solu.v)
+                assert np.allclose(solu2.d, solu.d)
+
                 # se
                 tse = ode.SolveExp2(m, b, k, h,
                                   order=order, rf=rf)
@@ -2995,6 +3193,20 @@ def test_ode_coupled_generator():
                 assert np.allclose(sole20.a, sole2.a[:, :1])
                 assert np.allclose(sole20.v, sole2.v[:, :1])
                 assert np.allclose(sole20.d, sole2.d[:, :1])
+
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                sole2 = tse.finalize()
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
 
 
 def test_ode_coupled_2_generator():
@@ -3062,6 +3274,20 @@ def test_ode_coupled_2_generator():
                     assert np.allclose(solu2.force, f)
                     assert np.allclose(solu20.force, f[:, :1])
 
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tsu.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                solu2 = tsu.finalize(get_force)
+
+                assert np.allclose(solu2.a, solu.a)
+                assert np.allclose(solu2.v, solu.v)
+                assert np.allclose(solu2.d, solu.d)
+
                 # se
                 tse = ode.SolveExp2(m, b, k, h,
                                   order=order, rf=rf)
@@ -3100,6 +3326,20 @@ def test_ode_coupled_2_generator():
                 if get_force:
                     assert np.allclose(sole2.force, f)
                     assert np.allclose(sole20.force, f[:, :1])
+
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                sole2 = tse.finalize(get_force)
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
 
 
 def test_ode_coupled_mNone_generator():
@@ -3156,6 +3396,20 @@ def test_ode_coupled_mNone_generator():
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
 
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tsu.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                solu2 = tsu.finalize()
+
+                assert np.allclose(solu2.a, solu.a)
+                assert np.allclose(solu2.v, solu.v)
+                assert np.allclose(solu2.d, solu.d)
+
                 # se
                 tse = ode.SolveExp2(m, b, k, h,
                                   order=order, rf=rf)
@@ -3190,6 +3444,20 @@ def test_ode_coupled_mNone_generator():
                 assert np.allclose(sole20.a, sole2.a[:, :1])
                 assert np.allclose(sole20.v, sole2.v[:, :1])
                 assert np.allclose(sole20.d, sole2.d[:, :1])
+
+                # test the generator solver w/ partial update:
+                nt = f.shape[1]
+                gen, d, v = tse.generator(
+                    nt, f[:, 0], static_ic=static_ic)
+                for i in range(1, nt):
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
+                sole2 = tse.finalize()
+
+                assert np.allclose(sole2.a, sole.a)
+                assert np.allclose(sole2.v, sole.v)
+                assert np.allclose(sole2.d, sole.d)
 
 
 def test_ode_coupled_2_mNone_generator():
@@ -3231,7 +3499,9 @@ def test_ode_coupled_2_mNone_generator():
 
                 # resolve some time steps for test:
                 for i in range(nt-5, nt):
-                    gen.send((i, f[:, i]))
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
 
                 solu2 = tsu.finalize()
 
@@ -3267,7 +3537,9 @@ def test_ode_coupled_2_mNone_generator():
 
                 # resolve some time steps for test:
                 for i in range(nt-5, nt):
-                    gen.send((i, f[:, i]))
+                    fi = f[:, i]/2
+                    gen.send((i, fi))
+                    gen.send((-1, fi))
 
                 sole2 = tse.finalize()
 
@@ -3300,3 +3572,4 @@ def test_abstractness():
     assert_raises(NotImplementedError, a.tsolve)
     assert_raises(NotImplementedError, a.fsolve)
     assert_raises(NotImplementedError, a.generator)
+    assert_raises(NotImplementedError, a.get_f2x)

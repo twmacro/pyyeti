@@ -18,7 +18,7 @@ def test_rdop4():
     matfile = 'pyyeti/tests/nastran_op4_data/r_c_rc.mat'
     filenames = glob('pyyeti/tests/nastran_op4_data/*.op4')
     nocomp = ['cdbin', 'rdbin', 'csbin', 'rsbin',
-              'cd', 'rd', 'cs', 'rs']
+              'cd', 'rd', 'cs', 'rs', 'x100000']
     nocomp = [s+'.op4' for s in nocomp]
     o4 = op4.OP4()
     m = matlab.loadmat(matfile)
@@ -83,7 +83,7 @@ def test_rdop4_zero_rowscutoff():
     matfile = 'pyyeti/tests/nastran_op4_data/r_c_rc.mat'
     filenames = glob('pyyeti/tests/nastran_op4_data/*.op4')
     nocomp = ['cdbin', 'rdbin', 'csbin', 'rsbin',
-              'cd', 'rd', 'cs', 'rs']
+              'cd', 'rd', 'cs', 'rs', 'x100000']
     nocomp = [s+'.op4' for s in nocomp]
     o4 = op4.OP4()
     o4._rowsCutoff = 0
@@ -632,3 +632,14 @@ def test_large_sparse():
     a2 = a2['a'].tocsr()
     for i, j, v in zip(rows, cols, data):
         assert np.allclose(a2[i, j], v)
+
+
+def test_large_rows_dense():
+    fname = ('../../code/pyyeti/pyyeti/tests/nastran_op4_data/'
+             'x100000.op4')
+    m = op4.read(fname)
+    x = np.zeros((100000, 1))
+    x[45678] = 1.0
+    assert np.allclose(m['x'], x)
+
+    
