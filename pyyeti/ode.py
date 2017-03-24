@@ -1185,19 +1185,20 @@ class _BaseODE(object):
         return A
 
     def _alloc_dva(self, nt, istime):
+        ORDER = 'F'
         n = self.ksize
         if istime:
             if nt > 1 and n > 0 and not self.pc:
                 raise RuntimeError(
                     'rerun `{}` with a valid time step.'
                     .format(type(self).__name__))
-            d = np.zeros((self.n, nt), self.systype)
-            v = np.zeros((self.n, nt), self.systype)
-            a = np.zeros((self.n, nt), self.systype)
+            d = np.zeros((self.n, nt), self.systype, order=ORDER)
+            v = np.zeros((self.n, nt), self.systype, order=ORDER)
+            a = np.zeros((self.n, nt), self.systype, order=ORDER)
         else:
-            d = np.zeros((self.n, nt), complex)
-            v = np.zeros((self.n, nt), complex)
-            a = np.zeros((self.n, nt), complex)
+            d = np.zeros((self.n, nt), complex, order=ORDER)
+            v = np.zeros((self.n, nt), complex, order=ORDER)
+            a = np.zeros((self.n, nt), complex, order=ORDER)
         return d, v, a
 
     def _init_dv(self, d, v, d0, v0, F0, static_ic):
@@ -1226,7 +1227,7 @@ class _BaseODE(object):
                 'using the `pre_eig` option')
 
         d, v, a = self._alloc_dva(nt, istime)
-        f = a.copy()
+        f = np.copy(a)   # not a.copy because of order default
         f[:, 0] = F0
         self._init_dv(d, v, d0, v0, F0, static_ic)
         if self.rfsize:
@@ -2007,7 +2008,7 @@ class SolveExp2(_BaseODE):
                     else:
                         Q = la.lu_solve(self.invm, Q.T, trans=1,
                                         check_finite=False).T
-                n = self.n
+                n = self.nonrfsz
                 if velo:
                     flex = phik @ Q[:n] @ phik.T
                 else:
@@ -2982,7 +2983,7 @@ class SolveUnc(_BaseODE):
             else:
                 ABF = (Ae+Be)[:, None]*w[:, :-1]
 
-            y = np.empty((ur_inv_v.shape[0], nt), complex)
+            y = np.empty((ur_inv_v.shape[0], nt), complex, order='F')
             di = y[:, 0] = (ur_inv_v @ v[kdof, 0] +
                             ur_inv_d @ d[kdof, 0])
             for i in range(nt-1):
@@ -3209,7 +3210,6 @@ class SolveUnc(_BaseODE):
         Get f2x transform for henkel-mar
         """
         unc = self.unc
-        rbsize = self.rbsize
         m = self.m
         pc = self.pc
 
