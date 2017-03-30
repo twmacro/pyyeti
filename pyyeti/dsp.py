@@ -1284,9 +1284,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     Examples
     --------
+    >>> from pyyeti import dsp
     >>> t = [0, 1, 6, 7]
     >>> y = [1, 2, 3, 4]
-    >>> tn, yn = fixtime((t, y), sr=1)
+    >>> tn, yn = dsp.fixtime((t, y), sr=1)
     ==> Info: [min, max, ave, count (% occurrence)] time step:
     ==>           [1, 5, 2.33333, 1 (66.7%)]
     ==>       Corresponding sample rates:
