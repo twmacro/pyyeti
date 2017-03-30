@@ -883,6 +883,14 @@ def test_fftfilt():
     assert np.allclose(freq[1], 1/period)
 
 
+def test_fftfilt2():
+    s = np.random.randn(10000)
+    sr = 4100.0
+    assert_raises(ValueError, dsp.fftfilt, s, 2, nyq=sr/2)
+    assert_raises(ValueError, dsp.fftfilt, s, [300, 310], nyq=sr/2)
+    assert_raises(ValueError, dsp.fftfilt, s, [300, 4100/2-2], nyq=sr/2)
+
+
 def test_despike1():
     x = np.arange(100.)
     x[45] = 4.5

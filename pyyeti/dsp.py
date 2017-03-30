@@ -2510,6 +2510,11 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
     h : 1d ndarray
         The frequency domain filter function
 
+    Raises
+    ------
+    ValueError
+        When a ramp will not fit in space as required.
+
     Examples
     --------
     Make a signal composed of 4 sinusoids, then use :func:`fftfilt` to
@@ -2596,6 +2601,14 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
             ramp = _get_ramp(df, _bw, on)
             n = ramp.shape[0]
             i = np.argmin(abs(ramp - mag))
+            if i > j or j-i < I or j-i+n > freq.shape[0]:
+                # if ramp doesn't fit in range or if it conflicts with
+                # previous, error out:
+                raise ValueError(
+                    'filter function could not be formed to satisfy '
+                    'requirements as defined; stopped on w={}. Using '
+                    'a narrower bandwidth might help (currently using'
+                    ' bw={})'.format(_w, _bw))
             H[I:j-i] = ramp[0]
             I = j-i+n
             H[j-i:I] = ramp
