@@ -1236,7 +1236,9 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
        11. If `fixdrift` is True, and step 10 did not issue a warning
            about too many turning points, search for additional
            turning points to account for drift (when the sample rate
-           in the data is slightly off from the ideal).
+           in the data is slightly off from the ideal). Note: using
+           `fixdrift` is not recommended; it's probably better to
+           adjust the sample rate instead.
 
        12. If step 10 did not issue a warning about too many turning
            points, the new time vector is shifted to align with the
@@ -1275,7 +1277,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
            for the current data is often a good solution.  Increasing
            `threshold_sigma` can also protect these small spikes. Note
            that the threshold settings are not available for the
-           "simple" method.
+           "simple" `delspikes` method.
 
         4. Try a different window size.
 
