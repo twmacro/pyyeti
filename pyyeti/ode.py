@@ -52,7 +52,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
 
     The coefficients are used as follows::
 
-        for j in range(1, nt):
+        for j in range(nt-1):
             d[:, j+1] = (F * d[:, j] + G * v[:, j] +
                            A * P[:, j] + B * P[:, j+1])
             v[:, j+1] = (Fp * d[:, j] + Gp * v[:, j] +
