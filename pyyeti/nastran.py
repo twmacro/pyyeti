@@ -722,7 +722,7 @@ def bulk2uset(*args):
     See also
     --------
     :func:`rdcards`, :func:`rdgrids`, :func:`pyyeti.op2.OP2.rdn2cop2`,
-    :mod:`n2p`.
+    :mod:`pyyeti.n2p`.
     """
     grids = np.zeros((0, 8))
     no_data = np.zeros((0, 11))
