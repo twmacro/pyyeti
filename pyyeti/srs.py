@@ -1490,7 +1490,7 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> mp, t, f = srs.srsmap(2, .5, sig, sr, frq, Q, .02,
         ...                       eqsine=1)
         >>> _ = plt.figure('SRS Map')
-        >>> _ = plt.contour(t, f, mp, 40, cmap=cm.cubehelix)
+        >>> _ = plt.contour(t, f, mp, 40, cmap=cm.plasma)
         >>> cbar = plt.colorbar()
         >>> cbar.filled = True
         >>> cbar.draw_all()
@@ -1509,7 +1509,7 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> ax = fig.gca(projection='3d')
         >>> x, y = np.meshgrid(t, f)
         >>> surf = ax.plot_surface(x, y, mp, rstride=1, cstride=1,
-        ...                        linewidth=0, cmap=cm.cubehelix)
+        ...                        linewidth=0, cmap=cm.plasma)
         >>> _ = fig.colorbar(surf, shrink=0.5, aspect=5)
         >>> ax.view_init(azim=-123, elev=48)
         >>> _ = ax.set_xlabel('Time (s)')
