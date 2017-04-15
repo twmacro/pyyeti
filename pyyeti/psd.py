@@ -595,6 +595,7 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
     .. plot::
         :context: close-figs
 
+        >>> import numpy as np
         >>> from pyyeti import psd
         >>> spec = np.array([[20,  .0768],
         ...                  [50,  .48],
@@ -608,7 +609,6 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         Compare the resulting psd to the spec from 37 to 68:
 
         >>> import matplotlib.pyplot as plt
-        >>> import numpy as np
         >>> import scipy.signal as signal
         >>> f, p = signal.welch(sig, sr, nperseg=sr)
         >>> pv = np.logical_and(f >= 37, f <= 68)
