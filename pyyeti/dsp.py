@@ -2035,7 +2035,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         ...                          sliceargs=[.02],
         ...                          slicekwargs=dict(ends='front'))
         >>> _ = plt.figure('SRS Map')
-        >>> _ = plt.contour(t, f, mp, 40, cmap=cm.cubehelix_r)
+        >>> _ = plt.contour(t, f, mp, 40, cmap=cm.plasma_r)
         >>> cbar = plt.colorbar()
         >>> cbar.filled = True
         >>> cbar.draw_all()
@@ -2054,7 +2054,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         >>> ax = fig.gca(projection='3d')
         >>> x, y = np.meshgrid(t, f)
         >>> surf = ax.plot_surface(x, y, mp, rstride=1, cstride=1,
-        ...                        linewidth=0, cmap=cm.cubehelix_r)
+        ...                        linewidth=0, cmap=cm.plasma_r)
         >>> _ = fig.colorbar(surf, shrink=0.5, aspect=5)
         >>> ax.view_init(azim=-123, elev=48)
         >>> _ = ax.set_xlabel('Time (s)')
@@ -2904,7 +2904,7 @@ def fftmap(timeslice, tsoverlap, sig, sr,
         >>> sr = 1/t[1]
         >>> mp, t, f = dsp.fftmap(2, .1, sig, sr)
         >>> pv = f <= 50.0
-        >>> _ = plt.contour(t, f[pv], mp[pv], 40, cmap=cm.cubehelix)
+        >>> _ = plt.contour(t, f[pv], mp[pv], 40, cmap=cm.plasma)
         >>> cbar = plt.colorbar()
         >>> cbar.filled = True
         >>> cbar.draw_all()
