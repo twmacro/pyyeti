@@ -42,7 +42,12 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     #    'sphinx.ext.mathjax',
-    'matplotlib.sphinxext.plot_directive'
+    'matplotlib.sphinxext.plot_directive',
+
+    # bug in anaconda package??:
+    #  https://github.com/ContinuumIO/anaconda-issues/issues/1430
+    # could do: conda update ipython -c conda-forge
+    # 'IPython.sphinxext.ipython_console_highlighting',
 ]
 
 if LooseVersion(sphinx.__version__) <= LooseVersion('1.3.5'):
