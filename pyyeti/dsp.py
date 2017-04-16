@@ -172,7 +172,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(x, data, 'o-', label='Original', alpha=.3)
         >>> _ = plt.plot(dnx, dndata, label='Resample', lw=2)
-        >>> resfft = signal.resample(data, np.ceil(n/q))
+        >>> resfft = signal.resample(data, int(np.ceil(n/q)))
         >>> _ = plt.plot(dnx, resfft, label='scipy.signal.resample',
         ...              lw=2)
         >>> _ = plt.legend(loc='best')

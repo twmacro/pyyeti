@@ -2038,7 +2038,7 @@ def test_ode_complex_coefficients():
             assert np.allclose(sol.a, sol2.a)
             assert np.allclose(sol.v, sol2.v)
             assert np.allclose(sol.d, sol2.d)
-        
+
 
 def test_ode_complex_coefficients_with_rf():
     aa = np.ones((2, 2)) * (1. + 1j)
@@ -2858,7 +2858,7 @@ def test_ode_uncoupled_generator():
                 assert np.allclose(solu20.a, solu2.a[:, :1])
                 assert np.allclose(solu20.v, solu2.v[:, :1])
                 assert np.allclose(solu20.d, solu2.d[:, :1])
-                
+
                 # se2
                 tse = ode.SolveExp2(m, b, k, h,
                                   order=order, rf=rf)
@@ -3573,3 +3573,294 @@ def test_abstractness():
     assert_raises(NotImplementedError, a.fsolve)
     assert_raises(NotImplementedError, a.generator)
     assert_raises(NotImplementedError, a.get_f2x)
+
+
+def test_henkel_mar():
+    # flag specifying whether to use velocity or displacement for
+    # the joint compatibility
+    use_velo = 1
+    # solver = ode.SolveExp2
+    sep_time = 0.32   # if <= 0.0, do not separate
+    # sep_time = -1.0
+
+    # system setup:
+    #
+    #                     |---> x1           |---> x2           |---> x3
+    #    /|               |                  |                  |
+    #    /|     k1     |-----|     k2     |-----|     k3     |-----|
+    #    /|----\/\/\---|     |----\/\/\---|     |----\/\/\---|     |
+    #    /|            | 30  |            |  3  |            |  2  |
+    #    /|----| |-----|     |----| |-----|     |----| |-----|     |
+    #    /|    c1      |-----|    c2      |-----|    c3      |-----|
+    #    /|
+    #      <---- PAD ---->||<---------------- LV ----------------->|
+
+    for mm in (None, 'other'):
+        for c2 in (20.0, 30.0):
+            M1 = 30.
+            M1_p = 29.
+            M1_l = M1 - M1_p
+            M2 = 3.
+            M3 = 2.
+            c1 = 45.
+            c3 = 10.
+            k1 = 45000.
+            k2 = 20000.
+            k3 = 10000.
+
+            rfcut = 1e6
+            # rfcut = 1.0
+            for solver in (ode.SolveUnc, ode.SolveExp2):
+
+                # full system:
+                full = SimpleNamespace()
+                full.M = np.array([[M1, 0, 0],
+                                   [0, M2, 0],
+                                   [0, 0, M3]])
+                full.K = np.array([[k1+k2, -k2, 0],
+                                   [-k2, k2+k3, -k3],
+                                   [0, -k3, k3]])
+                full.C = np.array([[c1+c2, -c2, 0],
+                                   [-c2, c2+c3, -c3],
+                                   [0, -c3, c3]])
+                w, u = la.eigh(full.K, full.M)
+                full.freq = np.sqrt(w)/(2*np.pi)
+                full.m = None
+                full.w = w
+                full.u = u
+                full.k = w
+                full.c = u.T @ full.C @ u
+
+                # setup time vector:
+                sr = 1000.
+                h = 1/sr
+                time = np.arange(0, 0.5, h)
+                L = len(time)
+                zeta0 = 0.0
+
+                # solve full system w/o Henkel-Mar:
+                physF = np.zeros((1, L))
+                physF[0] = np.interp(
+                    time,
+                    np.array([0.0, 0.05, 0.1, 1.0]),
+                    np.array([50000.0, 50000.0, 0.0, 0.0]))
+
+                physF3 = np.array([[0.], [0.], [1.]]) @ physF
+                F = full.u.T @ physF3
+                rf = (full.k > rfcut).nonzero()[0]
+                full.parms = solver(full.m, full.c, full.k, h, rf=rf)
+
+                full.sol = full.parms.tsolve(F, static_ic=True)
+                full.x = full.u @ full.sol.d
+                x0 = full.x[:, :1]
+                full.xd = full.u @ full.sol.v
+                full.xdd = full.u @ full.sol.a
+
+                # define i/f force as force on lv. compute iff by
+                # looking at pad:
+                #   sum of forces on m1 = m a = -iff - k1*x1 - c1*xd1
+                # iff = -m a - k1*x1 - c1*xd1
+                full.iff = -(M1_p*full.xdd[0] + k1*full.x[0] +
+                             c1*full.xd[0])
+
+                #### Henkel Mar
+
+                # make 'pad' and lv models - split the 30 mass into
+                # two parts:
+                # pad:
+                pad = SimpleNamespace()
+                pad.M = np.array([[M1_p]])
+                pad.K = np.array([[k1]])
+                pad.C = np.array([[c1]])
+                w, u = la.eigh(pad.K, pad.M)
+                if mm is None:
+                    pad.m = mm
+                else:
+                    pad.m = np.ones(w.shape[0])
+                pad.k = w
+                pad.u = u
+                pad.c = u.T @ pad.C @ u
+                # get transform to i/f dof:
+                pad.phi = pad.u[:1]
+                rf = (pad.k > rfcut).nonzero()[0]
+                pad.parms = solver(pad.m, pad.c, pad.k, h, rf=rf)
+
+                # lv:
+                lv = SimpleNamespace()
+                lv.M = np.array([[M1_l, 0., 0.],
+                                 [0., M2, 0.],
+                                 [0., 0., M3]])
+                lv.K = np.array([[k2, -k2, 0.],
+                                 [-k2, k2+k3, -k3],
+                                 [0., -k3, k3]])
+                lv.C = np.array([[c2, -c2, 0.],
+                                 [-c2, c2+c3, -c3],
+                                 [0., -c3, c3]])
+                w, u = la.eigh(lv.K, lv.M)
+                #print('lv lambda:', w)
+                w[0] = 0.0
+                if mm is None:
+                    lv.m = mm
+                else:
+                    lv.m = np.ones(w.shape[0])
+                lv.k = w
+                lv.u = u
+                lv.c = u.T @ lv.C @ u
+                # get transform to i/f dof:
+                lv.phi = lv.u[:1]
+                rf = (lv.k > rfcut).nonzero()[0]
+                lv.parms = solver(lv.m, lv.c, lv.k, h, rf=rf)
+
+                # setup henkel-mar equations:
+                pad.dflex = pad.parms.get_f2x(pad.phi, 0)
+                lv.dflex = lv.parms.get_f2x(lv.phi, 0)
+                pad.flex = pad.parms.get_f2x(pad.phi, use_velo)
+                lv.flex = lv.parms.get_f2x(lv.phi, use_velo)
+                assert 10*abs(pad.dflex) < abs(pad.flex)
+                assert 10*abs(lv.dflex) < abs(lv.flex)
+
+                # setup some variables for working with Henkel-Mar:
+                r = 1  # number of i/f dof
+                pvd = np.array([0])
+                pvf = r + pvd
+
+                # "Work" will contain components of matrix in eq 27
+                # and variables for working through solution:
+                Work = SimpleNamespace()
+                # all constrained to begin:
+                Work.constraints = np.ones(r)
+                Work.Flex = pad.flex + lv.flex
+                Work.rhs = np.zeros(r*2)
+
+                # initialize coupled solution solution and interface
+                #  disps and forces:
+                Sol = SimpleNamespace()
+                Sol.reldisp = np.zeros((r, L))
+                Sol.fpad = np.zeros((r, L))
+
+                # static initial conditions:
+                nrb = 1
+                flr = lv.u[:, :nrb].T @ physF3[:, :1]
+                fpad = -la.inv(lv.phi[:, :nrb].T) @ flr
+                qel = (1/lv.k[nrb:][:, None] *
+                       (lv.u[:, nrb:].T @ physF3[:, :1] +
+                        lv.phi[:, nrb:].T @ fpad))
+                qep = 1/pad.k[:, None] * (-pad.phi.T @ fpad)
+                qrl = la.inv(lv.phi[:, :nrb]) @ (
+                    pad.phi @ qep - lv.phi[:, nrb:] @ qel)
+                x0_lv = lv.u[:, :nrb] @ qrl + lv.u[:, nrb:] @ qel
+                # print('disp err @ t=0:', x0_lv, x0, x0_lv-x0)
+                Sol.fpad[:, :1] = fpad
+                lv.d0 = np.vstack((qrl, qel))
+                pad.d0 = qep
+
+                # forces (include the pad forces for first time step):
+                lv.force = lv.u.T @ physF3
+                lv.force[:, 0] += lv.phi.T @ Sol.fpad[:, 0]
+                pad.force = np.zeros((pad.k.shape[0], L))
+                pad.force[:, 0] -= pad.phi.T @ Sol.fpad[:, 0]
+
+                lv.gen, lv.d, lv.v = lv.parms.generator(
+                    L, lv.force[:, 0], d0=lv.d0.ravel())
+                pad.gen, pad.d, pad.v = pad.parms.generator(
+                    L, pad.force[:, 0], d0=pad.d0.ravel())
+
+                # while bolted to the pad:
+                Work.K = np.zeros((2*r, 2*r))
+                Work.K[:r, :r] = np.eye(r)
+                Work.K[:r, r:] = -Work.Flex
+                Work.K[r:, :r] = np.diag(Work.constraints)
+                Work.K[r:, r:] = np.diag(1.0 - Work.constraints)
+                Work.Kd = la.inv(Work.K)
+
+                if sep_time <= 0:
+                    conn = L
+                else:
+                    conn = abs(time - sep_time).argmin()
+
+                def SolveStep(lv, pad, i, Work, pvd, pvf):
+                    # update lv & pad solutions ... only missing
+                    # updated pad force:
+                    lv.gen.send((i, lv.force[:, i]))
+                    pad.gen.send((i, pad.force[:, i]))
+                    if use_velo:
+                        Work.rhs[pvd] = (lv.phi @ lv.v[:, i] -
+                                         pad.phi @ pad.v[:, i])
+                    else:
+                        Work.rhs[pvd] = (lv.phi @ lv.d[:, i] -
+                                         pad.phi @ pad.d[:, i])
+                    Work.lhs = Work.Kd @ Work.rhs
+                    Work.padf = Work.lhs[pvf]
+
+                def StoreStep(Sol, lv, pad, i, Work, pvd, pvf):
+                    Sol.reldisp[:, i] = Work.lhs[pvd]
+                    Sol.fpad[:, i] = Work.padf
+                    lvf = lv.phi.T @ Work.padf
+                    padf = -pad.phi.T @ Work.padf
+                    # final lv & pad solutions for i'th time step:
+                    lv.gen.send((-1, lvf))
+                    pad.gen.send((-1, padf))
+
+                def StoreStep2(Sol, lv, pad, i, Work, pvd, pvf):
+                    Sol.reldisp[:, i] = Work.lhs[pvd]
+
+                # while bolted together:
+                for i in range(1, conn):
+                    SolveStep(lv, pad, i, Work, pvd, pvf)
+                    StoreStep(Sol, lv, pad, i, Work, pvd, pvf)
+
+                if conn < L:
+                    # separate from pad when for goes into tension
+                    # (negative):
+                    if Work.padf > 0:
+                        # in compression, run until it goes into
+                        # tension:
+                        for i in range(conn, L):
+                            SolveStep(lv, pad, i, Work, pvd, pvf)
+                            if Work.padf <= 0.0:
+                                break  # i'th time step will be redone
+                            StoreStep(Sol, lv, pad, i, Work, pvd, pvf)
+
+                    # separate:
+                    Work.constraints = np.zeros(r)
+                    Work.K[r:, :r] = np.diag(Work.constraints)
+                    Work.K[r:, r:] = np.diag(1.0 - Work.constraints)
+                    Work.Kd = la.inv(Work.K)
+                    for i in range(i, L):
+                        SolveStep(lv, pad, i, Work, pvd, pvf)
+                        StoreStep2(Sol, lv, pad, i, Work, pvd, pvf)
+
+                # finalize solution:
+                lv.sol = lv.parms.finalize(get_force=True)
+                pad.sol = pad.parms.finalize(get_force=True)
+
+                db = lv.phi @ lv.d   # or lv.phi @ lv.sol.d
+                dp = pad.phi@ pad.d
+
+                vb = lv.phi @ lv.v
+                vp = pad.phi@ pad.v
+
+                ab = lv.phi @ lv.sol.a
+                ap = pad.phi@ pad.sol.a
+
+                # check solution:
+                # separation occurs after 0.38 seconds
+                pv = time < 0.3805
+                assert abs(full.iff[pv] - Sol.fpad[0, pv]).max() < 20.0
+                assert abs(Sol.fpad[0, ~pv]).max() == 0.0
+                assert abs(ap[0, pv] - full.xdd[0, pv]).max() < 20.0
+                assert abs(ap[0, ~pv] - full.xdd[0, ~pv]).max() > 200.0
+                assert abs(ab[0, pv] - full.xdd[0, pv]).max() < 20.0
+                assert abs(ab[0, ~pv] - full.xdd[0, ~pv]).max() > 2000.0
+
+                # velocity is what's being enforced ... :
+                assert abs(vp[0, pv] - vb[0, pv]).max() < 1e-10
+                assert abs(vp[0, pv] - full.xd[0, pv]).max() < 1e-4
+                assert abs(vp[0, ~pv] - full.xd[0, ~pv]).max() > 10.0
+                assert abs(vb[0, pv] - full.xd[0, pv]).max() < 1e-4
+                assert abs(vb[0, ~pv] - full.xd[0, ~pv]).max() > 100.0
+
+                assert abs(dp[0, pv] - full.x[0, pv]).max() < 1e-5
+                assert abs(dp[0, ~pv] - full.x[0, ~pv]).max() > 0.1
+                assert abs(db[0, pv] - full.x[0, pv]).max() < 1e-5
+                assert abs(db[0, ~pv] - full.x[0, ~pv]).max() > 1.0

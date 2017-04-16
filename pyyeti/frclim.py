@@ -251,7 +251,7 @@ def ntfl(Source, Load, As, freq):
 
         >>> import numpy as np
         >>> from pyyeti import frclim, ode
-        >>> freq = np.arange(0., 25.1, .1)
+        >>> freq = np.arange(0.0, 25.1, 0.1)
         >>> M1 = 10.
         >>> M2 = 30.
         >>> M3 = 3.
@@ -963,7 +963,7 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
     F = np.zeros((3, 2))
     F[0] = 1.
     mass = np.array([[m1, 0, 0], [0, M1+M2, 0], [0, 0, m2]])
-    res = minimize_scalar(get_neg_pknfl, bounds=wr)
+    res = minimize_scalar(get_neg_pknfl, bracket=wr)
     if 'message' in res:
         raise RuntimeError('routine '
                            ':func:`scipy.optimize.minimize_scalar` '
