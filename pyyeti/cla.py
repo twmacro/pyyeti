@@ -1479,8 +1479,8 @@ class DR_Event(object):
     ----------
     Info : dict
         Contains data recovery information for each category. The
-        category names are the keys. This is a copy of the information
-        created during data recovery setup; eg, in a
+        category names are the keys. This is a copy of the `dr_def`
+        attribute created during data recovery setup; eg, in a
         "prepare_4_cla.py" script. See description of `dr_def` in
         :class:`DR_Def` and the example below.
     UF_reds : list
@@ -2067,7 +2067,7 @@ class DR_Results(OrderedDict):
         return ('{} with {} categories: [{}]'
                 .format(type(self).__name__, len(self), cats))
 
-    def init(self, Info, mission, event):
+    def init(self, Info, mission, event, cats=None):
         """
         Build initial results data structure.
 
@@ -2075,14 +2075,24 @@ class DR_Results(OrderedDict):
         ----------
         Info : dict
             Contains data recovery information for each category. The
-            category names are the keys. See the `Info` attribute of
-            the :class:`DR_Event`.
+            category names are the keys. Either the `Info` attribute
+            of :class:`DR_Event` or the `dr_def` attribute of
+            :class:`DR_Def`.
         mission : str
             Identifies the CLA
         event : str
             Name of event
+        cats : iterable of strings or None
+            If iterable, contains names of categories to include in
+            results; other names are quietly skipped.
+
+        Notes
+        -----
+        The name "_vars" is quietly skipped if present in `Info`.
         """
         for name in Info:
+            if name == '_vars' or (cats and name not in cats):
+                continue
             self[name] = SimpleNamespace(
                 ext=None,
                 maxcase=None,
