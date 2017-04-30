@@ -1482,7 +1482,9 @@ class DR_Event(object):
         category names are the keys. This is a copy of the `dr_def`
         attribute created during data recovery setup; eg, in a
         "prepare_4_cla.py" script. See description of `dr_def` in
-        :class:`DR_Def` and the example below.
+        :class:`DR_Def` and the example below. The copy is made during
+        the call to :func:`DR_Event.add` and new values for the
+        `uf_reds` option can be set during that call.
     UF_reds : list
         List of all unique 4-element uncertainty factor tuples. See
         :func:`DR_Def.add` for more information.
@@ -2077,7 +2079,8 @@ class DR_Results(OrderedDict):
             Contains data recovery information for each category. The
             category names are the keys. Either the `Info` attribute
             of :class:`DR_Event` or the `dr_def` attribute of
-            :class:`DR_Def`.
+            :class:`DR_Def`. (`Info` is a copy of `dr_def` with the
+            possibly different `uf_reds` values.)
         mission : str
             Identifies the CLA
         event : str

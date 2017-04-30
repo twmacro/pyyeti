@@ -1,0 +1,65 @@
+` -  pyyeti.rst -> list to table?
+-  Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
+-  Enhance drift option: ?
+     o   ‘no’, ‘sr’, ‘shift’
+   - enhance sr calc to use computed value? prob not.
+
+
+        1. Update duf explanation in cla.apply_uf
+        2. Read dmig matrices
+        3. Accept type and form inputs in op4.write
+        4. Convert uset to dataframe i think
+        5. Convert ext, mx, mn in DR_Results to dataframe
+
+
+- cla.py:
+    DR_Results() … should this be able to init? I think so:
+                   DR_Results(drdefs.dr_def, mission, event)
+                   … similar to DR.prepare_results(mission, event)
+                   … and/or, what about a DR_Def.prepare_results()
+    ß actually, replace DR_Event.prepare_results() I think!!
+                   Get rid of Info in DR_Event? Probably can’t because of the uf_reds override.
+
+    DR_Def could be derived from dict or OrderedDict …
+    “drdefs[cat]” seems better than “drdefs.dr_def[cat]”
+
+    Hmm … what about "class DR_Event(dict)"?
+                   Nah, this one seems okay as is
+
+    Be sure to update doctest for add_maxmin
+
+
+    1 resp_plots pdf filename
+    2 write complete test_cla.py
+    3 magpct needs to be able to chop off small numbers
+
+    4 when flagging, but no flags, format is shortened by one char for that column
+    5 maybe add option to use only one figure ... that should be default ?
+
+    6 y-axis label written far away in srs3/net_ifatm_0rb_eqsine_all.pdf plot ... why?
+
+
+- CB animation:
+    We could animate the nodes included in the ATM for a particular mode with Python:
+
+    1.  We’d get the positions of all nodes in the ATM from the b-set
+    part (like cb.rbmultchk does). We’d trim ATM down to 3 DOF per
+    node … no rotations and we must have all 3 translations.
+
+    2.  Convert all local coordinates to basic if
+    needed. (cb.rbmultchk explains how this is done.)
+
+    3.  Place those dots on a 3D plot.
+
+    4.  Take the column representing the mode shape you want from the
+    trimmed ATM and multiply it by a sine wave. In Python, using
+    broadcasting, we could compute one cycle by something like this:
+
+    a.  t = np.arange(0., 1., .01)
+
+    b.  ATM_trimmed[:, i:i+1] * np.sin(2*np.pi*t) motion for the ATM
+    column corresponding to whichever mode we want to animate. This
+    would give us the x, y, z motions for all nodes. Add that to the
+    coordinates to get positions in space.
+
+    5.  Tell matplotlib to animate those positions so we can see it.
