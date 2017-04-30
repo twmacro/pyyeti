@@ -25,6 +25,7 @@ import itertools as it
 import struct
 import sys
 import warnings
+from collections
 import numpy as np
 import scipy.sparse as sp
 from pyyeti import guitools
@@ -955,20 +956,21 @@ class OP4(object):
         return rs, cs, vs, cols_with_data
 
     @staticmethod
-    def _get_header_info(matrix):
+    def _get_header_info(matrix, form=None):
         if isinstance(matrix, tuple):
             mat = matrix[0]
             vals = matrix[3]
         else:
             mat = vals = matrix
         rows, cols = mat.shape
-        if rows == cols:
-            if OP4._is_symmetric(matrix):
-                form = 6
+        if form is None:
+            if rows == cols:
+                if OP4._is_symmetric(matrix):
+                    form = 6
+                else:
+                    form = 1
             else:
-                form = 1
-        else:
-            form = 2
+                form = 2
         if np.iscomplexobj(vals):
             mtype = 4
             multiplier = 2
@@ -978,7 +980,7 @@ class OP4(object):
         return rows, cols, form, mtype, multiplier
 
     def _write_ascii_header(self, f, name, matrix,
-                            digits, bigmat=False):
+                            digits, bigmat=False, form=None):
         """
         Utility routine that writes the header for ascii matrices.
 
@@ -993,8 +995,11 @@ class OP4(object):
         digits : integer
             Number of significant digits after the decimal to include
             in the ascii output.
-        bigmat : bool
+        bigmat : bool; optional
             If true, matrix is to be written in 'bigmat' format.
+        form : integer or None; optional
+            The matrix form. If None, the form will be determined
+            automatically.
 
         Returns
         -------
@@ -1014,7 +1019,7 @@ class OP4(object):
         perline = 80 // numlen
 
         (rows, cols, form,
-         mtype, multiplier) = OP4._get_header_info(matrix)
+         mtype, multiplier) = OP4._get_header_info(matrix, form)
 
         if bigmat:
             if rows < self._rows4bigmat:
@@ -1025,7 +1030,7 @@ class OP4(object):
         numform = '%{}.{}E'.format(numlen, digits)
         return cols, multiplier, perline, numlen, numform
 
-    def _write_ascii(self, f, name, matrix, digits):
+    def _write_ascii(self, f, name, matrix, digits, form):
         """
         Write a matrix to a file in ascii, non-sparse format.
 
@@ -1040,11 +1045,14 @@ class OP4(object):
         digits : integer
             Number of significant digits after the decimal to include
             in the ascii output.
+        form : integer or None; optional
+            The matrix form. If None, the form will be determined
+            automatically.
         """
         (cols, multiplier,
          perline, numlen,
-         numform) = self._write_ascii_header(f, name, matrix,
-                                             digits, bigmat=False)
+         numform) = self._write_ascii_header(
+             f, name, matrix, digits, bigmat=False, form=form)
 
         def _write_col_data(f, v, c, s, elems, perline, numform):
             f.write('{:8}{:8}{:8}\n'.format(c+1, s+1, elems))
@@ -1124,7 +1132,7 @@ class OP4(object):
         f.write(numform % 2**0.5)
         f.write('\n')
 
-    def _write_ascii_nonbigmat(self, f, name, matrix, digits):
+    def _write_ascii_nonbigmat(self, f, name, matrix, digits, form):
         """
         Write a matrix to a file in ascii, non-bigmat sparse format.
 
@@ -1139,6 +1147,9 @@ class OP4(object):
         digits : integer
             Number of significant digits after the decimal to include
             in the ascii output.
+        form : integer or None; optional
+            The matrix form. If None, the form will be determined
+            automatically.
 
         Note: if rows > 65535, bigmat is turned on and the
         :func:`write_ascii_bigmat` function is called ...
@@ -1154,8 +1165,8 @@ class OP4(object):
             return
         (cols, multiplier,
          perline, numlen,
-         numform) = self._write_ascii_header(f, name, matrix,
-                                             digits, bigmat=False)
+         numform) = self._write_ascii_header(
+             f, name, matrix, digits, bigmat=False, form=form)
 
         def _write_col_header(f, ind, c, multiplier):
             nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
@@ -1181,7 +1192,7 @@ class OP4(object):
                                 _write_data_string, multiplier,
                                 perline, numform)
 
-    def _write_ascii_bigmat(self, f, name, matrix, digits):
+    def _write_ascii_bigmat(self, f, name, matrix, digits, form):
         """
         Write a matrix to a file in ascii, bigmat sparse format.
 
@@ -1196,11 +1207,14 @@ class OP4(object):
         digits : integer
             Number of significant digits after the decimal to include
             in the ascii output.
+        form : integer or None; optional
+            The matrix form. If None, the form will be determined
+            automatically.
         """
         (cols, multiplier,
          perline, numlen,
-         numform) = self._write_ascii_header(f, name, matrix,
-                                             digits, bigmat=True)
+         numform) = self._write_ascii_header(
+             f, name, matrix, digits, bigmat=True, form=form)
 
         def _write_col_header(f, ind, c, multiplier):
             nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
@@ -1225,7 +1239,7 @@ class OP4(object):
                                 perline, numform)
 
     def _write_binary_header(self, f, name, matrix,
-                             endian, bigmat=False):
+                             endian, bigmat=False, form=None):
         """
         Utility routine that writes the header for binary matrices.
 
@@ -1242,6 +1256,9 @@ class OP4(object):
             big-endian and '<' for little-endian.
         bigmat : bool
             If true, matrix is to be written in 'bigmat' format.
+        form : integer or None; optional
+            The matrix form. If None, the form will be determined
+            automatically.
 
         Returns
         -------
@@ -1252,7 +1269,7 @@ class OP4(object):
                 2 for complex, 1 for real.
         """
         (rows, cols, form,
-         mtype, multiplier) = OP4._get_header_info(matrix)
+         mtype, multiplier) = OP4._get_header_info(matrix, form)
 
         # write 1st record (24 bytes: 4 4-byte ints, 1 8-byte string)
         name = ('{:<8}'.format(name.upper())).encode()
@@ -1263,7 +1280,7 @@ class OP4(object):
                             form, mtype, name, 24))
         return cols, multiplier
 
-    def _write_binary(self, f, name, matrix, endian):
+    def _write_binary(self, f, name, matrix, endian, form=None):
         """
         Write a matrix to a file in double precision binary format.
 
@@ -1278,9 +1295,12 @@ class OP4(object):
         endian : string
             Endian setting for binary output:  '' for native, '>' for
             big-endian and '<' for little-endian.
+        form : integer or None; optional
+            The matrix form. If None, the form will be determined
+            automatically.
         """
         cols, multiplier = self._write_binary_header(
-            f, name, matrix, endian)
+            f, name, matrix, endian, bigmat=False, form=form)
 
         def _write_col_data(f, v, c, s, elems, endian,
                             colHeader, colTrailer):
@@ -1363,7 +1383,7 @@ class OP4(object):
         f.write(struct.pack(endian+'d', 2**0.5))
         f.write(colTrailer.pack(reclen))
 
-    def _write_binary_nonbigmat(self, f, name, matrix, endian):
+    def _write_binary_nonbigmat(self, f, name, matrix, endian, form):
         """
         Write a matrix to a file in double precision binary, non-bigmat
         sparse format.
@@ -1379,6 +1399,9 @@ class OP4(object):
         endian : string
             Endian setting for binary output:  '' for native, '>' for
             big-endian and '<' for little-endian.
+        form : integer or None; optional
+            The matrix form. If None, the form will be determined
+            automatically.
 
         Note: if rows > 65535, bigmat is turned on and the
         :func:`write_binary_bigmat` function is called ...
@@ -1390,11 +1413,11 @@ class OP4(object):
             rows, cols = matrix.shape
 
         if rows >= self._rows4bigmat:
-            self._write_binary_bigmat(f, name, matrix, endian)
+            self._write_binary_bigmat(f, name, matrix, endian, form)
             return
 
         cols, multiplier = self._write_binary_header(
-            f, name, matrix, endian)
+            f, name, matrix, endian, bigmat=False, form=form)
         colHeader = struct.Struct(endian+'4i')
         colTrailer = struct.Struct(endian+'i')
 
@@ -1417,7 +1440,7 @@ class OP4(object):
             _write_data_string, multiplier,
             colHeader, colTrailer, colTrailer, endian)
 
-    def _write_binary_bigmat(self, f, name, matrix, endian):
+    def _write_binary_bigmat(self, f, name, matrix, endian, form):
         """
         Write a matrix to a file in double precision binary, bigmat
         sparse format.
@@ -1433,9 +1456,12 @@ class OP4(object):
         endian : string
             Endian setting for binary output:  '' for native, '>' for
             big-endian and '<' for little-endian.
+        form : integer or None; optional
+            The matrix form. If None, the form will be determined
+            automatically.
         """
         cols, multiplier = self._write_binary_header(
-            f, name, matrix, endian, True)
+            f, name, matrix, endian, bigmat=True, form=form)
         colHeader = struct.Struct(endian+'4i')
         colTrailer = struct.Struct(endian+'i')
         LrStruct = struct.Struct(endian+'ii')
@@ -1761,7 +1787,7 @@ class OP4(object):
             self._op4close()
         return names, sizes, forms, mtypes
 
-    def write(self, filename, names, matrices=None,
+    def write(self, filename, names, matrices=None, forms=None,
               binary=True, digits=16, endian='',
               sparse='auto'):
         """
@@ -1773,10 +1799,29 @@ class OP4(object):
             Name of file.
         names : string or list or dictionary
             Matrix name or list of matrix names or dictionary indexed
-            by the names.
+            by the names. If a dictionary, the values can either be
+            the matrix or a tuple/list of where the first two items
+            are: ``(matrix, form)``.
         matrices : array or list; optional
             2d ndarray or list of 2d ndarrays. Ignored if `names` is
             a dictionary.
+        forms : integer or list or None; optional
+            The matrix form(s). If None, the forms will be determined
+            automatically. Ignored if `names` is a dictionary (which
+            would contain this information). From Nastran
+            documentation:
+
+            ======   ==============
+            `form`   Matrix format
+            ======   ==============
+               1     Square
+               2     Rectangular
+               3     Diagonal
+               6     Symmetric
+               8     Identity
+               9     Pseudoidentity
+            ======   ==============
+
         binary : bool; optional
             If true, a double precision binary file is written;
             otherwise an ascii file is created.
@@ -1810,10 +1855,11 @@ class OP4(object):
 
         Notes
         -----
-        To write multiple matrices that have the same name or to write
-        the matrices in a specific order, `names` must be a list, not
-        a dictionary. If a dictionary, the matrices are written in
-        alphabetical order.
+        To write multiple matrices that have the same name, `names`
+        must be a list, not a dictionary. If a list, the order is
+        maintained. If a dictionary, the matrices are written in the
+        order they are retrieved from the dictionary; use a
+        ``collections.OrderedDict`` to specify a certain order.
 
         To write m, k, b, in that order to an ascii file::
 
@@ -1837,15 +1883,29 @@ class OP4(object):
         --------
         :func:`dctload`, :func:`listload`, :func:`dir`.
         """
-        if isinstance(names, dict):
-            k = sorted(names.keys())
-            matrices = [names[j] for j in k]
-            names = k
+        if isinstance(names, collections.Mapping):
+            v = next(iter(names))
+            _names = []
+            matrices = []
+            if isinstance(v, np.ndarray):
+                for nm, val in names.items():
+                    _names.append(nm)
+                    matrices.append(val)
+            else:
+                forms = []
+                for nm, val in names.items():
+                    _names.append(nm)
+                    matrices.append(val[0])
+                    forms.append(val[1])
+            names = _names
         else:
-            if not isinstance(names, list):
+            if not isinstance(names, (list, tuple)):
                 names = [names]
-            if not isinstance(matrices, list):
+            if not isinstance(matrices, (list, tuple)):
                 matrices = [matrices]
+            if (forms is not None and
+                    not instance(forms, (list, tuple)):
+                forms = [forms]
 
         def ensure_dp(m):
             """
@@ -2150,10 +2210,11 @@ def write(filename, names, matrices=None,
 
     Notes
     -----
-    To write multiple matrices that have the same name or to write
-    the matrices in a specific order, `names` must be a list, not
-    a dictionary. If a dictionary, the matrices are written in
-    alphabetical order.
+    To write multiple matrices that have the same name, `names` must
+    be a list, not a dictionary. If a list, the order is
+    maintained. If a dictionary, the matrices are written in the order
+    they are retrieved from the dictionary; use a
+    ``collections.OrderedDict`` to specify a certain order.
 
     `save` is an alias for `write`.
 
