@@ -7,13 +7,14 @@
 
 1. Update duf explanation in cla.apply_uf
 2. Read dmig matrices
-3. ~ Accept type and form inputs in op4.write
-   a. update tutorial
-   b. check test coverage
-   c. check documentation look
+~ 3. ~ Accept type and form inputs in op4.write
+   ~ 0. read into ordered dict
+   ~ a. update tutorial
+   ~ b. improve check test coverage
+   ~ c. check documentation links to op4.write
 4. Convert uset to dataframe i think
 5. Convert ext, mx, mn in DR_Results to dataframe
-6. The tests leave an empty 'temp.op4' file ... fix this
+~ 6. The tests leave an empty 'temp.op4' file ... fix this
 
 - cla.py:
     DR_Results() … should this be able to init? I think so:

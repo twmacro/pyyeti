@@ -63,7 +63,11 @@ class OP4(object):
 
     >>> dct = o4.load('testbin.op4', into='dct')
 
-    Or, to read into a list:
+    Note: to preserve order, the dictionary returned by "load" or
+    "read" is actually an OrderedDict from the standard Python
+    "collections" module.
+
+    To read into a list:
 
     >>> names, mats, forms, mtypes = o4.load('testascii.op4',
     ...                                      into='list')
@@ -90,7 +94,6 @@ class OP4(object):
     >>> import os
     >>> os.remove('testbin.op4')
     >>> os.remove('testascii.op4')
-
     """
 
     def __init__(self):
@@ -1527,7 +1530,7 @@ class OP4(object):
 
         Returns
         -------
-        dct : dictionary
+        dct : collections.OrderedDict
             Keys are the lower-case matrix names and the values are
             either just the matrix or a tuple of:
             ``(matrix, form, mtype)`` depending on `justmatrix`.
@@ -1546,7 +1549,7 @@ class OP4(object):
         if isinstance(namelist, str):
             namelist = [namelist]
         self._op4open_read(filename)
-        dct = {}
+        dct = collections.OrderedDict()
         try:
             if self._ascii:
                 loadfunc = self._loadop4_ascii
@@ -1703,7 +1706,7 @@ class OP4(object):
 
         Returns
         -------
-        dct : dictionary, if ``into == 'dct'``
+        dct : collections.OrderedDict, if ``into == 'dct'``
             Keys are the lower-case matrix names and the values are
             either just the matrix or a tuple of:
             ``(matrix, form, mtype)`` depending on `justmatrix`.
@@ -1795,15 +1798,15 @@ class OP4(object):
         ----------
         filename : string
             Name of file.
-        names : dictionary or list or string
+        names : dictionary/OrderedDict or list or string
             Dictionary indexed by the matrix names with the values
             being either the matrices or a tuple/list where the first
-            two items are ``(matrix, form)``. `names` can also be a
-            list of matrix names (strings) or a single name (string)
-            if just one matrix is to be saved. If not a dictionary,
-            `matrices` is required to specify the matrices and, if
-            `forms` needs to specified, that input would also be
-            required.
+            two items are ``(matrix, form)``. Alternatively, `names`
+            can also be a list of matrix names (strings) or a single
+            name (string) if just one matrix is to be saved. If using
+            the list inputs, `matrices` is required to specify the
+            matrices and, if `forms` needs to specified, that input
+            would also be required.
         matrices : array or list; optional
             2d ndarray or list of 2d ndarrays. Ignored if `names` is
             a dictionary. Same length as `names`.
@@ -1838,7 +1841,10 @@ class OP4(object):
             The matrix form(s). If None, the forms will be determined
             automatically to be 1, 2, or 6. Ignored if `names` is a
             dictionary (which would contain this information). If not
-            None, same length as `names`. From Nastran documentation:
+            None, `forms` must be the same length as `names`, but you
+            can use None as the form for one or more matrices (see
+            example in :func:`pyyeti.op4.write`). From Nastran
+            documentation:
     
             ======   ===============
             `form`   Matrix format
@@ -1850,6 +1856,11 @@ class OP4(object):
                8     Identity
                9     Pseudo-Identity
             ======   ===============
+
+            .. warning::
+                The validity of the values in `forms` is not checked
+                in any way.
+
 
         Returns
         -------
@@ -1863,105 +1874,13 @@ class OP4(object):
         order they are retrieved from the dictionary; use a
         ``collections.OrderedDict`` to specify a certain order.
 
-        Examples
-        --------
-        To write m, k, b, in that order to a binary file, you could
-        use lists or an OrderedDict:
-
-        >>> import numpy as np
-        >>> from pyyeti import op4
-        >>> o4 = op4.OP4()
-        >>> m = np.array([[1, 2], [2, 3]])
-        >>> k = np.array([3, 5])
-        >>> b = np.array([4, 6])
-        >>> names = ['m', 'k', 'b']
-        >>> values = [eval(n) for n in names]
-        >>> o4.write('mkb.op4', names, values)
-        >>> _ = o4.dir('mkb.op4')
-        m       ,      2 x 2     , form=6, mtype=2
-        k       ,      1 x 2     , form=2, mtype=2
-        b       ,      1 x 2     , form=2, mtype=2
-
-        Or, order is also maintained when using an OrderedDict:
-
-        >>> from collections import OrderedDict
-        >>> odct = OrderedDict()
-        >>> for n in names:
-        ...     odct[n] = eval(n)
-        >>> o4.write('mkb.op4', odct)
-        >>> _ = o4.dir('mkb.op4')
-        m       ,      2 x 2     , form=6, mtype=2
-        k       ,      1 x 2     , form=2, mtype=2
-        b       ,      1 x 2     , form=2, mtype=2
-
-        On the other hand, if you don't care about the order, you
-        could use a regular dictionary. (In more recent versions of
-        Python, this may behave like an OrderedDict.):
-
-        >>> o4.write('mkb.op4', dict(m=m, k=k, b=b))
-        >>> _ = o4.dir('mkb.op4')         # doctest: +SKIP
-        m       ,      2 x 2     , form=6, mtype=2
-        k       ,      1 x 2     , form=2, mtype=2
-        b       ,      1 x 2     , form=2, mtype=2
-
-        To specify the forms, include the `forms` option in either the
-        list approach or the dictionary approach. Here, we'll just say
-        that "m" is square (not symmetric) for demonstration. First,
-        the list approach:
-
-        >>> o4.write('mkb.op4', ['m', 'k', 'b'], [m, k, b],
-        ...          forms=[1, 2, 2])
-        >>> _ = o4.dir('mkb.op4')
-        m       ,      2 x 2     , form=1, mtype=2
-        k       ,      1 x 2     , form=2, mtype=2
-        b       ,      1 x 2     , form=2, mtype=2
-
-        Next, the dictionary approach:
-
-        >>> odct = OrderedDict()
-        >>> odct['m'] = (m, 1)
-        >>> odct['k'] = (k, 2)
-        >>> odct['b'] = (b, 2)
-        >>> o4.write('mkb.op4', odct)
-        >>> _ = o4.dir('mkb.op4')
-        m       ,      2 x 2     , form=1, mtype=2
-        k       ,      1 x 2     , form=2, mtype=2
-        b       ,      1 x 2     , form=2, mtype=2
-
-        Clean up:
-
-        >>> import os
-        >>> os.remove('mkb.op4')
+        See the examples in :func:`op4.write`.
 
         See also
         --------
-        :func:`dctload`, :func:`listload`, :func:`dir`.
+        :func:`pyyeti.op4.write`, :func:`dctload`, :func:`listload`,
+        :func:`dir`.
         """
-        if isinstance(names, collections.Mapping):
-            v = next(iter(names.values()))
-            _names = []
-            matrices = []
-            if isinstance(v, (list, tuple)):
-                forms = []
-                for nm, val in names.items():
-                    _names.append(nm)
-                    matrices.append(val[0])
-                    forms.append(val[1])
-            else:
-                forms = None
-                for nm, val in names.items():
-                    _names.append(nm)
-                    matrices.append(val)
-            names = _names
-        else:
-            if not isinstance(names, (list, tuple)):
-                names = [names]
-            if not isinstance(matrices, (list, tuple)):
-                matrices = [matrices]
-            if (forms is not None and
-                    not isinstance(forms, (list, tuple))):
-                forms = [forms]
-
         def ensure_dp(m):
             """
             Ensure double precision values
@@ -1990,9 +1909,34 @@ class OP4(object):
                                  '2 dimensions.')
             return ensure_dp(m)
 
+        if isinstance(names, collections.Mapping):
+            _names = []
+            matrices = []
+            forms = []
+            for nm, val in names.items():
+                if isinstance(val, (list, tuple)):
+                    _names.append(nm)
+                    matrices.append(val[0])
+                    forms.append(val[1])
+                else:
+                    _names.append(nm)
+                    matrices.append(val)
+                    forms.append(None)
+            names = _names
+        else:
+            if not isinstance(names, (list, tuple)):
+                names = [names]
+            if not isinstance(matrices, (list, tuple)):
+                matrices = [matrices]
+            if (forms is not None and
+                    not isinstance(forms, (list, tuple))):
+                forms = [forms]
+
         if forms is None:
             forms = [None] * len(names)
 
+        matrices = [ensure_2d_dp(matrix) for matrix in matrices]
+            
         if binary:
             if sparse == 'dense':
                 wrtfunc = self._write_binary
@@ -2004,13 +1948,12 @@ class OP4(object):
                 raise ValueError('invalid sparse option')
             with open(filename, 'wb') as f:
                 for name, matrix, form in zip(names, matrices, forms):
-                    m = ensure_2d_dp(matrix)
                     if sparse == 'auto':
-                        if isinstance(m, tuple):
+                        if isinstance(matrix, tuple):
                             wrtfunc = self._write_binary_bigmat
                         else:
                             wrtfunc = self._write_binary
-                    wrtfunc(f, name, m, endian, form)
+                    wrtfunc(f, name, matrix, endian, form)
         else:
             if sparse == 'dense':
                 wrtfunc = self._write_ascii
@@ -2022,13 +1965,12 @@ class OP4(object):
                 raise ValueError('invalid sparse option')
             with open(filename, 'w') as f:
                 for name, matrix, form in zip(names, matrices, forms):
-                    m = ensure_2d_dp(matrix)
                     if sparse == 'auto':
-                        if isinstance(m, tuple):
+                        if isinstance(matrix, tuple):
                             wrtfunc = self._write_ascii_bigmat
                         else:
                             wrtfunc = self._write_ascii
-                    wrtfunc(f, name, m, digits, form)
+                    wrtfunc(f, name, matrix, digits, form)
 
 
 def load(filename=None, namelist=None, into='dct', justmatrix=False,
@@ -2081,7 +2023,7 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False,
 
     Returns
     -------
-    dct : dictionary, if ``into == 'dct'``
+    dct : collections.OrderedDict, if ``into == 'dct'``
         Keys are the lower-case matrix names and the values are
         either just the matrix or a tuple of:
         ``(matrix, form, mtype)`` depending on `justmatrix`.
@@ -2094,6 +2036,47 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False,
     The default form for sparse matrices is the "COO" sparse form (see
     :func:`scipy.sparse.coo_matrix`). To override, provide a callable
     in the `sparse` option (see above).
+
+    Examples
+    --------
+    This examples translates a sparse format binary op4 file to a
+    simpler ascii format while preserving the matrix forms.
+
+    First, create a file in "bigmat" sparse format and set the form on
+    the "m" matrix to be symmetric (form=6):
+
+    >>> import numpy as np
+    >>> from pyyeti import op4
+    >>> m = np.array([[1, 2], [2.1, 3]])
+    >>> k = np.array([3, 5])
+    >>> b = np.array([4, 6])
+    >>> names = ['m', 'k', 'b']
+    >>> values = [eval(n) for n in names]
+    >>> op4.write('mkb.op4', names, values, forms=[6, 2, 2],
+    ...           sparse='bigmat')
+
+    Now, translate it to simple ascii, preserving the forms:
+
+    >>> dct = op4.load('mkb.op4')
+    >>> op4.write('mkb_ascii.op4', dct, binary=False)
+
+    Check that the order and forms are the same:
+
+    >>> _ = op4.dir('mkb.op4')
+    m       ,      2 x 2     , form=6, mtype=2
+    k       ,      1 x 2     , form=2, mtype=2
+    b       ,      1 x 2     , form=2, mtype=2
+
+    >>> _ = op4.dir('mkb_ascii.op4')
+    m       ,      2 x 2     , form=6, mtype=2
+    k       ,      1 x 2     , form=2, mtype=2
+    b       ,      1 x 2     , form=2, mtype=2
+
+    Clean up:
+
+    >>> import os
+    >>> os.remove('mkb.op4')
+    >>> os.remove('mkb_ascii.op4')
 
     See also
     --------
@@ -2160,7 +2143,7 @@ def read(filename=None, namelist=None, into='dct', justmatrix=True,
 
     Returns
     -------
-    dct : dictionary, if ``into == 'dct'``
+    dct : collections.OrderedDict, if ``into == 'dct'``
         Keys are the lower-case matrix names and the values are
         either just the matrix or a tuple of:
         ``(matrix, form, mtype)`` depending on `justmatrix`.
@@ -2227,14 +2210,14 @@ def write(filename, names, matrices=None,
     filename : string or None
         Name of file. Can also be the name of a directory or None; in
         these cases, a GUI is opened for file selection.
-    names : dictionary or list or string
+    names : dictionary/OrderedDict or list or string
         Dictionary indexed by the matrix names with the values being
         either the matrices or a tuple/list where the first two items
-        are ``(matrix, form)``. `names` can also be a list of matrix
-        names (strings) or a single name (string) if just one matrix
-        is to be saved. If not a dictionary, `matrices` is required to
-        specify the matrices and, if `forms` needs to specified, that
-        input would also be required.
+        are ``(matrix, form)``. Alternatively, `names` can also be a
+        list of matrix names (strings) or a single name (string) if
+        just one matrix is to be saved. If using the list inputs,
+        `matrices` is required to specify the matrices and, if `forms`
+        needs to specified, that input would also be required.
     matrices : array or list; optional
         2d ndarray or list of 2d ndarrays. Ignored if `names` is
         a dictionary. Same length as `names`.
@@ -2269,7 +2252,9 @@ def write(filename, names, matrices=None,
         The matrix form(s). If None, the forms will be determined
         automatically to be 1, 2, or 6. Ignored if `names` is a
         dictionary (which would contain this information). If not
-        None, same length as `names`. From Nastran documentation:
+        None, `forms` must be the same length as `names`, but you can
+        use None as the form for one or more matrices (see example
+        below). From Nastran documentation:
 
         ======   ===============
         `form`   Matrix format
@@ -2281,6 +2266,10 @@ def write(filename, names, matrices=None,
            8     Identity
            9     Pseudo-Identity
         ======   ===============
+
+        .. warning::
+            The validity of the values in `forms` is not checked in
+            any way.
 
     Returns
     -------
@@ -2338,22 +2327,24 @@ def write(filename, names, matrices=None,
 
     To specify the forms, include the `forms` option in either the
     list approach or the dictionary approach. Here, we'll just say
-    that "m" is square (not symmetric) for demonstration. First, the
-    list approach:
+    that "m" is square (not symmetric) for demonstration. The forms
+    for "k" and "b" will be automatically detected. First, the list
+    approach:
 
     >>> op4.write('mkb.op4', ['m', 'k', 'b'], [m, k, b],
-    ...          forms=[1, 2, 2])
+    ...          forms=[1, None, None])
     >>> _ = op4.dir('mkb.op4')
     m       ,      2 x 2     , form=1, mtype=2
     k       ,      1 x 2     , form=2, mtype=2
     b       ,      1 x 2     , form=2, mtype=2
 
-    Next, the dictionary approach:
+    Next, the dictionary approach. Since the form is attached to each
+    matrix, it is only required if not None:
 
     >>> odct = OrderedDict()
     >>> odct['m'] = (m, 1)
-    >>> odct['k'] = (k, 2)
-    >>> odct['b'] = (b, 2)
+    >>> odct['k'] = k
+    >>> odct['b'] = b
     >>> op4.write('mkb.op4', odct)
     >>> _ = op4.dir('mkb.op4')
     m       ,      2 x 2     , form=1, mtype=2

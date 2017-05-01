@@ -262,10 +262,14 @@ def test_wtop4_single():
         binary = item[1]
         endian = item[2]
         o4.write(filename, name, mat,
-                 binary=binary, endian=endian)
+                 binary=binary, endian=endian,
+                 forms=4)  # 4 is not actually a valid setting
         dct = o4.dctload(filename)
         for nm in dct:
+            assert nm == name
             assert np.allclose(m[nm], dct[nm][0])
+            assert dct[nm][1] == 4
+
     # clean up:
     for item in filenames:
         os.remove(item[0])
@@ -497,7 +501,7 @@ def test_i64():
 
 
 def test_bad_sparse():
-    matfile = 'temp.op4'
+    matfile = 'temp1.op4'
     r = 1.2
     assert_raises(ValueError, op4.save, matfile, dict(r=r),
                   sparse='badsparsestring')
@@ -506,7 +510,7 @@ def test_bad_sparse():
 
 
 def test_bad_dimensions():
-    matfile = 'temp.op4'
+    matfile = 'temp2.op4'
     r = np.ones((2, 2, 2))
     assert_raises(ValueError, op4.save, matfile, dict(r=r))
 
