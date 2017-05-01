@@ -1874,7 +1874,7 @@ class OP4(object):
         order they are retrieved from the dictionary; use a
         ``collections.OrderedDict`` to specify a certain order.
 
-        See the examples in :func:`op4.write`.
+        See the examples in :func:`pyyeti.op4.write`.
 
         See also
         --------
