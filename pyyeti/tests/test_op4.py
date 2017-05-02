@@ -263,12 +263,12 @@ def test_wtop4_single():
         endian = item[2]
         o4.write(filename, name, mat,
                  binary=binary, endian=endian,
-                 forms=4)  # 4 is not actually a valid setting
+                 forms=45)  # 45 is not actually a valid setting
         dct = o4.dctload(filename)
         for nm in dct:
             assert nm == name
             assert np.allclose(m[nm], dct[nm][0])
-            assert dct[nm][1] == 4
+            assert dct[nm][1] == 45
 
     # clean up:
     for item in filenames:

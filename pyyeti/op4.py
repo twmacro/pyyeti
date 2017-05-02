@@ -1846,21 +1846,26 @@ class OP4(object):
             example in :func:`pyyeti.op4.write`). From Nastran
             documentation:
     
-            ======   ===============
-            `form`   Matrix format
-            ======   ===============
+            ======   ==============================
+             form    Matrix format
+            ======   ==============================
                1     Square
                2     Rectangular
                3     Diagonal
+               4     Lower triangular factor
+               5     Upper triangular factor
                6     Symmetric
                8     Identity
-               9     Pseudo-Identity
-            ======   ===============
+               9     Pseudo identity
+              10     Cholesky factor
+              11     Trapezoidal factor
+              13     Sparse lower triangular factor
+              15     Sparse upper triangular factor
+            ======   ==============================
 
             .. warning::
                 The validity of the values in `forms` is not checked
                 in any way.
-
 
         Returns
         -------
@@ -2255,17 +2260,23 @@ def write(filename, names, matrices=None,
         None, `forms` must be the same length as `names`, but you can
         use None as the form for one or more matrices (see example
         below). From Nastran documentation:
-
-        ======   ===============
-        `form`   Matrix format
-        ======   ===============
+    
+        ======   ==============================
+         form    Matrix format
+        ======   ==============================
            1     Square
            2     Rectangular
            3     Diagonal
+           4     Lower triangular factor
+           5     Upper triangular factor
            6     Symmetric
            8     Identity
-           9     Pseudo-Identity
-        ======   ===============
+           9     Pseudo identity
+          10     Cholesky factor
+          11     Trapezoidal factor
+          13     Sparse lower triangular factor
+          15     Sparse upper triangular factor
+        ======   ==============================
 
         .. warning::
             The validity of the values in `forms` is not checked in
