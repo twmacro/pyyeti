@@ -1057,7 +1057,7 @@ def test_addcat():
     the_warning = str(cm.warning)
     assert 0 == the_warning.find('"drm" already')
 
-    assert drdefs.dr_def['LTM'].drfile == drdefs.dr_def['ATM'].drfile
+    assert drdefs['LTM'].drfile == drdefs['ATM'].drfile
 
     def _():
         name = 'DTM'
@@ -1173,7 +1173,7 @@ def test_addcat():
     drdefs.copycat('ATM', '_dummy',
                    uf_reds=(0, 1, 1., 1))
 
-    assert drdefs.dr_def['ATM_dummy'].labels == drdefs.dr_def['ATM'].labels
+    assert drdefs['ATM_dummy'].labels == drdefs['ATM'].labels
 
     # modify category that doesn't exist
     assert_raises(ValueError, drdefs.copycat, 'notexist', '_2',
@@ -1186,7 +1186,7 @@ def test_addcat():
     drdefs.copycat('ATM', ['ATM_2'],
                    uf_reds=(0, 1, 1., 1))
 
-    assert drdefs.dr_def['ATM_2'].labels == drdefs.dr_def['ATM'].labels
+    assert drdefs['ATM_2'].labels == drdefs['ATM'].labels
 
     # atm_2 already exists:
     assert_raises(ValueError, drdefs.copycat, 'ATM', '_2')

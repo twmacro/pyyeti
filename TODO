@@ -12,15 +12,22 @@
                    … similar to DR.prepare_results(mission, event)
                    … and/or, what about a DR_Def.prepare_results()
     ß actually, replace DR_Event.prepare_results() I think!!
-                   Get rid of Info in DR_Event? Probably can’t because of the uf_reds override.
+                   Get rid of Info in DR_Event? Probably can’t because
+                   of the uf_reds override.
 
-    DR_Def could be derived from dict or OrderedDict …
-    “drdefs[cat]” seems better than “drdefs.dr_def[cat]”
+    Naming convention should be more consistent:
+      drdefs vs. Info vs. drminfo
+         - Could they all be DR_Def instances??
 
-    Hmm … what about "class DR_Event(dict)"?
-                   Nah, this one seems okay as is
 
     Be sure to update doctest for add_maxmin
+
+    ~ DR_Def could be derived from dict or OrderedDict …
+    “drdefs[cat]” seems better than “drdefs.dr_def[cat]”
+
+    ~ Hmm … what about "class DR_Event(dict)"?
+                   Nah, this one seems okay as is
+
 
 
     1 resp_plots pdf filename

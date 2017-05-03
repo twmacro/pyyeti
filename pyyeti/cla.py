@@ -652,9 +652,15 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         _put_time(curext, mm, j, 1, 1)
 
 
-class DR_Def(object):
+class DR_Def(OrderedDict):
     """
     Data recovery definitions.
+
+    This is an OrderedDict that defines how data recovery will be
+    done. The entries are created through repeated calls to member
+    function :func:`add` (typically from a "prepare_4_cla.py"
+    script). See the notes section below for an example showing what
+    is in this dict.
 
     Attributes
     ----------
@@ -662,26 +668,20 @@ class DR_Def(object):
         Dictionary with any desired defaults for the parameters
         listed in :func:`add`. If None, it is initialized to an
         empty dictionary.
-    dr_def : dict
-        This is a dictionary that defines how data recovery will be
-        done. This is created through calls to member function
-        :func:`add` (typically from a "prepare_4_cla.py" script). See
-        the notes section below for an example showing what is in this
-        dict.
     ncats : integer
         The number of data recovery categories defined.
 
     Notes
     -----
-    Rather than try to describe the `dr_def` dictionary, we'll use
+    Rather than try to describe this dictionary, we'll use
     :func:`pyyeti.pp.PP` to display sections of it for an example
     mission:
 
-    PP(claparams['drdefs'].dr_def):
+    PP(drdefs):
 
     .. code-block:: none
 
-        <class 'dict'>[n=9]
+        <class 'cla.DR_Def'>[n=9]
             'SC_atm'    : <class 'types.SimpleNamespace'>[n=20]
             'SC_dtm'    : <class 'types.SimpleNamespace'>[n=20]
             'SC_ifl'    : <class 'types.SimpleNamespace'>[n=20]
@@ -692,7 +692,7 @@ class DR_Def(object):
             'SC_ifa_0rb': <class 'types.SimpleNamespace'>[n=20]
             '_vars'     : <class 'types.SimpleNamespace'>[n=2]
 
-    PP(claparams['drdefs'].dr_def['SC_ifa']):
+    PP(drdefs['SC_ifa']):
 
     .. code-block:: none
 
@@ -720,7 +720,7 @@ class DR_Def(object):
             .uf_reds   : [n=4]: (1, 1, 1.25, 1)
             .units     : 'G, rad/sec^2'
 
-    PP(claparams['drdefs'].dr_def['_vars'], 3):
+    PP(drdefs['_vars'], 3):
 
     .. code-block:: none
 
@@ -773,10 +773,17 @@ class DR_Def(object):
             Sets the `defaults` attribute; see :class:`DR_Def`.
         """
         self.defaults = {} if defaults is None else defaults
-        self.dr_def = {}
-        self.dr_def['_vars'] = SimpleNamespace(drms={}, nondrms={})
+        self['_vars'] = SimpleNamespace(drms={}, nondrms={})
         self._drfilemap = {}
         return
+
+    def __repr__(self):
+        return object.__repr__(self)
+
+    def __str__(self):
+        cats = ', '.join("'{}'".format(name) for name in self)
+        return ('{} with {} categories: [{}]'
+                .format(type(self).__name__, len(self), cats))
 
     # add drms and nondrms to self.dr_def:
     def _add_vars(self, name, drms, nondrms):
@@ -794,8 +801,8 @@ class DR_Def(object):
                 else:
                     d1[key] = d2[key]
 
-        _vars = self.dr_def['_vars']
-        se = self.dr_def[name].se
+        _vars = self['_vars']
+        se = self[name].se
         for curdrms, newdrms in zip((_vars.drms, _vars.nondrms),
                                     (drms, nondrms)):
             if se not in curdrms:
@@ -833,7 +840,7 @@ class DR_Def(object):
     def _handle_defaults(self, name):
         """Handle default values and take default actions"""
         # first, the defaults:
-        ns = self.dr_def[name]
+        ns = self[name]
         if ns.drfile is None:
             # this is set to defaults only if it is in defaults,
             # otherwise, leave it None
@@ -1128,7 +1135,6 @@ class DR_Def(object):
         Returns
         -------
         None
-            Updates the attribute `dr_def` (see :class:`DR_Def`).
 
         Notes
         -----
@@ -1232,7 +1238,7 @@ class DR_Def(object):
         dr_def_args = {i: values[i] for i in args
                        if i not in ('self', 'name', 'drms',
                                     'nondrms', 'kwargs')}
-        if name in self.dr_def:
+        if name in self:
             raise ValueError('data recovery for "{}" already defined'
                              .format(name))
 
@@ -1249,12 +1255,12 @@ class DR_Def(object):
                              'names: {}'.format(overlapping_names))
 
         # define dr_def[name] entry:
-        self.dr_def[name] = SimpleNamespace(**dr_def_args)
+        self[name] = SimpleNamespace(**dr_def_args)
 
         # hand defaults and default actions:
         self._handle_defaults(name)
 
-        # add drms and nondrms to self.dr_def:
+        # add drms and nondrms to self:
         self._add_vars(name, drms, nondrms)
 
         # increment static variable ncats for error checking:
@@ -1319,12 +1325,12 @@ class DR_Def(object):
             categories = [categories]
 
         for name in categories:
-            if name not in self.dr_def:
+            if name not in self:
                 raise ValueError('{} not found in `dr_def`'
                                  .format(name))
 
         for key in kwargs:
-            if key not in self.dr_def[categories[0]].__dict__:
+            if key not in self[categories[0]].__dict__:
                 raise ValueError('{} not found in `dr_def["{}"]`'
                                  .format(key, categories[0]))
 
@@ -1333,11 +1339,11 @@ class DR_Def(object):
                 new_name = name + name_addon
             else:
                 new_name = name_addon[i]
-            if new_name in self.dr_def:
+            if new_name in self:
                 raise ValueError('"{}" category already defined'
                                  .format(new_name))
-            self.dr_def[new_name] = copy.copy(self.dr_def[name])
-            cat = self.dr_def[new_name]
+            self[new_name] = copy.copy(self[name])
+            cat = self[new_name]
             for key, value in kwargs.items():
                 cat.__dict__[key] = value
 
@@ -1368,12 +1374,12 @@ class DR_Def(object):
         would add 'SC_ifa_0rb' and 'SC_atm_0rb' categories with the
         first element in `uf_reds` set to 0.
         """
-        if args[0] not in self.dr_def:
+        if args[0] not in self:
             raise ValueError('{} not found in `dr_def`'
                              .format(args[0]))
-        r, e, d, s = self.dr_def[args[0]].uf_reds
+        r, e, d, s = self[args[0]].uf_reds
         new_uf_reds = 0, e, d, s
-        desc = self.dr_def[args[0]].desc + ' w/o RB'
+        desc = self[args[0]].desc + ' w/o RB'
         self.copycat(args, '_0rb', uf_reds=new_uf_reds, desc=desc)
 
     def excel_summary(self, excel_file='dr_summary.xlsx'):
@@ -1394,11 +1400,11 @@ class DR_Def(object):
             The columns are the categores (eg: 'SC_atm', 'SC_ltm',
             etc).
         """
-        cats = sorted([i for i in self.dr_def
+        cats = sorted([i for i in self
                        if not i.startswith('_')])
         if len(cats) == 0:
             raise RuntimeError('add data recovery categories first')
-        vals = sorted(self.dr_def[cats[0]].__dict__)
+        vals = sorted(self[cats[0]].__dict__)
         df = pd.DataFrame(index=vals, columns=cats)
 
         def _issame(old, new):
@@ -1416,12 +1422,12 @@ class DR_Def(object):
         # fill in DataFrame, use `fill_char` for "same as previous"
         for i, cat in enumerate(cats):
             for val in vals:
-                new = self.dr_def[cat].__dict__[val]
+                new = self[cat].__dict__[val]
                 s = None
                 if i > 0:
-                    old = self.dr_def[cats[i-1]].__dict__[val]
+                    old = self[cats[i-1]].__dict__[val]
                     if _issame(old, new):
-                        self.dr_def[cat].__dict__[val] = old
+                        self[cat].__dict__[val] = old
                         s = fill_char
                 if s is None:
                     s = str(new)
@@ -1599,7 +1605,7 @@ class DR_Event(object):
         """
         if drdefs is None:
             return
-        dr_def = drdefs.dr_def
+        dr_def = drdefs
         for name in dr_def:
             if name == '_vars':
                 continue
