@@ -3373,10 +3373,18 @@ class SolveUnc(_BaseODE):
         return pc
 
     def _get_complex_su_coefs(self, pc, lam, h):
-        msg = ('Found {} rigid-body modes in elastic solver section.'
-               ' If there are no previous warnings about singular '
-               'matrices or repeated roots, solution is probably '
-               'valid, but check it before trusting it.')
+        msg = (
+            '{} [complex eigenvalue solver]: found {{}} rigid-body'
+            'modes in elastic modes partition. This is probably an'
+            'error: the rigid-body modes should be partitioned out'
+            'before now.\n o This can happen if the equations are not'
+            'in modal space; if so, use the "pre_eig=True" option.\n o'
+            'Otherwise, check for other warnings about singular'
+            'matrices or repeated roots. If no such messages, solution'
+            'may be valid, but check it before trusting it.'
+            .format(type(self).__name__)
+        )
+
         # form coefficients for piece-wise exact solution:
         Fe = np.exp(lam*h)
         ilam = 1/lam

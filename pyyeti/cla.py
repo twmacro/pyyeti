@@ -2814,8 +2814,9 @@ class DR_Results(OrderedDict):
             The `.cases` attribute is set to the input `cases` and the
             `.event` attribute is set to the input `ext_name`.
 
-            The `.drminfo` is a copy and `.mission` is a reference to
-            the ones in `oldcat`.
+            `.drminfo` is a copy of the one in `oldcat`.
+
+            `.mission` is a reference to the one in `oldcat`.
 
             The `.ext`, `.exttime`, `.maxcase`, `.mincase` attributes
             are all set to None.
@@ -4784,8 +4785,10 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                   prtbads=prtbads, flagbads=flagbads,
                   maxhdr=maxhdr, minhdr=minhdr, absmhdr=absmhdr,
                   pdhdr=pdhdr)
-    mx1 = np.nanmax(abs(mxmn1), axis=1)
-    mx2 = np.nanmax(abs(mxmn2), axis=1)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', r'All-NaN (slice|axis) encountered')
+        mx1 = np.nanmax(abs(mxmn1), axis=1)
+        mx2 = np.nanmax(abs(mxmn2), axis=1)
     if not doabsmax:
         max1, min1 = mxmn1[:, 0], mxmn1[:, 1]
         max2, min2 = mxmn2[:, 0], mxmn2[:, 1]
