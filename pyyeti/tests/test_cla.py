@@ -173,6 +173,7 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
     # recovery definitions (but skip the excel file for this
     # demo)
     df = drdefs.excel_summary(None)
+
     # prepare results data structure:
     DR = cla.DR_Event()
     DR.add(None, drdefs)

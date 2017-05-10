@@ -785,7 +785,7 @@ class DR_Def(OrderedDict):
         return ('{} with {} categories: [{}]'
                 .format(type(self).__name__, len(self), cats))
 
-    # add drms and nondrms to self.dr_def:
+    # add drms and nondrms to self:
     def _add_vars(self, name, drms, nondrms):
         def _add_drms(d1, d2):
             for key in d2:
@@ -1254,7 +1254,7 @@ class DR_Def(OrderedDict):
             raise ValueError('`drms` and `nondrms` have overlapping '
                              'names: {}'.format(overlapping_names))
 
-        # define dr_def[name] entry:
+        # define self[name] entry:
         self[name] = SimpleNamespace(**dr_def_args)
 
         # hand defaults and default actions:
@@ -1284,7 +1284,7 @@ class DR_Def(OrderedDict):
         Returns
         -------
         None
-            Updates the member `dr_def`.
+            Adds a data recovery category.
 
         Notes
         -----
@@ -1326,12 +1326,12 @@ class DR_Def(OrderedDict):
 
         for name in categories:
             if name not in self:
-                raise ValueError('{} not found in `dr_def`'
+                raise ValueError('{} not found'
                                  .format(name))
 
         for key in kwargs:
             if key not in self[categories[0]].__dict__:
-                raise ValueError('{} not found in `dr_def["{}"]`'
+                raise ValueError('{} not found in `self["{}"]`'
                                  .format(key, categories[0]))
 
         for i, name in enumerate(categories):
@@ -1375,7 +1375,7 @@ class DR_Def(OrderedDict):
         first element in `uf_reds` set to 0.
         """
         if args[0] not in self:
-            raise ValueError('{} not found in `dr_def`'
+            raise ValueError('{} not found'
                              .format(args[0]))
         r, e, d, s = self[args[0]].uf_reds
         new_uf_reds = 0, e, d, s
@@ -1554,7 +1554,6 @@ class DR_Event(object):
     ``dr_def['_vars'].nondrms`` entry. The SE 0 matrix 'Tnode4' could
     come from either the `.drms` or `.nondrms` entry.
     """
-
     def __init__(self):
         """
         Initializes the attributes `Info`, `UF_reds`, and `Vars` to
@@ -1605,8 +1604,7 @@ class DR_Event(object):
         """
         if drdefs is None:
             return
-        dr_def = drdefs
-        for name in dr_def:
+        for name in drdefs:
             if name == '_vars':
                 continue
             if name in self.Info:
@@ -1614,7 +1612,7 @@ class DR_Event(object):
                                  ' defined'.format(name))
 
             # variables for how to do data recovery:
-            self.Info[name] = copy.copy(dr_def[name])
+            self.Info[name] = copy.copy(drdefs[name])
 
             # reset uf_reds if input:
             if uf_reds is not None:
@@ -1631,7 +1629,7 @@ class DR_Event(object):
 
         se_last = -2
         # apply ULVS to all drms and put in DR:
-        for se, dct in dr_def['_vars'].drms.items():
+        for se, dct in drdefs['_vars'].drms.items():
             if not dct:
                 continue
             if se not in self.Vars:
@@ -1666,7 +1664,7 @@ class DR_Event(object):
                     self.Vars[se][name] = mat @ ulvs[bset]
 
         # put all nondrms in DR:
-        for se, dct in dr_def['_vars'].nondrms.items():
+        for se, dct in drdefs['_vars'].nondrms.items():
             if se not in self.Vars:
                 self.Vars[se] = {}
             for name, mat in dct.items():

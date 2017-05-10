@@ -1,4 +1,5 @@
 ` -  pyyeti.rst -> list to table?
+
 -  Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
 
 1. Update duf explanation in cla.apply_uf
@@ -8,7 +9,7 @@
 
 - cla.py:
     DR_Results() … should this be able to init? I think so:
-                   DR_Results(drdefs.dr_def, mission, event)
+                   DR_Results(drdefs, mission, event)
                    … similar to DR.prepare_results(mission, event)
                    … and/or, what about a DR_Def.prepare_results()
     ß actually, replace DR_Event.prepare_results() I think!!
@@ -19,6 +20,11 @@
       drdefs vs. Info vs. drminfo
          - Could they all be DR_Def instances??
 
+         - Info can be a DR_Def instance  ... but each drminfo is just
+           a SimpleNamespace: a "value" in the DR_Def (or Info) dict
+
+    - think about getting rid of DR_Event altogether ... just update
+      a new DR_Def with all drdefs/dufs/ulvs's ... will this work?
 
     Be sure to update doctest for add_maxmin
 
@@ -28,6 +34,8 @@
     ~ Hmm … what about "class DR_Event(dict)"?
                    Nah, this one seems okay as is
 
+    Update the code to better handle NaNs.
+      - got a couple different methods going right now ... ??
 
 
     1 resp_plots pdf filename
