@@ -288,10 +288,12 @@ class OP4(object):
     @staticmethod
     def _check_name(name):
         """
-        Check name read from op4 file and put '_' on front if needed.
+        Check name read from op4 file: strip trailing blanks/nulls and put
+        '_' on front if needed.
 
         Returns new name (usually the same as the input name).
         """
+        name = name.strip(' \x00').lower()
         if not (name[0].isalpha() or name[0] == '_'):
             oldname, name = name, '_'+name
             warnings.warn('Output4 file has matrix name: {}. '
@@ -565,11 +567,7 @@ class OP4(object):
             form = int(line[16:24])
             mtype = int(line[24:32])
             length = len(line)
-            if length > 40:
-                name = line[32:40].strip().lower()
-            else:
-                name = line[32:].strip().lower()
-            name = self._check_name(name)
+            name = self._check_name(line[32:40])
             perline = 5
             numlen = 16
             if length > 44:
@@ -814,7 +812,7 @@ class OP4(object):
                 name = fp.read(16).decode()
             else:
                 name = fp.read(8).decode()
-            name = self._check_name(name.lower().strip())
+            name = self._check_name(name)
             fp.read(4)
             if patternlist and name not in patternlist:
                 skip = 1

@@ -14,7 +14,7 @@ import inspect
 from collections import abc, OrderedDict
 from io import StringIO
 from types import SimpleNamespace
-from warnings import warn
+import warnings
 import numpy as np
 import scipy.linalg as la
 import matplotlib.pyplot as plt
@@ -795,7 +795,7 @@ class DR_Def(OrderedDict):
                            'defined data recovery matrix'
                            .format(key))
                     if d1[key] is d2[key]:
-                        warn(msg, RuntimeWarning)
+                        warnings.warn(msg, RuntimeWarning)
                     else:
                         raise ValueError('A different '+msg)
                 else:
@@ -827,13 +827,13 @@ class DR_Def(OrderedDict):
             s0, s1 = _get_msg()
             msg = ('{} import of "{}" failed. {}'
                    .format(s0, modfile, s1))
-            warn(msg, RuntimeWarning)
+            warnings.warn(msg, RuntimeWarning)
         else:
             if funcname not in dir(drmod):
                 s0, s1 = _get_msg()
                 msg = ('{} "{}" not found in: {}. {}'
                        .format(s0, funcname, filename, s1))
-                warn(msg, RuntimeWarning)
+                warnings.warn(msg, RuntimeWarning)
         finally:
             sys.path.pop(0)
 
@@ -1823,7 +1823,7 @@ class DR_Event(object):
                 if not use_velo:  # pragma: no cover
                     msg = ('not including velocity term in mode-'
                            'acceleration formulation for displacements.')
-                    warn(msg, RuntimeWarning)
+                    warnings.warn(msg, RuntimeWarning)
                 else:
                     if b.ndim == 1:
                         avterm += b[nrb:, None] * SOL.v[nrb:]
@@ -1898,17 +1898,12 @@ class DR_Event(object):
             ruf, euf, duf, suf = item
             solout[item] = copy.deepcopy(sol)
             SOL = solout[item]
-            # if nrb > 0:
             SOL.a[:nrb] *= (ruf*suf)
             SOL.v[:nrb] *= (ruf*suf)
             SOL.d[:nrb] *= (ruf*suf)
             SOL.a[nrb:] *= (euf*duf)
             SOL.v[nrb:] *= (euf*duf)
             SOL.d[nrb:] *= (euf*duf)
-            # else:
-            #     SOL.a *= (euf*duf)
-            #     SOL.v *= (euf*duf)
-            #     SOL.d *= (euf*duf)
             if 'pg' in SOL.__dict__:
                 SOL.pg *= suf
         return solout
@@ -3306,9 +3301,10 @@ class DR_Results(OrderedDict):
                 rptpct1(res, refres[refdrm], filename, title=title,
                         names=names, **rptpct1_args)
         if len(skipdrms) > 0:
-            warn('Some comparisons were skipped (not found in'
-                 ' `refres`):\n{}'
-                 .format(str(skipdrms)), RuntimeWarning)
+            warnings.warn(
+                'Some comparisons were skipped (not found in'
+                ' `refres`):\n{}'
+                .format(str(skipdrms)), RuntimeWarning)
 
     def srs_plots(self, event=None, Q='auto', drms=None,
                   inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
@@ -4971,8 +4967,8 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                 if q in srsQs:
                     Qs.append(q)
                 else:
-                    warn('no Q={} SRS data for {}'.
-                         format(q, name), RuntimeWarning)
+                    warnings.warn('no Q={} SRS data for {}'.
+                                  format(q, name), RuntimeWarning)
             if len(Qs) == 0:
                 return None
         Qs = _ensure_iter(Qs)
@@ -5213,8 +5209,9 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             if issrs:
                 if 'srs' not in res[name].__dict__:
                     if drms and name in drms:
-                        warn('no SRS data for {}'.format(name),
-                             RuntimeWarning)
+                        warnings.warn(
+                            'no SRS data for {}'.format(name),
+                            RuntimeWarning)
                     continue
                 Qs = _get_Qs(Q, res[name].drminfo.srsQs,
                              showall, name)
@@ -5242,8 +5239,8 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     ylab = 'FRF'
                 else:
                     if drms and name in drms:
-                        warn('no response data for {}'.
-                             format(name), RuntimeWarning)
+                        warnings.warn('no response data for {}'.
+                                      format(name), RuntimeWarning)
                     continue
 
             (labels, rowpv, maxlen,

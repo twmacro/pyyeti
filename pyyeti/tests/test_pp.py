@@ -110,3 +110,13 @@ def test_unsortable_dict():
                 '    (1, 2) : [n=2]: (1, 2)',
                 ''])
     assert o == sbe[0] or o == sbe[1]
+
+
+def test_nullchar_in_key():
+    o = PP({'a\x00':1, 'b': 2}).output.split('\n')
+    sbe = ["<class 'dict'>[n=2]",
+           "    'a\x00': 1",
+           "    'b' : 2",
+           '']
+    assert o == sbe
+

@@ -267,5 +267,8 @@ class PP(object):
         Pretty print variable `var`. See :class:`PP`.
         """
         s = self._print_var(var, 0)
+        self.s = s
         self.output = ''.join(s)
-        print(self.output)
+        #print(self.output)
+        for line in self.output.split('\n'):
+            print(repr(line)[1:-1])

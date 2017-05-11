@@ -2183,7 +2183,7 @@ def test_ode_complex_coefficients_dups():
     assert 0 == wrn0.find('Repeated roots detected')
     found = False
     for w in cm.warnings[1:]:
-        if str(w.message).find('Found 2 rigid-body modes') > -1:
+        if str(w.message).find('found 2 rigid-body modes') > -1:
             found = True
     assert found
 
