@@ -321,11 +321,9 @@ def get_drfunc(drinfo, get_psd=False):
                                                   drinfo.drfile)
     drmod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(drmod)
-    # func = eval('drmod.' + drinfo.drfunc)
     func = getattr(drmod, drinfo.drfunc)
     if get_psd:
         try:
-            # psdfunc = eval('drmod.' + drinfo.drfunc + '_psd')
             psdfunc = getattr(drmod, drinfo.drfunc + '_psd')
         except AttributeError:
             psdfunc = None
@@ -1485,19 +1483,19 @@ class DR_Event(object):
     ----------
     Info : dict
         Contains data recovery information for each category. The
-        category names are the keys. This is a copy of the `dr_def`
-        attribute created during data recovery setup; eg, in a
-        "prepare_4_cla.py" script. See description of `dr_def` in
-        :class:`DR_Def` and the example below. The copy is made during
-        the call to :func:`DR_Event.add` and new values for the
-        `uf_reds` option can be set during that call.
+        category names are the keys. This is a copy of information in
+        one or more `DR_Def` instances created during data recovery
+        setup; eg, in a "prepare_4_cla.py" script. See :class:`DR_Def`
+        and the example below. The copy is made during the call to
+        :func:`DR_Event.add` and new values for the `uf_reds` option
+        can be set during that call.
     UF_reds : list
         List of all unique 4-element uncertainty factor tuples. See
         :func:`DR_Def.add` for more information.
     Vars : dict
         Contains the data recovery matrices and possibly other data
         needed for data recovery. This is derived from the
-        ``dr_def['_vars']`` dict and the current system modes. See the
+        ``DR_Def['_vars']`` dict and the current system modes. See the
         notes section below for an example showing what is in this
         dict.
 
@@ -1550,8 +1548,8 @@ class DR_Event(object):
     In that example, all the ``DR.Vars`` variables except 'Tnode4'
     have been multiplied by the appropriate ULVS matrix in the call to
     :func:`add`. That is, the SE 100 and 500 matrices all came from
-    the ``dr_def['_vars'].drms`` entry and none came from the
-    ``dr_def['_vars'].nondrms`` entry. The SE 0 matrix 'Tnode4' could
+    the ``DR_Def['_vars'].drms`` entry and none came from the
+    ``DR_Def['_vars'].nondrms`` entry. The SE 0 matrix 'Tnode4' could
     come from either the `.drms` or `.nondrms` entry.
     """
     def __init__(self):
@@ -1577,7 +1575,7 @@ class DR_Event(object):
             one category in `drdefs` is for an upstream superelement
             (se != 0) and has a data recovery matrix. Can be anything
             (like None) if not needed.
-        drdefs : DR_Def instance or None
+        drdefs : :class:`DR_Def` instance or None
             Contains the data recovery definitions for, typically, one
             superelement. See :class:`DR_Def`. If None, this routine
             does nothing.
@@ -2074,12 +2072,13 @@ class DR_Results(OrderedDict):
 
         Parameters
         ----------
-        Info : dict
+        Info : dict or :class:`DR_Def` instance
             Contains data recovery information for each category. The
             category names are the keys. Either the `Info` attribute
-            of :class:`DR_Event` or the `dr_def` attribute of
-            :class:`DR_Def`. (`Info` is a copy of `dr_def` with the
-            possibly different `uf_reds` values.)
+            of :class:`DR_Event` or a :class:`DR_Def` instance.
+            (`Info` is a copy of the information in one or more
+            `DR_Def` instances with the possibly different `uf_reds`
+            values.)
         mission : str
             Identifies the CLA
         event : str
@@ -4780,7 +4779,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                   maxhdr=maxhdr, minhdr=minhdr, absmhdr=absmhdr,
                   pdhdr=pdhdr)
     with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', r'All-NaN (slice|axis) encountered')
+        warnings.filterwarnings(
+            'ignore', r'All-NaN (slice|axis) encountered')
         mx1 = np.nanmax(abs(mxmn1), axis=1)
         mx2 = np.nanmax(abs(mxmn2), axis=1)
     if not doabsmax:

@@ -72,3 +72,62 @@
     coordinates to get positions in space.
 
     5.  Tell matplotlib to animate those positions so we can see it.
+
+
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:4782: RuntimeWarning: All-NaN slice encountered                                                                                                                                                   
+
+  mx2 = np.nanmax(abs(mxmn2), axis=1)                                                                                                                 
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:4493: RuntimeWarning: invalid value encountered in greater                                                                                                                                       
+
+  pv &= (abs(a) > filt) | (abs(b) > filt)
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:4496: RuntimeWarning: All-NaN slice encountered
+
+  denom = np.nanmax(abs(mxmn_b), axis=1)
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:4512: RuntimeWarning: invalid value encountered in less
+
+  neg = a < b if ismax else a > b
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:4480: RuntimeWarning: invalid value encountered in greater
+
+  badpv &= abs(pct) > bad
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:4512: RuntimeWarning: invalid value encountered in greater
+
+  neg = a < b if ismax else a > b
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:104: RuntimeWarning: invalid value encountered in less
+
+  neg = a < b if ismax else a > b
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:124: RuntimeWarning: invalid value encountered in less_equal
+
+  for pv, c in [(apd <= 5, 'b'),
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:125: RuntimeWarning: invalid value encountered in greater
+
+  ((apd > 5) & (apd <= 10), 'm'),
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:125: RuntimeWarning: invalid value encountered in less_equal
+
+  ((apd > 5) & (apd <= 10), 'm'),
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:126: RuntimeWarning: invalid value encountered in greater
+
+  (apd > 10, 'r')]:
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:104: RuntimeWarning: invalid value encountered in greater
+
+  neg = a < b if ismax else a > b
+
+/home/loads/twidrick/.python/lib/python3.6/site-packages/pyyeti-0.90.2-py3.6-linux-x86_64.egg/pyyeti/cla.py:3306: RuntimeWarning: Some comparisons were skipped (not found in `refres`):
+
+['SC_dtm_ma', 'tsp_0rb']
+
+  .format(str(skipdrms)), RuntimeWarning)
+
+ 
+
