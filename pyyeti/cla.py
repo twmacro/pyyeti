@@ -650,6 +650,12 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         _put_time(curext, mm, j, 1, 1)
 
 
+def _merge_uf_reds(new, old):
+    merged = (i if i is not None else j
+              for i, j in zip(new, old))
+    return tuple(merged)
+
+
 class DR_Def(OrderedDict):
     """
     Data recovery definitions.
@@ -849,10 +855,16 @@ class DR_Def(OrderedDict):
             ns.drfunc = name
 
         if ns.se is None:
-            ns.se = self.defaults
+            if 'se' in self.defaults:
+                ns.se = self.defaults
+            else:
+                ns.se = 0
 
         if ns.uf_reds is None:
-            ns.uf_reds = self.defaults
+            if 'uf_reds' in self.defaults:
+                ns.uf_reds = self.defaults
+            else:
+                ns.uf_reds = (1, 1, 1, 1)
 
         if ns.srsQs is None:
             for k, v in ns.__dict__.items():
@@ -872,6 +884,9 @@ class DR_Def(OrderedDict):
                     msg = ('{} set to `defaults` but is not found in'
                            ' `defaults`!'.format(key))
                     raise ValueError(msg)
+
+        # ensure uf_reds has no None values:
+        ns.uf_reds = _merge_uf_reds(ns.uf_reds, (1, 1, 1, 1))
 
         if ns.drfile == '.':
             ns.drfile = None
@@ -1041,7 +1056,8 @@ class DR_Def(OrderedDict):
         se : integer or None; optional
             The superelement number.
 
-            DA: get value from `self.defaults`.
+            DA: get value from `self.defaults` if present; otherwise
+            set to 0.
         desc : string or None; optional
             One line description of category; eg:
             ``desc = 'S/C Internal Accelerations'``.
@@ -1058,7 +1074,10 @@ class DR_Def(OrderedDict):
                 (1, 1, 0, 1)     - Recover static part only
                 (1, 1, 1, 0)     - Recover dynamic part only
 
-            DA: get value from `self.defaults`.
+            DA: get value from `self.defaults` if present; otherwise
+            set to (1, 1, 1, 1). Also, any of the four entries in the
+            tuple can be None; these get reset to the corresponding
+            entry from the `self.defaults` or, if that's None too, 1.
         filterval : scalar or 1d array_like; optional
             Response values smaller than `filterval` will be skipped
             during comparison to another set of results. If 1d
@@ -1276,8 +1295,10 @@ class DR_Def(OrderedDict):
             If string, it will be appended to all category names to
             make the new names. If list, contains the new names with
             no regard to old names.
-        **kwargs :
-            Any options to modify. See :func:`add` for complete list.
+        **kwargs : misc
+            Any options to modify. See :func:`add` for complete
+            list. For `uf_reds`, set any of the four values to None to
+            keep the original value.
 
         Returns
         -------
@@ -1294,7 +1315,7 @@ class DR_Def(OrderedDict):
         category; for example::
 
             drdefs.copycat(['SC_ifa', 'SC_atm'], '_0rb',
-                             uf_reds=(0, 1, 1.25, 1))
+                             uf_reds=(0, None, None, None))
 
         would add 'SC_ifa_0rb' and 'SC_atm_0rb' copy categories
         without the rigid-body component. (Note that, as a
@@ -1304,15 +1325,15 @@ class DR_Def(OrderedDict):
         in "static" and "dynamic" pieces::
 
             drdefs.copycat('SC_cg', '_static',
-                             uf_reds=(1, 1, 0, 1))
+                             uf_reds=(None, None 0, None))
             drdefs.copycat('SC_cg', '_dynamic',
-                             uf_reds=(1, 1, 1.25, 0))
+                             uf_reds=(None, None, None, 0))
 
         As a final example to show the alternate use of `name_addon`,
         here is an equivalent call for the static example::
 
             drdefs.copycat('SC_cg', ['SC_cg_static'],
-                             uf_reds=(1, 1, 0, 1))
+                             uf_reds=(None, None, 0, None))
 
         Raises
         ------
@@ -1343,7 +1364,11 @@ class DR_Def(OrderedDict):
             self[new_name] = copy.copy(self[name])
             cat = self[new_name]
             for key, value in kwargs.items():
-                cat.__dict__[key] = value
+                if key == 'uf_reds':
+                    cat.__dict__[key] = _merge_uf_reds(
+                        value, self[name].uf_reds)
+                else:
+                    cat.__dict__[key] = value
 
     def add_0rb(self, *args):
         """
@@ -1359,11 +1384,11 @@ class DR_Def(OrderedDict):
         This is a convenience function that uses :func:`copycat` to do
         the work::
 
-            copycat(args, '_0rb', uf_reds=(0, e, d, s),
+            copycat(args, '_0rb', uf_reds=(0, None, None, None),
                     desc=desc+' w/o RB')
 
-        where `e`, `d`, `s` and `desc` are the current values. See
-        :func:`copycat` for more information.
+        where `desc` is the current value. See :func:`copycat` for
+        more information.
 
         For example::
 
@@ -1375,10 +1400,14 @@ class DR_Def(OrderedDict):
         if args[0] not in self:
             raise ValueError('{} not found'
                              .format(args[0]))
-        r, e, d, s = self[args[0]].uf_reds
-        new_uf_reds = 0, e, d, s
         desc = self[args[0]].desc + ' w/o RB'
-        self.copycat(args, '_0rb', uf_reds=new_uf_reds, desc=desc)
+        self.copycat(args, '_0rb', uf_reds=(0, None, None, None),
+                     desc=desc)
+
+        # r, e, d, s = self[args[0]].uf_reds
+        # new_uf_reds = 0, e, d, s
+        # desc = self[args[0]].desc + ' w/o RB'
+        # self.copycat(args, '_0rb', uf_reds=new_uf_reds, desc=desc)
 
     def excel_summary(self, excel_file='dr_summary.xlsx'):
         """
@@ -1583,7 +1612,7 @@ class DR_Event(object):
             If not None, this is the uncertainty factors in "reds"
             order: [rigid, elastic, dynamic, static]. In that case,
             this entry overrides any `uf_reds` settings already
-            defined in `drdefs`. Set any of the four value to None to
+            defined in `drdefs`. Set any of the four values to None to
             keep the original value (often used for "rigid" since that
             is typically either 0 or 1). This `uf_reds` option can be
             useful when uncertainty factors are event specific rather
@@ -1614,10 +1643,8 @@ class DR_Event(object):
 
             # reset uf_reds if input:
             if uf_reds is not None:
-                old_uf_reds = self.Info[name].uf_reds
-                new_uf_reds = (i if i is not None else j
-                               for i, j in zip(uf_reds, old_uf_reds))
-                self.Info[name].uf_reds = tuple(new_uf_reds)
+                self.Info[name].uf_reds = _merge_uf_reds(
+                    uf_reds, self.Info[name].uf_reds)
 
             # collect all sets of uncertainty factors together for the
             # apply_uf routine later:

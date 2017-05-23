@@ -49,6 +49,10 @@
 
     6 y-axis label written far away in srs3/net_ifatm_0rb_eqsine_all.pdf plot ... why?
 
+doc:
+..   .. autoclass:: DR_Results
+..      :no-inherited-members:
+   
 
 - CB animation:
     We could animate the nodes included in the ATM for a particular mode with Python:

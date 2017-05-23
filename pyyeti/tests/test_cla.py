@@ -1025,8 +1025,8 @@ def test_addcat():
     assert_raises(RuntimeError, cla.DR_Def.addcat, _)
 
     defaults = dict(
-        se = 0,
-        uf_reds = (1, 1, 1, 1),
+        # se = 0,
+        uf_reds = (1, None, 1, None),
         drfile = '.',
         srsQs = 10,
         )
@@ -1039,6 +1039,9 @@ def test_addcat():
         labels = 12
         drms = {'drm': drm}
         drdefs.add(**locals())
+
+    assert drdefs['ATM'].se == 0
+    assert np.allclose(drdefs['ATM'].uf_reds, (1, 1, 1, 1))
 
     import sys
     for v in list(sys.modules.values()):
@@ -1189,6 +1192,11 @@ def test_addcat():
 
     assert drdefs['ATM_2'].labels == drdefs['ATM'].labels
 
+    drdefs.copycat('ATM', ['ATM_3'],
+                   uf_reds=(0, None, None, None))
+
+    assert np.allclose(drdefs['ATM_3'].uf_reds, (0, 1, 1, 1))
+
     # atm_2 already exists:
     assert_raises(ValueError, drdefs.copycat, 'ATM', '_2')
 
@@ -1204,6 +1212,7 @@ def test_addcat_2():
         srsQs = 10,
         )
     drdefs = cla.DR_Def(defaults)
+    # error because there no categories
     assert_raises(RuntimeError, drdefs.excel_summary, None)
 
 

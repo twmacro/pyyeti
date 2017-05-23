@@ -59,6 +59,10 @@ highlight_language = "python3"
 
 # Autosummary setting:
 autosummary_generate = True
+# autodoc_default_flags = ['no-inherited-members']
+# autodoc_default_flags = ['members', 'undoc-members',
+#                          'show-inheritance', 'inherited-members']
+numpydoc_show_inherited_class_members = False
 
 # Napoleon settings
 napoleon_google_docstring = True
