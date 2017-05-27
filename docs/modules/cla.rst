@@ -7,7 +7,7 @@ Tools for coupled loads analysis (cla)
 Class for defining data recovery categories
 -------------------------------------------
 .. autosummary::
-    :toctree: generated/
+    :toctree: edited/
 
     DR_Def
     DR_Def.add
@@ -30,7 +30,7 @@ Class for getting data recovery ready for running a specific event
 Class for storing and working with CLA results
 ----------------------------------------------
 .. autosummary::
-    :toctree: generated/
+    :toctree: edited/
 
     DR_Results
     DR_Results.add_maxmin
