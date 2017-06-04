@@ -787,6 +787,14 @@ def compare(pth):
             lvc, names=('LSP', 'Contractor'),
             direc='absmax_compare', doabsmax=True)
 
+        plt.close('all')
+        results['extreme'].rptpct(
+            lvc, names=('LSP', 'Contractor'),
+            # drms=['alphajoint', 'cglf', 'net_ifatm_0rb',
+            #       'net_ifatm', 'net_ifltm', 'scatm'],
+            drms=['alphajoint'],
+            direc='absmax_compare_2', doabsmax=True)
+
 
 def confirm():
     for (direc, cnt) in (('compare', 3),
@@ -814,6 +822,16 @@ def confirm():
                         else:
                             assert np.all(stats == 0.0)
             assert count == cnt
+
+    cmp_files = glob('summary/absmax_compare_2/*.cmp'.format(direc))
+    assert len(cmp_files) == 1
+    png_files = glob('summary/absmax_compare_2/*.png'.format(direc))
+    assert len(png_files) == 2
+    for n in cmp_files:
+        n0 = n.replace('compare_2/', 'compare/')
+        with open(n) as f, open(n0) as f0:
+            for line, line0 in zip(f, f0):
+                assert line == line0
 
 
 def do_srs_plots():
@@ -895,6 +913,7 @@ def test_transfer_orbit_cla():
             do_srs_plots()
             do_time_plots()
     finally:
+        # pass
         shutil.rmtree('./temp_cla', ignore_errors=True)
 
 

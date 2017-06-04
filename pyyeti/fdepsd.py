@@ -281,7 +281,9 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
     :func:`pyyeti.srs.vrs` to compute the VRS response in the
     absolute-acceleration case). This is to check for conservatism.
     Instead of using 3 for peak factor (for 3-rms or 3-sigma) , use
-    ``sqrt(2*log(f*T0))`` for the peak factor. Also, enveloping
+    ``sqrt(2*log(f*T0))`` for the peak factor. (This peak factor is
+    explained more under the `resp_time` option in
+    :func:`pyyeti.cla.DR_Results.psd_data_recovery`.) Also, enveloping
     multiple specifications from multiple Q's is worth considering.
 
     Note that this analysis can be time consuming; the time is

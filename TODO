@@ -6,7 +6,7 @@
 2. Read dmig matrices
 4. Convert uset to dataframe i think
 5. Convert ext, mx, mn in DR_Results to dataframe
-6. Add option to only compare selected drms in cla.rptpct
+~ 6. Add option to only compare selected drms in cla.rptpct
 
 
 - cla.py:
@@ -40,7 +40,7 @@
       - got a couple different methods going right now ... ??
 
 
-    1 resp_plots pdf filename
+~    1 resp_plots pdf filename -- this is the `onepdf` option i believe
     2 write complete test_cla.py
     3 magpct needs to be able to chop off small numbers
 

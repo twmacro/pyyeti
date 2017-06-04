@@ -2623,7 +2623,7 @@ class DR_Results(OrderedDict):
             print('timers =', timers)
 
     def psd_data_recovery(self, case, DR, n, j, dosrs=True,
-                          peak_factor=3.0):
+                          peak_factor=3.0, resp_time=None):
         """
         PSD data recovery function
 
@@ -2649,12 +2649,23 @@ class DR_Results(OrderedDict):
             If False, do not calculate SRSs; default is to calculate
             them.
         peak_factor : scalar; optional
-            Factor to multiply each RMS by to get a peak value. RMS
-            stands for root-mean-square: the square-root of the area
-            under the PSD curve, and the area is the mean-square
-            value. The default value of 3.0 is often used to get a
-            3-sigma value (for zero mean responses, the RMS
-            value is the same as the standard deviation).
+            Factor to multiply each RMS by to get a peak value. See
+            also `resp_time`. RMS stands for root-mean-square: the
+            square-root of the area under the PSD curve, and the area
+            is the mean-square value. The default value of 3.0 is
+            often used to get a 3-sigma value (for zero mean
+            responses, the RMS value is the same as the standard
+            deviation).
+        resp_time : scalar or None; optional
+            If not None, used to compute frequency-dependent peak
+            factors for SRS from: ``sqrt(2*log(resp_time*f))``. For
+            narrowband random vibrations (like a single DOF response
+            to gaussian input), the peaks follow the Rayleigh
+            distribution. To derive, set the product of the
+            probability of a cycle amplitude being greater than `A`
+            (``exp(-A**2/(2*sigma**2))``) times the count of cycles at
+            `f` Hz (``resp_time*f``) equal to 1.0 cycles. Solving for
+            `A` gives ``A = sigma*sqrt(2*log(resp_time*f))``.
 
         Returns
         -------
@@ -2667,7 +2678,12 @@ class DR_Results(OrderedDict):
 
         Note that the "time" entries (eg, `maxtime`, `exttime`) are
         really the "apparent frequency" values, an estimate for the
-        number of positive slope zero crossings per second.
+        number of positive slope zero crossings per second [#rand1]_.
+
+        References
+        ----------
+        .. [#rand1] Wirsching, Paez, Ortiz, "Random Vibrations: Theory
+                    and Practice", Dover Publications, Inc., 2006.
         """
         def _calc_rms(df, p):
             sumpsd = p[:, :-1] + p[:, 1:]
@@ -2683,9 +2699,11 @@ class DR_Results(OrderedDict):
             rms = _calc_rms(freqstep, psd)
 
             # Need "velocity" rms to estimate number of positive slope
-            # zero crossings (apparent frequency).
-            # `vrms` = (velocity rms)/2/pi ... (2 pi factor would cancel
-            # later, so just leave it out):
+            # zero crossings (apparent frequency (af)).
+            #   af1 = vel_rms/disp_rms                  (rad/sec)
+            #   af = vel_rms/disp_rms * (1/(2 pi))      (Hz)
+            # vel_psd = (2 pi f)**2 * PSD
+            # - note that the 2 pi factor cancels after square root
             vrms = _calc_rms(freqstep, freq**2 * psd)
 
             pk = peak_factor * rms
@@ -2724,14 +2742,20 @@ class DR_Results(OrderedDict):
                 else:
                     res.srs.type = 'srs'
                     eqsine = False
-                #spec = np.hstack((freq[:, None], psd[dr.srspv].T))
+
+                if resp_time is not None:
+                    pf = np.sqrt(2*np.log(resp_time*dr.srsfrq))
+                else:
+                    pf = peak_factor
                 spec = (freq, psd[dr.srspv].T)
                 for q in dr.srsQs:
-                    fact = peak_factor * dr.srsconv
+                    fact = pf * dr.srsconv
                     if eqsine:
                         fact /= q
-                    srs_cur = fact * srs.vrs(spec, dr.srsfrq, q,
-                                             linear=True).T
+                    srs_cur = fact * srs.vrs(
+                        spec, freq, q, Fn=dr.srsfrq, linear=True).T
+                    # srs_cur = fact * srs.vrs(spec, dr.srsfrq, q,
+                    #                          linear=True).T
                     res.srs.srs[q][j] = srs_cur
                     if first:
                         res.srs.ext[q] = srs_cur
@@ -3255,7 +3279,7 @@ class DR_Results(OrderedDict):
                 workbook.close()
 
     def rptpct(self, refres, names=('Self', 'Reference'),
-               event=None, fileext='.cmp', direc='compare',
+               event=None, drms=None, fileext='.cmp', direc='compare',
                keyconv=None, **rptpct1_args):
         """
         Write comparison files for all max/min data in results.
@@ -3287,6 +3311,9 @@ class DR_Results(OrderedDict):
         event : string or None; optional
             String identifying the event; if None, event is taken from
             each ``self[name].event``
+        drms : list of data recovery categories or None; optional
+            Data recovery categories to compare. If None, compare all
+            available.
         fileext : string; optional
             String to attach on to the DRM name for filename creation
         direc : string; optional
@@ -3310,7 +3337,9 @@ class DR_Results(OrderedDict):
         skipdrms = []
         if keyconv is None:
             keyconv = {}
-        for drm in self:
+        if drms is None:
+            drms = self.keys()
+        for drm in drms:
             refdrm = keyconv[drm] if drm in keyconv else drm
             if refdrm not in refres:
                 skipdrms.append(drm)
