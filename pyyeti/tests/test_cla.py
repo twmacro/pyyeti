@@ -596,7 +596,7 @@ def owlab(pth):
                           plot=plt.semilogy)
 
         # for testing:
-        results = DR.prepare_results(sc['mission'], event)
+        results2 = DR.prepare_results(sc['mission'], event)
         verbose = True  # for testing
         for j, ff in enumerate(rnd):
             caseid = '{} {:2d}'.format(event, j+1)
@@ -604,16 +604,26 @@ def owlab(pth):
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T,
                                 axis=1, fill_value=0.0)(freq)
             if j == 0:
-                results.solvepsd(nas, caseid, DR, *mbk, F, T, freq,
+                results2.solvepsd(nas, caseid, DR, *mbk, F, T, freq,
                                  verbose=verbose)
                 verbose = not verbose
                 freq = +freq  # make copy
                 freq[-1] = 49.7  # to cause error on next 'solvepsd'
-                results.psd_data_recovery(caseid, DR, len(rnd), j)
+                results2.psd_data_recovery(caseid, DR, len(rnd), j,
+                                          resp_time=20)
             else:
-                assert_raises(ValueError, results.solvepsd, nas,
+                assert_raises(ValueError, results2.solvepsd, nas,
                               caseid, DR, *mbk, F, T, freq,
                               verbose=verbose)
+
+        # compare srs results using 3.0 peak factor and frequency
+        # dependent peak factor:
+        frq = results['scatm'].srs.frq
+        pf = np.sqrt(2*np.log(frq*20))
+        for Q in results['scatm'].srs.srs:
+            srs1 = results['scatm'].srs.srs[Q][0]  # (cases, dof, frq)
+            srs2 = results2['scatm'].srs.srs[Q][0]
+            assert np.allclose(srs1*pf, srs2*3)
 
 
 def alphajoint(sol, nas, Vars, se):
