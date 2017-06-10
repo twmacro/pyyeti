@@ -32,10 +32,10 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='outside',
          `trim`     Description
         =========   ================================================
         'inside'    All frequencies just inside range:
-                        ``F_lower[0]  >= frange[0]``
+                        ``F_lower[0]  >= frange[0]``;
                         ``F_upper[-1] <= frange[-1]``
         'center'    Center frequencies just inside range:
-                        ``F[0]  >= frange[0]``
+                        ``F[0]  >= frange[0]``;
                         ``F[-1] <= frange[-1]``
         'outside'   First band includes ``frange[0]`` and last band
                     includes ``frange[-1]``
