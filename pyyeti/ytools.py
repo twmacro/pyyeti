@@ -66,6 +66,9 @@ def histogram(data, binsize):
     def _get_next_bin(data, binsize):
         data = np.atleast_1d(data)
         data = data[np.isfinite(data)]
+        if data.size == 0:
+            yield [0, 0]
+            return
         mn = data.min()
         mx = data.max()
         a = int(np.floor(mn/binsize))
@@ -81,9 +84,11 @@ def histogram(data, binsize):
     bins = []
     for b in _get_next_bin(data, binsize):
         bins.append(b)
-    histo = np.empty((len(bins), 3))
+    histo = np.zeros((len(bins), 3))
     histo[:, :2] = bins
-    histo[:, 2] = 100*histo[:, 1]/histo[:, 1].sum()
+    s = histo[:, 1].sum()
+    if s > 0:
+        histo[:, 2] = 100*histo[:, 1]/s
     return histo
 
 

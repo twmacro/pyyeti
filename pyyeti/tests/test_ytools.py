@@ -6,6 +6,17 @@ from nose.tools import *
 import scipy.linalg as linalg
 
 
+def test_histogram():
+    assert np.allclose(
+        ytools.histogram([1, 1, 3, 3, 4], 1),
+        np.array([[  1.,   2.,  40.],
+                  [  3.,   2.,  40.],
+                  [  4.,   1.,  20.]]))
+    assert np.allclose(
+        ytools.histogram([np.inf], 1),
+        np.array([[ 0.,  0.,  0.]]))
+
+
 def test_sturm():
     a = np.array([0., .16, 1.55, 2.78, 9., 14.])
     A = np.diag(a)

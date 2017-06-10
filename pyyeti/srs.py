@@ -1160,14 +1160,13 @@ def vrs(spec, freq, Q, linear, Fn=None,
         ======   =====================================================
          key     value
         ======   =====================================================
-        'f'      frequency vector for responses
-        'psd'    3-D array; shape = ``(len(Fn), n, len(freq))``, where
-                 n is the number of input specifications
+        'f'      frequency vector for responses; same as `freq`
+        'psd'    3-D array; shape = ``(len(Fn), n, len(f))``, where
+                 `n` is the number of input specifications
         ======   =====================================================
 
     Notes
     -----
-
     VRS [#srs6]_ computes the acceleration RMS (root-mean-square)
     response of a spectrum of single DOF systems that are excited by
     an input base acceleration PSD(s)::

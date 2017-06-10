@@ -2730,6 +2730,7 @@ class DR_Results(OrderedDict):
                         res.srs.srs[q] = np.zeros(sh)
 
             self._store_maxmin(res, mm, j, case)
+            res.rms[:, j] = rms
 
             if dr.histpv is not None:
                 res.psd[j] = psd[dr.histpv]
