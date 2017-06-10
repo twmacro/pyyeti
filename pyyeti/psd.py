@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 from pyyeti import dsp
 
 
-def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='band',
+def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='outside',
                  anchor=None):
     r"""
     Get frequency vector on an octave scale.
@@ -20,28 +20,41 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='band',
     n : scalar
         Specify octave band:  1 for full octave, 3 for 1/3 octave, 6
         for 1/6, etc.
-    frange : 1d array_like
-        Specifies bounds for the frequency vector; only the first and
-        last elements are used. If the first element <= 0.0, 1. is used
-        instead. See also the `trim` input.
-    trim : string
-        Specify how to trim frequency vector to `frange`. If `trim` is
-        "band", trimming is such that the first band includes
-        `frange[0]` and the last band include `frange[1]`. If `trim`
-        is "center", trimming is such that the `frange` values are just
-        outside the range of the returned vector.
-    exact : bool
+    frange : 1d array_like; optional
+        Specifies bounds for the frequencies according to input
+        `trim`. Only the first and last elements are used. If the
+        first element <= 0.0, 1.0 is used instead. See also the `trim`
+        input.
+    trim : string; optional
+        Specify how to trim frequency vector to `frange`:
+
+        =========   ================================================
+         `trim`     Description
+        =========   ================================================
+        'inside'    All frequencies just inside range:
+                        ``F_lower[0]  >= frange[0]``
+                        ``F_upper[-1] <= frange[-1]``
+        'center'    Center frequencies just inside range:
+                        ``F[0]  >= frange[0]``
+                        ``F[-1] <= frange[-1]``
+        'outside'   First band includes ``frange[0]`` and last band
+                    includes ``frange[-1]``
+        'band'      Same as 'outside'
+        =========   ================================================
+
+    exact : bool; optional
         If False, return an approximate octave scale so that it hits
-        the power of 10s, achored at 1 Hz. If True, return an exact
-        octave scale, anchored at 1000 Hz.
-    anchor : scalar or None
+        the power of 10s, achored at 1 Hz by default (see
+        `anchor`). If True, return an exact octave scale, anchored at
+        1000 Hz by default.
+    anchor : scalar or None; optional
         If scalar, it specifies the anchor. If None, the anchor used
-        is specified above (1 or 1000).
+        is specified under `exact` above (1 or 1000).
 
     Returns
     -------
     F : 1d ndarray
-        Contains the center frequencies on an octave scale.
+        Contains the band center frequencies on an octave scale.
     F_lower : 1d ndarray
         Same size as `F`, band lower frequencies.
     F_upper : 1d ndarray
@@ -73,7 +86,7 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='band',
     --------
     >>> import numpy as np
     >>> from pyyeti import psd
-    >>> np.set_printoptions(precision=4)
+    >>> np.set_printoptions(precision=4, linewidth=75)
     >>> np.array(psd.get_freq_oct(3, [505, 900]))
     array([[  501.1872,   630.9573,   794.3282,  1000.    ],
            [  446.6836,   562.3413,   707.9458,   891.2509],
@@ -99,10 +112,7 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='band',
     array([ 0.7937,  0.8909,  1.    ,  1.1225,  1.2599,  1.4142,  1.5874,
             1.7818,  2.    ,  2.2449,  2.5198])
     """
-    if frange[0] <= 0.:
-        s = 1.
-    else:
-        s = frange[0]
+    s = frange[0] if frange[0] > 0. else 1.0
     e = frange[-1]
     if exact:
         if not anchor:
@@ -121,12 +131,17 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='band',
         F = anchor * 10**(3*bands/(10*n))
         factor = 10**(3/(20*n))
     FL, FU = F/factor, F*factor
-    if trim == 'band':
+    if trim in ('outside', 'band'):
         Nmax = np.max(np.nonzero(FL <= e)[0]) + 1
         Nmin = np.min(np.nonzero(FU >= s)[0])
-    else:
+    elif trim == 'center':
         Nmax = np.max(np.nonzero(F <= e)[0]) + 1
         Nmin = np.min(np.nonzero(F >= s)[0])
+    elif trim == 'inside':
+        Nmax = np.max(np.nonzero(FU <= e)[0]) + 1
+        Nmin = np.min(np.nonzero(FL >= s)[0])
+    else:
+        raise ValueError('input `trim` has invalid value')
     F = F[Nmin:Nmax]
     FL = FL[Nmin:Nmax]
     FU = FU[Nmin:Nmax]

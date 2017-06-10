@@ -4,6 +4,44 @@ from nose.tools import *
 import scipy.signal as signal
 
 
+def test_get_freq_oct():
+    assert np.allclose(
+        np.array(psd.get_freq_oct(1, [1, 5])),
+        np.array([[ 1.        ,  1.99526231,  3.98107171],
+                  [ 0.70794578,  1.41253754,  2.81838293],
+                  [ 1.41253754,  2.81838293,  5.62341325]]))
+
+    assert np.allclose(
+        np.array(psd.get_freq_oct(1, [1, 5], trim='outside')),
+        np.array([[ 1.        ,  1.99526231,  3.98107171],
+                  [ 0.70794578,  1.41253754,  2.81838293],
+                  [ 1.41253754,  2.81838293,  5.62341325]]))
+
+    assert np.allclose(
+        np.array(psd.get_freq_oct(1, [1, 5], trim='band')),
+        np.array([[ 1.        ,  1.99526231,  3.98107171],
+                  [ 0.70794578,  1.41253754,  2.81838293],
+                  [ 1.41253754,  2.81838293,  5.62341325]]))
+
+    assert np.allclose(
+        np.array(psd.get_freq_oct(1, [1, 5], trim='inside')),
+        np.array([[ 1.99526231],
+                  [ 1.41253754],
+                  [ 2.81838293]]))
+
+    e = np.array(psd.get_freq_oct(1, [1, 2.5], trim='inside'))
+    assert np.all(e.shape == (3, 0))
+
+    assert np.allclose(
+        np.array(psd.get_freq_oct(1, [1, 2.5], trim='center')),
+        np.array([[ 1.        ,  1.99526231],
+                  [ 0.70794578,  1.41253754],
+                  [ 1.41253754,  2.81838293]]))
+
+    assert_raises(ValueError, psd.get_freq_oct, 1, [1, 2.5],
+                  trim='badstring')
+
+
 def test_interp():
     spec = np.array([[20, 0.5],
                      [50, 1.0]])
