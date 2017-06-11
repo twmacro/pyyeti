@@ -42,6 +42,14 @@ def test_get_freq_oct():
                   trim='badstring')
 
 
+def test_proc_psd_spec():
+    assert_raises(ValueError, psd.proc_psd_spec, np.array([1]))
+    assert_raises(ValueError, psd.proc_psd_spec, (1, 2, 3))
+    assert_raises(ValueError, psd.proc_psd_spec,
+                  (np.arange(10), np.random.randn(11)))
+    assert_raises(ValueError, psd.proc_psd_spec,
+                  (np.arange(10), np.random.randn(10, 2, 2)))
+
 def test_interp():
     spec = np.array([[20, 0.5],
                      [50, 1.0]])

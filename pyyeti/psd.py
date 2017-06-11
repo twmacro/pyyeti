@@ -32,10 +32,10 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='outside',
          `trim`     Description
         =========   ================================================
         'inside'    All frequencies just inside range:
-                        ``F_lower[0]  >= frange[0]``;
+                        ``F_lower[0] >= frange[0]``;
                         ``F_upper[-1] <= frange[-1]``
         'center'    Center frequencies just inside range:
-                        ``F[0]  >= frange[0]``;
+                        ``F[0] >= frange[0]``;
                         ``F[-1] <= frange[-1]``
         'outside'   First band includes ``frange[0]`` and last band
                     includes ``frange[-1]``
@@ -711,7 +711,7 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
     F_time = np.fft.ifft(r+1j*i)
     mxi = abs(F_time.imag).max()
     mxr = abs(F_time.real).max()
-    if mxi > 1e-7*mxr:
+    if mxi > 1e-7*mxr:    # pragma: no cover
         # bug in the code if this ever happens
         warn('method failed accuracy test; (max imag)/'
              '(max real) = {}'.format(mxi/mxr),

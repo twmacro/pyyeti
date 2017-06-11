@@ -5014,7 +5014,32 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     Used by :func:`DR_Results.srs_plots` and
     :func:`DR_Results.resp_plots` for plot generation.
     """
-    def _get_Qs(Q, srsQs, showall, name):
+    # def _get_Qs(Q, srsQs, showall, name):
+    #     if Q == 'auto':
+    #         Qs = srsQs
+    #     else:
+    #         Q_in = _ensure_iter(Q)
+    #         Qs = []
+    #         for q in Q_in:
+    #             if q in srsQs:
+    #                 Qs.append(q)
+    #             else:
+    #                 warnings.warn('no Q={} SRS data for {}'.
+    #                               format(q, name), RuntimeWarning)
+    #         if len(Qs) == 0:
+    #             return None
+    #     Qs = _ensure_iter(Qs)
+    #     if len(Qs) > 1 and showall:
+    #         raise ValueError('`Q` must be a scalar if `showall` '
+    #                          'is true')
+    #     return Qs
+
+    def _get_Qs(Q, res, name, showall):
+        try:
+            srsQs = res[name].srs.srs.keys()
+        except AttributeError:
+            return None
+        srsQs = list(srsQs)
         if Q == 'auto':
             Qs = srsQs
         else:
@@ -5270,8 +5295,9 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                             'no SRS data for {}'.format(name),
                             RuntimeWarning)
                     continue
-                Qs = _get_Qs(Q, res[name].drminfo.srsQs,
-                             showall, name)
+                # Qs = _get_Qs(Q, res[name].drminfo.srsQs,
+                #              showall, name)
+                Qs = _get_Qs(Q, res, name, showall)
                 if Qs is None:
                     continue
                 x = res[name].srs.frq
