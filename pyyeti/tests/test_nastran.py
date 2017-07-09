@@ -416,8 +416,86 @@ def test_wtrspline_rings():
     with StringIO() as f:
         nastran.wtrspline_rings(f, uset1, uset2, 1001, 2001, doplot=0)
         s2 = f.getvalue()
-
     assert s1 == s2
+    sbe = """$
+$ Grids to RBE2 to Ring 1 grids. These grids line up with Ring 2 circle.
+$ These will be used in an RSPLINE (which will be smooth)
+$
+GRID*               1001               0      1.00000000     45.00000000
+*            -0.00000000               0
+GRID*               1002               0      1.00000000     13.90576475
+*            42.79754323               0
+GRID*               1003               0      1.00000000    -36.40576475
+*            26.45033635               0
+GRID*               1004               0      1.00000000    -36.40576475
+*           -26.45033635               0
+GRID*               1005               0      1.00000000     13.90576475
+*           -42.79754323               0
+$
+$ RBE2 old Ring 1 nodes to new nodes created above (new nodes are
+$ independent):
+$
+RBE2,1001,1001,123456,1
+RBE2,1002,1002,123456,2
+RBE2,1003,1003,123456,3
+RBE2,1004,1004,123456,4
+RBE2,1005,1005,123456,5
+$
+$ RSPLINE Ring 2 nodes to new nodes created above, with the new nodes
+$ being independent.
+$
+RSPLINE     2001     0.1    1004     106  123456    1005
+RSPLINE     2002     0.1    1005     107  123456    1001
+RSPLINE     2003     0.1    1001     101  123456     102  123456    1002
+RSPLINE     2004     0.1    1002     103  123456    1003
+RSPLINE     2005     0.1    1003     104  123456     105  123456    1004
+"""
+    assert s1 == sbe
+    
+    with StringIO() as f:
+        nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001,
+                                independent='ring2')
+        s = f.getvalue()
+
+    sbe = """$
+$ Grids to RBE2 to Ring 1 grids. These grids line up with Ring 2 circle.
+$ These will be used in an RSPLINE (which will be smooth)
+$
+GRID*               1001               0      1.00000000     45.00000000
+*            -0.00000000               0
+GRID*               1002               0      1.00000000     13.90576475
+*            42.79754323               0
+GRID*               1003               0      1.00000000    -36.40576475
+*            26.45033635               0
+GRID*               1004               0      1.00000000    -36.40576475
+*           -26.45033635               0
+GRID*               1005               0      1.00000000     13.90576475
+*           -42.79754323               0
+$
+$ RBE2 old Ring 1 nodes to new nodes created above (new nodes are
+$ independent):
+$
+RBE2,1001,1001,123456,1
+RBE2,1002,1002,123456,2
+RBE2,1003,1003,123456,3
+RBE2,1004,1004,123456,4
+RBE2,1005,1005,123456,5
+$
+$ RSPLINE Ring 2 nodes to new nodes created above, with the Ring 2 nodes
+$ being independent.
+$
+RSPLINE     2001     0.1     105    1004  123456     106
+RSPLINE     2002     0.1     106    1005  123456     107
+RSPLINE     2003     0.1     107    1001  123456     101
+RSPLINE     2004     0.1     101     102            1002  123456     103
+RSPLINE     2005     0.1     103    1003  123456     104
+RSPLINE     2006     0.1     104     105
+"""
+    assert s == sbe
+
+    assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1, uset2,
+                  1001, 2001, doplot=0, independent='badoption')
+
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1[:-1],
                   uset2, 1001, 2001, doplot=0)
 

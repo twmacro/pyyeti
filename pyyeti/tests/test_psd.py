@@ -50,6 +50,7 @@ def test_proc_psd_spec():
     assert_raises(ValueError, psd.proc_psd_spec,
                   (np.arange(10), np.random.randn(10, 2, 2)))
 
+
 def test_interp():
     spec = np.array([[20, 0.5],
                      [50, 1.0]])
@@ -68,7 +69,8 @@ def test_rescale():
     p6, f6, msv6, ms6 = psd.rescale(p, f, n_oct=6)
     p6_2, f6_2, msv6_2, ms6_2 = psd.rescale(p, f, freq=f6)
     p12, f12, msv12, ms12 = psd.rescale(p6, f6, n_oct=12)
-    msv1 = np.sum(p*(f[1]-f[0]))
+    i = int(25/2**(1/6))
+    msv1 = np.sum(p[i:]*(f[1]-f[0]))
     assert abs(msv1/msv3 - 1) < .12
     assert abs(msv1/msv6 - 1) < .06
     assert abs(msv1/msv12 - 1) < .03
@@ -79,6 +81,7 @@ def test_rescale():
     p_2, f_2, msv_2, ms_2 = psd.rescale(p, f, freq=f)
     assert np.allclose(p, p_2)
     assert np.allclose(f, f_2)
+    msv1 = np.sum(p*(f[1]-f[0]))
     assert np.allclose(msv1, msv_2)
 
     P = np.vstack((p, p)).T

@@ -10,6 +10,12 @@ from scipy.interpolate import interp1d
 from pyyeti import dsp
 
 
+def _set_frange(frange, low, high):
+    s = frange[0] if frange[0] > 0. else low
+    e = frange[1] if frange[1] <= high else high
+    return s, e
+
+
 def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='outside',
                  anchor=None):
     r"""
@@ -272,7 +278,8 @@ def interp(spec, freq, linear=False):
     return psdfull
 
 
-def rescale(P, F, n_oct=3, freq=None, extendends=True):
+def rescale(P, F, n_oct=3, freq=None, extendends=True,
+            frange=(25.0, np.inf)):
     """
     Convert PSD from one frequency scale to another.
 
@@ -304,6 +311,13 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
         corresponding PSD value to be higher than it would otherwise
         be, meaning the overall mean-square value will also be a
         little higher.
+    frange : 1d array_like; optional
+        If `freq` is None, this option specifies bounds for the
+        frequencies. Only the first and last elements are used. If the
+        first value is <= 0.0, it is reset to 1.0. If the last value
+        is > ``F[-1]``, it is reset to ``F[-1]``. The final `frange`
+        setting is passed to :func:`get_freq_oct` when the `n_oct`
+        option is used.
 
     Returns
     -------
@@ -332,11 +346,16 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
         extended (see `extendends` above), the overall mean-square
         value will be higher than the original.
 
-    See :func:`get_freq_oct` for more information on how the octave scales
-    are calculated.
+    See :func:`get_freq_oct` for more information on how the octave
+    scales are calculated.
 
     Examples
     --------
+
+    Compute a PSD with :func:`scipy.signal.welch` and then rescale it
+    to 3rd, 6th, and 12th octave scales starting at 1.0 Hz. Compare
+    mean square values from all 4 PSDs.
+
     .. plot::
         :context: close-figs
 
@@ -345,12 +364,15 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
         >>> import scipy.signal as signal
         >>> from pyyeti import psd
         >>>
+        >>> frange = (1.0, np.inf)
         >>> g = np.random.randn(10000)
         >>> sr = 400
         >>> f, p = signal.welch(g, sr, nperseg=sr)
-        >>> p3, f3, msv3, ms3 = psd.rescale(p, f)
-        >>> p6, f6, msv6, ms6 = psd.rescale(p, f, n_oct=6)
-        >>> p12, f12, msv12, ms12 = psd.rescale(p, f, n_oct=12)
+        >>> p3, f3, msv3, ms3 = psd.rescale(p, f, frange=frange)
+        >>> p6, f6, msv6, ms6 = psd.rescale(
+        ...     p, f, n_oct=6, frange=frange)
+        >>> p12, f12, msv12, ms12 = psd.rescale(
+        ...     p, f, n_oct=12, frange=frange)
         >>>
         >>> fig = plt.figure('PSD compare')
         >>> line = plt.semilogx(f, p, label='Linear')
@@ -359,7 +381,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
         >>> line = plt.semilogx(f12, p12, label='1/12 Octave')
         >>> _ = plt.legend(ncol=2, loc='best')
         >>> _ = plt.xlim([1, 200])
-        >>> msv1 = np.sum(p*(f[1]-f[0]))
+        >>> msv1 = np.sum(p[1:]*(f[1]-f[0]))
         >>> abs(msv1/msv3 - 1) < .12
         True
         >>> abs(msv1/msv6 - 1) < .06
@@ -382,7 +404,6 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
     array([ 0.525,  1.   ,  0.525])
 
     The 0.525 value is from: ``area/width = 1*(2.5-(-0.125))/5 = 0.525``
-
     """
     F = np.atleast_1d(F)
     P = np.atleast_1d(P)
@@ -404,7 +425,9 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
         return FL, FU
 
     if freq is None:
-        Wctr, FL, FU = get_freq_oct(n_oct, F, exact=True)
+        frange = _set_frange(frange, 1.0, F[-1])
+        Wctr, FL, FU = get_freq_oct(n_oct, exact=True,
+                                    frange=frange)
     else:
         freq = np.atleast_1d(freq)
         FL, FU = _get_fl_fu(freq)
@@ -469,7 +492,8 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True):
 
 
 def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
-        timeslice=1.0, tsoverlap=0.5, fs=3, pref=2.9e-9):
+        timeslice=1.0, tsoverlap=0.5, fs=3, pref=2.9e-9,
+        frange=(25.0, np.inf)):
     r"""
     Sound pressure level estimation using PSD.
 
@@ -480,8 +504,9 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
     sr : scalar
         Sample rate.
     nperseg : int, optional
-        Length of each segment for the FFT. Defaults to `sr` for 1 Hz
-        frequency step in PSD. Note: frequency step in Hz = sr/nperseg.
+        Length of each segment for the FFT. Defaults to
+        ``int(sr / 5)`` for 5 Hz frequency step in PSD. Note:
+        frequency step in Hz = ``sr/nperseg``.
     overlap : scalar; optional
         Amount of overlap in windows, eg 0.5 would be 50% overlap.
     window : str or tuple or array like; optional
@@ -505,6 +530,12 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
     pref : scalar; optional
         Reference pressure. 2.9e-9 psi is considered to be the
         threshhold for human hearing. In Pascals, that value is 2e-5.
+    frange : 1d array_like; optional
+        Specifies bounds for the frequencies. Only the first and last
+        elements are used. If the first value is < 0.0, it is reset
+        to 0.0. If the last value is > ``sr/2``, it is reset to
+        ``sr/2``. Note that for octave scales, :func:`rescale` is used
+        which enforces a minimum of 1.0 Hz.
 
     Returns
     -------
@@ -542,15 +573,19 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
     True
     """
     if nperseg is None:
-        nperseg = sr
+        nperseg = int(sr / 5)
     # compute psd
     F, P = psdmod(x, sr, nperseg=nperseg, window=window,
                   timeslice=timeslice, tsoverlap=tsoverlap,
                   noverlap=int(overlap*nperseg))
+    s, e = _set_frange(frange, 0.0, sr/2)
     if fs != 0:
-        _, F, _, P = rescale(P, F, n_oct=fs)
+        _, F, _, P = rescale(P, F, n_oct=fs, frange=(s, e))
     else:
         P = P*F[1]
+        pv = (F >= s) & (F <= e)
+        F = F[pv]
+        P = P[pv]
     v = P/pref**2
     return F, 10*np.log10(v), 10*np.log10(np.sum(v))
 
@@ -737,8 +772,9 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
     sr : scalar
         Sample rate.
     nperseg : int, optional
-        Length of each segment for the FFT. Defaults to `sr` for 1 Hz
-        frequency step in PSD. Note: frequency step in Hz = sr/nperseg.
+        Length of each segment for the FFT. Defaults to
+        ``int(sr / 5)`` for 5 Hz frequency step in PSD. Note:
+        frequency step in Hz = ``sr/nperseg``.
     timeslice : scalar; optional
         The length in seconds of each time slice.
     tsoverlap : scalar; optional
@@ -817,10 +853,9 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
         >>> _ = plt.xlabel('Frequency (Hz)')
         >>> _ = plt.ylabel(r'PSD ($g^2$/Hz)')
         >>> _ = plt.tight_layout()
-
     """
     if nperseg is None:
-        nperseg = sr
+        nperseg = int(sr / 5)
     if nperseg > timeslice*sr:
         raise ValueError(
             '``nperseg > timeslice*sr``; either decrease `nperseg`'

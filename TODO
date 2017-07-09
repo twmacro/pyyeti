@@ -9,7 +9,10 @@
 ~ 6. Add option to only compare selected drms in cla.rptpct
 7. dsp:  add "units" input so `timeslice` and `tsoverlap` can be input in
    number of points instead of seconds and proportion
+~ 8. Add frequency range to SPL
+~ 9. Add dependent/independent setting to wrtrspline_rings
 
+ 
 - cla.py:
     DR_Results() … should this be able to init? I think so:
                    DR_Results(drdefs, mission, event)

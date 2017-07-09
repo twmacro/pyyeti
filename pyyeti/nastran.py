@@ -1791,7 +1791,7 @@ def intersect(circA, circB, xyA, draw=False):
 
 
 def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
-                     rbe2_id0, doplot, nper, DoL):
+                     rbe2_id0, doplot, nper, DoL, independent):
     """
     Routine used by :func:`wtrspline`. See documentation for
     :func:`wtrspline`.
@@ -1878,16 +1878,24 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
             '(new nodes are\n$ independent):\n$\n')
     writer.vecwrite(f, 'RBE2,{},{},123456,{}\n',
                     rbe2ids, newids, IDs[0])
-    f.write('$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
-            'with the new nodes\n$ being independent.\n$\n')
 
-    th_i = np.arctan2(newpts[:, lat[1]], newpts[:, lat[0]])
-    th_d = np.arctan2(xyz[1][:, lat[1]], xyz[1][:, lat[0]])
-    th = np.hstack((th_i, th_d))
+    th_1 = np.arctan2(newpts[:, lat[1]], newpts[:, lat[0]])
+    th_2 = np.arctan2(xyz[1][:, lat[1]], xyz[1][:, lat[0]])
+    th = np.hstack((th_1, th_2))
 
-    ids_i = np.vstack((newids, np.ones(n1))).T
-    ids_d = np.vstack((IDs[1], np.zeros(n2))).T
-    ids = np.vstack((ids_i, ids_d)).astype(np.int64)
+    ids_1 = np.column_stack((newids, np.zeros(n1, np.int64)))
+    ids_2 = np.column_stack((IDs[1], np.zeros(n2, np.int64)))
+
+    if independent == 'ring1':
+        f.write('$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
+                'with the new nodes\n$ being independent.\n$\n')
+        ids_1[:, 1] = 1
+    else:
+        f.write('$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
+                'with the Ring 2 nodes\n$ being independent.\n$\n')
+        ids_2[:, 1] = 1
+
+    ids = np.vstack((ids_1, ids_2))
 
     # sort by angular location:
     i = np.argsort(th)
@@ -1914,7 +1922,8 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
 
 
 def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
-                    rbe2_id0=None, doplot=1, nper=1, DoL='0.1'):
+                    rbe2_id0=None, doplot=1, nper=1, DoL='0.1',
+                    independent='ring1'):
     """
     Creates a smooth RSPLINE to connect two rings of grids.
 
@@ -1963,6 +1972,9 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     DoL : string or real scalar; optional
         Specifies ratio of diameter of elastic tybe to the sum of the
         lengths of all segments. Written with: ``'{:<8}'.format(DoL)``
+    independent : str; optional
+        Either 'ring1' or 'ring2'; specifies which ring will be
+        independent on the RSPLINEs.
 
     Returns
     -------
@@ -1981,10 +1993,11 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
          are independent.
       3. Build RSPLINE starting at a new ring 1 grid and going around
          the ring, connecting to each new ring 1 and ring 2 grid in
-         order that they occur. The ring 1 grids are all independent,
-         the ring 2 grids are all dependent. The first ring 1 grid on
-         the RSPLINE is also the last grid on the RSPLINE to complete
-         the circle.
+         order that they occur. By default, the ring 1 grids are all
+         independent and the ring 2 grids are all dependent (see the
+         `independent` option). The first ring 1 grid (or ring 2 grid)
+         on the RSPLINE is also the last grid on the RSPLINE to
+         complete the circle.
 
     The routine :func:`wtrspline` is used to write the RSPLINE.
 
@@ -2053,11 +2066,13 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         RSPLINE     2004     0.1    1002     103  123456    1003
         RSPLINE     2005     0.1    1003     104  123456     105  123456    1004
     """
+    if independent not in ('ring1', 'ring2'):
+        raise ValueError('invalid `independent` option')
     if rbe2_id0 is None:
         rbe2_id0 = node_id0
     return ytools.wtfile(f, _wtrspline_rings, r1grids, r2grids,
                          node_id0, rspline_id0, rbe2_id0, doplot,
-                         nper, DoL)
+                         nper, DoL, independent)
 
 
 def wtvcomp(f, baa, kaa, bset, spoint1):
