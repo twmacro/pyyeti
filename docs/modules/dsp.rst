@@ -1,5 +1,5 @@
-Digital signal processing (dsp)
-===============================
+Digital signal processing
+=========================
 
 .. automodule:: pyyeti.dsp
 .. currentmodule:: pyyeti.dsp

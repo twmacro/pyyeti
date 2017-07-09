@@ -1,5 +1,5 @@
-Shock response spectra (srs)
-============================
+Shock response spectra
+======================
 
 .. automodule:: pyyeti.srs
 .. currentmodule:: pyyeti.srs

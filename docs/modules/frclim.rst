@@ -1,5 +1,5 @@
-Force limiting (frclim)
-=======================
+Force limiting
+==============
 
 .. automodule:: pyyeti.frclim
 .. currentmodule:: pyyeti.frclim

@@ -1,5 +1,5 @@
-Tools for locating elements inside arrays/lists (locate)
-========================================================
+Tools for locating elements inside arrays/lists
+===============================================
 
 .. automodule:: pyyeti.locate
 .. currentmodule:: pyyeti.locate

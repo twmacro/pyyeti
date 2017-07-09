@@ -1,5 +1,5 @@
-Continuous and discrete state-space model conversions (ssmodel)
-===============================================================
+Continuous and discrete state-space model conversions
+=====================================================
 
 .. automodule:: pyyeti.ssmodel
     :members:

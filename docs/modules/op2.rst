@@ -1,5 +1,5 @@
-Read subset of Nastran op2 data (op2)
-=====================================
+Read subset of Nastran op2 data
+===============================
 
 .. automodule:: pyyeti.op2
 .. currentmodule:: pyyeti.op2

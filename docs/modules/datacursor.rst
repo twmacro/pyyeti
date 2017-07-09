@@ -1,5 +1,5 @@
-Interacting with plots (datacursor)
-===================================
+Interacting with plots
+======================
 
 .. automodule:: pyyeti.datacursor
     :members:

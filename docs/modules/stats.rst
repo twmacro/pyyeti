@@ -1,5 +1,5 @@
-Statistical tools (stats)
-=========================
+Statistical tools
+=================
 
 .. automodule:: pyyeti.stats
 .. currentmodule:: pyyeti.stats

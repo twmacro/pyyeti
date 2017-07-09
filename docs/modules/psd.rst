@@ -1,5 +1,5 @@
-Power spectral density (psd)
-============================
+Power spectral density
+======================
 
 .. automodule:: pyyeti.psd
 .. currentmodule:: pyyeti.psd

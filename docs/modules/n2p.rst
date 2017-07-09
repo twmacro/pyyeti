@@ -1,5 +1,5 @@
-Nastran-to-Python tools (n2p)
-=============================
+Nastran-to-Python tools
+=======================
 
 .. automodule:: pyyeti.n2p
 .. currentmodule:: pyyeti.n2p

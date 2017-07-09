@@ -1,5 +1,5 @@
-Matrix exponential and its integral (expmint)
-=============================================
+Matrix exponential and its integral
+===================================
 
 .. automodule:: pyyeti.expmint
 .. currentmodule:: pyyeti.expmint

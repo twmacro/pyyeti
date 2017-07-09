@@ -1,5 +1,5 @@
-Time and frequency domain equation of motion solvers (ode)
-==========================================================
+Time and frequency domain equation of motion solvers
+====================================================
 
 .. automodule:: pyyeti.ode
 .. currentmodule:: pyyeti.ode

@@ -1,5 +1,5 @@
-Hurty-Craig-Bampton model checking (cb)
-=======================================
+Hurty-Craig-Bampton model checking
+==================================
 
 .. automodule:: pyyeti.cb
 .. currentmodule:: pyyeti.cb

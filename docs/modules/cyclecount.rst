@@ -1,5 +1,5 @@
-Cycle counting (cyclecount)
-===========================
+Cycle counting
+==============
 
 .. automodule:: pyyeti.cyclecount
 .. currentmodule:: pyyeti.cyclecount

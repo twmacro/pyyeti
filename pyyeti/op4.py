@@ -1982,6 +1982,9 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False,
     Read all matching matrices from op4 file into dictionary or list;
     non-member version of :func:`OP4.load`.
 
+    This is a the same as :func:`read` except `justmatrix` default is
+    False.
+
     Parameters
     ----------
     filename : string or None

@@ -1,5 +1,5 @@
-Miscellaneous tools from Yeti (ytools)
-======================================
+Miscellaneous tools from Yeti
+=============================
 
 .. automodule:: pyyeti.ytools
 .. currentmodule:: pyyeti.ytools

@@ -1,5 +1,5 @@
-Vectorized writer (writer)
-==========================
+Vectorized writer
+=================
 
 .. automodule:: pyyeti.writer
 .. currentmodule:: pyyeti.writer

@@ -1,5 +1,5 @@
-Tools for coupled loads analysis (cla)
-======================================
+Tools for coupled loads analysis
+================================
 
 .. automodule:: pyyeti.cla
 .. currentmodule:: pyyeti.cla

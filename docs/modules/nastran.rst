@@ -1,5 +1,5 @@
-Limited set of read/write routines for Nastran bulk data (nastran)
-==================================================================
+Limited set of read/write routines for Nastran bulk data
+========================================================
 
 .. automodule:: pyyeti.nastran
 .. currentmodule:: pyyeti.nastran

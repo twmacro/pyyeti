@@ -6,18 +6,102 @@
 Welcome to pyYeti's documentation!
 ==================================
 
-Contents:
+.. _api_ref:
+
+Modules (alphabetical by module name)
+-------------------------------------
+
+    .. table::
+       :align: center
+       :widths: 20, 60
+    
+       +----------------------------------------+---------------------------+
+       | Module Name                            | Description               |
+       +========================================+===========================+
+       | :doc:`cb <modules/cb>`                 | :doc:`modules/cb`         |
+       +----------------------------------------+---------------------------+
+       | :doc:`cla <modules/cla>`               | :doc:`modules/cla`        |
+       +----------------------------------------+---------------------------+
+       | :doc:`cyclecount <modules/cyclecount>` | :doc:`modules/cyclecount` |
+       +----------------------------------------+---------------------------+
+       | :doc:`datacursor <modules/datacursor>` | :doc:`modules/datacursor` |
+       +----------------------------------------+---------------------------+
+       | :doc:`dsp <modules/dsp>`               | :doc:`modules/dsp`        |
+       +----------------------------------------+---------------------------+
+       | :doc:`expmint <modules/expmint>`       | :doc:`modules/expmint`    |
+       +----------------------------------------+---------------------------+
+       | :doc:`fdepsd <modules/fdepsd>`         | :doc:`modules/fdepsd`     |
+       +----------------------------------------+---------------------------+
+       | :doc:`frclim <modules/frclim>`         | :doc:`modules/frclim`     |
+       +----------------------------------------+---------------------------+
+       | :doc:`guitools <modules/guitools>`     | :doc:`modules/guitools`   |
+       +----------------------------------------+---------------------------+
+       | :doc:`locate <modules/locate>`         | :doc:`modules/locate`     |
+       +----------------------------------------+---------------------------+
+       | :doc:`n2p <modules/n2p>`               | :doc:`modules/n2p`        |
+       +----------------------------------------+---------------------------+
+       | :doc:`nastran <modules/nastran>`       | :doc:`modules/nastran`    |
+       +----------------------------------------+---------------------------+
+       | :doc:`ode <modules/ode>`               | :doc:`modules/ode`        |
+       +----------------------------------------+---------------------------+
+       | :doc:`op2 <modules/op2>`               | :doc:`modules/op2`        |
+       +----------------------------------------+---------------------------+
+       | :doc:`op4 <modules/op4>`               | :doc:`modules/op4`        |
+       +----------------------------------------+---------------------------+
+       | :doc:`pp <modules/pp>`                 | :doc:`modules/pp`         |
+       +----------------------------------------+---------------------------+
+       | :doc:`psd <modules/psd>`               | :doc:`modules/psd`        |
+       +----------------------------------------+---------------------------+
+       | :doc:`srs <modules/srs>`               | :doc:`modules/srs`        |
+       +----------------------------------------+---------------------------+
+       | :doc:`stats <modules/stats>`           | :doc:`modules/stats`      |
+       +----------------------------------------+---------------------------+
+       | :doc:`ssmodel <modules/ssmodel>`       | :doc:`modules/ssmodel`    |
+       +----------------------------------------+---------------------------+
+       | :doc:`writer <modules/writer>`         | :doc:`modules/writer`     |
+       +----------------------------------------+---------------------------+
+       | :doc:`ytools <modules/ytools>`         | :doc:`modules/ytools`     |
+       +----------------------------------------+---------------------------+
 
 .. toctree::
-   :maxdepth: 3
+   :hidden:
+   :glob:
 
-   pyyeti
+   modules/*
+
+.. _tutorial:
+
+Tutorials
+---------
+
+Miscellaneous
+^^^^^^^^^^^^^
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
-   tutorials
+   tutorials/fatigue
+   tutorials/op4
+   tutorials/srs
+   tutorials/ode
 
+Hurty-Craig-Bampton model checks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. toctree::
+   :maxdepth: 1
+
+   tutorials/cbcheck
+   tutorials/cbtf
+
+Subpackages
+-----------
+
+.. toctree::
+    :maxdepth: 1
+
+    pyyeti.rainflow
+  
 Indices and tables
 ==================
 

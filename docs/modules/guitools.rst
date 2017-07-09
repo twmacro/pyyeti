@@ -1,5 +1,5 @@
-Graphical user interface tools (guitools)
-=========================================
+Graphical user interface tools
+==============================
 
 .. automodule:: pyyeti.guitools
 .. currentmodule:: pyyeti.guitools

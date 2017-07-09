@@ -1,5 +1,5 @@
-Fatigue damage equivalent PSD (fdepsd)
-======================================
+Fatigue damage equivalent PSD
+=============================
 
 .. automodule:: pyyeti.fdepsd
     :members:

@@ -1,5 +1,5 @@
-A very basic pretty printer (pp)
-================================
+A very basic pretty printer
+===========================
 
 .. automodule:: pyyeti.pp
 .. currentmodule:: pyyeti.pp
