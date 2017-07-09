@@ -1825,6 +1825,13 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     center = [findcenter(*xyz[0][:, lat].T),
               findcenter(*xyz[1][:, lat].T)]
 
+    # the center point will often be at (0.0, 0.0) but be numerically
+    # off ... check for this and adjust if that's the case:
+    for circ in center:
+        for i in (0, 1):
+            if abs(circ[i]) < 1e-9 * circ[2]:
+                circ[i] = 0.0
+
     if doplot:
         fig = plt.figure('rspline check 1', figsize=(8, 8))
         plt.clf()
@@ -1882,6 +1889,7 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     th_1 = np.arctan2(newpts[:, lat[1]], newpts[:, lat[0]])
     th_2 = np.arctan2(xyz[1][:, lat[1]], xyz[1][:, lat[0]])
     th = np.hstack((th_1, th_2))
+    th[th < 0] += 2*np.pi
 
     ids_1 = np.column_stack((newids, np.zeros(n1, np.int64)))
     ids_2 = np.column_stack((IDs[1], np.zeros(n2, np.int64)))
@@ -1991,15 +1999,12 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
          grids, but at the same angular location as original N.
       2. RBE2 these new grids to the N original grids ... new grids
          are independent.
-      3. Build RSPLINE starting at a new ring 1 grid and going around
-         the ring, connecting to each new ring 1 and ring 2 grid in
-         order that they occur. By default, the ring 1 grids are all
-         independent and the ring 2 grids are all dependent (see the
-         `independent` option). The first ring 1 grid (or ring 2 grid)
-         on the RSPLINE is also the last grid on the RSPLINE to
-         complete the circle.
-
-    The routine :func:`wtrspline` is used to write the RSPLINE.
+      3. Write RSPLINE cards using :func:`wtrspline`. The first
+         RSPLINE starts at the independent grid (on ring 1 or ring 2
+         according to `independent`) with the lowest angular
+         location. The angular locations range from 0 to 360 degrees,
+         counter-clockwise. The RSPLINEs proceed counter-clockwise and
+         the last grid is also the first grid to complete the circle.
 
     Examples
     --------
@@ -2038,7 +2043,7 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         $ These will be used in an RSPLINE (which will be smooth)
         $
         GRID*               1001               0      1.00000000     45.00000000
-        *            -0.00000000               0
+        *             0.00000000               0
         GRID*               1002               0      1.00000000     13.90576475
         *            42.79754323               0
         GRID*               1003               0      1.00000000    -36.40576475
@@ -2060,11 +2065,11 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         $ RSPLINE Ring 2 nodes to new nodes created above, with the new nodes
         $ being independent.
         $
-        RSPLINE     2001     0.1    1004     106  123456    1005
-        RSPLINE     2002     0.1    1005     107  123456    1001
-        RSPLINE     2003     0.1    1001     101  123456     102  123456    1002
-        RSPLINE     2004     0.1    1002     103  123456    1003
-        RSPLINE     2005     0.1    1003     104  123456     105  123456    1004
+        RSPLINE     2001     0.1    1001     101  123456     102  123456    1002
+        RSPLINE     2002     0.1    1002     103  123456    1003
+        RSPLINE     2003     0.1    1003     104  123456     105  123456    1004
+        RSPLINE     2004     0.1    1004     106  123456    1005
+        RSPLINE     2005     0.1    1005     107  123456    1001
     """
     if independent not in ('ring1', 'ring2'):
         raise ValueError('invalid `independent` option')
