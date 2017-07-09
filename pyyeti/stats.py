@@ -127,7 +127,7 @@ def _getr(n, prob, tol):
         den = spi*(np.exp(-(lhi**2)/2) + np.exp(-(llo**2)/2))
         r = rold - num / den
         loops += 1
-    if loops == MAXLOOPS:
+    if loops == MAXLOOPS:   # pragma: no cover
         warnings.warn('maximum number of loops exceeded. '
                       'Solution will likely be inaccurate.',
                       RuntimeWarning)
