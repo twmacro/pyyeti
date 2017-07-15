@@ -1956,21 +1956,35 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
     tsoverlap : scalar in [0, 1)
         Fraction of a time slice for overlapping. 0.5 is 50% overlap.
     func : function
-        This function is called for each time slice and is expected to
-        return amplitude values across the frequency range. Can return
-        just the amplitudes, or it can return more values (like the
-        frequency vector). The call is:
-        ``func(sig_slice, *args, **kwargs)``. Note that the
-        `sig_slice` input is first passed through `slicefunc` if one
-        is provided (see below).
-    which : integer or None
-        Specifies which output of `func` is the amplitudes starting at
-        zero. If None, `func` only returns the amplitudes. Note that
-        `which` cannot be None if `freq` is an integer.
+        This function is called for each time slice (denoted as
+        "sig_slice" here) and is expected to return amplitude values
+        across the frequency range. It can return just the amplitudes,
+        or it can have multiple outputs (see also `which` and
+        `freq`). The call is: ``func(sig_slice, *args,
+        **kwargs)``. Note that the "sig_slice" input is first passed
+        through `slicefunc` if one is provided (see below).
+    which : None or integer
+        Set to None if `func` only returns the amplitudes. Otherwise,
+        if `func` returns multiple outputs, set `which` to the index
+        of the output corresponding to the amplitudes. For example, if
+        `func` returns ``(frequencies, amplitudes)``, `which` would be
+        1 (and `freq` would be 0).
+
+        .. note::
+
+           Setting `which` to None is not the same as setting it to
+           0. Using None means that the function only returns
+           amplitudes, while a 0 indicates that the output of `func`
+           must be indexed by 0 to get the amplitudes. An example
+           might make this more clear: if the function has ``return
+           amps``, use ``which=None``; if the function has ``return
+           (amps,)``, use ``which=0``.
+
     freq : integer or vector
-        If integer, it specifies which output of `func` is the
-        frequency vector (starts at zero). If vector, it is the
-        frequency vector directly.
+        If integer, it is the index of the output of `func`
+        corresponding to the frequency vector and cannot be equal to
+        `which`. Otherwise, if `freq` is a vector, it is the frequency
+        vector directly.
     t0 : scalar; optional
         Start time of signal; defaults to 0.0.
     args : tuple or list; optional
