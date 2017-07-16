@@ -1843,7 +1843,7 @@ class OP4(object):
             can use None as the form for one or more matrices (see
             example in :func:`pyyeti.op4.write`). From Nastran
             documentation:
-    
+
             ======   ==============================
              form    Matrix format
             ======   ==============================
@@ -1939,7 +1939,7 @@ class OP4(object):
             forms = [None] * len(names)
 
         matrices = [ensure_2d_dp(matrix) for matrix in matrices]
-            
+
         if binary:
             if sparse == 'dense':
                 wrtfunc = self._write_binary
@@ -2261,7 +2261,7 @@ def write(filename, names, matrices=None,
         None, `forms` must be the same length as `names`, but you can
         use None as the form for one or more matrices (see example
         below). From Nastran documentation:
-    
+
         ======   ==============================
          form    Matrix format
         ======   ==============================

@@ -665,7 +665,7 @@ def test_fixtime_simple_despike():
                          verbose=False)
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
-    
+
 
 def test_fixtime_despike_edge_conditions():
     dt = .001
@@ -688,7 +688,7 @@ def test_fixtime_despike_edge_conditions():
             assert np.allclose(y2, ycopy)
         else:
             assert np.allclose(y2, y)
-        
+
         t2, y2 = dsp.fixtime((t, y), 'auto',
                              delspikes=dict(exclude_point='last'),
                              verbose=False)
@@ -948,7 +948,7 @@ def test_despike3():
     pv[575:600] = True
     assert (desp.pv == pv).all()
 
-    
+
 def test_despike4():
     # tests the sweep_out_nexts feature:
     a = np.ones(1500)

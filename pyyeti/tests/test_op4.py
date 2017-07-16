@@ -631,7 +631,7 @@ def test_large_sparse():
         a2 = op4.read(name, sparse=None)
     finally:
         os.remove(name)
-    
+
     assert sp.issparse(a2['a'])
     a2 = a2['a'].tocsr()
     for i, j, v in zip(rows, cols, data):
@@ -646,4 +646,4 @@ def test_large_rows_dense():
     x[45678] = 1.0
     assert np.allclose(m['x'], x)
 
-    
+

@@ -71,7 +71,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         2. Forms an averaging, anti-aliasing FIR filter based on the
            'sinc' function and the Kaiser window to filter `mdata`.
 
-           a. Each original point gets retained as-is (it gets 
+           a. Each original point gets retained as-is (it gets
               multiplied by 1.0 and the other original data points
               get multiplied by 0.0).
 

@@ -33,8 +33,8 @@ def test_vecwrite_2file():
     sbe = ('  5,   1.2, short string             , test string\n'
            '  5,  45.8, a bit longer string      , test string\n')
     assert txt==sbe
-    
-    
+
+
 def test_vecwrite_slice():
     r = np.array([1.2, 45.8, 2.4, 12.3, 6.5])
     m = np.arange(10).reshape(5, -1)  # [[0, 1], [2, 3] ...
@@ -155,7 +155,7 @@ def test_formheader():
            '    Item 1                           1200.00  2300.000\n'
            '    A different item                 3400.00  4500.000\n')
     assert sbe==s
-    
+
     headers = ['Descriptions', 'Maximum', 'Time']
     hu, f = writer.formheader(headers, widths, formats,
                               sep=2, just=('l', 'c', 'r'))

@@ -34,7 +34,7 @@ def runcomp(nas, m):
             m2[0, :2] = prem2[i, :2]
             m2[1:, :] = prem2[i, 2:].reshape((4, 3))
             assert np.allclose(m1, m2)
-    
+
 
 def test_n2c_csuper():
     nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
@@ -313,7 +313,7 @@ def test_rdop2mats():
 
     with op2.OP2(dr+'double_le.op2') as o2:
         d, l = o2.directory()
-    assert sorted(d.keys()) == ['CASECC', 'ZUZR01', 
+    assert sorted(d.keys()) == ['CASECC', 'ZUZR01',
                                 'ZUZR02', 'ZUZR03']
 
 def test_rdop2tload():
@@ -334,7 +334,7 @@ def test_rdop2tload():
         o2._rowsCutoff = 0
         tload = o2.rdop2tload()
     assert np.all(tload[:5] == sbe)
-    
+
 
 def test_rdpostop2():
     post = op2.rdpostop2('pyyeti/tests/nas2cam_extseout/'

@@ -451,7 +451,7 @@ RSPLINE     2004     0.1    1004     106  123456    1005
 RSPLINE     2005     0.1    1005     107  123456    1001
 """
     assert s1 == sbe
-    
+
     with StringIO() as f:
         nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001,
                                 independent='ring2', doplot=0)
