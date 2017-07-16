@@ -1951,10 +1951,17 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         Time series of measurement values.
     sr : scalar
         Sample rate.
-    timeslice : scalar
-        The length in seconds of each time slice.
-    tsoverlap : scalar in [0, 1)
-        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
+    timeslice : scalar or string-integer
+        If scalar, it is the length in seconds for each slice. If
+        string, it contains the integer number of points for each
+        slice. For example, if `sr` is 1000 samples/second,
+        ``timeslice=0.75`` is equivalent to ``timeslice="750"``.
+    tsoverlap : scalar in [0, 1) or string-integer
+        If scalar, is the fraction of each time-slice to overlap. If
+        string, it contains the integer number of points to
+        overlap. For example, if `sr` is 1000 samples/second,
+        ``tsoverlap=0.5`` and ``tsoverlap="500"`` each specify 50%
+        overlap.
     func : function
         This function is called for each time slice (denoted as
         "sig_slice" here) and is expected to return amplitude values
@@ -2002,7 +2009,8 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
     slicekwargs : dict; optional
         If provided, these are passed to `slicefunc`. Must be None or
         `{}` if `slicefunc` is None.
-
+    units : tuple_like; optional
+    Contains two strings to specify units of `timeslice` and `tsoverlap`.
     Returns
     -------
     mp : 2d ndarray
@@ -2041,7 +2049,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         >>> sr = 1/t[1]
         >>> frq = np.arange(1., 50.1)
         >>> Q = 20
-        >>> mp, t, f = dsp.waterfall(sig, sr, 2, .5, srs.srs,
+        >>> mp, t, f = dsp.waterfall(sig, sr, 2, 0.5, srs.srs,
         ...                          which=None, freq=frq,
         ...                          args=(sr, frq, Q),
         ...                          kwargs=dict(eqsine=1),
@@ -2081,8 +2089,6 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         if max(sig.shape) < sig.size:
             raise ValueError('`sig` must be a vector')
         sig = sig.ravel()
-    if not 0 <= tsoverlap < 1:
-        raise ValueError('`tsoverlap` must be in [0, 1)')
 
     if args is None:
         args = ()
@@ -2094,12 +2100,28 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         slicekwargs = {}
 
     # work with integers for slicing:
-    ntimeslice = int(sr*timeslice)
+    if isinstance(timeslice, str):
+        ntimeslice = int(timeslice)
+        timeslice = ntimeslice / sr
+    else:
+        ntimeslice = int(round(sr*timeslice))
+
     if ntimeslice > sig.size:
         ntimeslice = sig.size
         timeslice = ntimeslice/sr
 
-    inc = max(1, int(round(ntimeslice * (1.0 - tsoverlap))))
+    if isinstance(tsoverlap, str):
+        ntsoverlap = int(tsoverlap)
+        if not 0 <= ntsoverlap < ntimeslice:
+            raise ValueError('`tsoverlap` must be in [0, {})'
+                             .format(ntimeslice))
+    else:
+        if not 0 <= tsoverlap < 1:
+            raise ValueError('`tsoverlap` must be in [0, 1)')
+        ntsoverlap = int(round(ntimeslice * tsoverlap))
+
+    # inc = max(1, int(round(ntimeslice * (1.0 - tsoverlap))))
+    inc = max(1, ntimeslice - ntsoverlap)
     non_overlap = inc / ntimeslice
     tlen = (sig.size - ntimeslice) // inc + 1
     b = 0
@@ -2355,7 +2377,7 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
 
     if makeplot != 'no':
         envlabel = r'$\pm${}% envelope'.format(p)
-        if makeplot == 'clear':
+        if makeplot == 'clear':      # pragma: no cover
             plt.clf()
         ln = plt.plot(x, y, label=label)[0]
         p = mpatches.Patch(color=polycolor, label=envlabel)

@@ -110,6 +110,7 @@ def test_waterfall():
                   which=None, freq=frq)
 
 
+
 def test_waterfall2():
     N = 5000
     sig = np.ones(N)
@@ -119,28 +120,47 @@ def test_waterfall2():
     def func(s):
         return np.ones(len(frq)), frq
     # test different overlaps
-    S = 1.0
-    O = 0.5
+    S, Si = 1.0, "1000"
+    O, Oi = 0.5, "500"
     mp, t, f = dsp.waterfall(sig, sr, S, O, func,
                              which=0, freq=1)
+    mpi, ti, fi = dsp.waterfall(sig, sr, Si, Oi, func,
+                                which=0, freq=1)
+    assert np.allclose(mp, mpi)
+    assert np.allclose(t, ti)
+    assert np.allclose(f, fi)
     step = S*(1-O)
     tcmp = np.arange(S/2., _t[-1]-S/2+step/2, step)
     assert np.allclose(t, tcmp)
 
-    O = 0.9
+    O, Oi = 0.9, "900"
     mp, t, f = dsp.waterfall(sig, sr, S, O, func,
                              which=0, freq=1)
+    mpi, ti, fi = dsp.waterfall(sig, sr, Si, Oi, func,
+                                which=0, freq=1)
+    assert np.allclose(mp, mpi)
+    assert np.allclose(t, ti)
+    assert np.allclose(f, fi)
     step = S*(1-O)
     tcmp = np.arange(S/2., _t[-1]-S/2+step/2, step)
     assert np.allclose(t, tcmp)
 
-    O = 0.1
+    O, Oi = 0.1, "100"
     mp, t, f = dsp.waterfall(sig, sr, S, O, func,
                              which=0, freq=1)
+    mpi, ti, fi = dsp.waterfall(sig, sr, Si, Oi, func,
+                                which=0, freq=1)
+    assert np.allclose(mp, mpi)
+    assert np.allclose(t, ti)
+    assert np.allclose(f, fi)
     step = S*(1-O)
     tcmp = np.arange(S/2., _t[-1]-S/2+step/2, step)
     assert np.allclose(t, tcmp)
 
+    assert_raises(ValueError, dsp.waterfall, sig, sr,
+                  Si, -1, func, which=0, freq=1)
+    assert_raises(ValueError, dsp.waterfall, sig, sr,
+                  Si, Si, func, which=0, freq=1)
 
 def test_get_turning_pts():
     y, x = dsp.get_turning_pts([1, 2, 3, 3, 3], [1, 2, 3, 4, 5],
