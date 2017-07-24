@@ -7,12 +7,16 @@
 4. Convert uset to dataframe i think
 5. Convert ext, mx, mn in DR_Results to dataframe
 ~ 6. Add option to only compare selected drms in cla.rptpct
-7. dsp:  add "units" input so `timeslice` and `tsoverlap` can be input in
-   number of points instead of seconds and proportion
+~ 7. dsp:  add "units" input so `timeslice` and `tsoverlap` can be input in
+     number of points instead of seconds and proportion
 ~ 8. Add frequency range to SPL
 ~ 9. Add dependent/independent setting to wrtrspline_rings
+10. Add feature to loop over DR_Results data structure so a function can
+    be applied to all SimpleNamespaces … ?
+11. Add bubble color option to datacursor
+12. op4: add some c?
 
- 
+
 - cla.py:
     DR_Results() … should this be able to init? I think so:
                    DR_Results(drdefs, mission, event)
