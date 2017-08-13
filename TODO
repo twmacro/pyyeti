@@ -15,7 +15,9 @@
     be applied to all SimpleNamespaces … ?
 11. Add bubble color option to datacursor
 12. op4: add some c?
-
+13. SolveUnc: Either handle damping on rb modes or at least say it doesn’t
+    work (error out?)
+    - maybe just setting the 'nrb' setting would work ... ?
 
 - cla.py:
     DR_Results() … should this be able to init? I think so:
