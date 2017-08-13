@@ -61,6 +61,16 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     where `d` is the displacement, `v` is the velocity, and `P` is the
     applied force.
 
+    Most of the coefficients can be found in the Nastran Theoretical
+    Manual [#nast1]_. For the case where ``k = 0`` but ``b != 0``
+    (which is probably unusual), the coefficients were computed in
+    Python using the ``sympy`` package.
+    
+    References
+    ----------
+    .. [#nast1] 'The NASTRAN Theoretical Manual', Section 11.5,
+           NASA-SP-221(06), Jan 01, 1981.
+    
     See also
     --------
     :class:`SolveUnc`
@@ -77,7 +87,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     w2 = wo2 - C**2
 
     if rbmodes is None:
-        pvrb = (wo2 < .005).astype(int)
+        pvrb = (wo2 < 0.005).astype(int)
     else:
         pvrb = np.zeros(n, int)
         pvrb[rbmodes] = 1
@@ -89,6 +99,9 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
         pvel[rfmodes] = 0
         rfmodes2[rfmodes] = 1
     pvel = pvel.astype(bool)
+
+    # check for damped rigid-body equations
+    pvrb_damped = (abs(C) > 0.005) & pvrb
 
     # setup partition vectors for underdamped, critically damped,
     # and overdamped equations
@@ -131,6 +144,27 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     Fp = np.zeros(n, float)
     Gp = F.copy()
     Bp = Ap.copy()
+
+    if np.any(pvrb_damped):
+        pvrb_damped = pvrb_damped.astype(bool)
+        warnings.warn('damped rbmodes ?', RuntimeWarning)
+        print('tripped')
+        print('C', C)
+        print('pvrb', pvrb)
+        print('pvrb_damped', pvrb_damped)
+
+        # F & Fp are correct already
+        beta = C[pvrb_damped] * 2
+        ibm = 1/beta if m is None else 1/(beta*m[pvrb_damped])
+        ibh = 1/(beta * h)
+        ibbh = 1/(beta * beta * h)
+        ex = np.exp(-beta*h)
+        G[pvrb_damped] = (1-ex)/beta
+        A[pvrb_damped] = ibm * ((1/beta + ibbh)*ex + h/2 - ibbh)
+        B[pvrb_damped] = ibm * (h/2 - 1/beta + (1-ex)*ibbh)
+        Gp[pvrb_damped] = ex
+        Ap[pvrb_damped] = ibm * (ibh - (1 + ibh)*ex)
+        Bp[pvrb_damped] = ibm * (1 + ibh*(ex - 1))
 
     if np.any(pvel):
         if np.any(pvundr):
@@ -1113,7 +1147,7 @@ class _BaseODE(object):
         self.ksize = nonrf.size
         self._chk_diag_part(m, b, k)
         self._make_rb_el(rb)
-        self._zero_rbpart()
+        # self._zero_rbpart()
         self._inv_krf()
         self.systype = systype
 
