@@ -30,7 +30,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
         Time step; if None, this return returns None.
     rbmodes : 1d ndarray or None; optional
         Index vector for the rigid-body modes; if None, a mode is
-        assumed rigid-body if the `k` value is < .005.
+        assumed rigid-body if the `k` value is < 0.005.
     rfmodes : 1d ndarray or None; optional
         Index vector for the residual flexibility modes; if None,
         there are no residual flexibility modes.
@@ -43,12 +43,12 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     Notes
     -----
     All entries in `coefs` are 1d ndarrays. Except for `pvrb`, the
-    outputs are the integration coefficients from the algorithm in the
-    Nastran Theoretical Manual (sec 11.4). It can handle rigid-body,
-    under-damped, critically-damped, and over-damped equations. The
-    solver is exact with the assumption that the forces vary linearly
-    during a time step (1st order hold). `pvrb` is a boolean vector
-    with True specifying where rigid-body modes are.
+    outputs are the integration coefficients. It can handle
+    rigid-body, under-damped, critically-damped, and over-damped
+    equations. It can also handle rigid-body with damping. The solver
+    is exact with the assumption that the forces vary linearly during
+    a time step (1st order hold). `pvrb` is a boolean vector with True
+    specifying where rigid-body modes are.
 
     The coefficients are used as follows::
 
@@ -63,14 +63,16 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
 
     Most of the coefficients can be found in the Nastran Theoretical
     Manual [#nast1]_. For the case where ``k = 0`` but ``b != 0``
-    (which is probably unusual), the coefficients were computed in
-    Python using the ``sympy`` package.
-    
+    (rigid-body with damping ... which is probably unusual), the
+    coefficients were computed by hand and confirmed in Python using
+    the ``sympy`` package.
+
     References
     ----------
     .. [#nast1] 'The NASTRAN Theoretical Manual', Section 11.5,
            NASA-SP-221(06), Jan 01, 1981.
-    
+           https://ntrs.nasa.gov/search.jsp?R=19840010609
+
     See also
     --------
     :class:`SolveUnc`
@@ -101,7 +103,15 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     pvel = pvel.astype(bool)
 
     # check for damped rigid-body equations
-    pvrb_damped = (abs(C) > 0.005) & pvrb
+    # - from trial and error, it was found that a decent cutoff value
+    #   for velocities (to use damping) is when:
+    #          1/(b**2*h) < 10**10
+    #     or:  b > 10**-5 / sqrt(h)
+    # - displacements have a different cutoff. the denominator
+    #   is: 1/(b**3*h) < 10**10
+    #     or:  b > (1e-10/h)**(1/3)
+    #     adjusted to: b > 10*(1e-10/h)**(1/3) be trial and error
+    pvrb_damped = (abs(C) > 1e-5/np.sqrt(h)) & pvrb
 
     # setup partition vectors for underdamped, critically damped,
     # and overdamped equations
@@ -124,10 +134,8 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
 
     if badrows is not None:
         msg = ('Partitioning problem. Check '
-               'settings for mode number(s):')
-        print(msg)
-        print('badrows = ', badrows)
-        raise ValueError('Partitioning problem. See above message.')
+               'settings for mode number(s):\n{}')
+        raise ValueError(msg.format(badrows))
 
     w2 = abs(w2)
     # define the appropriate parameters based on damping
@@ -146,12 +154,15 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     Bp = Ap.copy()
 
     if np.any(pvrb_damped):
-        pvrb_damped = pvrb_damped.astype(bool)
-        warnings.warn('damped rbmodes ?', RuntimeWarning)
-        print('tripped')
-        print('C', C)
-        print('pvrb', pvrb)
-        print('pvrb_damped', pvrb_damped)
+        pvrb_damped = pvrb_damped.nonzero()[0]
+        pvdisp = ((abs(C[pvrb_damped]) > 10*(1e-10/h)**(1/3))
+                  .nonzero()[0])
+        # warnings.warn('damped rbmodes ?', RuntimeWarning)
+        # print('tripped')
+        # print('C', C)
+        # print('pvrb', pvrb)
+        # print('pvrb_damped', pvrb_damped)
+        # print('pvdisp', pvdisp)
 
         # F & Fp are correct already
         beta = C[pvrb_damped] * 2
@@ -159,9 +170,14 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
         ibh = 1/(beta * h)
         ibbh = 1/(beta * beta * h)
         ex = np.exp(-beta*h)
-        G[pvrb_damped] = (1-ex)/beta
-        A[pvrb_damped] = ibm * ((1/beta + ibbh)*ex + h/2 - ibbh)
-        B[pvrb_damped] = ibm * (h/2 - 1/beta + (1-ex)*ibbh)
+        if pvdisp.size:
+            # damping coefficients for displacements are only used if
+            # damping is bigger ... see note above (otherwise, the rb
+            # coefficients are more accurate)
+            pv = pvrb_damped[pvdisp]
+            G[pv] = ((1-ex)/beta)[pvdisp]
+            A[pv] = (ibm * ((1/beta + ibbh)*ex + h/2 - ibbh))[pvdisp]
+            B[pv] = (ibm * (h/2 - 1/beta + (1-ex)*ibbh))[pvdisp]
         Gp[pvrb_damped] = ex
         Ap[pvrb_damped] = ibm * (ibh - (1 + ibh)*ex)
         Bp[pvrb_damped] = ibm * (1 + ibh*(ex - 1))
@@ -1154,7 +1170,7 @@ class _BaseODE(object):
     def _make_rb_el(self, rb):
         if rb is None:
             if self.ksize:
-                tol = .005
+                tol = 0.005
                 if self.unc:
                     _rb = np.nonzero(abs(self.k) < tol)[0]
                 else:
@@ -1183,19 +1199,19 @@ class _BaseODE(object):
         self.rbsize = rb.size
         self.elsize = el.size
 
-    def _zero_rbpart(self):
-        """Zero out rigid-body part of stiffness and damping"""
-        if self.rbsize:
-            if id(self.b) == self.bid:
-                self.b = self.b.copy()
-            if id(self.k) == self.kid:
-                self.k = self.k.copy()
-            if self.unc:
-                self.b[self._rb] = 0
-                self.k[self._rb] = 0
-            else:
-                self.b[self._rb, self._rb] = 0
-                self.k[self._rb, self._rb] = 0
+    # def _zero_rbpart(self):
+    #     """Zero out rigid-body part of stiffness and damping"""
+    #     if self.rbsize:
+    #         if id(self.b) == self.bid:
+    #             self.b = self.b.copy()
+    #         if id(self.k) == self.kid:
+    #             self.k = self.k.copy()
+    #         if self.unc:
+    #             self.b[self._rb] = 0
+    #             self.k[self._rb] = 0
+    #         else:
+    #             self.b[self._rb, self._rb] = 0
+    #             self.k[self._rb, self._rb] = 0
 
     def _build_A(self):
         """Builds the A matrix: yd - A y = f"""
@@ -1433,7 +1449,7 @@ class SolveExp2(_BaseODE):
         >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
         >>> zeta = np.array([0., .05, 1., 2.])    # percent damp
         >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-        >>> h = .001                              # time step
+        >>> h = 0.001                             # time step
         >>> t = np.arange(0, .3001, h)            # time vector
         >>> c = 2*np.pi
         >>> f = np.vstack((3*(1-np.cos(c*2*t)),
@@ -1504,8 +1520,8 @@ class SolveExp2(_BaseODE):
             rigid-body modes will be automatically detected by this
             logic::
 
-                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
-                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
+               rb = np.nonzero(abs(k) < 0.005)[0]  # for diagonal k
+               rb = np.nonzero(abs(k).max(0) < 0.005)[0]  # for full k
 
             Set to [] to specify no rigid-body modes. Note: the
             detection of rigid-body modes is done after the `pre_eig`
@@ -1796,7 +1812,7 @@ class SolveExp2(_BaseODE):
         >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
         >>> zeta = np.array([0., .05, 1., 2.])    # % damping
         >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-        >>> h = .001                              # time step
+        >>> h = 0.001                             # time step
         >>> t = np.arange(0, .3001, h)            # time vector
         >>> c = 2*np.pi
         >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
@@ -2169,7 +2185,7 @@ class SolveUnc(_BaseODE):
         >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
         >>> zeta = np.array([0., .05, 1., 2.])    # % damping
         >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-        >>> h = .001                              # time step
+        >>> h = 0.001                             # time step
         >>> t = np.arange(0, .3001, h)            # time vector
         >>> c = 2*np.pi
         >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
@@ -2241,8 +2257,8 @@ class SolveUnc(_BaseODE):
             rigid-body modes will be automatically detected by this
             logic::
 
-                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
-                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
+               rb = np.nonzero(abs(k) < 0.005)[0]  # for diagonal k
+               rb = np.nonzero(abs(k).max(0) < 0.005)[0]  # for full k
 
             Set to [] to specify no rigid-body modes. Note: the
             detection of rigid-body modes is done after the `pre_eig`
@@ -2323,7 +2339,8 @@ class SolveUnc(_BaseODE):
         the setting of `order` is, but the solver will adjust the use
         of the forces to account for the `order` setting.
 
-        The mass, damping and stiffness may be real or complex.
+        The mass, damping and stiffness may be real or complex since
+        this solver is also used for frequency domain problems.
         """
         self._common_precalcs(m, b, k, h, rb, rf, pre_eig)
         if self.ksize:
@@ -2493,7 +2510,7 @@ class SolveUnc(_BaseODE):
         >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
         >>> zeta = np.array([0., .05, 1., 2.])    # % damping
         >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-        >>> h = .001                              # time step
+        >>> h = 0.001                             # time step
         >>> t = np.arange(0, .3001, h)            # time vector
         >>> c = 2*np.pi
         >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
@@ -3641,8 +3658,8 @@ class FreqDirect(_BaseODE):
             rigid-body modes will be automatically detected by this
             logic::
 
-                rb = np.nonzero(abs(k) < .005)[0]  # for diagonal k
-                rb = np.nonzero(abs(k).max(0) < .005)[0]  # for full k
+               rb = np.nonzero(abs(k) < 0.005)[0]  # for diagonal k
+               rb = np.nonzero(abs(k).max(0) < 0.005)[0]  # for full k
 
             Set to [] to specify no rigid-body modes.
 

@@ -144,14 +144,24 @@ def test_getEPQ_B():
             assert np.allclose(q, qt)
 
 
+def check_true_derivatives(sol, tol=5e-3):
+    d = integrate.cumtrapz(sol.v, sol.t, initial=0, axis=1)
+    v = integrate.cumtrapz(sol.a, sol.t, initial=0, axis=1)
+    derr = abs((d+sol.d[:, :1]) - sol.d).max()/abs(sol.d).max()
+    verr = abs((v+sol.v[:, :1]) - sol.v).max()/abs(sol.v).max()
+    assert derr < 5.e-3
+    assert verr < 5.e-3
+
+
 def test_ode_ic():
     # uncoupled equations
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 1.2])    # percent damping
     b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b[0] = 2*b[1]
 
-    h = .001                               # time step
+    h = 0.0002                             # time step
     t = np.arange(0, .3001, h)             # time vector
     c = 2*np.pi
     f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
@@ -170,20 +180,25 @@ def test_ode_ic():
     assert np.allclose(sole.a, solu.a)
     assert np.allclose(sole.v, solu.v)
     assert np.allclose(sole.d, solu.d)
-
     assert np.allclose(v0, solu.v[:, 0])
     assert np.allclose(d0, solu.d[:, 0])
+    assert np.allclose(v0, sole.v[:, 0])
+    assert np.allclose(d0, sole.d[:, 0])
 
-    v = integrate.cumtrapz(solu.a, solu.t, initial=0)
-    d = integrate.cumtrapz(solu.v, solu.t, initial=0)
+    check_true_derivatives(solu)
+    check_true_derivatives(sole)
 
-    fr = m[:, None]*solu.a + b[:, None]*solu.v + k[:, None]*solu.d
+    fru = m[:, None]*solu.a + b[:, None]*solu.v + k[:, None]*solu.d
+    fre = m[:, None]*sole.a + b[:, None]*sole.v + k[:, None]*sole.d
 
-    assert np.allclose(f, fr)
-    verr = abs((v+v0[:, None]) - solu.v).max()/abs(solu.v).max()
-    derr = abs((d+d0[:, None]) - solu.d).max()/abs(solu.d).max()
-    assert verr < 5.e-3
-    assert derr < 5.e-3
+    assert np.allclose(f, fru)
+    assert np.allclose(f, fre)
+
+    # plt.clf()
+    # for i, r in enumerate('avd'):
+    #     plt.subplot(3, 1, i+1)
+    #     plt.plot(sole.t, getattr(sole, r).T, '-',
+    #              sole.t, getattr(solu, r).T, '--')
 
 
 def get_rfsol(k, rf, f):
@@ -1993,12 +2008,8 @@ def test_ode_complex_coefficients():
         else:
             fr = m.dot(sol.a) + b.dot(sol.v) + k.dot(sol.d)
 
-        v = integrate.cumtrapz(sol.a, sol.t, initial=0)
-        d = integrate.cumtrapz(sol.v, sol.t, initial=0)
-
+        check_true_derivatives(sol, tol=1e-5)
         assert np.allclose(f, fr)
-        assert abs(v-sol.v).max() < 1e-5
-        assert abs(d-sol.d).max() < 1e-5
 
         # test the generator solver:
         nt = len(sol.t)
@@ -2138,12 +2149,8 @@ def test_ode_complex_coefficients_mNone():
         else:
             fr = sol.a + b.dot(sol.v) + k.dot(sol.d)
 
-        v = integrate.cumtrapz(sol.a, sol.t, initial=0)
-        d = integrate.cumtrapz(sol.v, sol.t, initial=0)
-
+        check_true_derivatives(sol, tol=1e-5)
         assert np.allclose(f, fr)
-        assert abs(v-sol.v).max() < 1e-5
-        assert abs(d-sol.d).max() < 1e-5
 
         # test the generator solver:
         nt = len(sol.t)
@@ -2213,12 +2220,8 @@ def test_ode_complex_coefficients_rb():
         else:
             fr = m.dot(sol.a) + b.dot(sol.v) + k.dot(sol.d)
 
-        v = integrate.cumtrapz(sol.a, sol.t, initial=0)
-        d = integrate.cumtrapz(sol.v, sol.t, initial=0)
-
+        check_true_derivatives(sol, tol=1e-5)
         assert np.allclose(f, fr)
-        assert abs(v-sol.v).max() < 1e-5
-        assert abs(d-sol.d).max() < 1e-5
 
         # test the generator solver:
         nt = len(sol.t)
@@ -2257,6 +2260,8 @@ def test_approx_rbmodes():
     k = nas['lambda'][0]   # imperfect zeros
     zeta = 1000  # VERY high damping, for testing
     b = 2*np.sqrt(abs(k))*zeta
+    # k[:6] = 0.0
+    # b[:6] = 1e-4
 
     # step input, 2 second duration
     h = .001
@@ -2273,37 +2278,60 @@ def test_approx_rbmodes():
     se = se2(m, b, k, h)
 
     # solve equations of motion with zero initial conditions:
-    solu_nosic = su.tsolve(drm.T @ f, static_ic=0)
-    solu_sic = su.tsolve(drm.T @ f, static_ic=1)
+    g = drm.T @ f
+    solu_nosic = su.tsolve(g, static_ic=0)
+    solu_sic = su.tsolve(g, static_ic=1)
+
+    check_true_derivatives(solu_nosic)
+    check_true_derivatives(solu_sic)
 
     # check for ValueError when force is incorrectly sized:
     assert_raises(ValueError, se.tsolve, f)
 
     # solve:
-    sole_nosic = se.tsolve(drm.T @ f, static_ic=0)
-    sole_sic = se.tsolve(drm.T @ f, static_ic=1)
+    sole_nosic = se.tsolve(g, static_ic=0)
+    sole_sic = se.tsolve(g, static_ic=1)
 
+    check_true_derivatives(sole_nosic)
+    check_true_derivatives(sole_sic)
+
+    fru = (solu_nosic.a + b[:, None]*solu_nosic.v +
+           k[:, None]*solu_nosic.d)
+    fre = (sole_nosic.a + b[:, None]*sole_nosic.v +
+           k[:, None]*sole_nosic.d)
+
+    assert np.allclose(g, fru)
+    assert np.allclose(g, fre)
+
+    fru = (solu_sic.a + b[:, None]*solu_sic.v +
+           k[:, None]*solu_sic.d)
+    fre = (sole_sic.a + b[:, None]*sole_sic.v +
+           k[:, None]*sole_sic.d)
+
+    assert np.allclose(g, fru)
+    assert np.allclose(g, fre)
     assert np.allclose(solu_nosic.a, sole_nosic.a)
     assert np.allclose(solu_nosic.v, sole_nosic.v)
-    assert np.allclose(solu_nosic.d, sole_nosic.d)
-
+    assert np.allclose(solu_nosic.d, sole_nosic.d, atol=1e-5)
     assert np.allclose(solu_sic.a, sole_sic.a)
     assert np.allclose(solu_sic.v, sole_sic.v)
-    assert np.allclose(solu_sic.d, sole_sic.d)
+    assert np.allclose(solu_sic.d, sole_sic.d, atol=1e-5)
 
-    # recover accels (35 x, 36 x, 8 x):
-    atm = np.vstack((ATM, drm))
-    acceu_nosic = atm @ solu_nosic.a[:, -1]
-    accee_nosic = atm @ sole_nosic.a[:, -1]
-    acceu_sic = atm @ solu_sic.a[:, -1]
-    accee_sic = atm @ sole_sic.a[:, -1]
-
-    # from solving this previously, the solution at the end time is:
-    acce = np.array([0.3188, 0.2790, 0.3375])
-    assert abs(acceu_nosic - acce).max() < 1e-4
-    assert abs(accee_nosic - acce).max() < 1e-4
-    assert abs(acceu_sic - acce).max() < 1e-4
-    assert abs(accee_sic - acce).max() < 1e-4
+    # # recover accels (35 x, 36 x, 8 x):
+    # atm = np.vstack((ATM, drm))
+    # acceu_nosic = atm @ solu_nosic.a[:, -1]
+    # accee_nosic = atm @ sole_nosic.a[:, -1]
+    # acceu_sic = atm @ solu_sic.a[:, -1]
+    # accee_sic = atm @ sole_sic.a[:, -1]
+    #
+    # for sole, solu, name in ((sole_sic, solu_sic, 'sic'),
+    #                          (sole_nosic, solu_nosic, 'nosic')):
+    #     plt.figure(name, figsize=(8, 8))
+    #     plt.clf()
+    #     for i, r in enumerate('avd'):
+    #         plt.subplot(3, 1, i+1)
+    #         plt.plot(sole.t, getattr(sole, r).T, '-',
+    #                  sole.t, getattr(solu, r).T, '--')
 
 
 def test_ode_pre_eig():
