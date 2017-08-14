@@ -157,13 +157,6 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
         pvrb_damped = pvrb_damped.nonzero()[0]
         pvdisp = ((abs(C[pvrb_damped]) > 10*(1e-10/h)**(1/3))
                   .nonzero()[0])
-        # warnings.warn('damped rbmodes ?', RuntimeWarning)
-        # print('tripped')
-        # print('C', C)
-        # print('pvrb', pvrb)
-        # print('pvrb_damped', pvrb_damped)
-        # print('pvdisp', pvdisp)
-
         # F & Fp are correct already
         beta = C[pvrb_damped] * 2
         ibm = 1/beta if m is None else 1/(beta*m[pvrb_damped])
@@ -430,7 +423,21 @@ def eigss(A, delcc):
     --------
     :func:`make_A`, :class:`SolveUnc`.
     """
+    msg = ('in :func:`eigss`, the eigenvectors for the state-'
+           'space formulation are poorly conditioned (cond={:.3e}). '
+           'Solution will likely be inaccurate.\n'
+           'Possible causes/solutions:\n'
+           '\tThe partition vector for the rigid-body modes is'
+           'incorrect or not set\n'
+           '\tThe equations are not in modal space, and the '
+           'rigid-body modes cannot be detected -- use the '
+           '`pre_eig` option\n'
+           '\tUse :class:`SolveExp2` instead for time domain, or\n'
+           '\tuse :class:`FreqDirect` instead for frequency domain\n')
     lam, ur = la.eig(A)
+    c = np.linalg.cond(ur)
+    if c > 1/np.finfo(float).eps:
+        warnings.warn(msg.format(c), RuntimeWarning)
     ur_inv = la.inv(ur)
     lam, i, dups = _eigc_dups(lam)
     ur = ur[:, i]
@@ -1174,6 +1181,8 @@ class _BaseODE(object):
                 if self.unc:
                     _rb = np.nonzero(abs(self.k) < tol)[0]
                 else:
+                    # to incorporate rb damping ... change following line
+                    # - also, count on symmetry like this does now?
                     _rb = np.nonzero(abs(self.k).max(axis=0) < tol)[0]
                 rb = np.zeros(self.n, bool)
                 rb[self.nonrf[_rb]] = True
@@ -2280,10 +2289,11 @@ class SolveUnc(_BaseODE):
             space. This will allow the automatic detection of
             rigid-body modes which is necessary for the complex
             eigenvalue method to work properly on systems with
-            rigid-body modes. No modes are truncated. Only works if
-            stiffness is symmetric/hermitian and mass is positive
-            definite (see :func:`scipy.linalg.eigh`). Just leave it as
-            False if the equations are already in modal space.
+            rigid-body modes (unless those modes have damping). No
+            modes are truncated. Only works if stiffness is
+            symmetric/hermitian and mass is positive definite (see
+            :func:`scipy.linalg.eigh`). Just leave it as False if the
+            equations are already in modal space.
 
         Notes
         -----
@@ -3407,34 +3417,34 @@ class SolveUnc(_BaseODE):
             self._inv_m()
             A = self._build_A()
             lam, ur, ur_inv, dups = eigss(A, delcc)
-            if dups.size:
-                uu = ur_inv[dups] @ ur[:, dups]
-                uau = ur_inv[dups] @ A @ ur[:, dups]
-                maxuau = abs(uau).max()
-                if (not np.allclose(uu, np.eye(uu.shape[0])) or
-                        not ytools.isdiag(uau) or
-                        maxuau < 5.e-5):
-                    od1 = abs(uu - np.diag(np.diag(uu))).max()
-                    od2 = abs(uau - np.diag(np.diag(uau))).max()
-                    warnings.warn(msg.format(od1, od2, maxuau),
-                                  RuntimeWarning)
+            # if dups.size:
+            #     uu = ur_inv[dups] @ ur[:, dups]
+            #     uau = ur_inv[dups] @ A @ ur[:, dups]
+            #     maxuau = abs(uau).max()
+            #     if (not np.allclose(uu, np.eye(uu.shape[0])) or
+            #             not ytools.isdiag(uau) or
+            #             maxuau < 5.e-5):
+            #         od1 = abs(uu - np.diag(np.diag(uu))).max()
+            #         od2 = abs(uau - np.diag(np.diag(uau))).max()
+            #         warnings.warn(msg.format(od1, od2, maxuau),
+            #                       RuntimeWarning)
             if h:
                 self._get_complex_su_coefs(pc, lam, h)
             self._add_partition_copies(pc, lam, ur, ur_inv)
         return pc
 
     def _get_complex_su_coefs(self, pc, lam, h):
-        msg = (
-            '{} [complex eigenvalue solver]: found {{}} rigid-body '
-            'modes in elastic modes partition. This is probably an '
-            'error: the rigid-body modes should be partitioned out '
-            'before now.\n o This can happen if the equations are not '
-            'in modal space; if so, use the "pre_eig=True" option.\n o '
-            'Otherwise, check for other warnings about singular '
-            'matrices or repeated roots. If no such messages, solution '
-            'may be valid, but check it before trusting it.'
-            .format(type(self).__name__)
-        )
+        # msg = (
+        #     '{} [complex eigenvalue solver]: found {{}} rigid-body '
+        #     'modes in elastic modes partition. This is probably an '
+        #     'error: the rigid-body modes should be partitioned out '
+        #     'before now.\n o This can happen if the equations are not '
+        #     'in modal space; if so, use the "pre_eig=True" option.\n o '
+        #     'Otherwise, check for other warnings about singular '
+        #     'matrices or repeated roots. If no such messages, solution '
+        #     'may be valid, but check it before trusting it.'
+        #     .format(type(self).__name__)
+        # )
 
         # form coefficients for piece-wise exact solution:
         Fe = np.exp(lam*h)
@@ -3447,8 +3457,8 @@ class SolveUnc(_BaseODE):
         #  error comparing against matrix exponential solver)
         pv = np.nonzero(abslam < 5.e-5)[0]
         if pv.size:
-            if pv.size > 1:
-                warnings.warn(msg.format(len(pv)), RuntimeWarning)
+            # if pv.size > 1:
+            #     warnings.warn(msg.format(len(pv)), RuntimeWarning)
             Fe[pv] = 1.
             Ae[pv] = h/2.
             Be[pv] = h/2.
