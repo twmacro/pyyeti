@@ -18,6 +18,7 @@
 13. SolveUnc: Either handle damping on rb modes or at least say it doesn’t
     work (error out?)
     - maybe just setting the 'nrb' setting would work ... ?
+    - finish documentation
 
 - cla.py:
     DR_Results() … should this be able to init? I think so:
