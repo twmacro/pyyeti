@@ -159,7 +159,7 @@ def test_ode_ic():
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 1.2])    # percent damping
     b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
-    b[0] = 2*b[1]
+    b[0] = 2*b[1]  # add damping on rb modes for test
 
     h = 0.0002                             # time step
     t = np.arange(0, .3001, h)             # time vector
@@ -199,6 +199,52 @@ def test_ode_ic():
     #     plt.subplot(3, 1, i+1)
     #     plt.plot(sole.t, getattr(sole, r).T, '-',
     #              sole.t, getattr(solu, r).T, '--')
+
+
+def test_rbdamped_modes_coupled():
+    N = 10
+    win = 100
+    m = np.random.randn(N, N)
+    m = m.T @ m
+    k = np.zeros(N)
+    h = 0.001
+    t = np.arange(int(1/h))*h
+    f = np.zeros((N, len(t)))
+    f[:, :win] = np.ones((N, 1)) * np.hanning(win) * 20
+
+    for b in (np.zeros(N), 10*np.ones(N)):
+        se2 = ode.SolveExp2(m, b, k, h)
+        su = ode.SolveUnc(m, b, k, h) # , rb=[])
+        sole = se2.tsolve(f)
+        solu = su.tsolve(f)
+
+        assert np.allclose(sole.a, solu.a)
+        assert np.allclose(sole.v, solu.v)
+        assert np.allclose(sole.d, solu.d)
+        check_true_derivatives(solu)
+        check_true_derivatives(sole)
+
+        fru = m @ solu.a + b[:, None]*solu.v + k[:, None]*solu.d
+        fre = m @ sole.a + b[:, None]*sole.v + k[:, None]*sole.d
+
+        assert np.allclose(f, fru)
+        assert np.allclose(f, fre)
+
+    # unittest bug avoidance:
+    import sys
+    for v in list(sys.modules.values()):
+        if getattr(v, '__warningregistry__', None):
+            v.__warningregistry__ = {}
+
+    with assert_warns(RuntimeWarning) as cm:
+        ode.SolveUnc(m, b*0, k, h, rb=[])
+    found = False
+    for w in cm.warnings:
+        if str(w.message).find(
+                'eigenvectors for the state-space '
+                'formulation are poorly conditioned') > -1:
+            found = True
+    assert found
 
 
 def get_rfsol(k, rf, f):
@@ -2177,22 +2223,22 @@ def test_ode_complex_coefficients_mNone():
         assert np.allclose(sol.d, sol2.d)
 
 
-def test_ode_complex_coefficients_dups():
-    aa = np.ones((2, 2)) * (1. + 1j)
-    m = aa.copy()
-    m[0, 0] = 3.+2j
-    b = aa.copy()
-    k = aa.copy()
-    h = .1
-    with assert_warns(RuntimeWarning) as cm:
-        ode.SolveUnc(m, b, k, h)
-    wrn0 = str(cm.warnings[0].message)
-    assert 0 == wrn0.find('Repeated roots detected')
-    found = False
-    for w in cm.warnings[1:]:
-        if str(w.message).find('found 2 rigid-body modes') > -1:
-            found = True
-    assert found
+# def test_ode_complex_coefficients_dups():
+#     aa = np.ones((2, 2)) * (1. + 1j)
+#     m = aa.copy()
+#     m[0, 0] = 3.+2j
+#     b = aa.copy()
+#     k = aa.copy()
+#     h = .1
+#     with assert_warns(RuntimeWarning) as cm:
+#         ode.SolveUnc(m, b, k, h)
+#     wrn0 = str(cm.warnings[0].message)
+#     assert 0 == wrn0.find('Repeated roots detected')
+#     found = False
+#     for w in cm.warnings[1:]:
+#         if str(w.message).find('found 2 rigid-body modes') > -1:
+#             found = True
+#     assert found
 
 
 def test_ode_complex_coefficients_rb():
@@ -2259,6 +2305,7 @@ def test_approx_rbmodes():
     m = None  # treated as identity
     k = nas['lambda'][0]   # imperfect zeros
     zeta = 1000  # VERY high damping, for testing
+    # we end up with RB modes with damping ... good for testing
     b = 2*np.sqrt(abs(k))*zeta
     # k[:6] = 0.0
     # b[:6] = 1e-4

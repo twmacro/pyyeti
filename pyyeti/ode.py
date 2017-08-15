@@ -427,13 +427,13 @@ def eigss(A, delcc):
            'space formulation are poorly conditioned (cond={:.3e}). '
            'Solution will likely be inaccurate.\n'
            'Possible causes/solutions:\n'
-           '\tThe partition vector for the rigid-body modes is'
+           '\tThe partition vector for the rigid-body modes is '
            'incorrect or not set\n'
            '\tThe equations are not in modal space, and the '
            'rigid-body modes cannot be detected -- use the '
            '`pre_eig` option\n'
            '\tUse :class:`SolveExp2` instead for time domain, or\n'
-           '\tuse :class:`FreqDirect` instead for frequency domain\n')
+           '\tUse :class:`FreqDirect` instead for frequency domain\n')
     lam, ur = la.eig(A)
     c = np.linalg.cond(ur)
     if c > 1/np.finfo(float).eps:
@@ -1183,7 +1183,11 @@ class _BaseODE(object):
                 else:
                     # to incorporate rb damping ... change following line
                     # - also, count on symmetry like this does now?
-                    _rb = np.nonzero(abs(self.k).max(axis=0) < tol)[0]
+                    _rb = ((abs(self.k).max(axis=0) < tol) &
+                           (abs(self.k).max(axis=1) < tol) &
+                           (abs(self.b).max(axis=0) < tol) &
+                           (abs(self.b).max(axis=1) < tol)).nonzero()[0]
+                    # _rb = np.nonzero(abs(self.k).max(axis=0) < tol)[0]
                 rb = np.zeros(self.n, bool)
                 rb[self.nonrf[_rb]] = True
                 rb = np.nonzero(rb)[0]
@@ -3386,15 +3390,15 @@ class SolveUnc(_BaseODE):
         --------
         :class:`SolveUnc`
         """
-        msg = ('Repeated roots detected and equations do not appear '
-               'to be diagonalized. Generally, this is a failure '
-               'condition. For time domain problems, the routine '
-               ':class:`SolveExp2` will probably work better. For '
-               'frequency domain, see :class:`FreqDirect`. '
-               'Proceeding, but check results VERY carefully.\n'
-               '\tMax off-diag of ``inv(ur) @ ur = {}``\n'
-               '\tMax off-diag of ``inv(ur) @ A @ ur = {}``\n'
-               '\tMax ``inv(ur) @ A @ ur = {}``')
+        # msg = ('Repeated roots detected and equations do not appear '
+        #        'to be diagonalized. Generally, this is a failure '
+        #        'condition. For time domain problems, the routine '
+        #        ':class:`SolveExp2` will probably work better. For '
+        #        'frequency domain, see :class:`FreqDirect`. '
+        #        'Proceeding, but check results VERY carefully.\n'
+        #        '\tMax off-diag of ``inv(ur) @ ur = {}``\n'
+        #        '\tMax off-diag of ``inv(ur) @ A @ ur = {}``\n'
+        #        '\tMax ``inv(ur) @ A @ ur = {}``')
         pc = SimpleNamespace()
         h = self.h
         if self.rbsize:
@@ -3434,6 +3438,7 @@ class SolveUnc(_BaseODE):
         return pc
 
     def _get_complex_su_coefs(self, pc, lam, h):
+        """form coefficients for piece-wise exact solution"""
         # msg = (
         #     '{} [complex eigenvalue solver]: found {{}} rigid-body '
         #     'modes in elastic modes partition. This is probably an '
@@ -3446,22 +3451,23 @@ class SolveUnc(_BaseODE):
         #     .format(type(self).__name__)
         # )
 
-        # form coefficients for piece-wise exact solution:
-        Fe = np.exp(lam*h)
-        ilam = 1/lam
-        ilamh = (ilam*ilam)/h
-        Ae = ilamh + Fe*(ilam - ilamh)
-        Be = Fe*ilamh - ilam - ilamh
-        abslam = abs(lam)
         # check for rb modes (5.e-5 determined by trial and
         #  error comparing against matrix exponential solver)
-        pv = np.nonzero(abslam < 5.e-5)[0]
-        if pv.size:
-            # if pv.size > 1:
-            #     warnings.warn(msg.format(len(pv)), RuntimeWarning)
-            Fe[pv] = 1.
-            Ae[pv] = h/2.
-            Be[pv] = h/2.
+        abslam = abs(lam)
+        rb = abslam < 5.e-5
+        el = ~rb
+        Fe = np.exp(lam*h)
+        Ae = np.empty_like(Fe)
+        Be = np.empty_like(Fe)
+        ilam = 1/lam[el]
+        ilamh = (ilam*ilam)/h
+        Ae[el] = ilamh + Fe[el]*(ilam - ilamh)
+        Be[el] = Fe[el]*ilamh - ilam - ilamh
+        if rb.any():
+            # warnings.warn(msg.format(len(pv)), RuntimeWarning)
+            Fe[rb] = 1.
+            Ae[rb] = h/2.
+            Be[rb] = h/2.
         pc.Fe = Fe
         pc.Ae = Ae
         pc.Be = Be
