@@ -38,7 +38,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     Returns
     -------
     coefs : SimpleNamespace with the members:
-        ``F, G, A, B, Fp, Gp, Ap, Bp, pvrb``.
+        ``F, G, A, B, Fp, Gp, Ap, Bp, pvrb, pvrb_damped``
 
     Notes
     -----
@@ -48,7 +48,8 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     equations. It can also handle rigid-body with damping. The solver
     is exact with the assumption that the forces vary linearly during
     a time step (1st order hold). `pvrb` is a boolean vector with True
-    specifying where rigid-body modes are.
+    specifying where rigid-body modes are and `pvrb_damped` is the
+    same but for the damped rigid-body modes.
 
     The coefficients are used as follows::
 
@@ -154,12 +155,12 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     Bp = Ap.copy()
 
     if np.any(pvrb_damped):
-        pvrb_damped = pvrb_damped.nonzero()[0]
-        pvdisp = ((abs(C[pvrb_damped]) > 10*(1e-10/h)**(1/3))
+        pvvelo = pvrb_damped.nonzero()[0]
+        pvdisp = ((abs(C[pvvelo]) > 10*(1e-10/h)**(1/3))
                   .nonzero()[0])
         # F & Fp are correct already
-        beta = C[pvrb_damped] * 2
-        ibm = 1/beta if m is None else 1/(beta*m[pvrb_damped])
+        beta = C[pvvelo] * 2
+        ibm = 1/beta if m is None else 1/(beta*m[pvvelo])
         ibh = 1/(beta * h)
         ibbh = 1/(beta * beta * h)
         ex = np.exp(-beta*h)
@@ -167,13 +168,13 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
             # damping coefficients for displacements are only used if
             # damping is bigger ... see note above (otherwise, the rb
             # coefficients are more accurate)
-            pv = pvrb_damped[pvdisp]
+            pv = pvvelo[pvdisp]
             G[pv] = ((1-ex)/beta)[pvdisp]
             A[pv] = (ibm * ((1/beta + ibbh)*ex + h/2 - ibbh))[pvdisp]
             B[pv] = (ibm * (h/2 - 1/beta + (1-ex)*ibbh))[pvdisp]
-        Gp[pvrb_damped] = ex
-        Ap[pvrb_damped] = ibm * (ibh - (1 + ibh)*ex)
-        Bp[pvrb_damped] = ibm * (1 + ibh*(ex - 1))
+        Gp[pvvelo] = ex
+        Ap[pvvelo] = ibm * (ibh - (1 + ibh)*ex)
+        Bp[pvvelo] = ibm * (1 + ibh*(ex - 1))
 
     if np.any(pvel):
         if np.any(pvundr):
@@ -260,7 +261,8 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
         Bp[rfmodes] = 0
 
     return SimpleNamespace(F=F, G=G, A=A, B=B,
-                           Fp=Fp, Gp=Gp, Ap=Ap, Bp=Bp, pvrb=pvrb)
+                           Fp=Fp, Gp=Gp, Ap=Ap, Bp=Bp,
+                           pvrb=pvrb, pvrb_damped=pvrb_damped)
 
 
 def finddups(v, tol=0.):
@@ -1170,7 +1172,6 @@ class _BaseODE(object):
         self.ksize = nonrf.size
         self._chk_diag_part(m, b, k)
         self._make_rb_el(rb)
-        # self._zero_rbpart()
         self._inv_krf()
         self.systype = systype
 
@@ -1181,8 +1182,6 @@ class _BaseODE(object):
                 if self.unc:
                     _rb = np.nonzero(abs(self.k) < tol)[0]
                 else:
-                    # to incorporate rb damping ... change following line
-                    # - also, count on symmetry like this does now?
                     _rb = ((abs(self.k).max(axis=0) < tol) &
                            (abs(self.k).max(axis=1) < tol) &
                            (abs(self.b).max(axis=0) < tol) &
@@ -1211,20 +1210,6 @@ class _BaseODE(object):
         self._el = _el
         self.rbsize = rb.size
         self.elsize = el.size
-
-    # def _zero_rbpart(self):
-    #     """Zero out rigid-body part of stiffness and damping"""
-    #     if self.rbsize:
-    #         if id(self.b) == self.bid:
-    #             self.b = self.b.copy()
-    #         if id(self.k) == self.kid:
-    #             self.k = self.k.copy()
-    #         if self.unc:
-    #             self.b[self._rb] = 0
-    #             self.k[self._rb] = 0
-    #         else:
-    #             self.b[self._rb, self._rb] = 0
-    #             self.k[self._rb, self._rb] = 0
 
     def _build_A(self):
         """Builds the A matrix: yd - A y = f"""
@@ -1415,9 +1400,9 @@ class SolveExp2(_BaseODE):
     By assuming :math:`w(t_n+\tau)` is piece-wise linear (if `order`
     is 1) or piece-wise constant (if `order` is 0) for each step, an
     exact, closed form solution can be calculated. The function
-    :func:`pyyeti.expmint.getEPQ` computes the matrix exponential `E`
-    (:math:`e^{A h}`), and solves the integral(s) needed to compute
-    `P` and `Q` so that a solution can be computed by:
+    :func:`pyyeti.expmint.getEPQ` computes the matrix exponential
+    :math:`E = e^{A h}`, and solves the integral(s) needed to
+    compute `P` and `Q` so that a solution can be computed by:
 
     .. math::
         y_{n+1} = E y_{n} + P w_{n} + Q w_{n+1}
@@ -1529,16 +1514,32 @@ class SolveExp2(_BaseODE):
             Time step; can be None if only want to solve a static
             problem
         rb : 1d array or None; optional
-            Index partition vector for rigid-body modes. If None, the
-            rigid-body modes will be automatically detected by this
-            logic::
+            Index partition vector for rigid-body modes. Set to [] to
+            specify no rigid-body modes. If None, the rigid-body modes
+            will be automatically detected by this logic for uncoupled
+            systems::
 
-               rb = np.nonzero(abs(k) < 0.005)[0]  # for diagonal k
-               rb = np.nonzero(abs(k).max(0) < 0.005)[0]  # for full k
+               rb = np.nonzero(abs(k).max(0) < 0.005)[0]
 
-            Set to [] to specify no rigid-body modes. Note: the
-            detection of rigid-body modes is done after the `pre_eig`
-            operation, if that is True.
+            And by this logic for coupled systems::
+
+               rb = ((abs(k).max(axis=0) < 0.005) &
+                     (abs(k).max(axis=1) < 0.005) &
+                     (abs(b).max(axis=0) < 0.005) &
+                     (abs(b).max(axis=1) < 0.005)).nonzero()[0]
+
+            .. note::
+                `rb` applies only to modal-space equations. Use
+                `pre-eig` if necessary to convert to modal-space. This
+                means that if `rb` is an index vector, it specifies
+                the rigid-body modes *after* the `pre_eig`
+                operation. See also `pre_eig`.
+
+            .. note::
+                Unlike for the :class:`SolveUnc` solver, `rb` for this
+                solver is only used if using static initial conditions
+                in :func:`SolveExp2.tsolve`.
+
         rf : 1d array or None; optional
             Index partition vector for res-flex modes; these will be
             solved statically
@@ -2045,7 +2046,6 @@ class SolveExp2(_BaseODE):
 
         References
         ----------
-
         .. [#hm] E. E. Henkel, and R. Mar "Improved Method for
             Calculating Booster to Launch Pad Interface Transient
             Forces", Journal of Spacecraft and Rockets, Dated Nov-Dec,
@@ -2266,16 +2266,27 @@ class SolveUnc(_BaseODE):
             Time step; can be None if only want to solve a static
             problem or if only solving frequency domain problems
         rb : 1d array or None; optional
-            Index partition vector for rigid-body modes. If None, the
-            rigid-body modes will be automatically detected by this
-            logic::
+            Index partition vector for rigid-body modes. Set to [] to
+            specify no rigid-body modes. If None, the rigid-body modes
+            will be automatically detected by this logic for uncoupled
+            systems::
 
-               rb = np.nonzero(abs(k) < 0.005)[0]  # for diagonal k
-               rb = np.nonzero(abs(k).max(0) < 0.005)[0]  # for full k
+               rb = np.nonzero(abs(k).max(0) < 0.005)[0]
 
-            Set to [] to specify no rigid-body modes. Note: the
-            detection of rigid-body modes is done after the `pre_eig`
-            operation, if that is True.
+            And by this logic for coupled systems::
+
+               rb = ((abs(k).max(axis=0) < 0.005) &
+                     (abs(k).max(axis=1) < 0.005) &
+                     (abs(b).max(axis=0) < 0.005) &
+                     (abs(b).max(axis=1) < 0.005)).nonzero()[0]
+
+            .. note::
+                `rb` applies only to modal-space equations. Use
+                `pre-eig` if necessary to convert to modal-space. This
+                means that if `rb` is an index vector, it specifies
+                the rigid-body modes *after* the `pre_eig`
+                operation. See also `pre_eig`.
+
         rf : 1d array or None; optional
             Index partition vector for res-flex modes; these will be
             solved statically
@@ -2652,7 +2663,6 @@ class SolveUnc(_BaseODE):
 
         References
         ----------
-
         .. [#hm] E. E. Henkel, and R. Mar "Improved Method for
             Calculating Booster to Launch Pad Interface Transient
             Forces", Journal of Spacecraft and Rockets, Dated Nov-Dec,
@@ -3421,17 +3431,6 @@ class SolveUnc(_BaseODE):
             self._inv_m()
             A = self._build_A()
             lam, ur, ur_inv, dups = eigss(A, delcc)
-            # if dups.size:
-            #     uu = ur_inv[dups] @ ur[:, dups]
-            #     uau = ur_inv[dups] @ A @ ur[:, dups]
-            #     maxuau = abs(uau).max()
-            #     if (not np.allclose(uu, np.eye(uu.shape[0])) or
-            #             not ytools.isdiag(uau) or
-            #             maxuau < 5.e-5):
-            #         od1 = abs(uu - np.diag(np.diag(uu))).max()
-            #         od2 = abs(uau - np.diag(np.diag(uau))).max()
-            #         warnings.warn(msg.format(od1, od2, maxuau),
-            #                       RuntimeWarning)
             if h:
                 self._get_complex_su_coefs(pc, lam, h)
             self._add_partition_copies(pc, lam, ur, ur_inv)
@@ -3439,18 +3438,6 @@ class SolveUnc(_BaseODE):
 
     def _get_complex_su_coefs(self, pc, lam, h):
         """form coefficients for piece-wise exact solution"""
-        # msg = (
-        #     '{} [complex eigenvalue solver]: found {{}} rigid-body '
-        #     'modes in elastic modes partition. This is probably an '
-        #     'error: the rigid-body modes should be partitioned out '
-        #     'before now.\n o This can happen if the equations are not '
-        #     'in modal space; if so, use the "pre_eig=True" option.\n o '
-        #     'Otherwise, check for other warnings about singular '
-        #     'matrices or repeated roots. If no such messages, solution '
-        #     'may be valid, but check it before trusting it.'
-        #     .format(type(self).__name__)
-        # )
-
         # check for rb modes (5.e-5 determined by trial and
         #  error comparing against matrix exponential solver)
         abslam = abs(lam)
@@ -3464,7 +3451,6 @@ class SolveUnc(_BaseODE):
         Ae[el] = ilamh + Fe[el]*(ilam - ilamh)
         Be[el] = Fe[el]*ilamh - ilam - ilamh
         if rb.any():
-            # warnings.warn(msg.format(len(pv)), RuntimeWarning)
             Fe[rb] = 1.
             Ae[rb] = h/2.
             Be[rb] = h/2.
