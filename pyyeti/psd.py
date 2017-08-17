@@ -512,10 +512,17 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
     window : str or tuple or array like; optional
         Passed to :func:`scipy.signal.welch`; see that routine for
         more information.
-    timeslice : scalar; optional
-        The length in seconds of each time slice.
-    tsoverlap : scalar; optional
-        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
+    timeslice : scalar or string-integer
+        If scalar, it is the length in seconds for each slice. If
+        string, it contains the integer number of points for each
+        slice. For example, if `sr` is 1000 samples/second,
+        ``timeslice=0.75`` is equivalent to ``timeslice="750"``.
+    tsoverlap : scalar in [0, 1) or string-integer
+        If scalar, is the fraction of each time-slice to overlap. If
+        string, it contains the integer number of points to
+        overlap. For example, if `sr` is 1000 samples/second,
+        ``tsoverlap=0.5`` and ``tsoverlap="500"`` each specify 50%
+        overlap.
     fs : integer; optional
         Specifies output frequency scale. Zero means linear scale,
         anything else is passed to :func:`rescale`. Example:
@@ -775,10 +782,17 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
         Length of each segment for the FFT. Defaults to
         ``int(sr / 5)`` for 5 Hz frequency step in PSD. Note:
         frequency step in Hz = ``sr/nperseg``.
-    timeslice : scalar; optional
-        The length in seconds of each time slice.
-    tsoverlap : scalar; optional
-        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
+    timeslice : scalar or string-integer
+        If scalar, it is the length in seconds for each slice. If
+        string, it contains the integer number of points for each
+        slice. For example, if `sr` is 1000 samples/second,
+        ``timeslice=0.75`` is equivalent to ``timeslice="750"``.
+    tsoverlap : scalar in [0, 1) or string-integer
+        If scalar, is the fraction of each time-slice to overlap. If
+        string, it contains the integer number of points to
+        overlap. For example, if `sr` is 1000 samples/second,
+        ``tsoverlap=0.5`` and ``tsoverlap="500"`` each specify 50%
+        overlap.
     getmap : bool, optional
         If True, get the PSD map output (the `Pmap` and `t` variables
         described below).

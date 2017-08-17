@@ -1422,10 +1422,17 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
 
     Parameters
     ----------
-    timeslice : scalar
-        The length in seconds of each time slice.
-    tsoverlap : scalar
-        Fraction of a time slice for overlapping. 0.5 is 50% overlap.
+    timeslice : scalar or string-integer
+        If scalar, it is the length in seconds for each slice. If
+        string, it contains the integer number of points for each
+        slice. For example, if `sr` is 1000 samples/second,
+        ``timeslice=0.75`` is equivalent to ``timeslice="750"``.
+    tsoverlap : scalar in [0, 1) or string-integer
+        If scalar, is the fraction of each time-slice to overlap. If
+        string, it contains the integer number of points to
+        overlap. For example, if `sr` is 1000 samples/second,
+        ``tsoverlap=0.5`` and ``tsoverlap="500"`` each specify 50%
+        overlap.
     sig : 1d array_like
         Base acceleration signal; vector.
     sr : scalar

@@ -1,9 +1,11 @@
-` -  pyyeti.rst -> list to table?
+~` -  pyyeti.rst -> list to table?
 
 -  Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
 
 1. Update duf explanation in cla.apply_uf
 2. Read dmig matrices
+3. Rearrange code: op2, op4, n2p, nastran overlap ... ?
+   - primarly rdnas2cam ... seems like this should be in n2p
 4. Convert uset to dataframe i think
 5. Convert ext, mx, mn in DR_Results to dataframe
 ~ 6. Add option to only compare selected drms in cla.rptpct
@@ -15,12 +17,13 @@
     be applied to all SimpleNamespaces … ?
 11. Add bubble color option to datacursor
 12. op4: add some c?
-13. SolveUnc: Either handle damping on rb modes or at least say it doesn’t
+~13. SolveUnc: Either handle damping on rb modes or at least say it doesn’t
     work (error out?)
     - maybe just setting the 'nrb' setting would work ... ?
     - finish documentation
+~14. fftmap etc: update timeslice and tsoverlap doc
 
-- cla.py:
+15. cla.py:
     DR_Results() … should this be able to init? I think so:
                    DR_Results(drdefs, mission, event)
                    … similar to DR.prepare_results(mission, event)
