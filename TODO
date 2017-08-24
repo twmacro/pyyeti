@@ -15,7 +15,7 @@
 ~ 9. Add dependent/independent setting to wrtrspline_rings
 10. Add feature to loop over DR_Results data structure so a function can
     be applied to all SimpleNamespaces … ?
-11. Add bubble color option to datacursor
+~11. Add bubble color option to datacursor
 12. op4: add some c?
 ~13. SolveUnc: Either handle damping on rb modes or at least say it doesn’t
     work (error out?)

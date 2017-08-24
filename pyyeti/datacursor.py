@@ -69,6 +69,21 @@ class DataCursor(object):
     offsets : tuple
         Two element tuple containing x and y offsets in points for the
         annotation.
+    bbox : dict; optional
+        Defines the `bbox` parameter for
+        :func:`matplotlib.axes.Axes.annotate`
+    arrowprops : dict; optional
+        Defines the `arrowprops` parameter for
+        :func:`matplotlib.axes.Axes.annotate`
+    followdot : dict; optional
+        Typically defines the `s`, `color`, and `alpha` settings (and
+        possibly others as desired) for
+        :func:`matplotlib.axes.Axes.scatter`. That function is used
+        for drawing the "dot" on the plot that follows the mouse and
+        highlights the currently selected data point.
+    permdot : dict; optional
+        Similar to `followdot` except this is a "permanent" dot;
+        this gets placed after left clicking.
     xypoints : list
         Contains [x, y] data pairs for each (non-deleted) left-click.
     inds : list
@@ -170,7 +185,8 @@ class DataCursor(object):
     Settings can be changed after instantiation. Here is an example of
     defining a new format for the annotation (for both `form1` and
     `form2`). 3 decimals are used for the x-coordinate and the index
-    is included::
+    is included. It also changes the permanent dot to a gray
+    pentagon::
 
         import matplotlib.pyplot as plt
         import numpy as np
@@ -181,6 +197,8 @@ class DataCursor(object):
                     .format(x=x, y=y, ind=ind))
 
         DC.form1 = DC.form2 = formnew
+        DC.permdot = dict(s=130, color='black', alpha=0.4,
+                          marker='p')
 
         plt.plot(np.random.randn(50))
         DC.on()
@@ -212,7 +230,13 @@ class DataCursor(object):
 
     def __init__(self, ax=None, figs=None, hover=True,
                  form1=form1, form2=form2,
-                 offsets=(-20, 20)):
+                 offsets=(-20, 20),
+                 bbox=dict(boxstyle='round,pad=0.5',
+                           fc='gray', alpha=0.5),
+                 arrowprops=dict(arrowstyle='->',
+                                 connectionstyle='arc3,rad=0'),
+                 followdot=dict(s=130, color='green', alpha=0.7),
+                 permdot=dict(s=130, color='red', alpha=0.4)):
         """
         Initialize the DataCursor.
 
@@ -236,6 +260,14 @@ class DataCursor(object):
             Sets the `form2` attribute.
         offsets : tuple; optional
             Sets the `offsets` attribute.
+        bbox : dict; optional
+            Sets the `bbox` attribute.
+        arrowprops : dict; optional
+            Sets the `arrowprops` attribute.
+        followdot : dict; optional
+            Sets the `followdot` attribute.
+        permdot : dict; optional
+            Sets the `permdot` attribute.
         """
         self._ax_input = ax
         self._figs_input = figs
@@ -243,6 +275,10 @@ class DataCursor(object):
         self.form1 = form1
         self.form2 = form2
         self.offsets = offsets
+        self.bbox = bbox
+        self.arrowprops = arrowprops
+        self.followdot = followdot
+        self.permdot = permdot
         self._is_on = False
         self._in_loop = False
         self._max_points = -1
@@ -442,8 +478,7 @@ class DataCursor(object):
         # if 3d, set visible to False (i don't know how to get proper
         # coordinates for the dot):
         vis = False if hasattr(ax, 'get_proj') else True
-        self.pts.append(ax.scatter(x, y, s=130,
-                                   color='red', alpha=0.4,
+        self.pts.append(ax.scatter(x, y, **self.permdot,
                                    visible=vis))
         self.notes.append(self._annotation[ax])
         # offsetbox.DraggableAnnotation(self._annotation)
@@ -553,14 +588,13 @@ class DataCursor(object):
         event.canvas.draw()
 
     def _new_annotation(self, ax, xy):
-        bbox = dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.75)
-        arrow = dict(arrowstyle='->', connectionstyle='arc3,rad=0')
         return ax.annotate('', xy=xy,
                            ha='right',
                            va='bottom',
                            xytext=self.offsets,
                            textcoords='offset points',
-                           bbox=bbox, arrowprops=arrow,
+                           bbox=self.bbox,
+                           arrowprops=self.arrowprops,
                            visible=False)
 
     def _setup_annotations(self):
@@ -575,9 +609,7 @@ class DataCursor(object):
             else:
                 xy = 0, 0
             self._annotation[ax] = self._new_annotation(ax, xy)
-            self._dot[ax] = ax.scatter(xy[0], xy[1], s=130,
-                                       color='green',
-                                       alpha=0.7,
+            self._dot[ax] = ax.scatter(xy[0], xy[1], **self.followdot,
                                        visible=False)
 
     def _snap(self, ax, x, y):

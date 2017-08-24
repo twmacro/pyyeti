@@ -4336,10 +4336,10 @@ def modeselect(name, fs, force, freq, Trcv, labelrcv, mfreq,
           of the specified curve and then hit 't'. For example, to
           choose the 12th row of `Trcv`, set `auto` to 11.
 
-    idlabel : string; optional If not '', it will be
-          used in the figure name. This allows multiple
-          getmodepart()'s to be run with the same model, each using
-          its own FRF and MP windows. The figure names will be::
+    idlabel : string; optional
+          If not '', it will be used in the figure name. This allows
+          multiple getmodepart()'s to be run with the same model, each
+          using its own FRF and MP windows. The figure names will be::
 
                  'FRF - '+idlabel
                  'MP - '+idlabel
