@@ -225,7 +225,6 @@ class DataCursor(object):
 
         plt.plot(np.random.randn(50))
         DC.on()
-
     """
 
     def __init__(self, ax=None, figs=None, hover=True,
@@ -317,7 +316,7 @@ class DataCursor(object):
         if maxlines == 0 and errout:
             raise RuntimeError('no lines; plot something first')
 
-    def on(self, ax=-1, figs=-1, callbacks=True):
+    def on(self, ax=-1, figs=-1, callbacks=True, reset=True):
         """
         Turns on and (re-)initializes the DataCursor for current
         figures.
@@ -341,31 +340,31 @@ class DataCursor(object):
             backs are turned on. If 'key_only', only the key-press
             call-back is turned on (used for pausing; see
             :func:`pause`).
+        reset : bool; optional
+            If True, the `xypoints` and other data members are reset
+            to empty lists. Otherwise, if `reset` is False, your new
+            data will be appended on to your previous data.
 
         Returns
         -------
         None
-
-        Notes
-        -----
-        The `xypoints` and other data members are reset to empty
-        lists.
         """
         if ax != -1:
             self._ax_input = ax
         if figs != -1:
             self._figs_input = figs
         self._init_all()
-        self.xypoints = []
-        self.inds = []
-        self.lines = []
-        self.linenums = []
-        self.pts = []
-        self.notes = []
-        self._kid = {}
-        self._mid = {}
-        self._bid = {}
-        self._aid = {}
+        if reset:
+            self.xypoints = []
+            self.inds = []
+            self.lines = []
+            self.linenums = []
+            self.pts = []
+            self.notes = []
+        self._kid = {}  # key press event
+        self._mid = {}  # motion event
+        self._bid = {}  # button press event
+        self._aid = {}  # axes leave event
         self._setup_annotations()
         if callbacks:
             for fig in self._figs:
@@ -386,11 +385,22 @@ class DataCursor(object):
         else:
             self._is_on = False
 
-    def off(self):
+    def off(self, stop_blocking=True):
         """
-        Turns off the DataCursor and stops it from blocking
+        Turns off the DataCursor and optionally stops it from blocking
 
-        Note that the keystroke 't' will also turn off the DataCursor.
+        Parameters
+        ----------
+        stop_blocking : bool; optional
+            If True, have the data cursor stop blocking so Python can
+            continue with whats next. Otherwise, if `stop_blocking` is
+            False, Python will wait; this is probably only useful when
+            the data cursor is controlled in a GUI environment.
+
+        Notes
+        -----
+        Note that the keystroke 't' will also turn off the DataCursor;
+        in that case, `stop_blocking` is True.
         """
         self._init_all()
         if self._is_on:
@@ -401,9 +411,6 @@ class DataCursor(object):
             for fig in self._figs:
                 if fig in self._kid:
                     fig.canvas.mpl_disconnect(self._kid[fig])
-                # if (self.hover and fig in self._mid and
-                #         self._mid[fig] is not None):
-                #     fig.canvas.mpl_disconnect(self._mid[fig])
                 if (self.hover and fig in self._mid and
                         self._mid[fig] is not None):
                     fig.canvas.mpl_disconnect(self._mid[fig])
@@ -420,7 +427,7 @@ class DataCursor(object):
             self._is_on = False
         for fig in self._figs:
             fig.canvas.draw()
-        if self._in_loop:
+        if self._in_loop and stop_blocking:
             self._figs[0].canvas.stop_event_loop()
             self._in_loop = False
 

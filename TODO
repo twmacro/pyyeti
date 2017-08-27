@@ -15,6 +15,19 @@
 ~ 9. Add dependent/independent setting to wrtrspline_rings
 10. Add feature to loop over DR_Results data structure so a function can
     be applied to all SimpleNamespaces … ?
+10.1. What about function for splitting SimpleNamespace results into
+    sub-categories:
+    - if the "Liftoff" event has 4 sub-cases:
+        res.cases = ['case1', 'case2', 'case3', 'case4']
+      then the new DR_Results would be
+        res['case1'].cases = ['case1']
+        res['case2'].cases = ['case2']
+        res['case3'].cases = ['case3']
+        res['case4'].cases = ['case4']
+    - this would:
+       - allow easy comparison of a specific sub-case to another 
+       - enable any function that uses .ext to work on a sub-case
+
 ~11. Add bubble color option to datacursor
 12. op4: add some c?
 ~13. SolveUnc: Either handle damping on rb modes or at least say it doesn’t
@@ -36,7 +49,7 @@
       drdefs vs. Info vs. drminfo
          - Could they all be DR_Def instances??
 
-         - Info can be a DR_Def instance  ... but each drminfo is just
+         - Info can be a DR_Def instance ... but each drminfo is just
            a SimpleNamespace: a "value" in the DR_Def (or Info) dict
 
     - think about getting rid of DR_Event altogether ... just update

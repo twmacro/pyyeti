@@ -696,7 +696,7 @@ class DR_Def(OrderedDict):
             'SC_ifa_0rb': <class 'types.SimpleNamespace'>[n=20]
             '_vars'     : <class 'types.SimpleNamespace'>[n=2]
 
-    PP(drdefs['SC_ifa']):
+    PP(drdefs['SC_ifa'], 2):
 
     .. code-block:: none
 
@@ -1557,7 +1557,7 @@ class DR_Event(object):
                 100: <class 'dict'>[n=3]
                 500: <class 'dict'>[n=4]
 
-    PP(DR.Vars):
+    PP(DR.Vars, 2):
 
     .. code-block:: none
 
@@ -2265,7 +2265,7 @@ class DR_Results(OrderedDict):
         >>> import pandas as pd
         >>> from pyyeti import cla
         >>>
-        >>> # make up some CLA results:
+        >>> # make up some "external source" CLA results:
         >>> events = ('Liftoff', 'Transonics', 'MECO')
         >>> rows = {'ATM': 34, 'LTM': 29}
         >>> ext_results = {i: {} for i in rows}
@@ -2382,9 +2382,6 @@ class DR_Results(OrderedDict):
         res.mintime[:, j] = mm.exttime[:, 1]
         res.cases[j] = case
 
-    # def _check_labels_len(self, name, res=None, m=None):
-    #     if res is None:
-    #         res = self[name]
     def _check_labels_len(self, name, res, m=None):
         if m is None:
             m = res.ext.shape[0]
@@ -2808,6 +2805,112 @@ class DR_Results(OrderedDict):
                     res.srs.ext[Q] = (arr.mean(axis=0) +
                                       k*arr.std(ddof=1, axis=0))
 
+    def all_base_events(self, top_level_name='Top Level'):
+        """
+        A generator for looping over all base events
+
+        Parameters
+        ----------
+        top_level_name : str; optional
+            This is to name of the event at the top level of the
+            results structure
+
+        Raises
+        ------
+        TypeError
+            When an entry is found that is neither a
+            :class:`DR_Results` nor a SimpleNamespace.
+
+        Examples
+        --------
+        Since this routine doesn't actually operate on the results, we
+        can make up an otherwise useless and fake results structure
+        for demonstration. Here, we'll have two non-base events: the
+        top level one and "NonBase", and two base events: "Base1" and
+        "Base2". "Base1" is under "NonBase" while "Base2" is under the
+        top level. We'll also have two data recovery categories for
+        each base event: 'SC_atm' and 'SC_ltm'.
+
+        The following demonstrates three generators available for
+        :class:`DR_Results`: :func:`all_base_events`,
+        :func:`all_nonbase_events`, and :func:`all_categories`:
+
+        >>> from types import SimpleNamespace
+        >>> from pyyeti import cla
+        >>> res = cla.DR_Results()
+        >>> res['NonBase'] = cla.DR_Results()
+        >>> res['NonBase']['Base1'] = cla.DR_Results()
+        >>> res['NonBase']['Base1']['SC_atm'] = SimpleNamespace()
+        >>> res['NonBase']['Base1']['SC_ltm'] = SimpleNamespace()
+        >>> res['Base2'] = cla.DR_Results()
+        >>> res['Base2']['SC_atm'] = SimpleNamespace()
+        >>> res['Base2']['SC_ltm'] = SimpleNamespace()
+
+        Show the base events:
+
+        >>> for name, base in res.all_base_events():
+        ...     print(name, ':', base)
+        Base1 : DR_Results with 2 categories: ['SC_atm', 'SC_ltm']
+        Base2 : DR_Results with 2 categories: ['SC_atm', 'SC_ltm']
+
+        Show the non-base events:
+
+        >>> for name, nonbase in res.all_nonbase_events():
+        ...     print(name, ':', nonbase)
+        Top Level : DR_Results with 2 categories: ['NonBase', 'Base2']
+        NonBase : DR_Results with 1 categories: ['Base1']
+
+        Show all the data recovery categories:
+
+        >>> for name, cat in res.all_categories():
+        ...     print(name, ':', cat)
+        SC_atm : namespace()
+        SC_ltm : namespace()
+        SC_atm : namespace()
+        SC_ltm : namespace()
+        """
+        def _all_bases(dct, topname):
+            value = next(iter(dct.values()))
+            if isinstance(value, SimpleNamespace):
+                yield topname, dct
+            elif isinstance(value, DR_Results):
+                for name, value in dct.items():
+                    yield from _all_bases(value, name)
+            else:
+                raise TypeError('unexpected type: {}'
+                                .format(str(type(value))))
+        yield from _all_bases(self, top_level_name)
+
+    def all_nonbase_events(self, top_level_name='Top Level'):
+        """
+        A generator for looping over all non-base events
+        """
+        def _all_nonbases(dct, topname):
+            value = next(iter(dct.values()))
+            if isinstance(value, DR_Results):
+                yield topname, dct
+                for name, value in dct.items():
+                    yield from _all_nonbases(value, name)
+            elif not isinstance(value, SimpleNamespace):
+                raise TypeError('unexpected type: {}'
+                                .format(str(type(value))))
+        yield from _all_nonbases(self, top_level_name)
+
+    def all_categories(self):
+        """
+        A generator for looping over all data recovery categories
+        """
+        def _all_cats(dct):
+            for name, value in dct.items():
+                if isinstance(value, DR_Results):
+                    yield from _all_cats(value)
+                elif isinstance(value, SimpleNamespace):
+                    yield name, value
+                else:
+                    raise TypeError('unexpected type: {}'
+                                    .format(str(type(value))))
+        yield from _all_cats(self)
+
     def delete_extreme(self):
         """
         Delete any 'extreme' entries
@@ -2928,7 +3031,6 @@ class DR_Results(OrderedDict):
             srs_ns = copy.copy(osrs)
             srs_ns.ext = copy.deepcopy(osrs.ext)
             srs_ns.srs = {}
-            # ndof, nf = list(osrs.ext.values())[0].shape
             ndof, nf = next(iter(osrs.ext.values())).shape
             for q in srs_ns.ext:
                 srs_ns.srs[q] = np.empty((ncases, ndof, nf))
@@ -3151,27 +3253,38 @@ class DR_Results(OrderedDict):
 
         See example usage in :func:`DR_Results.merge`.
         """
-        def _delete_hists(dct):
-            for value in dct.values():
-                if isinstance(value, DR_Results):
-                    _delete_hists(value)
-                elif isinstance(value, SimpleNamespace):
-                    for attr in ('hist', 'time', 'psd', 'freq'):
-                        try:
-                            delattr(value, attr)
-                        except AttributeError:
-                            pass
-                    if hasattr(value, 'srs'):
-                        try:
-                            delattr(value.srs, 'srs')
-                        except AttributeError:  # pragma: no cover
-                            pass
-                else:
-                    raise TypeError('unexpected type: {}'
-                                    .format(str(type(value))))
-
-        # main routine:
-        _delete_hists(self)
+        # def _delete_hists(dct):
+        #     for value in dct.values():
+        #         if isinstance(value, DR_Results):
+        #             _delete_hists(value)
+        #         elif isinstance(value, SimpleNamespace):
+        #             for attr in ('hist', 'time', 'psd', 'freq'):
+        #                 try:
+        #                     delattr(value, attr)
+        #                 except AttributeError:
+        #                     pass
+        #             if hasattr(value, 'srs'):
+        #                 try:
+        #                     delattr(value.srs, 'srs')
+        #                 except AttributeError:  # pragma: no cover
+        #                     pass
+        #         else:
+        #             raise TypeError('unexpected type: {}'
+        #                             .format(str(type(value))))
+        #
+        # # main routine:
+        # _delete_hists(self)
+        for name, cat in self.all_categories():
+            for attr in ('hist', 'time', 'psd', 'freq'):
+                try:
+                    delattr(cat, attr)
+                except AttributeError:
+                    pass
+            if hasattr(cat, 'srs'):
+                try:
+                    delattr(cat.srs, 'srs')
+                except AttributeError:  # pragma: no cover
+                    pass
 
     def rptext(self, event=None, direc='ext', doabsmax=False,
                numform='{:13.5e}', perpage=-1):
