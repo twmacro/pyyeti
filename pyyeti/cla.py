@@ -1936,11 +1936,69 @@ class DR_Event(object):
 
 class DR_Results(OrderedDict):
     """
-    Subclass of OrderedDict that contains data recovery results for
-    events.
+    Subclass of OrderedDict that contains data recovery results
 
     Notes
     -----
+    This data structure is designed to contain and operate on a
+    hierarchy of event results, not unlike a directory tree on a
+    computer. For example, it could be just one level deep and contain
+    only the 'Liftoff' results. Or, it could contain all events from a
+    CLA and each event could have sub-events under them.
+
+    You can be creative in your organization to simplify otherwise
+    cumbersome tasks. For example, say you want to form SRS envelope
+    plots for all Stage-1 events separately from all Stage-2
+    events. This is trivial if you organize your structure
+    accordingly; for example::
+
+        Top Level
+            Stage-1
+               Liftoff
+               Transonics
+               Max-Q
+            Stage-2
+               S2 Engine Start
+               S2 Engine Cutoff
+
+    For illustration, the following shows how this task might be
+    done. To perhaps make this example more useful, it is assumed that
+    we have five separate :class:`DR_Results` instances and we have to
+    organize them. After that, we can make the SRS plots very
+    easily. Note that we could also write out various results and
+    comparison tables at the different levels. For this example, we'll
+    form three separate SRS plots: the first showing the Stage-1 and
+    Stage-2 enveloping curves together, the second showing the Stage-1
+    Liftoff, Transonics, and Max-Q curves together, and the third
+    showing the Stage-2 Engine Start and Cutoff curves together::
+
+        # first, organize the results as shown above:
+        results = cla.DR_Results()
+
+        results['Stage-1'] = cla.DR_Results()
+        results['Stage-1']['Liftoff'] = lo_results
+        results['Stage-1']['Transonics'] = trans_results
+        results['Stage-1']['Max-Q'] = maxq_results
+
+        results['Stage-2'] = cla.DR_Results()
+        results['Stage-2']['S2 Engine Start'] = ses_results
+        results['Stage-2']['S2 Engine Cutoff'] = seco_results
+
+        # next, compute extreme results at all levels:
+        results.form_extreme()
+
+        # srs plot number 1; will have 2 curves:
+        results['extreme'].srs_plots(
+            direc='S1_S2_srs', Q=20, showall=True)
+
+        # srs plot number 2; will have 3 curves:
+        results['Stage-1']['extreme'].srs_plots(
+            direc='S1_events_srs', Q=20, showall=True)
+
+        # srs plot number 3; will have 2 curves:
+        results['Stage-2']['extreme'].srs_plots(
+            direc='S2_events_srs', Q=20, showall=True)
+
     Below are a couple example :class:`DR_Results` instances named
     `results`. Note that this structure contains all the data recovery
     matrix information originally collected by calls to
@@ -2131,7 +2189,7 @@ class DR_Results(OrderedDict):
 
     def merge(self, results_iter, rename_dict=None):
         """
-        Merge CLA results together in a larger :class:`DR_Results`
+        Merge CLA results together into a larger :class:`DR_Results`
         hierarchy.
 
         Parameters
@@ -2188,7 +2246,6 @@ class DR_Results(OrderedDict):
            results.form_extreme()
            results['extreme'].rpttab()
            cla.save('results.pgz', results)
-
         """
         def _get_event_name(results):
             # get any value from dict:
@@ -2812,14 +2869,21 @@ class DR_Results(OrderedDict):
         Parameters
         ----------
         top_level_name : str; optional
-            This is to name of the event at the top level of the
+            This is the name of the event at the top level of the
             results structure
 
-        Raises
+        Yields
         ------
-        TypeError
-            When an entry is found that is neither a
-            :class:`DR_Results` nor a SimpleNamespace.
+        name : str
+            The next base-level dictionary key.
+        base : :class:`DR_Results`
+            The next base-level :class:`DR_Results` item. Its entries
+            are the SimpleNamespace data structures for each category.
+
+        Notes
+        -----
+        Entries that are neither a :class:`DR_Results` nor a
+        SimpleNamespace are quietly ignored.
 
         Examples
         --------
@@ -2876,14 +2940,34 @@ class DR_Results(OrderedDict):
             elif isinstance(value, DR_Results):
                 for name, value in dct.items():
                     yield from _all_bases(value, name)
-            else:
-                raise TypeError('unexpected type: {}'
-                                .format(str(type(value))))
         yield from _all_bases(self, top_level_name)
 
     def all_nonbase_events(self, top_level_name='Top Level'):
         """
         A generator for looping over all non-base events
+
+        Parameters
+        ----------
+        top_level_name : str; optional
+            This is the name of the event at the top level of the
+            results structure
+
+        Yields
+        ------
+        name : str
+            The next non-base-level dictionary key.
+        nonbase : :class:`DR_Results`
+            The next non-base-level :class:`DR_Results` item. Its
+            entries are more :class:`DR_Results` items.
+
+        Notes
+        -----
+        Entries that are neither a :class:`DR_Results` nor a
+        SimpleNamespace are quietly ignored.
+
+        Examples
+        --------
+        See :func:`all_base_events` for an example.
         """
         def _all_nonbases(dct, topname):
             value = next(iter(dct.values()))
@@ -2891,14 +2975,37 @@ class DR_Results(OrderedDict):
                 yield topname, dct
                 for name, value in dct.items():
                     yield from _all_nonbases(value, name)
-            elif not isinstance(value, SimpleNamespace):
-                raise TypeError('unexpected type: {}'
-                                .format(str(type(value))))
         yield from _all_nonbases(self, top_level_name)
 
     def all_categories(self):
         """
         A generator for looping over all data recovery categories
+
+        Parameters
+        ----------
+        top_level_name : str; optional
+            This is the name of the event at the top level of the
+            results structure
+
+        Yields
+        ------
+        name : str
+            The next data recovery category name (the dictionary keys
+            in the base-level :class:`DR_Results` items).
+        cat : SimpleNamespace
+            The next data recovery category SimpleNamespace with
+            ``.ext``, ``.cases``, etc; see
+            ``results['MaxQ']['SC_ifa']`` in :class:`DR_Results` for
+            an example.
+
+        Notes
+        -----
+        Entries that are neither a :class:`DR_Results` nor a
+        SimpleNamespace are quietly ignored.
+
+        Examples
+        --------
+        See :func:`all_base_events` for an example.
         """
         def _all_cats(dct):
             for name, value in dct.items():
@@ -2906,9 +3013,6 @@ class DR_Results(OrderedDict):
                     yield from _all_cats(value)
                 elif isinstance(value, SimpleNamespace):
                     yield name, value
-                else:
-                    raise TypeError('unexpected type: {}'
-                                    .format(str(type(value))))
         yield from _all_cats(self)
 
     def delete_extreme(self):
@@ -3253,27 +3357,6 @@ class DR_Results(OrderedDict):
 
         See example usage in :func:`DR_Results.merge`.
         """
-        # def _delete_hists(dct):
-        #     for value in dct.values():
-        #         if isinstance(value, DR_Results):
-        #             _delete_hists(value)
-        #         elif isinstance(value, SimpleNamespace):
-        #             for attr in ('hist', 'time', 'psd', 'freq'):
-        #                 try:
-        #                     delattr(value, attr)
-        #                 except AttributeError:
-        #                     pass
-        #             if hasattr(value, 'srs'):
-        #                 try:
-        #                     delattr(value.srs, 'srs')
-        #                 except AttributeError:  # pragma: no cover
-        #                     pass
-        #         else:
-        #             raise TypeError('unexpected type: {}'
-        #                             .format(str(type(value))))
-        #
-        # # main routine:
-        # _delete_hists(self)
         for name, cat in self.all_categories():
             for attr in ('hist', 'time', 'psd', 'freq'):
                 try:
@@ -5127,25 +5210,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     Used by :func:`DR_Results.srs_plots` and
     :func:`DR_Results.resp_plots` for plot generation.
     """
-    # def _get_Qs(Q, srsQs, showall, name):
-    #     if Q == 'auto':
-    #         Qs = srsQs
-    #     else:
-    #         Q_in = _ensure_iter(Q)
-    #         Qs = []
-    #         for q in Q_in:
-    #             if q in srsQs:
-    #                 Qs.append(q)
-    #             else:
-    #                 warnings.warn('no Q={} SRS data for {}'.
-    #                               format(q, name), RuntimeWarning)
-    #         if len(Qs) == 0:
-    #             return None
-    #     Qs = _ensure_iter(Qs)
-    #     if len(Qs) > 1 and showall:
-    #         raise ValueError('`Q` must be a scalar if `showall` '
-    #                          'is true')
-    #     return Qs
 
     def _get_Qs(Q, res, name, showall):
         try:
@@ -5377,14 +5441,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     perpage = rows*cols
     orientation = ('landscape' if figsize[0] > figsize[1]
                    else 'portrait')
-    # if cols > rows:
-    #     orientation = 'landscape'
-    #     if figsize[0] < figsize[1]:
-    #         figsize = figsize[1], figsize[0]
-    # else:
-    #     orientation = 'portrait'
-    #     if figsize[0] > figsize[1]:
-    #         figsize = figsize[1], figsize[0]
 
     if drms is None:
         alldrms = sorted(list(res))
@@ -5408,8 +5464,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                             'no SRS data for {}'.format(name),
                             RuntimeWarning)
                     continue
-                # Qs = _get_Qs(Q, res[name].drminfo.srsQs,
-                #              showall, name)
                 Qs = _get_Qs(Q, res, name, showall)
                 if Qs is None:
                     continue
@@ -5455,7 +5509,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
 
             filenum = 0
             uj = 0   # units index
-            # nplots = res[name].srs.ext[Qs[0]].shape[0]
             nplots = len(rowpv)
             maxcol = cols if nplots > cols else nplots
             sub = perpage

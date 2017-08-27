@@ -14,6 +14,9 @@ pyyeti\.cla\.DR\_Results
    .. autosummary::
    
       ~DR_Results.add_maxmin
+      ~DR_Results.all_base_events
+      ~DR_Results.all_nonbase_events
+      ~DR_Results.all_categories
       ~DR_Results.delete_extreme
       ~DR_Results.form_extreme
       ~DR_Results.form_stat_ext
