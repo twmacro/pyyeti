@@ -418,12 +418,13 @@ class DataCursor(object):
                     fig.canvas.mpl_disconnect(self._bid[fig])
                     fig.canvas.mpl_disconnect(self._aid[fig])
             for an in self.notes:
-                # give annotation to figure so it's on top
-                ax = an.axes
-                ax.figure.texts.append(an)
-                ax.texts.pop(ax.texts.index(an))
-                # and make it draggable
-                offsetbox.DraggableAnnotation(an)
+                if an in ax.texts:
+                    # give annotation to figure so it's on top
+                    ax = an.axes
+                    ax.figure.texts.append(an)
+                    ax.texts.pop(ax.texts.index(an))
+                    # and make it draggable
+                    offsetbox.DraggableAnnotation(an)
             self._is_on = False
         for fig in self._figs:
             fig.canvas.draw()
