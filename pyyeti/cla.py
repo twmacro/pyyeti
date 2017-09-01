@@ -39,7 +39,7 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         values. If None, ``Ref = M2``.
     ismax : bool or None; optional
         If None, the sign of the percent differences is determined by
-        ``M1 - M2`` (the normal way).  Otherwise, the sign is set to
+        ``M1 - M2`` (the normal way). Otherwise, the sign is set to
         be positive where `M1` is more extreme than `M2`. More extreme
         is higher if `ismax` is True (comparing maximums), and lower
         if `ismax` is False (comparing minimums).
@@ -1817,10 +1817,18 @@ class DR_Event(object):
         solout = {}
         for item in self.UF_reds:
             ruf, euf, duf, suf = item
-            solout[item] = copy.deepcopy(sol)
+            # solout[item] = copy.deepcopy(sol)
+            # use below: we want C contiguous variables (faster)
+            solout[item] = SimpleNamespace()
+            for name, value in vars(sol).items():
+                try:
+                    valcopy = value.copy()
+                except AttributeError:
+                    valcopy = copy.deepcopy(value)
+                setattr(solout[item], name, valcopy)
             SOL = solout[item]
-            SOL.d_static = np.zeros_like(sol.d)
-            SOL.d_dynamic = np.zeros_like(sol.d)
+            SOL.d_static = np.zeros(SOL.d.shape)
+            SOL.d_dynamic = np.zeros(SOL.d.shape)
 
             # apply ufs:
             if nrb > 0:
@@ -1847,7 +1855,8 @@ class DR_Event(object):
 
                 if not use_velo:  # pragma: no cover
                     msg = ('not including velocity term in mode-'
-                           'acceleration formulation for displacements.')
+                           'acceleration formulation for '
+                           'displacements.')
                     warnings.warn(msg, RuntimeWarning)
                 else:
                     if b.ndim == 1:
@@ -2055,7 +2064,7 @@ class DR_Results(OrderedDict):
                 .srsQs     : [n=2]: (25, 50)
                 .srsconv   : 1.0
                 .srsfrq    : float64 ndarray 990 elems: (990,)
-                .srslabels : [n=12]: ['$X_{SC}$', '$Y_{SC}$', ...LV}$']
+                .srslabels : [n=12]: ['$X_{SC}$', '$Y_{SC}$', ...']
                 .srsopts   : <class 'dict'>[n=2]
                     'eqsine': 1
                     'ic'    : 'steady'
@@ -2112,7 +2121,7 @@ class DR_Results(OrderedDict):
                 .srsQs     : [n=2]: (25, 50)
                 .srsconv   : 1.0
                 .srsfrq    : float64 ndarray 990 elems: (990,)
-                .srslabels : [n=12]: ['$X_{SC}$', '$Y_{SC}$', ...LV}$']
+                .srslabels : [n=12]: ['$X_{SC}$', '$Y_{SC}$', ...']
                 .srsopts   : <class 'dict'>[n=2]
                     'eqsine': 1
                     'ic'    : 'steady'
@@ -2620,7 +2629,7 @@ class DR_Results(OrderedDict):
         # decompose system equations for uncoupled solver:
         fs = ode.SolveUnc(m, b, k, rf=rfmodes)
         rpsd = forcepsd.shape[0]
-        unitforce = np.ones_like(freq)
+        unitforce = np.ones(freq.shape)
 
         # initialize categories for data recovery
         drfuncs = {}
