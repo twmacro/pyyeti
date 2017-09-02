@@ -1791,49 +1791,69 @@ class DR_Event(object):
         where::
 
               F = m*a + b*v + k*d
-
         """
         n = k.shape[0]
-        use_velo = 1
+        use_velo = True
 
-        # genforce = m*a+b*v+k*d
-        if m is None:
-            genforce = sol.a.copy()
-        elif m.ndim == 1:
-            genforce = m[:, None] * sol.a
-        else:
-            genforce = m @ sol.a
-
-        if b.ndim == 1:
-            genforce += b[:, None] * sol.v
-        else:
-            genforce += b @ sol.v
-
-        if k.ndim == 1:
-            genforce += k[:, None] * sol.d
-        else:
-            genforce += k @ sol.d
+        # genforce = m*a + b*v + k*d
+        def _comp_genforce(sol, d):
+            if m is None:
+                genforce = sol.a.copy()
+            elif m.ndim == 1:
+                genforce = m[:, None] * sol.a
+            else:
+                genforce = m @ sol.a
+    
+            if b.ndim == 1:
+                genforce += b[:, None] * sol.v
+            else:
+                genforce += b @ sol.v
+    
+            if k.ndim == 1:
+                genforce += k[:, None] * d
+            else:
+                genforce += k @ d
+            return genforce
 
         solout = {}
+        # This routine will do its work in two loops:
+        # - a copy loop
+        # - an apply ufs loop
+        # The copy loop is separate to be efficient, since copying
+        # from 'F' order to 'C' order is slower than 'C' to 'C'
+        last = None
+        for item in self.UF_reds:
+            if last:
+                solout[item] = copy.deepcopy(last)
+            else:
+                # we want C contiguous a, v, d variables for faster uf
+                # application
+                # - variable 'd' is skipped because it is created
+                #   below
+                solout[item] = SimpleNamespace()
+                for name, value in vars(sol).items():
+                    if name == 'd':
+                        continue
+                    try:
+                        valcopy = value.copy()
+                    except AttributeError:
+                        valcopy = copy.deepcopy(value)
+                    setattr(solout[item], name, valcopy)
+                last = solout[item]
+                genforce = _comp_genforce(last, sol.d)
+
         for item in self.UF_reds:
             ruf, euf, duf, suf = item
-            # solout[item] = copy.deepcopy(sol)
-            # use below: we want C contiguous variables (faster)
-            solout[item] = SimpleNamespace()
-            for name, value in vars(sol).items():
-                try:
-                    valcopy = value.copy()
-                except AttributeError:
-                    valcopy = copy.deepcopy(value)
-                setattr(solout[item], name, valcopy)
             SOL = solout[item]
-            SOL.d_static = np.zeros(SOL.d.shape)
-            SOL.d_dynamic = np.zeros(SOL.d.shape)
+            SOL.d_static = np.empty(SOL.a.shape)
+            SOL.d_dynamic = np.empty(SOL.a.shape)
 
             # apply ufs:
             if nrb > 0:
                 SOL.a[:nrb] *= (ruf*suf)
                 SOL.v[:nrb] *= (ruf*suf)
+                SOL.d_static[:nrb] = 0.0
+                SOL.d_dynamic[:nrb] = 0.0
 
             if rfmodes is not None:
                 SOL.a[rfmodes] = 0
