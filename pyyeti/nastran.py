@@ -13,25 +13,33 @@ import matplotlib.pyplot as plt
 from pyyeti import n2p, locate, writer, ytools, op4, guitools
 
 
-def nas_sscanf(s):
+def nas_sscanf(s, keep_string=False):
     """
-    Read a single floating point number written in Nastran format.
+    Read a single integer or Nastran-formatted floating point number
 
     Parameters
     ----------
     s : string
         May be formatted in the NASTRAN shortcut way; eg, '1.7-4'
         instead of '1.7e-4'. May also use 'd' instead of 'e'.
+    keep_string : bool; optional
+        Only used if `s` is a string that cannot be interpreted as a
+        number. In that case, if `keep_string` is True, ``s.strip()``
+        is returned; otherwise, if `keep_string` is False, None is
+        returned.
 
     Returns
     -------
-    v : float or None
+    v : int or float or string or None
         The scalar value that the string represents. If string is
-        empty, returns None.
+        empty, returns None. If `keep_string` is True, `v` will be
+        ``s.strip()`` when `s` cannot be converted to a number.
 
     Examples
     --------
     >>> from pyyeti import nastran
+    >>> nastran.nas_sscanf(' 10')
+    10
     >>> nastran.nas_sscanf('1.7e-4')
     0.00017
     >>> nastran.nas_sscanf('1.7-4')
@@ -40,22 +48,31 @@ def nas_sscanf(s):
     17000.0
     >>> print(nastran.nas_sscanf(' '))
     None
+    >>> print(nastran.nas_sscanf('string'))
+    None
+    >>> print(nastran.nas_sscanf('string', keep_string=True))
+    string
     """
     try:
-        return float(s)
+        return int(s)
     except ValueError:
-        s = s.strip()
-        if len(s) == 0:
-            return None
-        s = s.lower().replace('d', 'e')
         try:
             return float(s)
         except ValueError:
-            s = s[0]+s[1:].replace('+', 'e+').replace('-', 'e-')
+            S = s = s.strip()
+            if len(s) == 0:
+                return None
+            s = s.lower().replace('d', 'e')
             try:
                 return float(s)
             except ValueError:
-                return None
+                s = s[0]+s[1:].replace('+', 'e+').replace('-', 'e-')
+                try:
+                    return float(s)
+                except ValueError:
+                    if keep_string:
+                        return S
+                    return None
 
 
 def fsearch(f, s):
@@ -191,150 +208,196 @@ def rdgpwg(f, s1=None, s2=None, s3=None):
     return ytools.rdfile(f, _rdgpwg, s1, s2, s3)
 
 
-def _rdcards(fin, name, blank, dct, dtype, no_data_return):
+def _get_line(fiter, s=None, trim=True):
+    if s is None:
+        try:
+            s = next(fiter)  # f.readline()
+        except StopIteration:
+            s = ''
+    if len(s) > 0:
+        s = s.expandtabs()
+        if trim:
+            s = s[:72]
+        p = s.find('$')
+        if p > -1:
+            s = s[:p]
+        s = s.rstrip()
+    return s
+
+
+def _rdfixed(fiter, s, n, conchar, blank, tolist):
+    """
+    Read fixed field cards:
+    fiter : file iterator
+    s : string, current line from file (card start)
+    n : field width, 8 or 16
+    conchar : string, set of chars that make up continuation
+              - either ' +' or '*'
+    blank : value to use for blank fields and string-valued fields
+    tolist : if True, return list, else return np.array; strings are
+             kept in this case (instead of being turned into `blank`)
+    """
+    # L = 10
+    # vals = np.zeros(L)+blank
+    vals = []
+    length = len(s)
+    i = -1
+    I = -1
+    if n > 8:
+        inc = 4  # number of values per line
+    else:
+        inc = 8
+    maxstart = 72-n
+    while 1:
+        for i in range(i, I):
+            vals.append(blank)
+        i = I
+        j = 8
+        while j <= maxstart and length > j:
+            i += 1
+            # if i >= L:
+            #     # expand vals:
+            #     vals = np.append(vals, np.zeros(L)+blank)
+            #     L *= 2
+            v = nas_sscanf(s[j:j+n], tolist)
+            if v is not None:
+                vals.append(v)
+            else:
+                vals.append(blank)
+                # vals[i] = v
+            j += n
+        s = _get_line(fiter)
+        if len(s) == 0 or s == -1:
+            break
+        if conchar.find(s[0]) < 0:
+            break
+        length = len(s)
+        I += inc
+    if not tolist:
+        vals = np.array(vals)
+    return vals, s
+
+
+def _rdcomma(fiter, s, conchar, blank, tolist):
+    """
+    Read comma delimited cards:
+    fiter : file iterator
+    s : string, current line from file (card start)
+    n : field width, 8 or 16
+    conchar : string, set of chars that make up continuation
+              - ' +, '
+    blank : value to use for blank fields and string-valued fields
+    tolist : if True, return list, else return np.array; strings are
+             kept in this case (instead of being turned into `blank`)
+    """
+    # L = 10
+    # vals = np.zeros(L) + blank
+    vals = []
+    i = -1
+    I = -1
+    inc = 8
+    while 1:
+        for i in range(i, I):
+            vals.append(blank)
+        i = I
+        tok = s.split(',')
+        lentok = min(len(tok), 9)
+        for j in range(1, lentok):
+            i += 1
+            # if i >= L:
+            #     # expand vals:
+            #     vals = np.append(vals, np.zeros(L)+blank)
+            #     L *= 2
+            v = nas_sscanf(tok[j], tolist)
+            if v is not None:
+                vals.append(v)
+            else:
+                vals.append(blank)
+                # vals[i] = v
+        s = _get_line(fiter, trim=0)
+        if len(s) == 0 or s == -1:
+            break
+        if conchar.find(s[0]) < 0:
+            break
+        I += inc
+    if not tolist:
+        vals = np.array(vals)
+    return vals, s
+
+
+def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
     """
     Routine used by :func:`rdcards`. See documentation for
     :func:`rdcards`.
     """
-    def _get_line(f, s=None, trim=True):
-        if s is None:
-            s = f.readline()
-        if len(s) > 0:
-            s = s.expandtabs()
-            if trim:
-                s = s[:72]
-            p = s.find('$')
-            if p > -1:
-                s = s[:p]
-            s = s.rstrip()
-        return s
-
-    def rdfixed(f, s, n, conchar, blank):
-        """
-        Read fixed field cards:
-        f : file handle
-        s : string, current line from file (card start)
-        n : field width, 8 or 16
-        conchar : string, set of chars that make up continuation
-                  - either ' +' or '*'
-        blank : value to use for blank fields and string-valued fields
-        """
-        L = 10
-        vals = np.zeros(L)+blank
-        length = len(s)
-        I = -1
-        if n > 8:
-            inc = 4  # number of values per line
-        else:
-            inc = 8
-        maxstart = 72-n
-        while 1:
-            i = I
-            j = 8
-            while j <= maxstart and length > j:
-                i += 1
-                if i >= L:
-                    # expand vals:
-                    vals = np.append(vals, np.zeros(L)+blank)
-                    L *= 2
-                v = nas_sscanf(s[j:j+n])
-                if v is not None:
-                    vals[i] = v
-                j += n
-            s = _get_line(f)
-            if len(s) == 0 or s == -1:
-                break
-            if conchar.find(s[0]) < 0:
-                break
-            length = len(s)
-            I += inc
-        return vals[:i+1], s
-
-    def rdcomma(f, s, conchar, blank):
-        """
-        Read comma delimited cards:
-        f : file handle
-        s : string, current line from file (card start)
-        n : field width, 8 or 16
-        conchar : string, set of chars that make up continuation
-                  - ' +, '
-        blank : value to use for blank fields and string-valued fields
-        """
-        L = 10
-        vals = np.zeros(L) + blank
-        I = -1
-        inc = 8
-        while 1:
-            i = I
-            tok = s.split(',')
-            lentok = min(len(tok), 9)
-            for j in range(1, lentok):
-                i += 1
-                if i >= L:
-                    # expand vals:
-                    vals = np.append(vals, np.zeros(L)+blank)
-                    L *= 2
-                v = nas_sscanf(tok[j])
-                if v is not None:
-                    vals[i] = v
-            s = _get_line(f, trim=0)
-            if len(s) == 0 or s == -1:
-                break
-            if conchar.find(s[0]) < 0:
-                break
-            I += inc
-        return vals[:i+1], s
-
+    # fin.seek(0, 0)
+    # name = name.lower()
+    # c = 0
+    # for line in fin:
+    #     if line.lower().find(name) == 0:
+    #         c += 1
+    # if c > 0:
+    #     if todict:
+    #         Vals = {}
+    #     else:
+    #         Vals = np.zeros((c, 10), dtype=dtype)+blank
+    if todict:
+        Vals = {}
+        tolist = False
+    else:
+        Vals = []
+    mxlen = 0
     fin.seek(0, 0)
-    name = name.lower()
-    c = 0
-    for line in fin:
-        if line.lower().find(name) == 0:
-            c += 1
-    mx = 0
-    if c > 0:
-        if dct:
-            Vals = {}
-        else:
-            Vals = np.zeros((c, 10), dtype=dtype)
-    fin.seek(0, 0)
-    s = fin.readline()
-    for j in range(c):
-        while s.lower().find(name) != 0:
-            s = fin.readline()
-        s = _get_line(fin, s, trim=0)
+    # s = fin.readline()
+    # for j in range(c):
+    it = iter(fin)
+    for s in it:
+        if s.lower().find(name) != 0:
+            # s = fin.readline()
+            continue
+        s = _get_line(it, s, trim=0)
         p = s.find(',')
         if p > -1:
-            vals, s = rdcomma(fin, s, ' +,', blank)
+            vals, s = _rdcomma(it, s, ' +,', blank, tolist)
         else:
             s = s[:72].rstrip()
             p = s[:8].find('*')
             if p > -1:
-                vals, s = rdfixed(fin, s, 16, '*', blank)
+                vals, s = _rdfixed(it, s, 16, '*', blank, tolist)
             else:
-                vals, s = rdfixed(fin, s, 8, ' +', blank)
-        cur = len(vals)
-        mx = max(mx, cur)
-        vals = vals.astype(dtype)
-        if dct:
-            Vals[vals[0]] = vals
+                vals, s = _rdfixed(it, s, 8, ' +', blank, tolist)
+        if tolist:
+            Vals.append(vals)
         else:
-            cV = np.size(Vals, 1)
-            if cV < cur:
-                Vals = np.hstack((Vals, np.zeros((c, cur-cV),
-                                                 dtype=dtype)))
-            Vals[j, :cur] = vals
-    if c > 0:
-        if not dct and mx < 10:
-            Vals = Vals[:, :mx]
+            cur = len(vals)
+            mxlen = max(mxlen, cur)
+            vals = vals.astype(dtype)
+            if todict:
+                Vals[vals[0]] = vals
+            else:
+                Vals.append(vals)
+        # else:
+        #     cV = np.size(Vals, 1)
+        #     if cV < cur:
+        #         Vals = np.hstack(
+        #             (Vals, np.zeros((c, cur-cV),
+        #                             dtype=dtype)+blank))
+        #     Vals[j, :cur] = vals
+    if len(Vals) > 0:
+        if not (todict or tolist):
+            npVals = np.empty((len(Vals), mxlen), dtype=dtype)
+            npVals[:] = blank
+            for i, vals in enumerate(Vals):
+                npVals[i, :len(vals)] = np.array(vals)
+            Vals = npVals
         return Vals
     return no_data_return
 
 
-def rdcards(f, name, blank=0, dct=False, dtype=float,
+def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
             no_data_return=None):
     """
-    Read Nastran cards (lines) into a matrix or dictionary.
+    Read Nastran cards (lines) into a matrix, dictionary, or list.
 
     Parameters
     ----------
@@ -348,8 +411,14 @@ def rdcards(f, name, blank=0, dct=False, dtype=float,
     blank : scalar; optional
         Numeric value to use for blank fields and string-valued
         fields.
-    dct : bool; optional
-        If false, return a matrix, if true, return a dictionary.
+    todict : bool; optional
+        If True, return a dictionary. Otherwise, return a matrix
+        unless `tolist` is True.
+    tolist : bool; optional
+        If True (and `todict` is False), return a list of
+        lists. Otherwise, return a matrix or dictionary according to
+        `todict`. Returning a list is the only way to preserve strings
+        and is therefore the "truest" read of the file.
     dtype : data-type, optional
         The desired data-type for the output.
     no_data_return : any variable; optional
@@ -383,8 +452,8 @@ def rdcards(f, name, blank=0, dct=False, dtype=float,
     [1, 0, 0, 0, 0, 0, 0, 0] since it knows the number of fields a GRID
     card has.
     """
-    return ytools.rdfile(f, _rdcards, name, blank, dct, dtype,
-                         no_data_return)
+    return ytools.rdfile(f, _rdcards, name, blank, todict, tolist,
+                         dtype, no_data_return)
 
 
 def rdgrids(f):
@@ -570,7 +639,7 @@ def rdtabled1(f, name='tabled1'):
     >>> np.allclose(d, dct[4000][:, 1])
     True
     """
-    d = rdcards(f, name, dct=1)
+    d = rdcards(f, name, todict=1)
     for tid in d:
         vec = d[tid]
         d[tid] = np.vstack([vec[8:-1:2], vec[9:-1:2]]).T
@@ -1004,7 +1073,7 @@ def rdcsupers(f):
     Any "THRU" fields will be set to -1. This routine simply calls the
     more general routine :func:`rdcards`::
 
-        rdcards(f, 'csuper', dct=True, dtype=np.int64, blank=-1)
+        rdcards(f, 'csuper', todict=True, dtype=np.int64, blank=-1)
 
     Examples
     --------
@@ -1016,7 +1085,7 @@ def rdcsupers(f):
     {101: array([    101,       0,       3,      11,      19,      27, 1995001,
            1995002, 1995003,      -1, 1995010]...)}
     """
-    return rdcards(f, 'csuper', dct=True, dtype=np.int64, blank=-1)
+    return rdcards(f, 'csuper', todict=True, dtype=np.int64, blank=-1)
 
 
 def rdextrn(f, expand=True):
