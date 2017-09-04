@@ -331,7 +331,7 @@ def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
     :func:`rdcards`.
     """
     # fin.seek(0, 0)
-    # name = name.lower()
+    name = name.lower()
     # c = 0
     # for line in fin:
     #     if line.lower().find(name) == 0:
@@ -350,11 +350,22 @@ def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
     fin.seek(0, 0)
     # s = fin.readline()
     # for j in range(c):
+    def _readline(it):
+        try:
+            s = next(it)
+        except StopIteration:
+            s = ''
+        return s
+
     it = iter(fin)
-    for s in it:
-        if s.lower().find(name) != 0:
+    s = _readline(it)
+    # for s in it:
+    while s != '':
+        while s and s.lower().find(name) != 0:
             # s = fin.readline()
-            continue
+            s = _readline(it)
+        if s == '':
+            break
         s = _get_line(it, s, trim=0)
         p = s.find(',')
         if p > -1:
@@ -407,7 +418,9 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
         the name of a directory or None; in these cases, a GUI is
         opened for file selection.
     name : string
-        Card name.
+        Usually the card name, but is really just the initial part of
+        the string to look for. This means that `name` can span more
+        then one field, in case that is handy.
     blank : scalar; optional
         Numeric value to use for blank fields and string-valued
         fields.
