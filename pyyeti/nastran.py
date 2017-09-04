@@ -213,15 +213,14 @@ def _get_line(fiter, s=None, trim=True):
         try:
             s = next(fiter)  # f.readline()
         except StopIteration:
-            s = ''
-    if len(s) > 0:
-        s = s.expandtabs()
-        if trim:
-            s = s[:72]
-        p = s.find('$')
-        if p > -1:
-            s = s[:p]
-        s = s.rstrip()
+            return None
+    s = s.expandtabs()
+    if trim:
+        s = s[:72]
+    p = s.find('$')
+    if p > -1:
+        s = s[:p]
+    s = s.rstrip()
     return s
 
 
@@ -237,8 +236,6 @@ def _rdfixed(fiter, s, n, conchar, blank, tolist):
     tolist : if True, return list, else return np.array; strings are
              kept in this case (instead of being turned into `blank`)
     """
-    # L = 10
-    # vals = np.zeros(L)+blank
     vals = []
     length = len(s)
     i = -1
@@ -255,26 +252,19 @@ def _rdfixed(fiter, s, n, conchar, blank, tolist):
         j = 8
         while j <= maxstart and length > j:
             i += 1
-            # if i >= L:
-            #     # expand vals:
-            #     vals = np.append(vals, np.zeros(L)+blank)
-            #     L *= 2
             v = nas_sscanf(s[j:j+n], tolist)
             if v is not None:
                 vals.append(v)
             else:
                 vals.append(blank)
-                # vals[i] = v
             j += n
         s = _get_line(fiter)
-        if len(s) == 0 or s == -1:
+        if s is None or len(s) == 0:
             break
         if conchar.find(s[0]) < 0:
             break
         length = len(s)
         I += inc
-    if not tolist:
-        vals = np.array(vals)
     return vals, s
 
 
@@ -290,8 +280,6 @@ def _rdcomma(fiter, s, conchar, blank, tolist):
     tolist : if True, return list, else return np.array; strings are
              kept in this case (instead of being turned into `blank`)
     """
-    # L = 10
-    # vals = np.zeros(L) + blank
     vals = []
     i = -1
     I = -1
@@ -304,24 +292,17 @@ def _rdcomma(fiter, s, conchar, blank, tolist):
         lentok = min(len(tok), 9)
         for j in range(1, lentok):
             i += 1
-            # if i >= L:
-            #     # expand vals:
-            #     vals = np.append(vals, np.zeros(L)+blank)
-            #     L *= 2
             v = nas_sscanf(tok[j], tolist)
             if v is not None:
                 vals.append(v)
             else:
                 vals.append(blank)
-                # vals[i] = v
         s = _get_line(fiter, trim=0)
-        if len(s) == 0 or s == -1:
+        if s is None or len(s) == 0:
             break
         if conchar.find(s[0]) < 0:
             break
         I += inc
-    if not tolist:
-        vals = np.array(vals)
     return vals, s
 
 
@@ -330,17 +311,7 @@ def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
     Routine used by :func:`rdcards`. See documentation for
     :func:`rdcards`.
     """
-    # fin.seek(0, 0)
     name = name.lower()
-    # c = 0
-    # for line in fin:
-    #     if line.lower().find(name) == 0:
-    #         c += 1
-    # if c > 0:
-    #     if todict:
-    #         Vals = {}
-    #     else:
-    #         Vals = np.zeros((c, 10), dtype=dtype)+blank
     if todict:
         Vals = {}
         tolist = False
@@ -348,23 +319,20 @@ def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
         Vals = []
     mxlen = 0
     fin.seek(0, 0)
-    # s = fin.readline()
-    # for j in range(c):
+
     def _readline(it):
         try:
             s = next(it)
         except StopIteration:
-            s = ''
+            s = None
         return s
 
     it = iter(fin)
     s = _readline(it)
-    # for s in it:
-    while s != '':
-        while s and s.lower().find(name) != 0:
-            # s = fin.readline()
+    while True:
+        while s is not None and s.lower().find(name) != 0:
             s = _readline(it)
-        if s == '':
+        if s is None:
             break
         s = _get_line(it, s, trim=0)
         p = s.find(',')
@@ -382,24 +350,17 @@ def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
         else:
             cur = len(vals)
             mxlen = max(mxlen, cur)
-            vals = vals.astype(dtype)
+            vals = np.array(vals).astype(dtype)
             if todict:
                 Vals[vals[0]] = vals
             else:
                 Vals.append(vals)
-        # else:
-        #     cV = np.size(Vals, 1)
-        #     if cV < cur:
-        #         Vals = np.hstack(
-        #             (Vals, np.zeros((c, cur-cV),
-        #                             dtype=dtype)+blank))
-        #     Vals[j, :cur] = vals
     if len(Vals) > 0:
         if not (todict or tolist):
             npVals = np.empty((len(Vals), mxlen), dtype=dtype)
             npVals[:] = blank
             for i, vals in enumerate(Vals):
-                npVals[i, :len(vals)] = np.array(vals)
+                npVals[i, :len(vals)] = vals
             Vals = npVals
         return Vals
     return no_data_return
@@ -431,7 +392,7 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
         If True (and `todict` is False), return a list of
         lists. Otherwise, return a matrix or dictionary according to
         `todict`. Returning a list is the only way to preserve strings
-        and is therefore the "truest" read of the file.
+        and is therefore the "truest" read of the cards.
     dtype : data-type, optional
         The desired data-type for the output.
     no_data_return : any variable; optional
@@ -439,13 +400,16 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
 
     Returns
     -------
-    ci : ndarray or dictionary or no_data_return
+    cards : ndarray or dictionary or list or no_data_return
 
-        - If a matrix is returned: each row is a card, padded with
+        - If a matrix is returned, each row is a card, padded with
           blanks as necessary.
-        - If a dictionary is returned: the first number from each card
+        - If a dictionary is returned, the first number from each card
           is used as the key and the value are all the numbers from the
           card in a row vector (including the first value).
+        - If a list (of lists) is returned, each item is a card and is
+          a list of values from the card, the length of which is the
+          number of items on the card.
         - `no_data_return` is returned if no cards of requested name
           were found.
 
@@ -456,7 +420,8 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     that the characters in the continuation fields are ignored. It
     also uses nas_sscanf to read the numbers, so numbers like 1.-3
     (which means 1.e-3) are okay. Blank fields and string fields are
-    set to `blank`.
+    set to `blank`, except when `tolist` is True; in that case, string
+    fields are kept as is and only blank fields are set to `blank`.
 
     Note:  this routine is has no knowledge of any card, which means
     that it will not append trailing blanks to a card. For example,
