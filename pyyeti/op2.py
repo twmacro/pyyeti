@@ -216,12 +216,14 @@ class OP2(object):
         _postheaderpos : integer
             File position after header.
         dbnames : dictionary
-            See :func:`directory` for description.  Contains data block
+            See :func:`directory` for description. Contains data block
             names, bytes in file, file positions, and for matrices, the
             matrix size.
         dblist : list
-            See :func:`directory` for description.  Contains same info
+            See :func:`directory` for description. Contains same info
             as dbnames, but in a list of ordered and formatted strings.
+        dbstarts : integer 1d ndarray
+            Ordered list of datablock starting positions in file.
         _Str4 : struct.Struct object
             Precompiled for reading 4 byte integers (corresponds to
             `int32str`).
@@ -234,6 +236,7 @@ class OP2(object):
         self._fileh = open(filename, 'rb')
         self.dbnames = []
         self.dblist = []
+        self.dbstarts = None
         reclen = struct.unpack('i', self._fileh.read(4))[0]
         self._fileh.seek(0)
 
@@ -244,7 +247,7 @@ class OP2(object):
             if not np.any(reclen == [4, 8]):
                 self._fileh.close()
                 self._fileh = None
-                raise ValueError('Could not decipher file.  First'
+                raise ValueError('Could not decipher file. First '
                                  '4-byte integer should be 4 or 8.')
             if sys.byteorder == 'little':
                 self._endian = '>'
@@ -364,7 +367,7 @@ class OP2(object):
             trailer : tuple
                 Data block trailer.
             type : 0 or 1
-                0 means table, 1 means matrix.  I think.
+                0 means table, 1 means matrix. I think.
 
         All outputs will be None for end-of-file.
         """
@@ -512,7 +515,7 @@ class OP2(object):
 
     def prtdir(self):
         """
-        Prints op2 data block directory.  See also :func:`directory`.
+        Prints op2 data block directory. See also :func:`directory`.
         """
         if len(self.dblist) == 0:
             self.directory(verbose=False)
@@ -534,9 +537,9 @@ class OP2(object):
         Returns
         -------
         dbnames : Dictionary
-            Dictionary indexed by data block name.  Each value is a
+            Dictionary indexed by data block name. Each value is a
             list, one element per occurrence of the data block in the
-            op2 file.  Each element is another list that has 3
+            op2 file. Each element is another list that has 3
             elements: [fpos, bytes, size]::
 
                fpos : 2-element list; file position start and stop
@@ -546,8 +549,11 @@ class OP2(object):
                       for tables [0, 0]
 
         dblist : list
-            List of strings for printing.  Contains the info above
+            List of strings for printing. Contains the info above
             in formatted and sorted (in file position order) strings.
+
+        dbstarts : integer 1d ndarray
+            Ordered list of datablock starting positions in file.
 
         Notes
         -----
@@ -570,9 +576,10 @@ class OP2(object):
         if len(self.dbnames) > 0 and not redo:
             if verbose:
                 self.prtdir()
-            return self.dbnames, self.dblist
+            return self.dbnames, self.dblist, self.dbstarts
         dbnames = {}
         dblist = []
+        dbstarts = []
         self._fileh.seek(self._postheaderpos)
         pos = self._postheaderpos
         while 1:
@@ -597,19 +604,21 @@ class OP2(object):
                 dbnames[name] = []
             dbnames[name].append([[pos, cur], cur-pos-1, size])
             dblist.append(s)
+            dbstarts.append(pos)
             pos = cur
         self.dbnames = dbnames
         self.dblist = dblist
+        self.dbstarts = np.array(dbstarts)
         if verbose:
             self.prtdir()
-        return dbnames, dblist
+        return dbnames, dblist, self.dbstarts
 
     def rdop2dynamics(self):
         """
         Reads the TLOAD data from a DYNAMICS datablock.
 
-        Returns matrix of TLOADS.  Rows = 5, 6, or 8, Cols = number
-        of TLOADs.  TLOAD ids are in first row; other data in matrix
+        Returns matrix of TLOADS. Rows = 5, 6, or 8, Cols = number
+        of TLOADs. TLOAD ids are in first row; other data in matrix
         may not be useful.
         """
         key = self._getkey()
@@ -800,7 +809,7 @@ class OP2(object):
 
         Notes
         -----
-        File must be positioned after name and trailer block.  For
+        File must be positioned after name and trailer block. For
         example, to read the table headers of the last GEOM1S data
         block::
 
@@ -920,6 +929,17 @@ class OP2(object):
             stop = dbdiri[0][1]
             if start <= pos < stop:
                 return start, stop
+
+    def go_to_next_db(self):
+        """
+        Seek to start of next datablock from current position
+        """
+        pos = self._fileh.tell()
+        i = np.searchsorted(self.dbstarts, pos)
+        if i == len(self.dbstarts):
+            self._fileh.seek(0, os.SEEK_END)
+        else:
+            self._fileh.seek(self.dbstarts[i])
 
     def _rdop2ougv1(self, name):
         """
@@ -1085,7 +1105,7 @@ class OP2(object):
         Read record 1 of the Nastran output2 BGPDT data block.
 
         Returns vector of the BGPDT data or [] if no data found.
-        Vector is 9*ngrids in length.  For each grid::
+        Vector is 9*ngrids in length. For each grid::
 
           [ coord_id
             internal_id
@@ -1117,7 +1137,7 @@ class OP2(object):
         Read record 1 of the Nastran output2 BGPDT68 data block.
 
         Returns vector of the BGPDT data or [] if no data found.
-        Vector is 4*ngrids in length.  For each grid::
+        Vector is 4*ngrids in length. For each grid::
 
           [ coord_id
             x
@@ -1174,8 +1194,8 @@ class OP2(object):
 #         """
 #         Read record 1 of Nastran output2 CSTM68 data block.
 #
-#         Returns vector of the CSTM data or [] if no data found.  Vector
-#         is 14 * number of coordinate systems in length.  For each
+#         Returns vector of the CSTM data or [] if no data found. Vector
+#         is 14 * number of coordinate systems in length. For each
 #         coordinate system::
 #
 #           [ id type xo yo zo T(1,1:3) T(2,1:3) T(3,1:3) ]
@@ -1275,7 +1295,7 @@ class OP2(object):
         """
         Read the USET data block.
 
-        Returns 1-d USET array.  The 2nd bit is cleared for the S-set.
+        Returns 1-d USET array. The 2nd bit is cleared for the S-set.
 
         See :func:`rdn2cop2`.
         """
@@ -1394,7 +1414,7 @@ class OP2(object):
         idlist = idlist[pv]
         coordinfo = coordinfo[pv, :]
         if uset is None:
-            warnings.warn('uset information not found.  Putting all '
+            warnings.warn('uset information not found. Putting all '
                           'DOF in b-set.', RuntimeWarning)
             b = n2p.mkusetmask('b')
             uset = np.zeros(len(doflist), int) + b
@@ -1743,32 +1763,32 @@ class OP2(object):
             dnseid is the downstream superelement for seid. (dnseid = 0
             if seid = 0).
         'uset' : dictionary
-            Indexed by the SE number.  Each member is a 6-column matrix
+            Indexed by the SE number. Each member is a 6-column matrix
             described below.
         'cstm' : dictionary
-            Indexed by the SE number.  Each member is a 14-column matrix
+            Indexed by the SE number. Each member is a 14-column matrix
             containing the coordinate system transformation matrix for
-            each coordinate system.  See description below.
+            each coordinate system. See description below.
         'cstm2' : dictionary
-            Indexed by the SE number.  Each member is another dictionary
-            indexed by the coordinate system id number.  This has the
-            same information as 'cstm', but in a different format.  See
+            Indexed by the SE number. Each member is another dictionary
+            indexed by the coordinate system id number. This has the
+            same information as 'cstm', but in a different format. See
             description below.
         'maps' : dictionary
-            Indexed by the SE number.  Each member is a mapping table
+            Indexed by the SE number. Each member is a mapping table
             for mapping the A-set order from upstream to downstream;
             see below.
         'dnids' : dictionary
-            Indexed by the SE number.  Each member is a vector of ids of
+            Indexed by the SE number. Each member is a vector of ids of
             the A-set ids of grids and spoints for SE in the downstream
-            superelement.  When using the CSUPER entry, these will be
-            the ids on that entry.  (Does not have each DOF, just ids.)
+            superelement. When using the CSUPER entry, these will be
+            the ids on that entry. (Does not have each DOF, just ids.)
         'upids' : dictionary
-            Indexed by the SE number.  Each member is a vector of ids
+            Indexed by the SE number. Each member is a vector of ids
             of the A-set grids and spoints for upstream se's that
-            connect to SE.  These ids are internally generated and
-            should match with 'dnids'.  This allows, for example, the
-            routine :func:`pyyeti.n2p.upasetpv` to work.  (Does not
+            connect to SE. These ids are internally generated and
+            should match with 'dnids'. This allows, for example, the
+            routine :func:`pyyeti.n2p.upasetpv` to work. (Does not
             have each DOF, just ids.)
 
         Notes
@@ -1811,19 +1831,19 @@ class OP2(object):
         *'cstm' description*
 
         Each CSTM contains all the coordinate system information for
-        the superelement.  Some or all of this info is in the USET
+        the superelement. Some or all of this info is in the USET
         table, but if a coordinate system is not used as an output
-        system of any grid, it will not show up in USET.  That is why
-        CSTM is here.  CSTM has 14 columns::
+        system of any grid, it will not show up in USET. That is why
+        CSTM is here. CSTM has 14 columns::
 
             CSTM = [ id type xo yo zo T(1,:) T(2,:) T(3,:) ]
 
         Note that each CSTM always starts with the two ids 0 and -1.
         The 0 is the basic coordinate system and the -1 is a dummy for
-        SPOINTs.  Note the T is transformation between coordinate
+        SPOINTs. Note the T is transformation between coordinate
         systems as defined (not necessarily the same as the
         transformation for a particular grid ... which, for
-        cylindrical and spherical, depends on grid location).  This is
+        cylindrical and spherical, depends on grid location). This is
         the same T as in the USET table.
 
         For example, to convert coordinates from global to basic::
@@ -1843,7 +1863,7 @@ class OP2(object):
 
         Each CSTM2 is a dictionary with the same 5x3 that the
         'Coord_Info' listed above has (doesn't include the first row
-        which is the node location).  The dictionary is indexed by the
+        which is the node location). The dictionary is indexed by the
         coordinate id.
 
         *'maps' description*
@@ -1852,14 +1872,14 @@ class OP2(object):
         rearranged going downstream (on the CSUPER entry.)  For other
         superelements, MAPS will contain two columns: [order, scale].
         The first column reorders upstream A-set to be in the order
-        that they appear in the downstream: Down = Up(MAPS(:,1)).  The
+        that they appear in the downstream: Down = Up(MAPS(:,1)). The
         second column is typically 1.0; if not, these routines will
-        print an error message and stop.  Together with DNIDS, a
+        print an error message and stop. Together with DNIDS, a
         partition vector can be formed for the A-set of an upstream
         superelement (see :func:`pyyeti.n2p.upasetpv`).
 
         The op2 file that this routine reads is written by the Nastran
-        DMAP NAS2CAM.  The data in the file are expected to be in this
+        DMAP NAS2CAM. The data in the file are expected to be in this
         order::
 
             SLIST & EMAP or  SUPERID
@@ -1871,7 +1891,7 @@ class OP2(object):
               MAPS     (if required)
 
         Note: The 2nd bit for the DOF column of all USET tables is
-        cleared for all S-set.  See :func:`pyyeti.n2p.mkusetmask` for
+        cleared for all S-set. See :func:`pyyeti.n2p.mkusetmask` for
         more information.
 
         Example usage::
@@ -2014,7 +2034,7 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
         G-set rigid-body modes; see also drg output and rbgeom_uset
     'drg' : dictionary indexed by SE
         G-set transpose of rigid-body modes; see also 'rbg' and
-        :func:`pyyeti.n2p.rbgeom_uset`.  `drg` = `rbg.T` if both are
+        :func:`pyyeti.n2p.rbgeom_uset`. `drg` = `rbg.T` if both are
         present.
     'pg' : dictionary indexed by SE
         G-set loads
@@ -2026,9 +2046,9 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
     Notes
     -----
     See :func:`OP2.rdn2cop2` for a description of what is expected of
-    the `op2file`.  The `op4file` is expected to contain certain
-    marker matrices.  Scalar SE_START starts each superelement and can
-    be followed by any matrices for that superelement.  The end of the
+    the `op2file`. The `op4file` is expected to contain certain
+    marker matrices. Scalar SE_START starts each superelement and can
+    be followed by any matrices for that superelement. The end of the
     superelement input is marked by a matrix named LOOP_END.
 
     See also the Nastran DMAP NAS2CAM.
@@ -2047,7 +2067,7 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
     for se in nas['selist'][:, 0]:
         if op4names[j] != "se_start":
             raise ValueError("matrices are not in understandable"
-                             " order.  Expected 'se_start', got "
+                             " order. Expected 'se_start', got "
                              "'{}'".format(op4names[j]))
         # read all matrices for this se
         j += 1
@@ -2105,7 +2125,7 @@ def get_dof_descs():
     Notes
     -----
     The stress and force returns are dictionaries indexed by the
-    element id.  For example, for the CBAR (which is element 34)::
+    element id. For example, for the CBAR (which is element 34)::
 
         desc['stress'][34] = ['CBAR Bending Stress 1 - End A',
                               'CBAR Bending Stress 2 - End A',
@@ -2683,7 +2703,7 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
     -------
     otm : dictionary
         Has data recovery matrices (DRMs), id/dof info, and generic
-        descriptions.  The potential DRM keys are::
+        descriptions. The potential DRM keys are::
 
             'ATM'  : acceleration DRM
 
@@ -2704,7 +2724,7 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
             'STMA' : displacement-dependent part of element stress DRM
 
         The id/dof matrices are each 2 columns of [id, dof] with number
-        of rows equal to the number of rows in corresponding DRM.  The
+        of rows equal to the number of rows in corresponding DRM. The
         keys are the applicable strings from::
 
             'ATM_id_dof'
@@ -2714,9 +2734,9 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
             'STM_id_dof' - dof is actually the Nastran item code
 
         The descriptions are arrays of strings with generic descriptions
-        for each data recovery item.  Length is equal to number of rows
+        for each data recovery item. Length is equal to number of rows
         in corresponding DRM. See :func:`get_dof_descs` for more
-        information.  The keys are the applicable strings from::
+        information. The keys are the applicable strings from::
 
             'ATM_desc'
             'DTM_desc'
@@ -2832,7 +2852,7 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
                 get_drm(drminfo[drtype], otm, drms,
                         drmkeys, DR[:, pv], desc)
             else:
-                print('Skipping "{}" requests.  Needs to be added '
+                print('Skipping "{}" requests. Needs to be added '
                       'to procdrm12().'.format(Vreq[drtype-1]))
     return otm
 
@@ -2864,17 +2884,17 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
         :func:`OP2.rdn2cop2`.
     'cstm' : array
         14-column matrix containing the coordinate system
-        transformation matrix for each coordinate system.  See
+        transformation matrix for each coordinate system. See
         description in class OP2, member function
         :func:`OP2.rdn2cop2`.
     'cstm2' : dictionary
-        Dictionary indexed by the coordinate system id number.  This
+        Dictionary indexed by the coordinate system id number. This
         has the same information as 'cstm', but in a different format.
         See description in class OP2, member function
         :func:`OP2.rdn2cop2`.
     'mats' : dictionary
         Dictionary of matrices read from op2 file and indexed by the
-        name.  The 'tload' entry is a typical entry.  Will also
+        name. The 'tload' entry is a typical entry. Will also
         contain lists of 'OUGV1', 'EOF1*', and 'EOS1*' matrices if
         the respective `get*` flag is set and those entries are
         present.

@@ -305,7 +305,7 @@ def test_gpwg():
     # get third table:
     s1 = 'W E I G H T'
     mass, cg, ref, Is = nastran.rdgpwg(
-        'pyyeti/tests/nas2cam_extseout/assemble.out', s1, s1)
+        'pyyeti/tests/nas2cam_extseout/assemble.out', [s1, s1])
     r = 0
     m = np.array([
         [ 3.345436E+00,  1.598721E-13, -1.132427E-12,
@@ -339,8 +339,8 @@ def test_gpwg():
         assert i is None
 
     a = nastran.rdgpwg(
-        'pyyeti/tests/nas2cam_extseout/assemble.out', s1, s1,
-        'END OF JOB')
+        'pyyeti/tests/nas2cam_extseout/assemble.out',
+        (s1, s1, 'END OF JOB'))
     for i in a:
         assert i is None
 
@@ -596,3 +596,35 @@ def test_rddtipch():
         sbe[n:n+i[1], 1] = np.arange(1, i[1]+1)
         n += i[1]
     assert np.all(d == sbe)
+
+
+def test_rddmig():
+    dct = nastran.rddmig(
+        'pyyeti/tests/nastran_dmig_data/matrix_factory.pch')
+    dct2 = nastran.rddmig(
+        'pyyeti/tests/nastran_dmig_data/matrix.op2')
+
+    for key, val in dct.items():
+        val2 = dct2['M'+key.upper()]
+        assert np.allclose(val, val2)
+
+    assert np.all(dct['ident'] == np.eye(dct['ident'].shape[0]))
+    pattern_mat = np.empty(dct['patrn'].shape)
+    for i in range(dct['patrn'].shape[1]):
+        pattern_mat[:, i] = i+1
+    assert np.all(pattern_mat == dct['patrn'])
+
+    assert sorted(dct.keys()) == ['cmplx', 'ident', 'patrn', 'randm']
+
+    dct = nastran.rddmig(
+        'pyyeti/tests/nastran_dmig_data/matrix_factory.pch',
+        ('patrn', 'randm'))
+    dct2 = nastran.rddmig(
+        'pyyeti/tests/nastran_dmig_data/matrix.op2',
+        ('mpatrn', 'mrandm'))
+
+    for key, val in dct.items():
+        val2 = dct2['M'+key.upper()]
+        assert np.allclose(val, val2)
+
+    assert sorted(dct.keys()) == ['patrn', 'randm']

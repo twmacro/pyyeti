@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-from pyyeti import n2p, locate, writer, ytools, op4, guitools
+from pyyeti import n2p, locate, writer, ytools, op4, op2, guitools
 
 
 def nas_sscanf(s, keep_string=False):
@@ -104,21 +104,22 @@ def fsearch(f, s):
     return None, None
 
 
-def _rdgpwg(f, s1, s2, s3):
+def _rdgpwg(f, search_strings):
     """
     Routine used by :func:`rdgpwg`. See documentation for
     :func:`rdgpwg`.
     """
     f.seek(0, 0)
     default = None, None, None, None
-    for s in (s1, s2, s3):
-        if s is None:
-            break
-        for line in f:
-            if line.find(s) > -1:
-                break
-        else:
-            return default
+    if search_strings is not None:
+        if isinstance(search_strings, str):
+            search_strings = (search_strings,)
+        for s in search_strings:
+            for line in f:
+                if line.find(s) > -1:
+                    break
+            else:
+                return default
 
     line, p = fsearch(f, 'W E I G H T')
     if line is None:
@@ -149,7 +150,7 @@ def _rdgpwg(f, s1, s2, s3):
     return mass, cg, refpt, Is
 
 
-def rdgpwg(f, s1=None, s2=None, s3=None):
+def rdgpwg(f, search_strings=None):
     """
     Read a GPWG table from a Nastran F06 file.
 
@@ -160,11 +161,12 @@ def rdgpwg(f, s1=None, s2=None, s3=None):
         :func:`open`. If handle, file is rewound first. Can also be
         the name of a directory or None; in these cases, a GUI is
         opened for file selection.
-    s1, s2, s3 : string or None; optional
-        If input, these strings are searched for in order so the
-        proper GPWG table is found. If `s1` is None, the first GPWG
-        table is read. The first None ends the searching (so if `s1`
-        is None, there is no searching).
+    search_strings : None, string, or list-like of strings
+        If a string, this routine will scan the file until the string
+        is found before reading the GPWG table. If multiple strings in
+        a list or tuple, the routine will scan for each string, in the
+        order provided, before reading the GPWG table. If None, the
+        first GPWG table is read.
 
     Returns
     -------
@@ -190,7 +192,7 @@ def rdgpwg(f, s1=None, s2=None, s3=None):
     Notes
     -----
     The routine will load the first GPWG table it finds after
-    searching for the `s1`, `s2`, and `s3` inputs, if provided. After
+    searching for each string in `search_strings`, if provided. After
     searching for these strings, the routine will search for the next
     "W E I G H T" string.
 
@@ -202,10 +204,9 @@ def rdgpwg(f, s1=None, s2=None, s3=None):
         from pyyeti import nastran
         str1 = '           SUPERELEMENT 100'
         str2 = '^^^F-SET MASS TABLE'
-        mass, cg, ref, I = nastran.rdgpwg('modes.f06', str1, str2)
-
+        mass, cg, ref, I = nastran.rdgpwg('modes.f06', (str1, str2))
     """
-    return ytools.rdfile(f, _rdgpwg, s1, s2, s3)
+    return ytools.rdfile(f, _rdgpwg, search_strings)
 
 
 def _get_line(fiter, s=None, trim=True):
@@ -432,6 +433,362 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     """
     return ytools.rdfile(f, _rdcards, name, blank, todict, tolist,
                          dtype, no_data_return)
+
+
+def rddmig(f, dmig_names=None, *, expanded=False, square=False):
+    """
+    Read DMIG entries from a Nastran punch (bulk) or output2 file.
+
+    Parameters
+    ----------
+    f : string or file handle or None
+        Either a name of a punch or output2 file or a file handle as
+        returned by :func:`open`. If handle, punch format is assumed
+        and file is rewound first. Can also be the name of a directory
+        or None; in these cases, a GUI is opened for file selection.
+    dmig_names : None, string, or list-like of strings
+        If not None, it is the name or names of DMIG entry(s) to
+        read. If None, all DMIG entries will be returned.
+    expanded : bool; optional; must be named
+        If True, row and column indices for "GRID" IDs will be
+        expanded to include all 6 DOF, even if some of those DOF are
+        not used. Otherwise, if `expanded` is False, only the row and
+        column DOF actually referenced on the DMIG will be
+        included.
+    square : bool; optional; must be named
+        Only used for "square" matrices (``form=1``). If True, ensures
+        that the row and column indices are the same by filling in
+        zeros as necessary.
+
+    Returns
+    -------
+    dct : dictionary
+        Dictionary of pandas DataFrames containing the DMIG
+        entries. The column and row indices are pandas MultiIndex
+        objects with node ID in level 0 and DOF in level 1. The
+        exception is for type "9" matrices: the column index in that
+        case is just the column number (as specified by Nastran).
+
+    Notes
+    -----
+    For the punch format, this routine first reads all DMIG entries
+    via :func:`rdcards` using the `tolist` option. It then builds a
+    dictionary of DataFrames for only those entries specified in
+    `dmig_names`. It is assumed that DMIG entries are in order in the
+    file.
+
+    For the output2 format, this routine scans through the file
+    looking for matching DMIG data-blocks and only reads those in.
+
+    .. note::
+        This routine is more lenient than Nastran. Nastran will issue
+        a FATAL message if a symmetric matrix has entries for element
+        (i, j) and (j, i). This routine does not check for that (the
+        last value for (i, j) or (j, i) will be used for both).
+
+    Examples
+    --------
+
+    Manually create a punch format DMIG string, treat it as a file,
+    and read it in with a couple different options:
+
+    >>> import numpy as np
+    >>> from pyyeti import nastran
+    >>> from io import StringIO
+    >>> dmig = (
+    ...  'DMIG    MAT            0       1       2       0'
+    ...  '                       2\\n'
+    ...  'DMIG*   MAT                            1               1\\n'
+    ...  '*                      1               3 1.200000000D+01\\n'
+    ...  '*                     10               0 1.000000000D+02\\n'
+    ... )
+    >>> with StringIO(dmig) as f:
+    ...     dct1 = nastran.rddmig(f)
+    ...     dct2 = nastran.rddmig(f, expanded=True)
+    ...     dct3 = nastran.rddmig(f, square=True)
+    ...     dct4 = nastran.rddmig(f, expanded=True, square=True)
+    >>> dct1['mat']
+    ID          1
+    DOF         1
+    ID DOF       
+    1  3     12.0
+    10 0    100.0
+    >>> dct2['mat']
+    ID          1                         
+    DOF         1    2    3    4    5    6
+    ID DOF                                
+    1  1      0.0  0.0  0.0  0.0  0.0  0.0
+       2      0.0  0.0  0.0  0.0  0.0  0.0
+       3     12.0  0.0  0.0  0.0  0.0  0.0
+       4      0.0  0.0  0.0  0.0  0.0  0.0
+       5      0.0  0.0  0.0  0.0  0.0  0.0
+       6      0.0  0.0  0.0  0.0  0.0  0.0
+    10 0    100.0  0.0  0.0  0.0  0.0  0.0
+    >>> dct3['mat']
+    ID         1         10
+    DOF         1    3    0
+    ID DOF                 
+    1  1      0.0  0.0  0.0
+       3     12.0  0.0  0.0
+    10 0    100.0  0.0  0.0
+    >>> dct4['mat']
+    ID         1                             10
+    DOF         1    2    3    4    5    6    0
+    ID DOF                                     
+    1  1      0.0  0.0  0.0  0.0  0.0  0.0  0.0
+       2      0.0  0.0  0.0  0.0  0.0  0.0  0.0
+       3     12.0  0.0  0.0  0.0  0.0  0.0  0.0
+       4      0.0  0.0  0.0  0.0  0.0  0.0  0.0
+       5      0.0  0.0  0.0  0.0  0.0  0.0  0.0
+       6      0.0  0.0  0.0  0.0  0.0  0.0  0.0
+    10 0    100.0  0.0  0.0  0.0  0.0  0.0  0.0
+    """
+    # Notes on DMIG format:
+    # - rows are always g-set or p-set size
+    # - square:
+    #   - format 1 is general square
+    #   - format 6 is symmetric and only one of each (i, j) or (j, i)
+    #     pair may be provided (Nastran will FATAL otherwise)
+    # - rectangular:
+    #   - format 2
+    #   - format 9 uses 'ncol' and doesn't have actual grid/dof pairs
+    #     for columns; but the pairs provided do determine sort order
+
+    def _add_iddof_expanded(ids, iddof, nid, dof):
+        # iddof is a list
+        if nid not in ids:
+            ids.add(nid)
+            if dof > 0:
+                iddof.extend([(nid, k) for k in range(1, 7)])
+            else:
+                iddof.append((nid, 0))
+
+    def _add_iddof_minimal(ids, iddof, nid, dof):
+        # iddof is a set
+        iddof.add((nid, dof))
+
+    def _mk_index(iddof):
+        iddof = sorted(iddof, key=lambda x: 10*x[0]+x[1])
+        return pd.MultiIndex.from_tuples(iddof, names=['ID', 'DOF'])
+
+    def _mk_dataframe(mtype, form, row_ids, row_iddof, col_iddof):
+        # create dataframe:
+        dtype = float if mtype < 3 else complex
+        if form != 9:
+            if form == 6 or (form ==1 and square):
+                for nid, dof in col_iddof:
+                    add_iddof(row_ids, row_iddof, nid, dof)
+                rowindex = _mk_index(row_iddof)
+                colindex = rowindex
+            else:
+                rowindex = _mk_index(row_iddof)
+                colindex = _mk_index(col_iddof)
+        else:
+            rowindex = _mk_index(row_iddof)
+            if expanded:
+                colindex = np.arange(1, ncol+1)
+            else:
+                colindex = sorted(nid for nid, dof in col_iddof)
+
+        data = np.zeros((len(rowindex), len(colindex)), dtype)
+        return pd.DataFrame(data, index=rowindex, columns=colindex)
+
+    def _cards_to_df(c, dmig_names):
+        # punch file
+        def _next_i(c, i):
+            while i < len(c) and c[i][0].lower() not in dmig_names:
+                i += 1
+            return i
+
+        dct = {}
+        i = 0
+        while i < len(c):
+            if dmig_names is not None:
+                i = _next_i(c, i)
+                if i == len(c):
+                    break
+            name = c[i][0].lower()
+
+            # form: 1 square, 2 rect, 6 symmetric, 9 rect
+            form = c[i][2]
+            # mtype: 1 real, 2 double, 3 complex, 4 complex double
+            mtype = c[i][3]
+            ncol = c[i][7] if form == 9 else None
+
+            # Count DOF for DMIG name
+            j = i + 1
+            row_ids = set()
+            col_ids = set()
+            col_iddof = iddof_initializer()
+            row_iddof = iddof_initializer()
+
+            # look across columns (each DMIG entry is a column)
+            while j < len(c) and c[j][0].lower() == name:
+                nid, dof = c[j][1:3]
+                add_iddof(col_ids, col_iddof, nid, dof)
+
+                # for each column, look across rows:
+                rowids = c[j][4::4]
+                rowdofs = c[j][5::4]
+                for nid, dof in zip(rowids, rowdofs):
+                    add_iddof(row_ids, row_iddof, nid, dof)
+                j += 1
+
+            # create dataframe:
+            dct[name] = _mk_dataframe(mtype, form, row_ids,
+                                      row_iddof, col_iddof)
+
+            j = i + 1
+            # put data into dataframe:
+            df = dct[name]
+            while j < len(c) and c[j][0].lower() == name:
+                nid, dof = c[j][1:3]
+                if form != 9:
+                    col = (nid, dof)
+                else:
+                    col = nid
+
+                # for each column, look across rows:
+                rowids = c[j][4::4]
+                rowdofs = c[j][5::4]
+                reals = c[j][6::4]
+                if mtype < 3:
+                    for nid, dof, real in zip(rowids, rowdofs, reals):
+                        df.loc[(nid, dof), col] = real
+                        if form == 6:
+                            df.loc[col, (nid, dof)] = real
+                else:
+                    imags = c[j][7::4]
+                    for nid, dof, real, imag in zip(rowids, rowdofs,
+                                                    reals, imags):
+                        val = real + 1j*imag
+                        df.loc[(nid, dof), col] = val
+                        if form == 6:
+                            df.loc[col, (nid, dof)] = val
+                j += 1
+            i = j
+        return dct
+
+    def _read_op2_dmig(o2, dmig_names):
+        o2._fileh.seek(o2._postheaderpos)
+        dct = {}
+        name, trailer, dbtype = o2._rdop2nt()
+        while name is not None:
+            # print(f'op2: found {name}')
+            if (dmig_names is not None and
+                    name.lower() not in dmig_names):
+                o2.skipop2table()
+            else:
+                rec = o2.rdop2record()
+                if np.all(rec[:3] == (114, 1, 120)):
+                    dct[name] = rec
+                o2.go_to_next_db()
+            name, trailer, dbtype = o2._rdop2nt()
+        return dct
+
+    def _recs_to_df(recs):
+        dct = {}
+        for name, rec in recs.items():
+            form = rec[6]
+            mtype = rec[7]  # 1 real, 2 double, 3 complex, 4 complex double
+            ncol = rec[11] if form == 9 else None
+
+            ints_per_number = mtype
+            if mtype > 2:
+                ints_per_number = 2*(mtype-2)
+                dtype = np.complex128 if mtype == 4 else np.complex64
+            else:
+                ints_per_number = mtype
+                dtype = np.float64 if mtype == 2 else np.float32
+            step = 2 + ints_per_number  # row id, dof, <number>
+
+            # Count DOF for DMIG
+            row_ids = set()
+            col_ids = set()
+            col_iddof = iddof_initializer()
+            row_iddof = iddof_initializer()
+
+            # Look across columns for id, dof pairs. Within each column,
+            # look across rows for id, dof pairs.
+
+            # - each DMIG entry is a column
+            # - end of each DMIG entry is marked with row:
+            #     [ID, DOF] = [-1, -1]
+
+            # 12 & 13 4-byte integers are 1st col id, dof pair
+            j = 12
+            while j < len(rec)-2:
+                nid, dof = rec[j:j+2]
+                add_iddof(col_ids, col_iddof, nid, dof)
+
+                j += 2
+                rowids = rec[j::step]
+                rowdofs = rec[j+1::step]
+                for i, (nid, dof) in enumerate(zip(rowids, rowdofs)):
+                    if nid == -1:
+                        j += step*i + 2
+                        break
+                    add_iddof(row_ids, row_iddof, nid, dof)
+
+            # create dataframe:
+            dct[name] = _mk_dataframe(mtype, form, row_ids,
+                                      row_iddof, col_iddof)
+
+            # put data into dataframe:
+            df = dct[name]
+            j = 12
+            while j < len(rec)-2:
+                nid, dof = rec[j:j+2]
+                if form != 9:
+                    col = (nid, dof)
+                else:
+                    col = nid
+
+                j += 2
+                nid = rec[j]
+                while nid != -1:
+                    dof = rec[j+1]
+                    j += 2
+                    val = rec[j:j+ints_per_number]
+                    val.dtype = dtype
+                    j += ints_per_number
+                    df.loc[(nid, dof), col] = val
+                    if form == 6:
+                        df.loc[col, (nid, dof)] = val
+                    nid = rec[j]
+                j += 2
+        return dct
+
+    # MAIN routine
+    if expanded:
+        add_iddof = _add_iddof_expanded
+        iddof_initializer = list
+    else:
+        add_iddof = _add_iddof_minimal
+        iddof_initializer = set
+
+    if dmig_names is not None:
+        if isinstance(dmig_names, str):
+            dmig_names = (dmig_names,)
+        dmig_names = [i.lower() for i in dmig_names]
+
+    if f is not None and not isinstance(f, str):
+        # assume file handle, assume punch
+        cards = rdcards(f, name='dmig', tolist=True, blank='')
+        return _cards_to_df(cards, dmig_names)
+
+    # read op2 or punch ... try op2, if that fails, assume punch:
+    dmigfile = guitools.get_file_name(f, read=True)
+    try:
+        o2 = op2.OP2(dmigfile)
+    except ValueError:
+        cards = rdcards(dmigfile, name='dmig', tolist=True, blank='')
+        dct = _cards_to_df(cards, dmig_names)
+    else:
+        o2dct = _read_op2_dmig(o2, dmig_names)
+        del o2
+        dct = _recs_to_df(o2dct)
+    return dct
 
 
 def rdgrids(f):

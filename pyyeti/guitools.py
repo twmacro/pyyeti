@@ -37,7 +37,8 @@ def get_file_name(f, read):
 
     Returns
     -------
-    File name.
+    filename : string
+        The selected filename.
     """
     if isinstance(f, str) and os.path.isdir(f):  # pragma: no cover
         initialdir = f

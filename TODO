@@ -3,7 +3,7 @@
 -  Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
 
 1. Update duf explanation in cla.apply_uf
-2. Read dmig matrices
+~2. Read dmig matrices
 3. Rearrange code: op2, op4, n2p, nastran overlap ... ?
    - primarly rdnas2cam ... seems like this should be in n2p
 4. Convert uset to dataframe i think
@@ -75,6 +75,11 @@
     5 maybe add option to use only one figure ... that should be default ?
 
     6 y-axis label written far away in srs3/net_ifatm_0rb_eqsine_all.pdf plot ... why?
+
+16. op2 updates:
+  - some functions should be "public", like _rdop2nt()
+~  - add "go_to_next_db"
+
 
 doc:
 ..   .. autoclass:: DR_Results

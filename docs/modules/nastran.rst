@@ -14,6 +14,7 @@ Limited set of read/write routines for Nastran bulk data
     nas_sscanf
     rdcards
     rdcsupers
+    rddmig
     rddtipch
     rdeigen
     rdextrn

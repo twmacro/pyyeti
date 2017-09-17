@@ -312,7 +312,7 @@ def test_rdop2mats():
             assert np.allclose(dct2['rcmat'][0], dct['ZUZR06'])
 
     with op2.OP2(dr+'double_le.op2') as o2:
-        d, l = o2.directory()
+        d, l, s = o2.directory()
     assert sorted(d.keys()) == ['CASECC', 'ZUZR01',
                                 'ZUZR02', 'ZUZR03']
 
