@@ -1998,7 +1998,7 @@ class SolveExp2(_BaseODE):
 
     def get_f2x(self, phi, velo=False):
         """
-        Get force to displacement transform, typically for Henkel-Mar
+        Get force-to-displacement or force-to-velocity transform
 
         Parameters
         ----------
@@ -2021,6 +2021,15 @@ class SolveExp2(_BaseODE):
         separate from each other. The `flex` matrix is part of the
         matrix in the upper right quadrant of equation 27 in ref
         [#hm]_; the remaining part comes from the other body.
+
+        The interface DOF are those DOF that interface with the other
+        body. The force is the interface force and the displacement
+        (or velocity) is of the interface DOF.
+
+        The reference does not discuss enforcing joint velocity
+        compatibility. This routine however lets you choose between
+        the two since the velocity method is fundamentally more stable
+        than the displacement method.
 
         Let (see also :func:`__init__`)::
 
@@ -2589,7 +2598,7 @@ class SolveUnc(_BaseODE):
 
     def get_f2x(self, phi, velo=False):
         """
-        Get force to displacement transform, typically for Henkel-Mar
+        Get force-to-displacement or force-to-velocity transform
 
         Parameters
         ----------
@@ -2612,6 +2621,15 @@ class SolveUnc(_BaseODE):
         separate from each other. The `flex` matrix is part of the
         matrix in the upper right quadrant of equation 27 in ref
         [#hm]_; the remaining part comes from the other body.
+
+        The interface DOF are those DOF that interface with the other
+        body. The force is the interface force and the displacement
+        (or velocity) is of the interface DOF.
+
+        The reference does not discuss enforcing joint velocity
+        compatibility. This routine however lets you choose between
+        the two since the velocity method is fundamentally more stable
+        than the displacement method.
 
         Let (see also :func:`__init__`)::
 
