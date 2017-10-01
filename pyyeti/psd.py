@@ -123,20 +123,20 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='outside',
     if exact:
         if not anchor:
             anchor = 1000.
-        var1 = np.floor(np.log2(s/anchor)*n)
-        var2 = np.log2(e/anchor)*n + 1
+        var1 = np.floor(np.log2(s / anchor) * n)
+        var2 = np.log2(e / anchor) * n + 1
         bands = np.arange(var1, var2)
-        F = anchor * 2**(bands/n)
-        factor = 2**(1/(2*n))
+        F = anchor * 2**(bands / n)
+        factor = 2**(1 / (2 * n))
     else:
         if not anchor:
             anchor = 1.
-        var1 = np.floor(np.log10(s/anchor)*10*n/3)
-        var2 = np.log10(e/anchor)*10*n/3 + 1
+        var1 = np.floor(np.log10(s / anchor) * 10 * n / 3)
+        var2 = np.log10(e / anchor) * 10 * n / 3 + 1
         bands = np.arange(var1, var2)
-        F = anchor * 10**(3*bands/(10*n))
-        factor = 10**(3/(20*n))
-    FL, FU = F/factor, F*factor
+        F = anchor * 10**(3 * bands / (10 * n))
+        factor = 10**(3 / (20 * n))
+    FL, FU = F / factor, F * factor
     if trim in ('outside', 'band'):
         Nmax = np.max(np.nonzero(FL <= e)[0]) + 1
         Nmin = np.min(np.nonzero(FU >= s)[0])
@@ -201,6 +201,75 @@ def proc_psd_spec(spec):
                              'than 2 dimensions.')
         npsds = 1 if PSD.ndim == 1 else PSD.shape[1]
     return Freq, PSD, npsds
+
+
+def area(spec):
+    """
+    Compute the area under a PSD random specification.
+
+    Parameters
+    ----------
+    spec : 2d ndarray or 2-element tuple/list
+        If ndarray, its columns are ``[Freq, PSD1, PSD2, ... PSDn]``.
+        Otherwise, it must be a 2-element tuple or list, eg:
+        ``(Freq, PSD)`` where PSD is: ``[PSD1, PSD2, ... PSDn]``. In
+        the second usage, PSD can be 1d; in the first usage, PSD is
+        always considered 2d. The frequency vector must be
+        monotonically increasing.
+    Returns
+    -------
+    area : 1d array
+        Area(s) under the PSD specification.
+
+    Notes
+    -----
+    This routine assumes a constant db/octave slope for all segments.
+    With this assumption, it computes the area for each segment with
+    the following formula. The segment goes from (f1, p1) to
+    (f2, p2)::
+
+         val = log(p2/p1)/log(f2/f1)
+         if val == -1:
+             area_segment = p1*f1*log(f2/f1)
+         else:
+             area_segment = (f2*p2 - f1*p1)/(1 + val)
+
+    .. warning::
+        Do not use this routine for general freq vs. psd curves, such
+        as output from analysis. Use something like
+        :func:`numpy.trapz` instead.
+
+    Examples
+    --------
+    Compute a 3-sigma peak value given a test spec:
+
+    >>> import numpy as np
+    >>> from pyyeti import psd
+    >>> spec = np.array([[20, .0053],
+    ...                  [150, .04],
+    ...                  [600, .04],
+    ...                  [2000, .0036]])
+    >>> freq = [100, 200, 600, 1200]
+    >>> 3*np.sqrt(psd.area(spec))   # doctest: +ELLIPSIS
+    array([ 18.43...])
+    """
+    Freq, PSD, _ = proc_psd_spec(spec)
+    _area = 0.0
+
+    for i in range(Freq.size - 1):
+        f1 = Freq[i]
+        f2 = Freq[i + 1]
+        l1 = PSD[i]
+        l2 = PSD[i + 1]
+
+        val = np.log(l2 / l1) / np.log(f2 / f1)
+        if abs(val + 1.0) < 1e-5:
+            # happens for slope of 10*log10(.5)  db/octave
+            intarea = l1 * f1 * np.log(f2 / f1)
+        else:
+            intarea = (f2 * l2 - f1 * l1) / (1 + val)
+        _area = _area + intarea
+    return _area
 
 
 def interp(spec, freq, linear=False):
@@ -413,15 +482,15 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
         if np.all(Df == Df[0]):
             # linear scale
             Df = Df[0]
-            FL = fcenter-Df/2
-            FU = fcenter+Df/2
+            FL = fcenter - Df / 2
+            FU = fcenter + Df / 2
         else:
             # output is not linear, assume log
             mid = np.sqrt(fcenter[:-1] * fcenter[1:])
             fact1 = mid[0] / fcenter[1]
             fact2 = fcenter[-1] / mid[-1]
-            FL = np.hstack((fact1*fcenter[0], mid))
-            FU = np.hstack((mid, fact2*fcenter[-1]))
+            FL = np.hstack((fact1 * fcenter[0], mid))
+            FU = np.hstack((mid, fact2 * fcenter[-1]))
         return FL, FU
 
     if freq is None:
@@ -449,14 +518,14 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
     Df = np.diff(F)
     if np.all(Df == Df[0]):
         # input uses linear frequency scale
-        FLin = F - Df[0]/2
-        FUin = F + Df[0]/2
+        FLin = F - Df[0] / 2
+        FUin = F + Df[0] / 2
     else:
         # not linear, assume log
         FLin, FUin = _get_fl_fu(F)
 
     Df = (FUin - FLin).reshape(-1, 1)
-    ca = np.vstack((np.zeros((1, cols)), np.cumsum(Df*P, axis=0)))
+    ca = np.vstack((np.zeros((1, cols)), np.cumsum(Df * P, axis=0)))
     Fa = np.hstack((FLin[0], FUin))
 
     if extendends:
@@ -478,11 +547,11 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
 
     # Compute new values
     ms = cau - cal
-    psdoct = ms*(1/(FU-FL).reshape(-1, 1))
+    psdoct = ms * (1 / (FU - FL).reshape(-1, 1))
     if extendends:
         FL[0] = fl
         FU[-1] = fu
-        ms = psdoct * (FU-FL).reshape(-1, 1)
+        ms = psdoct * (FU - FL).reshape(-1, 1)
     msv = np.sum(ms, axis=0)
     if oned:
         psdoct = psdoct.ravel()
@@ -584,17 +653,17 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
     # compute psd
     F, P = psdmod(x, sr, nperseg=nperseg, window=window,
                   timeslice=timeslice, tsoverlap=tsoverlap,
-                  noverlap=int(overlap*nperseg))
-    s, e = _set_frange(frange, 0.0, sr/2)
+                  noverlap=int(overlap * nperseg))
+    s, e = _set_frange(frange, 0.0, sr / 2)
     if fs != 0:
         _, F, _, P = rescale(P, F, n_oct=fs, frange=(s, e))
     else:
-        P = P*F[1]
+        P = P * F[1]
         pv = (F >= s) & (F <= e)
         F = F[pv]
         P = P[pv]
-    v = P/pref**2
-    return F, 10*np.log10(v), 10*np.log10(np.sum(v))
+    v = P / pref**2
+    return F, 10 * np.log10(v), 10 * np.log10(np.sum(v))
 
 
 def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
@@ -700,26 +769,26 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         ppc = 2
     # compute parameters
     # 1 cycle of lowest frequency defines length of signal:
-    T = 1/df  # number of seconds for lowest frequency cycle
-    N = int(np.ceil(fstop*ppc*T))  # total number of pts
-    df = fstop*ppc/N
+    T = 1 / df  # number of seconds for lowest frequency cycle
+    N = int(np.ceil(fstop * ppc * T))  # total number of pts
+    df = fstop * ppc / N
     # adjust df to make sure fstart is an even multiple of df
-    df = fstart/np.floor(fstart/df)
-    sr = N*df  # sr = N/T = N/(1/df)
+    df = fstart / np.floor(fstart / df)
+    sr = N * df  # sr = N/T = N/(1/df)
     odd = N & 1
 
     # define constants
-    freq = np.arange(fstart, fstop+df/2, df)
+    freq = np.arange(fstart, fstop + df / 2, df)
 
     # generate amp(f) vector
     speclevel = interp(fp, freq).ravel()
-    amp = np.sqrt(2*speclevel*df)
+    amp = np.sqrt(2 * speclevel * df)
 
-    m = (N+1)//2 if odd else N//2 + 1
+    m = (N + 1) // 2 if odd else N // 2 + 1
 
     # build up amp to include zero frequency to fstart and from fstop
     # to fhighest:
-    ntop = int(np.floor((fstart-df/2)/df) + 1)
+    ntop = int(np.floor((fstart - df / 2) / df) + 1)
     nbot = m - ntop - len(amp)
     if nbot > 0:
         amp = np.hstack((np.zeros(ntop), amp, np.zeros(nbot)))
@@ -727,43 +796,43 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         amp = np.hstack((np.zeros(ntop), amp))
 
     # generate F(t)
-    phi = np.random.rand(m)*np.pi*2  # random phase angle
+    phi = np.random.rand(m) * np.pi * 2  # random phase angle
 
     # force these terms to be pure cosine
     phi[0] = 0.
     if not odd:
-        phi[m-1] = 0
+        phi[m - 1] = 0
 
     # coefficients:
-    a = amp*np.cos(phi)
-    b = -amp*np.sin(phi)
+    a = amp * np.cos(phi)
+    b = -amp * np.sin(phi)
 
     # form matrix ready for ifft:
     if odd:
-        a2 = a[1:m]/2
-        b2 = b[1:m]/2
-        r = N*np.hstack((a[0], a2, a2[::-1]))  # real part
-        i = N*np.hstack((0, b2, -b2[::-1]))    # imag part
+        a2 = a[1:m] / 2
+        b2 = b[1:m] / 2
+        r = N * np.hstack((a[0], a2, a2[::-1]))  # real part
+        i = N * np.hstack((0, b2, -b2[::-1]))    # imag part
     else:
-        a2 = a[1:m-1]/2
-        b2 = b[1:m-1]/2
-        r = N*np.hstack((a[0], a2, a[m-1], a2[::-1]))  # real part
-        i = N*np.hstack((0, b2, 0, -b2[::-1]))         # imag part
+        a2 = a[1:m - 1] / 2
+        b2 = b[1:m - 1] / 2
+        r = N * np.hstack((a[0], a2, a[m - 1], a2[::-1]))  # real part
+        i = N * np.hstack((0, b2, 0, -b2[::-1]))         # imag part
 
-    F_time = np.fft.ifft(r+1j*i)
+    F_time = np.fft.ifft(r + 1j * i)
     mxi = abs(F_time.imag).max()
     mxr = abs(F_time.real).max()
-    if mxi > 1e-7*mxr:    # pragma: no cover
+    if mxi > 1e-7 * mxr:    # pragma: no cover
         # bug in the code if this ever happens
         warn('method failed accuracy test; (max imag)/'
-             '(max real) = {}'.format(mxi/mxr),
+             '(max real) = {}'.format(mxi / mxr),
              RuntimeWarning)
 
     F_time = F_time.real
     if winends is not None:
         F_time = dsp.windowends(F_time, **winends)
     if gettime:
-        return F_time, sr, np.arange(N)/sr
+        return F_time, sr, np.arange(N) / sr
     return F_time, sr
 
 
@@ -870,7 +939,7 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
     """
     if nperseg is None:
         nperseg = int(sr / 5)
-    if nperseg > timeslice*sr:
+    if nperseg > timeslice * sr:
         raise ValueError(
             '``nperseg > timeslice*sr``; either decrease `nperseg`'
             ' or increase `timeslice`')

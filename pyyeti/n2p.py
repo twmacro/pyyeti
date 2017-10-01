@@ -1046,11 +1046,11 @@ def mkdofpv(uset, nasset, dof):
     ----------
     uset : ndarray
         A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`. Can have only the first two
-        columns if ``nasset == 'p'``.
+        :func:`pyyeti.op2.OP2.rdn2cop2`. Allowed have only the first
+        two columns if ``nasset == 'p'``.
     nasset : string or integer
         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
-        Can also be integer bitmask (see :func:`mkusetmask` for more
+        May also be integer bitmask (see :func:`mkusetmask` for more
         information).
     dof : 1d or 2d array
         `dof` can be input in 2 different ways:
@@ -1083,8 +1083,8 @@ def mkdofpv(uset, nasset, dof):
     --------
     >>> import numpy as np
     >>> from pyyeti import n2p
-    >>> # Want an A-set partition vector for all available a-set dof of
-    >>> # grids 100 and 200:
+    >>> # Want an A-set partition vector for all available a-set dof
+    >>> # of grids 100 and 200:
     >>> ids = np.array([[100], [200]])
     >>> uset = None
     >>> uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)

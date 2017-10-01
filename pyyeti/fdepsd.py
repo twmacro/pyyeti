@@ -9,8 +9,7 @@ import itertools as it
 import multiprocessing as mp
 import numpy as np
 import scipy.signal as signal
-from pyyeti import cyclecount
-from pyyeti import srs
+from pyyeti import cyclecount, srs, dsp
 
 
 WN_ = None
@@ -18,6 +17,7 @@ SIG_ = None
 ASV_ = None
 BinAmps_ = None
 Count_ = None
+
 
 def _to_np_array(sh_arr):
     return np.frombuffer(sh_arr[0]).reshape(sh_arr[1])
@@ -37,7 +37,7 @@ def _dofde(args):
     (j, (coeffunc, Q, dT, verbose)) = args
     if verbose:
         print('Processing frequency {:8.2f} Hz'.
-              format(WN_[j]/2/np.pi), end='\r')
+              format(WN_[j] / 2 / np.pi), end='\r')
     b, a = coeffunc(Q, dT, WN_[j])
     resphist = signal.lfilter(b, a, SIG_)
     ASV_[1, j] = abs(resphist).max()
@@ -58,9 +58,9 @@ def _dofde(args):
         Count_[j, jj] = np.sum(count[pv])
 
 
-def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
-           T0=60., rolloff='lanczos', ppc=12, parallel='auto',
-           maxcpu=14, verbose=False):
+def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
+           winends='auto', nbins=300, T0=60., rolloff='lanczos',
+           ppc=12, parallel='auto', maxcpu=14, verbose=False):
     r"""
     Compute a fatigue damage equivalent PSD from a signal.
 
@@ -90,6 +90,12 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         High pass filter frequency; if None, no filtering is done.
         If filtering is done, it is a 3rd order butterworth via
         :func:`scipy.signal.lfilter`.
+    winends : None or 'auto' or dictionary; optional
+        If None, :func:`pyyeti.dsp.windowends` is not called. If
+        'auto', :func:`pyyeti.dsp.windowends` is called to apply a
+        0.25 second window to the front. Otherwise, `winends`
+        must be a dictionary of arguments that will be passed to
+        :func:`pyyeti.dsp.windowends` (not including `signal`).
     nbins : integer; optional
         The number of amplitude levels at which to count cycles
     T0 : scalar; optional
@@ -103,7 +109,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         ===========    ==========================================
         `rolloff`      Notes
         ===========    ==========================================
-        'fft'          Use FFT to upsample data as needed.  See
+        'fft'          Use FFT to upsample data as needed. See
                        :func:`scipy.signal.resample`.
         'lanczos'      Use Lanczos resampling to upsample as
                        needed. See :func:`pyyeti.dsp.resample`.
@@ -409,11 +415,16 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
     if hpfilter is not None:
         if verbose:
             print('High pass filtering @ {} Hz'.format(hpfilter))
-        b, a = signal.butter(3, hpfilter/(sr/2), 'high')
+        b, a = signal.butter(3, hpfilter / (sr / 2), 'high')
         sig = signal.lfilter(b, a, sig)
 
+    if winends == 'auto':
+        sig = dsp.windowends(sig, int(0.25 * sr))
+    elif winends is not None:
+        sig = dsp.windowends(sig, **winends)
+
     mxfrq = freq.max()
-    curppc = sr/mxfrq
+    curppc = sr / mxfrq
     if rolloff == 'prefilter':
         sig, sr = rollfunc(sig, sr, ppc, mxfrq)
         rollfunc = None
@@ -424,15 +435,15 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
                   'only {} pts/cycle @ {} Hz'.
                   format(rolloff, curppc, mxfrq))
         sig, sr = rollfunc(sig, sr, ppc, mxfrq)
-        ppc = sr/mxfrq
+        ppc = sr / mxfrq
         if verbose:
             print('After interpolation, have {} pts/cycle @ {} Hz\n'.
                   format(ppc, mxfrq))
 
     LF = freq.size
-    dT = 1/sr
+    dT = 1 / sr
     pi = np.pi
-    Wn = 2*pi*freq
+    Wn = 2 * pi * freq
     parallel, ncpu = srs._process_parallel(parallel, LF, sig.size,
                                            maxcpu, getresp=False)
     # allocate RAM:
@@ -443,7 +454,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         ASV = (srs.createSharedArray((3, LF)), (3, LF))
         BinAmps = (srs.createSharedArray((LF, nbins)), (LF, nbins))
         a = _to_np_array(BinAmps)
-        a += np.arange(nbins, dtype=float)/nbins
+        a += np.arange(nbins, dtype=float) / nbins
         Count = (srs.createSharedArray((LF, nbins)), (LF, nbins))
         args = (coeffunc, Q, dT, verbose)
         gvars = (WN, SIG, ASV, BinAmps, Count)
@@ -465,14 +476,14 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         SRSmax = np.zeros(LF)
         Var = np.zeros(LF)
         BinAmps = np.zeros((LF, nbins))
-        BinAmps += np.arange(nbins, dtype=float)/nbins
+        BinAmps += np.arange(nbins, dtype=float) / nbins
         Count = np.zeros((LF, nbins))
 
         # loop over frequencies, calculating responses & counting cycles
         for j, wn in enumerate(Wn):
             if verbose:
                 print('Processing frequency {:8.2f} Hz'.
-                      format(wn/2/pi), end='\r')
+                      format(wn / 2 / pi), end='\r')
             b, a = coeffunc(Q, dT, wn)
             resphist = signal.lfilter(b, a, sig)
             SRSmax[j] = abs(resphist).max()
@@ -497,12 +508,12 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         print('Computing outputs G1, G2, etc.')
 
     # calculate non-cumulative counts per bin:
-    BinCount = np.hstack((Count[:, :-1]-Count[:, 1:], Count[:, -1:]))
+    BinCount = np.hstack((Count[:, :-1] - Count[:, 1:], Count[:, -1:]))
 
     # for calculating G2:
     G2max = Amax**2
     for j in range(LF):
-        pv = BinAmps[j] >= Amax[j]/3  # ignore small amplitude cycles
+        pv = BinAmps[j] >= Amax[j] / 3  # ignore small amplitude cycles
         if np.any(pv):
             x = BinAmps[j, pv]**2
             x2 = G2max[j]
@@ -510,13 +521,13 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
             # y1 = np.log(max(Count[j, 0], freq[j]*T0))
             y1 = np.log(Count[j, 0])
             g1y = np.interp(x, [0, x2], [y1, 0])
-            tantheta = (y - g1y)/x
+            tantheta = (y - g1y) / x
             k = np.argmax(tantheta)
             if tantheta[k] > 0:
                 # g2 line is higher than g1 line, so find BinAmps**2
                 # where log(count) = 0; ie, solve for x-intercept in
                 # y = m x + b; (x, y) pts are: (0, y1), (x[k], y[k]):
-                G2max[j] = x[k]*y1/(y1 - y[k])
+                G2max[j] = x[k] * y1 / (y1 - y[k])
                 # if j == 10:
                 #     import matplotlib.pyplot as plt
                 #     plt.figure('g2')
@@ -542,50 +553,50 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5., nbins=300,
         Df8[j] = (BinAmps[j]**b8).dot(BinCount[j])
         Df12[j] = (BinAmps[j]**b12).dot(BinCount[j])
 
-    N0 = freq*T0
+    N0 = freq * T0
     lnN0 = np.log(N0)
     if resp == 'absacce':
         G1 = Amax**2 / (Q * pi * freq * lnN0)
         G2 = G2max / (Q * pi * freq * lnN0)
 
         # calculate test-damage indicators for b = 4, 8 and 12:
-        Abar = 2*lnN0
+        Abar = 2 * lnN0
         Abar2 = Abar**2
-        Dt4 = N0*8 - (Abar2 + 4*Abar + 8)
+        Dt4 = N0 * 8 - (Abar2 + 4 * Abar + 8)
         sig2_4 = np.sqrt(Df4 / Dt4)
-        G4 = sig2_4 / ((Q*pi/2)*freq)
+        G4 = sig2_4 / ((Q * pi / 2) * freq)
 
-        Abar3 = Abar2*Abar
-        Abar4 = Abar2*Abar2
-        Dt8 = N0*384 - (Abar4 + 8*Abar3 + 48*Abar2 + 192*Abar + 384)
-        sig2_8 = (Df8 / Dt8)**(1/4)
-        G8 = sig2_8 / ((Q*pi/2)*freq)
+        Abar3 = Abar2 * Abar
+        Abar4 = Abar2 * Abar2
+        Dt8 = N0 * 384 - (Abar4 + 8 * Abar3 + 48 * Abar2 + 192 * Abar + 384)
+        sig2_8 = (Df8 / Dt8)**(1 / 4)
+        G8 = sig2_8 / ((Q * pi / 2) * freq)
 
-        Abar5 = Abar4*Abar
-        Abar6 = Abar4*Abar2
-        Dt12 = N0*46080 - (Abar6 + 12*Abar5 + 120*Abar4 + 960*Abar3 +
-                           5760*Abar2 + 23040*Abar + 46080)
-        sig2_12 = (Df12 / Dt12)**(1/6)
-        G12 = sig2_12 / ((Q*pi/2)*freq)
+        Abar5 = Abar4 * Abar
+        Abar6 = Abar4 * Abar2
+        Dt12 = N0 * 46080 - (Abar6 + 12 * Abar5 + 120 * Abar4 + 960 * Abar3 +
+                             5760 * Abar2 + 23040 * Abar + 46080)
+        sig2_12 = (Df12 / Dt12)**(1 / 6)
+        G12 = sig2_12 / ((Q * pi / 2) * freq)
 
-        Gmax = np.sqrt(np.vstack((G4, G8, G12)) * (Q*pi*freq*lnN0))
+        Gmax = np.sqrt(np.vstack((G4, G8, G12)) * (Q * pi * freq * lnN0))
     else:
         G1 = (Amax**2 * 4 * pi * freq) / (Q * lnN0)
         G2 = (G2max * 4 * pi * freq) / (Q * lnN0)
 
-        Dt4 = 2*N0
+        Dt4 = 2 * N0
         sig2_4 = np.sqrt(Df4 / Dt4)
-        G4 = sig2_4 * ((4*pi/Q)*freq)
+        G4 = sig2_4 * ((4 * pi / Q) * freq)
 
-        Dt8 = 24*N0
-        sig2_8 = (Df8 / Dt8)**(1/4)
-        G8 = sig2_8 * ((4*pi/Q)*freq)
+        Dt8 = 24 * N0
+        sig2_8 = (Df8 / Dt8)**(1 / 4)
+        G8 = sig2_8 * ((4 * pi / Q) * freq)
 
-        Dt12 = 720*N0
-        sig2_12 = (Df12 / Dt12)**(1/6)
-        G12 = sig2_12 * ((4*pi/Q)*freq)
+        Dt12 = 720 * N0
+        sig2_12 = (Df12 / Dt12)**(1 / 6)
+        G12 = sig2_12 * ((4 * pi / Q) * freq)
 
-        Gmax = np.sqrt(np.vstack((G4, G8, G12))*(Q*lnN0)/(4*pi*freq))
+        Gmax = np.sqrt(np.vstack((G4, G8, G12)) * (Q * lnN0) / (4 * pi * freq))
 
     # assemble outputs:
     Gpsd = np.vstack((G1, G2, G4, G8, G12)).T
