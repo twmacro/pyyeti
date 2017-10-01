@@ -9,6 +9,7 @@ Main routines
 .. autosummary::
     :toctree: generated/
 
+    area
     interp
     rescale
     spl

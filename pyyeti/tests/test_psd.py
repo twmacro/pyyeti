@@ -7,36 +7,36 @@ import scipy.signal as signal
 def test_get_freq_oct():
     assert np.allclose(
         np.array(psd.get_freq_oct(1, [1, 5])),
-        np.array([[ 1.        ,  1.99526231,  3.98107171],
-                  [ 0.70794578,  1.41253754,  2.81838293],
-                  [ 1.41253754,  2.81838293,  5.62341325]]))
+        np.array([[1.,  1.99526231,  3.98107171],
+                  [0.70794578,  1.41253754,  2.81838293],
+                  [1.41253754,  2.81838293,  5.62341325]]))
 
     assert np.allclose(
         np.array(psd.get_freq_oct(1, [1, 5], trim='outside')),
-        np.array([[ 1.        ,  1.99526231,  3.98107171],
-                  [ 0.70794578,  1.41253754,  2.81838293],
-                  [ 1.41253754,  2.81838293,  5.62341325]]))
+        np.array([[1.,  1.99526231,  3.98107171],
+                  [0.70794578,  1.41253754,  2.81838293],
+                  [1.41253754,  2.81838293,  5.62341325]]))
 
     assert np.allclose(
         np.array(psd.get_freq_oct(1, [1, 5], trim='band')),
-        np.array([[ 1.        ,  1.99526231,  3.98107171],
-                  [ 0.70794578,  1.41253754,  2.81838293],
-                  [ 1.41253754,  2.81838293,  5.62341325]]))
+        np.array([[1.,  1.99526231,  3.98107171],
+                  [0.70794578,  1.41253754,  2.81838293],
+                  [1.41253754,  2.81838293,  5.62341325]]))
 
     assert np.allclose(
         np.array(psd.get_freq_oct(1, [1, 5], trim='inside')),
-        np.array([[ 1.99526231],
-                  [ 1.41253754],
-                  [ 2.81838293]]))
+        np.array([[1.99526231],
+                  [1.41253754],
+                  [2.81838293]]))
 
     e = np.array(psd.get_freq_oct(1, [1, 2.5], trim='inside'))
     assert np.all(e.shape == (3, 0))
 
     assert np.allclose(
         np.array(psd.get_freq_oct(1, [1, 2.5], trim='center')),
-        np.array([[ 1.        ,  1.99526231],
-                  [ 0.70794578,  1.41253754],
-                  [ 1.41253754,  2.81838293]]))
+        np.array([[1.,  1.99526231],
+                  [0.70794578,  1.41253754],
+                  [1.41253754,  2.81838293]]))
 
     assert_raises(ValueError, psd.get_freq_oct, 1, [1, 2.5],
                   trim='badstring')
@@ -49,6 +49,26 @@ def test_proc_psd_spec():
                   (np.arange(10), np.random.randn(11)))
     assert_raises(ValueError, psd.proc_psd_spec,
                   (np.arange(10), np.random.randn(10, 2, 2)))
+
+
+def test_area():
+    spec = np.array([[20, .0053, .01],
+                     [150, .04, .04],
+                     [600, .04, .04],
+                     [2000, .0036, 0.04 * 600 / 2000]])
+    # the last value is to trigger the s == -1 logic in area
+
+    spec2 = spec[:, 1:]
+    f2 = spec[:, 0]
+    areas = psd.area(spec)
+    areas2 = psd.area((f2, spec2))
+
+    fi = np.arange(200, 20001) * 0.1
+    pi = psd.interp(spec, fi, linear=False)
+    areas3 = np.trapz(pi, fi, axis=0)
+
+    assert np.allclose(areas, areas2)
+    assert np.allclose(areas, areas3)
 
 
 def test_interp():
@@ -69,11 +89,11 @@ def test_rescale():
     p6, f6, msv6, ms6 = psd.rescale(p, f, n_oct=6)
     p6_2, f6_2, msv6_2, ms6_2 = psd.rescale(p, f, freq=f6)
     p12, f12, msv12, ms12 = psd.rescale(p6, f6, n_oct=12)
-    i = int(25/2**(1/6))
-    msv1 = np.sum(p[i:]*(f[1]-f[0]))
-    assert abs(msv1/msv3 - 1) < .12
-    assert abs(msv1/msv6 - 1) < .06
-    assert abs(msv1/msv12 - 1) < .03
+    i = int(25 / 2**(1 / 6))
+    msv1 = np.sum(p[i:] * (f[1] - f[0]))
+    assert abs(msv1 / msv3 - 1) < .12
+    assert abs(msv1 / msv6 - 1) < .06
+    assert abs(msv1 / msv12 - 1) < .03
     assert np.allclose(p6, p6_2)
     assert np.allclose(f6, f6_2)
     assert np.allclose(msv6, msv6_2)
@@ -81,7 +101,7 @@ def test_rescale():
     p_2, f_2, msv_2, ms_2 = psd.rescale(p, f, freq=f)
     assert np.allclose(p, p_2)
     assert np.allclose(f, f_2)
-    msv1 = np.sum(p*(f[1]-f[0]))
+    msv1 = np.sum(p * (f[1] - f[0]))
     assert np.allclose(msv1, msv_2)
 
     P = np.vstack((p, p)).T
@@ -98,28 +118,28 @@ def test_rescale():
     out_freq = np.arange(0, 10.1, 5)
     in_p = np.ones_like(in_freq)
     p, f, ms, mvs = psd.rescale(in_p, in_freq, freq=out_freq)
-    assert np.allclose(p, [ 1.,  1.,  1.])
+    assert np.allclose(p, [1.,  1.,  1.])
     p, f, ms, mvs = psd.rescale(in_p, in_freq, freq=out_freq,
                                 extendends=False)
-    assert np.allclose(p, [ 0.525,  1.   ,  0.525])
+    assert np.allclose(p, [0.525,  1.,  0.525])
 
 
 def test_spl():
     x = np.random.randn(100000)
     sr = 4000
-    f, spl, oaspl = psd.spl(x, sr, sr, timeslice=len(x)/sr)
+    f, spl, oaspl = psd.spl(x, sr, sr, timeslice=len(x) / sr)
     # oaspl should be around 170.75 (since variance = 1):
-    shouldbe = 10*np.log10(1/(2.9e-9)**2)
-    abs(oaspl/shouldbe - 1) < .01
+    shouldbe = 10 * np.log10(1 / (2.9e-9)**2)
+    abs(oaspl / shouldbe - 1) < .01
     oaspl1 = oaspl
 
-    f, spl, oaspl = psd.spl(x, sr, sr, fs=0, timeslice=len(x)/sr)
+    f, spl, oaspl = psd.spl(x, sr, sr, fs=0, timeslice=len(x) / sr)
     # oaspl should be around 170.75 (since variance = 1):
-    abs(oaspl/shouldbe - 1) < .01
+    abs(oaspl / shouldbe - 1) < .01
 
     f, spl, oaspl = psd.spl(x, sr)
     # oaspl should be greater than the one above:
-    assert oaspl > oaspl1*1.01
+    assert oaspl > oaspl1 * 1.01
 
     assert_raises(ValueError, psd.spl, x, sr, sr, timeslice=0.5)
 
@@ -129,9 +149,9 @@ def test_psd2time():
                      [50,  .48],
                      [100, .48]])
     sig, sr = psd.psd2time(spec, ppc=10, fstart=35, fstop=70,
-                              df=.01, winends=dict(portion=.01))
+                           df=.01, winends=dict(portion=.01))
     assert np.allclose(700., sr)  # 70*10
-    assert sig.size == 700*100
+    assert sig.size == 700 * 100
     f, p = signal.welch(sig, sr, nperseg=sr)
     pv = np.logical_and(f >= 37, f <= 68)
     fi = f[pv]
@@ -143,10 +163,10 @@ def test_psd2time():
     spec = ([.1,  5],
             [.1,  .1])
     sig, sr = psd.psd2time(spec, ppc=10, fstart=.1, fstop=5,
-                              df=.2, winends=dict(portion=.01))
+                           df=.2, winends=dict(portion=.01))
     # df gets internally reset to fstart
-    assert np.allclose(5*10., sr)
-    assert sig.size == 50*10
+    assert np.allclose(5 * 10., sr)
+    assert sig.size == 50 * 10
     f, p = signal.welch(sig, sr, nperseg=sr)
     pv = np.logical_and(f >= .5, f <= 3.)
     fi = f[pv]
@@ -159,27 +179,27 @@ def test_psd2time():
     spec = np.array([[.1,  2.],
                      [5,  2.]])
     sig, sr = psd.psd2time(spec, ppc=1, fstart=.1, fstop=5,
-                              df=.2, winends=dict(portion=.01))
-    assert (np.sum(np.mean(sig**2)) - 2.*4.9)/(2.*4.9) < .1
+                           df=.2, winends=dict(portion=.01))
+    assert (np.sum(np.mean(sig**2)) - 2. * 4.9) / (2. * 4.9) < .1
 
     # odd length FFT case:
     spec = np.array([[.1,  2.],
                      [5,  2.]])
     sig, sr, t = psd.psd2time(spec, ppc=3, fstart=.2, fstop=5,
-                                 df=.2, winends=dict(portion=.01),
-                                 gettime=1)
-    assert np.allclose(5*3, sr)
-    assert sig.size == 15*5
-    assert (np.sum(np.mean(sig**2)) - 2.*4.8)/(2.*4.8) < .1
-    assert np.allclose(t, np.arange(15*5)/sr)
+                              df=.2, winends=dict(portion=.01),
+                              gettime=1)
+    assert np.allclose(5 * 3, sr)
+    assert sig.size == 15 * 5
+    assert (np.sum(np.mean(sig**2)) - 2. * 4.8) / (2. * 4.8) < .1
+    assert np.allclose(t, np.arange(15 * 5) / sr)
 
 
 def test_psdmod():
     TF = 30  # make a 30 second signal
     spec = [[20, 50], [1, 1]]
     sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
-                                 df=1/TF, winends=dict(portion=10),
-                                 gettime=True)
+                              df=1 / TF, winends=dict(portion=10),
+                              gettime=True)
     # sr = 500
     freq = np.arange(20., 50.1)
     f, p = signal.welch(sig, sr, nperseg=sr)  # 1 second windows, df=1
@@ -200,5 +220,5 @@ def test_psdmod():
     # test the map output:
     f5, p5, pmap, t = psd.psdmod(sig, sr, getmap=1)
     assert np.allclose(p5, np.max(pmap, axis=1))
-    tshouldbe = np.arange(.5, 30.-.25, .5)
+    tshouldbe = np.arange(.5, 30. - .25, .5)
     assert np.allclose(t, tshouldbe)

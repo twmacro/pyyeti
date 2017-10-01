@@ -93,9 +93,10 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
     winends : None or 'auto' or dictionary; optional
         If None, :func:`pyyeti.dsp.windowends` is not called. If
         'auto', :func:`pyyeti.dsp.windowends` is called to apply a
-        0.25 second window to the front. Otherwise, `winends`
-        must be a dictionary of arguments that will be passed to
-        :func:`pyyeti.dsp.windowends` (not including `signal`).
+        0.25 second window or a 50 point window (whichever is smaller)
+        to the front. Otherwise, `winends` must be a dictionary of
+        arguments that will be passed to :func:`pyyeti.dsp.windowends`
+        (not including `signal`).
     nbins : integer; optional
         The number of amplitude levels at which to count cycles
     T0 : scalar; optional
@@ -416,10 +417,19 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         if verbose:
             print('High pass filtering @ {} Hz'.format(hpfilter))
         b, a = signal.butter(3, hpfilter / (sr / 2), 'high')
-        sig = signal.lfilter(b, a, sig)
+        # to try to get rid of filter transient at the beginning:
+        #  - put a 0.25 second buffer on the front (length from
+        #    looking at impulse response)
+        #  - filter
+        #  - chop off buffer
+        n = int(0.25 * sr)
+        sig2 = np.empty(n + sig.size)
+        sig2[:n] = sig[0]
+        sig2[n:] = sig
+        sig = signal.lfilter(b, a, sig2)[n:]
 
     if winends == 'auto':
-        sig = dsp.windowends(sig, int(0.25 * sr))
+        sig = dsp.windowends(sig, min(int(0.25 * sr), 50))
     elif winends is not None:
         sig = dsp.windowends(sig, **winends)
 

@@ -204,7 +204,7 @@ def proc_psd_spec(spec):
 
 
 def area(spec):
-    """
+    r"""
     Compute the area under a PSD random specification.
 
     Parameters
@@ -216,6 +216,7 @@ def area(spec):
         the second usage, PSD can be 1d; in the first usage, PSD is
         always considered 2d. The frequency vector must be
         monotonically increasing.
+
     Returns
     -------
     area : 1d array
@@ -225,19 +226,79 @@ def area(spec):
     -----
     This routine assumes a constant db/octave slope for all segments.
     With this assumption, it computes the area for each segment with
-    the following formula. The segment goes from (f1, p1) to
-    (f2, p2)::
+    the following formula (derivation below). The segment goes from
+    (f1, p1) to (f2, p2)::
 
-         val = log(p2/p1)/log(f2/f1)
-         if val == -1:
+         s = log(p2/p1)/log(f2/f1)
+         if s == -1:
              area_segment = p1*f1*log(f2/f1)
          else:
-             area_segment = (f2*p2 - f1*p1)/(1 + val)
+             area_segment = (f2*p2 - f1*p1)/(s + 1)
 
     .. warning::
-        Do not use this routine for general freq vs. psd curves, such
-        as output from analysis. Use something like
+        This routine is only for specifications with all constant
+        db/octave segments. Do not use for general freq vs. psd
+        curves, such as output from analysis; use something like
         :func:`numpy.trapz` instead.
+
+    The following derives the equations for computing the area under
+    the curve. Each segment is assumed to have a constant db/octave
+    slope. We'll start by computing the slope (:math:`m`) of each
+    segment. To get the slope, we'll need the number of dbs :math:`d`
+    and the number of octaves :math:`n`. First, the number of dbs:
+
+    .. math::
+        d = 10 \log_{10} (p_2 / p_1)
+
+    The number of octaves (:math:`n`) is defined by :math:`f_2 = 2^n
+    f_1`. Solving for :math:`n` gives:
+
+    .. math::
+        n = \frac{\log_{10} (f_2 / f_1)}{\log_{10} (2)}
+
+    Therefore, the slope :math:`m = d / n` for the segment is:
+
+    .. math::
+        m = 10 \log_{10} (2) \frac{\log_{10} (p_2 / p_1)}
+            {\log_{10} (f_2 / f_1)}
+
+    To simplify the equations, we'll define the variable :math:`s` as:
+
+    .. math::
+        s = \frac{m}{10 \log_{10} (2)} = \frac{\log_{10} (p_2 / p_1)}
+            {\log_{10} (f_2 / f_1)}
+
+    Solving for :math:`p_2` gives:
+
+    .. math::
+        p_2 = p_1 ( f_2 / f_1 )^s
+
+    Since the segment has a constant db/octave slope, that equation
+    can be generalized for any frequency value :math:`x` from
+    :math:`f_1` to :math:`f_2`:
+
+    .. math::
+        p(x) = p_1 ( x / f_1 )^s
+
+    The area under the segment is simply the integral of that
+    equation:
+
+    .. math::
+        area_{segment} = \int_{f_1}^{f_2} p_1 ( x / f_1 )^s dx
+
+    If :math:`s = -1`:
+
+    .. math::
+        area_{segment} = p_1 f_1 \ln ( f_2 / f_1 )
+
+    Otherwise, if :math:`s \neq -1`:
+
+    .. math::
+        \begin{aligned}
+        area_{segment} &= \frac{p_1 ( f_2^{s+1} - f_1^{s+1} )}
+        {f_1^s (s+1)} \\
+        &= ( p_2 f_2 - p_1 f_1 ) / (s + 1)
+        \end{aligned}
 
     Examples
     --------
@@ -249,26 +310,35 @@ def area(spec):
     ...                  [150, .04],
     ...                  [600, .04],
     ...                  [2000, .0036]])
-    >>> freq = [100, 200, 600, 1200]
     >>> 3*np.sqrt(psd.area(spec))   # doctest: +ELLIPSIS
+    array([ 18.43...])
+
+    For comparison, use a brute-force technique:
+
+    >>> f = np.arange(20, 2000.1, 0.1)
+    >>> p = psd.interp(spec, f, linear=False)
+    >>> 3*np.sqrt(np.trapz(p, f, axis=0))   # doctest: +ELLIPSIS
     array([ 18.43...])
     """
     Freq, PSD, _ = proc_psd_spec(spec)
-    _area = 0.0
+    _area = np.zeros(PSD.shape[1])
 
+    # accumulate the areas of all segments for each curve:
     for i in range(Freq.size - 1):
         f1 = Freq[i]
         f2 = Freq[i + 1]
-        l1 = PSD[i]
-        l2 = PSD[i + 1]
+        for j in range(PSD.shape[1]):
+            p1 = PSD[i, j]
+            p2 = PSD[i + 1, j]
 
-        val = np.log(l2 / l1) / np.log(f2 / f1)
-        if abs(val + 1.0) < 1e-5:
-            # happens for slope of 10*log10(.5)  db/octave
-            intarea = l1 * f1 * np.log(f2 / f1)
-        else:
-            intarea = (f2 * l2 - f1 * l1) / (1 + val)
-        _area = _area + intarea
+            s = np.log(p2 / p1) / np.log(f2 / f1)
+            if abs(s + 1.0) < 1e-5:
+                # happens when p2/p1 = f1/f2
+                #   slope = -10*log10(2) db/octave
+                intarea = p1 * f1 * np.log(f2 / f1)
+            else:
+                intarea = (f2 * p2 - f1 * p1) / (s + 1.0)
+            _area[j] += intarea
     return _area
 
 

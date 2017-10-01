@@ -26,7 +26,7 @@ def test_fdepsd_absacce():
     sp = 1.
     spec = np.array([[20, sp], [50, sp]])
     sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
-                              df=1/TF, winends=dict(portion=10),
+                              df=1 / TF, winends=dict(portion=10),
                               gettime=True)
     freq = np.arange(30., 50.1)
     q = 25
@@ -47,8 +47,8 @@ def test_fdepsd_absacce():
 
     T0 = 120
     fde_T0 = fdepsd(sig, sr, freq, q, T0=T0)
-    factor = (np.log(freq*60) / np.log(freq*T0))[:, None]
-    assert np.allclose(fde_T0.psd[:, :2], fde_auto.psd[:, :2]*factor)
+    factor = (np.log(freq * 60) / np.log(freq * T0))[:, None]
+    assert np.allclose(fde_T0.psd[:, :2], fde_auto.psd[:, :2] * factor)
     assert np.all(fde_T0.psd[:, 2:] < fde_auto.psd[:, 2:])
 
 
@@ -57,14 +57,14 @@ def test_fdepsd_pvelo():
     sp = 1.
     spec = np.array([[20, sp], [50, sp]])
     sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
-                              df=1/TF, winends=dict(portion=10),
+                              df=1 / TF, winends=dict(portion=10),
                               gettime=True)
     freq = np.arange(30., 50.1)
     q = 25
     fde_auto = fdepsd(sig, sr, freq, q, resp='pvelo')
     fde_no = fdepsd(sig, sr, freq, q, resp='pvelo', parallel='no',
                     verbose=True)
-    b, a = signal.butter(3, 5/(sr/2), 'high')
+    b, a = signal.butter(3, 5 / (sr / 2), 'high')
     sig5 = signal.lfilter(b, a, sig)
     fde_yes = fdepsd(sig5, sr, freq, q, resp='pvelo', parallel='yes',
                      hpfilter=None)
@@ -83,9 +83,27 @@ def test_fdepsd_pvelo():
 
     T0 = 120
     fde_T0 = fdepsd(sig, sr, freq, q, T0=T0, resp='pvelo')
-    factor = (np.log(freq*60) / np.log(freq*T0))[:, None]
-    assert np.allclose(fde_T0.psd[:, :2], fde_auto.psd[:, :2]*factor)
+    factor = (np.log(freq * 60) / np.log(freq * T0))[:, None]
+    assert np.allclose(fde_T0.psd[:, :2], fde_auto.psd[:, :2] * factor)
     assert np.all(fde_T0.psd[:, 2:] < fde_auto.psd[:, 2:])
+
+
+def test_fdepsd_winends():
+    TF = 60  # make a 60 second signal
+    sp = 1.
+    spec = np.array([[20, sp], [50, sp]])
+    sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20, fstop=50,
+                              df=1 / TF, winends=dict(portion=40),
+                              gettime=True)
+    sig[0] = 20
+    freq = np.arange(1., 3.1)
+    q = 25
+    fde = fdepsd(sig, sr, freq, q, hpfilter=None)
+    fde2 = fdepsd(sig, sr, freq, q, hpfilter=None, winends=None)
+    fde3 = fdepsd(sig, sr, freq, q, hpfilter=None,
+                  winends=dict(portion=20))
+    assert np.all(fde2.psd[:, 0] > 4 * fde.psd[:, 0])
+    assert np.all(fde2.psd[:, 0] > 4 * fde3.psd[:, 0])
 
 
 def test_fdepsd_error():

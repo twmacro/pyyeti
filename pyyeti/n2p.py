@@ -65,7 +65,7 @@ def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
         grids = grids - grids[refpoint]
     elif np.any(refpoint != [0, 0, 0]):
         grids = grids - refpoint
-    rbmodes = np.zeros((r*6, 6))
+    rbmodes = np.zeros((r * 6, 6))
     rbmodes[1::6, 3] = -grids[:, 2]
     rbmodes[2::6, 3] = grids[:, 1]
     rbmodes[::6, 4] = grids[:, 2]
@@ -172,10 +172,10 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     # treat as rectangular here; fix cylindrical & spherical below
     rb2 = np.zeros((np.shape(rb)))
     for j in range(ngrids):
-        i = 6*j
-        t = grids[i+3:i+6, 3:].T
-        rb2[i:i+3] = t @ rb[i:i+3]
-        rb2[i+3:i+6] = t @ rb[i+3:i+6]
+        i = 6 * j
+        t = grids[i + 3:i + 6, 3:].T
+        rb2[i:i + 3] = t @ rb[i:i + 3]
+        rb2[i + 3:i + 6] = t @ rb[i + 3:i + 6]
 
     # fix up cylindrical:
     grid_loc = np.arange(0, grids.shape[0], 6)
@@ -183,32 +183,32 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     if np.any(cyl):
         grid_loc_cyl = grid_loc[cyl]
         for i in grid_loc_cyl:
-            t = grids[i+3:i+6, 3:].T
+            t = grids[i + 3:i + 6, 3:].T
             loc = grids[i, 3:]
-            loc2 = t @ (loc - grids[i+2, 3:])
+            loc2 = t @ (loc - grids[i + 2, 3:])
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
                 th = math.atan2(loc2[1], loc2[0])
                 c = math.cos(th)
                 s = math.sin(th)
                 t = np.array([[c, s], [-s, c]])
-                rb2[i:i+2] = t @ rb2[i:i+2]
-                rb2[i+3:i+5] = t @ rb2[i+3:i+5]
+                rb2[i:i + 2] = t @ rb2[i:i + 2]
+                rb2[i + 3:i + 5] = t @ rb2[i + 3:i + 5]
 
     # fix up spherical:
     sph = grids[1::6, 4] == 3
     if np.any(sph):
         grid_loc_sph = grid_loc[sph]
         for i in grid_loc_sph:
-            t = grids[i+3:i+6, 3:].T
+            t = grids[i + 3:i + 6, 3:].T
             loc = grids[i, 3:]
-            loc2 = t @ (loc - grids[i+2, 3:])
+            loc2 = t @ (loc - grids[i + 2, 3:])
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
                 phi = math.atan2(loc2[1], loc2[0])
                 c = math.cos(phi)
                 s = math.sin(phi)
                 t = np.array([[c, s], [-s, c]])
-                rb2[i:i+2] = t @ rb2[i:i+2]
-                rb2[i+3:i+5] = t @ rb2[i+3:i+5]
+                rb2[i:i + 2] = t @ rb2[i:i + 2]
+                rb2[i + 3:i + 5] = t @ rb2[i + 3:i + 5]
                 loc2[:2] = t @ loc2[:2]
             if abs(loc2[2]) + abs(loc2[0]) > 1e-8:
                 th = math.atan2(loc2[0], loc2[2])
@@ -217,8 +217,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
             c = math.cos(th)
             s = math.sin(th)
             t = np.array([[s, 0, c], [c, 0, -s], [0, 1, 0]])
-            rb2[i:i+3] = t @ rb2[i:i+3]
-            rb2[i+3:i+6] = t @ rb2[i+3:i+6]
+            rb2[i:i + 3] = t @ rb2[i:i + 3]
+            rb2[i + 3:i + 6] = t @ rb2[i + 3:i + 6]
 
     # prepare final output:
     rbmodes[grid_rows] = rb2
@@ -362,7 +362,7 @@ def rbcoords(rb, verbose=2):
     r, c = np.shape(rb)
     if c != 6:
         raise ValueError("`rb` must have 6 columns")
-    if (r // 6)*6 != r:
+    if (r // 6) * 6 != r:
         raise ValueError("`rb` must have a multiple of 6 rows")
     n = r // 6
     coords = np.zeros((n, 3))
@@ -370,9 +370,9 @@ def rbcoords(rb, verbose=2):
     maxdev = 0
     haderr = 0
     for j in range(n):
-        row = j*6
-        T = rb[row:row+3, :3]
-        R = linalg.lstsq(T, rb[row:row+3, 3:])[0]
+        row = j * 6
+        T = rb[row:row + 3, :3]
+        R = linalg.lstsq(T, rb[row:row + 3, 3:])[0]
         deltax = R[1, 2]
         deltay = R[2, 0]
         deltaz = R[0, 1]
@@ -381,9 +381,9 @@ def rbcoords(rb, verbose=2):
         deltay2 = -R[0, 2]
         deltaz2 = -R[1, 0]
         dev = np.max(np.vstack((np.max(np.abs(np.diag(R))),
-                                np.abs(deltax-deltax2),
-                                np.abs(deltay-deltay2),
-                                np.abs(deltaz-deltaz2))))
+                                np.abs(deltax - deltax2),
+                                np.abs(deltay - deltay2),
+                                np.abs(deltaz - deltaz2))))
         coords[j] = [deltax, deltay, deltaz]
         mc = np.max(np.abs(coords[j]))
         if mc > np.finfo(float).eps:
@@ -392,11 +392,11 @@ def rbcoords(rb, verbose=2):
             err = dev / np.finfo(float).eps * 100.
         maxdev = max([maxdev, dev])
         maxerr = max([maxerr, err])
-        if verbose > 0 and (dev > mc*1.e-6 or math.isnan(dev)):
+        if verbose > 0 and (dev > mc * 1.e-6 or math.isnan(dev)):
             if verbose > 1:
                 print("Warning:  deviation from standard pattern, "
                       "node #{} starting at index {}:".
-                      format(j+1, row))
+                      format(j + 1, row))
                 print("  Max deviation = {:.3g} units.".format(dev))
                 print("  Max % error   = {:.3g}%.".format(err))
                 print("  Rigid-Body Rotations:")
@@ -792,7 +792,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     pv = np.any(table, axis=1)
     if np.any(pv):
         # add 3 more cols to table:
-        return_table = np.hstack((1+np.arange(r).reshape(r, 1),
+        return_table = np.hstack((1 + np.arange(r).reshape(r, 1),
                                   uset[:, :2].astype(np.int64), table))
         return_table = return_table[pv]
     else:
@@ -828,9 +828,9 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
 
         s = 0
         while s < nsets:  # loop over printing-sets:
-            header = printsets[s]+"-set"
+            header = printsets[s] + "-set"
             printed[s] = 1
-            S = s+1
+            S = s + 1
             while S < nsets:
                 if np.all(table[:, S] == table[:, s]):
                     header += ", " + printsets[S] + "-set"
@@ -847,7 +847,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
             else:
                 s = nsets
 
-            if curlines >= perpage-2:
+            if curlines >= perpage - 2:
                 f.write(chr(12))
                 curlines = 0
 
@@ -856,18 +856,18 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
                 curlines += 2
                 uset_mod = uset[pv, :2].astype(np.int64)
                 full_rows = pv.size // 10
-                rem = pv.size - 10*full_rows
+                rem = pv.size - 10 * full_rows
                 count = 1
                 if full_rows:
-                    usetfr = uset_mod[:full_rows*10]
+                    usetfr = uset_mod[:full_rows * 10]
                     for j in range(full_rows):
                         curlines = _pager()
                         f.write('{:6d}='.format(count))
                         for k in range(10):
-                            r = j*10+k
+                            r = j * 10 + k
                             f.write(' {:8d}-{:1d}'.format(usetfr[r, 0],
                                                           usetfr[r, 1]))
-                        f.write(' ={:6d}\n'.format(count+9))
+                        f.write(' ={:6d}\n'.format(count + 9))
                         curlines += 1
                         count += 10
                 if rem:
@@ -895,18 +895,18 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     if form > n:
         n = form
     # format for header line:
-    pre = (n-1)//2 + 1
-    post = n-pre + 2
+    pre = (n - 1) // 2 + 1
+    post = n - pre + 2
     format1 = "{{:{}}}{{:{}}}".format(pre, post)
     if n < 3:
-        format2 = "{{:{}}}{{:{}}}".format(pre, post-1)
+        format2 = "{{:{}}}{{:{}}}".format(pre, post - 1)
     else:
         format2 = format1
 
     s = " "
     headersets = format1.format(printsets[0], s)
-    underline = "-"*n
-    underlsets = (underline+"  ") * nsets
+    underline = "-" * n
+    underlsets = (underline + "  ") * nsets
     numformat = ("{{:{}}}  ".format(n)) * nsets
 
     for j in range(1, nsets):
@@ -920,9 +920,9 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     underlsets = underlsets[:-2]
     numformat = numformat[:-2]
 
-    header = (" DOF #     GRID    DOF     "+headersets).rstrip()
-    underl =  "-------  --------  ---     "+underlsets
-    numformat = "{:7}  {:8}  {:2}      "+numformat+"\n"
+    header = (" DOF #     GRID    DOF     " + headersets).rstrip()
+    underl = "-------  --------  ---     " + underlsets
+    numformat = "{:7}  {:8}  {:2}      " + numformat + "\n"
     r = return_table.shape[0]
     if perpage == np.inf:
         perpage = r + 10  # on Windows, i % inf gives nan
@@ -1046,12 +1046,12 @@ def mkdofpv(uset, nasset, dof):
     ----------
     uset : ndarray
         A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`. Allowed have only the first
-        two columns if ``nasset == 'p'``.
+        :func:`pyyeti.op2.OP2.rdn2cop2`. Allowed to have only the
+        first two columns if ``nasset == 'p'``.
     nasset : string or integer
         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
-        May also be integer bitmask (see :func:`mkusetmask` for more
-        information).
+        May also be an integer bitmask (see :func:`mkusetmask` for
+        more information).
     dof : 1d or 2d array
         `dof` can be input in 2 different ways:
 
@@ -1112,14 +1112,14 @@ def mkdofpv(uset, nasset, dof):
            [100,   3]]...))
     """
     if nasset == 'p':
-        uset_set = (uset[:, 0]*10 + uset[:, 1]).astype(np.int64)
+        uset_set = (uset[:, 0] * 10 + uset[:, 1]).astype(np.int64)
     else:
         setpv = mksetpv(uset, "p", nasset)
-        uset_set = (uset[setpv, 0]*10 +
+        uset_set = (uset[setpv, 0] * 10 +
                     uset[setpv, 1]).astype(np.int64)
 
     dof = expanddof(dof)
-    dof = dof[:, 0]*10 + dof[:, 1]
+    dof = dof[:, 0] * 10 + dof[:, 1]
 
     i = np.argsort(uset_set)
     pvi = np.searchsorted(uset_set, dof, sorter=i)
@@ -1129,7 +1129,7 @@ def mkdofpv(uset, nasset, dof):
     chk = uset_set[pv] != dof
     if np.any(chk):
         ids = (dof[chk] // 10)
-        dof = dof[chk] - 10*ids
+        dof = dof[chk] - 10 * ids
         missing_dof = np.hstack((ids.reshape(-1, 1),
                                  dof.reshape(-1, 1)))
         msg = ("set '{}' does not contain all of the dof in `dof`."
@@ -1137,7 +1137,7 @@ def mkdofpv(uset, nasset, dof):
                .format(nasset, missing_dof))
         raise ValueError(msg)
     ids = dof // 10
-    dof = dof - 10*ids
+    dof = dof - 10 * ids
     outdof = np.hstack((ids.reshape(-1, 1), dof.reshape(-1, 1)))
     return pv, outdof
 
@@ -1256,10 +1256,10 @@ def coordcardinfo(uset, cid=None):
         A = coordinfo[1]
         # transpose so T transforms from basic to local:
         T = coordinfo[2:].T
-        B = A+T[2]
-        C = A+T[0]
+        B = A + T[2]
+        C = A + T[0]
         typ = int(coordinfo[0, 1])
-        name = ['CORD2R', 'CORD2C', 'CORD2S'][typ-1]
+        name = ['CORD2R', 'CORD2C', 'CORD2S'][typ - 1]
         return [name, np.vstack(([cid, typ, 0], A, B, C))]
 
     if cid is not None:
@@ -1269,7 +1269,7 @@ def coordcardinfo(uset, cid=None):
                              format(cid))
         pv2 = pv2[0]
         r = pv[pv2]
-        coordinfo = uset[r:r+5, 3:]
+        coordinfo = uset[r:r + 5, 3:]
         return _getlist(coordinfo)
 
     CI = {}
@@ -1281,7 +1281,7 @@ def coordcardinfo(uset, cid=None):
     for cid in ids:
         pv2 = (uset[pv, 3] == cid).nonzero()[0][0]
         r = pv[pv2]
-        coordinfo = uset[r:r+5, 3:]
+        coordinfo = uset[r:r + 5, 3:]
         CI[cid] = _getlist(coordinfo)
     return CI
 
@@ -1314,7 +1314,7 @@ def _get_coordinfo_byid(refid, uset):
         pos = (uset[pv, 3] == refid).nonzero()[0][0]
         if np.size(pos) > 0:
             i = pv[pos]
-            return uset[i:i+5, 3:]
+            return uset[i:i + 5, 3:]
     except:
         raise ValueError('reference coordinate id {} not '
                          'found in `uset`.'.format(refid))
@@ -1387,37 +1387,37 @@ def get_coordinfo(cord, uset, coordref):
     a = cord[1]
     b = cord[2]
     c = cord[3]
-    a2r = math.pi/180.
+    a2r = math.pi / 180.
     if refinfo[0, 1] == 2:   # cylindrical
-        a = np.hstack((a[0]*math.cos(a[1]*a2r),
-                       a[0]*math.sin(a[1]*a2r),
+        a = np.hstack((a[0] * math.cos(a[1] * a2r),
+                       a[0] * math.sin(a[1] * a2r),
                        a[2]))
-        b = np.hstack((b[0]*math.cos(b[1]*a2r),
-                       b[0]*math.sin(b[1]*a2r),
+        b = np.hstack((b[0] * math.cos(b[1] * a2r),
+                       b[0] * math.sin(b[1] * a2r),
                        b[2]))
-        c = np.hstack((c[0]*math.cos(c[1]*a2r),
-                       c[0]*math.sin(c[1]*a2r),
+        c = np.hstack((c[0] * math.cos(c[1] * a2r),
+                       c[0] * math.sin(c[1] * a2r),
                        c[2]))
     if refinfo[0, 1] == 3:   # spherical
-        s = math.sin(a[1]*a2r)
-        a = a[0] * np.hstack((s*math.cos(a[2]*a2r),
-                              s*math.sin(a[2]*a2r),
-                              math.cos(a[1]*a2r)))
-        s = math.sin(b[1]*a2r)
-        b = b[0] * np.hstack((s*math.cos(b[2]*a2r),
-                              s*math.sin(b[2]*a2r),
-                              math.cos(b[1]*a2r)))
-        s = math.sin(c[1]*a2r)
-        c = c[0] * np.hstack((s*math.cos(c[2]*a2r),
-                              s*math.sin(c[2]*a2r),
-                              math.cos(c[1]*a2r)))
-    ab = b-a
-    ac = c-a
-    z = ab/linalg.norm(ab)
+        s = math.sin(a[1] * a2r)
+        a = a[0] * np.hstack((s * math.cos(a[2] * a2r),
+                              s * math.sin(a[2] * a2r),
+                              math.cos(a[1] * a2r)))
+        s = math.sin(b[1] * a2r)
+        b = b[0] * np.hstack((s * math.cos(b[2] * a2r),
+                              s * math.sin(b[2] * a2r),
+                              math.cos(b[1] * a2r)))
+        s = math.sin(c[1] * a2r)
+        c = c[0] * np.hstack((s * math.cos(c[2] * a2r),
+                              s * math.sin(c[2] * a2r),
+                              math.cos(c[1] * a2r)))
+    ab = b - a
+    ac = c - a
+    z = ab / linalg.norm(ab)
     y = np.cross(z, ac)
-    y = y/linalg.norm(y)
+    y = y / linalg.norm(y)
     x = np.cross(y, z)
-    x = x/linalg.norm(x)
+    x = x / linalg.norm(x)
     Tg = refinfo[2:]
     location = refinfo[1] + Tg @ a
     T = Tg @ np.vstack((x, y, z)).T
@@ -1481,8 +1481,8 @@ def build_coords(cords):
         if duprows.size > 0:
             delrows = []
             for i in duprows:
-                if np.all(cords[i] == cords[i+1]):
-                    delrows.append(i+1)
+                if np.all(cords[i] == cords[i + 1]):
+                    delrows.append(i + 1)
                 else:
                     raise RuntimeError('duplicate but unequal '
                                        'coordinate systems detected.'
@@ -1508,7 +1508,7 @@ def build_coords(cords):
         J = np.argsort(selected)
         for j in range(n):
             cs = np.reshape(cords[J[j], :], (4, 3))   # , order='C')
-            addgrid(None, j+1, 'b', 0, [0, 0, 0], cs, coordref)
+            addgrid(None, j + 1, 'b', 0, [0, 0, 0], cs, coordref)
     return coordref
 
 
@@ -1736,23 +1736,23 @@ def getcoords(uset, gid, csys, coordref=None):
     coordinfo = get_coordinfo(csys, uset, coordref)
     xyz_coord = coordinfo[1]
     T = coordinfo[2:]   # transform to basic for coordinate system
-    g = T.T @ (xyz_basic-xyz_coord)
+    g = T.T @ (xyz_basic - xyz_coord)
     ctype = coordinfo[0, 1].astype(np.int64)
     if ctype == 1:
         return g
     if ctype == 2:
         R = math.hypot(g[0], g[1])
         theta = math.atan2(g[1], g[0])
-        return np.array([R, theta*180/math.pi, g[2]])
+        return np.array([R, theta * 180 / math.pi, g[2]])
     R = linalg.norm(g)
     phi = math.atan2(g[1], g[0])
     s = math.sin(phi)
     c = math.cos(phi)
     if abs(s) > abs(c):
-        theta = math.atan2(g[1]/s, g[2])
+        theta = math.atan2(g[1] / s, g[2])
     else:
-        theta = math.atan2(g[0]/c, g[2])
-    return np.array([R, theta*180/math.pi, phi*180/math.pi])
+        theta = math.atan2(g[0] / c, g[2])
+    return np.array([R, theta * 180 / math.pi, phi * 180 / math.pi])
 
 
 def _get_loc_a_basic(coordinfo, a):
@@ -1768,16 +1768,16 @@ def _get_loc_a_basic(coordinfo, a):
     if coordinfo[0, 1] == 1:
         location = coordloc + Tg @ a
     else:
-        a2r = math.pi/180.
+        a2r = math.pi / 180.
         if coordinfo[0, 1] == 2:   # cylindrical
-            vec = np.array([a[0]*math.cos(a[1]*a2r),
-                            a[0]*math.sin(a[1]*a2r),
+            vec = np.array([a[0] * math.cos(a[1] * a2r),
+                            a[0] * math.sin(a[1] * a2r),
                             a[2]])
         else:                     # spherical
-            s = math.sin(a[1]*a2r)
-            vec = a[0]*np.array([s*math.cos(a[2]*a2r),
-                                 s*math.sin(a[2]*a2r),
-                                 math.cos(a[1]*a2r)])
+            s = math.sin(a[1] * a2r)
+            vec = a[0] * np.array([s * math.cos(a[2] * a2r),
+                                   s * math.sin(a[2] * a2r),
+                                   math.cos(a[1] * a2r)])
         location = coordloc + Tg @ vec
     return location
 
@@ -1948,7 +1948,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
     # prepare uset entry for grid:
     last3 = np.vstack((xyz[None], coordinfo))
-    usetid = np.hstack((gid*np.ones((6, 1)),
+    usetid = np.hstack((gid * np.ones((6, 1)),
                         np.arange(1, 7).reshape(-1, 1),
                         sets, last3))
 
@@ -1966,7 +1966,7 @@ def _solve(a, b):
     """This is :func:`scipy.linalg.solve` but with a matrix condition
     check on `a`. Call by :func:`formrbe3`."""
     c = np.linalg.cond(a)
-    if c > 1/np.finfo(float).eps:
+    if c > 1 / np.finfo(float).eps:
         warnings.warn('matrix is poorly conditioned (cond={:.3e}). '
                       'Solution will likely be inaccurate.'.format(c),
                       RuntimeWarning)
@@ -2133,7 +2133,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     for j in range(0, len(Ind_List), 2):
         # eg:  [[123, 1.2], [95, 195, 1000], 123456, 95]
         DOF_ind = np.atleast_1d(Ind_List[j])
-        GRIDS_ind = np.atleast_1d(Ind_List[j+1])
+        GRIDS_ind = np.atleast_1d(Ind_List[j + 1])
         if len(DOF_ind) == 2:
             wtcur = DOF_ind[1]
             DOF_ind = DOF_ind[0]
@@ -2152,7 +2152,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     wtdof = wtdof[pv]
 
     if UM_List is not None:
-        mdof = expanddof([[UM_List[j], UM_List[j+1]]
+        mdof = expanddof([[UM_List[j], UM_List[j + 1]]
                           for j in range(0, len(UM_List), 2)])
         if np.size(mdof, 0) != np.size(ddof, 0):
             raise ValueError("incorrect size of M-set DOF ({}): "
@@ -2184,9 +2184,9 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         deploc = uset[pv[0], 3:]
         n = np.size(uset, 0) // 6
         delta = uset[::6, 3:] - deploc
-        Lc = np.sum(np.sqrt(np.sum(delta * delta, axis=1))) / (n-1)
+        Lc = np.sum(np.sqrt(np.sum(delta * delta, axis=1))) / (n - 1)
         if Lc > 1.e-12:
-            wtdof[rot] = wtdof[rot]*(Lc*Lc)
+            wtdof[rot] = wtdof[rot] * (Lc * Lc)
 
     # form rigid-body modes relative to GRID_dep
     rbb = rbgeom_uset(uset, GRID_dep)
@@ -2194,7 +2194,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     rb = rbb[ipv]
     rbw = rb.T * wtdof
     rbe3 = _solve(rbw @ rb, rbw)
-    rbe3 = (T @ rbe3)[ddof[:, 1]-1]
+    rbe3 = (T @ rbe3)[ddof[:, 1] - 1]
     if UM_List is None:
         return rbe3
 
@@ -2475,12 +2475,12 @@ def _formtran_0(nas, dof, gset):
 
     if hasm:
         a_n = np.nonzero(mksetpv(uset, "n", "a"))[0]
-        tran[R:R+len(m)] = gm[:, a_n] @ nas['pha'][0]
+        tran[R:R + len(m)] = gm[:, a_n] @ nas['pha'][0]
         R += len(m)
 
     if hass:
         cu = tran.shape[1]
-        tran[R:R+len(s)] = np.zeros((len(s), cu))
+        tran[R:R + len(s)] = np.zeros((len(s), cu))
 
     # order DOF as requested:
     tran = tran[pv]
@@ -2651,7 +2651,7 @@ def formtran(nas, se, dof, gset=False):
         raise RuntimeError(msg)
 
     # sets = [ t, o, m, q, s ]
-    tran = np.zeros((len(pv), ct+cq))
+    tran = np.zeros((len(pv), ct + cq))
     R = 0
     if hast:
         I = np.eye(ct)
@@ -2659,13 +2659,13 @@ def formtran(nas, se, dof, gset=False):
         tran[:R, t_a] = I[pvdoft]
 
     if haso:
-        tran[R:R+len(o), t_a] = got[pvdofo]
+        tran[R:R + len(o), t_a] = got[pvdofo]
         if cq:
-            tran[R:R+len(o), q_a] = goq[pvdofo]
+            tran[R:R + len(o), q_a] = goq[pvdofo]
         R += len(o)
 
     if hasm:
-        ulvsm = np.zeros((gm.shape[0], ct+cq))
+        ulvsm = np.zeros((gm.shape[0], ct + cq))
         gmo = gm[:, o_n]
         v = np.nonzero(np.any(gmo, 0))[0]
         if v.size > 0:
@@ -2678,17 +2678,17 @@ def formtran(nas, se, dof, gset=False):
         if cq:
             # m-set dependent on q-set (via MPC maybe)
             ulvsm[:, q_a] += gm[:, q_n]
-        tran[R:R+len(m)] = ulvsm
+        tran[R:R + len(m)] = ulvsm
         R += len(m)
 
     if hasq:
         I = np.eye(cq)
-        tran[R:R+len(q), q_a] = I[pvdofq]
+        tran[R:R + len(q), q_a] = I[pvdofq]
         R += len(q)
 
     if hass:
         cu = tran.shape[1]
-        tran[R:R+len(s)] = np.zeros((len(s), cu))
+        tran[R:R + len(s)] = np.zeros((len(s), cu))
 
     # order DOF as requested:
     tran = tran[pv]
