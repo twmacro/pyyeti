@@ -179,7 +179,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
     maxcpu : integer or None; optional
         Specifies maximum number of CPUs to use. If None, it is
         internally set to 4/5 of available CPUs (as determined from
-        :func:`multiprocessing.cpu_count`.
+        :func:`multiprocessing.cpu_count`).
     verbose : bool; optional
         If True, routine will print some status information.
 
