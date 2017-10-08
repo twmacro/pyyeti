@@ -8,7 +8,7 @@ import scipy.signal as signal
 def compare(fde1, fde2):
     assert np.allclose(fde1.freq, fde2.freq)
     assert np.allclose(fde1.psd, fde2.psd)
-    assert np.allclose(fde1.amp, fde2.amp)
+    assert np.allclose(fde1.peakamp, fde2.peakamp)
     assert np.allclose(fde1.binamps, fde2.binamps)
     assert np.allclose(fde1.count, fde2.count)
     assert np.allclose(fde1.srs, fde2.srs)
@@ -19,6 +19,7 @@ def compare(fde1, fde2):
     assert fde2.resp in ('absacce', 'pvelo')
     assert fde1.ncpu >= 1
     assert fde2.ncpu >= 1
+    assert np.allclose(fde1.sig, fde2.sig)
 
 
 def test_fdepsd_absacce():
@@ -37,8 +38,8 @@ def test_fdepsd_absacce():
     compare(fde_auto, fde_no)
     compare(fde_auto, fde_yes)
     pv = np.logical_and(freq > 32, freq < 45)
-    assert abs(np.mean(fde_auto.psd[pv, :2], axis=0) - sp).max() < .22
-    assert abs(np.mean(fde_auto.psd[pv, 2:], axis=0) - sp).max() < .12
+    assert abs(np.mean(fde_auto.psd.iloc[pv, :2], axis=0) - sp).max() < .22
+    assert abs(np.mean(fde_auto.psd.iloc[pv, 2:], axis=0) - sp).max() < .12
     assert np.all(fde_auto.freq == freq)
 
     fde_none = fdepsd(sig, sr, freq, q, rolloff=None)
@@ -47,9 +48,11 @@ def test_fdepsd_absacce():
 
     T0 = 120
     fde_T0 = fdepsd(sig, sr, freq, q, T0=T0)
-    factor = (np.log(freq * 60) / np.log(freq * T0))[:, None]
-    assert np.allclose(fde_T0.psd[:, :2], fde_auto.psd[:, :2] * factor)
-    assert np.all(fde_T0.psd[:, 2:] < fde_auto.psd[:, 2:])
+    factor = (np.log(freq * 60) / np.log(freq * T0))
+    assert np.allclose(
+        fde_T0.psd.iloc[:, :2],
+        fde_auto.psd.iloc[:, :2].multiply(factor, axis=0))
+    assert np.all(fde_T0.psd.iloc[:, 2:] < fde_auto.psd.iloc[:, 2:])
 
 
 def test_fdepsd_pvelo():
@@ -72,8 +75,8 @@ def test_fdepsd_pvelo():
     compare(fde_auto, fde_no)
     compare(fde_auto, fde_yes)
     pv = np.logical_and(freq > 32, freq < 45)
-    assert abs(np.mean(fde_auto.psd[pv, :2], axis=0) - sp).max() < .22
-    assert abs(np.mean(fde_auto.psd[pv, 2:], axis=0) - sp).max() < .22
+    assert abs(np.mean(fde_auto.psd.iloc[pv, :2], axis=0) - sp).max() < .22
+    assert abs(np.mean(fde_auto.psd.iloc[pv, 2:], axis=0) - sp).max() < .22
     assert np.all(fde_auto.freq == freq)
 
     fde_none = fdepsd(sig, sr, freq, q, resp='pvelo', rolloff=None)
@@ -83,9 +86,11 @@ def test_fdepsd_pvelo():
 
     T0 = 120
     fde_T0 = fdepsd(sig, sr, freq, q, T0=T0, resp='pvelo')
-    factor = (np.log(freq * 60) / np.log(freq * T0))[:, None]
-    assert np.allclose(fde_T0.psd[:, :2], fde_auto.psd[:, :2] * factor)
-    assert np.all(fde_T0.psd[:, 2:] < fde_auto.psd[:, 2:])
+    factor = (np.log(freq * 60) / np.log(freq * T0))
+    assert np.allclose(
+        fde_T0.psd.iloc[:, :2],
+        fde_auto.psd.iloc[:, :2].multiply(factor, axis=0))
+    assert np.all(fde_T0.psd.iloc[:, 2:] < fde_auto.psd.iloc[:, 2:])
 
 
 def test_fdepsd_winends():
@@ -102,8 +107,8 @@ def test_fdepsd_winends():
     fde2 = fdepsd(sig, sr, freq, q, hpfilter=None, winends=None)
     fde3 = fdepsd(sig, sr, freq, q, hpfilter=None,
                   winends=dict(portion=20))
-    assert np.all(fde2.psd[:, 0] > 4 * fde.psd[:, 0])
-    assert np.all(fde2.psd[:, 0] > 4 * fde3.psd[:, 0])
+    assert np.all(fde2.psd.iloc[:, 0] > 4 * fde.psd.iloc[:, 0])
+    assert np.all(fde2.psd.iloc[:, 0] > 4 * fde3.psd.iloc[:, 0])
 
 
 def test_fdepsd_error():

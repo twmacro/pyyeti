@@ -74,3 +74,7 @@ Utility routines
     rptext1
     rptpct1
     rpttab1
+
+*Notes:*
+    - :func:`pyyeti.cla.load` is an alias for :func:`pyyeti.ytools.load`
+    - :func:`pyyeti.cla.save` is an alias for :func:`pyyeti.ytools.save`

@@ -19,8 +19,8 @@ Math routines
     multmd
     sturm
 
-Text I/O helper routines
-------------------------
+I/O helper routines
+-------------------
 .. autosummary::
     :toctree: generated/
 

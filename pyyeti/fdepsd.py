@@ -9,6 +9,7 @@ import itertools as it
 import multiprocessing as mp
 import numpy as np
 import scipy.signal as signal
+import pandas as pd
 from pyyeti import cyclecount, srs, dsp
 
 
@@ -41,7 +42,7 @@ def _dofde(args):
     b, a = coeffunc(Q, dT, WN_[j])
     resphist = signal.lfilter(b, a, SIG_)
     ASV_[1, j] = abs(resphist).max()
-    ASV_[2, j] = np.var(resphist)
+    ASV_[2, j] = np.var(resphist, ddof=1)
 
     # use rainflow to count cycles:
     ind = cyclecount.findap(resphist)
@@ -188,8 +189,9 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
 
     freq : 1d ndarray
         Same as input `freq`.
-    psd : 2d ndarray; ``len(freq) x 5``
-        The five columns are: [G1, G2, G4, G8, G12]:
+    psd : pandas DataFrame; ``len(freq) x 5``
+        The amplitude and damage based PSDs. The index is `freq` and
+        the five columns are: [G1, G2, G4, G8, G12]
 
         ===========   ===============================================
            Name       Description
@@ -206,31 +208,36 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
                       4, 8, and 12
         ===========   ===============================================
 
-    amp : 2d ndarray; ``len(freq) x 5``
-        The five columns correspond to the columns in `psd`. They are
-        the Mile's equation (or similar if using ``resp='pvelo'``)
-        SDOF (single DOF oscillator) peak response using the peak
-        factor ``sqrt(2*log(f*T0))``. Note that the first column is,
-        by definition, the maximum cycle amplitude for each SDOF from
-        the rainflow count (G1 was calculated from this). Typically,
-        this should be very close to the raw SRS peaks but a little
-        lower since SRS just grabs peaks without consideration of the
-        opposite peak.
-    binamps : 2d ndarray; ``len(freq) x nbins``
+    peakamp : pandas DataFrame; ``len(freq) x 5``
+        The peak response of SDOFs (single DOF oscillators) using each
+        PSD as a base input. The index and the five columns are the
+        same as for `psd`. The peaks are computed from the Mile's
+        equation (or similar if using ``resp='pvelo'``). The peak
+        factor used is ``sqrt(2*log(f*T0))``. Note that the first
+        column is, by definition, the maximum cycle amplitude for each
+        SDOF from the rainflow count (G1 was calculated from
+        this). Typically, this should be very close to the raw SRS
+        peaks but a little lower since SRS just grabs peaks without
+        consideration of the opposite peak.
+    binamps : pandas DataFrame; ``len(freq) x nbins``
         Each row (for a specific frequency SDOF) in `binamps` contains
-        the lower amplitude boundary of each bin. Spacing of the bins
-        is linear. The next column for this matrix would be
-        ``amp[:, 0]``.
-    count : 2d ndarray; ``len(freq) x nbins``
+        the lower amplitude boundary of each bin. The index is
+        `freq`. Spacing of the bins is linear. The next column for
+        this matrix would be ``peakamp[:, 0]``.
+    count : pandas DataFrame; ``len(freq) x nbins``
         Summary matrix of the rainflow cycle counts. Size corresponds
         with `binamps` and the count is cumulative; that is, the count
         in each entry includes cycles at the `binamps` amplitude and
         above. Therefore, first column has total cycles for the SDOF.
-    srs : 1d ndarray; length = ``len(freq)``
+    sig : 1d ndarray
+        The version of the input `sig` that is fed into the fatique
+        damage algorithm. This would be after any filtering,
+        windowing, and upsampling.
+    srs : pandas Series; length = ``len(freq)``
         The raw SRS peaks version of the first column in `amp`. See
-        `amp`.
-    var : 1d ndarray; length = ``len(freq)``
-        Vector of the SDOF response variances.
+        `amp`. Index is `freq`.
+    var : pandas Series; length = ``len(freq)``
+        Vector of the SDOF response variances. Index is `freq`.
     parallel : string
         Either 'yes' or 'no' depending on whether parallel processing
         was used or not.
@@ -337,13 +344,12 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         >>>
         >>> TF = 60  # make a 60 second signal
         >>> spec = np.array([[20, 1], [50, 1]])
-        >>> sig, sr, t = psd.psd2time(spec, ppc=10, fstart=20,
-        ...                           fstop=50, df=1/TF,
-        ...                           winends=dict(portion=10),
-        ...                           gettime=True)
+        >>> sig, sr, t = psd.psd2time(
+        ...     spec, ppc=10, fstart=20, fstop=50, df=1 / TF,
+        ...     winends=dict(portion=10), gettime=True)
         >>>
         >>> fig = plt.figure('fdepsd example, part 1', figsize=[9, 6])
-        >>> _ = plt.subplot(211)
+        >>> ax = plt.subplot(211)
         >>> _ = plt.plot(t, sig)
         >>> _ = plt.title(r'Input Signal - Specification Level = '
         ...               '1.0 $g^{2}$/Hz')
@@ -353,32 +359,30 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         >>> f, p = signal.welch(sig, sr, nperseg=sr)
         >>> f2, p2 = psd.psdmod(sig, sr, nperseg=sr, timeslice=4,
         ...                     tsoverlap=0.5)
-        >>> plt.tight_layout()
 
         Calculate G1, G2, and the damage potential PSDs:
 
-        >>> psd = 0
+        >>> psd_ = 0
         >>> freq = np.arange(20., 50.1)
         >>> for q in (10, 25, 50):
         ...     fde = fdepsd.fdepsd(sig, sr, freq, q)
-        ...     psd = np.fmax(psd, fde.psd)
+        ...     psd_ = np.fmax(psd_, fde.psd)
         >>> #
-        >>> _ = plt.plot(*spec.T, 'k-', lw=1.5, label='Spec')
+        >>> _ = plt.plot(*spec.T, 'k--', lw=2.5, label='Spec')
         >>> _ = plt.plot(f, p, label='Welch PSD')
         >>> _ = plt.plot(f2, p2, label='PSDmod')
+        >>> _ = (psd_
+        ...      .rename(columns={i: i + ' Env' for i in psd_.columns})
+        ...      .plot.line(ax=ax))
         >>> _ = plt.xlim(20, 50)
         >>> _ = plt.title('PSD Comparison')
         >>> _ = plt.xlabel('Freq (Hz)')
         >>> _ = plt.ylabel(r'PSD ($g^{2}$/Hz)')
-        >>> _ = plt.plot(freq, psd[:, 0], label='G1 env')
-        >>> _ = plt.plot(freq, psd[:, 1], label='G2 env')
-        >>> _ = plt.plot(freq, psd[:, 2], label='G4 env')
-        >>> _ = plt.plot(freq, psd[:, 3], label='G8 env')
-        >>> _ = plt.plot(freq, psd[:, 4], label='G12 env')
         >>> _ = plt.legend(loc='upper left',
         ...                bbox_to_anchor=(1.02, 1.),
         ...                borderaxespad=0.)
-        >>> fig.subplots_adjust(right=0.75)
+        >>> plt.tight_layout()
+        >>> fig.subplots_adjust(right=0.78)
 
     .. plot::
         :context: close-figs
@@ -386,19 +390,17 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         Compare to theoretical bin counts @ 30 Hz:
 
         >>> _ = plt.figure('fdepsd example, part 2')
-        >>> j = np.searchsorted(freq, 30)
-        >>> Frq = freq[j]
-        >>> _ = plt.semilogy(fde.binamps[j]**2, fde.count[j],
+        >>> Frq = freq[np.searchsorted(freq, 30)]
+        >>> _ = plt.semilogy(fde.binamps.loc[Frq]**2,
+        ...                  fde.count.loc[Frq],
         ...                  label='Data')
         >>> # use flight time here (TF), not test time (T0)
-        >>> Amax2 = 2*fde.var[j]*np.log(Frq*TF)
-        >>> _ = plt.plot([0, Amax2], [Frq*TF, 1], label='Theory')
-        >>> y1 = fde.count[j, 0]
-        >>> _ = plt.plot([0, fde.amp[j, 0]**2], [y1, 1], label='G1')
-        >>> _ = plt.plot([0, fde.amp[j, 1]**2], [y1, 1], label='G2')
-        >>> _ = plt.plot([0, fde.amp[j, 2]**2], [y1, 1], label='G4')
-        >>> _ = plt.plot([0, fde.amp[j, 3]**2], [y1, 1], label='G8')
-        >>> _ = plt.plot([0, fde.amp[j, 4]**2], [y1, 1], label='G12')
+        >>> Amax2 = 2 * fde.var.loc[Frq] * np.log(Frq * TF)
+        >>> _ = plt.plot([0, Amax2], [Frq * TF, 1], label='Theory')
+        >>> y1 = fde.count.loc[Frq, 0]
+        >>> peakamp = fde.peakamp.loc[Frq]
+        >>> for j, lbl in enumerate(fde.peakamp.columns):
+        ...     _ = plt.plot([0, peakamp[j]**2], [y1, 1], label=lbl)
         >>> _ = plt.title('Bin Count Check for Q=50, Freq=30 Hz')
         >>> _ = plt.xlabel(r'$Amp^2$')
         >>> _ = plt.ylabel('Count')
@@ -489,7 +491,8 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         BinAmps += np.arange(nbins, dtype=float) / nbins
         Count = np.zeros((LF, nbins))
 
-        # loop over frequencies, calculating responses & counting cycles
+        # loop over frequencies, calculating responses & counting
+        # cycles
         for j, wn in enumerate(Wn):
             if verbose:
                 print('Processing frequency {:8.2f} Hz'.
@@ -497,7 +500,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
             b, a = coeffunc(Q, dT, wn)
             resphist = signal.lfilter(b, a, sig)
             SRSmax[j] = abs(resphist).max()
-            Var[j] = np.var(resphist)
+            Var[j] = np.var(resphist, ddof=1)
 
             # use rainflow to count cycles:
             ind = cyclecount.findap(resphist)
@@ -523,7 +526,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
     # for calculating G2:
     G2max = Amax**2
     for j in range(LF):
-        pv = BinAmps[j] >= Amax[j] / 3  # ignore small amplitude cycles
+        pv = BinAmps[j] >= Amax[j] / 3  # ignore small amp cycles
         if np.any(pv):
             x = BinAmps[j, pv]**2
             x2 = G2max[j]
@@ -578,18 +581,21 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
 
         Abar3 = Abar2 * Abar
         Abar4 = Abar2 * Abar2
-        Dt8 = N0 * 384 - (Abar4 + 8 * Abar3 + 48 * Abar2 + 192 * Abar + 384)
+        Dt8 = N0 * 384 - (Abar4 + 8 * Abar3 + 48 * Abar2 +
+                          192 * Abar + 384)
         sig2_8 = (Df8 / Dt8)**(1 / 4)
         G8 = sig2_8 / ((Q * pi / 2) * freq)
 
         Abar5 = Abar4 * Abar
         Abar6 = Abar4 * Abar2
-        Dt12 = N0 * 46080 - (Abar6 + 12 * Abar5 + 120 * Abar4 + 960 * Abar3 +
-                             5760 * Abar2 + 23040 * Abar + 46080)
+        Dt12 = N0 * 46080 - (Abar6 + 12 * Abar5 + 120 * Abar4 +
+                             960 * Abar3 + 5760 * Abar2 +
+                             23040 * Abar + 46080)
         sig2_12 = (Df12 / Dt12)**(1 / 6)
         G12 = sig2_12 / ((Q * pi / 2) * freq)
 
-        Gmax = np.sqrt(np.vstack((G4, G8, G12)) * (Q * pi * freq * lnN0))
+        Gmax = np.sqrt(np.vstack((G4, G8, G12)) *
+                       (Q * pi * freq * lnN0))
     else:
         G1 = (Amax**2 * 4 * pi * freq) / (Q * lnN0)
         G2 = (G2max * 4 * pi * freq) / (Q * lnN0)
@@ -606,13 +612,31 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         sig2_12 = (Df12 / Dt12)**(1 / 6)
         G12 = sig2_12 * ((4 * pi / Q) * freq)
 
-        Gmax = np.sqrt(np.vstack((G4, G8, G12)) * (Q * lnN0) / (4 * pi * freq))
+        Gmax = np.sqrt(np.vstack((G4, G8, G12)) *
+                       (Q * lnN0) / (4 * pi * freq))
 
     # assemble outputs:
-    Gpsd = np.vstack((G1, G2, G4, G8, G12)).T
+    columns = ['G1', 'G2', 'G4', 'G8', 'G12']
+    lcls = locals()
+    dct = {k: lcls[k] for k in columns}
+    Gpsd = pd.DataFrame(dct, columns=columns, index=freq)
+    Gpsd.index.name = 'Frequency'
+    index = Gpsd.index
+
     G2max = np.sqrt(G2max)
-    Gmax = np.vstack((Amax, G2max, Gmax)).T
-    return SimpleNamespace(freq=freq, psd=Gpsd, amp=Gmax,
+    Gmax = pd.DataFrame(np.vstack((Amax, G2max, Gmax)).T,
+                        columns=columns, index=index)
+    BinAmps = pd.DataFrame(BinAmps, index=index)
+    Count = pd.DataFrame(Count, index=index)
+    Var = pd.Series(Var, index=index)
+    SRSmax = pd.Series(SRSmax, index=index)
+    # df = pd.concat(
+    #     objs=[Gpsd, Gmax, BinAmps, Count, pd.DataFrame(Var),
+    #           pd.DataFrame(SRSmax)],
+    #     keys=['PSD', 'Peak Amp', 'Bin Amp', 'Count', 'Var', 'SRS'],
+    #     axis=1,
+    #     copy=False)
+    return SimpleNamespace(freq=freq, psd=Gpsd, peakamp=Gmax,
                            binamps=BinAmps, count=Count, var=Var,
                            srs=SRSmax, parallel=parallel, ncpu=ncpu,
-                           resp=resp)
+                           resp=resp, sig=sig)  # , df=df)

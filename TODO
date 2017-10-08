@@ -1,20 +1,9 @@
-~` -  pyyeti.rst -> list to table?
-
--  Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
-
+0. Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
 1. Update duf explanation in cla.apply_uf
-~2. Read dmig matrices
 3. Rearrange code: op2, op4, n2p, nastran overlap ... ?
    - primarly rdnas2cam ... seems like this should be in n2p
 4. Convert uset to dataframe i think
 5. Convert ext, mx, mn in DR_Results to dataframe
-~ 6. Add option to only compare selected drms in cla.rptpct
-~ 7. dsp:  add "units" input so `timeslice` and `tsoverlap` can be input in
-     number of points instead of seconds and proportion
-~ 8. Add frequency range to SPL
-~ 9. Add dependent/independent setting to wrtrspline_rings
-~ 10. Add feature to loop over DR_Results data structure so a function can
-      be applied to all SimpleNamespaces … ?
 10.1. What about function for splitting SimpleNamespace results into
     sub-categories:
     - if the "Liftoff" event has 4 sub-cases:
@@ -28,14 +17,7 @@
        - allow easy comparison of a specific sub-case to another 
        - enable any function that uses .ext to work on a sub-case
 
-~11. Add bubble color option to datacursor
 12. op4: add some c?
-~13. SolveUnc: Either handle damping on rb modes or at least say it doesn’t
-    work (error out?)
-    - maybe just setting the 'nrb' setting would work ... ?
-    - finish documentation
-~14. fftmap etc: update timeslice and tsoverlap doc
-
 15. cla.py:
     DR_Results() … should this be able to init? I think so:
                    DR_Results(drdefs, mission, event)
@@ -75,11 +57,9 @@
     5 maybe add option to use only one figure ... that should be default ?
 
     6 y-axis label written far away in srs3/net_ifatm_0rb_eqsine_all.pdf plot ... why?
+    7 include documentation link for "load" and "save"
 
 16. op2 updates:
   - some functions should be "public", like _rdop2nt()
-~  - add "go_to_next_db"
-
-~ 17. Implement psdarea
-
-~ 18. Add windowends to fdepsd
+19. Add windowends to srs ?
+~20. Change output of fdepsd to DataFrames
