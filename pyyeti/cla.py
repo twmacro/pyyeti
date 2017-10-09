@@ -98,7 +98,7 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
                 return None, None
             a = m1[pv]
             b = m2[pv]
-            pdiff = (a - b)/ref[pv]*100.0
+            pdiff = (a - b) / ref[pv] * 100.0
             if ismax is not None:
                 pdiff = abs(pdiff)
                 neg = a < b if ismax else a > b
@@ -124,7 +124,7 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
             for pv, c in [(apd <= 5, 'b'),
                           ((apd > 5) & (apd <= 10), 'm'),
                           (apd > 10, 'r')]:
-                plt.plot(ref[pv], curpd[pv], c+_marker)
+                plt.plot(ref[pv], curpd[pv], c + _marker)
     plt.xlabel('Reference Magnitude')
     plt.ylabel('% Difference')
     return pds
@@ -164,11 +164,11 @@ def rdext(name):              # pragma: no cover
                 break
         p = 0
         starts = [p]
-        p = line.find(' -', p+1)
+        p = line.find(' -', p + 1)
         while p != -1:
             p += 1
             starts.append(p)
-            p = line.find(' -', p+1)
+            p = line.find(' -', p + 1)
 
         starts.append(len(line))
         arr = []
@@ -237,12 +237,12 @@ def freq3_augment(freq1, lam, tol=1.e-5):
     array([  5. ,   6. ,   6.7,   7. ,   8. ,   8.9,   9. ,  10. ])
     """
     freq1, lam = np.atleast_1d(freq1, lam)
-    sysfreqs = np.sqrt(abs(lam))/(2*np.pi)
+    sysfreqs = np.sqrt(abs(lam)) / (2 * np.pi)
     pv = np.nonzero(np.logical_and(sysfreqs > freq1[0],
                                    sysfreqs < freq1[-1]))[0]
     freq3 = sysfreqs[pv]
     freq = np.sort(np.hstack((freq1, freq3)))
-    uniq = locate.find_unique(freq, tol*(freq[-1] - freq[0]))
+    uniq = locate.find_unique(freq, tol * (freq[-1] - freq[0]))
     return freq[uniq]
 
 
@@ -567,7 +567,7 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
 
     # expand current case information to full size if necessary
     if isinstance(maxcase, str):
-        maxcase = r*[maxcase]
+        maxcase = r * [maxcase]
     else:
         maxcase = maxcase[:]
 
@@ -614,7 +614,7 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
     if mincase is None:
         mincase = maxcase[:]
     elif isinstance(mincase, str):
-        mincase = r*[mincase]
+        mincase = r * [mincase]
     else:
         mincase = mincase[:]
 
@@ -673,13 +673,34 @@ class DR_Def(OrderedDict):
         listed in :func:`add`. If None, it is initialized to an
         empty dictionary.
     ncats : integer
-        The number of data recovery categories defined.
+        The number of data recovery categories defined. This is a
+        static class variable. This means that if you have multiple
+        instances of this class, `ncats` will end up being the total
+        number of categories over all instances (and there is nothing
+        wrong with that).
 
     Notes
     -----
-    Rather than try to describe this dictionary, we'll use
-    :func:`pyyeti.pp.PP` to display sections of it for an example
-    mission:
+    The keys, with the exception of the key '_vars', are the short
+    names of each data recovery category. These names are defined by
+    the `name` parameter in successive calls to :func:`add`.
+    The values for these categories are SimpleNamespaces that fully
+    describe the category containing the description, units, row
+    labels, shock response spectra requests, etc, and even provides
+    (directly or indirectly) the function for performing data recovery
+    for the category.
+
+    As noted above, there is one other entry in the dictionary: the
+    '_vars' entry. This entry is also a SimpleNamespace with two
+    attributes: `drms` and `nondrms`. The `drms` attribute contains
+    the data recovery matrices; it is a regular Python dictionary
+    indexed by the superelement ID number. The `nondrms` attribute
+    contains any other information needed for performing data
+    recovery; it is also a regular Python dictionary indexed by the
+    superelement ID number.
+
+    For illustration, we'll use :func:`pyyeti.pp.PP` to display
+    sections of this dictionary for an example mission:
 
     PP(drdefs):
 
@@ -801,7 +822,7 @@ class DR_Def(OrderedDict):
                     if d1[key] is d2[key]:
                         warnings.warn(msg, RuntimeWarning)
                     else:
-                        raise ValueError('A different '+msg)
+                        raise ValueError('A different ' + msg)
                 else:
                     d1[key] = d2[key]
 
@@ -910,7 +931,7 @@ class DR_Def(OrderedDict):
             ns.desc = name
 
         if isinstance(ns.labels, numbers.Integral):
-            ns.labels = ['Row {:6d}'.format(i+1)
+            ns.labels = ['Row {:6d}'.format(i + 1)
                          for i in range(ns.labels)]
 
         # check filter value:
@@ -933,7 +954,7 @@ class DR_Def(OrderedDict):
             if isinstance(pv, slice):
                 return pv
             if (not isinstance(pv, str) and
-                isinstance(pv, (abc.Sequence, numbers.Integral))):
+                    isinstance(pv, (abc.Sequence, numbers.Integral))):
                 pv = np.atleast_1d(pv)
             if isinstance(pv, np.ndarray):
                 pv = pv.ravel()
@@ -1452,7 +1473,7 @@ class DR_Def(OrderedDict):
                 new = self[cat].__dict__[val]
                 s = None
                 if i > 0:
-                    old = self[cats[i-1]].__dict__[val]
+                    old = self[cats[i - 1]].__dict__[val]
                     if _issame(old, new):
                         self[cat].__dict__[val] = old
                         s = fill_char
@@ -1483,24 +1504,24 @@ class DR_Def(OrderedDict):
                 # worksheet.set_default_row(20)
                 # write header:
                 for i, cat in enumerate(df.columns):
-                    worksheet.write(0, i+1, cat, hform)
+                    worksheet.write(0, i + 1, cat, hform)
                 # write labels:
                 for i, lbl in enumerate(df.index):
-                    worksheet.write(i+1, 0, lbl, hform)
+                    worksheet.write(i + 1, 0, lbl, hform)
                 # write table:
                 for i, cat in enumerate(df.columns):
                     for j, lbl in enumerate(df.index):
                         worksheet.write(
-                            j+1, i+1, df[cat].loc[lbl], tform)
+                            j + 1, i + 1, df[cat].loc[lbl], tform)
                 # write notes at bottom:
                 bold = workbook.add_format({'bold': True})
-                worksheet.write(df.shape[0]+2, 1, 'Notes:', bold)
+                worksheet.write(df.shape[0] + 2, 1, 'Notes:', bold)
                 tab = '    '
-                msg = fill_char+' = same as previous category'
-                worksheet.write(df.shape[0]+3, 1, tab+msg)
+                msg = fill_char + ' = same as previous category'
+                worksheet.write(df.shape[0] + 3, 1, tab + msg)
                 msg = ('The partition vector variables (*pv) '
                        'use 0-offset (or are slices)')
-                worksheet.write(df.shape[0]+4, 1, tab+msg)
+                worksheet.write(df.shape[0] + 4, 1, tab + msg)
         return df
 
 
@@ -1581,6 +1602,7 @@ class DR_Event(object):
     ``DR_Def['_vars'].nondrms`` entry. The SE 0 matrix 'Tnode4' could
     come from either the `.drms` or `.nondrms` entry.
     """
+
     def __init__(self):
         """
         Initializes the attributes `Info`, `UF_reds`, and `Vars` to
@@ -1803,12 +1825,12 @@ class DR_Event(object):
                 genforce = m[:, None] * sol.a
             else:
                 genforce = m @ sol.a
-    
+
             if b.ndim == 1:
                 genforce += b[:, None] * sol.v
             else:
                 genforce += b @ sol.v
-    
+
             if k.ndim == 1:
                 genforce += k[:, None] * d
             else:
@@ -1850,8 +1872,8 @@ class DR_Event(object):
 
             # apply ufs:
             if nrb > 0:
-                SOL.a[:nrb] *= (ruf*suf)
-                SOL.v[:nrb] *= (ruf*suf)
+                SOL.a[:nrb] *= (ruf * suf)
+                SOL.v[:nrb] *= (ruf * suf)
                 SOL.d_static[:nrb] = 0.0
                 SOL.d_dynamic[:nrb] = 0.0
 
@@ -1863,8 +1885,8 @@ class DR_Event(object):
                 SOL.pg *= suf
 
             if nrb < n:
-                SOL.a[nrb:] *= (euf*duf)
-                SOL.v[nrb:] *= (euf*duf)
+                SOL.a[nrb:] *= (euf * duf)
+                SOL.v[nrb:] *= (euf * duf)
 
                 if m is None:
                     avterm = SOL.a[nrb:].copy()
@@ -1887,11 +1909,11 @@ class DR_Event(object):
                 # in case there is mass coupling between rfmodes and
                 # other modes
                 if rfmodes is not None:
-                    avterm[rfmodes-nrb] = 0
+                    avterm[rfmodes - nrb] = 0
 
-                gf = (euf*suf)*genforce[nrb:]
+                gf = (euf * suf) * genforce[nrb:]
                 if k.ndim == 1:
-                    invk = (1/k[nrb:])[:, None]
+                    invk = (1 / k[nrb:])[:, None]
                     SOL.d_static[nrb:] = invk * gf
                     SOL.d_dynamic[nrb:, :] = -invk * avterm
                 else:
@@ -1952,12 +1974,12 @@ class DR_Event(object):
             ruf, euf, duf, suf = item
             solout[item] = copy.deepcopy(sol)
             SOL = solout[item]
-            SOL.a[:nrb] *= (ruf*suf)
-            SOL.v[:nrb] *= (ruf*suf)
-            SOL.d[:nrb] *= (ruf*suf)
-            SOL.a[nrb:] *= (euf*duf)
-            SOL.v[nrb:] *= (euf*duf)
-            SOL.d[nrb:] *= (euf*duf)
+            SOL.a[:nrb] *= (ruf * suf)
+            SOL.v[:nrb] *= (ruf * suf)
+            SOL.d[:nrb] *= (ruf * suf)
+            SOL.a[nrb:] *= (euf * duf)
+            SOL.v[nrb:] *= (euf * duf)
+            SOL.d[nrb:] *= (euf * duf)
             if 'pg' in SOL.__dict__:
                 SOL.pg *= suf
         return solout
@@ -2172,6 +2194,7 @@ class DR_Results(OrderedDict):
                 .units: 'G, rad/sec^2'
             .time   : float32 ndarray 10001 elems: (10001,)
     """
+
     def __repr__(self):
         return object.__repr__(self)
 
@@ -2443,14 +2466,14 @@ class DR_Results(OrderedDict):
         # process maxcase, mincase:
         r = self[cat].ext.shape[0]
         if isinstance(maxcase, str):
-            self[cat].maxcase = r*[maxcase]
+            self[cat].maxcase = r * [maxcase]
         else:
             self[cat].maxcase = maxcase[:]
 
         if mincase is None:
             self[cat].mincase = self[cat].maxcase[:]
         elif isinstance(mincase, str):
-            self[cat].mincase = r*[mincase]
+            self[cat].mincase = r * [mincase]
         else:
             self[cat].mincase = mincase[:]
 
@@ -2485,7 +2508,7 @@ class DR_Results(OrderedDict):
         res.mn = np.zeros((m, n))
         res.maxtime = np.zeros((m, n))
         res.mintime = np.zeros((m, n))
-        res.cases = n*[[]]
+        res.cases = n * [[]]
         return m
 
     def time_data_recovery(self, sol, nas, case, DR, n, j,
@@ -2566,10 +2589,10 @@ class DR_Results(OrderedDict):
                 res.srs.type = ('eqsine' if _is_eqsine(dr.srsopts)
                                 else 'srs')
                 rr = resp[dr.srspv]
-                sr = 1/SOL.h if SOL.h else None
+                sr = 1 / SOL.h if SOL.h else None
                 for q in dr.srsQs:
-                    srs_cur = dr.srsconv*srs.srs(rr.T, sr, dr.srsfrq,
-                                                 q, **dr.srsopts).T
+                    srs_cur = dr.srsconv * srs.srs(rr.T, sr, dr.srsfrq,
+                                                   q, **dr.srsopts).T
                     res.srs.srs[q][j] = srs_cur
                     if first:
                         res.srs.ext[q] = srs_cur
@@ -2641,7 +2664,7 @@ class DR_Results(OrderedDict):
         if nonzero_forces.size:
             if verbose:
                 print('Trimming off {} zero forces'
-                      .format(forcepsd.shape[0]-nonzero_forces.size))
+                      .format(forcepsd.shape[0] - nonzero_forces.size))
             forcepsd = forcepsd[nonzero_forces]
             t_frc = t_frc[nonzero_forces]
         freq = np.atleast_1d(freq)
@@ -2673,7 +2696,7 @@ class DR_Results(OrderedDict):
         for i in range(rpsd):
             if verbose:
                 print('{}: processing force {} of {}'
-                      .format(case, i+1, rpsd))
+                      .format(case, i + 1, rpsd))
             # solve for unit FRF for i'th force:
             genforce = t_frc[i][:, None] * unitforce
             t1 = time.time()
@@ -2770,7 +2793,7 @@ class DR_Results(OrderedDict):
         """
         def _calc_rms(df, p):
             sumpsd = p[:, :-1] + p[:, 1:]
-            return np.sqrt((df * sumpsd).sum(axis=1)/2)
+            return np.sqrt((df * sumpsd).sum(axis=1) / 2)
 
         for name, res in self.items():
             first = res.ext is None
@@ -2790,7 +2813,7 @@ class DR_Results(OrderedDict):
             vrms = _calc_rms(freqstep, freq**2 * psd)
 
             pk = peak_factor * rms
-            pk_freq = vrms/rms
+            pk_freq = vrms / rms
             mm = SimpleNamespace(
                 ext=np.column_stack((pk, -pk)),
                 exttime=np.column_stack((pk_freq, pk_freq)))
@@ -2828,7 +2851,7 @@ class DR_Results(OrderedDict):
                     eqsine = False
 
                 if resp_time is not None:
-                    pf = np.sqrt(2*np.log(resp_time*dr.srsfrq))
+                    pf = np.sqrt(2 * np.log(resp_time * dr.srsfrq))
                 else:
                     pf = peak_factor
                 spec = (freq, psd[dr.srspv].T)
@@ -2846,7 +2869,7 @@ class DR_Results(OrderedDict):
                     else:
                         res.srs.ext[q] = np.fmax(res.srs.ext[q],
                                                  srs_cur)
-        if j == n-1:
+        if j == n - 1:
             del res._psd
 
     def form_stat_ext(self, k):
@@ -2878,10 +2901,10 @@ class DR_Results(OrderedDict):
         :func:`pyyeti.stats.kdouble`.
         """
         for res in self.values():
-            mx = res.mx.mean(axis=1) + k*res.mx.std(ddof=1, axis=1)
-            mn = res.mn.mean(axis=1) - k*res.mn.std(ddof=1, axis=1)
+            mx = res.mx.mean(axis=1) + k * res.mx.std(ddof=1, axis=1)
+            mn = res.mn.mean(axis=1) - k * res.mn.std(ddof=1, axis=1)
             res.ext = np.column_stack((mx, mn))
-            res.maxcase = res.mincase = ['Statistical']*mx.shape[0]
+            res.maxcase = res.mincase = ['Statistical'] * mx.shape[0]
             res.exttime = None
 
             # handle SRS if it is there:
@@ -2889,7 +2912,7 @@ class DR_Results(OrderedDict):
                 for Q in res.srs.srs:
                     arr = res.srs.srs[Q]
                     res.srs.ext[Q] = (arr.mean(axis=0) +
-                                      k*arr.std(ddof=1, axis=0))
+                                      k * arr.std(ddof=1, axis=0))
 
     def all_base_events(self, top_level_name='Top Level'):
         """
@@ -3257,8 +3280,8 @@ class DR_Results(OrderedDict):
             # handle 1 and 3 settings:
             if 'maxcase' in val.__dict__:   # always true?
                 if doappend == 1:
-                    maxcase = [case+','+i for i in val.maxcase]
-                    mincase = [case+','+i for i in val.mincase]
+                    maxcase = [case + ',' + i for i in val.maxcase]
+                    mincase = [case + ',' + i for i in val.mincase]
                 elif doappend == 3:
                     maxcase = val.maxcase
                     mincase = val.mincase
@@ -3434,7 +3457,7 @@ class DR_Results(OrderedDict):
             if event is None:
                 event = res.event
             title = '{} - {} Extrema Results'.format(mission, event)
-            filename = os.path.join(direc, name+'.ext')
+            filename = os.path.join(direc, name + '.ext')
             rptext1(res, filename, title=title,
                     doabsmax=doabsmax, numform=numform,
                     perpage=perpage)
@@ -3495,9 +3518,9 @@ class DR_Results(OrderedDict):
                        .format(mission, event))
                 if excel:
                     if not isinstance(excel, str):
-                        filename = os.path.join(direc, name+'.xlsx')
+                        filename = os.path.join(direc, name + '.xlsx')
                 else:
-                    filename = os.path.join(direc, name+'.tab')
+                    filename = os.path.join(direc, name + '.tab')
                 rpttab1(res, filename, title=ttl,
                         count_filter=count_filter, name=name)
         finally:
@@ -3577,7 +3600,7 @@ class DR_Results(OrderedDict):
                     event = res.event
                 title = ('{}, {} - {} vs. {}'
                          .format(mission, event, *names))
-                filename = os.path.join(direc, drm+fileext)
+                filename = os.path.join(direc, drm + fileext)
                 refext = refres[refdrm]
                 rptpct1(res, refres[refdrm], filename, title=title,
                         names=names, **rptpct1_args)
@@ -3911,25 +3934,25 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
     tmp = drmres.tmp
     tmp.varx += F * abs(x)**2
     tmp.vary += F * abs(y)**2
-    tmp.covar += F * np.real(x*np.conj(y))
+    tmp.covar += F * np.real(x * np.conj(y))
     tmp.xresp[i] = x
     tmp.yresp[i] = y
 
-    if i == N-1:
+    if i == N - 1:
         varx = np.trapz(tmp.varx, freq)
         vary = np.trapz(tmp.vary, freq)
         covar = np.trapz(tmp.covar, freq)
 
         # check for covar == 0:
         covar[abs(covar) < 1e-12] = 1e-12
-        term = (vary-varx) / (2*covar)
+        term = (vary - varx) / (2 * covar)
         th = np.arctan(term + np.sqrt(term**2 + 1))
 
         c = np.cos(th)
         s = np.sin(th)
 
         # where the 2nd derivative is > 0, we got the angle wrong:
-        second = 2*(vary - varx)*(c*c - s*s) - 8*covar*s*c
+        second = 2 * (vary - varx) * (c * c - s * s) - 8 * covar * s * c
         pv = np.nonzero(second > 0)[0]
         if pv.size > 0:
             th[pv] = np.arctan(term[pv] - np.sqrt(term[pv]**2 + 1))
@@ -4019,7 +4042,7 @@ def rptext1(res, filename,
 
     # row
     nrows = res.ext.shape[0]
-    _add_column('Row', '{:7d}', np.arange(1, nrows+1), 7, 0, 'c')
+    _add_column('Row', '{:7d}', np.arange(1, nrows + 1), 7, 0, 'c')
 
     # labels
     labels = getattr(res.drminfo, 'labels', None)
@@ -4100,12 +4123,12 @@ def _get_numform(mxmn1, excel=False):
         return '{:13.0f}' if not excel else '#,##0.'
     pmx = int(np.floor(np.log10(abs(mxmn1[pv]).max())))
     if excel:
-        numform = '#,##0.' + '0'*(5 - pmx)
+        numform = '#,##0.' + '0' * (5 - pmx)
     else:
         pmn = int(np.floor(np.log10(abs(mxmn1[pv]).min())))
-        if pmx-pmn < 6 and pmn > -3:
+        if pmx - pmn < 6 and pmn > -3:
             if pmn < 5:
-                numform = '{{:13.{}f}}'.format(5-pmn)
+                numform = '{{:13.{}f}}'.format(5 - pmn)
             else:
                 numform = '{:13.0f}'
         else:
@@ -4154,13 +4177,13 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
             j = j[pv]
             for k in range(n):
                 count[k] = np.sum(j == k)
-            return count, count/len(pv) * 100
+            return count, count / len(pv) * 100
         return count, count
 
     def _add_zero_case(mat, cases):
         pv = (mat == 0).all(axis=1).nonzero()[0]
         if cases is None:
-            new_cases = ['N/A']*mat.shape[0]
+            new_cases = ['N/A'] * mat.shape[0]
         else:
             new_cases = copy.copy(cases)
         for i in pv:
@@ -4182,7 +4205,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         count = ec['Maximum'][0] + ec['Minimum'][0]
         sumcount = count.sum()
         if sumcount > 0:
-            countperc = 100*count/sumcount
+            countperc = 100 * count / sumcount
         else:
             countperc = count
         ec['Max+Min'] = {0: count, 1: countperc}
@@ -4202,13 +4225,13 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         # extrema count
         f.write('Extrema Count\nFilter: {}\n\n'
                 .format(count_filter))
-        widths = [desclen, *([caselen]*n)]
+        widths = [desclen, *([caselen] * n)]
         headers = ['Description', *res.cases]
         for j, frm, lbl in zip((0, 1),
                                ('{{:{}d}}'.format(caselen),
                                 '{{:{}.1f}}'.format(caselen)),
                                ('Count', 'Percent')):
-            formats = [descfrm, *([frm]*n)]
+            formats = [descfrm, *([frm] * n)]
             hu_, frm_ = writer.formheader(
                 headers, widths, formats, sep=[7, 1],
                 just='c', ulchar='=')
@@ -4231,8 +4254,8 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         n = len(title)
         worksheet.write(n, 0, 'Extrema Count', bold)
         worksheet.write(
-            n+1, 0, 'Filter: {}'.format(count_filter), bold)
-        worksheet.write(n+1, 1, count_filter)
+            n + 1, 0, 'Filter: {}'.format(count_filter), bold)
+        worksheet.write(n + 1, 1, count_filter)
         n += 2
         ncases = len(res.cases)
         headers = ['Description', *res.cases]
@@ -4254,14 +4277,14 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
             n += 1
             for i, (rowlbl, chpos) in enumerate(
                     zip(rowlabels, chart_positions)):
-                worksheet.write(n+i, 0, rowlbl)
-                worksheet.write_row(n+i, 1, table[i], number)
+                worksheet.write(n + i, 0, rowlbl)
+                worksheet.write_row(n + i, 1, table[i], number)
                 if j == 1:
                     chart = workbook.add_chart({'type': 'pie'})
                     chart.add_series(
                         {'name': rowlbl,
-                         'categories': [sheet, n-1, 1, n-1, ncases],
-                         'values': [sheet, n+i, 1, n+i, ncases],
+                         'categories': [sheet, n - 1, 1, n - 1, ncases],
+                         'values': [sheet, n + i, 1, n + i, ncases],
                          'data_labels': data_labels})
                     chart.set_title({'name': rowlbl})
                     chart.set_size(chart_size)
@@ -4270,7 +4293,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
 
         # adjust column widths
         worksheet.set_column(0, 0, 20)
-        worksheet.set_column(1, len(headers)-1, 14)
+        worksheet.set_column(1, len(headers) - 1, 14)
 
     def _wttab(f, header, hu, frm, res, loop_vars):
         f.write(header)
@@ -4311,18 +4334,18 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
             labels = res.drminfo.labels
             ncases = vals.shape[1]
             for i, rw in enumerate(rows):
-                worksheet.write(n+i, 0, rw)
-                worksheet.write(n+i, 1, labels[i])
+                worksheet.write(n + i, 0, rw)
+                worksheet.write(n + i, 1, labels[i])
                 worksheet.write_row(
-                    n+i, 2, vals[i], number)
+                    n + i, 2, vals[i], number)
                 worksheet.write(
-                    n+i, 2+ncases, ext[i], number)
+                    n + i, 2 + ncases, ext[i], number)
                 worksheet.write(
-                    n+i, 3+ncases, extcases[i])
+                    n + i, 3 + ncases, extcases[i])
 
             # adjust column widths and freeze row and col panes
             worksheet.set_column(1, 1, 20)  # description
-            worksheet.set_column(2, 3+ncases, 14)
+            worksheet.set_column(2, 3 + ncases, 14)
             worksheet.freeze_panes(n, 2)
 
         _add_max_plus_min(ec)
@@ -4359,10 +4382,10 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         desclen = max(15, len(max(res.drminfo.labels, key=len)))
         caselen = max(13, len(max(res.cases, key=len)))
         n = len(res.cases)
-        widths = [6, desclen, *([caselen]*n), caselen, caselen]
+        widths = [6, desclen, *([caselen] * n), caselen, caselen]
         descfrm = '{{:{:d}}}'.format(desclen)
         numform = '{{:{}.6e}}'.format(caselen)
-        formats = ['{:6d}', descfrm, *([numform]*n),
+        formats = ['{:6d}', descfrm, *([numform] * n),
                    numform, '{}']
         hu, frm = writer.formheader(
             headers, widths, formats, sep=[0, 1],
@@ -4787,7 +4810,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
         z = denom == 0.0
         denom[z] = 1.0
-        pct = 100*abs(a-b)/denom
+        pct = 100 * abs(a - b) / denom
         pct[z] = 100.0    # np.inf
 
         # make less extreme values negative
@@ -4825,18 +4848,18 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             if num > last:
                 s.append('    {:.1f}% of values are within {:d}%\n'
                          .format(num, pdiff))
-            if np.round(num*10) == 1000:
+            if np.round(num * 10) == 1000:
                 break
             last = num
 
         n = pctcount[:, 1].sum()
         A = pctcount[:, 0] * pctcount[:, 1]
-        meanval = A.sum()/n
+        meanval = A.sum() / n
         if n == 1:
             stdval = 0
         else:
             a = pctcount[:, 1] * (pctcount[:, 0] - meanval)**2
-            stdval = np.sqrt(a.sum()/(n-1))
+            stdval = np.sqrt(a.sum() / (n - 1))
         s.append('\n    % Diff Statistics: [Min, Max, Mean, StdDev]'
                  ' = [{:.2f}, {:.2f}, {:.4f}, {:.4f}]\n'
                  .format(pctcount[:, 0].min(),
@@ -4905,7 +4928,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         figsize = [8.5, 11.0]
         if doabsmax:
             figsize[1] /= 3.0
-        plt.figure('Magpct - '+desc, figsize=figsize)
+        plt.figure('Magpct - ' + desc, figsize=figsize)
         plt.clf()
         for lbl, hdr, sp, ismax in (('mx', maxhdr, 311, True),
                                     ('mn', minhdr, 312, False),
@@ -4923,7 +4946,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             plt.grid(True)
         plt.tight_layout(pad=3)
         if isinstance(filename, str):
-            plt.savefig(filename+'.magpct.png')
+            plt.savefig(filename + '.magpct.png')
 
     def _plot_histogram(pctinfo, names, desc, doabsmax, filename):
         ptitle = '{} - {{}} Comparison Histogram'.format(desc)
@@ -4932,7 +4955,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         figsize = [8.5, 11.0]
         if doabsmax:
             figsize[1] /= 3.0
-        plt.figure('Histogram - '+desc, figsize=figsize)
+        plt.figure('Histogram - ' + desc, figsize=figsize)
         plt.clf()
         for lbl, hdr, sp in (('mx', maxhdr, 311),
                              ('mn', minhdr, 312),
@@ -4943,7 +4966,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                 width = histogram_inc
                 x = pctinfo[lbl]['hsto'][:, 0]
                 y = pctinfo[lbl]['hsto'][:, 2]
-                colors = ['b']*len(x)
+                colors = ['b'] * len(x)
                 ax = abs(x)
                 pv1 = ((ax > 5) & (ax <= 10)).nonzero()[0]
                 pv2 = (ax > 10).nonzero()[0]
@@ -4962,7 +4985,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             plt.grid(True)
         plt.tight_layout(pad=3)
         if isinstance(filename, str):
-            plt.savefig(filename+'.histogram.png')
+            plt.savefig(filename + '.histogram.png')
 
     # main routine
     infovars = ('desc', 'filterval', 'labels',
@@ -4981,7 +5004,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         mxmn1 = mxmn1.ext
     else:
         mxmn1 = np.atleast_2d(mxmn1)
-    row_number = np.arange(1, mxmn1.shape[0]+1)
+    row_number = np.arange(1, mxmn1.shape[0] + 1)
 
     # check mxmn2:
     if (isinstance(mxmn2, SimpleNamespace) and
@@ -5012,7 +5035,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     if filterval is None:
         filterval = 1.e-6
     if labels is None:
-        labels = ['Row {:6d}'.format(i+1)
+        labels = ['Row {:6d}'.format(i + 1)
                   for i in range(R)]
     elif len(labels) != R:
         raise ValueError('length of `labels` does not match number'
@@ -5408,12 +5431,12 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                        fontsize='small',
                        framealpha=0.5,
                        # labelspacing=legspace*.9,
-                      )
+                       )
             if sub == cols:
                 adjust4legend.append(leg)
                 adjust4legend.append(lbllen)
         _add_title(name, label, maxlen, sname,
-                   rowpv[j]+1, cols, q)
+                   rowpv[j] + 1, cols, q)
 
     def _plot_ext(curres, q, frq, sub, cols, maxcol, name,
                   label, maxlen, sname, rowpv, j):
@@ -5427,7 +5450,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             plot(frq, srsext[j])
         if q == Qs[0]:
             _add_title(name, label, maxlen, sname,
-                       rowpv[j]+1, cols)
+                       rowpv[j] + 1, cols)
 
     def _add_xy_labels(uj, xlab, ylab, srstype):
         if isinstance(units, str):
@@ -5467,7 +5490,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
 
     rows = layout[0]
     cols = layout[1]
-    perpage = rows*cols
+    perpage = rows * cols
     orientation = ('landscape' if figsize[0] > figsize[1]
                    else 'portrait')
 
@@ -5477,8 +5500,8 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         alldrms = copy.copy(drms)
         if inc0rb:
             for name in drms:
-                if name+'_0rb' in res:
-                    alldrms.append(name+'_0rb')
+                if name + '_0rb' in res:
+                    alldrms.append(name + '_0rb')
 
     pdffile = None
     try:
@@ -5533,7 +5556,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     if not fname.endswith('.pdf'):
                         fname = fname + '.pdf'
                 else:
-                    fname = os.path.join(direc, sname+'.pdf')
+                    fname = os.path.join(direc, sname + '.pdf')
                 pdffile = PdfPages(fname)
 
             filenum = 0
@@ -5567,7 +5590,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                               rowpv, j, adjust4legend)
                 _add_xy_labels(uj, xlab, ylab, srstype)
 
-                if j+1 == nplots or (j+1) % perpage == 0:
+                if j + 1 == nplots or (j + 1) % perpage == 0:
                     plt.tight_layout(pad=3, w_pad=2.0, h_pad=2.0)
                     if len(adjust4legend) > 0:
                         if sub_right is None:
@@ -5576,7 +5599,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                             #   11 inch width
                             # - scale up for thinner paper (words take
                             #   up bigger percentage)
-                            w = 0.05*11.0/figsize[0]
+                            w = 0.05 * 11.0 / figsize[0]
                             n4s = adjust4legend[1] // 4 + 1
                             ax = plt.subplot(rows, cols, cols)
                             pos = ax.get_position()
@@ -5593,7 +5616,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                         # papertype='letter')
                     elif fmt:
                         fname = os.path.join(direc,
-                                             prefix+'.'+fmt)
+                                             prefix + '.' + fmt)
                         if fmt != 'pdf':
                             kwargs = dict(
                                 orientation=orientation,
