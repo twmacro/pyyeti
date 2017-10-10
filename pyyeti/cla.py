@@ -1043,8 +1043,8 @@ class DR_Def(OrderedDict):
             Any of the inputs can be set to `self.defaults`. In this
             case, the value for the parameter will be taken from the
             `self.defaults` dictionary (which is defined during
-            instantiation). An error is raised if `self.defaults` does
-            not contain a value for the parameter.
+            instantiation). A ValueError is raised if `self.defaults`
+            does not contain a value for the parameter.
 
         .. note::
 
