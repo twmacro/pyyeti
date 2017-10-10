@@ -31,100 +31,100 @@ def LTM():
 
 
 def _get_labels0(rows, name):
-    return ['{} Row  {:6d}'.format(name, i+1)
+    return ['{} Row  {:6d}'.format(name, i + 1)
             for i in range(rows[name])]
 
 
 def _get_labels1(rows, name):
-    return ['{} Row  {:6d}'.format(name, i+1)
-            for i in range(0, 2*rows[name], 2)]
+    return ['{} Row  {:6d}'.format(name, i + 1)
+            for i in range(0, 2 * rows[name], 2)]
 
 
 def _get_labels2(rows, name):
     # word = itertools.cycle(['Item', 'Row', 'Id'])
     word = itertools.cycle(['Item'])
-    return ['{} {:4} {:6d}'.format(name, w, i+1)
+    return ['{} {:4} {:6d}'.format(name, w, i + 1)
             for w, i in zip(word, range(rows[name]))]
 
 
 def _get_minmax(drm, eventnumber, cyclenumber):
-    ext = {'LTM': np.array([[ 2.72481567, -2.89079134],
-                            [ 2.25786   , -2.88626652],
-                            [ 3.02440516, -2.80780524],
-                            [ 2.53286749, -3.40485914],
-                            [ 2.28348523, -3.53863051],
-                            [ 3.82729032, -2.61684849],
-                            [ 3.35335482, -2.60736874],
-                            [ 2.86110496, -2.56407221],
-                            [ 2.14606204, -2.55517801],
-                            [ 2.54651205, -3.01547524],
-                            [ 2.31767096, -2.47119804],
-                            [ 2.18782636, -2.50638871],
-                            [ 2.64771791, -2.90906464],
-                            [ 3.87022179, -2.8447158 ],
-                            [ 3.13803533, -2.96040968],
-                            [ 2.19274763, -2.1466145 ],
-                            [ 2.35224123, -2.2461871 ],
-                            [ 2.37220776, -2.37927315],
-                            [ 2.70107313, -2.55167378],
-                            [ 2.43641342, -2.53973724],
-                            [ 3.19988018, -2.27876702],
-                            [ 3.26828777, -2.99453974],
-                            [ 2.63198951, -2.54630802],
-                            [ 2.90049869, -2.70155806],
-                            [ 2.06576135, -3.01145668],
-                            [ 2.50973189, -2.57272325],
-                            [ 2.5291785 , -2.87873901],
-                            [ 2.5534714 , -2.40617426],
-                            [ 2.75582   , -1.96866783]]),
-           'ATM': np.array([[ 4.15547381, -2.60250299],
-                            [ 3.30988464, -2.95335224],
-                            [ 2.52136841, -2.15885709],
-                            [ 2.71879804, -2.4792219 ],
-                            [ 2.40233936, -3.12799065],
-                            [ 3.28859809, -2.962606  ],
-                            [ 2.11816761, -2.4080584 ],
-                            [ 3.15167173, -3.01657837],
-                            [ 2.41730971, -2.533919  ],
-                            [ 3.29167757, -2.13105438],
-                            [ 2.27611906, -3.46433397],
-                            [ 2.4100566 , -3.3943848 ],
-                            [ 2.63918211, -2.68209126],
-                            [ 2.55784324, -2.29710417],
-                            [ 3.05160678, -2.46384131],
-                            [ 2.61573592, -2.30890182],
-                            [ 2.70690245, -2.69287401],
-                            [ 1.99385389, -2.36857087],
-                            [ 2.27205095, -2.89722068],
-                            [ 2.65968896, -3.38645715],
-                            [ 2.54024118, -2.35912789],
-                            [ 2.62673628, -3.07818987],
-                            [ 2.49945891, -2.56637166],
-                            [ 2.95143805, -2.34052105],
-                            [ 3.35468889, -2.43842187],
-                            [ 2.23664468, -2.7788623 ],
-                            [ 3.02078059, -2.84829591],
-                            [ 2.69653637, -2.16359541],
-                            [ 3.18788459, -2.56054783],
-                            [ 3.03810484, -2.23800354],
-                            [ 2.60597387, -2.57964111],
-                            [ 2.6155941 , -2.50413382],
-                            [ 2.70912049, -2.87191784],
-                            [ 2.58207062, -2.9524317 ]])}
+    ext = {'LTM': np.array([[2.72481567, -2.89079134],
+                            [2.25786, -2.88626652],
+                            [3.02440516, -2.80780524],
+                            [2.53286749, -3.40485914],
+                            [2.28348523, -3.53863051],
+                            [3.82729032, -2.61684849],
+                            [3.35335482, -2.60736874],
+                            [2.86110496, -2.56407221],
+                            [2.14606204, -2.55517801],
+                            [2.54651205, -3.01547524],
+                            [2.31767096, -2.47119804],
+                            [2.18782636, -2.50638871],
+                            [2.64771791, -2.90906464],
+                            [3.87022179, -2.8447158],
+                            [3.13803533, -2.96040968],
+                            [2.19274763, -2.1466145],
+                            [2.35224123, -2.2461871],
+                            [2.37220776, -2.37927315],
+                            [2.70107313, -2.55167378],
+                            [2.43641342, -2.53973724],
+                            [3.19988018, -2.27876702],
+                            [3.26828777, -2.99453974],
+                            [2.63198951, -2.54630802],
+                            [2.90049869, -2.70155806],
+                            [2.06576135, -3.01145668],
+                            [2.50973189, -2.57272325],
+                            [2.5291785, -2.87873901],
+                            [2.5534714, -2.40617426],
+                            [2.75582, -1.96866783]]),
+           'ATM': np.array([[4.15547381, -2.60250299],
+                            [3.30988464, -2.95335224],
+                            [2.52136841, -2.15885709],
+                            [2.71879804, -2.4792219],
+                            [2.40233936, -3.12799065],
+                            [3.28859809, -2.962606],
+                            [2.11816761, -2.4080584],
+                            [3.15167173, -3.01657837],
+                            [2.41730971, -2.533919],
+                            [3.29167757, -2.13105438],
+                            [2.27611906, -3.46433397],
+                            [2.4100566, -3.3943848],
+                            [2.63918211, -2.68209126],
+                            [2.55784324, -2.29710417],
+                            [3.05160678, -2.46384131],
+                            [2.61573592, -2.30890182],
+                            [2.70690245, -2.69287401],
+                            [1.99385389, -2.36857087],
+                            [2.27205095, -2.89722068],
+                            [2.65968896, -3.38645715],
+                            [2.54024118, -2.35912789],
+                            [2.62673628, -3.07818987],
+                            [2.49945891, -2.56637166],
+                            [2.95143805, -2.34052105],
+                            [3.35468889, -2.43842187],
+                            [2.23664468, -2.7788623],
+                            [3.02078059, -2.84829591],
+                            [2.69653637, -2.16359541],
+                            [3.18788459, -2.56054783],
+                            [3.03810484, -2.23800354],
+                            [2.60597387, -2.57964111],
+                            [2.6155941, -2.50413382],
+                            [2.70912049, -2.87191784],
+                            [2.58207062, -2.9524317]])}
     addon = 0.2
     curext = ext[drm].copy()
     if eventnumber == 1:
         curext[::3] = curext[::3] - addon
-        curext[1::3] = curext[1::3] + 2*addon
+        curext[1::3] = curext[1::3] + 2 * addon
         curext[2::3] = curext[2::3] - addon
     elif eventnumber == 2:
-        curext[::3] = curext[::3] - 2*addon
+        curext[::3] = curext[::3] - 2 * addon
         curext[1::3] = curext[1::3] + addon
         curext[2::3] = curext[2::3] + addon
     addon = 0.03 * cyclenumber
     curext[::4] = curext[::4] - addon
-    curext[1::4] = curext[1::4] + 2*addon
-    curext[2::4] = curext[2::4] - 2*addon
+    curext[1::4] = curext[1::4] + 2 * addon
+    curext[2::4] = curext[2::4] - 2 * addon
     curext[3::4] = curext[3::4] + addon
     return curext
 
@@ -146,10 +146,10 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
 
     # defaults for data recovery
     defaults = dict(
-        se = 0,
-        uf_reds = (1, 1, duf, 1),
-        drfile = '.',
-        )
+        se=0,
+        uf_reds=(1, 1, duf, 1),
+        drfile='.',
+    )
 
     drdefs = cla.DR_Def(defaults)
 
@@ -159,6 +159,7 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
         desc = 'S/C Internal Accelerations'
         units = 'm/sec^2, rad/sec^2'
         labels = _get_labels(rows, name)
+        drfunc = 'no func'
         drdefs.add(**locals())
 
     @cla.DR_Def.addcat
@@ -167,6 +168,7 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
         desc = 'S/C Internal Loads'
         units = 'N, N-m'
         labels = _get_labels(rows, name)
+        drfunc = 'no func'
         drdefs.add(**locals())
 
     # for checking, make a pandas DataFrame to summarize data
@@ -194,17 +196,17 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
 
     ext = ext_results['ATM']['Liftoff']
     r = ext.shape[0]
-    maxcase = ['LO {}'.format(i+1) for i in range(r)]
+    maxcase = ['LO {}'.format(i + 1) for i in range(r)]
     mincase = 'LO Min'
     res2['Liftoff'].add_maxmin('ATM', ext, maxcase, mincase,
                                ext, 'Time')
     assert res2['Liftoff']['ATM'].maxcase == maxcase
-    assert res2['Liftoff']['ATM'].mincase == r*[mincase]
+    assert res2['Liftoff']['ATM'].mincase == r * [mincase]
 
-    res2['Liftoff'].add_maxmin('LTM', ext, maxcase, r*[mincase],
+    res2['Liftoff'].add_maxmin('LTM', ext, maxcase, r * [mincase],
                                ext, 'Time')
     assert res2['Liftoff']['LTM'].maxcase == maxcase
-    assert res2['Liftoff']['LTM'].mincase == r*[mincase]
+    assert res2['Liftoff']['LTM'].mincase == r * [mincase]
 
     res2 = cla.DR_Results()
     for event in events:
@@ -212,7 +214,7 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
         for drm in rows:
             res2[event].add_maxmin(
                 drm, ext_results[drm][event], event,
-                domain=event+drm)
+                domain=event + drm)
     res2.form_extreme(ext_name)
 
     assert results['extreme']['ATM'].domain is None
@@ -328,14 +330,18 @@ class cd():
     def __exit__(self, *args):
         os.chdir(self.olddir)
 
-def scatm(sol, nas, Vars, se):
-    return Vars[se]['atm'] @ sol.a
 
-def net_ifltm(sol, nas, Vars, se):
-    return Vars[se]['net_ifltm'] @ sol.a
+# def scatm(sol, nas, Vars, se):
+#     return Vars[se]['atm'] @ sol.a
+#
+#
+# def net_ifltm(sol, nas, Vars, se):
+#     return Vars[se]['net_ifltm'] @ sol.a
+#
+#
+# def net_ifatm(sol, nas, Vars, se):
+#     return Vars[se]['net_ifatm'] @ sol.a
 
-def net_ifatm(sol, nas, Vars, se):
-    return Vars[se]['net_ifatm'] @ sol.a
 
 def get_xyr():
     # return the xr, yr, and rr indexes for the "cglf" data recovery
@@ -345,11 +351,13 @@ def get_xyr():
     rr = np.arange(4) + 10        # rss  rows
     return xr, yr, rr
 
+
 def cglf(sol, nas, Vars, se):
     resp = Vars[se]['cglf'] @ sol.a
     xr, yr, rr = get_xyr()
     resp[rr] = np.sqrt(resp[xr]**2 + resp[yr]**2)
     return resp
+
 
 def cglf_psd(sol, nas, Vars, se, freq, forcepsd,
              drmres, case, i):
@@ -361,12 +369,12 @@ def cglf_psd(sol, nas, Vars, se, freq, forcepsd,
 
 def prepare_4_cla(pth):
     se = 101
-    uset, coords = nastran.bulk2uset(pth+'outboard.asm')
-    dct = op4.read(pth+'outboard.op4')
+    uset, coords = nastran.bulk2uset(pth + 'outboard.asm')
+    dct = op4.read(pth + 'outboard.op4')
     maa = dct['mxx']
     kaa = dct['kxx']
     atm = dct['mug1']
-    pch = pth+'outboard.pch'
+    pch = pth + 'outboard.pch'
 
     def getlabels(lbl, id_dof):
         return ['{} {:4d}-{:1d}'.format(lbl, g, i)
@@ -388,11 +396,11 @@ def prepare_4_cla(pth):
 
     # define some defaults for data recovery:
     defaults = dict(
-        se = se,
-        uf_reds = (1, 1, 1.25, 1),
-        srsfrq = np.arange(.1, 50.1, .1),
-        srsQs = (10, 33),
-        )
+        se=se,
+        uf_reds=(1, 1, 1.25, 1),
+        srsfrq=np.arange(.1, 50.1, .1),
+        srsQs=(10, 33),
+    )
 
     drdefs = cla.DR_Def(defaults)
 
@@ -402,7 +410,8 @@ def prepare_4_cla(pth):
         desc = 'Outboard Internal Accelerations'
         units = 'mm/sec^2, rad/sec^2'
         labels = atm_labels[:12]
-        drms = {'atm': atm[:12]}
+        drms = {name: atm[:12]}
+        drfunc = f"Vars[se]['{name}'] @ sol.a"
         prog = re.compile(' [2]-[1]')
         histpv = [i for i, s in enumerate(atm_labels)
                   if prog.search(s)]
@@ -428,7 +437,8 @@ def prepare_4_cla(pth):
         desc = 'NET S/C Interface Accelerations'
         units = 'g, rad/sec^2'
         labels = net.ifatm_labels[:3]
-        drms = {'net_ifatm': net.ifatm[:3]}
+        drms = {name: net.ifatm[:3]}
+        drfunc = f"Vars[se]['{name}'] @ sol.a"
         srsopts = dict(eqsine=1, ic='steady')
         histpv = 'all'
         srspv = np.array([True, False, True])
@@ -440,7 +450,8 @@ def prepare_4_cla(pth):
         desc = 'NET I/F Loads'
         units = 'mN, mN-mm'
         labels = net.ifltm_labels[:6]
-        drms = {'net_ifltm': net.ifltma[:6]}
+        drms = {name: net.ifltma[:6]}
+        drfunc = f"Vars[se]['{name}'] @ sol.a"
         drdefs.add(**locals())
 
     # add a 0rb version of the NET ifatm:
@@ -464,7 +475,7 @@ def toes(pth):
         cla.PrintCLAInfo(sc['mission'], event)
 
         # load nastran data:
-        nas = op2.rdnas2cam(pth+'nas2cam')
+        nas = op2.rdnas2cam(pth + 'nas2cam')
 
         # form ulvs for some SEs:
         SC = 101
@@ -484,7 +495,7 @@ def toes(pth):
         m = None   # None means identity
         k = nas['lambda'][0]
         k[:nas['nrb']] = 0.0
-        b = 2*0.02*np.sqrt(k)
+        b = 2 * 0.02 * np.sqrt(k)
         mbk = (m, b, k)
 
         # load in forcing functions:
@@ -492,24 +503,24 @@ def toes(pth):
         toes = matlab.loadmat(mat, squeeze_me=True,
                               struct_as_record=False)
         toes['ffns'] = toes['ffns'][:3, ::2]
-        toes['sr'] = toes['sr']/2
+        toes['sr'] = toes['sr'] / 2
         toes['t'] = toes['t'][::2]
 
         # form force transform:
         T = n2p.formdrm(nas, 0, [[8, 12], [24, 13]])[0].T
 
         # do pre-calcs and loop over all cases:
-        ts = ode.SolveUnc(*mbk, 1/toes['sr'], rf=rfmodes)
+        ts = ode.SolveUnc(*mbk, 1 / toes['sr'], rf=rfmodes)
         LC = toes['ffns'].shape[0]
         t = toes['t']
         for j, force in enumerate(toes['ffns']):
-            print('Running {} case {}'.format(event, j+1))
+            print('Running {} case {}'.format(event, j + 1))
             genforce = T @ ([[1], [0.1], [1], [0.1]] * force[None, :])
             # solve equations of motion
             sol = ts.tsolve(genforce, static_ic=1)
             sol.t = t
             sol = DR.apply_uf(sol, *mbk, nas['nrb'], rfmodes)
-            caseid = '{} {:2d}'.format(event, j+1)
+            caseid = '{} {:2d}'.format(event, j + 1)
             results.time_data_recovery(sol, nas['nrb'],
                                        caseid, DR, LC, j)
 
@@ -539,7 +550,7 @@ def owlab(pth):
         cla.PrintCLAInfo(sc['mission'], event)
 
         # load nastran data:
-        nas = op2.rdnas2cam(pth+'nas2cam')
+        nas = op2.rdnas2cam(pth + 'nas2cam')
 
         # form ulvs for some SEs:
         SC = 101
@@ -559,7 +570,7 @@ def owlab(pth):
         m = None   # None means identity
         k = nas['lambda'][0]
         k[:nas['nrb']] = 0.0
-        b = 2*0.02*np.sqrt(k)
+        b = 2 * 0.02 * np.sqrt(k)
         mbk = (m, b, k)
 
         # form force transform:
@@ -569,13 +580,13 @@ def owlab(pth):
         freq = cla.freq3_augment(np.arange(25.0, 45.1, 0.5),
                                  nas['lambda'][0])
         #                 freq     x      y      z
-        rnd = [np.array([[ 1.0,  90.0, 110.0, 110.0],
+        rnd = [np.array([[1.0,  90.0, 110.0, 110.0],
                          [30.0,  90.0, 110.0, 110.0],
                          [31.0, 200.0, 400.0, 400.0],
                          [40.0, 200.0, 400.0, 400.0],
                          [41.0,  90.0, 110.0, 110.0],
                          [50.0,  90.0, 110.0, 110.0]]),
-               np.array([[ 1.0,  90.0, 110.0, 110.0],
+               np.array([[1.0,  90.0, 110.0, 110.0],
                          [20.0,  90.0, 110.0, 110.0],
                          [21.0, 200.0, 400.0, 400.0],
                          [30.0, 200.0, 400.0, 400.0],
@@ -583,8 +594,8 @@ def owlab(pth):
                          [50.0,  90.0, 110.0, 110.0]])]
 
         for j, ff in enumerate(rnd):
-            caseid = '{} {:2d}'.format(event, j+1)
-            print('Running {} case {}'.format(event, j+1))
+            caseid = '{} {:2d}'.format(event, j + 1)
+            print('Running {} case {}'.format(event, j + 1))
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T,
                                 axis=1, fill_value=0.0)(freq)
             results.solvepsd(nas, caseid, DR, *mbk, F, T, freq)
@@ -599,18 +610,18 @@ def owlab(pth):
         results2 = DR.prepare_results(sc['mission'], event)
         verbose = True  # for testing
         for j, ff in enumerate(rnd):
-            caseid = '{} {:2d}'.format(event, j+1)
-            print('Running {} case {}'.format(event, j+1))
+            caseid = '{} {:2d}'.format(event, j + 1)
+            print('Running {} case {}'.format(event, j + 1))
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T,
                                 axis=1, fill_value=0.0)(freq)
             if j == 0:
                 results2.solvepsd(nas, caseid, DR, *mbk, F, T, freq,
-                                 verbose=verbose)
+                                  verbose=verbose)
                 verbose = not verbose
                 freq = +freq  # make copy
                 freq[-1] = 49.7  # to cause error on next 'solvepsd'
                 results2.psd_data_recovery(caseid, DR, len(rnd), j,
-                                          resp_time=20)
+                                           resp_time=20)
             else:
                 assert_raises(ValueError, results2.solvepsd, nas,
                               caseid, DR, *mbk, F, T, freq,
@@ -619,19 +630,16 @@ def owlab(pth):
         # compare srs results using 3.0 peak factor and frequency
         # dependent peak factor:
         frq = results['scatm'].srs.frq
-        pf = np.sqrt(2*np.log(frq*20))
+        pf = np.sqrt(2 * np.log(frq * 20))
         for Q in results['scatm'].srs.srs:
             srs1 = results['scatm'].srs.srs[Q][0]  # (cases, dof, frq)
             srs2 = results2['scatm'].srs.srs[Q][0]
-            assert np.allclose(srs1*pf, srs2*3)
-
-
-def alphajoint(sol, nas, Vars, se):
-    return Vars[se]['alphadrm'] @ sol.a
+            assert np.allclose(srs1 * pf, srs2 * 3)
 
 
 def get_drdefs(nas, sc):
     drdefs = cla.DR_Def(sc['drdefs'].defaults)
+
     @cla.DR_Def.addcat
     def _():
         se = 0
@@ -640,7 +648,8 @@ def get_drdefs(nas, sc):
         units = 'mm/sec^2, rad/sec^2'
         labels = ['Alpha-Joint {:2s}'.format(i)
                   for i in 'X,Y,Z,RX,RY,RZ'.split(',')]
-        drms = {'alphadrm': n2p.formdrm(nas, 0, 33)[0]}
+        drms = {name: n2p.formdrm(nas, 0, 33)[0]}
+        drfunc = f"Vars[se]['{name}'] @ sol.a"
         srsopts = dict(eqsine=1, ic='steady')
         histpv = 1  # second row
         srspv = [1]
@@ -660,7 +669,7 @@ def toeco(pth):
         cla.PrintCLAInfo(sc['mission'], event)
 
         # load nastran data:
-        nas = op2.rdnas2cam(pth+'nas2cam')
+        nas = op2.rdnas2cam(pth + 'nas2cam')
 
         # form ulvs for some SEs:
         SC = 101
@@ -682,7 +691,7 @@ def toeco(pth):
         m = None   # None means identity
         k = nas['lambda'][0]
         k[:nas['nrb']] = 0.0
-        b = 2*0.02*np.sqrt(k)
+        b = 2 * 0.02 * np.sqrt(k)
         mbk = (m, b, k)
 
         # load in forcing functions:
@@ -690,24 +699,24 @@ def toeco(pth):
         toeco = matlab.loadmat(mat, squeeze_me=True,
                                struct_as_record=False)
         toeco['ffns'] = toeco['ffns'][:2, ::2]
-        toeco['sr'] = toeco['sr']/2
+        toeco['sr'] = toeco['sr'] / 2
         toeco['t'] = toeco['t'][::2]
 
         # form force transform:
         T = n2p.formdrm(nas, 0, [[8, 12], [24, 13]])[0].T
 
         # do pre-calcs and loop over all cases:
-        ts = ode.SolveUnc(*mbk, 1/toeco['sr'], rf=rfmodes)
+        ts = ode.SolveUnc(*mbk, 1 / toeco['sr'], rf=rfmodes)
         LC = toeco['ffns'].shape[0]
         t = toeco['t']
         for j, force in enumerate(toeco['ffns']):
-            print('Running {} case {}'.format(event, j+1))
+            print('Running {} case {}'.format(event, j + 1))
             genforce = T @ ([[1], [0.1], [1], [0.1]] * force[None, :])
             # solve equations of motion
             sol = ts.tsolve(genforce, static_ic=1)
             sol.t = t
             sol = DR.apply_uf(sol, *mbk, nas['nrb'], rfmodes)
-            caseid = '{} {:2d}'.format(event, j+1)
+            caseid = '{} {:2d}'.format(event, j + 1)
             results.time_data_recovery(sol, nas['nrb'],
                                        caseid, DR, LC, j)
 
@@ -775,7 +784,7 @@ def compare(pth):
         pth = '../' + pth
         # Load both sets of results and report percent differences:
         results = cla.load('results.pgz')
-        lvc = cla.load(pth+'summary/contractor_results_no_srs.pgz')
+        lvc = cla.load(pth + 'summary/contractor_results_no_srs.pgz')
 
         # to check for warning message, add a category not in lvc:
         results['extreme']['ifa2'] = results['extreme']['net_ifatm']
@@ -822,11 +831,11 @@ def confirm():
                         p = line.index(' = [')
                         stats = np.array(
                             [float(i)
-                             for i in line[p+4:-2].split(',')])
+                             for i in line[p + 4:-2].split(',')])
                         if direc == 'absmax_compare' and 'cglf' in n:
-                            mean = (18-7)/14
-                            std = np.sqrt(((18-mean)**2 + (-7-mean)**2
-                                           + 12*(0-mean)**2)/13)
+                            mean = (18 - 7) / 14
+                            std = np.sqrt(((18 - mean)**2 + (-7 - mean)**2
+                                           + 12 * (0 - mean)**2) / 13)
                             sbe = np.round([-7.0, 18.0, mean, std], 4)
                             assert np.allclose(stats, sbe)
                         else:
@@ -887,7 +896,7 @@ def do_srs_plots():
             'scatm_eqsine_all_0.pdf',
             'scatm_eqsine_all_1.pdf']
         for f in files:
-            assert os.path.exists('srs3/'+f)
+            assert os.path.exists('srs3/' + f)
 
         results['extreme'].srs_plots(
             Q=10, showall=True, direc='srs3',
@@ -931,6 +940,7 @@ def test_maxmin():
     assert_raises(ValueError, cla.maxmin, np.ones((2, 2)),
                   np.ones((5)))
 
+
 def test_extrema_1():
     mm = SimpleNamespace(ext=np.ones((5, 3)))
     assert_raises(ValueError, cla.extrema, [], mm, 'test')
@@ -956,45 +966,45 @@ def test_extrema_1():
     casenum = 1
     cla.extrema(curext, mm, maxcase, mincase, casenum)
 
-    assert np.all(curext.ext == np.array([[ 1.,  0.],
-                                          [ 1.,  1.],
-                                          [ 2.,  1.],
-                                          [ 3.,  1.],
-                                          [ 4.,  1.]]))
+    assert np.all(curext.ext == np.array([[1.,  0.],
+                                          [1.,  1.],
+                                          [2.,  1.],
+                                          [3.,  1.],
+                                          [4.,  1.]]))
 
-    assert np.all(curext.exttime == np.array([[ 0.,  1.],
-                                              [ 0.,  0.],
-                                              [ 1.,  0.],
-                                              [ 1.,  0.],
-                                              [ 1.,  0.]]))
+    assert np.all(curext.exttime == np.array([[0.,  1.],
+                                              [0.,  0.],
+                                              [1.,  0.],
+                                              [1.,  0.],
+                                              [1.,  0.]]))
     assert curext.maxcase == ['Case 1', 'Case 1',
                               'Case 2', 'Case 2', 'Case 2']
     assert curext.mincase == ['Case 2', 'Case 1',
                               'Case 1', 'Case 1', 'Case 1']
 
-    assert np.all(curext.mx == np.array([[ 1.,  0.],
-                                         [ 1.,  1.],
-                                         [ 1.,  2.],
-                                         [ 1.,  3.],
-                                         [ 1.,  4.]]))
+    assert np.all(curext.mx == np.array([[1.,  0.],
+                                         [1.,  1.],
+                                         [1.,  2.],
+                                         [1.,  3.],
+                                         [1.,  4.]]))
 
-    assert np.all(curext.mn == np.array([[ 1.,  0.],
-                                         [ 1.,  1.],
-                                         [ 1.,  2.],
-                                         [ 1.,  3.],
-                                         [ 1.,  4.]]))
+    assert np.all(curext.mn == np.array([[1.,  0.],
+                                         [1.,  1.],
+                                         [1.,  2.],
+                                         [1.,  3.],
+                                         [1.,  4.]]))
 
-    assert np.all(curext.maxtime == np.array([[ 0.,  1.],
-                                              [ 0.,  1.],
-                                              [ 0.,  1.],
-                                              [ 0.,  1.],
-                                              [ 0.,  1.]]))
+    assert np.all(curext.maxtime == np.array([[0.,  1.],
+                                              [0.,  1.],
+                                              [0.,  1.],
+                                              [0.,  1.],
+                                              [0.,  1.]]))
 
-    assert np.all(curext.mintime == np.array([[ 0.,  1.],
-                                              [ 0.,  1.],
-                                              [ 0.,  1.],
-                                              [ 0.,  1.],
-                                              [ 0.,  1.]]))
+    assert np.all(curext.mintime == np.array([[0.,  1.],
+                                              [0.,  1.],
+                                              [0.,  1.],
+                                              [0.,  1.],
+                                              [0.,  1.]]))
 
 
 def test_extrema_2():
@@ -1019,11 +1029,11 @@ def test_extrema_2():
     casenum = 1
     cla.extrema(curext, mm, maxcase, mincase, casenum)
 
-    assert np.all(curext.ext == np.array([[ 1.,  0.],
-                                          [ 1.,  1.],
-                                          [ 2.,  1.],
-                                          [ 3.,  1.],
-                                          [ 4.,  1.]]))
+    assert np.all(curext.ext == np.array([[1.,  0.],
+                                          [1.,  1.],
+                                          [2.,  1.],
+                                          [3.,  1.],
+                                          [4.,  1.]]))
 
     assert curext.exttime is None
     assert curext.maxcase == ['Case 1', 'Case 1',
@@ -1031,17 +1041,17 @@ def test_extrema_2():
     assert curext.mincase == ['Case 2', 'Case 1',
                               'Case 1', 'Case 1', 'Case 1']
 
-    assert np.all(curext.mx == np.array([[ 1.,  0.],
-                                         [ 1.,  1.],
-                                         [ 1.,  2.],
-                                         [ 1.,  3.],
-                                         [ 1.,  4.]]))
+    assert np.all(curext.mx == np.array([[1.,  0.],
+                                         [1.,  1.],
+                                         [1.,  2.],
+                                         [1.,  3.],
+                                         [1.,  4.]]))
 
-    assert np.all(curext.mn == np.array([[ 1.,  0.],
-                                         [ 1.,  1.],
-                                         [ 1.,  2.],
-                                         [ 1.,  3.],
-                                         [ 1.,  4.]]))
+    assert np.all(curext.mn == np.array([[1.,  0.],
+                                         [1.,  1.],
+                                         [1.,  2.],
+                                         [1.,  3.],
+                                         [1.,  4.]]))
     assert np.isnan(curext.maxtime).sum() == 10
     assert np.isnan(curext.mintime).sum() == 10
 
@@ -1055,13 +1065,14 @@ def test_addcat():
 
     defaults = dict(
         # se = 0,
-        uf_reds = (1, None, 1, None),
-        drfile = '.',
-        srsQs = 10,
-        )
+        uf_reds=(1, None, 1, None),
+        drfile='.',
+        srsQs=10,
+    )
     drdefs = cla.DR_Def(defaults)
 
     drm = np.ones((4, 4))
+
     @cla.DR_Def.addcat
     def _():
         name = 'ATM'
@@ -1085,6 +1096,7 @@ def test_addcat():
         drfile = os.path.split(curfile)[1]
         drfunc = 'ATM'
         drdefs.add(**locals())
+
     with assert_warns(RuntimeWarning) as cm:
         cla.DR_Def.addcat(_)
     the_warning = str(cm.warning)
@@ -1095,9 +1107,10 @@ def test_addcat():
     def _():
         name = 'DTM'
         labels = 12
-        drms = {'drm': 0+drm}
+        drms = {'drm': 0 + drm}
         drfunc = 'ATM'
         drdefs.add(**locals())
+
     # uses a different "drm":
     assert_raises(ValueError, cla.DR_Def.addcat, _)
 
@@ -1105,6 +1118,7 @@ def test_addcat():
         name = 'DTM'
         labels = 2
         drdefs.add(**locals())
+
     # already defined data recovery category:
     assert_raises(ValueError, cla.DR_Def.addcat, _)
 
@@ -1115,6 +1129,7 @@ def test_addcat():
         desc = defaults
         drfunc = 'ATM'
         drdefs.add(**locals())
+
     # `desc` not in defaults:
     assert_raises(ValueError, cla.DR_Def.addcat, _)
 
@@ -1125,6 +1140,7 @@ def test_addcat():
         filterval = [0.003, 0.004]
         drfunc = 'ATM'
         drdefs.add(**locals())
+
     # length of `filterval` does not match length of labels:
     assert_raises(ValueError, cla.DR_Def.addcat, _)
 
@@ -1156,6 +1172,7 @@ def test_addcat():
         histpv = [True, False, False]
         drfunc = 'ATM'
         drdefs.add(**locals())
+
     # length of `histpv` does not match length of labels:
     assert_raises(ValueError, cla.DR_Def.addcat, _)
 
@@ -1178,6 +1195,7 @@ def test_addcat():
         histpv = [1, 4]
         drfunc = 'ATM'
         drdefs.add(**locals())
+
     # `histpv` exceeds dimensions:
     assert_raises(ValueError, cla.DR_Def.addcat, _)
 
@@ -1189,6 +1207,7 @@ def test_addcat():
         histpv = {}
         # drfunc = 'ATM' ... so that an error message is triggered
         drdefs.add(**locals())
+
     # `histpv` is bad type:
     assert_raises(TypeError, cla.DR_Def.addcat, _)
 
@@ -1200,6 +1219,7 @@ def test_addcat():
         nondrms = {'atm7': 1}
         drfunc = 'ATM'
         drdefs.add(**locals())
+
     # overlapping names in `drms` and `nondrms`
     assert_raises(ValueError, cla.DR_Def.addcat, _)
 
@@ -1235,11 +1255,11 @@ def test_addcat():
 
 def test_addcat_2():
     defaults = dict(
-        se = 0,
-        uf_reds = (1, 1, 1, 1),
-        drfile = '.',
-        srsQs = 10,
-        )
+        se=0,
+        uf_reds=(1, 1, 1, 1),
+        drfile='.',
+        srsQs=10,
+    )
     drdefs = cla.DR_Def(defaults)
     # error because there no categories
     assert_raises(RuntimeError, drdefs.excel_summary, None)
@@ -1247,11 +1267,11 @@ def test_addcat_2():
 
 def test_addcat_3():
     defaults = dict(
-        se = 0,
-        uf_reds = (1, 1, 1, 1),
-        drfile = '.',
-        srsQs = 10,
-        )
+        se=0,
+        uf_reds=(1, 1, 1, 1),
+        drfile='.',
+        srsQs=10,
+    )
     drdefs = cla.DR_Def(defaults)
 
     @cla.DR_Def.addcat
@@ -1296,10 +1316,10 @@ def test_event_add():
 
     # defaults for data recovery
     defaults = dict(
-        se = 10,
-        uf_reds = (1, 1, duf, 1),
-        drfile = '.',
-        )
+        se=10,
+        uf_reds=(1, 1, duf, 1),
+        drfile='.',
+    )
 
     drdefs = cla.DR_Def(defaults)
     drdefs2 = cla.DR_Def(defaults)
@@ -1379,12 +1399,12 @@ def test_event_add():
     sol.d = sol.a + 2.0
     sol.pg = np.array([45])
     SOL1 = DR.apply_uf(sol, None, np.ones(1, float),
-                       np.ones(1, float)+1.0, 0, None)
+                       np.ones(1, float) + 1.0, 0, None)
     SOL2 = DR.apply_uf(sol, np.ones(1, float), np.ones((1, 1), float),
-                       np.ones((1, 1), float)+1.0, 0, None)
+                       np.ones((1, 1), float) + 1.0, 0, None)
     SOL3 = DR.apply_uf(sol, np.ones((1, 1), float),
                        np.ones((1, 1), float),
-                       np.ones((1, 1), float)+1.0, 0, None)
+                       np.ones((1, 1), float) + 1.0, 0, None)
 
     for k, d1 in SOL1.items():   # loop over uf_reds
         d2 = SOL2[k]
@@ -1399,10 +1419,10 @@ def test_event_add():
 
     SOL = DR.frf_apply_uf(sol, 0)
 
-    assert np.all(SOL[(2, 2, 2, 2)].a == 4*sol.a)
-    assert np.all(SOL[(2, 2, 2, 2)].v == 4*sol.v)
-    assert np.all(SOL[(2, 2, 2, 2)].d == 4*sol.d)
-    assert np.all(SOL[(2, 2, 2, 2)].pg == 2*sol.pg)
+    assert np.all(SOL[(2, 2, 2, 2)].a == 4 * sol.a)
+    assert np.all(SOL[(2, 2, 2, 2)].v == 4 * sol.v)
+    assert np.all(SOL[(2, 2, 2, 2)].d == 4 * sol.d)
+    assert np.all(SOL[(2, 2, 2, 2)].pg == 2 * sol.pg)
 
 
 def test_merge():
@@ -1412,8 +1432,8 @@ def test_merge():
     r3 = get_fake_cla_results('PostVLC', _get_labels2, 2)
     del r3['extreme']
     results.merge((r1, r2, r3),
-        {'FLAC': 'FDLC',
-         'PostVLC': 'VLC2'})
+                  {'FLAC': 'FDLC',
+                   'PostVLC': 'VLC2'})
 
     results.form_extreme()
     assert repr(results).startswith('<pyyeti.cla.DR_Results object')
@@ -1430,14 +1450,13 @@ def test_merge():
     assert_raises(TypeError, results.merge, (r1, r2))
 
 
-def kc_forces(sol, nas, Vars, se):
-    return np.vstack((Vars[se]['springdrm'] @ sol.d,
-                      Vars[se]['damperdrm'] @ sol.v))
+# def kc_forces(sol, nas, Vars, se):
+#     return np.vstack((Vars[se]['springdrm'] @ sol.d,
+#                       Vars[se]['damperdrm'] @ sol.v))
 
 
 def mass_spring_system():
     """
-
                     |--> x1       |--> x2        |--> x3
 
 
@@ -1481,12 +1500,12 @@ def mass_spring_system():
     c2 = 75.
     c3 = 30.
     mass = np.diag([m1, m2, m3])
-    stiff = np.array([[k1+k3, -k1, -k3],
-                      [-k1, k1+k2, -k2],
-                      [-k3, -k2, k2+k3]])
-    damp = np.array([[c1+c3, -c1, -c3],
-                     [-c1, c1+c2, -c2],
-                     [-c3, -c2, c2+c3]])
+    stiff = np.array([[k1 + k3, -k1, -k3],
+                      [-k1, k1 + k2, -k2],
+                      [-k3, -k2, k2 + k3]])
+    damp = np.array([[c1 + c3, -c1, -c3],
+                     [-c1, c1 + c2, -c2],
+                     [-c3, -c2, c2 + c3]])
     # drm for subtracting 1 from 2, 2 from 3, 1 from 3:
     sub = np.array([[-1., 1., 0],
                     [0., -1., 1.],
@@ -1504,11 +1523,13 @@ def mass_spring_system():
         name = 'kc_forces'
         desc = 'Spring & Damper Forces'
         units = 'N'
-        labels = ['{} {}'.format(j, i+1)
+        labels = ['{} {}'.format(j, i + 1)
                   for j in ('Spring', 'Damper')
                   for i in range(3)]
         # force will be positive for tension
         drms = drms1
+        drfunc = """np.vstack((Vars[se]['springdrm'] @ sol.d,
+                               Vars[se]['damperdrm'] @ sol.v))"""
         histpv = 'all'
         drdefs.add(**locals())
 
@@ -1542,12 +1563,12 @@ def test_case_defined():
     results.time_data_recovery(sol, None, event, DR, 1, 0)
 
     assert np.allclose(results['kc_forces'].ext,
-                       np.array([[ 1.71124021, -5.94610295],
-                                 [ 1.10707637, -1.99361428],
-                                 [ 1.89895824, -5.99096572],
-                                 [ 2.01946488, -2.01871227],
-                                 [ 0.46376154, -0.45142869],
-                                 [ 0.96937744, -0.96687706]]))
+                       np.array([[1.71124021, -5.94610295],
+                                 [1.10707637, -1.99361428],
+                                 [1.89895824, -5.99096572],
+                                 [2.01946488, -2.01871227],
+                                 [0.46376154, -0.45142869],
+                                 [0.96937744, -0.96687706]]))
 
     # test for some errors:
     results = DR.prepare_results('Spring & Damper Forces', event)
@@ -1565,6 +1586,8 @@ def test_case_defined():
         units = 'N'
         labels = ['one', 'two']
         drms = drms1
+        drfunc = """np.vstack((Vars[se]['springdrm'] @ sol.d,
+                               Vars[se]['damperdrm'] @ sol.v))"""
         drdefs.add(**locals())
 
     # prepare spacecraft data recovery matrices
@@ -2027,7 +2050,7 @@ def test_rptpct1_2():
 
     opts = {'domagpct': False,
             'dohistogram': False,
-            'filterval': 0.3*np.ones(6)}
+            'filterval': 0.3 * np.ones(6)}
     drminfo = results['FFN 0']['kc_forces'].drminfo
     drminfo.labels = drminfo.labels[:]
     drminfo.labels[2] = 'SPRING 3'
@@ -2106,7 +2129,7 @@ def test_rptpct1_2():
 
     opts = {'domagpct': False,
             'dohistogram': False,
-            'filterval': 0.3*np.ones(1),
+            'filterval': 0.3 * np.ones(1),
             'use_range': False}
     with StringIO() as f:
         dct = cla.rptpct1(results['FFN 0']['kc_forces'],
@@ -2300,7 +2323,7 @@ def test_rptpct1_2():
         '      1  Spring 1            1.518830       1.509860     0.16*        -5.753157      -5.603161     2.68         5.753157       5.603161     2.68 ',
         '      2  Spring 2            1.041112       1.031179     0.53*        -1.931440      -1.887905     2.31         1.931440       1.887905     2.31 ',
         '      5  Damper 2            0.423522       0.415255     1.99*        -0.411612      -0.399434     2.93         0.423522       0.415255     1.99*',
-        ]
+    ]
     _comp_rpt(s, sbe)
 
     opts = {'domagpct': False,
@@ -2413,8 +2436,8 @@ def test_rptpct1_2():
     opts = {'domagpct': False,
             'dohistogram': False,
             'shortabsmax': True,
-            'ignorepv' : np.array([False, False, True,
-                                   False, True, True]),
+            'ignorepv': np.array([False, False, True,
+                                  False, True, True]),
             'roundvals': 3,
             'perpage': 3,
             }

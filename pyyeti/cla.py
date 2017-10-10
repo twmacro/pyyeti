@@ -14,6 +14,7 @@ import inspect
 from collections import abc, OrderedDict
 from io import StringIO
 from types import SimpleNamespace
+from keyword import iskeyword
 import warnings
 import numpy as np
 import scipy.linalg as la
@@ -294,6 +295,11 @@ def get_marker_cycle():
     ])
 
 
+def _is_valid_identifier(name):
+    "Return True if `name` is valid Python identifier"
+    return name.isidentifier() and not iskeyword(name)
+
+
 def get_drfunc(drinfo, get_psd=False):
     """
     Get data recovery function(s)
@@ -306,8 +312,8 @@ def get_drfunc(drinfo, get_psd=False):
         'SC_ifa' category as an example). The relevant members for
         this routine are "drfile" and "drfunc".
     get_psd : bool; optional
-        If True, return a tuple of (`drfunc`,
-        `psd_drfunc`). Otherwise, just return `drfunc`.
+        If True, return a tuple of (`drfunc`, `psd_drfunc`).
+        Otherwise, just return `drfunc`.
 
     Returns
     -------
@@ -317,18 +323,28 @@ def get_drfunc(drinfo, get_psd=False):
         The PSD-specific data recovery function or None if no such
         function was defined; only returned if `get_psd` is True.
     """
-    spec = importlib.util.spec_from_file_location("has_drfuncs",
-                                                  drinfo.drfile)
-    drmod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(drmod)
-    func = getattr(drmod, drinfo.drfunc)
+    if _is_valid_identifier(drinfo.drfunc):
+        spec = importlib.util.spec_from_file_location("has_drfuncs",
+                                                      drinfo.drfile)
+        drmod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(drmod)
+        func = getattr(drmod, drinfo.drfunc)
+        if get_psd:
+            try:
+                psdfunc = getattr(drmod, drinfo.drfunc + '_psd')
+            except AttributeError:
+                psdfunc = None
+            return func, psdfunc
+        return func
+
+    # build function and return it:
+    strfunc = ('def _func(sol, nas, Vars, se):\n'
+               '    return ' + drinfo.drfunc.strip())
+    g = globals()
+    exec(strfunc, g)
     if get_psd:
-        try:
-            psdfunc = getattr(drmod, drinfo.drfunc + '_psd')
-        except AttributeError:
-            psdfunc = None
-        return func, psdfunc
-    return func
+        return g['_func'], None
+    return g['_func']
 
 
 def _ensure_iter(obj):
@@ -779,6 +795,8 @@ class DR_Def(OrderedDict):
                 name = 'SC_atm'
                 desc = 'S/C Internal Accelerations'
                 units = 'G'
+                drms = {name: sc_atm}
+                drfunc = f"Vars[se]['{name}'] @ sol.a"
                 # ... other variables defined; see :func:`add`.
                 drdefs.add(**locals())
 
@@ -828,8 +846,8 @@ class DR_Def(OrderedDict):
 
         _vars = self['_vars']
         se = self[name].se
-        for curdrms, newdrms in zip((_vars.drms, _vars.nondrms),
-                                    (drms, nondrms)):
+        for curdrms, newdrms in ((_vars.drms, drms),
+                                 (_vars.nondrms, nondrms)):
             if se not in curdrms:
                 curdrms[se] = {}
             _add_drms(curdrms[se], newdrms)
@@ -866,14 +884,15 @@ class DR_Def(OrderedDict):
         """Handle default values and take default actions"""
         # first, the defaults:
         ns = self[name]
+
+        if ns.drfunc is None:
+            ns.drfunc = name
+
         if ns.drfile is None:
             # this is set to defaults only if it is in defaults,
             # otherwise, leave it None
             if 'drfile' in self.defaults:
                 ns.drfile = self.defaults
-
-        if ns.drfunc is None:
-            ns.drfunc = name
 
         if ns.se is None:
             if 'se' in self.defaults:
@@ -906,25 +925,26 @@ class DR_Def(OrderedDict):
                            ' `defaults`!'.format(key))
                     raise ValueError(msg)
 
-        # ensure uf_reds has no None values:
-        ns.uf_reds = _merge_uf_reds(ns.uf_reds, (1, 1, 1, 1))
-
         if ns.drfile == '.':
             ns.drfile = None
 
         # add path to `drfile` if needed:
-        try:
-            ns.drfile = self._drfilemap[ns.drfile]
-        except KeyError:
-            calling_file = os.path.realpath(inspect.stack()[2][1])
-            if ns.drfile is None:
-                ns.drfile = drfile = calling_file
-            else:
-                drfile = ns.drfile
-                callerdir = os.path.dirname(calling_file)
-                ns.drfile = os.path.join(callerdir, drfile)
-            self._drfilemap[drfile] = ns.drfile
-        self._check_for_drfunc(ns.drfile, ns.drfunc)
+        if _is_valid_identifier(ns.drfunc):
+            try:
+                ns.drfile = self._drfilemap[ns.drfile]
+            except KeyError:
+                calling_file = os.path.realpath(inspect.stack()[2][1])
+                if ns.drfile is None:
+                    ns.drfile = drfile = calling_file
+                else:
+                    drfile = ns.drfile
+                    callerdir = os.path.dirname(calling_file)
+                    ns.drfile = os.path.join(callerdir, drfile)
+                self._drfilemap[drfile] = ns.drfile
+            self._check_for_drfunc(ns.drfile, ns.drfunc)
+
+        # ensure uf_reds has no None values:
+        ns.uf_reds = _merge_uf_reds(ns.uf_reds, (1, 1, 1, 1))
 
         # next, the default actions:
         if ns.desc is None:
@@ -1006,8 +1026,8 @@ class DR_Def(OrderedDict):
                 if dct[unt] is None:
                     dct[unt] = ns.units
 
-    def add(self, *, name, labels, drms=None, drfile=None,
-            drfunc=None, se=None, desc=None, units='Not specified',
+    def add(self, *, name, labels, drms=None, drfunc=None,
+            drfile=None, se=None, desc=None, units='Not specified',
             uf_reds=None, filterval=1.e-6, histlabels=None,
             histpv=None, histunits=None, misc=None, ignorepv=None,
             nondrms=None, srsQs=None, srsfrq=None, srsconv=None,
@@ -1055,11 +1075,53 @@ class DR_Def(OrderedDict):
             event simulation since system modes are often
             needed. (Also, when `se` is 0, using `drms` is equivalent
             to using `nondrms`.)
+
+        drfunc : string or None; optional
+            A string that either defines the data recovery
+            calculations directly (a "Type 1" `drfunc`) or, if it is a
+            valid Python identifier, it is the name of the data
+            recovery function in `drfile` (a "Type 2" `drfunc`).
+
+            Assume that `drfile` is specified properly and the file it
+            indicates has::
+
+                def SC_atm(sol, nas, Vars, se):
+                    return Vars[se]['atm'] @ sol.a
+
+            (The inputs to the data recovery function are defined
+            below in the Notes section.) Further, assume that `name`
+            is 'SC_atm'. With these assumptions, we can use either a
+            Type 1 or a Type 2 `drfunc`. That is, the following
+            settings for `drfunc` are all functionally equivalent:
+
+              =========================  =============================
+                     `drfunc`                    Description
+              =========================  =============================
+              "Vars[se]['atm'] @ sol.a"  Type 1. This defines the
+                                         return statement directly
+                                         (the function is defined
+                                         internally, inside module
+                                         :mod:`cla`).
+                     'SC_atm'            Type 2. Uses the `SC_atm`
+                                         function in `drfile`.
+                       None              Type 2. Same as 'SC_atm'.
+                                         (Takes the default action ...
+                                         see 'DA' below)
+              =========================  =============================
+
+            Note that, currently, if the data recovery function needs
+            more than just the typical return statement calculation or
+            if a PSD-specific data recovery function is needed, then
+            `drfunc` must be Type 2.
+
+            DA: set to `name` and `drfile` is used.
         drfile : string or '.' or None; optional
-            Name of file that contains the data recovery function
-            named `drfunc`. It can optionally also have a PSD-specific
-            data recovery function; this must have the same name but
-            with "_psd" appended. See notes below for example
+            Only used if needed according to `drfunc` (if using a
+            "Type 2" `drfunc`). If needed, `drfile` is the name of
+            file that contains the data recovery function named
+            `drfunc`. It can optionally also have a PSD-specific data
+            recovery function; this must have the same name but with
+            "_psd" appended. See notes below for example
             functions. `drfile` is imported during event simulation.
             If not already provided in `drfile`, the full path of
             `drfile` is defined to be relative to the path of the file
@@ -1070,10 +1132,6 @@ class DR_Def(OrderedDict):
             DA: if `drfile` is set in `self.defaults`, that is used;
             otherwise, it is set to the full name of the file that
             called this routine (as if it was input as '.').
-        drfunc : string or None; optional
-            The name of the data recovery function in `drfile`.
-
-            DA: set to `name`.
         se : integer or None; optional
             The superelement number.
 
@@ -1184,8 +1242,9 @@ class DR_Def(OrderedDict):
         versions are either a slice or an index vector (uses 0-offset
         for standard Python indexing).
 
-        **`drfile`, `drfunc` notes.** The `drfile` must contain the
-        appropriate data recovery function(s) named ``name`` and,
+        **`drfunc`, `drfile` notes.** If `drfunc` is a valid Python
+        identifier (called "Type 2" above), then `drfile` must contain
+        the appropriate data recovery function(s) named ``name`` and,
         optionally, ``name_psd``. For a typical data recovery
         category, only one data recovery function would be
         needed. Here are some examples:
@@ -1206,16 +1265,26 @@ class DR_Def(OrderedDict):
                 return (Vars[se]['ltma'] @ sol.a +
                         Vars[se]['ltmd'] @ sol.d)
 
-        For a more complicated data recovery category, you might need
-        to include a special PSD version also. This function has the
-        same name except with "_psd" tacked on. For example, to
-        compute a time-consistent (or phase-consistent)
-        root-sum-square (RSS), you need to provide both
-        functions. Here is a pair of functions that recover 3 rows
-        (for `name` "x_y_rss"): acceleration response in the 'x' and
-        'y' directions and the consistent RSS between them for the 3rd
-        row. In this example, it is assumed the data recovery matrix
-        has 3 rows where the 3rd row could be all zeros::
+        Note that those three examples could also be implemented more
+        directly by using the following 3 "Type 1" `drfunc`
+        definitions::
+
+            drfunc = "Vars[se]['atm'] @ sol.a"        # ATM
+            drfunc = "Vars[se]['dtm'] @ sol.d"        # DTM
+            drfunc = \"\"\"(Vars[se]['ltma'] @ sol.a +
+                     Vars[se]['ltmd'] @ sol.d)\"\"\"  # Mode-acce LTM
+
+        For a more complicated data recovery category, you'll need to
+        use `drfile` and you might also need to include a special PSD
+        version. This function has the same name except with
+        "_psd" tacked on. For example, to compute a time-consistent
+        (or phase-consistent) root-sum-square (RSS), you need to
+        provide both functions. Here is a pair of functions that
+        recover 3 rows (for `name` "x_y_rss"): acceleration response
+        in the 'x' and 'y' directions and the consistent RSS between
+        them for the 3rd row. In this example, it is assumed the data
+        recovery matrix has 3 rows where the 3rd row could be all
+        zeros::
 
             def x_y_rss(sol, nas, Vars, se):
                 resp = Vars[se]['xyrss'] @ sol.a
@@ -1243,7 +1312,7 @@ class DR_Def(OrderedDict):
         analyzed (when ``i == forcepsd.shape[0]-1``). In the example
         above, :func:`PSD_consistent_rss` takes care of that job.
 
-        Recovery function inputs:
+        Data recovery function inputs:
 
             =====  ===================================================
             Input  Description
@@ -2391,7 +2460,8 @@ class DR_Results(OrderedDict):
         >>> suf = 1.0
         >>>
         >>> # defaults for data recovery
-        >>> defaults = dict(se=0, uf_reds=(1, 1, duf, 1))
+        >>> defaults = dict(se=0,
+        ...                 uf_reds=(1, 1, duf, 1))
         >>> drdefs = cla.DR_Def(defaults)
         >>>
         >>> def _get_labels(name):
@@ -2404,6 +2474,7 @@ class DR_Results(OrderedDict):
         ...     desc = 'S/C Internal Accelerations'
         ...     units = 'm/sec^2, rad/sec^2'
         ...     labels = _get_labels(name)
+        ...     drfunc = 'no func'
         ...     drdefs.add(**locals())
         >>>
         >>> @cla.DR_Def.addcat
@@ -2412,6 +2483,7 @@ class DR_Results(OrderedDict):
         ...     desc = 'S/C Internal Loads'
         ...     units = 'N, N-m'
         ...     labels = _get_labels(name)
+        ...     drfunc = 'no func'
         ...     drdefs.add(**locals())
         >>>
         >>> # for checking, make a pandas DataFrame to summarize data
@@ -2422,7 +2494,7 @@ class DR_Results(OrderedDict):
                                          ATM                       LTM
         desc        S/C Internal Accelera...        S/C Internal Loads
         drfile      ...
-        drfunc                           ATM                       LTM
+        drfunc                       no func                         -
         filterval                      1e-06                         -
         histlabels                      None                         -
         histpv                          None                         -
@@ -2479,7 +2551,7 @@ class DR_Results(OrderedDict):
 
     def _store_maxmin(self, res, mm, j, case):
         try:
-            i = res.cases.index(case)
+            res.cases.index(case)
         except ValueError:
             pass
         else:
@@ -2591,8 +2663,8 @@ class DR_Results(OrderedDict):
                 rr = resp[dr.srspv]
                 sr = 1 / SOL.h if SOL.h else None
                 for q in dr.srsQs:
-                    srs_cur = dr.srsconv * srs.srs(rr.T, sr, dr.srsfrq,
-                                                   q, **dr.srsopts).T
+                    srs_cur = dr.srsconv * srs.srs(
+                        rr.T, sr, dr.srsfrq, q, **dr.srsopts).T
                     res.srs.srs[q][j] = srs_cur
                     if first:
                         res.srs.ext[q] = srs_cur
@@ -2664,7 +2736,8 @@ class DR_Results(OrderedDict):
         if nonzero_forces.size:
             if verbose:
                 print('Trimming off {} zero forces'
-                      .format(forcepsd.shape[0] - nonzero_forces.size))
+                      .format(forcepsd.shape[0] -
+                              nonzero_forces.size))
             forcepsd = forcepsd[nonzero_forces]
             t_frc = t_frc[nonzero_forces]
         freq = np.atleast_1d(freq)
@@ -3601,7 +3674,6 @@ class DR_Results(OrderedDict):
                 title = ('{}, {} - {} vs. {}'
                          .format(mission, event, *names))
                 filename = os.path.join(direc, drm + fileext)
-                refext = refres[refdrm]
                 rptpct1(res, refres[refdrm], filename, title=title,
                         names=names, **rptpct1_args)
         if len(skipdrms) > 0:
@@ -3952,7 +4024,8 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         s = np.sin(th)
 
         # where the 2nd derivative is > 0, we got the angle wrong:
-        second = 2 * (vary - varx) * (c * c - s * s) - 8 * covar * s * c
+        second = (2 * (vary - varx) * (c * c - s * s) -
+                  8 * covar * s * c)
         pv = np.nonzero(second > 0)[0]
         if pv.size > 0:
             th[pv] = np.arctan(term[pv] - np.sqrt(term[pv]**2 + 1))
@@ -4283,7 +4356,8 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
                     chart = workbook.add_chart({'type': 'pie'})
                     chart.add_series(
                         {'name': rowlbl,
-                         'categories': [sheet, n - 1, 1, n - 1, ncases],
+                         'categories': [sheet, n - 1, 1, n - 1,
+                                        ncases],
                          'values': [sheet, n + i, 1, n + i, ncases],
                          'data_labels': data_labels})
                     chart.set_title({'name': rowlbl})
