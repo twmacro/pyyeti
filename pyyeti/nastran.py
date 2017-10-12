@@ -66,7 +66,7 @@ def nas_sscanf(s, keep_string=False):
             try:
                 return float(s)
             except ValueError:
-                s = s[0]+s[1:].replace('+', 'e+').replace('-', 'e-')
+                s = s[0] + s[1:].replace('+', 'e+').replace('-', 'e-')
                 try:
                     return float(s)
                 except ValueError:
@@ -125,7 +125,7 @@ def _rdgpwg(f, search_strings):
     if line is None:
         return default
     line, p = fsearch(f, 'REFERENCE POINT =')
-    refpt = int(line[p+17:])
+    refpt = int(line[p + 17:])
 
     f.readline()
     mass = []
@@ -245,7 +245,7 @@ def _rdfixed(fiter, s, n, conchar, blank, tolist):
         inc = 4  # number of values per line
     else:
         inc = 8
-    maxstart = 72-n
+    maxstart = 72 - n
     while 1:
         for i in range(i, I):
             vals.append(blank)
@@ -253,7 +253,7 @@ def _rdfixed(fiter, s, n, conchar, blank, tolist):
         j = 8
         while j <= maxstart and length > j:
             i += 1
-            v = nas_sscanf(s[j:j+n], tolist)
+            v = nas_sscanf(s[j:j + n], tolist)
             if v is not None:
                 vals.append(v)
             else:
@@ -406,8 +406,8 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
         - If a matrix is returned, each row is a card, padded with
           blanks as necessary.
         - If a dictionary is returned, the first number from each card
-          is used as the key and the value are all the numbers from the
-          card in a row vector (including the first value).
+          is used as the key and the value are all the numbers from
+          the card in a row vector (including the first value).
         - If a list (of lists) is returned, each item is a card and is
           a list of values from the card, the length of which is the
           number of items on the card.
@@ -424,12 +424,12 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     set to `blank`, except when `tolist` is True; in that case, string
     fields are kept as is and only blank fields are set to `blank`.
 
-    Note:  this routine is has no knowledge of any card, which means
-    that it will not append trailing blanks to a card. For example,
-    if a GRID card is: 'GRID, 1', then this routine would return 1, not
+    Note: this routine is has no knowledge of any card, which means
+    that it will not append trailing blanks to a card. For example, if
+    a GRID card is: 'GRID, 1', then this routine would return 1, not
     [1, 0, 0, 0, 0, 0, 0, 0]. The :func:`rdgrids` routine would return
-    [1, 0, 0, 0, 0, 0, 0, 0] since it knows the number of fields a GRID
-    card has.
+    [1, 0, 0, 0, 0, 0, 0, 0] since it knows the number of fields a
+    GRID card has.
     """
     return ytools.rdfile(f, _rdcards, name, blank, todict, tolist,
                          dtype, no_data_return)
@@ -568,14 +568,15 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         iddof.add((nid, dof))
 
     def _mk_index(iddof):
-        iddof = sorted(iddof, key=lambda x: 10*x[0]+x[1])
+        iddof = sorted(iddof, key=lambda x: 10 * x[0] + x[1])
         return pd.MultiIndex.from_tuples(iddof, names=['ID', 'DOF'])
 
-    def _mk_dataframe(mtype, form, row_ids, row_iddof, col_iddof):
+    def _mk_dataframe(mtype, form, row_ids, row_iddof, col_iddof,
+                      ncol):
         # create dataframe:
         dtype = float if mtype < 3 else complex
         if form != 9:
-            if form == 6 or (form ==1 and square):
+            if form == 6 or (form == 1 and square):
                 for nid, dof in col_iddof:
                     add_iddof(row_ids, row_iddof, nid, dof)
                 rowindex = _mk_index(row_iddof)
@@ -586,10 +587,9 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         else:
             rowindex = _mk_index(row_iddof)
             if expanded:
-                colindex = np.arange(1, ncol+1)
+                colindex = np.arange(1, ncol + 1)
             else:
                 colindex = sorted(nid for nid, dof in col_iddof)
-
         data = np.zeros((len(rowindex), len(colindex)), dtype)
         return pd.DataFrame(data, index=rowindex, columns=colindex)
 
@@ -635,8 +635,8 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                 j += 1
 
             # create dataframe:
-            dct[name] = _mk_dataframe(mtype, form, row_ids,
-                                      row_iddof, col_iddof)
+            dct[name] = _mk_dataframe(
+                mtype, form, row_ids, row_iddof, col_iddof, ncol)
 
             j = i + 1
             # put data into dataframe:
@@ -661,7 +661,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                     imags = c[j][7::4]
                     for nid, dof, real, imag in zip(rowids, rowdofs,
                                                     reals, imags):
-                        val = real + 1j*imag
+                        val = real + 1j * imag
                         df.loc[(nid, dof), col] = val
                         if form == 6:
                             df.loc[col, (nid, dof)] = val
@@ -690,12 +690,13 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         dct = {}
         for name, rec in recs.items():
             form = rec[6]
-            mtype = rec[7]  # 1 real, 2 double, 3 complex, 4 complex double
+            # mtype: 1 real, 2 double, 3 complex, 4 complex double
+            mtype = rec[7]
             ncol = rec[11] if form == 9 else None
 
             ints_per_number = mtype
             if mtype > 2:
-                ints_per_number = 2*(mtype-2)
+                ints_per_number = 2 * (mtype - 2)
                 dtype = np.complex128 if mtype == 4 else np.complex64
             else:
                 ints_per_number = mtype
@@ -708,8 +709,8 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
             col_iddof = iddof_initializer()
             row_iddof = iddof_initializer()
 
-            # Look across columns for id, dof pairs. Within each column,
-            # look across rows for id, dof pairs.
+            # Look across columns for id, dof pairs. Within each
+            # column, look across rows for id, dof pairs.
 
             # - each DMIG entry is a column
             # - end of each DMIG entry is marked with row:
@@ -717,28 +718,28 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
             # 12 & 13 4-byte integers are 1st col id, dof pair
             j = 12
-            while j < len(rec)-2:
-                nid, dof = rec[j:j+2]
+            while j < len(rec) - 2:
+                nid, dof = rec[j:j + 2]
                 add_iddof(col_ids, col_iddof, nid, dof)
 
                 j += 2
                 rowids = rec[j::step]
-                rowdofs = rec[j+1::step]
+                rowdofs = rec[j + 1::step]
                 for i, (nid, dof) in enumerate(zip(rowids, rowdofs)):
                     if nid == -1:
-                        j += step*i + 2
+                        j += step * i + 2
                         break
                     add_iddof(row_ids, row_iddof, nid, dof)
 
             # create dataframe:
-            dct[name] = _mk_dataframe(mtype, form, row_ids,
-                                      row_iddof, col_iddof)
+            dct[name] = _mk_dataframe(
+                mtype, form, row_ids, row_iddof, col_iddof, ncol)
 
             # put data into dataframe:
             df = dct[name]
             j = 12
-            while j < len(rec)-2:
-                nid, dof = rec[j:j+2]
+            while j < len(rec) - 2:
+                nid, dof = rec[j:j + 2]
                 if form != 9:
                     col = (nid, dof)
                 else:
@@ -747,9 +748,9 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                 j += 2
                 nid = rec[j]
                 while nid != -1:
-                    dof = rec[j+1]
+                    dof = rec[j + 1]
                     j += 2
-                    val = rec[j:j+ints_per_number]
+                    val = rec[j:j + ints_per_number]
                     val.dtype = dtype
                     j += ints_per_number
                     df.loc[(nid, dof), col] = val
@@ -836,7 +837,7 @@ def rdgrids(f):
     if v is not None:
         c = np.size(v, 1)
         if c < 8:
-            v = np.hstack((v, np.zeros((np.size(v, 0), 8-c))))
+            v = np.hstack((v, np.zeros((np.size(v, 0), 8 - c))))
         return v
 
 
@@ -893,11 +894,6 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
     GRID         200       0    1.10    1.20    1.30      10
     """
     grids = np.atleast_1d(grids).ravel()
-    if not isinstance(ps, str):
-        ps = '{}'.format(ps)
-    if not isinstance(seid, str):
-        seid = '{}'.format(seid)
-
     xyz = np.atleast_2d(xyz)
     teststr = form.format(1.)
     length = len(teststr)
@@ -906,20 +902,20 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
                          " must be 8 or 16.\n", length)
     if ps == seid == "":
         if len(teststr) > 8:
-            string = ("GRID*   {:16d}{:16d}" + form*2 +
+            string = ("GRID*   {:16d}{:16d}" + form * 2 +
                       "\n*       " + form + "{:16d}\n")
         else:
-            string = ("GRID    {:8d}{:8d}" + form*3 + "{:8d}\n")
+            string = ("GRID    {:8d}{:8d}" + form * 3 + "{:8d}\n")
         writer.vecwrite(f, string, grids, cp, xyz[:, 0], xyz[:, 1],
                         xyz[:, 2], cd)
     else:
         if len(teststr) > 8:
-            string = ("GRID*   {:16d}{:16d}" + form*2 +
+            string = ("GRID*   {:16d}{:16d}" + form * 2 +
                       "\n*       " + form +
-                      "{:16d}{:>16s}{:>16s}\n")
+                      "{:16d}{:>16}{:>16}\n")
         else:
-            string = ("GRID    {:8d}{:8d}" + form*3 +
-                      "{:8d}{:>8s}{:>8s}\n")
+            string = ("GRID    {:8d}{:8d}" + form * 3 +
+                      "{:8d}{:>8}{:>8}\n")
         writer.vecwrite(f, string, grids, cp, xyz[:, 0], xyz[:, 1],
                         xyz[:, 2], cd, ps, seid)
 
@@ -1005,8 +1001,8 @@ def _wttabled1(f, tid, t, d, title, form, tablestr):
         tablestr = tablestr + '*'
         f.write('{:<8s}{:16d}\n*\n'.format(tablestr, tid))
         rows = npts // 2
-        r = rows*2
-        writer.vecwrite(f, '*       '+form*2+'\n',
+        r = rows * 2
+        writer.vecwrite(f, '*       ' + form * 2 + '\n',
                         t[:r:2], d[:r:2], t[1:r:2], d[1:r:2])
         f.write('*       ')
         for j in range(r, npts):
@@ -1014,8 +1010,8 @@ def _wttabled1(f, tid, t, d, title, form, tablestr):
     else:
         f.write('{:<8s}{:8d}\n'.format(tablestr, tid))
         rows = npts // 4
-        r = rows*4
-        writer.vecwrite(f, '        '+form*4+'\n',
+        r = rows * 4
+        writer.vecwrite(f, '        ' + form * 4 + '\n',
                         t[:r:4], d[:r:4], t[1:r:4], d[1:r:4],
                         t[2:r:4], d[2:r:4], t[3:r:4], d[3:r:4])
         f.write('        ')
@@ -1148,7 +1144,7 @@ def bulk2uset(*args):
     def _expand_cords(cord, v):
         r = np.size(cord, 0)
         if r > 0:
-            O = np.ones((r, 1))*v
+            O = np.ones((r, 1)) * v
             cord = np.hstack((cord[:, :1], O, cord[:, 1:]))
             return cord
         return np.zeros((0, 12))
@@ -1163,15 +1159,15 @@ def bulk2uset(*args):
     i = np.argsort(grids[:, 0])
     grids = grids[i, :]
     n = np.size(grids, 0)
-    uset = np.zeros((n*6, 6))
+    uset = np.zeros((n * 6, 6))
     for j in range(n):
         grid = grids[j, 0]
         csin = grids[j, 1]
         csout = grids[j, 5]
         xyz = grids[j, 2:5]
-        r = j*6
-        uset[r:r+6, :] = n2p.addgrid(None, grid, 'b', csin, xyz, csout,
-                                     coordref)
+        r = j * 6
+        uset[r:r + 6, :] = n2p.addgrid(
+            None, grid, 'b', csin, xyz, csout, coordref)
     return uset, coordref
 
 
@@ -1213,18 +1209,19 @@ def rdwtbulk(fin, fout):
         s = []
         prog = re.compile(r'[ ]{13}[ 0-9]{8}-[ ]{8}(.{72})')
         for line in f:
-            if line.startswith('                              ENDDATA'):
+            if line.startswith(
+                    '                              ENDDATA'):
                 break
             m = prog.match(line)
             if m:
                 match = m.group(1).strip()
                 if match[0] == '+' or match[0] == '*':
                     if len(match) > 8:
-                        match = match[0]+'       '+match[8:]
+                        match = match[0] + '       ' + match[8:]
                     else:
                         match = match[0]
                 s.append(match)
-        return '\n'.join(s)+'\n'
+        return '\n'.join(s) + '\n'
 
     def _wtbulk(f, blk):
         f.write(blk)
@@ -1367,20 +1364,20 @@ def wtnasints(f, start, ints):
     """
     def _wtints(f, start, ints):
         n = len(ints)
-        firstline = 10-start
+        firstline = 10 - start
         if n >= firstline:
             i = firstline
-            f.write(('{:8d}'*i+'\n').format(*ints[:i]))
-            while n >= i+8:
-                f.write(('{:8s}'+'{:8d}'*8+'\n').
-                        format('', *ints[i:i+8]))
+            f.write(('{:8d}' * i + '\n').format(*ints[:i]))
+            while n >= i + 8:
+                f.write(('{:8s}' + '{:8d}' * 8 + '\n').
+                        format('', *ints[i:i + 8]))
                 i += 8
             if n > i:
                 n -= i
-                f.write(('{:8s}'+'{:8d}'*n+'\n').
+                f.write(('{:8s}' + '{:8d}' * n + '\n').
                         format('', *ints[i:]))
         else:
-            f.write(('{:8d}'*n+'\n').format(*ints))
+            f.write(('{:8d}' * n + '\n').format(*ints))
 
     return ytools.wtfile(f, _wtints, start, ints)
 
@@ -1464,7 +1461,7 @@ def rdextrn(f, expand=True):
     >>> f = StringIO('EXTRN,3,123456,11,123456,19,123456,27,123456\n'
     ...              ',2995001,0,2995002,0,2995003,0,2995004,0\n'
     ...              ',2995005,0,2995006,0,2995007,0,2995008,0\n')
-    >>> nastran.rdextrn(f, expand=False)             # doctest: +ELLIPSIS
+    >>> nastran.rdextrn(f, expand=False)   # doctest: +ELLIPSIS
     array([[      3,  123456],
            [     11,  123456],
            [     19,  123456],
@@ -1647,7 +1644,7 @@ def wtqcset(f, startgrid, nq):
     def _wtqcset(f, startgrid, nq):
         ngrids = (nq + 5) // 6
         endgrid = startgrid + ngrids - 1
-        xdof = nq - 6*(ngrids-1)
+        xdof = nq - 6 * (ngrids - 1)
         xdofs = '123456'[:xdof]
         cdofs = '123456'[xdof:]
         # write qset and cset cards:
@@ -1663,7 +1660,7 @@ def wtqcset(f, startgrid, nq):
             if ngrids > 2:
                 f.write('{:<8s}{:8d}{:8d}{:<8s}{:8d}\n'.
                         format('QSET1', 123456,
-                               startgrid, ' THRU ', endgrid-1))
+                               startgrid, ' THRU ', endgrid - 1))
             elif ngrids == 2:
                 f.write('{:<8s}{:8d}{:8d}\n'.
                         format('QSET1', 123456, startgrid))
@@ -1798,7 +1795,7 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
         # loop over independents
         for j in range(0, len(Ind_List), 2):
             DOF_ind = np.atleast_1d(Ind_List[j])
-            GRIDS_ind = np.atleast_1d(Ind_List[j+1])
+            GRIDS_ind = np.atleast_1d(Ind_List[j + 1])
             dof = int(DOF_ind[0])
             if len(DOF_ind) == 2:
                 wt = float(DOF_ind[1])
@@ -1871,13 +1868,13 @@ def wtseset(f, superid, grids):
     def _wtseset(f, superid, grids):
         n = len(grids)
         # 7 grids per SESET:
-        frm = 'SESET   {:8d}' + '{:8d}'*7 + '\n'
+        frm = 'SESET   {:8d}' + '{:8d}' * 7 + '\n'
         i = 0
-        while i+7 <= n:
-            f.write(frm.format(superid, *grids[i:i+7]))
+        while i + 7 <= n:
+            f.write(frm.format(superid, *grids[i:i + 7]))
             i += 7
         if i < n:
-            frm = 'SESET   {:8d}' + '{:8d}'*(n-i) + '\n'
+            frm = 'SESET   {:8d}' + '{:8d}' * (n - i) + '\n'
             f.write(frm.format(superid, *grids[i:]))
     return ytools.wtfile(f, _wtseset, superid, grids)
 
@@ -1916,12 +1913,12 @@ def wtset(f, setid, ids):
         f.write('SET {:d} ='.format(setid))
         n = len(ids)
         # 7 ids per line:
-        frm = ' {:d},'*7 + '\n'
+        frm = ' {:d},' * 7 + '\n'
         i = 0
-        while i+7 < n:
-            f.write(frm.format(*ids[i:i+7]))
+        while i + 7 < n:
+            f.write(frm.format(*ids[i:i + 7]))
             i += 7
-        frm = ' {:d},'*(n-i-1) + ' {:d}\n'
+        frm = ' {:d},' * (n - i - 1) + ' {:d}\n'
         f.write(frm.format(*ids[i:]))
     return ytools.wtfile(f, _wtset, setid, ids)
 
@@ -1940,7 +1937,7 @@ def _wtrspline(f, rid, ids, nper, DoL):
     ids = ids[:, 0]
     ind[0] = ind[-1] = 1
     j = 0
-    while j < N-1:
+    while j < N - 1:
         f.write('RSPLINE {:8}{:>8}{:8}'.format(rid, DoL, ids[j]))
         rid += 1
         j += 1
@@ -1948,7 +1945,7 @@ def _wtrspline(f, rid, ids, nper, DoL):
         count = 1
         done = 0
         # write all but last grid of current segment:
-        while not done and j < N-1:
+        while not done and j < N - 1:
             f.write('{:8}'.format(ids[j]))
             pos += 1
             count += 1
@@ -2070,7 +2067,7 @@ def findcenter(x, y, doplot=False):
     """
     x, y = np.atleast_1d(x, y)
     clx, cly = x.mean(), y.mean()
-    R0 = (x.max()-clx + y.max()-cly)/2
+    R0 = (x.max() - clx + y.max() - cly) / 2
 
     # The optimization routine leastsq needs a function that returns
     # the residuals:
@@ -2081,9 +2078,9 @@ def findcenter(x, y, doplot=False):
         # d is [x;y] coordinates
         xc, yc, R = p
         n = len(d) // 2
-        theta = np.arctan2(d[n:]-yc, d[:n]-xc)
-        return d - np.hstack((xc + R*np.cos(theta),
-                              yc + R*np.sin(theta)))
+        theta = np.arctan2(d[n:] - yc, d[:n] - xc)
+        return d - np.hstack((xc + R * np.cos(theta),
+                              yc + R * np.sin(theta)))
 
     p0 = (clx, cly, R0)
     d = np.hstack((x, y))
@@ -2103,9 +2100,9 @@ def findcenter(x, y, doplot=False):
         plt.clf()
         plt.scatter(x, y, c='r', marker='o', s=60,
                     label='Input Points')
-        th = np.arange(0, 361)*np.pi/180.
+        th = np.arange(0, 361) * np.pi / 180.
         (x, y, R) = sol
-        plt.plot(x+R*np.cos(th), y+R*np.sin(th), label='Fit')
+        plt.plot(x + R * np.cos(th), y + R * np.sin(th), label='Fit')
         plt.axis('equal')
         plt.legend(loc='best', scatterpoints=1)
 
@@ -2155,25 +2152,25 @@ def intersect(circA, circB, xyA, draw=False):
     (x1, y1, R1) = circA
     (x2, y2) = xyA
     (x3, y3, R3) = circB
-    if abs(x2-x1) > 100*np.finfo(float).eps:
+    if abs(x2 - x1) > 100 * np.finfo(float).eps:
         m = (y2 - y1) / (x2 - x1)
-        b = (x2*y1 - x1*y2) / (x2 - x1)
+        b = (x2 * y1 - x1 * y2) / (x2 - x1)
         # (mx+b-y3)**2 + (x-x3)**2 = R3**2
-        a2 = (m*m + 1)
-        a1 = 2*(m*(b-y3)-x3)/a2
-        a0 = ((b-y3)**2 + x3**2 - R3**2)/a2
-        x1 = -a1/2 + np.sqrt((a1/2)**2 - a0)
-        x2 = -a1/2 - np.sqrt((a1/2)**2 - a0)
-        y1 = m*x1 + b
-        y2 = m*x2 + b
+        a2 = (m * m + 1)
+        a1 = 2 * (m * (b - y3) - x3) / a2
+        a0 = ((b - y3)**2 + x3**2 - R3**2) / a2
+        x1 = -a1 / 2 + np.sqrt((a1 / 2)**2 - a0)
+        x2 = -a1 / 2 - np.sqrt((a1 / 2)**2 - a0)
+        y1 = m * x1 + b
+        y2 = m * x2 + b
     else:
         # line is vertical (x1 & x2 are unchanged)
         #    (y-y3)**2 + (x1-x3)**2 = R3**2
         #    y-y3 = +- np.sqrt(R3**2 - (x1-x3)**2)
-        y1 = y3 + np.sqrt(R3**2 - (x1-x3)**2)
-        y2 = y3 - np.sqrt(R3**2 - (x1-x3)**2)
-    err1 = abs(xyA[0]-x1) + abs(xyA[1]-y1)
-    err2 = abs(xyA[0]-x2) + abs(xyA[1]-y2)
+        y1 = y3 + np.sqrt(R3**2 - (x1 - x3)**2)
+        y2 = y3 - np.sqrt(R3**2 - (x1 - x3)**2)
+    err1 = abs(xyA[0] - x1) + abs(xyA[1] - y1)
+    err2 = abs(xyA[0] - x2) + abs(xyA[1] - y2)
     if err1 < err2:
         pt = np.array([x1, y1])
     else:
@@ -2181,10 +2178,12 @@ def intersect(circA, circB, xyA, draw=False):
     if draw:
         plt.figure('intersect')
         plt.clf()
-        th = np.arange(0, 361)*np.pi/180.
+        th = np.arange(0, 361) * np.pi / 180.
         (x1, y1, R1) = circA
-        plt.plot(x1+R1*np.cos(th), y1+R1*np.sin(th), label='CircA')
-        plt.plot(x3+R3*np.cos(th), y3+R3*np.sin(th), label='CircB')
+        plt.plot(x1 + R1 * np.cos(th),
+                 y1 + R1 * np.sin(th), label='CircA')
+        plt.plot(x3 + R3 * np.cos(th),
+                 y3 + R3 * np.sin(th), label='CircB')
         plt.scatter(*xyA, c='g', marker='o', s=60,
                     label='xyA')
         plt.scatter(*pt, c='b', marker='v', s=60,
@@ -2206,7 +2205,7 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     for ring, name in zip(rgrids, ('r1grids', 'r2grids')):
         if ring.shape[1] == 6:
             r = ring.shape[0]
-            if (r // 6)*6 != r:
+            if (r // 6) * 6 != r:
                 raise ValueError('number of rows `{}` is not '
                                  'multiple of 6 for USET input'.
                                  format(name))
@@ -2257,14 +2256,14 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
                                    xyz[0][j, lat])
 
     if doplot:
-        th = np.arange(0, np.pi*2+.005, .01)
-        x = center[1][2]*np.cos(th) + center[1][0]
-        y = center[1][2]*np.sin(th) + center[1][1]
+        th = np.arange(0, np.pi * 2 + .005, .01)
+        x = center[1][2] * np.cos(th) + center[1][0]
+        y = center[1][2] * np.sin(th) + center[1][1]
         plt.plot(x, y, 'g-', label='R2 best-fit circle')
         plt.scatter(newpts[:, lat[0]], newpts[:, lat[1]], c='r',
                     marker='o', s=40,
                     label='New R1 nodes - should be on R2 circle')
-        segments_x = np.empty(3*newpts.shape[0])
+        segments_x = np.empty(3 * newpts.shape[0])
         segments_y = np.empty_like(segments_x)
         segments_x[::3] = newpts[:, lat[0]]
         segments_y[::3] = newpts[:, lat[1]]
@@ -2293,18 +2292,20 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     th_1 = np.arctan2(newpts[:, lat[1]], newpts[:, lat[0]])
     th_2 = np.arctan2(xyz[1][:, lat[1]], xyz[1][:, lat[0]])
     th = np.hstack((th_1, th_2))
-    th[th < 0] += 2*np.pi
+    th[th < 0] += 2 * np.pi
 
     ids_1 = np.column_stack((newids, np.zeros(n1, np.int64)))
     ids_2 = np.column_stack((IDs[1], np.zeros(n2, np.int64)))
 
     if independent == 'ring1':
-        f.write('$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
-                'with the new nodes\n$ being independent.\n$\n')
+        f.write(
+            '$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
+            'with the new nodes\n$ being independent.\n$\n')
         ids_1[:, 1] = 1
     else:
-        f.write('$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
-                'with the Ring 2 nodes\n$ being independent.\n$\n')
+        f.write(
+            '$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
+            'with the Ring 2 nodes\n$ being independent.\n$\n')
         ids_2[:, 1] = 1
 
     ids = np.vstack((ids_1, ids_2))
@@ -2541,7 +2542,7 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
     qq = np.ix_(qset, qset)
     kd = np.diag(kaa[qq])
     bd = np.diag(baa[qq])
-    zeta = bd / (2*np.sqrt(kd))
+    zeta = bd / (2 * np.sqrt(kd))
 
     def _wtvcomp(f, zeta, spoint1):
         f.write('$ Critical damping ratios:\n')
@@ -2550,7 +2551,7 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
         f.write('DMIG*   VCOMP                          1'
                 '               0\n')
         writer.vecwrite(f, '*       {:16d}{:16d}{:16.10g}\n',
-                        spoint1+np.arange(len(zeta)), 0, zeta)
+                        spoint1 + np.arange(len(zeta)), 0, zeta)
 
     return ytools.wtfile(f, _wtvcomp, zeta, spoint1)
 
@@ -2602,11 +2603,11 @@ def wtcoordcards(f, ci):
             coord = data[1]
             f.write('$ Coordinate {:d}:\n'.format(k))
             f.write('{:<8s}{:16d}{:16d}{:16.8e}{:16.8e}*\n'.
-                    format(data[0]+'*', k, int(coord[0, 2]),
+                    format(data[0] + '*', k, int(coord[0, 2]),
                            *coord[1, :2]))
-            f.write(('{:<8s}'+'{:16.8e}'*4+'*\n').
+            f.write(('{:<8s}' + '{:16.8e}' * 4 + '*\n').
                     format('*', coord[1, 2], *coord[2]))
-            f.write(('{:<8s}'+'{:16.8e}'*3+'\n').
+            f.write(('{:<8s}' + '{:16.8e}' * 3 + '\n').
                     format('*', *coord[3]))
 
     return ytools.wtfile(f, _wtcoords, ci)
@@ -2646,7 +2647,7 @@ def wtextrn(f, ids, dof):
     """
     def _wtextrn(f, ids, dof):
         f.write('EXTRN   ')
-        ints = np.zeros(len(ids)*2, dtype=int)
+        ints = np.zeros(len(ids) * 2, dtype=int)
         ints[::2] = ids
         ints[1::2] = dof
         wtnasints(f, 2, ints)
@@ -2685,10 +2686,10 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
     sedn : integer; optional
         Downstream superelement id
     bh : bool; optional
-        If True, Benfield-Hruda damping is being used and a '.baa_dmig'
-        file will be created with VCOMP DMIG. In this case, the BAA
-        matrix written to the .op4 file is zeroed out to avoid double
-        application of damping.
+        If True, Benfield-Hruda damping is being used and a
+        '.baa_dmig' file will be created with VCOMP DMIG. In this
+        case, the BAA matrix written to the .op4 file is zeroed out to
+        avoid double application of damping.
 
     Returns
     -------
@@ -2701,7 +2702,7 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
 
     if bh:
         # write damping to DMIG VCOMP card for the BH method:
-        wtvcomp(name+'.baa_dmig', baa, kaa, bset, spoint1)
+        wtvcomp(name + '.baa_dmig', baa, kaa, bset, spoint1)
         baa = np.zeros_like(baa)
 
     # prepare standard Nastran op4 file:
@@ -2730,19 +2731,19 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
                 'mqg1o', 'mqmg1', 'mqmg1o']
     dct = locals()
     varlist = [dct[i] for i in namelist]
-    op4.write(name+'.op4', namelist, varlist)
+    op4.write(name + '.op4', namelist, varlist)
 
     # Get some data from the uset table:
     ci = n2p.coordcardinfo(uset)
     pv = np.nonzero(uset[:, 1] == 1)[0]
     grids = uset[pv, 0].astype(int)
     xyz = uset[pv, 3:]
-    cd = uset[pv+1, 3].astype(int)
+    cd = uset[pv + 1, 3].astype(int)
 
     # Write out ASM file
     unit = se
-    spointn = spoint1 + nq-1
-    with open(name+'.asm', 'w') as f:
+    spointn = spoint1 + nq - 1
+    with open(name + '.asm', 'w') as f:
         f.write(('$ {:s} ASSEMBLY FILE FOR RESIDUAL RUN...INCLUDE '
                  'IN BULK DATA\n').format(name.upper()))
         f.write('$\n')
@@ -2775,12 +2776,12 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
                     format(spoint1, spointn))
 
     # Write out PCH file
-    with open(name+'.pch', 'w') as f:
+    with open(name + '.pch', 'w') as f:
         f.write(('$ {:s} PUNCH FILE FOR RESIDUAL RUN...INCLUDE '
                  'AT END\n').format(name.upper()))
         f.write('$\n')
         f.write('BEGIN SUPER{:8d}\n$\n'.format(se))
-        ids = np.hstack((grids, spoint1+np.arange(nq)))
+        ids = np.hstack((grids, spoint1 + np.arange(nq)))
         dof = np.zeros_like(ids, dtype=int)
         dof[:len(grids)] = 123456
         wtextrn(f, ids, dof)
@@ -2810,8 +2811,8 @@ def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
     """
     Create shell script to run chain of nastran (or other) runs.
 
-    Note that all inputs except `script` must be named and can be input in
-    any order.
+    Note that all inputs except `script` must be named and can be
+    input in any order.
 
     Parameters
     ----------
@@ -2881,7 +2882,7 @@ def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
                 else:
                     nasfile = files[i]
             else:
-                p = 'File #{:2d} (blank to quit): '.format(i+1)
+                p = 'File #{:2d} (blank to quit): '.format(i + 1)
                 nasfile = input(p)
                 if not nasfile:
                     break
@@ -2895,7 +2896,7 @@ def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
             p = nasfile.rfind('/')
             if p > -1:
                 filepath = nasfile[:p]
-                filename = nasfile[p+1:]
+                filename = nasfile[p + 1:]
                 f.write('  cd {:s}\n'.format(filepath))
                 docd = 1
             else:
@@ -2910,9 +2911,9 @@ def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
             if stoponfatal == 'yes':
                 p = filename.rfind('.')
                 if p > -1:
-                    f06file = filename[:p+1]+ext
+                    f06file = filename[:p + 1] + ext
                 else:
-                    f06file = filename+'.'+ext
+                    f06file = filename + '.' + ext
 
                 f.write("  if [ X != X`{:s} {:s}` ] ; then\n".
                         format(GREP, f06file))
@@ -2987,7 +2988,7 @@ def rddtipch(f, name='TUG1'):
         c = m[0, 1]
         ids = np.dot(m[:, 0:1], np.ones((1, c), np.int64))
         ids = ids.reshape((-1, 1))
-        dof = np.arange(1, c+1, dtype=np.int64).reshape(1, -1)
+        dof = np.arange(1, c + 1, dtype=np.int64).reshape(1, -1)
         dofs = np.dot(np.ones((np.size(m, 0), 1), np.int64), dof)
         dofs = dofs.reshape((-1, 1))
         iddof = np.hstack((ids, dofs))
@@ -2997,7 +2998,7 @@ def rddtipch(f, name='TUG1'):
         j = 0
         for J in range(np.size(m, 0)):
             pv = np.arange(0, m[J, 1], dtype=np.int64)
-            iddof[pv+j, 0] = m[J, 0]
-            iddof[pv+j, 1] = pv + 1
+            iddof[pv + j, 0] = m[J, 0]
+            iddof[pv + j, 1] = pv + 1
             j += m[J, 1]
     return iddof
