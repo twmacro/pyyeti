@@ -57,7 +57,7 @@
     5 maybe add option to use only one figure ... that should be default ?
 
     6 y-axis label written far away in srs3/net_ifatm_0rb_eqsine_all.pdf plot ... why?
-    7 include documentation link for "load" and "save"
+~    7 include documentation link for "load" and "save"
 
 16. op2 updates:
   - some functions should be "public", like _rdop2nt()
