@@ -49,6 +49,7 @@ Class for storing and working with CLA results
     DR_Results.rptpct
     DR_Results.rpttab
     DR_Results.solvepsd
+    DR_Results.split
     DR_Results.srs_plots
     DR_Results.strip_hists
     DR_Results.time_data_recovery

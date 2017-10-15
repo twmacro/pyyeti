@@ -853,6 +853,61 @@ def confirm():
                 assert line == line0
 
 
+def check_split():
+    for event, dirname, do_stats in (('TOES', 'toes', 1),
+                                     ('O&W Lab', 'owlab', 0)):
+        for res in (cla.load(f'{dirname}/results.pgz'),
+                    cla.load('summary/results.pgz')[event]):
+            sp = res.split()
+
+            mg = cla.DR_Results()
+            mg.merge(sp.values())
+            LC = len(mg)
+            mg.form_extreme()
+
+            if do_stats:
+                mg['extreme'].form_stat_ext(
+                    stats.ksingle(0.99, 0.90, LC))
+
+            cat = 'cglf'
+            for cat in mg['extreme']:
+                assert np.all(mg['extreme'][cat].ext == res[cat].ext)
+                assert np.all(mg['extreme'][cat].mx == res[cat].mx)
+                assert np.all(mg['extreme'][cat].mn == res[cat].mn)
+                assert np.all(mg['extreme'][cat].exttime ==
+                              res[cat].exttime)
+                assert np.all(mg['extreme'][cat].maxtime ==
+                              res[cat].maxtime)
+                assert np.all(mg['extreme'][cat].mintime ==
+                              res[cat].mintime)
+                assert mg['extreme'][cat].maxcase == res[cat].maxcase
+                assert mg['extreme'][cat].mincase == res[cat].mincase
+
+                event = res[cat].event
+                for j in range(LC):
+                    name = f'{event}  {j+1}'
+                    if hasattr(sp[name][cat], 'hist'):
+                        assert np.all(sp[name][cat].hist ==
+                                      res[cat].hist[[j]])
+                        assert np.all(sp[name][cat].time ==
+                                      res[cat].time)
+
+                    if hasattr(sp[name][cat], 'psd'):
+                        assert np.all(sp[name][cat].psd ==
+                                      res[cat].psd[[j]])
+                        assert np.all(sp[name][cat].freq ==
+                                      res[cat].freq)
+
+                    if hasattr(sp[name][cat], 'srs'):
+                        for q in res[cat].srs.srs:
+                            assert np.all(sp[name][cat].srs.srs[q] ==
+                                          res[cat].srs.srs[q][[j]])
+                            assert np.all(sp[name][cat].srs.ext[q] ==
+                                          res[cat].srs.srs[q][[j]])
+                        assert np.all(sp[name][cat].srs.frq ==
+                                      res[cat].srs.frq)
+
+
 def do_srs_plots():
     plt.close('all')
     with cd('summary'):
@@ -929,6 +984,7 @@ def test_transfer_orbit_cla():
             summarize(pth)
             compare(pth)
             confirm()
+            check_split()
             do_srs_plots()
             do_time_plots()
     finally:
@@ -2497,8 +2553,3 @@ def test_rptpct1_2():
         '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.6667, 0.5774]',
         '']
     _comp_rpt(s, sbe)
-
-
-# pyyeti/cla.py 1803 31 98% 91, 98, 5050-5051, 5065, 5132-5139,
-# 5147-5151, 5159, 5185, 5191, 5214-5217, 5219-5222, 5225-5227,
-# 5290-5292

@@ -2338,11 +2338,12 @@ class DR_Results(OrderedDict):
 
         Notes
         -----
-        The name of each event is extracted from the
-        :class:`DR_Results` data structure. The approach to get the
-        name is as follows. Note that 'SC_atm' is just an example;
-        this routine will simply use first element it finds. Let
-        `results` be the current instance of :class:`DR_Results`:
+        This routine is sort of an inverse of :func:`split`. The name
+        of each event is extracted from the :class:`DR_Results` data
+        structure. The approach to get the name is as follows. Note
+        that 'SC_atm' is just an example; this routine will simply use
+        first element it finds. Let `results` be the current instance
+        of :class:`DR_Results`:
 
             1. If any element of `results` is a SimpleNamespace:
                ``event = results['SC_atm'].event``
@@ -2403,30 +2404,33 @@ class DR_Results(OrderedDict):
             self[event] = results
         return events
 
-    def split(self, rename_dict=None):
+    def split(self):
         """
-        Split CLA results apart into a new :class:`DR_Results` object
-
-        Parameters
-        ----------
-        rename_dict : dict; optional
-            Used to rename entries in the returned results structure.
-            The default is to use the case IDs in the `cases`
-            attribute; eg: ``self['SC_atm'].cases``.
+        Split results apart into a new :class:`DR_Results` structure
 
         Returns
         -------
         results : :class:`DR_Results` instance
-            This is a new base-level instance; see
-            :class:`DR_Results` (each entry value is a
-            SimpleNamespace).
+            This is a new two-level instance of :class:`DR_Results`
+            (each entry value is a base-level instance of
+            :class:`DR_Results`). For example, if::
+
+                self['SC_atm'].cases == ['ff1', 'ff2', 'ff3']
+
+            then `results` would have::
+
+                results['ff1']['SC_atm'].cases = ['ff1']
+                results['ff2']['SC_atm'].cases = ['ff2']
+                results['ff3']['SC_atm'].cases = ['ff3']
 
         Notes
         -----
-        This routine is the inverse of :func:`merge`. This would allow
-        easy comparisons of one sub-case to another. Or, say you want
-        to delete some cases: split the results, delete the entries
-        you don't want, and re-merge the results back together.
+        This routine is sort of an inverse of :func:`merge`. Splitting
+        allows easy comparisons of one sub-case to another. It also
+        allows the deletion of some cases: split the results, delete
+        the entries you don't want, re-merge the results back
+        together, and form a new set of extreme values (with
+        :func:`form_extreme`).
 
         To illustrate what this routine does, consider this entry in
         an initial results structure. In this case, the CLA event is
@@ -2474,8 +2478,8 @@ class DR_Results(OrderedDict):
             sp_res['Sep 2']['SC_ifa']
             sp_res['Sep 3']['SC_ifa']
 
-        And ``sp_res['Sep 2']['SC_ifa']`` would be (notice the threes
-        become ones):
+        And ``sp_res['Sep 2']['SC_ifa']`` would be (notice the 3's
+        become 1's):
 
         .. code-block:: none
 
@@ -2483,7 +2487,7 @@ class DR_Results(OrderedDict):
                 .cases  : [n=1]: ['Sep 2']
                 .domain : 'time'
                 .drminfo: <class 'types.SimpleNamespace'>[n=20]
-                .event  : 'Stage 1 / Stage 2 Separation'
+                .event  : 'Sep 2'
                 .ext    : float64 ndarray: (12, 2)
                 .exttime: None
                 .hist   : float64 ndarray: (1, 12, 10001)
@@ -2506,46 +2510,103 @@ class DR_Results(OrderedDict):
                     .units: 'G, rad/sec^2'
                 .time   : float32 ndarray: (10001,)
 
-        Example usage::
+        Example usage 1::
+            # compare sub-cases 'MECO  1' and 'MECO 10':
+            sp = results.split()
+            sp['MECO  1'].rptpct(
+                sp['MECO 10'], names=('MECO  1', 'MECO 10'),
+                direc='m1_vs_m10')
 
-            # initialize results (ext, mnc, mxc for all drms)
-            results = DR.prepare_results('VLC', 'MECO')
+        Example usage 2::
+            # delete case 'MECO 15' from the results and form a new
+            # set of statistical extreme results:
+            from pyyeti.stats import ksingle
 
-            ts = ode.SolveUnc(...)
-            LC = ffns.shape[0]
-            for j, force in enumerate(ffns):
-                sol = ts.tsolve(Tfrc @ force, static_ic=1)
-                sol = DR.apply_uf(sol, ...)
-                results.time_data_recovery(sol, ...)
-            #
-            results.form_stat_ext(stats.ksingle(.99, .90, LC))
+            # split results and delete 'MECO 15':
+            sp = results.split()
+            del sp['MECO 15']
 
+            # merge remaining cases back together:
+            new_res = DR.DR_Results()
+            new_res.merge(sp.values())
+
+            # form non-statistical extrema (completes the merge):
+            new_res.form_extreme()
+
+            # change to statistical extrema:
+            ncases = len(new_res['extreme'].cases)
+            new_res['extreme'].form_stat_ext(
+                stats.ksingle(0.99, 0.90, ncases))
+
+            # compare new extrema to original:
+            new_res['extreme'].rptpct(
+                results, names('W/O MECO 15', 'Original'),
+                direc='no_m15_vs_all')
+
+        Raises
+        ------
+        TypeError
+            When ``self[cat]`` is not a SimpleNamespace. This usually
+            happens when `self` is a multiple level
+            :class:`DR_Results` instance. That is, instead of
+            ``res.split()``, try something like
+            ``res[event].split()).')
         """
+        value = next(iter(self.values()))
+        if not isinstance(value, SimpleNamespace):
+            raise TypeError(':func:`split` only works with base-level '
+                            ':class:`DR_Results` instances (eg: '
+                            'instead of ``res.split()``, try '
+                            'something like ``res[event].split()``).')
         res = DR_Results()
-        cases = next(iter(self.values())).cases
+        cases = value.cases
         for j, case in enumerate(cases):
+            # if rename_dict is not None:
+            #     try:
+            #         case = rename_dict[case]
+            #     except KeyError:
+            #         pass
             res[case] = DR_Results()
             # copy "case" results (j'th) into res[case]:
             for cat, sns in self.items():
                 newsns = DR_Results.init_extreme_cat(
-                    [case], sns, ext_name=sns.event,
+                    [case], sns, ext_name=case,  # sns.event,
                     domain=sns.domain)
 
                 # copy j'th results:
-                newsns.mx[:] = sns.mx[:, j]
-                newsns.mn[:] = sns.mn[:, j]
+                newsns.mx[:, 0] = sns.mx[:, j]
+                newsns.mn[:, 0] = sns.mn[:, j]
                 newsns.ext = np.column_stack((newsns.mx, newsns.mn))
-                newsns.maxtime[:] = sns.maxtime[:, j]
-                newsns.mintime[:] = sns.mintime[:, j]
+                newsns.maxtime[:, 0] = sns.maxtime[:, j]
+                newsns.mintime[:, 0] = sns.mintime[:, j]
                 newsns.exttime = np.column_stack((newsns.maxtime,
                                                   newsns.mintime))
 
+                # check for hist, time, psd, freq
+                for item in ('hist', 'time', 'psd', 'freq'):
+                    try:
+                        v = getattr(sns, item)
+                    except AttributeError:
+                        pass
+                    else:
+                        if v.ndim > 1:
+                            v = v[[j]]
+                        setattr(newsns, item, v)
+
                 # handle SRS if present:
-                osrs = getattr(sns, 'srs', None)
-                if osrs is not None:
-                    for q in osrs.ext:
-                        newsns.ext[q] = osrs.srs[q][j]
-                        newsns.srs[q][:] = osrs.srs[q][j]
+                try:
+                    osrs = sns.srs
+                except AttributeError:
+                    pass
+                else:
+                    try:
+                        osrs_srs = sns.srs.srs
+                    except AttributeError:
+                        del newsns.srs
+                    else:
+                        for q in osrs.ext:
+                            newsns.srs.ext[q] = osrs_srs[q][j]
+                            newsns.srs.srs[q][:] = osrs_srs[q][j]
 
                 res[case][cat] = newsns
         return res
