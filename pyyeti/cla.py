@@ -2411,7 +2411,7 @@ class DR_Results(OrderedDict):
         Returns
         -------
         results : :class:`DR_Results` instance
-            This is a new two-level instance of :class:`DR_Results`
+            This is a new, two-level instance of :class:`DR_Results`
             (each entry value is a base-level instance of
             :class:`DR_Results`). For example, if::
 
@@ -2432,11 +2432,12 @@ class DR_Results(OrderedDict):
         together, and form a new set of extreme values (with
         :func:`form_extreme`).
 
-        To illustrate what this routine does, consider this entry in
-        an initial results structure. In this case, the CLA event is
-        "Stage 1 / Stage 2 Separation" and there are 3 stage one /
-        stage two separation cases. This could be
-        ``results['SC_ifa']`` for example.
+        To illustrate what this routine does, consider this 'SC_ifa'
+        entry in an initial results structure. In this case, the CLA
+        event is "Stage 1 / Stage 2 Separation" and there are 3 stage
+        one / stage two separation cases.
+
+        PP(results['SC_ifa']):
 
         .. code-block:: none
 
@@ -2469,8 +2470,9 @@ class DR_Results(OrderedDict):
 
         This routine would return a new structure with the three cases
         split up into three events. For example, ``sp_res =
-        results.split()``, would give (there could be more categories
-        than just 'SC_ifa'):
+        results.split()``, would give the following. Note that there
+        would typically be more categories than just 'SC_ifa', and
+        they would all be split in the same way.
 
         .. code-block:: none
 
@@ -2511,6 +2513,7 @@ class DR_Results(OrderedDict):
                 .time   : float32 ndarray: (10001,)
 
         Example usage 1::
+
             # compare sub-cases 'MECO  1' and 'MECO 10':
             sp = results.split()
             sp['MECO  1'].rptpct(
@@ -2518,6 +2521,7 @@ class DR_Results(OrderedDict):
                 direc='m1_vs_m10')
 
         Example usage 2::
+
             # delete case 'MECO 15' from the results and form a new
             # set of statistical extreme results:
             from pyyeti.stats import ksingle
@@ -2527,7 +2531,7 @@ class DR_Results(OrderedDict):
             del sp['MECO 15']
 
             # merge remaining cases back together:
-            new_res = DR.DR_Results()
+            new_res = cla.DR_Results()
             new_res.merge(sp.values())
 
             # form non-statistical extrema (completes the merge):
@@ -2540,7 +2544,7 @@ class DR_Results(OrderedDict):
 
             # compare new extrema to original:
             new_res['extreme'].rptpct(
-                results, names('W/O MECO 15', 'Original'),
+                results, names=('W/O MECO 15', 'Original'),
                 direc='no_m15_vs_all')
 
         Raises
@@ -2548,9 +2552,9 @@ class DR_Results(OrderedDict):
         TypeError
             When ``self[cat]`` is not a SimpleNamespace. This usually
             happens when `self` is a multiple level
-            :class:`DR_Results` instance. That is, instead of
+            :class:`DR_Results` instance. In that case, instead of
             ``res.split()``, try something like
-            ``res[event].split()).')
+            ``res[event].split()``.
         """
         value = next(iter(self.values()))
         if not isinstance(value, SimpleNamespace):
@@ -2561,11 +2565,6 @@ class DR_Results(OrderedDict):
         res = DR_Results()
         cases = value.cases
         for j, case in enumerate(cases):
-            # if rename_dict is not None:
-            #     try:
-            #         case = rename_dict[case]
-            #     except KeyError:
-            #         pass
             res[case] = DR_Results()
             # copy "case" results (j'th) into res[case]:
             for cat, sns in self.items():
