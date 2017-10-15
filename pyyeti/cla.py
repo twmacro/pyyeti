@@ -1800,6 +1800,12 @@ class DR_Event(object):
         event : str
             Name of event
 
+        Returns
+        -------
+        results : :class:`DR_Results` instance
+            Subclass of dict containing categories with results (see
+            :class:`DR_Results`).
+
         Notes
         -----
         Uses the `Info` attribute (see :class:`DR_Event`) and calls
@@ -2396,6 +2402,153 @@ class DR_Results(OrderedDict):
             events.append(event)
             self[event] = results
         return events
+
+    def split(self, rename_dict=None):
+        """
+        Split CLA results apart into a new :class:`DR_Results` object
+
+        Parameters
+        ----------
+        rename_dict : dict; optional
+            Used to rename entries in the returned results structure.
+            The default is to use the case IDs in the `cases`
+            attribute; eg: ``self['SC_atm'].cases``.
+
+        Returns
+        -------
+        results : :class:`DR_Results` instance
+            This is a new base-level instance; see
+            :class:`DR_Results` (each entry value is a
+            SimpleNamespace).
+
+        Notes
+        -----
+        This routine is the inverse of :func:`merge`. This would allow
+        easy comparisons of one sub-case to another. Or, say you want
+        to delete some cases: split the results, delete the entries
+        you don't want, and re-merge the results back together.
+
+        To illustrate what this routine does, consider this entry in
+        an initial results structure. In this case, the CLA event is
+        "Stage 1 / Stage 2 Separation" and there are 3 stage one /
+        stage two separation cases. This could be
+        ``results['SC_ifa']`` for example.
+
+        .. code-block:: none
+
+            <class 'types.SimpleNamespace'>[n=16]
+                .cases  : [n=3]: ['Sep 1', 'Sep 2', 'Sep 3']
+                .domain : 'time'
+                .drminfo: <class 'types.SimpleNamespace'>[n=20]
+                .event  : 'Stage 1 / Stage 2 Separation'
+                .ext    : float64 ndarray: (12, 2)
+                .exttime: None
+                .hist   : float64 ndarray: (3, 12, 10001)
+                .maxcase: None
+                .maxtime: float64 ndarray: (12, 3)
+                .mincase: None
+                .mintime: float64 ndarray: (12, 3)
+                .mission: 'Rocket / Spacecraft VLC'
+                .mn     : float64 ndarray: (12, 3)
+                .mx     : float64 ndarray: (12, 3)
+                .srs    : <class 'types.SimpleNamespace'>[n=5]
+                    .ext  : <class 'dict'>[n=2]
+                        25: float64 ndarray: (12, 990)
+                        50: float64 ndarray: (12, 990)
+                    .frq  : float64 ndarray: (990,)
+                    .srs  : <class 'dict'>[n=2]
+                        25: float64 ndarray: (3, 12, 990)
+                        50: float64 ndarray: (3, 12, 990)
+                    .type : 'eqsine'
+                    .units: 'G, rad/sec^2'
+                .time   : float32 ndarray: (10001,)
+
+        This routine would return a new structure with the three cases
+        split up into three events. For example, ``sp_res =
+        results.split()``, would give (there could be more categories
+        than just 'SC_ifa'):
+
+        .. code-block:: none
+
+            sp_res['Sep 1']['SC_ifa']
+            sp_res['Sep 2']['SC_ifa']
+            sp_res['Sep 3']['SC_ifa']
+
+        And ``sp_res['Sep 2']['SC_ifa']`` would be (notice the threes
+        become ones):
+
+        .. code-block:: none
+
+            <class 'types.SimpleNamespace'>[n=16]
+                .cases  : [n=1]: ['Sep 2']
+                .domain : 'time'
+                .drminfo: <class 'types.SimpleNamespace'>[n=20]
+                .event  : 'Stage 1 / Stage 2 Separation'
+                .ext    : float64 ndarray: (12, 2)
+                .exttime: None
+                .hist   : float64 ndarray: (1, 12, 10001)
+                .maxcase: None
+                .maxtime: float64 ndarray: (12, 1)
+                .mincase: None
+                .mintime: float64 ndarray: (12, 1)
+                .mission: 'Rocket / Spacecraft VLC'
+                .mn     : float64 ndarray: (12, 1)
+                .mx     : float64 ndarray: (12, 1)
+                .srs    : <class 'types.SimpleNamespace'>[n=5]
+                    .ext  : <class 'dict'>[n=2]
+                        25: float64 ndarray: (12, 990)
+                        50: float64 ndarray: (12, 990)
+                    .frq  : float64 ndarray: (990,)
+                    .srs  : <class 'dict'>[n=2]
+                        25: float64 ndarray: (1, 12, 990)
+                        50: float64 ndarray: (1, 12, 990)
+                    .type : 'eqsine'
+                    .units: 'G, rad/sec^2'
+                .time   : float32 ndarray: (10001,)
+
+        Example usage::
+
+            # initialize results (ext, mnc, mxc for all drms)
+            results = DR.prepare_results('VLC', 'MECO')
+
+            ts = ode.SolveUnc(...)
+            LC = ffns.shape[0]
+            for j, force in enumerate(ffns):
+                sol = ts.tsolve(Tfrc @ force, static_ic=1)
+                sol = DR.apply_uf(sol, ...)
+                results.time_data_recovery(sol, ...)
+            #
+            results.form_stat_ext(stats.ksingle(.99, .90, LC))
+
+        """
+        res = DR_Results()
+        cases = next(iter(self.values())).cases
+        for j, case in enumerate(cases):
+            res[case] = DR_Results()
+            # copy "case" results (j'th) into res[case]:
+            for cat, sns in self.items():
+                newsns = DR_Results.init_extreme_cat(
+                    [case], sns, ext_name=sns.event,
+                    domain=sns.domain)
+
+                # copy j'th results:
+                newsns.mx[:] = sns.mx[:, j]
+                newsns.mn[:] = sns.mn[:, j]
+                newsns.ext = np.column_stack((newsns.mx, newsns.mn))
+                newsns.maxtime[:] = sns.maxtime[:, j]
+                newsns.mintime[:] = sns.mintime[:, j]
+                newsns.exttime = np.column_stack((newsns.maxtime,
+                                                  newsns.mintime))
+
+                # handle SRS if present:
+                osrs = getattr(sns, 'srs', None)
+                if osrs is not None:
+                    for q in osrs.ext:
+                        newsns.ext[q] = osrs.srs[q][j]
+                        newsns.srs[q][:] = osrs.srs[q][j]
+
+                res[case][cat] = newsns
+        return res
 
     def add_maxmin(self, cat, mxmn, maxcase, mincase=None,
                    mxmn_xvalue=None, domain=None):
@@ -3001,7 +3154,7 @@ class DR_Results(OrderedDict):
         ------
         name : str
             The next base-level dictionary key.
-        base : :class:`DR_Results`
+        base : :class:`DR_Results` instance
             The next base-level :class:`DR_Results` item. Its entries
             are the SimpleNamespace data structures for each category.
 
@@ -3081,7 +3234,7 @@ class DR_Results(OrderedDict):
         ------
         name : str
             The next non-base-level dictionary key.
-        nonbase : :class:`DR_Results`
+        nonbase : :class:`DR_Results` instance
             The next non-base-level :class:`DR_Results` item. Its
             entries are more :class:`DR_Results` items.
 
