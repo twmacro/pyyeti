@@ -349,13 +349,13 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         ...     winends=dict(portion=10), gettime=True)
         >>>
         >>> fig = plt.figure('fdepsd example, part 1', figsize=[9, 6])
-        >>> ax = plt.subplot(211)
+        >>> _ = plt.subplot(211)
         >>> _ = plt.plot(t, sig)
         >>> _ = plt.title(r'Input Signal - Specification Level = '
         ...               '1.0 $g^{2}$/Hz')
         >>> _ = plt.xlabel('Time (sec)')
         >>> _ = plt.ylabel('Acceleration (g)')
-        >>> _ = plt.subplot(212)
+        >>> ax = plt.subplot(212)
         >>> f, p = signal.welch(sig, sr, nperseg=sr)
         >>> f2, p2 = psd.psdmod(sig, sr, nperseg=sr, timeslice=4,
         ...                     tsoverlap=0.5)
@@ -371,9 +371,12 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         >>> _ = plt.plot(*spec.T, 'k--', lw=2.5, label='Spec')
         >>> _ = plt.plot(f, p, label='Welch PSD')
         >>> _ = plt.plot(f2, p2, label='PSDmod')
-        >>> _ = (psd_
-        ...      .rename(columns={i: i + ' Env' for i in psd_.columns})
-        ...      .plot.line(ax=ax))
+        >>>
+        >>> # For plot, rename columns in dataframe to include "Env":
+        >>> psd_ = (psd_
+        ...         .rename(columns={i: i + ' Env'
+        ...                          for i in psd_.columns}))
+        >>> _ = psd_.plot.line(ax=ax)
         >>> _ = plt.xlim(20, 50)
         >>> _ = plt.title('PSD Comparison')
         >>> _ = plt.xlabel('Freq (Hz)')
