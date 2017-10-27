@@ -48,10 +48,10 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         The resampled data. If the signal(s) in `data` have `n`
         samples, the signal(s) in `rdata` have ``ceil(n*p/q)``
         samples.
-    tnew : 1d ndarray
+    tnew : 1d ndarray; optional
         The resampled positions, same length as `rdata`. Only
         returned if `t` is input.
-    fir : 1d ndarray
+    fir : 1d ndarray; optional
         The FIR filter coefficients.
         ``len(fir) = 2*pts*max(p, q)/gcd(p, q) + 1``. ``gcd(p, q)`` is
         the greatest common denominator of `p` and `q`. `fir` is only
@@ -202,26 +202,26 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
 
     # setup FIR filter for upsampling given the following parameters:
     gf = math.gcd(p, q)
-    p = p//gf
-    q = q//gf
+    p = p // gf
+    q = q // gf
 
-    M = 2*pts*max(p, q)
-    w = signal.kaiser(M+1, beta)
+    M = 2 * pts * max(p, q)
+    w = signal.kaiser(M + 1, beta)
     # w = signal.hann(M+1)
-    n = np.arange(M+1)
+    n = np.arange(M + 1)
 
     # compute cutoff relative to highest sample rate (P*sr where sr=1)
     #  eg, if Q = 1, cutoff = 0.5 of old sample rate = 0.5/P of new
     #      if P = 1, cutoff = 0.5 of new sample rate = 0.5/Q of old
-    cutoff = min(1/q, 1/p)/2
+    cutoff = min(1 / q, 1 / p) / 2
     # sinc(x) = sin(pi*x)/(pi*x)
-    s = 2*cutoff*np.sinc(2*cutoff*(n-M/2))
-    fir = p*w*s
+    s = 2 * cutoff * np.sinc(2 * cutoff * (n - M / 2))
+    fir = p * w * s
     m = np.mean(data, axis=0)
 
     # insert zeros
     if p > 1:
-        updata1 = np.zeros((ln*p, cols))
+        updata1 = np.zeros((ln * p, cols))
         # for j in range(cols):
         #    updata1[::p, j] = data[:, j] - m[j]
         updata1[::p] = data - m
@@ -229,14 +229,14 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         updata1 = data - m
 
     # take care of lag by shifting with zeros:
-    nz = M//2
+    nz = M // 2
     z = np.zeros((nz, cols), float)
     updata1 = np.vstack((z, updata1, z))
     updata = signal.lfilter(fir, 1, updata1, axis=0)
     updata = updata[M:]
 
     # downsample:
-    n = int(np.ceil(ln*p/q))
+    n = int(np.ceil(ln * p / q))
     if q > 1:
         RData = np.zeros((n, cols), float)
         # for j in range(cols):
@@ -250,7 +250,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         if getfir:
             return RData, fir
         return RData
-    tnew = np.arange(n) * (t[1]-t[0]) * ln/n + t[0]
+    tnew = np.arange(n) * (t[1] - t[0]) * ln / n + t[0]
     if getfir:
         return RData, tnew, fir
     return RData, tnew
@@ -402,7 +402,7 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
     array([ 1.,  1.,  3.,  4.,  5.,  5.])
     """
     x = np.atleast_1d(x)
-    n = min(x.size-1, n) | 1
+    n = min(x.size - 1, n) | 1
     b = np.empty(n)
     if isinstance(exclude_point, str):
         if exclude_point == 'first':
@@ -410,20 +410,20 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
         elif exclude_point == 'middle':
             n_pt = n // 2
         elif exclude_point == 'last':
-            n_pt = n-1
+            n_pt = n - 1
         else:
             raise ValueError('invalid `exclude_point` string')
     else:
         n_pt = exclude_point
     if n_pt is None:
-        b[:] = 1/n
+        b[:] = 1 / n
         n_pt = n // 2
     else:
-        if not 0 <= n_pt <= n-1:
+        if not 0 <= n_pt <= n - 1:
             raise ValueError('invalid `exclude_point` integer')
-        b[:] = 1/(n-1)
+        b[:] = 1 / (n - 1)
         # b is applied in reverse: y[1] = b[0]*x[1] + b[1]*x[0]
-        b[n-n_pt-1] = 0.0
+        b[n - n_pt - 1] = 0.0
     if not (axis == -1 or axis == x.ndim - 1):
         # Move the axis containing the data to the end
         x = np.swapaxes(x, axis, x.ndim - 1)
@@ -445,10 +445,10 @@ def exclusive_sgfilter(x, n, exclude_point='first', axis=-1):
     # 2nd ave:       +  -  +  +  +
     # 3rd ave:          +  -  +  +  +
     # ... last ave:                       +  -   +  +  +
-    x2 = np.concatenate((x[..., n-n_pt:n],
+    x2 = np.concatenate((x[..., n - n_pt:n],
                          x,
-                         x[..., -n:-(n_pt+1)]), axis=-1)
-    d = signal.lfilter(b, 1, x2)[..., n-1:]
+                         x[..., -n:-(n_pt + 1)]), axis=-1)
+    d = signal.lfilter(b, 1, x2)[..., n - 1:]
     if not (axis == -1 or axis == x.ndim - 1):
         # Move the axis back to where it was
         d = np.swapaxes(d, axis, x.ndim - 1)
@@ -611,7 +611,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         if threshold_value is not None:
             return threshold_value
         ave = exclusive_sgfilter(x, n, exclude_point=None)
-        return threshold_sigma * np.std(x-ave)
+        return threshold_sigma * np.std(x - ave)
 
     def _sweep_out_priors(y, i, limit, ave):
         # see if we can consider points before the detected outlier
@@ -619,7 +619,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         pv = [i]
         lim = limit[i]
         av = ave[i]
-        for k in range(i-1, -1, -1):
+        for k in range(i - 1, -1, -1):
             if abs(y[k] - av) <= lim:
                 break
             pv.append(k)
@@ -632,7 +632,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         pv = [i]
         lim = limit[i]
         av = ave[i]
-        for k in range(i+1, y.size):
+        for k in range(i + 1, y.size):
             if abs(y[k] - av) <= lim:
                 break
             pv.append(k)
@@ -653,32 +653,32 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         while True:
             pv = PV.nonzero()[0]
             if pv.size == 0:
-                yield None, ave+limit, ave-limit  # we're done
+                yield None, ave + limit, ave - limit  # we're done
             # keep only last one ... previous ones can change
             pv = _sweep_out_priors(y, pv[-1], limit, ave)
-            yield pv, ave+limit, ave-limit
+            yield pv, ave + limit, ave - limit
             i, j = pv[0], pv[-1]
             if i == 0:
-                yield None, ave+limit, ave-limit  # we're done
-            PV[i:j+1] = False
+                yield None, ave + limit, ave - limit  # we're done
+            PV[i:j + 1] = False
             # To determine if point before i is a spike, need n-1
             # valid points after j:
-            k = min(y.size, j+n)
+            k = min(y.size, j + n)
             count = k - (j + 1)  # n-1 if away from end
             # shift good points backward in time to get rid of spikes:
             #            <---
             # ......ssss+++++   ==>  ......+++++
             #       i  j
-            y[i:i+count] = y[j+1:k]
+            y[i:i + count] = y[j + 1:k]
 
             # update only sections that need it: from i-n to i
             j = i
-            i = max(i-n, 0)
+            i = max(i - n, 0)
             ave[i:j] = exclusive_sgfilter(y[i:k], n,
-                                          exclude_point=xp)[:j-i]
+                                          exclude_point=xp)[:j - i]
             y_delta[i:j] = abs(y[i:j] - ave[i:j])
             avsq = exclusive_sgfilter(y[i:k]**2, n,
-                                      exclude_point=xp)[:j-i]
+                                      exclude_point=xp)[:j - i]
             var[i:j] = avsq - ave[i:j]**2
             # use abs to care of negative numerical zeros:
             std[i:j] = np.sqrt(abs(var[i:j]))
@@ -691,27 +691,27 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         while True:
             pv = PV.nonzero()[0]
             if pv.size == 0:
-                yield None, ave+limit, ave-limit  # we're done
+                yield None, ave + limit, ave - limit  # we're done
             # keep only first one ... later ones can change
             pv = _sweep_out_nexts(y, pv[0], limit, ave)
-            yield pv, ave+limit, ave-limit
+            yield pv, ave + limit, ave - limit
             i, j = pv[0], pv[-1]
-            if j == y.size-1:
-                yield None, ave+limit, ave-limit  # we're done
-            PV[i:j+1] = False
+            if j == y.size - 1:
+                yield None, ave + limit, ave - limit  # we're done
+            PV[i:j + 1] = False
             # To determine if point after j is a spike, need n-1
             # valid points before i:
-            k = max(0, i-n+1)
+            k = max(0, i - n + 1)
             count = i - k  # n-1 if away from start
             # shift good points forward in time to get rid of spikes:
             #  --->
             # ......ssss+++++   ==>  ......+++++
             #       i  j
-            y[j-count+1:j+1] = y[k:i]
+            y[j - count + 1:j + 1] = y[k:i]
 
             # update only sections that need it: from j to j+n
             i = j
-            j = min(j+n, y.size)
+            j = min(j + n, y.size)
             m = i - j  # -(j-i) ... keep last j-i points
             ave[i:j] = exclusive_sgfilter(y[k:j], n,
                                           exclude_point=xp)[m:]
@@ -727,8 +727,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
     def _outs_gen(y, n, sigma, min_limit, xp,
                   ave, y_delta, limit):
         PV = np.zeros(y.size, bool)
-        hi = ave+limit
-        lo = ave-limit
+        hi = ave + limit
+        lo = ave - limit
         while True:
             pv = y_delta > limit
             if not pv.any():
@@ -738,8 +738,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             y = y[~pv]
             ave, y_delta, var, std, limit = _get_stats_full(
                 y, n, sigma, min_limit, xp)
-            hi[~PV] = ave+limit
-            lo[~PV] = ave-limit
+            hi[~PV] = ave + limit
+            lo[~PV] = ave - limit
 
     def _find_outlier_peaks(y, n, sigma, min_limit, xp):
         ave, y_delta, var, std, limit = _get_stats_full(
@@ -748,7 +748,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             y = y.copy()
             yield from _outs_first(y, n, sigma, min_limit, xp,
                                    ave, y_delta, var, std, limit)
-        elif xp in ('last', n-1):
+        elif xp in ('last', n - 1):
             y = y.copy()
             yield from _outs_last(y, n, sigma, min_limit, xp,
                                   ave, y_delta, var, std, limit)
@@ -884,7 +884,7 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         if threshold_value is not None:
             return threshold_value
         ave = exclusive_sgfilter(x, n, exclude_point=None)
-        return threshold_sigma * np.std(x-ave)
+        return threshold_sigma * np.std(x - ave)
 
     def _sweep_out_priors(y, i, limit, ave):
         # see if we can consider points before the detected outlier
@@ -892,8 +892,8 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         pv = [i]
         lim = limit[i]
         av = ave[i]
-        next_y = y[i+1]
-        for k in range(i-1, -1, -1):
+        next_y = y[i + 1]
+        for k in range(i - 1, -1, -1):
             new_dy = next_y - y[k]
             if abs(new_dy - av) <= lim:
                 break
@@ -905,10 +905,10 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         # see if we can consider points after the detected outlier
         # also as outliers:
         pv = [i]
-        lim = limit[i-1]
-        av = ave[i-1]
-        prev_y = y[i-1]
-        for k in range(i+1, y.size):
+        lim = limit[i - 1]
+        av = ave[i - 1]
+        prev_y = y[i - 1]
+        for k in range(i + 1, y.size):
             new_dy = y[k] - prev_y
             if abs(new_dy - av) <= lim:
                 break
@@ -937,27 +937,27 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             i, j = pv[0], pv[-1]
             if i == 0:
                 yield None  # we're done
-            dpv[i:j+1] = False
+            dpv[i:j + 1] = False
             # To determine if point before i is a spike, need n-1
             # valid points after j:
-            k = min(y.size, j+n)
+            k = min(y.size, j + n)
             count = k - (j + 1)  # n-1 if away from end
             # shift good points backward in time to get rid of
             # spikes:
             #            <---
             # ......ssss+++++   ==>  ......+++++
             #       i  j
-            y[i:i+count] = y[j+1:k]
+            y[i:i + count] = y[j + 1:k]
 
             # update only sections that need it: from i-n to i
             j = i
-            i = max(i-n, 0)
-            dy[i:k] = np.diff(y[i:k+1])
+            i = max(i - n, 0)
+            dy[i:k] = np.diff(y[i:k + 1])
             ave[i:j] = exclusive_sgfilter(dy[i:k], n,
-                                          exclude_point=xp)[:j-i]
+                                          exclude_point=xp)[:j - i]
             dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
             avsq = exclusive_sgfilter(dy[i:k]**2, n,
-                                      exclude_point=xp)[:j-i]
+                                      exclude_point=xp)[:j - i]
             var[i:j] = avsq - ave[i:j]**2
             # use abs to care of negative numerical zeros:
             std[i:j] = np.sqrt(abs(var[i:j]))
@@ -978,7 +978,7 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
                 # 2 -> 3-2
                 # say 1 of dy is first spike ... 0 isn't. So 1-0
                 # of original is okay. spike in original has to be 2.
-                pv = _sweep_out_nexts(y, i+1, limit, ave)
+                pv = _sweep_out_nexts(y, i + 1, limit, ave)
             else:
                 pv = None
             yield pv
@@ -986,22 +986,22 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
             i, j = pv[0], pv[-1]
             if j == dy.size:
                 yield None  # we're done
-            dpv[i-1:j] = False
+            dpv[i - 1:j] = False
             # To determine if point after j is a spike, need n-1
             # valid points before i:
-            k = max(0, i-n+1)
+            k = max(0, i - n + 1)
             count = i - k  # n-1 if away from start
             # shift good points forward in time to get rid of spikes:
             #  --->
             # ......ssss+++++   ==>  ......+++++
             #       i  j
-            y[j-count+1:j+1] = y[k:i]
+            y[j - count + 1:j + 1] = y[k:i]
 
             # update only sections that need it: from j to j+n
             i = j
-            j = min(j+n, dy.size)
+            j = min(j + n, dy.size)
             m = i - j  # -(j-i) ... keep last j-i points
-            dy[k:j] = np.diff(y[k:j+1])
+            dy[k:j] = np.diff(y[k:j + 1])
             ave[i:j] = exclusive_sgfilter(dy[k:j], n,
                                           exclude_point=xp)[m:]
             dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
@@ -1024,7 +1024,7 @@ def despike_diff(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         if xp in ('first', 0):
             yield from _outs_first(y, dy, n, sigma, min_limit, xp,
                                    ave, dy_delta, var, std, limit, dpv)
-        elif xp in ('last', n-1):
+        elif xp in ('last', n - 1):
             yield from _outs_last(y, dy, n, sigma, min_limit, xp,
                                   ave, dy_delta, var, std, limit, dpv)
         else:
@@ -1335,7 +1335,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         dropouts = np.logical_or(np.isnan(d), np.isinf(d))
         if np.isfinite(dropval):
             d = d[~dropouts]
-            dropouts[~dropouts] = abs(d-dropval) < abs(dropval)/100
+            dropouts[~dropouts] = abs(d - dropval) < abs(dropval) / 100
             # dropouts = np.logical_or(
             #    dropouts, abs(d-dropval) < abs(dropval)/100)
         return dropouts
@@ -1359,12 +1359,12 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 dropouts[pv[loners] + 1] = True
             s = dropouts.size
             ind = []
-            for i in pv[:-(nz-1)]:
+            for i in pv[:-(nz - 1)]:
                 j = i + n
                 j = j if j < s else s
                 d_ij = dropouts[i:j]
                 if d_ij.sum() >= nz:
-                    while not dropouts[j-1]:
+                    while not dropouts[j - 1]:
                         j -= 1
                     ind.append(slice(i, j))
             for ij in ind:
@@ -1385,8 +1385,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     def _del_outtimes(told, keep, delouttimes):
         t = told[keep]
         mn = t.mean()
-        sig = 3*t.std(ddof=1)
-        pv = np.logical_or(t < mn-sig, t > mn+sig)
+        sig = 3 * t.std(ddof=1)
+        pv = np.logical_or(t < mn - sig, t > mn + sig)
         outtimes = keep[pv]
         if pv.any():
             if delouttimes:
@@ -1408,27 +1408,27 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         max_ts = difft.max()
         ave_ts = difft.mean()
 
-        max_sr = 1/min_ts
-        min_sr = 1/max_ts
-        ave_sr = 1/ave_ts
+        max_sr = 1 / min_ts
+        min_sr = 1 / max_ts
+        ave_sr = 1 / ave_ts
 
         # histogram count:
         Ldiff = len(difft)
         difft2 = difft[difft != 0]
-        sr_all = 1/difft2
+        sr_all = 1 / difft2
         sr1 = sr_all.min()
         if sr1 > 5:
             dsr = 5
         else:
-            dsr = round(10*max(sr1, .1))/10
-        bins = np.arange(dsr/2, sr_all.max()+dsr, dsr)
+            dsr = round(10 * max(sr1, .1)) / 10
+        bins = np.arange(dsr / 2, sr_all.max() + dsr, dsr)
         cnt, bins = np.histogram(sr_all, bins)
-        centers = (bins[:-1] + bins[1:])/2
+        centers = (bins[:-1] + bins[1:]) / 2
         r = np.argmax(cnt)
 
-        mx = cnt[r]/Ldiff * 100
+        mx = cnt[r] / Ldiff * 100
         cnt_sr = centers[r]
-        cnt_ts = 1/cnt_sr
+        cnt_ts = 1 / cnt_sr
         sr_stats = np.array([max_sr, min_sr, ave_sr, cnt_sr, mx])
         if not sr:                    # pragma: no cover
             verbose = True
@@ -1444,10 +1444,10 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                   'sample rate to')
             print('          nearest {} samples/sec.'.format(dsr))
 
-        if mx > 90 or abs(cnt_sr-ave_sr) < dsr:
-            defsr = round(cnt_sr/dsr)*dsr
+        if mx > 90 or abs(cnt_sr - ave_sr) < dsr:
+            defsr = round(cnt_sr / dsr) * dsr
         else:
-            defsr = round(ave_sr/dsr)*dsr
+            defsr = round(ave_sr / dsr) * dsr
         if sr == 'auto':
             sr = defsr
         elif not sr:                    # pragma: no cover
@@ -1502,7 +1502,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 break
             if maxiter > 0 and i >= maxiter:
                 break
-        return _post_despike(~PV, keep, delspikes, i+1)
+        return _post_despike(~PV, keep, delspikes, i + 1)
 
     def _del_spikes(olddata, keep, delspikes):
         method = delspikes['method']
@@ -1553,8 +1553,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
     def _check_dt_size(difft, dt):
         n = len(difft)
-        nsmall = (difft < 0.93*dt).sum() / n
-        nlarge = (difft > 1.07*dt).sum() / n
+        nsmall = (difft < 0.93 * dt).sum() / n
+        nlarge = (difft > 1.07 * dt).sum() / n
         for n, s1, s2 in zip((nsmall, nlarge),
                              ('smaller', 'larger'),
                              ('low', 'high')):
@@ -1562,18 +1562,18 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
                 warn('there are a large ({:.2f}%) number of time '
                      'steps {:s} than {:g} by more than 7%. Double '
                      'check the sample rate; it might be too {:s}.'
-                     .format(n*100, s1, dt, s2), RuntimeWarning)
+                     .format(n * 100, s1, dt, s2), RuntimeWarning)
 
     def _add_drift_turning_pts(tp, told, dt):
         # expand turning points if needed to account for drift
         # (sample rate being slightly off in otherwise good data)
         tp_drift = []
         Lold = len(told)
-        for i in range(len(tp)-1):
-            m, n = tp[i], tp[i+1]
-            while n - m > .1*Lold:
-                tdiff = np.arange(n - m)*dt - (told[m:n] - told[m])
-                pv = abs(tdiff) > 1.01*dt/2
+        for i in range(len(tp) - 1):
+            m, n = tp[i], tp[i + 1]
+            while n - m > .1 * Lold:
+                tdiff = np.arange(n - m) * dt - (told[m:n] - told[m])
+                pv = abs(tdiff) > 1.01 * dt / 2
                 if pv[-1]:
                     m += np.nonzero(~pv)[0].max() + 1
                     tp_drift.append(m)
@@ -1584,14 +1584,14 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     def _get_turning_points(told, dt):
         tp = np.empty(len(told), bool)
         tp[0] = True
-        tp[1:] = abs(np.diff(told)-dt) > dt/4
+        tp[1:] = abs(np.diff(told) - dt) > dt / 4
         tp[:-1] |= tp[1:]
         tp[-1] = True
         tp = np.nonzero(tp)[0]
 
-        if len(tp)-2 > len(told) // 2:  # -2 to ignore ends
+        if len(tp) - 2 > len(told) // 2:  # -2 to ignore ends
             align = False
-            p = (len(tp)-2)/len(told)*100
+            p = (len(tp) - 2) / len(told) * 100
             msg = ('there are too many turning points ({:.2f}%) to '
                    'account for drift or align the largest section. '
                    'Skipping steps 11 and 12.')
@@ -1601,8 +1601,8 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         return tp, align
 
     def _mk_initial_tnew(told, sr, dt, difft, fixdrift):
-        L = int(round((told[-1] - told[0])*sr)) + 1
-        tnew = np.arange(L)/sr + told[0]
+        L = int(round((told[-1] - told[0]) * sr)) + 1
+        tnew = np.arange(L) / sr + told[0]
 
         # get turning points and see if we should try to align:
         tp, align = _get_turning_points(told, dt)
@@ -1613,17 +1613,17 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
 
             # align with the "good" range:
             j = np.argmax(np.diff(tp))
-            t_good = told[tp[j]:tp[j+1]+1]
+            t_good = told[tp[j]:tp[j + 1] + 1]
 
-            p = _get_prev_index(tnew, t_good[0]+dt/2)
-            tnew_good = tnew[p:p+len(t_good)]
+            p = _get_prev_index(tnew, t_good[0] + dt / 2)
+            tnew_good = tnew[p:p + len(t_good)]
 
             delt = np.mean(t_good[:len(tnew_good)] - tnew_good)
             adelt = abs(delt)
-            if adelt > dt/2:
+            if adelt > dt / 2:
                 sgn = np.sign(delt)
-                factor = int(adelt/delt)
-                dt = sgn*(adelt-factor*delt)
+                factor = int(adelt / delt)
+                dt = sgn * (adelt - factor * delt)
             tnew += delt
         return tnew, tp
 
@@ -1632,19 +1632,19 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
         index = np.zeros(L, np.int64) - 1
         lastp = 0
         lastn = 0
-        for i in range(len(tp)-1):
-            m, n = tp[i], tp[i+1]
-            p = _get_prev_index(tnew, told[m]+dt/2)
+        for i in range(len(tp) - 1):
+            m, n = tp[i], tp[i + 1]
+            p = _get_prev_index(tnew, told[m] + dt / 2)
             index[lastp:p] = lastn
-            if p+n-m > L:
+            if p + n - m > L:
                 n = L + m - p
-            index[p:p+n-m] = np.arange(m, n)
-            lastp, lastn = p+n-m, n-1
+            index[p:p + n - m] = np.arange(m, n)
+            lastp, lastn = p + n - m, n - 1
         if lastp < L:
             # can last point be considered part of a good segment?
-            if n - m == 1 and abs(told[n] - told[m] - dt) > dt/4:
+            if n - m == 1 and abs(told[n] - told[m] - dt) > dt / 4:
                 # no, so find index and fill in before moving on
-                p = _get_prev_index(tnew, told[n]+dt/2)
+                p = _get_prev_index(tnew, told[n] + dt / 2)
                 index[lastp:p] = lastn
                 lastp = p
             index[lastp:] = n
@@ -1696,7 +1696,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # sample rate calculations:
     difft = np.diff(told[keep])
     sr, sr_stats = _sr_calcs(difft, sr, verbose)
-    dt = 1/sr
+    dt = 1 / sr
 
     # delete spikes if requested:
     if delspikes:
@@ -1729,7 +1729,7 @@ def fixtime(olddata, sr=None, negmethod='sort', deldrops=True,
     # if want new time to exactly hit base (if base were in range):
     if base is not None:
         t0 = tnew[0]
-        t1 = base - t0 - round((base-t0)*sr)/sr
+        t1 = base - t0 - round((base - t0) * sr) / sr
         tnew += t1
     return _return(tnew, newdata, alldrops, sr_stats, tp,
                    getall, return_ndarray, despike_info)
@@ -1799,7 +1799,7 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
 
     # get time step:
     t, d, isarr = _get_timedata(dct[parms[0]])
-    dt = (t[-1] - t[0])/(len(t) - 1)
+    dt = (t[-1] - t[0]) / (len(t) - 1)
 
     if mode == 'truncate':
         # loop to determine maximum overlap:
@@ -1815,17 +1815,17 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
             tmin = max(tmin, t[0])
             tmax = min(tmax, t[-1])
 
-        n = int(np.ceil((tmax-tmin)/dt))
-        if (dt*n + tmin) < (tmax + dt/2):
+        n = int(np.ceil((tmax - tmin) / dt))
+        if (dt * n + tmin) < (tmax + dt / 2):
             n += 1
         pv = np.arange(n)
         dctout = {}
-        dctout['t'] = pv*dt + tmin
-        start = tmin + dt/2  # so index finds closest point
+        dctout['t'] = pv * dt + tmin
+        start = tmin + dt / 2  # so index finds closest point
         for key in parms:
             t, d, isarr = _get_timedata(dct[key])
             i = _get_prev_index(t, start)
-            dctout[key] = d[i+pv]
+            dctout[key] = d[i + pv]
     else:
         # loop to determine maximum range:
         tmin = t[0]
@@ -1838,20 +1838,20 @@ def aligntime(dct, channels=None, mode='truncate', value=0):
             tmin = min(tmin, t[0])
             tmax = max(tmax, t[-1])
 
-        n = int(np.ceil((tmax-tmin)/dt))
-        if (dt*n + tmin) < (tmax + dt/2):
+        n = int(np.ceil((tmax - tmin) / dt))
+        if (dt * n + tmin) < (tmax + dt / 2):
             n += 1
         dctout = {}
-        t = dctout['t'] = np.arange(n)*dt + tmin
+        t = dctout['t'] = np.arange(n) * dt + tmin
         for key in parms:
             old_t, old_d, isarr = _get_timedata(dct[key])
-            i = _get_prev_index(t, old_t[0]+dt/2)
+            i = _get_prev_index(t, old_t[0] + dt / 2)
             new_d = np.empty(n)
             new_d[:] = value
             old_n = len(old_t)
             if i + old_n > n:
                 old_n = n - i
-            new_d[i:i+old_n] = old_d[:old_n]
+            new_d[i:i + old_n] = old_d[:old_n]
             dctout[key] = new_d
     return dctout
 
@@ -1929,13 +1929,27 @@ def windowends(sig, portion=.01, ends='front', axis=-1):
     dims = np.ones(sig.ndim, int)
     dims[axis] = -1
     v = np.ones(ln, float)
-    w = 0.5 - 0.5*np.cos(2*np.pi*np.arange(n)/(2*n-2))
+    w = 0.5 - 0.5 * np.cos(2 * np.pi * np.arange(n) / (2 * n - 2))
     if ends == 'front' or ends == 'both':
         v[:n] = w
     if ends == 'back' or ends == 'both':
         v[-n:] = w[::-1]
     v = v.reshape(*dims)
-    return sig*v
+    return sig * v
+
+
+def _proc_timeslice(timeslice, sr, n):
+    # work with integers for slicing:
+    if isinstance(timeslice, str):
+        ntimeslice = int(timeslice)
+        timeslice = ntimeslice / sr
+    else:
+        ntimeslice = int(round(sr * timeslice))
+
+    if ntimeslice > n:
+        ntimeslice = n
+        timeslice = ntimeslice / sr
+    return ntimeslice, timeslice
 
 
 def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
@@ -2099,16 +2113,8 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
     if slicekwargs is None:
         slicekwargs = {}
 
-    # work with integers for slicing:
-    if isinstance(timeslice, str):
-        ntimeslice = int(timeslice)
-        timeslice = ntimeslice / sr
-    else:
-        ntimeslice = int(round(sr*timeslice))
-
-    if ntimeslice > sig.size:
-        ntimeslice = sig.size
-        timeslice = ntimeslice/sr
+    ntimeslice, timeslice = _proc_timeslice(
+        timeslice, sr, sig.size)
 
     if isinstance(tsoverlap, str):
         ntsoverlap = int(tsoverlap)
@@ -2145,7 +2151,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
             raise ValueError('`which` cannot be None when `freq` is '
                              'an integer')
         # do first iteration outside loop to get freq:
-        s = slicefunc(sig[b:b+ntimeslice], *sliceargs, **slicekwargs)
+        s = slicefunc(sig[b:b + ntimeslice], *sliceargs, **slicekwargs)
         b += inc
         res = func(s, *args, **kwargs)
         freq = res[freq]
@@ -2155,7 +2161,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         col = 1
 
     for j in range(col, tlen):
-        s = slicefunc(sig[b:b+ntimeslice], *sliceargs, **slicekwargs)
+        s = slicefunc(sig[b:b + ntimeslice], *sliceargs, **slicekwargs)
         b += inc
         res = func(s, *args, **kwargs)
         if which is not None:
@@ -2163,7 +2169,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         else:
             mp[:, j] = res
 
-    return mp, t+t0, freq
+    return mp, t + t0, freq
 
 
 def get_turning_pts(y, x=None, getindex=True, tol=1e-6, atol=None):
@@ -2348,8 +2354,8 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
                          " or 'both")
     if base is None:
         method = 'both'
-    up = 1+p/100
-    dn = 1-p/100
+    up = 1 + p / 100
+    dn = 1 - p / 100
     xe = np.linspace(x[0], x[-1], n)
     xe_max = xe_min = xe
     y2 = np.interp(xe, x, y)
@@ -2357,10 +2363,10 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
     ye_max = np.zeros(n)
     ye_min = np.zeros(n)
     for i in range(n):
-        pv = np.logical_and(xe >= xe[i]/up, xe <= xe[i]/dn)
+        pv = np.logical_and(xe >= xe[i] / up, xe <= xe[i] / dn)
         ye_max[i] = np.max(y2[pv])
         ye_min[i] = np.min(y2[pv])
-        pv = np.logical_and(x >= xe[i]/up, x <= xe[i]/dn)
+        pv = np.logical_and(x >= xe[i] / up, x <= xe[i] / dn)
         if np.any(pv):
             ye_max[i] = max(ye_max[i], np.max(y[pv]))
             ye_min[i] = min(ye_min[i], np.min(y[pv]))
@@ -2472,8 +2478,8 @@ def fdscale(y, sr, scale):
 
     n = y.shape[0]
     even = n % 2 == 0
-    m = n//2 + 1 if even else (n+1)//2
-    freq = np.arange(m)*(sr/n)  # positive 1/2 frequency scale
+    m = n // 2 + 1 if even else (n + 1) // 2
+    freq = np.arange(m) * (sr / n)  # positive 1/2 frequency scale
 
     F = np.fft.rfft(y, axis=0)
     h = np.interp(freq, scale[:, 0], scale[:, 1])
@@ -2495,7 +2501,7 @@ def nextpow2(x):
     >>> nextpow2(5)
     8
     """
-    return 1 << (x-1).bit_length()
+    return 1 << (x - 1).bit_length()
 
 
 def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
@@ -2609,9 +2615,9 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
             #     nearzero = exp(-(df*(npts-1)) ** 2 / den)
             #     -log(nearzero) = (df*(npts-1)) ** 2 / den
             #     den = (df*(npts-1)) ** 2 / (-log(nearzero))
-            nearzero = 1/npts/4
-            den = -(df*(npts-1)) ** 2 / np.log(nearzero)
-            ramp = np.exp(-(np.arange(npts+1)*df) ** 2 / den)
+            nearzero = 1 / npts / 4
+            den = -(df * (npts - 1)) ** 2 / np.log(nearzero)
+            ramp = np.exp(-(np.arange(npts + 1) * df) ** 2 / den)
             ramp[-1] = 0.0
             if not on:
                 ramp = ramp[::-1]
@@ -2640,7 +2646,7 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
             ramp = _get_ramp(df, _bw, on)
             n = ramp.shape[0]
             i = np.argmin(abs(ramp - mag))
-            if i > j or j-i < I or j-i+n > freq.shape[0]:
+            if i > j or j - i < I or j - i + n > freq.shape[0]:
                 # if ramp doesn't fit in range or if it conflicts with
                 # previous, error out:
                 raise ValueError(
@@ -2648,9 +2654,9 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
                     'requirements as defined; stopped on w={}. Using '
                     'a narrower bandwidth might help (currently using'
                     ' bw={})'.format(_w, _bw))
-            H[I:j-i] = ramp[0]
-            I = j-i+n
-            H[j-i:I] = ramp
+            H[I:j - i] = ramp[0]
+            I = j - i + n
+            H[j - i:I] = ramp
             on = not on
         H[I:] = ramp[-1]
         return H
@@ -2670,7 +2676,7 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
 
     n = sig.shape[0]
     n2 = nextpow2(n)
-    freq = np.fft.rfftfreq(n2, 0.5/nyq)
+    freq = np.fft.rfftfreq(n2, 0.5 / nyq)
     h = _make_h(freq, w, bw, pass_zero, mag)
     t = np.arange(n)
     ylines = interp.interp1d(t[[0, -1]],
@@ -2825,7 +2831,7 @@ def fftcoef(x, sr, coef='mag', window='boxcar', dodetrend=False,
         if len(window) != n:
             raise ValueError('window size is {}; expected {} to '
                              'match signal'.format(len(window), n))
-    scale = n/window.sum()
+    scale = n / window.sum()
     window *= scale
 
     if dodetrend:
@@ -2834,8 +2840,8 @@ def fftcoef(x, sr, coef='mag', window='boxcar', dodetrend=False,
         x = x * window
 
     def _fftsize(n, sr, maxdf):
-        if maxdf and sr/n > maxdf:
-            N = nextpow2(int(sr/maxdf))
+        if maxdf and sr / n > maxdf:
+            N = nextpow2(int(sr / maxdf))
         else:
             N = n
         return N
@@ -2851,15 +2857,15 @@ def fftcoef(x, sr, coef='mag', window='boxcar', dodetrend=False,
     if even:
         m = N // 2 + 1
     else:
-        m = (N+1) // 2
+        m = (N + 1) // 2
 
     F = np.fft.fft(X)
-    f = np.arange(0., m)*(sr/N)
+    f = np.arange(0., m) * (sr / N)
     if fold:
         a = 2.0 * F[:m].real / n
         a[0] = a[0] / 2.0
         if even:
-            a[m-1] = a[m-1] / 2.0
+            a[m - 1] = a[m - 1] / 2.0
         b = -2.0 * F[:m].imag / n
     else:
         a = F[:m].real / n

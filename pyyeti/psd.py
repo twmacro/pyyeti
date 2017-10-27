@@ -1009,10 +1009,11 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
     """
     if nperseg is None:
         nperseg = int(sr / 5)
-    if nperseg > timeslice * sr:
+    ntimeslice = dsp._proc_timeslice(timeslice, sr, sig.size)[0]
+    if nperseg > ntimeslice:
         raise ValueError(
-            '``nperseg > timeslice*sr``; either decrease `nperseg`'
-            ' or increase `timeslice`')
+            '`nperseg` too big for current `timeslice` setting;'
+            ' either decrease `nperseg` or increase `timeslice`')
     welch_inputs = dict(fs=sr, nperseg=nperseg, **kwargs)
     pmap, t, f = dsp.waterfall(sig, sr, timeslice, tsoverlap,
                                signal.welch, which=1, freq=0,

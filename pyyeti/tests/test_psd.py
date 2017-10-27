@@ -201,10 +201,14 @@ def test_psdmod():
                               df=1 / TF, winends=dict(portion=10),
                               gettime=True)
     # sr = 500
-    freq = np.arange(20., 50.1)
     f, p = signal.welch(sig, sr, nperseg=sr)  # 1 second windows, df=1
     f2, p2 = psd.psdmod(sig, sr, nperseg=sr, timeslice=4,
                         tsoverlap=0.5)
+    f2b, p2b = psd.psdmod(sig, sr, nperseg=sr, timeslice='2000',
+                          tsoverlap=0.5)
+    assert np.allclose(f2b, f2)
+    assert np.allclose(p2b, p2)
+
     pv = np.logical_and(f2 > 24, f2 < 47)
     assert np.all(p2[pv] > p[pv])
 
