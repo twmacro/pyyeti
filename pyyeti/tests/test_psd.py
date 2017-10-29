@@ -81,6 +81,21 @@ def test_interp():
     assert np.allclose(psdlog, [0, 0.76352135927358911, 0])
 
 
+def test_interp_nans():
+    Freq = np.arange(1, 10, 2)
+    freq = np.arange(1, 10)
+    PSD = (Freq ** 2) / 100
+
+    nan = [np.nan, np.nan]
+    Freq = np.hstack((Freq, nan))
+    PSD = np.hstack((PSD, nan))
+
+    plog = (freq ** 2) / 100
+    plog2 = psd.interp((Freq, PSD), freq, linear=False)
+
+    assert np.allclose(plog, plog2)
+
+
 def test_rescale():
     g = np.random.randn(10000)
     sr = 400

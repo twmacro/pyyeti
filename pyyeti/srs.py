@@ -93,6 +93,7 @@ SIG_ = None
 SRSmax_ = None
 WN_ = None
 
+
 def createSharedArray(dimensions, ctype=ctypes.c_double):
     """
     Creates array in shared memory segment and fills with zeros
@@ -118,23 +119,23 @@ def absacce(Q, dT, wn):
     digital filter coefficients. Returns (b, a) for use in
     :func:`scipy.signal.lfilter`.
     """
-    zeta = 1/2/Q
-    sqz = sqrt(1-zeta*zeta)
-    wd = wn*sqz
-    E = exp(-zeta*wn*dT)
-    E2 = E*E
-    B = dT*wd
-    C = E*cos(B)
+    zeta = 1 / 2 / Q
+    sqz = sqrt(1 - zeta * zeta)
+    wd = wn * sqz
+    E = exp(-zeta * wn * dT)
+    E2 = E * E
+    B = dT * wd
+    C = E * cos(B)
     if wn == 0:
         b = np.array([0., 0., 0.])
     else:
-        S = E*sin(B)
-        Sb = S/B
-        beta0 = (1-Sb)
-        beta1 = 2*(Sb-C)
-        beta2 = (E2-Sb)
+        S = E * sin(B)
+        Sb = S / B
+        beta0 = (1 - Sb)
+        beta1 = 2 * (Sb - C)
+        beta2 = (E2 - Sb)
         b = np.array([beta0, beta1, beta2])
-    a = np.array([1, -2*C, E2])
+    a = np.array([1, -2 * C, E2])
     return b, a
 
 
@@ -144,17 +145,17 @@ def relacce(Q, dT, wn):
     digital filter coefficients. Returns (b, a) for use in
     :func:`scipy.signal.lfilter`.
     """
-    zeta = 1/2/Q
-    sqz = sqrt(1-zeta*zeta)
-    wd = wn*sqz
-    E = exp(-zeta*wn*dT)
-    E2 = E*E
-    B = dT*wd
-    C = E*cos(B)
+    zeta = 1 / 2 / Q
+    sqz = sqrt(1 - zeta * zeta)
+    wd = wn * sqz
+    E = exp(-zeta * wn * dT)
+    E2 = E * E
+    B = dT * wd
+    C = E * cos(B)
     b = np.array([-1., 2., -1.])
     if wn != 0.:
-        b *= (E*sin(B))/B
-    a = np.array([1, -2*C, E2])
+        b *= (E * sin(B)) / B
+    a = np.array([1, -2 * C, E2])
     return b, a
 
 
@@ -164,25 +165,25 @@ def reldisp(Q, dT, wn):
     digital filter coefficients. Returns (b, a) for use in
     :func:`scipy.signal.lfilter`.
     """
-    zeta = 1/2/Q
-    E = exp(-zeta*wn*dT)
-    E2 = E*E
-    sqz = sqrt(1-zeta*zeta)
-    wd = wn*sqz
-    B = dT*wd
-    C = E*cos(B)
+    zeta = 1 / 2 / Q
+    E = exp(-zeta * wn * dT)
+    E2 = E * E
+    sqz = sqrt(1 - zeta * zeta)
+    wd = wn * sqz
+    B = dT * wd
+    C = E * cos(B)
     if wn == 0:
         # See notes above for the derivation of these coefficients:
-        b = np.array([-1., -4., -1.])*dT**2/6
+        b = np.array([-1., -4., -1.]) * dT**2 / 6
     else:
-        S = E*sin(B)
-        f = dT*wn*wn*wn
-        q = (2*zeta*zeta - 1)/sqz
-        beta0 = ((1-C)/Q-q*S-wn*dT)/f
-        beta1 = (2*C*wn*dT - (1-E2)/Q + 2*q*S)/f
-        beta2 = (-E2*(wn*dT+1/Q) + C/Q - q*S)/f
+        S = E * sin(B)
+        f = dT * wn * wn * wn
+        q = (2 * zeta * zeta - 1) / sqz
+        beta0 = ((1 - C) / Q - q * S - wn * dT) / f
+        beta1 = (2 * C * wn * dT - (1 - E2) / Q + 2 * q * S) / f
+        beta2 = (-E2 * (wn * dT + 1 / Q) + C / Q - q * S) / f
         b = np.array([beta0, beta1, beta2])
-    a = np.array([1, -2*C, E2])
+    a = np.array([1, -2 * C, E2])
     return b, a
 
 
@@ -192,24 +193,24 @@ def pvelo(Q, dT, wn):
     (relative displacement * omega) digital filter coefficients.
     Returns (b, a) for use in :func:`scipy.signal.lfilter`.
     """
-    zeta = 1/2/Q
-    sqz = sqrt(1-zeta*zeta)
-    wd = wn*sqz
-    E = exp(-zeta*wn*dT)
-    E2 = E*E
-    B = dT*wd
-    C = E*cos(B)
+    zeta = 1 / 2 / Q
+    sqz = sqrt(1 - zeta * zeta)
+    wd = wn * sqz
+    E = exp(-zeta * wn * dT)
+    E2 = E * E
+    B = dT * wd
+    C = E * cos(B)
     if wn == 0:
         b = np.array([0., 0., 0.])
     else:
-        S = E*sin(B)
-        f = dT*wn*wn
-        q = (2*zeta*zeta - 1)/sqz
-        beta0 = ((1-C)/Q-q*S-wn*dT)/f
-        beta1 = (2*C*wn*dT - (1-E2)/Q + 2*q*S)/f
-        beta2 = (-E2*(wn*dT+1/Q) + C/Q - q*S)/f
+        S = E * sin(B)
+        f = dT * wn * wn
+        q = (2 * zeta * zeta - 1) / sqz
+        beta0 = ((1 - C) / Q - q * S - wn * dT) / f
+        beta1 = (2 * C * wn * dT - (1 - E2) / Q + 2 * q * S) / f
+        beta2 = (-E2 * (wn * dT + 1 / Q) + C / Q - q * S) / f
         b = np.array([beta0, beta1, beta2])
-    a = np.array([1, -2*C, E2])
+    a = np.array([1, -2 * C, E2])
     return b, a
 
 
@@ -219,24 +220,24 @@ def pacce(Q, dT, wn):
     (relative displacement * omega^2) digital filter coefficients.
     Returns (b, a) for use in :func:`scipy.signal.lfilter`.
     """
-    zeta = 1/2/Q
-    sqz = sqrt(1-zeta*zeta)
-    wd = wn*sqz
-    E = exp(-zeta*wn*dT)
-    E2 = E*E
-    B = dT*wd
-    C = E*cos(B)
+    zeta = 1 / 2 / Q
+    sqz = sqrt(1 - zeta * zeta)
+    wd = wn * sqz
+    E = exp(-zeta * wn * dT)
+    E2 = E * E
+    B = dT * wd
+    C = E * cos(B)
     if wn == 0:
         b = np.array([0., 0., 0.])
     else:
-        S = E*sin(B)
-        f = dT*wn
-        q = (2*zeta*zeta - 1)/sqz
-        beta0 = ((1-C)/Q-q*S-wn*dT)/f
-        beta1 = (2*C*wn*dT - (1-E2)/Q + 2*q*S)/f
-        beta2 = (-E2*(wn*dT+1/Q) + C/Q - q*S)/f
+        S = E * sin(B)
+        f = dT * wn
+        q = (2 * zeta * zeta - 1) / sqz
+        beta0 = ((1 - C) / Q - q * S - wn * dT) / f
+        beta1 = (2 * C * wn * dT - (1 - E2) / Q + 2 * q * S) / f
+        beta2 = (-E2 * (wn * dT + 1 / Q) + C / Q - q * S) / f
         b = np.array([beta0, beta1, beta2])
-    a = np.array([1, -2*C, E2])
+    a = np.array([1, -2 * C, E2])
     return b, a
 
 
@@ -247,23 +248,23 @@ def relvelo(Q, dT, wn):
     :func:`scipy.signal.lfilter`.
     """
     if wn == 0.:
-        b = np.array([-1., -1.])*dT/2
+        b = np.array([-1., -1.]) * dT / 2
         a = np.array([1., -1.])
     else:
-        zeta = 1/2/Q
-        sqz = sqrt(1-zeta*zeta)
-        wd = wn*sqz
-        E = exp(-zeta*wn*dT)
-        E2 = E*E
-        B = dT*wd
-        C = E*cos(B)
-        S = E*sin(B)
-        Sz = S*zeta/sqz
-        f = dT*wn*wn
-        beta0 = (C+Sz-1)/f
-        beta1 = (1-E2-2*Sz)/f
-        beta2 = (E2+Sz-C)/f
-        a = np.array([1, -2*C, E2])
+        zeta = 1 / 2 / Q
+        sqz = sqrt(1 - zeta * zeta)
+        wd = wn * sqz
+        E = exp(-zeta * wn * dT)
+        E2 = E * E
+        B = dT * wd
+        C = E * cos(B)
+        S = E * sin(B)
+        Sz = S * zeta / sqz
+        f = dT * wn * wn
+        beta0 = (C + Sz - 1) / f
+        beta1 = (1 - E2 - 2 * Sz) / f
+        beta2 = (E2 + Sz - C) / f
+        a = np.array([1, -2 * C, E2])
         b = np.array([beta0, beta1, beta2])
     return b, a
 
@@ -328,13 +329,13 @@ def fftroll(sig, sr, ppc, frq):
     """
     N = sig.shape[0]
     if N > 1:
-        curppc = sr/frq
-        factor = int(np.ceil(ppc/curppc))
+        curppc = sr / frq
+        factor = int(np.ceil(ppc / curppc))
         if N & 1:
-            sig = signal.resample(sig[:-1], factor*(N-1),
+            sig = signal.resample(sig[:-1], factor * (N - 1),
                                   axis=0)
         else:
-            sig = signal.resample(sig, factor*N, axis=0)
+            sig = signal.resample(sig, factor * N, axis=0)
         sr *= factor
     return sig, sr
 
@@ -370,8 +371,8 @@ def lanroll(sig, sr, ppc, frq):
     """
     N = sig.shape[0]
     if N > 1:
-        curppc = sr/frq
-        factor = int(np.ceil(ppc/curppc))
+        curppc = sr / frq
+        factor = int(np.ceil(ppc / curppc))
         sig = dsp.resample(sig, factor, 1, pts=65)
         sr *= factor
     return sig, sr
@@ -446,11 +447,11 @@ def linroll(sig, sr, ppc, frq):
     """
     N = sig.shape[0]
     if N > 1:
-        curppc = sr/frq
-        factor = int(np.ceil(ppc/curppc))
-        told = np.arange(N)/sr
+        curppc = sr / frq
+        factor = int(np.ceil(ppc / curppc))
+        told = np.arange(N) / sr
         sr *= factor
-        tnew = np.linspace(0., told[-1], N*factor-1)
+        tnew = np.linspace(0., told[-1], N * factor - 1)
         ifunc = interp.interp1d(told, sig, axis=0)
         sig = ifunc(tnew)
     return sig, sr
@@ -501,9 +502,9 @@ def _dosrs_nohist_ic(args):
     b, a = coeffunc(Q, dT, WN_[j])
     resphist = signal.lfilter(b, a, SIG_, axis=0)
     if stype == 'reldisp':
-        resphist += ICVALS_/WN_[j]**2
+        resphist += ICVALS_ / WN_[j]**2
     elif stype == 'pvelo':
-        resphist += ICVALS_/WN_[j]
+        resphist += ICVALS_ / WN_[j]
     else:
         # stype == 'pacce' or 'absacce'
         resphist += ICVALS_
@@ -517,9 +518,9 @@ def _dosrs_ic(args):
     b, a = coeffunc(Q, dT, WN_[j])
     resphist = signal.lfilter(b, a, SIG_, axis=0)
     if stype == 'reldisp':
-        resphist += ICVALS_/WN_[j]**2
+        resphist += ICVALS_ / WN_[j]**2
     elif stype == 'pvelo':
-        resphist += ICVALS_/WN_[j]
+        resphist += ICVALS_ / WN_[j]
     else:
         # stype == 'pacce' or 'absacce'
         resphist += ICVALS_
@@ -623,10 +624,10 @@ def _add_one_cycle(sig, freq, sr, H, ic, s1):
     pv = (freq > 0).nonzero()[0]
     if pv.size > 0:
         minf = freq[pv].min()
-        nzeros = int(np.ceil(sr/minf))
+        nzeros = int(np.ceil(sr / minf))
         z = np.zeros((nzeros, H))
         if ic == 'steady':
-            sig = np.vstack((sig, z-s1))
+            sig = np.vstack((sig, z - s1))
         else:
             sig = np.vstack((sig, z))
     return sig, sig.shape[0]
@@ -866,8 +867,8 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         \end{aligned}
 
     In general, that equation is solved for each frequency for each
-    signal, giving the relative displacement, velocity and acceleration.
-    The absolute acceleration is then calculated from:
+    signal, giving the relative displacement, velocity and
+    acceleration.  The absolute acceleration is then calculated from:
 
     .. math::
         \ddot{x} = \ddot{u} + \ddot{z}
@@ -966,7 +967,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     (coeffunc, methfunc,
      rollfunc, ptr) = _process_inputs(stype, peak, rolloff, time)
     freq = np.atleast_1d(freq)
-    wn = 2*pi*freq
+    wn = 2 * pi * freq
     LF = len(freq)
     sig = np.atleast_1d(sig)
     if sig.ndim == 1:
@@ -983,7 +984,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
                              "length 1 AND `ic` is not 'zero'")
         sr = 1.0   # can be anything, just needed for calculations
 
-    parallel, ncpu = _process_parallel(parallel, LF, N*H,
+    parallel, ncpu = _process_parallel(parallel, LF, N * H,
                                        maxcpu, getresp)
 
     if parallel == 'yes':
@@ -1002,7 +1003,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         sig, sr = rollfunc(sig, sr, ppc, mf)
         rollfunc = None  # rolloff = 'none'
 
-    if rollfunc and mf != 0 and sr/mf < ppc:
+    if rollfunc and mf != 0 and sr / mf < ppc:
         sig, sr = rollfunc(sig, sr, ppc, mf)
         N = sig.shape[0]
     rollfunc = None
@@ -1017,13 +1018,14 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         # hist is:  len(time) x nsignals x len(freq)
         if ptr == 2:
             # residual
-            resp['t'] = np.arange(M, N)/sr
+            resp['t'] = np.arange(M, N) / sr
             if parallel == 'yes':
-                HIST = (createSharedArray((N-M, H, LF)), (N-M, H, LF))
+                HIST = (createSharedArray((N - M, H, LF)),
+                        (N - M, H, LF))
             else:
-                resp['hist'] = np.empty((N-M, H, LF))
+                resp['hist'] = np.empty((N - M, H, LF))
         else:
-            resp['t'] = np.arange(N)/sr
+            resp['t'] = np.arange(N) / sr
             if parallel == 'yes':
                 HIST = (createSharedArray((N, H, LF)), (N, H, LF))
             else:
@@ -1036,7 +1038,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         if parallel == 'yes':
             SIG = (copyToSharedArray(sig), sig.shape)
             ICVALS = (copyToSharedArray(icvals), icvals.shape)
-            args = (coeffunc, Q, 1/sr, methfunc, S, stype)
+            args = (coeffunc, Q, 1 / sr, methfunc, S, stype)
             gvars = (WN, SIG, ICVALS, SRSmax, HIST)
             func = _dosrs_ic if getresp else _dosrs_nohist_ic
             with mp.Pool(processes=ncpu,
@@ -1050,14 +1052,14 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
                 HIST = np.frombuffer(HIST[0]).reshape(HIST[1])
                 resp['hist'] = HIST
         else:
-            dT = 1/sr
+            dT = 1 / sr
             for j in range(LF):
                 b, a = coeffunc(Q, dT, wn[j])
                 resphist = signal.lfilter(b, a, sig, axis=0)
                 if stype == 'reldisp':
-                    resphist += icvals/wn[j]**2
+                    resphist += icvals / wn[j]**2
                 elif stype == 'pvelo':
-                    resphist += icvals/wn[j]
+                    resphist += icvals / wn[j]
                 else:
                     # stype == 'pacce' or 'absacce'
                     resphist += icvals
@@ -1068,7 +1070,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         # no initial conditions to worry about:
         if parallel == 'yes':
             SIG = (copyToSharedArray(sig), sig.shape)
-            args = (coeffunc, Q, 1/sr, methfunc, S)
+            args = (coeffunc, Q, 1 / sr, methfunc, S)
             gvars = (WN, SIG, SRSmax, HIST)
             func = _dosrs if getresp else _dosrs_nohist
             with mp.Pool(processes=ncpu,
@@ -1082,7 +1084,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
                 HIST = np.frombuffer(HIST[0]).reshape(HIST[1])
                 resp['hist'] = HIST
         else:
-            dT = 1/sr
+            dT = 1 / sr
             for j in range(LF):
                 b, a = coeffunc(Q, dT, wn[j])
                 resphist = signal.lfilter(b, a, sig, axis=0)
@@ -1124,9 +1126,21 @@ def vrs(spec, freq, Q, linear, Fn=None,
         :math:`\zeta` is the fraction of critical damping.
     linear : bool
         If True, use linear interpolation to expand `spec` to the
-        frequencies in `freq`. Otherwise, the interpolation is done
-        using the logs. Using logs is appropriate if the `spec` is
-        actually a specification that uses constant db/octave slopes.
+        frequencies in `freq`. If False, `spec` is expanded via
+        interpolation in log space. In other words:
+
+        ================   ==========================================
+        Use:               When:
+        ================   ==========================================
+        ``linear=False``   `spec` is an actual PSD test specification
+                           -- that is, it uses constant db/octave
+                           slopes
+        ``linear=True``    `spec` doesn't use constant db/octave
+                           slopes (eg, an analysis curve)
+        ================   ==========================================
+
+        The :func:`pyyeti.psd.interp` routine is called to perform the
+        interpolation.
     Fn : 1d array or None
         Defines the frequency(s) at which to compute the response. If
         None, ``Fn = freq``.
@@ -1254,7 +1268,7 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
     # Create delta_f
     df = np.empty(rf)
-    df[1:-1] = (freq[2:] - freq[:-2])/2
+    df[1:-1] = (freq[2:] - freq[:-2]) / 2
     df[0] = freq[1] - freq[0]
     df[-1] = freq[-1] - freq[-2]
 
@@ -1272,23 +1286,23 @@ def vrs(spec, freq, Q, linear, Fn=None,
                                     bounds_error=False, fill_value=0,
                                     assume_sorted=True)
             psdf2 = ifunc(Fn)
-            z_miles = np.sqrt((np.pi/2*Fn*Q) * psdf2.T).T
+            z_miles = np.sqrt((np.pi / 2 * Fn * Q) * psdf2.T).T
         else:
-            z_miles = np.sqrt((np.pi/2*freq*Q) * psdfull.T).T
+            z_miles = np.sqrt((np.pi / 2 * freq * Q) * psdfull.T).T
         if PSD.ndim == 1:
             z_miles = z_miles.ravel()
 
     # Compute VRS at each frequency
     z_vrs = np.empty((len(Fn), npsds))
-    zeta = 1/2/Q
+    zeta = 1 / 2 / Q
     if getresp:
         psd_vrs = np.empty((len(Fn), npsds, len(freq)))
         for i, fn in enumerate(Fn):
-            t = ((1+(2*zeta*freq/fn)**2) /
-                 ((1-(freq/fn)**2)**2 +
-                  (2*zeta*freq/fn)**2)) * psdfull.T
+            t = ((1 + (2 * zeta * freq / fn)**2) /
+                 ((1 - (freq / fn)**2)**2 +
+                  (2 * zeta * freq / fn)**2)) * psdfull.T
             psd_vrs[i] = t   # npsds x len(freq)
-            z_vrs[i] = np.sqrt(np.sum(df*t, axis=1))
+            z_vrs[i] = np.sqrt(np.sum(df * t, axis=1))
         resp = {}
         resp['f'] = freq
         resp['psd'] = psd_vrs
@@ -1297,9 +1311,9 @@ def vrs(spec, freq, Q, linear, Fn=None,
         return z_vrs, z_miles, resp
 
     for i, fn in enumerate(Fn):
-        t = ((1+(2*zeta*freq/fn)**2) /
-             ((1-(freq/fn)**2)**2 +
-              (2*zeta*freq/fn)**2) * df) * psdfull.T
+        t = ((1 + (2 * zeta * freq / fn)**2) /
+             ((1 - (freq / fn)**2)**2 +
+              (2 * zeta * freq / fn)**2) * df) * psdfull.T
         z_vrs[i] = np.sqrt(np.sum(t, axis=1))
     if PSD.ndim == 1:
         z_vrs = z_vrs.ravel()
@@ -1357,10 +1371,10 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
     True
     """
     srs_frq = np.asarray(srs_frq)
-    ws = 2.*np.pi*srs_frq
+    ws = 2. * np.pi * srs_frq
     n = len(ws)
     ms = np.ones(n, float)
-    bs = 1/Q*ws
+    bs = 1 / Q * ws
     ks = ws**2
 
     frf_frq = np.asarray(frf_frq)
@@ -1396,12 +1410,12 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
     el = np.any(pvel)
 
     # setup frequency scale for solution:
-    freqw = 2*np.pi*ffreq
+    freqw = 2 * np.pi * ffreq
     if el:
         fw = freqw.reshape(1, -1)
         H = (ks[pvel].reshape(-1, 1) -
              ms[pvel].reshape(-1, 1) @ fw**2 +
-             1j*(bs[pvel].reshape(-1, 1) @ fw))
+             1j * (bs[pvel].reshape(-1, 1) @ fw))
     a = np.empty((n, nf), complex)
     for j in range(nfrf):
         # compute relative response, then absolute (see eqns in srs)
@@ -1410,7 +1424,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
         if rb:
             a[pvrb] = -fs  # / ms ... since ms == 1
         if el:
-            a[pvel] = (fs*freqw**2) / H
+            a[pvel] = (fs * freqw**2) / H
         shk[:, j] = abs(a + fs).max(axis=1)
     return shk
 

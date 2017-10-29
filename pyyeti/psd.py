@@ -177,6 +177,11 @@ def proc_psd_spec(spec):
         either ``(len(freq), n)`` or ``(len(freq),)``.
     npsds : integer
         Number of PSDs in `PSD`.
+
+    Notes
+    -----
+    Any NaNs in the specification frequency are deleted (along with
+    the corresponding PSD values).
     """
     if isinstance(spec, np.ndarray):
         if spec.ndim != 2 or spec.shape[1] <= 1:
@@ -200,6 +205,12 @@ def proc_psd_spec(spec):
             raise ValueError('the PSD input in `spec` has more '
                              'than 2 dimensions.')
         npsds = 1 if PSD.ndim == 1 else PSD.shape[1]
+    # check for nans in Freq:
+    pv = np.isnan(Freq)
+    if pv.any():
+        pv = ~pv
+        Freq = Freq[pv]
+        PSD = PSD[pv]
     return Freq, PSD, npsds
 
 
@@ -358,11 +369,19 @@ def interp(spec, freq, linear=False):
     freq : 1d array
         Vector of frequencies to interpolate the specification to.
     linear : bool
-        If True, use linear interpolation to compute the values;
-        otherwise, the interpolation is done using the logs. Using logs
-        is appropriate if the `spec` is actually a specification that
-        uses constant db/octave slopes. Use ``linear=True`` for
-        analysis curves (when not assuming constant db/octave slopes).
+        If True, use linear interpolation to expand `spec` to the
+        frequencies in `freq`. If False, `spec` is expanded via
+        interpolation in log space. In other words:
+
+        ================   ==========================================
+        Use:               When:
+        ================   ==========================================
+        ``linear=False``   `spec` is an actual PSD test specification
+                           -- that is, it uses constant db/octave
+                           slopes
+        ``linear=True``    `spec` doesn't use constant db/octave
+                           slopes (eg, an analysis curve)
+        ================   ==========================================
 
     Returns
     -------
@@ -376,6 +395,10 @@ def interp(spec, freq, linear=False):
     -----
     Zeros are used to fill in PSD values for frequencies outside the
     specification(s).
+
+    Any NaNs in the specification frequency are deleted (along with
+    the corresponding PSD values) before interpolation. This is done
+    by the routine :func:`proc_psd_spec`.
 
     Examples
     --------
@@ -490,7 +513,6 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
 
     Examples
     --------
-
     Compute a PSD with :func:`scipy.signal.welch` and then rescale it
     to 3rd, 6th, and 12th octave scales starting at 1.0 Hz. Compare
     mean square values from all 4 PSDs.
@@ -542,7 +564,8 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
     >>> p
     array([ 0.525,  1.   ,  0.525])
 
-    The 0.525 value is from: ``area/width = 1*(2.5-(-0.125))/5 = 0.525``
+    The 0.525 value is from:
+    ``area/width = 1*(2.5-(-0.125))/5 = 0.525``
     """
     F = np.atleast_1d(F)
     P = np.atleast_1d(P)
