@@ -2,9 +2,13 @@
 1. Update duf explanation in cla.apply_uf
 3. Rearrange code: op2, op4, n2p, nastran overlap ... ?
    - primarly rdnas2cam ... seems like this should be in n2p
+   - i think all of these should probably just be in "nastran" ...
+     or under it: nastran.op4.read()
+     - but all load when "from pyyeti import nastran"
 4. Convert uset to dataframe i think
 5. Convert ext, mx, mn in DR_Results to dataframe
-
+6. rddmig needs profiling / updating for very large DMIGs
+7. add wtdmig
 12. op4: add some c?
 15. cla.py:
     DR_Results() … should this be able to init? I think so:
