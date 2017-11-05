@@ -9,9 +9,8 @@ Main routines
 .. autosummary::
     :toctree: generated/
 
-    get_dof_descs
-    get_drm
     procdrm12
+    nastran_dr_descriptions
     rdnas2cam
     rdpostop2
 

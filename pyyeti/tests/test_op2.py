@@ -1,5 +1,6 @@
 import numpy as np
-from pyyeti import op2, ytools, op4, nastran, locate
+from pyyeti import ytools, nastran, locate
+from pyyeti.nastran import op4, op2
 from scipy.io import matlab
 from nose.tools import *
 
@@ -70,22 +71,20 @@ def test_n2c_extseout():
 
 def test_drm12_reader():
     import numpy as np
-    from pyyeti import op2
-    from pyyeti import op4
     o4 = op4.OP4()
 
     drm12 = 'pyyeti/tests/nastran_drm12/drm12'
-    mats = o4.dctload(drm12+'.op4')
+    mats = o4.dctload(drm12 + '.op4')
     dsorted = op2.procdrm12(drm12, dosort=True)
     # just to exercise more code:
     with op2.OP2('pyyeti/tests/nastran_drm12/drm12.op2') as o2:
         dkeys = o2.rddrm2op2(1)
 
     # check desc:
-    assert np.all(['T1', 'T2', 'T3']*3 == dsorted['DTM_desc'])
-    assert np.all(['T1', 'T2', 'T3']*3 == dsorted['ATM_desc'])
+    assert np.all(['T1', 'T2', 'T3'] * 3 == dsorted['DTM_desc'])
+    assert np.all(['T1', 'T2', 'T3'] * 3 == dsorted['ATM_desc'])
     spcf_desc = ['Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']
-    assert np.all(spcf_desc*4 == dsorted['SPCF_desc'])
+    assert np.all(spcf_desc * 4 == dsorted['SPCF_desc'])
     stress = ["CBAR Bending Stress 1 - End A",         # 2
               "CBAR Bending Stress 2 - End A",         # 3
               "CBAR Bending Stress 3 - End A",         # 4
@@ -101,7 +100,7 @@ def test_drm12_reader():
               "CBAR Max. Bend. Stress -End B",         # 14
               "CBAR Min. Bend. Stress -End B",         # 15
               "CBAR M.S. Compression"]                 # 16
-    assert np.all(stress*2 == dsorted['STM_desc'])
+    assert np.all(stress * 2 == dsorted['STM_desc'])
 
     force = ["CBAR Bending Moment 1 - End A",         # 2
              "CBAR Bending Moment 2 - End A",         # 3
@@ -111,27 +110,27 @@ def test_drm12_reader():
              "CBAR Shear 2",                          # 7
              "CBAR Axial Force",                      # 8
              "CBAR Torque"]                           # 9
-    assert np.all(force*2+force[-2:] == dsorted['LTM_desc'])
+    assert np.all(force * 2 + force[-2:] == dsorted['LTM_desc'])
 
     # check id_dof:
-    ids = np.array([[12]*3, [14]*3, [32]*3]).reshape((1, -1)).T
-    dof = np.array([[1, 2, 3]*3]).T
+    ids = np.array([[12] * 3, [14] * 3, [32] * 3]).reshape((1, -1)).T
+    dof = np.array([[1, 2, 3] * 3]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == dsorted['DTM_id_dof'])
     assert np.all(iddof == dsorted['ATM_id_dof'])
 
-    ids = np.array([[3]*6, [11]*6, [19]*6, [27]*6]).reshape((1, -1)).T
-    dof = np.array([[1, 2, 3, 4, 5, 6]*4]).T
+    ids = np.array([[3] * 6, [11] * 6, [19] * 6, [27] * 6]).reshape((1, -1)).T
+    dof = np.array([[1, 2, 3, 4, 5, 6] * 4]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == dsorted['SPCF_id_dof'])
 
-    ids = np.array([[11]*15, [89]*15]).reshape((1, -1)).T
-    dof = np.array([[i for i in range(2, 17)]*2]).T
+    ids = np.array([[11] * 15, [89] * 15]).reshape((1, -1)).T
+    dof = np.array([[i for i in range(2, 17)] * 2]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == dsorted['STM_id_dof'])
 
-    ids = np.array([[11]*8 + [23]*8 + [28]*2]).reshape((1, -1)).T
-    dof = np.array([[i for i in range(2, 10)]*2 + [8, 9]]).T
+    ids = np.array([[11] * 8 + [23] * 8 + [28] * 2]).reshape((1, -1)).T
+    dof = np.array([[i for i in range(2, 10)] * 2 + [8, 9]]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == dsorted['LTM_id_dof'])
 
@@ -154,11 +153,11 @@ def test_drm12_reader():
     draw = op2.procdrm12(drm12, dosort=False)
 
     # check desc:
-    assert np.all(['T1', 'T2', 'T3']*3 == draw['DTM_desc'])
+    assert np.all(['T1', 'T2', 'T3'] * 3 == draw['DTM_desc'])
     assert np.all(['T3', 'T1', 'T2'] +
-                 ['T1', 'T2', 'T3']*2 == draw['ATM_desc'])
+                  ['T1', 'T2', 'T3'] * 2 == draw['ATM_desc'])
     spcf_desc = ['Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']
-    assert np.all(spcf_desc*4 == draw['SPCF_desc'])
+    assert np.all(spcf_desc * 4 == draw['SPCF_desc'])
     stress = ["CBAR Bending Stress 1 - End A",         # 2
               "CBAR Bending Stress 2 - End A",         # 3
               "CBAR Bending Stress 3 - End A",         # 4
@@ -174,7 +173,7 @@ def test_drm12_reader():
               "CBAR Max. Bend. Stress -End B",         # 14
               "CBAR Min. Bend. Stress -End B",         # 15
               "CBAR M.S. Compression"]                 # 16
-    assert np.all(stress*2 == draw['STM_desc'])
+    assert np.all(stress * 2 == draw['STM_desc'])
 
     force = ["CBAR Bending Moment 1 - End A",         # 2
              "CBAR Bending Moment 2 - End A",         # 3
@@ -184,30 +183,30 @@ def test_drm12_reader():
              "CBAR Shear 2",                          # 7
              "CBAR Axial Force",                      # 8
              "CBAR Torque"]                           # 9
-    assert np.all(force+force[-1:] +
-                 force[-2:-1]+force == draw['LTM_desc'])
+    assert np.all(force + force[-1:] +
+                  force[-2:-1] + force == draw['LTM_desc'])
 
     # check id_dof:
-    ids = np.array([[14]*3, [12]*3, [32]*3]).reshape((1, -1)).T
-    dof = np.array([[1, 2, 3]*3]).T
+    ids = np.array([[14] * 3, [12] * 3, [32] * 3]).reshape((1, -1)).T
+    dof = np.array([[1, 2, 3] * 3]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == draw['DTM_id_dof'])
 
-    dof = np.array([[3, 1, 2] + [1, 2, 3]*2]).T
+    dof = np.array([[3, 1, 2] + [1, 2, 3] * 2]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == draw['ATM_id_dof'])
 
-    ids = np.array([[3]*6, [11]*6, [19]*6, [27]*6]).reshape((1, -1)).T
-    dof = np.array([[1, 2, 3, 4, 5, 6]*4]).T
+    ids = np.array([[3] * 6, [11] * 6, [19] * 6, [27] * 6]).reshape((1, -1)).T
+    dof = np.array([[1, 2, 3, 4, 5, 6] * 4]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == draw['SPCF_id_dof'])
 
-    ids = np.array([[89]*15, [11]*15]).reshape((1, -1)).T
-    dof = np.array([[i for i in range(2, 17)]*2]).T
+    ids = np.array([[89] * 15, [11] * 15]).reshape((1, -1)).T
+    dof = np.array([[i for i in range(2, 17)] * 2]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == draw['STM_id_dof'])
 
-    ids = np.array([[23]*8 + [28]*2 + [11]*8]).reshape((1, -1)).T
+    ids = np.array([[23] * 8 + [28] * 2 + [11] * 8]).reshape((1, -1)).T
     dof = np.array([[i for i in range(2, 10)] + [9, 8] +
                     [i for i in range(2, 10)]]).T
     iddof = np.hstack((ids, dof))
@@ -280,10 +279,10 @@ def test_bigend():
     #             [   0,   0, 1/3, 0, 0, 0,   0,   0, 1/3, ...]]
     # - there are 18 columns (3 grids being averaged)
     # use broadcasting to get the 1/3 values out:
-    rows = [[0],[1],[2]]
+    rows = [[0], [1], [2]]
     cols = ytools.mkpattvec([0, 6, 12], 3, 1)
     gmvals = nas['gm'][0][rows, cols]
-    assert np.allclose(gmvals, 1/3)
+    assert np.allclose(gmvals, 1 / 3)
 
 
 def test_notop2():
@@ -296,7 +295,7 @@ def test_rdop2mats():
     dr = 'pyyeti/tests/nastran_op2_data/'
     for cut in (0, 30000):
         for name in ('double_le.op2', 'double_be.op2'):
-            with op2.OP2(dr+name) as o2:
+            with op2.OP2(dr + name) as o2:
                 o2._rowsCutoff = cut
                 dct = o2.rdop2mats()
             assert np.allclose(dct2['rmat'][0], dct['ZUZR01'])
@@ -304,17 +303,18 @@ def test_rdop2mats():
             assert np.allclose(dct2['rcmat'][0], dct['ZUZR03'])
 
         for name in ('single_le.op2', 'single_be.op2'):
-            with op2.OP2(dr+name) as o2:
+            with op2.OP2(dr + name) as o2:
                 o2._rowsCutoff = cut
                 dct = o2.rdop2mats()
             assert np.allclose(dct2['rmat'][0], dct['ZUZR04'])
             assert np.allclose(dct2['cmat'][0], dct['ZUZR05'])
             assert np.allclose(dct2['rcmat'][0], dct['ZUZR06'])
 
-    with op2.OP2(dr+'double_le.op2') as o2:
+    with op2.OP2(dr + 'double_le.op2') as o2:
         d, l, s = o2.directory()
     assert sorted(d.keys()) == ['CASECC', 'ZUZR01',
                                 'ZUZR02', 'ZUZR03']
+
 
 def test_rdop2tload():
     sbe = np.zeros((5, 30), dtype=np.int64)
@@ -395,8 +395,8 @@ def test_rdpostop2_assemble():
     post = op2.rdpostop2('pyyeti/tests/nas2cam_extseout/'
                          'assemble.op2', 1, 1)
     assert np.all(post['selist'] == [[101, 0], [102, 0], [0, 0]])
-    sebulk = np.array([[ 101, 5, -1, 2, 0., 1, 3, 101],
-                       [ 102, 5, -1, 2, 0., 1, 3, 102]])
+    sebulk = np.array([[101, 5, -1, 2, 0., 1, 3, 101],
+                       [102, 5, -1, 2, 0., 1, 3, 102]])
     assert np.all(post['sebulk'] == sebulk)
 
     with op2.OP2('pyyeti/tests/nas2cam_extseout/'

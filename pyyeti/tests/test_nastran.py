@@ -1,7 +1,8 @@
 import numpy as np
 import os
 from io import StringIO
-from pyyeti import op2, n2p, nastran, op4
+from pyyeti import nastran
+from pyyeti.nastran import op2, n2p, op4
 from nose.tools import *
 
 
@@ -40,7 +41,7 @@ def test_wtgrids():
 
 def test_wttabled1():
     t = np.arange(0, 1, .05)
-    d = np.sin(2*np.pi*3*t)
+    d = np.sin(2 * np.pi * 3 * t)
     with StringIO() as f:
         nastran.wttabled1(f, 4000, t, d,
                           form='{:16.2f}{:16.5f}')
@@ -168,7 +169,7 @@ def test_wt_extseout():
     q = ~b
     b = np.nonzero(b)[0]
     baa = np.zeros_like(maa)
-    baa[q, q] = 2*.05*np.sqrt(kaa[q, q])
+    baa[q, q] = 2 * .05 * np.sqrt(kaa[q, q])
     name = '_wt_extseout_test_'
     pre = 'pyyeti/tests/nas2cam_csuper/yeti_outputs/se101y'
     for bh, nm in zip((True, False), ('_bh', '')):
@@ -176,8 +177,8 @@ def test_wt_extseout():
             nastran.wt_extseout(name, se=101, maa=maa, kaa=kaa,
                                 baa=baa, bset=b, uset=usetb,
                                 spoint1=9900101, bh=bh)
-            names, mats, f, t = op4.load(name+'.op4', into='list')
-            namesy, matsy, fy, ty = op4.load(pre+nm+'.op4',
+            names, mats, f, t = op4.load(name + '.op4', into='list')
+            namesy, matsy, fy, ty = op4.load(pre + nm + '.op4',
                                              into='list')
             assert names == namesy
             assert f == fy
@@ -189,15 +190,15 @@ def test_wt_extseout():
             else:
                 lst = ('.asm', '.pch')
             for ext in lst:
-                with open(name+ext) as f:
+                with open(name + ext) as f:
                     s = f.read()
-                with open(pre+nm+ext) as f:
+                with open(pre + nm + ext) as f:
                     sy = f.read()
                 assert s.replace(name.upper(), 'SE101') == sy
         finally:
             for ext in ('.asm', '.pch', '.op4', '.baa_dmig'):
-                if os.path.exists(name+ext):
-                    os.remove(name+ext)
+                if os.path.exists(name + ext):
+                    os.remove(name + ext)
 
 
 def test_rdeigen():
@@ -308,16 +309,16 @@ def test_gpwg():
         'pyyeti/tests/nas2cam_extseout/assemble.out', [s1, s1])
     r = 0
     m = np.array([
-        [ 3.345436E+00,  1.598721E-13, -1.132427E-12,
-          -1.873559E-10,  5.018153E+02, -5.018153E+02],
-        [ 1.622036E-13,  3.345436E+00, -1.922240E-12,
-          -5.018153E+02,  2.731554E-09,  2.118899E+03],
+        [3.345436E+00,  1.598721E-13, -1.132427E-12,
+         -1.873559E-10,  5.018153E+02, -5.018153E+02],
+        [1.622036E-13,  3.345436E+00, -1.922240E-12,
+         -5.018153E+02,  2.731554E-09,  2.118899E+03],
         [-1.133316E-12, -1.928013E-12,  3.345436E+00,
          5.018153E+02, -2.118899E+03, -1.996398E-09],
         [-1.874909E-10, -5.018153E+02,  5.018153E+02,
          5.433826E+05, -3.178349E+05, -3.178349E+05],
-        [ 5.018153E+02,  2.734168E-09, -2.118899E+03,
-          -3.178349E+05,  2.441110E+06, -7.527230E+04],
+        [5.018153E+02,  2.734168E-09, -2.118899E+03,
+         -3.178349E+05,  2.441110E+06, -7.527230E+04],
         [-5.018153E+02,  2.118899E+03, -1.992703E-09,
          -3.178349E+05, -7.527230E+04,  2.772279E+06]])
     c = np.array([
@@ -384,22 +385,22 @@ def test_findcenter():
 
 
 def test_wtrspline_rings():
-    theta1 = np.arange(0, 359, 360/5)*np.pi/180
+    theta1 = np.arange(0, 359, 360 / 5) * np.pi / 180
     rad1 = 50.
     sta1 = 0.
     n1 = len(theta1)
-    ring1 = np.vstack((np.arange(1, n1+1),      # ID
-                       sta1*np.ones(n1),        # x
-                       rad1*np.cos(theta1),     # y
-                       rad1*np.sin(theta1))).T  # z
-    theta2 = np.arange(10, 359, 360/7)*np.pi/180
+    ring1 = np.vstack((np.arange(1, n1 + 1),      # ID
+                       sta1 * np.ones(n1),        # x
+                       rad1 * np.cos(theta1),     # y
+                       rad1 * np.sin(theta1))).T  # z
+    theta2 = np.arange(10, 359, 360 / 7) * np.pi / 180
     rad2 = 45.
     sta2 = 1.
     n2 = len(theta2)
-    ring2 = np.vstack((np.arange(1, n2+1)+100,  # ID
-                       sta2*np.ones(n2),        # x
-                       rad2*np.cos(theta2),     # y
-                       rad2*np.sin(theta2))).T  # z
+    ring2 = np.vstack((np.arange(1, n2 + 1) + 100,  # ID
+                       sta2 * np.ones(n2),        # x
+                       rad2 * np.cos(theta2),     # y
+                       rad2 * np.sin(theta2))).T  # z
 
     uset1 = None
     for row in ring1:
@@ -567,7 +568,7 @@ def test_mknast():
         "# AFTER",
         "  cd --",
         "# BOTTOM",
-        ]
+    ]
 
     for i, st in enumerate(sbe):
         if st == '  cd --':
@@ -592,8 +593,8 @@ def test_rddtipch():
     sbe = np.empty((n, 2), dtype=np.int64)
     n = 0
     for i in dof:
-        sbe[n:n+i[1], 0] = i[0]
-        sbe[n:n+i[1], 1] = np.arange(1, i[1]+1)
+        sbe[n:n + i[1], 0] = i[0]
+        sbe[n:n + i[1], 1] = np.arange(1, i[1] + 1)
         n += i[1]
     assert np.all(d == sbe)
 
@@ -605,13 +606,13 @@ def test_rddmig():
         'pyyeti/tests/nastran_dmig_data/matrix.op2')
 
     for key, val in dct.items():
-        val2 = dct2['M'+key.upper()]
+        val2 = dct2['M' + key.upper()]
         assert np.allclose(val, val2)
 
     assert np.all(dct['ident'] == np.eye(dct['ident'].shape[0]))
     pattern_mat = np.empty(dct['patrn'].shape)
     for i in range(dct['patrn'].shape[1]):
-        pattern_mat[:, i] = i+1
+        pattern_mat[:, i] = i + 1
     assert np.all(pattern_mat == dct['patrn'])
 
     assert sorted(dct.keys()) == ['cmplx', 'ident', 'patrn', 'randm']
@@ -624,7 +625,7 @@ def test_rddmig():
         ('mpatrn', 'mrandm'))
 
     for key, val in dct.items():
-        val2 = dct2['M'+key.upper()]
+        val2 = dct2['M' + key.upper()]
         assert np.allclose(val, val2)
 
     assert sorted(dct.keys()) == ['patrn', 'randm']

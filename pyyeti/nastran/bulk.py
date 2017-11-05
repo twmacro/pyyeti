@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Collection of tools for reading/writing Nastran data.
+Collection of tools for reading/writing Nastran bulk data.
+
+This module is typically used by importing the "nastran" module:
+
+>>> from pyyeti import nastran
+>>> from pyyeti.nastran import bulk
+>>> bulk.rdgrids is nastran.rdgrids
+True
 """
 
 import os
@@ -10,7 +17,17 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-from pyyeti import n2p, locate, writer, ytools, op4, op2, guitools
+from pyyeti import locate, writer, ytools, guitools
+from pyyeti.nastran import n2p, op4, op2
+
+__all__ = [
+    'nas_sscanf', 'fsearch', 'rdgpwg', 'rdcards', 'rddmig',
+    'rdgrids', 'wtgrids', 'rdtabled1', 'wttabled1', 'bulk2uset',
+    'rdwtbulk', 'rdeigen', 'wtnasints', 'rdcsupers', 'rdextrn',
+    'wtcsuper', 'wtspc1', 'wtxset1', 'wtqcset', 'wtrbe2', 'wtrbe3',
+    'wtseset', 'wtset', 'wtrspline', 'findcenter', 'intersect',
+    'wtrspline_rings', 'wtvcomp', 'wtcoordcards', 'wtextrn',
+    'wt_extseout', 'mknast', 'rddtipch']
 
 
 def nas_sscanf(s, keep_string=False):
@@ -1409,13 +1426,15 @@ def rdcsupers(f):
 
     Examples
     --------
+    >>> import numpy as np
     >>> from pyyeti import nastran
     >>> from io import StringIO
+    >>> np.set_printoptions(linewidth=60)
     >>> f = StringIO("CSUPER,101,0,3,11,19,27,1995001,1995002\n"
     ...              ",1995003,thru,1995010  $ comment")
     >>> nastran.rdcsupers(f)             # doctest: +ELLIPSIS
-    {101: array([    101,       0,       3,      11,      19,      27, 1995001,
-           1995002, 1995003,      -1, 1995010]...)}
+    {101: array([    101,       0,       3,      11,      19,      27,
+           1995001, 1995002, 1995003,      -1, 1995010]...)}
     """
     return rdcards(f, 'csuper', todict=True, dtype=np.int64, blank=-1)
 

@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 import xlsxwriter
-from pyyeti import ytools, locate, srs, n2p, writer, ode
+from pyyeti import ytools, locate, srs, writer, ode
+from pyyeti.nastran import n2p
 from pyyeti.ytools import save, load
 
 
@@ -2558,10 +2559,11 @@ class DR_Results(OrderedDict):
         """
         value = next(iter(self.values()))
         if not isinstance(value, SimpleNamespace):
-            raise TypeError(':func:`split` only works with base-level '
-                            ':class:`DR_Results` instances (eg: '
-                            'instead of ``res.split()``, try '
-                            'something like ``res[event].split()``).')
+            raise TypeError(
+                ':func:`split` only works with base-level '
+                ':class:`DR_Results` instances (eg: '
+                'instead of ``res.split()``, try '
+                'something like ``res[event].split()``).')
         res = DR_Results()
         cases = value.cases
         for j, case in enumerate(cases):

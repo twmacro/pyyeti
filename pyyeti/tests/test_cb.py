@@ -5,7 +5,8 @@ from io import StringIO
 import tempfile
 import os
 import inspect
-from pyyeti import cb, op2, n2p, ytools, locate, op4, nastran
+from pyyeti import cb, ytools, locate, nastran
+from pyyeti.nastran import op2, n2p, op4
 from nose.tools import *
 
 
@@ -27,7 +28,7 @@ def test_cbconvert_2():
     n = 19
     nb = 12
     mass = np.random.randn(n, n)
-    b = np.arange(n-nb, n)
+    b = np.arange(n - nb, n)
     m1_1 = cb.cbconvert(mass, b, 'm2e')
     m1_2 = cb.cbreorder(m1_1, b)
 
@@ -35,7 +36,7 @@ def test_cbconvert_2():
     bnew = np.arange(nb)
     m2_2 = cb.cbconvert(m2_1, bnew, 'm2e')
     assert np.allclose(m1_2, m2_2)
-    assert np.allclose(mass[n-nb, n-nb]*0.005710147154735817, m1_2[0, 0])
+    assert np.allclose(mass[n - nb, n - nb] * 0.005710147154735817, m1_2[0, 0])
 
 
 def test_cbtf():
@@ -59,8 +60,8 @@ def test_cbtf():
     maa = maa[pv]
     kaa = kaa[pv]
     baa1 = np.zeros_like(maa)
-    baa1[q, q] = 2*.05*np.sqrt(kaa[q, q])
-    baa2 = .1*np.random.randn(*maa.shape)
+    baa1[q, q] = 2 * .05 * np.sqrt(kaa[q, q])
+    baa2 = .1 * np.random.randn(*maa.shape)
     baa2 = baa2.dot(baa2.T)
 
     bb = np.ix_(b, b)
@@ -103,9 +104,9 @@ def test_cbtf():
             assert np.allclose(tf.v, tf4.v)
 
             # confirm proper solution:
-            O = 2*np.pi*freq
-            velo = 1j*O*tf.d
-            acce = 1j*O*velo
+            O = 2 * np.pi * freq
+            velo = 1j * O * tf.d
+            acce = 1j * O * velo
             f = m.dot(acce) + c.dot(velo) + k.dot(tf.d)
             assert np.allclose(acce, tf.a)
             assert np.allclose(velo, tf.v)
@@ -139,7 +140,7 @@ def test_cbreorder_m():
                     [45, 40, 35, 30, 25, 20, 10, 15],
                     [36, 32, 28, 24, 20, 16,  8, 12],
                     [27, 24, 21, 18, 15, 12,  6,  9],
-                    [ 9,  8,  7,  6,  5,  4,  2,  3],
+                    [9,  8,  7,  6,  5,  4,  2,  3],
                     [18, 16, 14, 12, 10,  8,  4,  6]])
     assert np.all(mnew == sbe)
 
@@ -170,7 +171,7 @@ def test_cbreorder_m():
                     [36, 32, 28, 24, 20, 16, 12,  8],
                     [27, 24, 21, 18, 15, 12,  9,  6],
                     [18, 16, 14, 12, 10,  8,  6,  4],
-                    [ 9,  8,  7,  6,  5,  4,  3,  2]])
+                    [9,  8,  7,  6,  5,  4,  3,  2]])
     assert np.all(mnew == sbe)
 
 
@@ -185,7 +186,7 @@ def test_cbreorder_drm():
     #        [12, 18, 24, 30, 36, 42, 48, 54]])
 
     dnew = cb.cbreorder(drm, np.arange(7, 1, -1), drm=True)
-    sbe = np.array([[ 9,  8,  7,  6,  5,  4,  2,  3],
+    sbe = np.array([[9,  8,  7,  6,  5,  4,  2,  3],
                     [18, 16, 14, 12, 10,  8,  4,  6],
                     [27, 24, 21, 18, 15, 12,  6,  9],
                     [36, 32, 28, 24, 20, 16,  8, 12],
@@ -206,7 +207,7 @@ def test_cbreorder_drm():
     #        [11, 12, 13, 14, 15]])
     with assert_warns(RuntimeWarning):
         dnew = cb.cbreorder(drm, [0, 1, 2, 3], drm=True, last=True)
-    sbe = np.array([[ 5,  1,  2,  3,  4],
+    sbe = np.array([[5,  1,  2,  3,  4],
                     [10,  6,  7,  8,  9],
                     [15, 11, 12, 13, 14]])
     assert np.all(dnew == sbe)
@@ -220,12 +221,12 @@ def test_cgmass():
                      [0,     0,  -120,   -60,  7808,    23],
                      [0,   120,     0,    22,    23,  7800]])
     mcg1, dcg1 = cb.cgmass(mass)
-    sbe = np.array([[    3.,     0.,     0.,     0.,     0.,     0.],
-                    [    0.,     3.,     0.,     0.,     0.,     0.],
-                    [    0.,     0.,     3.,     0.,     0.,     0.],
-                    [    0.,     0.,     0.,  1020.,   -60.,    22.],
-                    [    0.,     0.,     0.,   -60.,  3008.,    23.],
-                    [    0.,     0.,     0.,    22.,    23.,  3000.]])
+    sbe = np.array([[3.,     0.,     0.,     0.,     0.,     0.],
+                    [0.,     3.,     0.,     0.,     0.,     0.],
+                    [0.,     0.,     3.,     0.,     0.,     0.],
+                    [0.,     0.,     0.,  1020.,   -60.,    22.],
+                    [0.,     0.,     0.,   -60.,  3008.,    23.],
+                    [0.,     0.,     0.,    22.,    23.,  3000.]])
     assert np.allclose(mcg1, sbe)
     assert np.allclose(dcg1, [40., 0., 0.])
 
@@ -235,13 +236,13 @@ def test_cgmass():
     assert np.all(abs(gyr - [18.4391, 31.6649, 31.6228]) < 1e-3)
     assert np.all(abs(pgyr - [18.4204, 31.5288, 31.7693]) < 1e-3)
 
-    sbe = np.array([[ 1020.,   -60.,    22.],
-                    [  -60.,  3008.,    23.],
-                    [   22.,    23.,  3000.]])
+    sbe = np.array([[1020.,   -60.,    22.],
+                    [-60.,  3008.,    23.],
+                    [22.,    23.,  3000.]])
     assert np.allclose(I, sbe)
-    sbe = np.array([[ 1017.9312,     0.    ,     0.    ],
-                    [    0.    ,  2982.2045,     0.    ],
-                    [    0.    ,     0.    ,  3027.8643]])
+    sbe = np.array([[1017.9312,     0.,     0.],
+                    [0.,  2982.2045,     0.],
+                    [0.,     0.,  3027.8643]])
     assert np.all(abs(pI - sbe) < 1e-3)
 
     mass[1, 0] = 4.
@@ -258,9 +259,9 @@ def gettable(lines, j, col=0, label=None, skip=0):
         line = line.rstrip()
         if len(line) == 0:
             break
-        line = line.replace(',',' ')
+        line = line.replace(',', ' ')
         table.append([float(item) for item in line[col:].split()])
-    return np.array(table), j+len(table)
+    return np.array(table), j + len(table)
 
 
 def comptable(s1, s2, j, col=0, label=None, skip=0, sort2=0):
@@ -413,7 +414,7 @@ def test_cbcheck_determinate():
     # transform to single pt on centerline:
     # [b, q]_old = T*[b, q]_new
     #            = [[rb, 0], [0, I]] * [b, q]_new
-    T = np.zeros((len(b)+len(q), 6+len(q)))
+    T = np.zeros((len(b) + len(q), 6 + len(q)))
     T[:len(b), :6] = rb
     T[len(b):, 6:] = np.eye(len(q))
 
@@ -464,7 +465,7 @@ def test_cbcheck_unit_convert():
     with StringIO() as f:
         out = cb.cbcheck(
             f, maa, kaa, b, b[:6], uset=usetb, em_filt=2,
-            conv=[1/25.4, 0.005710147154735817],
+            conv=[1 / 25.4, 0.005710147154735817],
             uref=[600, 150, 150], rb_norm=False)
         s = f.getvalue()
 
@@ -623,12 +624,12 @@ def test_rbmultchk():
 
     # test rbscale and unit scale:
     with StringIO() as f:
-        cb.rbmultchk(f, 0.00259*drm101, 'DRM101', 100*rb)
+        cb.rbmultchk(f, 0.00259 * drm101, 'DRM101', 100 * rb)
         s = f.getvalue()
 
     pos = s.find(' which is: ')
     pos2 = s[pos:].find('\n')
-    assert math.isclose(float(s[pos+10:pos+pos2]), 100)
+    assert math.isclose(float(s[pos + 10:pos + pos2]), 100)
     s = s.splitlines()
     table, nj1 = gettable(s, 15, 0, 'Absolute Maximums', 3)
     sbe = np.array([
@@ -655,7 +656,7 @@ def test_rbmultchk():
     assert s2 == s
 
     # trim q-set columns out of drm:
-    labels = [str(i[0])+'  '+str(i[1]) for i in dof101]
+    labels = [str(i[0]) + '  ' + str(i[1]) for i in dof101]
     with StringIO() as f:
         cb.rbmultchk(f, drm101[:, b], 'DRM101', rb,
                      drm2=drm101[:, b], prtnullrows=True,
@@ -728,8 +729,8 @@ def test_rbdispchk():
     coords = np.array([[0,  0,  0],
                        [1,  2,  3],
                        [4, -5, 25]])
-    rb  = n2p.rbgeom(coords)
-    xyz_pv = ytools.mkpattvec([0, 1, 2], 3*6, 6).ravel()
+    rb = n2p.rbgeom(coords)
+    xyz_pv = ytools.mkpattvec([0, 1, 2], 3 * 6, 6).ravel()
     rbtrimmed = rb[xyz_pv]
     # array([[  1.,   0.,   0.,   0.,   0.,   0.],
     #        [  0.,   1.,   0.,   0.,   0.,   0.],
@@ -865,12 +866,14 @@ def test_cbcoordchk():
     b2 = np.arange(6)
     assert_raises(ValueError, cb.cbcoordchk, k, b2, b)
 
+
 def compare_nets(net, net2):
     for name in net.__dict__:
         if isinstance(net.__dict__[name], list):
             assert net.__dict__[name] == net2.__dict__[name]
         else:
             assert np.allclose(net.__dict__[name], net2.__dict__[name])
+
 
 def test_mk_net_drms():
     pth = os.path.dirname(inspect.getfile(cb))
@@ -910,7 +913,7 @@ def test_mk_net_drms():
                [0, 0, 0],
                [1, 1, 0],   # z is 45 deg between x & y of l/v
                [0, 0, -1]]  # x is -z l/v
-    c = np.cos(45/180*np.pi)
+    c = np.cos(45 / 180 * np.pi)
     Tl2s = np.array([[0, 0, -1.], [-c, c, 0], [c, c, 0]])
 
     # Form b-set partition vector into a-set
@@ -951,7 +954,7 @@ def test_mk_net_drms():
     c_lv = net.cgatm_lv[:, :n] @ rb
 
     sbe = np.eye(6)
-    sbe[:3] *= 1/g
+    sbe[:3] *= 1 / g
     assert np.allclose(a_sc, sbe)
 
     # calc what the interface forces should be:
@@ -960,35 +963,35 @@ def test_mk_net_drms():
     #   matrix at the reference point ... which, conveniently,
     #   is provided in the cbtf tutorial:
     mass = np.array(
-        [[ 1.755,   0.   ,   -0.   ,     0.   ,      0.   ,      0.   ],
-         [ 0.   ,   1.755,   -0.   ,    -0.   ,      0.   ,    772.22 ],
-         [-0.   ,  -0.   ,    1.755,     0.   ,   -772.22 ,     -0.   ],
-         [ 0.   ,  -0.   ,    0.   , 35905.202,     -0.   ,     -0.   ],
-         [ 0.   ,   0.   , -772.22 ,    -0.   , 707976.725,    109.558],
-         [ 0.   , 772.22 ,   -0.   ,    -0.   ,    109.558, 707976.725]])
+        [[1.755,   0.,   -0.,     0.,      0.,      0.],
+         [0.,   1.755,   -0.,    -0.,      0.,    772.22],
+         [-0.,  -0.,    1.755,     0.,   -772.22,     -0.],
+         [0.,  -0.,    0., 35905.202,     -0.,     -0.],
+         [0.,   0., -772.22,    -0., 707976.725,    109.558],
+         [0., 772.22,   -0.,    -0.,    109.558, 707976.725]])
     sbe = mass
     sbe[:, :3] *= 1000  # scale up translations
-    assert abs(sbe-l_sc).max() < .5
+    assert abs(sbe - l_sc).max() < .5
 
     assert np.allclose(Tsc2lv @ a_sc, a_lv)
     assert np.allclose(Tsc2lv @ c_sc, c_lv)
-    assert abs(l_scd).max() < 1e-6*abs(l_sc).max()
-    assert abs(l_lvd).max() < 1e-6*abs(l_lv).max()
+    assert abs(l_scd).max() < 1e-6 * abs(l_sc).max()
+    assert abs(l_lvd).max() < 1e-6 * abs(l_lv).max()
     scale = np.array([[1000],
                       [1000],
                       [1000],
                       [1000000],
                       [1000000],
                       [1000000]])
-    assert np.allclose((1/scale) * (Tsc2lv @ l_sc), l_lv)
+    assert np.allclose((1 / scale) * (Tsc2lv @ l_sc), l_lv)
 
     # height and mass values from cbcheck tutorial (and then refined):
     m_kg = 1.75505183
     h_m = 1.039998351 - 0.6
     assert abs(net.height_lv - h_m) < .000001
-    assert abs(net.weight_lv - m_kg*g) < .000001
-    assert abs(net.height_sc - 1000*h_m) < .000001*1000
-    assert abs(net.weight_sc - 1000*m_kg*g) < .000001*1000
+    assert abs(net.weight_lv - m_kg * g) < .000001
+    assert abs(net.height_sc - 1000 * h_m) < .000001 * 1000
+    assert abs(net.weight_sc - 1000 * m_kg * g) < .000001 * 1000
     assert net.scaxial_sc == 0
     assert net.scaxial_lv == 2
 
@@ -1014,7 +1017,7 @@ def test_mk_net_drms_6dof():
 
     # old = {b_24} = {rb.T @ b_6}  = [rb.T  0_6?] {b_6}
     #       {q_?}    {q_?}           [0_?6   I??] {q_?}
-    trans = np.zeros((len(q)+6, ttl))
+    trans = np.zeros((len(q) + 6, ttl))
     trans[:6, :n] = rb.T
     trans[6:, n:] = np.eye(len(q))
     maa = trans @ maa @ trans.T
@@ -1036,32 +1039,32 @@ def test_mk_net_drms_6dof():
     c_lv = net.cgatm_lv[:, :n]
 
     sbe = np.eye(6)
-    sbe[:3] *= 1/g
+    sbe[:3] *= 1 / g
     assert np.allclose(a_sc, sbe)
     mass = np.array(
-        [[ 1.755,   0.   ,   -0.   ,     0.   ,      0.   ,      0.   ],
-         [ 0.   ,   1.755,   -0.   ,    -0.   ,      0.   ,    772.22 ],
-         [-0.   ,  -0.   ,    1.755,     0.   ,   -772.22 ,     -0.   ],
-         [ 0.   ,  -0.   ,    0.   , 35905.202,     -0.   ,     -0.   ],
-         [ 0.   ,   0.   , -772.22 ,    -0.   , 707976.725,    109.558],
-         [ 0.   , 772.22 ,   -0.   ,    -0.   ,    109.558, 707976.725]])
+        [[1.755,   0.,   -0.,     0.,      0.,      0.],
+         [0.,   1.755,   -0.,    -0.,      0.,    772.22],
+         [-0.,  -0.,    1.755,     0.,   -772.22,     -0.],
+         [0.,  -0.,    0., 35905.202,     -0.,     -0.],
+         [0.,   0., -772.22,    -0., 707976.725,    109.558],
+         [0., 772.22,   -0.,    -0.,    109.558, 707976.725]])
     sbe = mass
-    assert abs(sbe-l_sc).max() < .0005
+    assert abs(sbe - l_sc).max() < .0005
 
     Tsc2lv = np.eye(6)
     assert np.allclose(Tsc2lv @ a_sc, a_lv)
     assert np.allclose(Tsc2lv @ c_sc, c_lv)
-    assert abs(l_scd).max() < 1e-6*abs(l_sc).max()
-    assert abs(l_lvd).max() < 1e-6*abs(l_lv).max()
+    assert abs(l_scd).max() < 1e-6 * abs(l_sc).max()
+    assert abs(l_lvd).max() < 1e-6 * abs(l_lv).max()
     assert np.allclose((Tsc2lv @ l_sc), l_lv)
 
     # height and mass values from cbcheck tutorial (and then refined):
     m_kg = 1.75505183
     h_m = 1039.998351 - 600
     assert abs(net.height_lv - h_m) < .0001
-    assert abs(net.weight_lv - m_kg*g) < .0001
+    assert abs(net.weight_lv - m_kg * g) < .0001
     assert abs(net.height_sc - h_m) < .0001
-    assert abs(net.weight_sc - m_kg*g) < .0001
+    assert abs(net.weight_sc - m_kg * g) < .0001
     assert net.scaxial_sc == 0
     assert net.scaxial_lv == 0
 
@@ -1127,20 +1130,20 @@ def test_cglf_moment_signs():
         assert np.all(np.sign(rba[6, [1, 5]]) == np.sign(rba[8, [1, 5]]))
         assert np.all(np.sign(rba[7, [2, 4]]) == np.sign(rba[9, [2, 4]]))
 
-    wh_sc = nets[0].weight_sc*nets[0].height_sc
-    wh_lv = nets[0].weight_lv*nets[0].height_lv
+    wh_sc = nets[0].weight_sc * nets[0].height_sc
+    wh_lv = nets[0].weight_lv * nets[0].height_lv
     n = nets[0].cgatm_sc.shape[1]
     # x is down:
     cgdrm = np.vstack((
         # 5 s/c rows
         nets[0].cgatm_sc[:3],
-        -nets[0].ifltma_sc[5]/wh_sc,
-        nets[0].ifltma_sc[4]/wh_sc,
+        -nets[0].ifltma_sc[5] / wh_sc,
+        nets[0].ifltma_sc[4] / wh_sc,
 
         # 5 l/v rows
         nets[0].cgatm_lv[:3],
-        -nets[0].ifltma_lv[5]/wh_lv,
-        nets[0].ifltma_lv[4]/wh_lv,
+        -nets[0].ifltma_lv[5] / wh_lv,
+        nets[0].ifltma_lv[4] / wh_lv,
 
         # 4 RSS rows ... filled in during data recovery
         np.zeros((4, n))

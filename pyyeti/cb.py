@@ -11,7 +11,8 @@ from warnings import warn
 import numpy as np
 import scipy.linalg as linalg
 import scipy.sparse.linalg as sp_la
-from pyyeti import n2p, locate, ytools, writer, ode
+from pyyeti import locate, ytools, writer, ode
+from pyyeti.nastran import n2p
 
 
 def cbtf(m, b, k, a, freq, bset, save=None):
@@ -93,9 +94,9 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         \right\} = \left\{
         \begin{array}{c} F_b(\Omega) \\ 0 \end{array} \right\}
 
-    The input `a` is :math:`\ddot{X}_b(\Omega)`. Rearranging the bottom
-    equation and using
-    :math:`\dot{X}_b(\Omega)= -i\ddot{X}_b(\Omega)/\Omega` gives:
+    The input `a` is :math:`\ddot{X}_b(\Omega)`. Rearranging the
+    bottom equation and using :math:`\dot{X}_b(\Omega)=
+    -i\ddot{X}_b(\Omega)/\Omega` gives:
 
     .. math::
         \begin{aligned}
@@ -182,7 +183,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         >>> plt.tight_layout()
     """
     freq = np.atleast_1d(freq).ravel()
-    Omega = 2*math.pi*freq
+    Omega = 2 * math.pi * freq
     lenf = len(Omega)
     a = np.atleast_1d(a)
     bset = np.atleast_1d(bset)
@@ -201,8 +202,8 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
     if qset.size == 0:
         accel = a.copy()
-        displ = (-1/Omega**2) * accel
-        veloc = 1j*(Omega * displ)
+        displ = (-1 / Omega**2) * accel
+        veloc = 1j * (Omega * displ)
         frc = m @ accel + b @ veloc + k @ displ
     else:
         tf = None
@@ -219,15 +220,15 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
         bb = np.ix_(bset, bset)
         qb = np.ix_(qset, bset)
-        v = 1j*a/Omega
+        v = 1j * a / Omega
         f = b[qb] @ v - m[qb] @ a
         sol = tf.fsolve(f, freq)
 
         displ = np.zeros((lt, lenf), dtype=complex)
         accel = displ.copy()
-        displ[bset] = (-1/Omega**2) * a
+        displ[bset] = (-1 / Omega**2) * a
         displ[qset] = sol.d
-        veloc = 1j*(Omega * displ)
+        veloc = 1j * (Omega * displ)
         accel[bset] = a
         accel[qset] = sol.a
         frc = (m[bset] @ accel + b[bset] @ veloc +
@@ -244,11 +245,11 @@ def cbreorder(M, b, drm=False, last=False):
     Parameters
     ----------
     M : 2d ndarray
-        Craig-Bampton mass or stiffness, or Craig-Bampton data recovery
-        matrix (DRM). Must be square if `drm` is false.
+        Craig-Bampton mass or stiffness, or Craig-Bampton data
+        recovery matrix (DRM). Must be square if `drm` is false.
     b : 1d array
-        A vector containing the indices of the b-set DOF in the desired
-        order (uses zero offset).
+        A vector containing the indices of the b-set DOF in the
+        desired order (uses zero offset).
     drm : bool
         If true, `M` is treated as a data recovery matrix. If false,
         `M` is treated as mass or stiffness (and `M` must b.
@@ -355,7 +356,7 @@ def cbreorder(M, b, drm=False, last=False):
 
 def _get_conv_factors(conv):
     if conv == 'm2e':
-        lengthconv = 1/0.0254
+        lengthconv = 1 / 0.0254
         massconv = 0.005710147154735817
     elif conv == 'e2m':
         lengthconv = 0.0254
@@ -388,11 +389,11 @@ def cbconvert(M, b, conv='m2e', drm=False):
     Parameters
     ----------
     M : 2d array
-        Craig-Bampton mass or stiffness, or Craig-Bampton data recovery
-        matrix (DRM). Must be square if `drm` is false.
+        Craig-Bampton mass or stiffness, or Craig-Bampton data
+        recovery matrix (DRM). Must be square if `drm` is false.
     b : 1d array
-        A vector containing the indices of the b-set DOF in the desired
-        order (uses zero offset).
+        A vector containing the indices of the b-set DOF in the
+        desired order (uses zero offset).
     conv : 2-element array_like or string; optional
         If 2-element array_like, it is::
 
@@ -517,12 +518,13 @@ def cbconvert(M, b, conv='m2e', drm=False):
     True
     >>> np.allclose(drm_si, drm_si2)
     True
-    >>> np.set_printoptions(precision=4, suppress=True)
+    >>> np.set_printoptions(precision=4, suppress=True, linewidth=60)
     >>> np.diag(m_or_k_si)
-    array([ 0.0057,  0.0057,  0.0057,  8.8507,  8.8507,  8.8507,  1.    ,  1.    ])
+    array([ 0.0057,  0.0057,  0.0057,  8.8507,  8.8507,  8.8507,
+            1.    ,  1.    ])
     >>> drm_si
-    array([[ 0.0254,  0.0254,  0.0254,  1.    ,  1.    ,  1.    ,  0.3361,
-             0.3361]])
+    array([[ 0.0254,  0.0254,  0.0254,  1.    ,  1.    ,
+             1.    ,  0.3361,  0.3361]])
 
     Now, convert back to metric and compare to original:
 
@@ -551,14 +553,14 @@ def cbconvert(M, b, conv='m2e', drm=False):
     C = np.ones(lt)
     D = np.ones(lt)
     trn = ytools.mkpattvec([0, 1, 2], lb, 6).ravel()
-    rot = trn+3
-    C[b[trn]] = 1/lengthconv
+    rot = trn + 3
+    C[b[trn]] = 1 / lengthconv
     D[b[trn]] = massconv * lengthconv
     D[b[rot]] = massconv * lengthconv**2
     if lq > 0:
         q = locate.flippv(b, lt)
-        c = math.sqrt(massconv)*lengthconv
-        C[q] = 1/c
+        c = math.sqrt(massconv) * lengthconv
+        C[q] = 1 / c
         D[q] = c
     M = ytools.multmd(M, C)
     if not drm:
@@ -679,18 +681,19 @@ def cgmass(m, all6=False):
         raise ValueError('mass matrix is not symmetric')
 
     mx, my, mz = np.diag(m)[:3]
-    dx = m[1, 5]/my
-    dy = m[2, 3]/mz
-    dz = m[0, 4]/mx
+    dx = m[1, 5] / my
+    dy = m[2, 3] / mz
+    dz = m[0, 4] / mx
 
     # compute mass terms that will be subtracted off:
-    Md = np.array([[     0,     mx*dz,    -mz*dy],
-                   [-my*dz,         0,     my*dx],
-                   [ mz*dy,    -my*dx,         0]])
+    Md = np.array([[0,     mx * dz,    -mz * dy],
+                   [-my * dz,         0,     my * dx],
+                   [mz * dy,    -my * dx,         0]])
 
-    I = np.array([[mz*dy**2+my*dz**2, -mz*dx*dy, -my*dx*dz],
-                  [-mz*dx*dy, mz*dx**2+mx*dz**2, -mx*dy*dz],
-                  [-my*dx*dz,         -mx*dy*dz, mx*dy**2+my*dx**2]])
+    I = np.array(
+        [[mz * dy**2 + my * dz**2, -mz * dx * dy, -my * dx * dz],
+         [-mz * dx * dy, mz * dx**2 + mx * dz**2, -mx * dy * dz],
+         [-my * dx * dz, -mx * dy * dz, mx * dy**2 + my * dx**2]])
 
     mcg = m.astype(float, copy=True)
     mcg[:3, 3:] -= Md
@@ -702,7 +705,7 @@ def cgmass(m, all6=False):
     if not all6:
         return mcg, dxyz
 
-    gyr = np.sqrt(np.diag(I)/np.diag(mcg)[:3])
+    gyr = np.sqrt(np.diag(I) / np.diag(mcg)[:3])
     if np.iscomplexobj(gyr):
         gyr = -np.abs(gyr)
 
@@ -713,7 +716,7 @@ def cgmass(m, all6=False):
         w, v = linalg.eigh(I)
         m2 = v.T @ mcg[:3, :3] @ v
         princ_I = np.diag(w)
-        princ_gyr = np.sqrt(w/np.diag(m2))
+        princ_gyr = np.sqrt(w / np.diag(m2))
         if np.iscomplexobj(princ_gyr):
             princ_gyr = -np.abs(princ_gyr)
 
@@ -738,7 +741,7 @@ def _get_Tlv2sc(sccoord):
 
 def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
                 ref=[0, 0, 0], sccoord=None, conv=None, reorder=True,
-                g=9.80665/0.0254):
+                g=9.80665 / 0.0254):
     """
     Form common data recovery matrices.
 
@@ -762,16 +765,18 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         boundary DOF that are connected to other superelements, the CG
         recovery transforms are probably not very useful.
     uset : 2d ndarray; optional for single point interface
-        A 6-column matrix as output by :func:`pyyeti.op2.OP2.rdn2cop2`
-        or :func:`pyyeti.n2p.addgrid`. For information on the format
-        of this matrix, see :func:`pyyeti.op2.OP2.rdn2cop2`. This
-        defines the Craig-Bampton interface nodes in s/c coordinates,
-        *not* in l/v coordinates. Use `sccoord` to define the
-        transformation from l/v to s/c coordinates.
+        A 6-column matrix as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2` or
+        :func:`pyyeti.nastran.n2p.addgrid`. For information on the
+        format of this matrix, see
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. This defines the
+        Craig-Bampton interface nodes in s/c coordinates, *not* in l/v
+        coordinates. Use `sccoord` to define the transformation from
+        l/v to s/c coordinates.
 
         If `uset` is None, a single grid with id 1 will be
         automatically created at (0, 0, 0). The
-        :func:`pyyeti.n2p.addgrid` call for this is::
+        :func:`pyyeti.nastran.n2p.addgrid` call for this is::
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
@@ -791,9 +796,9 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
             [ Bx   By   Bz          ]
             [ Cx   Cy   Cz          ]
 
-        This is further described in :func:`pyyeti.n2p.addgrid`. The
-        transform from l/v basic to s/c is computed from this
-        information.
+        This is further described in
+        :func:`pyyeti.nastran.n2p.addgrid`. The transform from l/v
+        basic to s/c is computed from this information.
 
         If None, the transform is assumed to be identity.
 
@@ -955,8 +960,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
                   cgatm_lv, ifltma_lv, ifltmd_lv,
                   cg_sc, scaxial_sc, weight_sc, height_sc,
                   cg_lv, scaxial_lv, weight_lv, height_lv):
-        wh_sc = weight_sc*height_sc
-        wh_lv = weight_lv*height_lv
+        wh_sc = weight_sc * height_sc
+        wh_lv = weight_lv * height_lv
         n = cgatm_sc.shape[1]
         lat_sc = np.delete([0, 1, 2], scaxial_sc)
         lat_lv = np.delete([0, 1, 2], scaxial_lv)
@@ -967,26 +972,26 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
             # 5 s/c rows
             cgatm_sc[scaxial_sc],
             cgatm_sc[lat_sc],
-            sign_sc * ifltma_sc[lat_sc[::-1]+3]/wh_sc,
+            sign_sc * ifltma_sc[lat_sc[::-1] + 3] / wh_sc,
 
             # 5 l/v rows
             cgatm_lv[scaxial_lv],
             cgatm_lv[lat_lv],
-            sign_lv * ifltma_lv[lat_lv[::-1]+3]/wh_lv,
+            sign_lv * ifltma_lv[lat_lv[::-1] + 3] / wh_lv,
 
             # 4 RSS rows ... filled in during data recovery
             np.zeros((4, n))
         ))
 
         cglfd = np.zeros((14, ifltmd_sc.shape[1]))
-        cglfd[3:5] = sign_sc * ifltmd_sc[lat_sc[::-1]+3]/wh_sc
-        cglfd[8:10] = sign_lv * ifltmd_lv[lat_lv[::-1]+3]/wh_lv
+        cglfd[3:5] = sign_sc * ifltmd_sc[lat_sc[::-1] + 3] / wh_sc
+        cglfd[8:10] = sign_lv * ifltmd_lv[lat_lv[::-1] + 3] / wh_lv
         return cglfa, cglfd
 
     def _putaxial(labels, ax, s, t_old, t_new, r_old, r_new):
         lbls = [i.format(s) for i in labels]
         lbls[ax] = lbls[ax].replace(t_old, t_new)
-        lbls[ax+3] = lbls[ax+3].replace(r_old, r_new)
+        lbls[ax + 3] = lbls[ax + 3].replace(r_old, r_new)
         return lbls
 
     def _get_labels(scaxial_sc, scaxial_lv):
@@ -1053,7 +1058,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     rb_all = n2p.rbgeom_uset(uset, ref)
     bb = np.ix_(bset, bset)
     grfrc = Kcb[bb] @ rb_all
-    if abs(grfrc).max() > abs(Kcb[bb]).max()*1e-8:
+    if abs(grfrc).max() > abs(Kcb[bb]).max() * 1e-8:
         warn('Rigid-body grounding forces need to be checked. '
              'Correct `uset`?', RuntimeWarning)
         print('max grounding forces =\n', abs(grfrc).max(axis=0))
@@ -1109,7 +1114,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     cgatm_sc = linalg.solve(Mcg, rbcg.T @ Mcb[bset_if])
     ifatm_sc[:3] /= g
     cgatm_sc[:3] /= g
-    weight_lv = Mcg[0, 0]*g
+    weight_lv = Mcg[0, 0] * g
     height_lv = abs(cg_sc).max()
     if conv is not None:
         lengthconv, massconv = _get_conv_factors(conv)
@@ -1121,10 +1126,10 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     scaxial_sc = np.argmax(abs(cg_sc))
     cg_lv = Tsc2lv[:3, :3] @ cg_sc
     scaxial_lv = np.argmax(abs(cg_lv))
-    ifltma_lv=Tsc2lv @ ifltma_lv
-    ifltmd_lv=Tsc2lv @ ifltmd_lv
-    ifatm_lv=Tsc2lv @ ifatm_sc
-    cgatm_lv=Tsc2lv @ cgatm_sc
+    ifltma_lv = Tsc2lv @ ifltma_lv
+    ifltmd_lv = Tsc2lv @ ifltmd_lv
+    ifatm_lv = Tsc2lv @ ifatm_sc
+    cgatm_lv = Tsc2lv @ cgatm_sc
 
     # assemble ifltma, ifltmd, ifatm, cglf, and the companion
     # label lists:
@@ -1179,8 +1184,8 @@ def _find_triples(drmrb):
     scales = np.empty(n)
     scales[:] = np.nan
     j = 0
-    while j+2 < n:
-        pv = slice(j, j+3)
+    while j + 2 < n:
+        pv = slice(j, j + 3)
         T1 = drmrb[pv, :3]
         # check for a scalar multiplier (like .00259, for example)
         T1tT1 = T1.T @ T1
@@ -1188,8 +1193,9 @@ def _find_triples(drmrb):
         try:
             T2 = linalg.inv(T1)
             mx = abs(T1).max()
-            good = np.allclose(csqr*T2, T1.T,
-                               rtol=0.001, atol=max(0.001*mx, 1.e-5))
+            good = np.allclose(
+                csqr * T2, T1.T,
+                rtol=0.001, atol=max(0.001 * mx, 1.e-5))
         except linalg.LinAlgError:
             good = False
         if good:
@@ -1202,8 +1208,8 @@ def _find_triples(drmrb):
                                     [y, -x, 0]])
             mx = abs(rbrot_ideal).max()
             if np.allclose(rbrot, rbrot_ideal,
-                           rtol=0.001, atol=max(0.001*mx, 1.e-5)):
-#                drm[pv] = T2 @ drm[pv]
+                           rtol=0.001, atol=max(0.001 * mx, 1.e-5)):
+                #                drm[pv] = T2 @ drm[pv]
                 coords[pv, 0] = x
                 coords[pv, 1] = y
                 coords[pv, 2] = z
@@ -1258,31 +1264,33 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     fout.write('\nExtreme Coordinates from {}\n'.format(name))
     headers = ['X', 'Y', 'Z']
     widths = [10, 10, 10]
-    formats = ['{:10.4f}']*3
+    formats = ['{:10.4f}'] * 3
     hu, f = writer.formheader(headers, widths, formats,
                               sep=2, just=0)
-    hu = ''.join([' '*11+i+'\n' for i in hu.rstrip().split('\n')])
+    hu = ''.join([' ' * 11 + i + '\n'
+                  for i in hu.rstrip().split('\n')])
     fout.write(hu)
     if np.all(np.isnan(coords[:, 0])):
         fout.write('             -- no coordinates detected --\n')
     else:
         mn = np.nanmin(coords, axis=0).reshape((1, 3))
         mx = np.nanmax(coords, axis=0).reshape((1, 3))
-        writer.vecwrite(fout, '  Minimums:'+f, mn)
-        writer.vecwrite(fout, '  Maximums:'+f, mx)
+        writer.vecwrite(fout, '  Minimums:' + f, mn)
+        writer.vecwrite(fout, '  Maximums:' + f, mx)
 
     def _pf(s):
         return s.replace(' nan,        nan,        nan           nan',
                          '    ,           ,                         ')
 
-    r = np.arange(1, n+1)
+    r = np.arange(1, n + 1)
     nonnr = np.any(drm, axis=1)
     nr = ~nonnr
     snonnr = np.sum(nonnr)
     snr = np.sum(nr)
     fout.write('\n{} has {} ({:.1f}%) non-NULL rows and {} ({:.1f}%) '
                'NULL rows.\n'.
-               format(name, snonnr, snonnr/n*100, snr, snr/n*100))
+               format(name, snonnr, snonnr / n * 100,
+                      snr, snr / n * 100))
 
     if prtnullrows:
         fout.write('\n{} * RB results:  '
@@ -1301,13 +1309,13 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     lablen = max(8, len(max(labels, key=len)))
     headers = ['Row', 'Label', 'Coordinates (x, y, z)',
                'Unit Scale',
-               name+' * RB Responses (x, y, z, rx, ry, rz)']
-    widths = [6, lablen, 10*3+4, 12, 65]
+               name + ' * RB Responses (x, y, z, rx, ry, rz)']
+    widths = [6, lablen, 10 * 3 + 4, 12, 65]
     labform = '{{:{}s}}'.format(lablen)
     formats = ['{:6d}', labform,
-               '{:10.4f}, '*2+'{:10.4f}',
+               '{:10.4f}, ' * 2 + '{:10.4f}',
                '{:12.6}',
-               '{:10.3f} '*5+'{:10.3f}']
+               '{:10.3f} ' * 5 + '{:10.3f}']
     sep = [2, 2, 2, 2, 2]
     hu, f = writer.formheader(headers, widths, formats,
                               sep=sep, just=0)
@@ -1338,8 +1346,8 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     for k in range(6):
         jk = j[k]
         writer.vecwrite(fout, f, r[jk], labels[jk],
-                        coords[jk:jk+1], scales[jk:jk+1],
-                        drmrb[jk:jk+1], postfunc=_pf)
+                        coords[jk:jk + 1], scales[jk:jk + 1],
+                        drmrb[jk:jk + 1], postfunc=_pf)
 
     # null row check:
     nr = np.nonzero(nr)[0]
@@ -1350,14 +1358,14 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
                        format(name))
         else:
             fout.write('\nThere are {} ({:.1f}%) NULL rows in {}:\n'.
-                       format(nr.size, nr.size/n*100, name))
+                       format(nr.size, nr.size / n * 100, name))
             hu, f = writer.formheader(['Row', 'Label'],
                                       [6, lablen],
                                       ['{:6d}', labform],
                                       sep=2, just=0)
             fout.write(hu)
             for i in nr:
-                fout.write(f.format(i+1, labels[i]))
+                fout.write(f.format(i + 1, labels[i]))
 
     wrt_null_rows(fout, name, n, nr, labels, labform, lablen)
     if drm2 is not None:
@@ -1408,15 +1416,15 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
         If list, it is a list of strings for DRM labeling. Up to first
         15 characters will be used.
     drm2 : None or 2d ndarray; optional
-        Optional second DRM; only used in the null rows check to see if
-        `drm` and `drm2` share a common set of null rows. Useful for
-        DRMs that are meant to be used together, as in DTMA*a + DTMD*d
-        and would be expected to share the same set of null rows (if
-        any).
+        Optional second DRM; only used in the null rows check to see
+        if `drm` and `drm2` share a common set of null rows. Useful
+        for DRMs that are meant to be used together, as in DTMA*a +
+        DTMD*d and would be expected to share the same set of null
+        rows (if any).
     prtnullrows : bool; optional
-        If True, print the null rows in the DRM * rb section; otherwise
-        only print the non-null rows. (Note that the null rows are
-        still listed below that table.)
+        If True, print the null rows in the DRM * rb section;
+        otherwise only print the non-null rows. (Note that the null
+        rows are still listed below that table.)
 
     Returns
     -------
@@ -1463,14 +1471,15 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     See also
     --------
     :func:`cbcheck`, :func:`rbdispchk`, :func:`cbcoordchk`,
-    :func:`pyyeti.n2p.rbgeom`, :func:`pyyeti.n2p.rbgeom_uset`.
+    :func:`pyyeti.nastran.n2p.rbgeom`,
+    :func:`pyyeti.nastran.n2p.rbgeom_uset`.
 
     Examples
     --------
-    >>> from pyyeti import cb, n2p
+    >>> from pyyeti import cb, nastran
     >>> import numpy as np
     >>> nodes = [[0., 0., 0.], [10., 20., 30.]]
-    >>> ATM = n2p.rbgeom(nodes)
+    >>> ATM = nastran.rbgeom(nodes)
     >>> rb = np.eye(6)
     >>> _ = cb.rbmultchk(1, ATM, 'ATM', rb)   # doctest: +ELLIPSIS
     ----------------------------------------------
@@ -1534,9 +1543,9 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
     errs = np.empty(n)
     maxerr = 0
     for j in range(n):
-        row = j*3
-        T = rbdisp[row:row+3, :3]
-        rb = linalg.solve(T, rbdisp[row:row+3, 3:])
+        row = j * 3
+        T = rbdisp[row:row + 3, :3]
+        rb = linalg.solve(T, rbdisp[row:row + 3, 3:])
         deltax = rb[1, 2]
         deltay = rb[2, 0]
         deltaz = rb[0, 1]
@@ -1544,24 +1553,24 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
         deltay2 = -rb[0, 2]
         deltaz2 = -rb[1, 0]
         err = max(abs(np.diag(rb)).max(),
-                  abs(deltax-deltax2),
-                  abs(deltay-deltay2),
-                  abs(deltaz-deltaz2))
+                  abs(deltax - deltax2),
+                  abs(deltay - deltay2),
+                  abs(deltaz - deltaz2))
         maxerr = max(maxerr, err)
         coords[j] = [deltax, deltay, deltaz]
         errs[j] = err
         mc = abs(coords[j]).max()
-        if verbose and (err > mc*tol or np.isnan(err)):
+        if verbose and (err > mc * tol or np.isnan(err)):
             if grids is not None:
                 fout.write('Warning: deviation from standard pattern,'
                            ' node ID = {} starting at row {}. '
                            'Max deviation = {:.3g} units.\n'.
-                           format(grids[j], row+1, err))
+                           format(grids[j], row + 1, err))
             else:
                 fout.write('Warning: deviation from standard pattern,'
                            ' node #{} starting at row {}. '
                            '\tMax deviation = {:.3g} units.\n'.
-                           format(j+1, row+1, err))
+                           format(j + 1, row + 1, err))
             fout.write('  Rigid-Body Rotations:\n')
             writer.vecwrite(fout, '{:10.4f} {:10.4f} {:10.4f}\n', rb)
             fout.write('\n')
@@ -1573,7 +1582,7 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
         widths = [6]
         formats = ['{:6}']
         seps = [8]
-        args = [np.arange(1, n+1)]
+        args = [np.arange(1, n + 1)]
         if grids is not None:
             headers.append('ID')
             widths.append(8)
@@ -1607,9 +1616,9 @@ def rbdispchk(f, rbdisp, grids=None,
         If string, name of file to write to. If file handle, write to
         that file. Use 1 to write to the screen.
     rbdisp : 2d ndarray
-        Rigid-body displacements; size is 3*N x 6 where N is the number
-        of nodes. Rows correspond to X, Y, Z triples for each node (in
-        any coordinate system).
+        Rigid-body displacements; size is 3*N x 6 where N is the
+        number of nodes. Rows correspond to X, Y, Z triples for each
+        node (in any coordinate system).
     grids : 1d array or None; optional
         Length N array of node IDs or None. If array, used only in
         diagnostic message printing.
@@ -1637,7 +1646,8 @@ def rbdispchk(f, rbdisp, grids=None,
 
     Notes
     -----
-    The expected pattern for rigid-body displacements for each node is::
+    The expected pattern for rigid-body displacements for each node
+    is::
 
       [ 1 0 0    0   Z  -Y
         0 1 0   -Z   0   X
@@ -1660,14 +1670,15 @@ def rbdispchk(f, rbdisp, grids=None,
     See also
     --------
     :func:`cbcheck`, :func:`rbmultchk`, :func:`cbcoordchk`,
-    :func:`pyyeti.n2p.rbgeom`, :func:`pyyeti.n2p.rbgeom_uset`.
+    :func:`pyyeti.nastran.n2p.rbgeom`,
+    :func:`pyyeti.nastran.n2p.rbgeom_uset`.
 
     Examples
     --------
     Define locations for 3 nodes, compute rigid-body modes from them,
     and calculate their locations to test this routine:
 
-    >>> from pyyeti import n2p
+    >>> from pyyeti.nastran import n2p
     >>> from pyyeti import cb
     >>> import numpy as np
     >>> from pyyeti import ytools
@@ -1809,7 +1820,8 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     --------
     :func:`rbdispchk`, :func:`rbmultchk`, :func:`cbcheck`,
     :func:`cbconvert`, :func:`cbreorder`, :func:`cgmass`,
-    :func:`pyyeti.n2p.rbgeom`, :func:`pyyeti.n2p.rbgeom_uset`
+    :func:`pyyeti.nastran.n2p.rbgeom`,
+    :func:`pyyeti.nastran.n2p.rbgeom_uset`
     """
     lt = np.size(K, 0)
     lb = len(bset)
@@ -1968,7 +1980,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         fout.write('Echoing KBB for visual inspection since max(KBB)'
                    ' != 0:\n')
         fout.write('KBB =\n')
-        form = '\t' + ('{:7.4f}  ')*5 + '{:7.4f}\n'
+        form = '\t' + ('{:7.4f}  ') * 5 + '{:7.4f}\n'
         writer.vecwrite(fout, form, kbb)
         fout.write('\n\tNote: for comparison KQQ[0, 0] = {:.2f}.\n\n'.
                    format(kqq[0, 0]))
@@ -1999,7 +2011,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         ttl = ('Stiffness-based coordinates relative to node starting'
                ' at row/col {} (after any reordering):\n '
                ' (Note: locations are in local coordinate system of '
-               'the reference node.)\n'.format(bref[0]+1))
+               'the reference node.)\n'.format(bref[0] + 1))
 
     # coordinates of boundary points according to stiffness:
     coords, rbs, _ = cbcoordchk(k, bset, bref,
@@ -2014,7 +2026,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         # due to trouble with low frequency accuracy in DSYEVR, use
         # subspace iteration for lower frequency modes (up to 50 Hz,
         # but limit to 350 modes)
-        f = np.sqrt(w)/(2*math.pi)
+        f = np.sqrt(w) / (2 * math.pi)
         p = np.sum(f < 50.)
         # num = max(6, min(10, n/10))
         if 0:
@@ -2037,7 +2049,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
             w = np.abs(w[j])
             v = np.real(v[:, j])
             normfacs = np.abs(np.diag(v.T @ m @ v))
-            v = np.sqrt(1/normfacs) * v
+            v = np.sqrt(1 / normfacs) * v
 
     # assuming 6 rigid-body modes
     rbe = linalg.solve(v[bref, :6].T, v[:, :6].T).T
@@ -2053,7 +2065,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     rss_g = np.zeros((nb, 3))
     rss_e = np.zeros((nb, 3))
     for i in range(nb):
-        s = slice(i*6, i*6+3)
+        s = slice(i * 6, i * 6 + 3)
         rss_s[i] = np.sqrt((rbs_b[s, :3]**2).sum(axis=0))
         rss_g[i] = np.sqrt((rbg_b[s, :3]**2).sum(axis=0))
         rss_e[i] = np.sqrt((rbe_b[s, :3]**2).sum(axis=0))
@@ -2075,7 +2087,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     rss_rot_g = np.zeros((nb, 3))
     rss_rot_e = np.zeros((nb, 3))
     for i in range(nb):
-        s = slice(i*6+3, i*6+6)
+        s = slice(i * 6 + 3, i * 6 + 6)
         rss_rot_s[i] = np.sqrt((rbs_b[s, 3:]**2).sum(axis=0))
         rss_rot_g[i] = np.sqrt((rbg_b[s, 3:]**2).sum(axis=0))
         rss_rot_e[i] = np.sqrt((rbe_b[s, 3:]**2).sum(axis=0))
@@ -2108,8 +2120,9 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     def _wrtmass(fout, mass, rbtype):
         fout.write('6x6 mass matrix from {}-based rb modes:\n\n'.
                    format(rbtype))
-        writer.vecwrite(fout, '\t{:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}'
-                        '  {:12.4f}  {:12.4f}\n', mass)
+        writer.vecwrite(
+            fout, '\t{:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}'
+            '  {:12.4f}  {:12.4f}\n', mass)
         fout.write('\n\n')
     _wrtmass(fout, ms, 'stiffness')
     _wrtmass(fout, mg, 'geometry')
@@ -2168,14 +2181,16 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         fout.write('-------------     -------------------------------'
                    '-------------------------------------\n')
         nb = uset.shape[0]
-        writer.vecwrite(fout, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
-                        '  {:10.3f}  {:10.3f}  {:10.3f}\n',
-                        uset[:, :2].astype(np.int64), rbf[:nb])
+        writer.vecwrite(
+            fout, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
+            '  {:10.3f}  {:10.3f}  {:10.3f}\n',
+            uset[:, :2].astype(np.int64), rbf[:nb])
         nq = rbf.shape[0] - nb
         if nq > 0:
-            writer.vecwrite(fout, '  modal  {:4d}   {:10.3f}  {:10.3f}'
-                            '  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n',
-                            np.arange(nq)+1, rbf[nb::])
+            writer.vecwrite(
+                fout, '  modal  {:4d}   {:10.3f}  {:10.3f}'
+                '  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n',
+                np.arange(nq) + 1, rbf[nb::])
         fout.write('\nSummation of {}-based rb-forces: '
                    'RB\'*K*RB:\n\n'.format(rbtype))
         writer.vecwrite(fout, '\t{:10.3f}  {:10.3f}  {:10.3f}  '
@@ -2195,14 +2210,14 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     fout.write('\tMode   Frequency (Hz)\n')
     fout.write('\t----   --------------\n')
     writer.vecwrite(fout, '\t{:4d}  {:15.6f}\n',
-                    np.arange(n)+1, np.sqrt(w)/(2*math.pi))
+                    np.arange(n) + 1, np.sqrt(w) / (2 * math.pi))
 
     # compute modal-effective mass:
     if nq > 0:
         # effective mass in percent of total mass:
-        effmass = (m[QB] @ rbg)**2 * (100/np.diag(mg))
-        num = np.arange(nq)+1
-        frq = np.sqrt(np.abs(np.diag(kqq)))/(2*math.pi)
+        effmass = (m[QB] @ rbg)**2 * (100 / np.diag(mg))
+        num = np.arange(nq) + 1
+        frq = np.sqrt(np.abs(np.diag(kqq))) / (2 * math.pi)
         summ = np.sum(effmass, axis=0)
         fout.write('\n\nFIXED-BASE MODES w/ Percent Modal Effective'
                    ' Mass:\n\n')
@@ -2217,14 +2232,14 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
             num = num[pv]
             frq = frq[pv]
             effmass = effmass[pv]
-        frm = '{:6d}     {:10.3f}    ' + '  {:6.2f}'*6 + '\n'
+        frm = '{:6d}     {:10.3f}    ' + '  {:6.2f}' * 6 + '\n'
         dirstr = '    T1      T2      T3      R1      R2      R3\n'
         linestr = '  ------  ------  ------  ------  ------  ------\n'
         fout.write('\nMode No.  Frequency (Hz) ' + dirstr)
         fout.write('--------  -------------- ' + linestr)
         writer.vecwrite(fout, frm, num, frq, effmass)
         fout.write(('\nTotal Effective Mass:'
-                    '    ' + '  {:6.2f}'*6 + '\n').format(*summ))
+                    '    ' + '  {:6.2f}' * 6 + '\n').format(*summ))
     else:
         fout.write('\n\nThere are no modes for the modal-effective-'
                    'mass check.\n')
@@ -2261,22 +2276,24 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         based rigid-body modes. If `bref` is not all 6-DOF of a single
         node, you'll also want to set `rb_norm` to True.
     uset : 2d ndarray; optional
-        A 6-column matrix as output by :func:`pyyeti.op2.OP2.rdn2cop2`
-        or :func:`pyyeti.n2p.addgrid`. For information on the format
-        of this matrix, see :func:`pyyeti.op2.OP2.rdn2cop2`. If `uset`
-        is None, a single grid with id 1 will be automatically created
-        at (0, 0, 0) and `uref` will be set to 1. The
-        :func:`pyyeti.n2p.addgrid` call for this is::
+        A 6-column matrix as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2` or
+        :func:`pyyeti.nastran.n2p.addgrid`. For information on the
+        format of this matrix, see
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. If `uset` is None, a
+        single grid with id 1 will be automatically created at (0, 0,
+        0) and `uref` will be set to 1. The
+        :func:`pyyeti.nastran.n2p.addgrid` call for this is::
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
     uref : integer or array_like; optional
         Defines reference for geometry-based rigid-body modes in a
-        format compatible with :func:`pyyeti.n2p.rbgeom_uset`: either
-        an integer grid id defined in `uset`, or a 3-element vector
-        specifying a location in the basic coordinate system. If a
-        3-element vector, it is in the old units (before `conv` is
-        used to convert units).
+        format compatible with :func:`pyyeti.nastran.n2p.rbgeom_uset`:
+        either an integer grid id defined in `uset`, or a 3-element
+        vector specifying a location in the basic coordinate
+        system. If a 3-element vector, it is in the old units (before
+        `conv` is used to convert units).
     conv : None or 2-element array_like or string; optional
         If None, no unit conversion is done. If 2-element array_like,
         it is::
@@ -2348,8 +2365,8 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
          needed.
        - Calculate the 3 types of rigid-body modes (all are relative
          to reordered DOF).
-       - Calculates coordinates of boundary DOF relative to a reference
-         (`bref`) from the stiffness matrix.
+       - Calculates coordinates of boundary DOF relative to a
+         reference (`bref`) from the stiffness matrix.
        - Computes the root-sum-squared distances of motion for each
          boundary grid for each type of rb-mode. These distances
          should be 1.
@@ -2364,13 +2381,13 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
             - the CG location relative to respective reference point
               (`bref` for the stiffness and eigensolution based rb
               modes and Uref for the geometry-based rb modes ... which
-              means the geometry-based CG will only match the other two
-              if the reference is the same).
+              means the geometry-based CG will only match the other
+              two if the reference is the same).
             - the radius of gyration from the CG about the coordinate
               axes and about the principal axes.
 
-       - Computes stiffness grounding checks against the three types of
-         rb modes.
+       - Computes stiffness grounding checks against the three types
+         of rb modes.
        - Computes the free-free modes.
        - Computes the fixed-base modes and percent modal effective
          mass.
@@ -2393,9 +2410,9 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     Example usage::
 
         import numpy as np
-        from pyyeti import op4
         from pyyeti import cb
         from pyyeti import nastran
+        from pyyeti.nastran import op4
         o4 = op4.OP4()
 
         names, mats, *_ = o4.listload('nas2cam_csuper/inboard_mk.op4')
@@ -2407,9 +2424,8 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     See also
     --------
     :func:`rbmultchk`, :func:`rbdispchk`, :func:`cbcoordchk`,
-    :func:`pyyeti.n2p.addgrid`, :func:`cbconvert`, :func:`cbreorder`,
-    :func:`pyyeti.op2.OP2.rdn2cop2`
-
+    :func:`pyyeti.nastran.n2p.addgrid`, :func:`cbconvert`,
+    :func:`cbreorder`, :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     """
     return ytools.wtfile(f, _cbcheck, Mcb, Kcb, bseto, bref, uset,
                          uref, conv, em_filt, rb_norm, reorder)

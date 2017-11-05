@@ -3,10 +3,18 @@
 Tools for working with data that originated in Nastran. Typically,
 a Nastran modes run is executed with the "nas2cam" DMAP (CAM is now
 replaced by Python but the DMAP retains the old name). This creates an
-op2/op4 file pair which is read by :func:`pyyeti.op2.rdnas2cam`. After
-that, the tools in this module can be used to create rigid-body modes,
-form data recovery matrices, make partition vectors based on sets,
-form RBE3-like interpolation matrices, etc.
+op2/op4 file pair which is read by
+:func:`pyyeti.nastran.rdnas2cam`. After that, the tools in this module
+can be used to create rigid-body modes, form data recovery matrices,
+make partition vectors based on sets, form RBE3-like interpolation
+matrices, etc.
+
+This module is typically used by importing the "nastran" module:
+
+>>> from pyyeti import nastran
+>>> from pyyeti.nastran import n2p
+>>> n2p.rbgeom is nastran.rbgeom
+True
 """
 
 import math
@@ -15,6 +23,12 @@ import warnings
 import numpy as np
 import scipy.linalg as linalg
 from pyyeti import locate
+
+__all__ = ['addgrid', 'addulvs', 'build_coords', 'coordcardinfo',
+           'expanddof', 'formdrm', 'formrbe3', 'formtran', 'formulvs',
+           'get_coordinfo', 'getcoords', 'mkdofpv', 'mksetpv',
+           'mkusetmask', 'rbcoords', 'rbgeom', 'rbgeom_uset',
+           'rbmove', 'upasetpv', 'usetprt']
 
 
 def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
@@ -43,9 +57,9 @@ def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
     Examples
     --------
     >>> import numpy as np
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> grids = np.array([[0., 0., 0.], [30., 10., 20.]])
-    >>> n2p.rbgeom(grids)
+    >>> nastran.rbgeom(grids)
     array([[  1.,   0.,   0.,   0.,   0.,  -0.],
            [  0.,   1.,   0.,  -0.,   0.,   0.],
            [  0.,   0.,   1.,   0.,  -0.,   0.],
@@ -118,7 +132,7 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
 
     Examples
     --------
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> import numpy as np
     >>> #  first, make a uset table:
     >>> #   node 100 in basic is @ [5, 10, 15]
@@ -127,11 +141,11 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
     >>> uset = None
-    >>> uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = n2p.addgrid(uset, 200, 'b', cylcoord, [32, 90, 10],
+    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
+    >>> uset = nastran.addgrid(uset, 200, 'b', cylcoord, [32, 90, 10],
     ...                    cylcoord)
     >>> np.set_printoptions(precision=2, suppress=True)
-    >>> n2p.rbgeom_uset(uset)   # rb modes relative to [0, 0, 0]
+    >>> nastran.rbgeom_uset(uset)   # rb modes relative to [0, 0, 0]
     array([[  1.,   0.,   0.,   0.,  15., -10.],
            [  0.,   1.,   0., -15.,   0.,   5.],
            [  0.,   0.,   1.,  10.,  -5.,   0.],
@@ -246,11 +260,11 @@ def rbmove(rb, oldref, newref):
     Examples
     --------
     >>> import numpy as np
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> grids = np.array([[0., 0., 0.], [30., 10., 20.]])
-    >>> rb0 = n2p.rbgeom(grids)
-    >>> rb1 = n2p.rbgeom(grids, [2., 4., -5.])
-    >>> rb1_b = n2p.rbmove(rb0, [0., 0., 0.], [2., 4., -5.])
+    >>> rb0 = nastran.rbgeom(grids)
+    >>> rb1 = nastran.rbgeom(grids, [2., 4., -5.])
+    >>> rb1_b = nastran.rbmove(rb0, [0., 0., 0.], [2., 4., -5.])
     >>> np.all(rb1_b == rb1)
     True
 
@@ -315,14 +329,14 @@ def rbcoords(rb, verbose=2):
 
     Examples
     --------
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> import numpy as np
     >>> # generate perfect rigid-body modes to test this routine
     >>> coords = np.array([[0, 0, 0],
     ...                    [1, 2, 3],
     ...                    [4, -5, 25]])
-    >>> rb = n2p.rbgeom(coords)
-    >>> coords_out, mxdev, mxerr = n2p.rbcoords(rb)
+    >>> rb = nastran.rbgeom(coords)
+    >>> coords_out, mxdev, mxerr = nastran.rbcoords(rb)
     >>> np.allclose(coords_out, coords)
     True
     >>> np.allclose(0., mxdev)
@@ -332,12 +346,12 @@ def rbcoords(rb, verbose=2):
 
     Now show example when non-rb modes are passed in:
 
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> import numpy as np
     >>> not_rb = np.dot(np.arange(12).reshape(12, 1),
     ...                 np.arange(6).reshape(1, 6))
     >>> np.set_printoptions(precision=4, suppress=True)
-    >>> n2p.rbcoords(not_rb)
+    >>> nastran.rbcoords(not_rb)
     Warning:  deviation from standard pattern, node #1 starting at index 0:
       Max deviation = 2.6 units.
       Max % error   = 217%.
@@ -435,8 +449,8 @@ def expanddof(dof):
 
     Examples
     --------
-    >>> from pyyeti import n2p
-    >>> n2p.expanddof([1, 2])             # doctest: +ELLIPSIS
+    >>> from pyyeti import nastran
+    >>> nastran.expanddof([1, 2])             # doctest: +ELLIPSIS
     array([[1, 1],
            [1, 2],
            [1, 3],
@@ -449,7 +463,7 @@ def expanddof(dof):
            [2, 4],
            [2, 5],
            [2, 6]]...)
-    >>> n2p.expanddof([[1, 34], [2, 156]])             # doctest: +ELLIPSIS
+    >>> nastran.expanddof([[1, 34], [2, 156]])   # doctest: +ELLIPSIS
     array([[1, 3],
            [1, 4],
            [2, 1],
@@ -522,12 +536,12 @@ def mkusetmask(nasset=None):
 
     Examples
     --------
-    >>> from pyyeti import n2p
-    >>> n2p.mkusetmask('q')
+    >>> from pyyeti import nastran
+    >>> nastran.mkusetmask('q')
     4194304
-    >>> n2p.mkusetmask('b')
+    >>> nastran.mkusetmask('b')
     2097154
-    >>> n2p.mkusetmask('q+b')
+    >>> nastran.mkusetmask('q+b')
     6291458
     """
     m = 1
@@ -658,7 +672,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
 
     Examples
     --------
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> import numpy as np
     >>> #  first, make a uset table:
     >>> #   node 100 in basic is @ [5, 10, 15]
@@ -667,11 +681,11 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
     >>> uset = None
-    >>> uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = n2p.addgrid(uset, 200, 'c', cylcoord, [32, 90, 10],
-    ...                    cylcoord)
-    >>> table = n2p.usetprt(1, uset,
-    ...                     printsets='r, c')  # doctest: +ELLIPSIS
+    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
+    >>> uset = nastran.addgrid(uset, 200, 'c', cylcoord, [32, 90, 10],
+    ...                        cylcoord)
+    >>> table = nastran.usetprt(
+    ...      1, uset, printsets='r, c')  # doctest: +ELLIPSIS
     R-set
           -None-
     <BLANKLINE>
@@ -679,8 +693,8 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
                  -1-        -2-    ...   -6-     ...  -10-
          1=      200-1      200-2  ...   200-6
     <BLANKLINE>
-    >>> table = n2p.usetprt(1, uset,
-    ...                     printsets='*')  # doctest: +ELLIPSIS
+    >>> table = nastran.usetprt(
+    ...      1, uset, printsets='*')  # doctest: +ELLIPSIS
     M-set, S-set, O-set, Q-set, R-set, E-set, U1-set, ... U6-set
           -None-
     <BLANKLINE>
@@ -697,7 +711,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
          1=      100-1      100-2  ...    200-4 =    10
         11=      200-5      200-6
     <BLANKLINE>
-    >>> table = n2p.usetprt(1, uset)  # doctest: +ELLIPSIS
+    >>> table = nastran.usetprt(1, uset)  # doctest: +ELLIPSIS
     M-set, S-set, O-set, Q-set, R-set, E-set
           -None-
     <BLANKLINE>
@@ -727,7 +741,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
      [ 10 200   4   0 ...  0   4   0   0  10  10  10  10  10  10]
      [ 11 200   5   0 ...  0   5   0   0  11  11  11  11  11  11]
      [ 12 200   6   0 ...  0   6   0   0  12  12  12  12  12  12]]
-    >>> table = n2p.usetprt(1, uset, form=1)  # doctest: +ELLIPSIS
+    >>> table = nastran.usetprt(1, uset, form=1)  # doctest: +ELLIPSIS
      DOF #     GRID    DOF  ... R   C   B   E   L   T   A   F   N   G
     -------  --------  ---  ... --  --  --  --  --  --  --  --  --  --
           1       100   1   ...          1       1   1   1   1   1   1
@@ -997,7 +1011,7 @@ def mksetpv(uset, major, minor):
     Examples
     --------
     >>> import numpy as np
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> # First, make a uset table
     >>> #  node 100 in basic is @ [5, 10, 15]
     >>> #  node 200 in cylindrical is @ [r, th, z] = [32, 90, 10]
@@ -1006,19 +1020,19 @@ def mksetpv(uset, major, minor):
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
     >>> uset = None
-    >>> uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = n2p.addgrid(uset, 200, 'm', cylcoord, [32, 90, 10],
+    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
+    >>> uset = nastran.addgrid(uset, 200, 'm', cylcoord, [32, 90, 10],
     ...                    cylcoord)
-    >>> bset = n2p.mksetpv(uset, 'p', 'b')        # 1:6 are true
+    >>> bset = nastran.mksetpv(uset, 'p', 'b')        # 1:6 are true
     >>> np.set_printoptions(linewidth=75)
     >>> bset
     array([ True,  True,  True,  True,  True,  True, False, False, False,
            False, False, False], dtype=bool)
-    >>> mset = n2p.mksetpv(uset, 'p', 'm')        # 7:12 are true
+    >>> mset = nastran.mksetpv(uset, 'p', 'm')        # 7:12 are true
     >>> mset
     array([False, False, False, False, False, False,  True,  True,  True,
             True,  True,  True], dtype=bool)
-    >>> rcqset = n2p.mksetpv(uset, 'p', 'r+c+q')  # all false
+    >>> rcqset = nastran.mksetpv(uset, 'p', 'r+c+q')  # all false
     >>> rcqset
     array([False, False, False, False, False, False, False, False, False,
            False, False, False], dtype=bool)
@@ -1082,14 +1096,14 @@ def mkdofpv(uset, nasset, dof):
     Examples
     --------
     >>> import numpy as np
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> # Want an A-set partition vector for all available a-set dof
     >>> # of grids 100 and 200:
     >>> ids = np.array([[100], [200]])
     >>> uset = None
-    >>> uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = n2p.addgrid(uset, 200, 'b', 0, [32, 90, 10], 0)
-    >>> n2p.mkdofpv(uset, "a", ids)             # doctest: +ELLIPSIS
+    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
+    >>> uset = nastran.addgrid(uset, 200, 'b', 0, [32, 90, 10], 0)
+    >>> nastran.mkdofpv(uset, "a", ids)         # doctest: +ELLIPSIS
     (array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11]...), array([[100,   1],
            [100,   2],
            [100,   3],
@@ -1105,7 +1119,7 @@ def mkdofpv(uset, nasset, dof):
     >>> uset = np.vstack((uset, [991, 0, 4194304, 0, 0, 0]))
     >>> # request spoint 991 and dof 123 for grid 100 (in that order):
     >>> ids2 = [[991, 0], [100, 123]]
-    >>> n2p.mkdofpv(uset, "a", ids2)             # doctest: +ELLIPSIS
+    >>> nastran.mkdofpv(uset, "a", ids2)             # doctest: +ELLIPSIS
     (array([12,  0,  1,  2]...), array([[991,   0],
            [100,   1],
            [100,   2],
@@ -1198,23 +1212,23 @@ def coordcardinfo(uset, cid=None):
     Examples
     --------
     >>> import numpy as np
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> sccoord = np.array([[501, 1, 0], [2345.766, 0, 0],
     ...                     [2345.766, 10, 0], [3000, 0, 0]])
-    >>> uset = n2p.addgrid(None, 1001, 'b', sccoord, [0, 0, 0],
+    >>> uset = nastran.addgrid(None, 1001, 'b', sccoord, [0, 0, 0],
     ...                    sccoord)
     >>> np.set_printoptions(precision=4, suppress=True)
-    >>> n2p.coordcardinfo(uset)
+    >>> nastran.coordcardinfo(uset)
     {501: ['CORD2R', array([[  501.   ,     1.   ,     0.   ],
            [ 2345.766,     0.   ,     0.   ],
            [ 2345.766,     1.   ,     0.   ],
            [ 2346.766,     0.   ,     0.   ]])]}
-    >>> n2p.coordcardinfo(uset, 0)
+    >>> nastran.coordcardinfo(uset, 0)
     ['CORD2R', array([[ 0.,  1.,  0.],
            [ 0.,  0.,  0.],
            [ 0.,  0.,  1.],
            [ 1.,  0.,  0.]])]
-    >>> n2p.coordcardinfo(uset, 501)
+    >>> nastran.coordcardinfo(uset, 501)
     ['CORD2R', array([[  501.   ,     1.   ,     0.   ],
            [ 2345.766,     0.   ,     0.   ],
            [ 2345.766,     1.   ,     0.   ],
@@ -1224,16 +1238,16 @@ def coordcardinfo(uset, cid=None):
     ...                      [100, 20, 30], [10, 1, 1]])
     >>> sphcoord = np.array([[701, 3, 601], [35, 15, -10],
     ...                      [55, 15, -10], [45, 30, 1]])
-    >>> uset = n2p.addgrid(uset, 1002, 'b', cylcoord, [2, 90, 5],
+    >>> uset = nastran.addgrid(uset, 1002, 'b', cylcoord, [2, 90, 5],
     ...                    cylcoord)
-    >>> uset = n2p.addgrid(uset, 1003, 'b', sphcoord, [12, 40, 45],
-    ...                    sphcoord)
-    >>> cyl601 = n2p.coordcardinfo(uset, 601)
-    >>> sph701 = n2p.coordcardinfo(uset, 701)
-    >>> uset = n2p.addgrid(uset, 2002, 'b', cyl601[1], [2, 90, 5],
+    >>> uset = nastran.addgrid(
+    ...     uset, 1003, 'b', sphcoord, [12, 40, 45], sphcoord)
+    >>> cyl601 = nastran.coordcardinfo(uset, 601)
+    >>> sph701 = nastran.coordcardinfo(uset, 701)
+    >>> uset = nastran.addgrid(uset, 2002, 'b', cyl601[1], [2, 90, 5],
     ...                    cyl601[1])
-    >>> uset = n2p.addgrid(uset, 2003, 'b', sph701[1], [12, 40, 45],
-    ...                    sph701[1])
+    >>> uset = nastran.addgrid(
+    ...     uset, 2003, 'b', sph701[1], [12, 40, 45], sph701[1])
     >>> np.allclose(uset[6, 3:], uset[18, 3:])
     True
     >>> np.allclose(uset[12, 3:], uset[24, 3:])
@@ -1694,7 +1708,7 @@ def getcoords(uset, gid, csys, coordref=None):
 
     Examples
     --------
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> import numpy as np
     >>> # node 100 in basic is @ [5, 10, 15]
     >>> # node 200 in cylindrical coordinate system is @
@@ -1704,23 +1718,23 @@ def getcoords(uset, gid, csys, coordref=None):
     >>> sphcoord = np.array([[2, 3, 0], [0, 0, 0], [0, 1, 0],
     ...                      [0, 0, 1]])
     >>> uset = None
-    >>> uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = n2p.addgrid(uset, 200, 'b', cylcoord,
-    ...                    [32, 90, 10], cylcoord)
-    >>> uset = n2p.addgrid(uset, 300, 'b', sphcoord,
-    ...                    [50, 90, 90], sphcoord)
+    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
+    >>> uset = nastran.addgrid(uset, 200, 'b', cylcoord,
+    ...                        [32, 90, 10], cylcoord)
+    >>> uset = nastran.addgrid(uset, 300, 'b', sphcoord,
+    ...                        [50, 90, 90], sphcoord)
     >>> np.set_printoptions(precision=2, suppress=True)
     >>> # get coordinates of node 200 in basic:
-    >>> n2p.getcoords(uset, 200, 0)
+    >>> nastran.getcoords(uset, 200, 0)
     array([ 10.,   0.,  32.])
     >>> # get coordinates of node 200 in cylindrical (cid 1):
-    >>> n2p.getcoords(uset, 200, 1)
+    >>> nastran.getcoords(uset, 200, 1)
     array([ 32.,  90.,  10.])
     >>> # get coordinates of node 200 in spherical (cid 2):
     >>> r = np.hypot(10., 32.)
     >>> th = 90.
     >>> phi = math.atan2(10., 32.)*180/math.pi
-    >>> n2p.getcoords(uset, 200, 2) - np.array([r, th, phi])
+    >>> nastran.getcoords(uset, 200, 2) - np.array([r, th, phi])
     array([ 0.,  0.,  0.])
     """
     if np.size(gid) == 1:
@@ -1869,8 +1883,8 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         coordref = {}
         for i in range(n):
             j = i*6
-            uset[j:j+6] = n2p.addgrid(None, ids[i], 'b', cdin[i],
-                                      xyz[i], cdout[i], coordref)
+            uset[j:j+6] = nastran.addgrid(None, ids[i], 'b', cdin[i],
+                                          xyz[i], cdout[i], coordref)
 
     See also
     --------
@@ -1886,7 +1900,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
     Examples
     --------
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> import numpy as np
     >>> # node 100 in basic is @ [5, 10, 15]
     >>> # node 200 in cylindrical coordinate system is @
@@ -1894,9 +1908,9 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
     >>> uset = None
-    >>> uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = n2p.addgrid(uset, 200, 'b', cylcoord,
-    ...                    [32, 90, 10], cylcoord)
+    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
+    >>> uset = nastran.addgrid(uset, 200, 'b', cylcoord,
+    ...                        [32, 90, 10], cylcoord)
     >>> uset.astype(int)
     array([[    100,       1, 2097154,       5,      10,      15],
            [    100,       2, 2097154,       0,       1,       0],
@@ -2073,7 +2087,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
     Examples
     --------
-    >>> from pyyeti import n2p
+    >>> from pyyeti import nastran
     >>> # First, make a uset table using all basic coords to simplify
     >>> # visual inspection:
     >>> #  node 100 in basic is @ [ 1,  0, 0]
@@ -2082,15 +2096,16 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     >>> #  node 400 in basic is @ [ 0, -1, 0]
     >>> #  node 500 in basic is @ [ 0,  0, 0]
     >>> uset = None
-    >>> uset = n2p.addgrid(uset, 100, 'b', 0, [1, 0, 0], 0)
-    >>> uset = n2p.addgrid(uset, 200, 'b', 0, [0, 1, 0], 0)
-    >>> uset = n2p.addgrid(uset, 300, 'b', 0, [-1, 0, 0], 0)
-    >>> uset = n2p.addgrid(uset, 400, 'b', 0, [0, -1, 0], 0)
-    >>> uset = n2p.addgrid(uset, 500, 'b', 0, [0, 0, 0], 0)
+    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [1, 0, 0], 0)
+    >>> uset = nastran.addgrid(uset, 200, 'b', 0, [0, 1, 0], 0)
+    >>> uset = nastran.addgrid(uset, 300, 'b', 0, [-1, 0, 0], 0)
+    >>> uset = nastran.addgrid(uset, 400, 'b', 0, [0, -1, 0], 0)
+    >>> uset = nastran.addgrid(uset, 500, 'b', 0, [0, 0, 0], 0)
     >>> #
     >>> # Define the motion of grid 500 to be average of translational
     >>> # motion of grids:  100, 200, 300, and 400.
-    >>> rbe3 = n2p.formrbe3(uset, 500, 123456, [123, [100, 200, 300, 400]])
+    >>> rbe3 = nastran.formrbe3(
+    ...     uset, 500, 123456, [123, [100, 200, 300, 400]])
     >>> np.set_printoptions(linewidth=75)
     >>> print(rbe3+0)
     [[ 0.25  0.    0.    0.25  0.    0.    0.25  0.    0.    0.25  0.    0.  ]
@@ -2101,8 +2116,9 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
      [ 0.    0.25  0.   -0.25  0.    0.    0.   -0.25  0.    0.25  0.    0.  ]]
     >>> #
     >>> # Example showing UM_List option:
-    >>> rbe3um = n2p.formrbe3(uset, 500, 123456, [123, [100, 200, 300, 400]],
-    ...                       [100, 12, 200, 3, 300, 23, 400, 3])
+    >>> rbe3um = nastran.formrbe3(
+    ...     uset, 500, 123456, [123, [100, 200, 300, 400]],
+    ...     [100, 12, 200, 3, 300, 23, 400, 3])
     >>> print(rbe3um+0)
     [[ 0.  -1.   0.  -1.  -1.   0.   4.   0.   0.   0.   0.   0. ]
      [ 0.   0.5 -0.5  0.  -0.5 -0.5  0.   2.   0.   0.   0.   2. ]
@@ -2112,8 +2128,9 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
      [-1.   0.   0.   0.   0.   0.   0.   0.   2.  -1.  -1.   0. ]]
     >>> #
     >>> # Example showing UM_List option including some dependent dof:
-    >>> rbe3um2 = n2p.formrbe3(uset, 500, 123456, [123, [100, 200, 300, 400]],
-    ...                        [100, 12, 200, 3, 300, 3, 500, 23])
+    >>> rbe3um2 = nastran.formrbe3(
+    ...     uset, 500, 123456, [123, [100, 200, 300, 400]],
+    ...     [100, 12, 200, 3, 300, 3, 500, 23])
     >>> print(rbe3um2+0)
     [[ 0.   -1.    0.   -1.    0.   -1.    0.    0.    4.    0.    0.    0.  ]
      [ 0.    1.    0.    0.    1.   -1.    0.    0.    0.    0.    0.    4.  ]
@@ -2327,10 +2344,10 @@ def upasetpv(nas, seup):
         # External superelement 100 is upstream of the residual. On
         # the CSUPER entry, the A-set of 100 were assigned new ids and
         # the order was changed. Form the ULVS matrix:
-        from pyyeti import n2p
+        from pyyeti import nastran
         import op2
         nas = op2.rdnas2cam('nas2cam')
-        pv = n2p.upasetpv(nas, 100)
+        pv = nastran.upasetpv(nas, 100)
         ulvs100 = nas['phg'][0][pv]  # this will reorder as needed
 
     See also
@@ -2534,12 +2551,12 @@ def formtran(nas, se, dof, gset=False):
 
         # Want data recovery matrix from t & q dof to grids 3001 and
         # 3002 of se 300:
-        from pyyeti import n2p
+        from pyyeti import nastran
         import op2
         nas = op2.rdnas2cam('nas2cam')
-        drm = n2p.formtran(nas, 300, [3001, 3002])
+        drm = nastran.formtran(nas, 300, [3001, 3002])
         # or, equivalently:
-        drm = n2p.formdrm(nas, 300, 300, [3001, 3002])
+        drm = nastran.formdrm(nas, 300, 300, [3001, 3002])
 
     See also
     --------
@@ -2750,10 +2767,10 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
     Example usage::
 
         # From recovery matrix from se 0 q-set to t & q set of se 500:
-        from pyyeti import n2p
+        from pyyeti import nastran
         import op2
         nas = op2.rdnas2cam('nas2cam')
-        ulvs = n2p.formulvs(nas, 500)
+        ulvs = nastran.formulvs(nas, 500)
 
     See also
     --------
@@ -2844,13 +2861,14 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
 
         # Want data recovery matrix from se 0 to grids 3001 and
         # 3002 of se 300:
-        from pyyeti import n2p
+        from pyyeti import nastran
         import op2
         nas = op2.rdnas2cam()
-        drm, dof = n2p.formdrm(nas, 300, [3001, 3002])
+        drm, dof = nastran.formdrm(nas, 300, [3001, 3002])
 
         # for only the translations:
-        drm, dof = n2p.formdrm(nas, 300, [[3001, 123], [3002, 123])
+        drm, dof = nastran.formdrm(nas, 300, [[3001, 123],
+                                              [3002, 123])
 
     See also
     --------
@@ -2875,7 +2893,7 @@ def addulvs(nas, *ses, **kwargs):
     Parameters
     ----------
     nas : dictionary
-        This is the nas2cam dictionary:  ``nas = op2.rdnas2cam()``
+        This is the nas2cam dictionary: ``nas = op2.rdnas2cam()``
     *ses : list
         Remaining args are the superelement ids for which to compute a
         ULVS via :func:`formulvs`.
@@ -2893,12 +2911,3 @@ def addulvs(nas, *ses, **kwargs):
 
     for se in ses:
         nas['ulvs'][se] = formulvs(nas, se, **kwargs)
-
-
-def AddULVS(*args, **kwargs):
-    """
-    This routine is deprecated. See :func:`addulvs` instead.
-    """
-    warnings.warn(':func:`AddULVS` is deprecated, use :func:`addulvs`'
-                  ' instead.', RuntimeWarning)
-    return addulvs(*args, **kwargs)

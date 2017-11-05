@@ -1,5 +1,6 @@
 import numpy as np
-from pyyeti import cb, op2, n2p, ytools, frclim, ode
+from pyyeti import cb, ytools, frclim, ode
+from pyyeti.nastran import op2, n2p
 from nose.tools import *
 
 
@@ -21,7 +22,7 @@ def test_calcAM():
     maa = maa[pv]
     kaa = kaa[pv]
     baa = np.zeros_like(maa)
-    baa[q, q] = 2*.05*np.sqrt(kaa[q, q])
+    baa[q, q] = 2 * .05 * np.sqrt(kaa[q, q])
 
     nb = len(b)
     bdrm = np.zeros((nb, maa.shape[0]))
@@ -51,24 +52,24 @@ def test_ntfl():
                      [0, 0, M3, 0],
                      [0, 0, 0, M4]])
     DAMP = np.array([[c1, -c1, 0, 0],
-                     [-c1, c1+c2, -c2, 0],
-                     [0, -c2, c2+c3, -c3],
+                     [-c1, c1 + c2, -c2, 0],
+                     [0, -c2, c2 + c3, -c3],
                      [0, 0, -c3, c3]])
     STIF = np.array([[k1, -k1, 0, 0],
-                     [-k1, k1+k2, -k2, 0],
-                     [0, -k2, k2+k3, -k3],
+                     [-k1, k1 + k2, -k2, 0],
+                     [0, -k2, k2 + k3, -k3],
                      [0, 0, -k3, k3]])
     F = np.vstack((np.ones((1, len(freq))),
                    np.zeros((3, len(freq)))))
     fs = ode.SolveUnc(MASS, DAMP, STIF, pre_eig=True)
     fullsol = fs.fsolve(F, freq)
     A_coupled = fullsol.a[1]
-    F_coupled = (M2/2*A_coupled - k2*(fullsol.d[2] - fullsol.d[1])
-                 - c2*(fullsol.v[2] - fullsol.v[1]))
+    F_coupled = (M2 / 2 * A_coupled - k2 * (fullsol.d[2] - fullsol.d[1])
+                 - c2 * (fullsol.v[2] - fullsol.v[1]))
 
     # 3. Solve for free acceleration; SOURCE setup: [m, b, k, bdof]:
 
-    ms = np.array([[M1, 0], [0, M2/2]])
+    ms = np.array([[M1, 0], [0, M2 / 2]])
     cs = np.array([[c1, -c1], [-c1, c1]])
     ks = np.array([[k1, -k1], [-k1, k1]])
     source = [ms, cs, ks, [[0, 1]]]
@@ -78,9 +79,9 @@ def test_ntfl():
 
     # LOAD setup: [m, b, k, bdof]:
 
-    ml = np.array([[M2/2, 0, 0], [0, M3, 0], [0, 0, M4]])
-    cl = np.array([[c2, -c2, 0], [-c2, c2+c3, -c3], [0, -c3, c3]])
-    kl = np.array([[k2, -k2, 0], [-k2, k2+k3, -k3], [0, -k3, k3]])
+    ml = np.array([[M2 / 2, 0, 0], [0, M3, 0], [0, 0, M4]])
+    cl = np.array([[c2, -c2, 0], [-c2, c2 + c3, -c3], [0, -c3, c3]])
+    kl = np.array([[k2, -k2, 0], [-k2, k2 + k3, -k3], [0, -k3, k3]])
     load = [ml, cl, kl, [[1, 0, 0]]]
 
     # 4. Use NT to couple equations. First value (rigid-body motion)
@@ -88,7 +89,7 @@ def test_ntfl():
     # Results should match the coupled method.
 
     r = frclim.ntfl(source, load, As, freq)
-    assert np.allclose(25/45, abs(r.R[0, 0]))
+    assert np.allclose(25 / 45, abs(r.R[0, 0]))
     assert np.allclose(A_coupled, r.A)
     assert np.allclose(F_coupled, r.F)
 
@@ -103,7 +104,7 @@ def test_ntfl():
 
 def test_sefl():
     assert np.allclose(1.5, frclim.sefl(1.5, 40, 80))
-    assert np.allclose(1.5/2, frclim.sefl(1.5, 80, 40))
+    assert np.allclose(1.5 / 2, frclim.sefl(1.5, 80, 40))
 
 
 def test_stdfs():
@@ -111,9 +112,9 @@ def test_stdfs():
     m2 = 3060    # modal mass + residual mass of s/c
     Q = 10
     spec = 1.75
-    fl = frclim.stdfs(m2/m1, Q) * m2 * 1.75
+    fl = frclim.stdfs(m2 / m1, Q) * m2 * 1.75
     assert abs(6393.1622 - fl) < 1e-3
-    fl = frclim.stdfs(m2/m1, [Q, Q]) * m2 * 1.75
+    fl = frclim.stdfs(m2 / m1, [Q, Q]) * m2 * 1.75
     assert abs(6393.1622 - fl) < 1e-3
 
 
@@ -126,29 +127,29 @@ def test_ctdfs():
     faf = 40    # fundamental axial frequency of s/c
     Q = 10
     spec = 1.75
-    fl = (frclim._ctdfs_old(m1/M1, m2/M2, M2/M1, Q)[0] *
+    fl = (frclim._ctdfs_old(m1 / M1, m2 / M2, M2 / M1, Q)[0] *
           M2 * spec)
-    assert abs(8686.1/fl - 1) < 1e-4
+    assert abs(8686.1 / fl - 1) < 1e-4
 
-    fl = (frclim._ctdfs_old(m1/M1, m2/M2, M2/M1, [Q, Q])[0] *
+    fl = (frclim._ctdfs_old(m1 / M1, m2 / M2, M2 / M1, [Q, Q])[0] *
           M2 * spec)
-    assert abs(8686.1/fl - 1) < 1e-4
+    assert abs(8686.1 / fl - 1) < 1e-4
 
-    fl = (frclim.ctdfs(m1/M1, m2/M2, M2/M1, Q)[0] *
+    fl = (frclim.ctdfs(m1 / M1, m2 / M2, M2 / M1, Q)[0] *
           M2 * spec)
-    assert abs(8686.1/fl - 1) < 1e-4
+    assert abs(8686.1 / fl - 1) < 1e-4
 
-    fl = (frclim.ctdfs(m1/M1, m2/M2, M2/M1, [Q, Q])[0] *
+    fl = (frclim.ctdfs(m1 / M1, m2 / M2, M2 / M1, [Q, Q])[0] *
           M2 * spec)
-    assert abs(8686.1/fl - 1) < 1e-4
+    assert abs(8686.1 / fl - 1) < 1e-4
 
-    fl1 = frclim._ctdfs_old(1e-5, m2/M2, M2/M1, Q)
-    fl2 = frclim._ctdfs_old(0, m2/M2, M2/M1, [Q, Q])
+    fl1 = frclim._ctdfs_old(1e-5, m2 / M2, M2 / M1, Q)
+    fl2 = frclim._ctdfs_old(0, m2 / M2, M2 / M1, [Q, Q])
     assert np.allclose(fl1, fl2)
 
-    fl1 = frclim.ctdfs(1e-5, m2/M2, M2/M1, Q)
-    fl2 = frclim.ctdfs(0, m2/M2, M2/M1, [Q, Q])
+    fl1 = frclim.ctdfs(1e-5, m2 / M2, M2 / M1, Q)
+    fl2 = frclim.ctdfs(0, m2 / M2, M2 / M1, [Q, Q])
     assert np.allclose(fl1, fl2)
 
-    assert np.all((1, 1) == frclim._ctdfs_old(m1/M1, 0, M2/M1, Q))
-    assert np.all((1, 1) == frclim.ctdfs(m1/M1, 0, M2/M1, Q))
+    assert np.all((1, 1) == frclim._ctdfs_old(m1 / M1, 0, M2 / M1, Q))
+    assert np.all((1, 1) == frclim.ctdfs(m1 / M1, 0, M2 / M1, Q))

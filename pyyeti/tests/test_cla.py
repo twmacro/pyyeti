@@ -19,7 +19,9 @@ import matplotlib as mpl
 mpl.interactive(0)
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-from pyyeti import cla, op2, n2p, nastran, op4, cb, ode, stats
+from pyyeti import cla, cb, ode, stats
+from pyyeti import nastran
+from pyyeti.nastran import op2, n2p, op4
 
 
 def ATM():

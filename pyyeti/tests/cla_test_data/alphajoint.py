@@ -1,11 +1,14 @@
-import numpy as np
-from pyyeti import cla, n2p
+from pyyeti import cla
+from pyyeti.nastran import n2p
+
 
 def alphajoint(sol, nas, Vars, se):
     return Vars[se]['alphadrm'] @ sol.a
 
+
 def get_drdefs(nas, sc):
     drdefs = cla.DR_Def(sc['drdefs'].defaults)
+
     @cla.DR_Def.addcat
     def _():
         se = 0

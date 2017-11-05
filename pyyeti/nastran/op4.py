@@ -18,7 +18,6 @@ Notes on sparse matrices:
      and `scipy.sparse` matrices will be written in "bigmat" sparse
      format. This can be overridden by specifying the `sparse` option
      in :func:`write`.
-
 """
 
 import itertools as it
@@ -44,7 +43,7 @@ class OP4(object):
     --------
     Instantiate the class and create matrices for demo:
 
-    >>> from pyyeti import op4
+    >>> from pyyeti.nastran import op4
     >>> o4 = op4.OP4()
     >>> import numpy as np
     >>> r = np.random.randn(3, 5)
@@ -259,7 +258,7 @@ class OP4(object):
                 elems = int(line[16:24])
                 while elems > 0:
                     line = self._fileh.readline()
-                    L = int(line[:8])-1    # L
+                    L = int(line[:8]) - 1    # L
                     elems -= L + 2
                     L //= wper
                     # read column as a long string
@@ -288,14 +287,14 @@ class OP4(object):
     @staticmethod
     def _check_name(name):
         """
-        Check name read from op4 file: strip trailing blanks/nulls and put
-        '_' on front if needed.
+        Check name read from op4 file: strip trailing blanks/nulls and
+        put '_' on front if needed.
 
         Returns new name (usually the same as the input name).
         """
         name = name.strip(' \x00').lower()
         if not (name[0].isalpha() or name[0] == '_'):
-            oldname, name = name, '_'+name
+            oldname, name = name, '_' + name
             warnings.warn('Output4 file has matrix name: {}. '
                           'Changing to {}.'.format(oldname, name),
                           RuntimeWarning)
@@ -323,7 +322,7 @@ class OP4(object):
         a = 0
         for i in range(L):
             b = a + numlen
-            X[r+i, c] = s[a:b]
+            X[r + i, c] = s[a:b]
             a = b
 
     @staticmethod
@@ -336,7 +335,7 @@ class OP4(object):
             b = a + numlen
             imag = float(s[a:b])
             a = b
-            X[r+i, c] = real+1j*imag
+            X[r + i, c] = real + 1j * imag
 
     @staticmethod
     def _dense_matrix(rows, cols, X):
@@ -352,7 +351,7 @@ class OP4(object):
         a = 0
         for i in range(L):
             b = a + numlen
-            I.append(r+i)
+            I.append(r + i)
             J.append(c)
             V.append(float(s[a:b]))
             a = b
@@ -368,9 +367,9 @@ class OP4(object):
             b = a + numlen
             imag = float(s[a:b])
             a = b
-            I.append(r+i)
+            I.append(r + i)
             J.append(c)
-            V.append(real+1j*imag)
+            V.append(real + 1j * imag)
 
     @staticmethod
     def _sparse_matrix(rows, cols, X):
@@ -400,8 +399,8 @@ class OP4(object):
             elems = int(line[16:24])
             while elems > 0:
                 line = self._fileh.readline()
-                L = int(line[:8])-1    # L
-                r = int(line[8:16])-1  # irow-1
+                L = int(line[:8]) - 1    # L
+                r = int(line[8:16]) - 1  # irow-1
                 elems -= L + 2
                 L //= wper
                 s = self._get_ascii_block(L, perline, linelen)
@@ -421,7 +420,7 @@ class OP4(object):
                 line = self._fileh.readline()
                 IS = int(line)  # [:8])
                 L = (IS >> 16) - 1        # L
-                r = IS - ((L+1) << 16)-1  # irow-1
+                r = IS - ((L + 1) << 16) - 1  # irow-1
                 elems -= L + 1
                 L //= wper
                 s = self._get_ascii_block(L, perline, linelen)
@@ -578,7 +577,7 @@ class OP4(object):
                     p = numformat.find('D')
                 if p > 0:
                     perline = int(numformat[:p])
-                    numlen = int(numformat[p+1:].split('.')[0])
+                    numlen = int(numformat[p + 1:].split('.')[0])
             if patternlist and name not in patternlist:
                 skip = 1
             else:
@@ -639,7 +638,7 @@ class OP4(object):
 
     @staticmethod
     def _put_binary_values(X, r, c, Y):
-        X[r:r+len(Y), c] = Y
+        X[r:r + len(Y), c] = Y
 
     @staticmethod
     def _put_binary_values_c(X, r, c, Y):
@@ -647,13 +646,13 @@ class OP4(object):
             Y = np.array(Y)
         Y = Y.astype('float', copy=False)
         Y.dtype = complex
-        X[r:r+len(Y), c] = Y
+        X[r:r + len(Y), c] = Y
 
     @staticmethod
     def _put_binary_values_sparse(X, r, c, Y):
         I, J, V = X
         for i, v in enumerate(Y):
-            I.append(r+i)
+            I.append(r + i)
             J.append(c)
             V.append(v)
 
@@ -661,9 +660,9 @@ class OP4(object):
     def _put_binary_values_sparse_c(X, r, c, Y):
         I, J, V = X
         for i, j in enumerate(range(0, len(Y), 2)):
-            I.append(r+i)
+            I.append(r + i)
             J.append(c)
-            V.append(Y[j] + 1j*Y[j+1])
+            V.append(Y[j] + 1j * Y[j + 1])
 
     def _rd_dense_binary(self, fp, wper, r, c, rows, cols,
                          nwords, reclen, bytesreal, numform,
@@ -676,7 +675,7 @@ class OP4(object):
             nwords //= wper
             if nwords < cutoff:
                 Y = struct.unpack(
-                    numform % nwords, fp.read(bytesreal*nwords))
+                    numform % nwords, fp.read(bytesreal * nwords))
             else:
                 Y = np.fromfile(fp, numform2, nwords)
             put(X, r, c, Y)
@@ -700,11 +699,11 @@ class OP4(object):
             while nwords > 0:
                 L, r = s2(fp.read(b2))
                 nwords -= L + 1
-                L = (L-1) // wper
+                L = (L - 1) // wper
                 r -= 1
                 if L < cutoff:
                     Y = struct.unpack(
-                        numform % L, fp.read(bytesreal*L))
+                        numform % L, fp.read(bytesreal * L))
                 else:
                     Y = np.fromfile(fp, numform2, L)
                 put(X, r, c, Y)
@@ -728,12 +727,12 @@ class OP4(object):
             while nwords > 0:
                 IS = s1(fp.read(b1))[0]
                 L = (IS >> 16) - 1             # L
-                r = IS - ((L+1) << 16) - 1     # irow-1
+                r = IS - ((L + 1) << 16) - 1     # irow-1
                 nwords -= L + 1                # words left
                 L //= wper
                 if L < cutoff:
                     Y = struct.unpack(
-                        numform % L, fp.read(bytesreal*L))
+                        numform % L, fp.read(bytesreal * L))
                 else:
                     Y = np.fromfile(fp, numform2, L)
                 put(X, r, c, Y)
@@ -852,7 +851,7 @@ class OP4(object):
             X = sparsefunc(X)
 
         # read final bytes of record and record marker
-        fp.read(reclen-3*self._bytes_i+4)
+        fp.read(reclen - 3 * self._bytes_i + 4)
         return name, X, form, mtype
 
     @staticmethod
@@ -891,7 +890,7 @@ class OP4(object):
         """
         dr = np.diff(r)
         starts = np.nonzero(dr != 1)[0] + 1
-        nrows = len(starts)+1
+        nrows = len(starts) + 1
         ind = np.zeros((nrows, 2), int)
         ind[0, 0] = r[0]
         if nrows > 1:
@@ -905,7 +904,7 @@ class OP4(object):
     # @staticmethod
     # def _is_symmetric(m, tol=1e-12):
     #     """
-    #     returns True if `m` is approx symmetric; sparse or not sparse
+    #     returns True if `m` is approx symmetric; sparse or not
     #     """
     #     return abs(m - m.transpose()).max() <= tol * abs(m).max()
 
@@ -1054,11 +1053,11 @@ class OP4(object):
              f, name, matrix, digits, bigmat=False, form=form)
 
         def _write_col_data(f, v, c, s, elems, perline, numform):
-            f.write('{:8}{:8}{:8}\n'.format(c+1, s+1, elems))
+            f.write('{:8}{:8}{:8}\n'.format(c + 1, s + 1, elems))
             neven = ((elems - 1) // perline) * perline
             for i in range(0, neven, perline):
                 for j in range(perline):
-                    f.write(numform % v[i+j])
+                    f.write(numform % v[i + j])
                 f.write('\n')
             for i in range(neven, elems):
                 f.write(numform % v[i])
@@ -1072,7 +1071,7 @@ class OP4(object):
                     s = pv[0]
                     e = pv[-1]
                     elems = (e - s + 1) * multiplier
-                    v = np.asarray(v[s:e+1]).ravel()
+                    v = np.asarray(v[s:e + 1]).ravel()
                     v.dtype = float
                     _write_col_data(f, v, c, s, elems,
                                     perline, numform)
@@ -1086,11 +1085,11 @@ class OP4(object):
                 e = rs[pv[-1]]  # last row with value
                 elems = (e - s + 1)
                 vec = np.zeros(elems, dt)
-                vec[rs[pv]-s] = vs[pv]
+                vec[rs[pv] - s] = vs[pv]
                 elems *= multiplier
                 vec.dtype = float
                 _write_col_data(f, vec, c, s, elems, perline, numform)
-        f.write('{:8}{:8}{:8}\n'.format(cols+1, 1, 1))
+        f.write('{:8}{:8}{:8}\n'.format(cols + 1, 1, 1))
         f.write(numform % 2**0.5)
         f.write('\n')
 
@@ -1106,7 +1105,7 @@ class OP4(object):
                     ind = OP4._sparse_col_stats(v.nonzero()[0])
                     _write_col_header(f, ind, c, multiplier)
                     for r0, r1 in ind:
-                        string = v[r0:r0+r1]
+                        string = v[r0:r0 + r1]
                         string.dtype = float
                         _write_data_string(
                             f, string, r0, r1, multiplier,
@@ -1121,13 +1120,13 @@ class OP4(object):
                 coldata = vs[pv]
                 j = 0
                 for r0, r1 in ind:
-                    string = coldata[j:j+r1]
+                    string = coldata[j:j + r1]
                     j += r1
                     string.dtype = float
                     _write_data_string(
                         f, string, r0, r1, multiplier,
                         perline, numform)
-        f.write('{:8}{:8}{:8}\n'.format(cols+1, 1, 1))
+        f.write('{:8}{:8}{:8}\n'.format(cols + 1, 1, 1))
         f.write(numform % 2**0.5)
         f.write('\n')
 
@@ -1168,20 +1167,19 @@ class OP4(object):
              f, name, matrix, digits, bigmat=False, form=form)
 
         def _write_col_header(f, ind, c, multiplier):
-            nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
-            f.write('{:8}{:8}{:8}\n'.format(c+1, 0, nwords))
+            nwords = ind.shape[0] + 2 * sum(ind[:, 1]) * multiplier
+            f.write('{:8}{:8}{:8}\n'.format(c + 1, 0, nwords))
 
         def _write_data_string(f, string, r0, r1, multiplier,
                                perline, numform):
-            r = r0
-            L = r1*2*multiplier
-            IS = (r0+1) + ((L+1) << 16)
+            L = r1 * 2 * multiplier
+            IS = (r0 + 1) + ((L + 1) << 16)
             f.write('{:12}\n'.format(IS))
             elems = L // 2
             neven = ((elems - 1) // perline) * perline
             for i in range(0, neven, perline):
                 for j in range(perline):
-                    f.write(numform % string[i+j])
+                    f.write(numform % string[i + j])
                 f.write('\n')
             for i in range(neven, elems):
                 f.write(numform % string[i])
@@ -1216,18 +1214,18 @@ class OP4(object):
              f, name, matrix, digits, bigmat=True, form=form)
 
         def _write_col_header(f, ind, c, multiplier):
-            nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
-            f.write('{:8}{:8}{:8}\n'.format(c+1, 0, nwords))
+            nwords = 2 * ind.shape[0] + 2 * sum(ind[:, 1]) * multiplier
+            f.write('{:8}{:8}{:8}\n'.format(c + 1, 0, nwords))
 
         def _write_data_string(f, string, r0, r1, multiplier,
                                perline, numform):
-            L = r1*2*multiplier
-            f.write('{:8}{:8}\n'.format(L+1, r0+1))
+            L = r1 * 2 * multiplier
+            f.write('{:8}{:8}\n'.format(L + 1, r0 + 1))
             elems = L // 2
             neven = ((elems - 1) // perline) * perline
             for i in range(0, neven, perline):
                 for j in range(perline):
-                    f.write(numform % string[i+j])
+                    f.write(numform % string[i + j])
                 f.write('\n')
             for i in range(neven, elems):
                 f.write(numform % string[i])
@@ -1275,7 +1273,7 @@ class OP4(object):
         if bigmat:
             if rows < self._rows4bigmat:
                 rows = -rows
-        f.write(struct.pack(endian+'5i8si', 24, cols, rows,
+        f.write(struct.pack(endian + '5i8si', 24, cols, rows,
                             form, mtype, name, 24))
         return cols, multiplier
 
@@ -1303,13 +1301,13 @@ class OP4(object):
 
         def _write_col_data(f, v, c, s, elems, endian,
                             colHeader, colTrailer):
-            reclen = 3*4 + elems*8
-            f.write(colHeader.pack(reclen, c+1, s+1, 2*elems))
-            f.write(struct.pack(endian+('%dd' % elems), *v))
+            reclen = 3 * 4 + elems * 8
+            f.write(colHeader.pack(reclen, c + 1, s + 1, 2 * elems))
+            f.write(struct.pack(endian + ('%dd' % elems), *v))
             f.write(colTrailer.pack(reclen))
 
-        colHeader = struct.Struct(endian+'4i')
-        colTrailer = struct.Struct(endian+'i')
+        colHeader = struct.Struct(endian + '4i')
+        colTrailer = struct.Struct(endian + 'i')
         if isinstance(matrix, np.ndarray):
             for c in range(cols):
                 v = matrix[:, c]
@@ -1318,7 +1316,7 @@ class OP4(object):
                     s = pv[0]
                     e = pv[-1]
                     elems = (e - s + 1) * multiplier
-                    v = np.asarray(v[s:e+1]).ravel()
+                    v = np.asarray(v[s:e + 1]).ravel()
                     v.dtype = float
                     _write_col_data(f, v, c, s, elems, endian,
                                     colHeader, colTrailer)
@@ -1332,14 +1330,14 @@ class OP4(object):
                 e = rs[pv[-1]]  # last row with value
                 elems = (e - s + 1)
                 vec = np.zeros(elems, dt)
-                vec[rs[pv]-s] = vs[pv]
+                vec[rs[pv] - s] = vs[pv]
                 elems *= multiplier
                 vec.dtype = float
                 _write_col_data(f, vec, c, s, elems, endian,
                                 colHeader, colTrailer)
-        reclen = 3*4 + 8
-        f.write(colHeader.pack(reclen, cols+1, 1, 2))
-        f.write(struct.pack(endian+'d', 2**0.5))
+        reclen = 3 * 4 + 8
+        f.write(colHeader.pack(reclen, cols + 1, 1, 2))
+        f.write(struct.pack(endian + 'd', 2**0.5))
         f.write(colTrailer.pack(reclen))
 
     @staticmethod
@@ -1355,10 +1353,11 @@ class OP4(object):
                     reclen = _write_col_header(
                         f, ind, c, multiplier, colHeader)
                     for r0, r1 in ind:
-                        string = v[r0:r0+r1]
+                        string = v[r0:r0 + r1]
                         string.dtype = float
-                        _write_data_string(f, string, r0, r1, multiplier,
-                                           LrStruct, endian)
+                        _write_data_string(
+                            f, string, r0, r1, multiplier,
+                            LrStruct, endian)
                     f.write(colTrailer.pack(reclen))
         else:
             # sparse matrix:
@@ -1371,21 +1370,21 @@ class OP4(object):
                 coldata = vs[pv]
                 j = 0
                 for r0, r1 in ind:
-                    string = coldata[j:j+r1]
+                    string = coldata[j:j + r1]
                     j += r1
                     string.dtype = float
                     _write_data_string(f, string, r0, r1, multiplier,
                                        LrStruct, endian)
                 f.write(colTrailer.pack(reclen))
-        reclen = 3*4 + 8
-        f.write(colHeader.pack(reclen, cols+1, 1, 2))
-        f.write(struct.pack(endian+'d', 2**0.5))
+        reclen = 3 * 4 + 8
+        f.write(colHeader.pack(reclen, cols + 1, 1, 2))
+        f.write(struct.pack(endian + 'd', 2**0.5))
         f.write(colTrailer.pack(reclen))
 
     def _write_binary_nonbigmat(self, f, name, matrix, endian, form):
         """
-        Write a matrix to a file in double precision binary, non-bigmat
-        sparse format.
+        Write a matrix to a file in double precision binary,
+        non-bigmat sparse format.
 
         Parameters
         ----------
@@ -1417,21 +1416,21 @@ class OP4(object):
 
         cols, multiplier = self._write_binary_header(
             f, name, matrix, endian, bigmat=False, form=form)
-        colHeader = struct.Struct(endian+'4i')
-        colTrailer = struct.Struct(endian+'i')
+        colHeader = struct.Struct(endian + '4i')
+        colTrailer = struct.Struct(endian + 'i')
 
         def _write_col_header(f, ind, c, multiplier, colHeader):
-            nwords = ind.shape[0] + 2*sum(ind[:, 1])*multiplier
-            reclen = (3 + nwords)*4
-            f.write(colHeader.pack(reclen, c+1, 0, nwords))
+            nwords = ind.shape[0] + 2 * sum(ind[:, 1]) * multiplier
+            reclen = (3 + nwords) * 4
+            f.write(colHeader.pack(reclen, c + 1, 0, nwords))
             return reclen
 
         def _write_data_string(f, string, r0, r1, multiplier,
                                colTrailer, endian):
-            L = r1*2*multiplier
-            IS = (r0+1) + ((L+1) << 16)
+            L = r1 * 2 * multiplier
+            IS = (r0 + 1) + ((L + 1) << 16)
             f.write(colTrailer.pack(IS))
-            f.write(struct.pack(endian+('%dd' % len(string)),
+            f.write(struct.pack(endian + ('%dd' % len(string)),
                                 *string))
 
         OP4._write_binary_sparse(
@@ -1461,21 +1460,21 @@ class OP4(object):
         """
         cols, multiplier = self._write_binary_header(
             f, name, matrix, endian, bigmat=True, form=form)
-        colHeader = struct.Struct(endian+'4i')
-        colTrailer = struct.Struct(endian+'i')
-        LrStruct = struct.Struct(endian+'ii')
+        colHeader = struct.Struct(endian + '4i')
+        colTrailer = struct.Struct(endian + 'i')
+        LrStruct = struct.Struct(endian + 'ii')
 
         def _write_col_header(f, ind, c, multiplier, colHeader):
-            nwords = 2*ind.shape[0] + 2*sum(ind[:, 1])*multiplier
-            reclen = (3 + nwords)*4
-            f.write(colHeader.pack(reclen, c+1, 0, nwords))
+            nwords = 2 * ind.shape[0] + 2 * sum(ind[:, 1]) * multiplier
+            reclen = (3 + nwords) * 4
+            f.write(colHeader.pack(reclen, c + 1, 0, nwords))
             return reclen
 
         def _write_data_string(f, string, r0, r1, multiplier,
                                LrStruct, endian):
-            L = r1*2*multiplier
-            f.write(LrStruct.pack(L+1, r0+1))
-            f.write(struct.pack(endian+('%dd' % len(string)),
+            L = r1 * 2 * multiplier
+            f.write(LrStruct.pack(L + 1, r0 + 1))
+            f.write(struct.pack(endian + ('%dd' % len(string)),
                                 *string))
 
         OP4._write_binary_sparse(
@@ -2052,7 +2051,7 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False,
     the "m" matrix to be symmetric (form=6):
 
     >>> import numpy as np
-    >>> from pyyeti import op4
+    >>> from pyyeti.nastran import op4
     >>> m = np.array([[1, 2], [2.1, 3]])
     >>> k = np.array([3, 5])
     >>> b = np.array([4, 6])
@@ -2303,7 +2302,7 @@ def write(filename, names, matrices=None,
     use lists or an OrderedDict:
 
     >>> import numpy as np
-    >>> from pyyeti import op4
+    >>> from pyyeti.nastran import op4
     >>> m = np.array([[1, 2], [2, 3]])
     >>> k = np.array([3, 5])
     >>> b = np.array([4, 6])
@@ -2375,6 +2374,7 @@ def write(filename, names, matrices=None,
     filename = guitools.get_file_name(filename, read=False)
     OP4().write(filename, names, matrices, binary,
                 digits, endian, sparse, forms)
+
 
 # create `save` as an alias for `write`
 save = write

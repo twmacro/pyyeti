@@ -147,8 +147,8 @@ def test_getEPQ_B():
 def check_true_derivatives(sol, tol=5e-3):
     d = integrate.cumtrapz(sol.v, sol.t, initial=0, axis=1)
     v = integrate.cumtrapz(sol.a, sol.t, initial=0, axis=1)
-    derr = abs((d+sol.d[:, :1]) - sol.d).max()/abs(sol.d).max()
-    verr = abs((v+sol.v[:, :1]) - sol.v).max()/abs(sol.v).max()
+    derr = abs((d + sol.d[:, :1]) - sol.d).max() / abs(sol.d).max()
+    verr = abs((v + sol.v[:, :1]) - sol.v).max() / abs(sol.v).max()
     assert derr < 5.e-3
     assert verr < 5.e-3
 
@@ -158,16 +158,16 @@ def test_ode_ic():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 1.2])    # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
-    b[0] = 2*b[1]  # add damping on rb modes for test
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
+    b[0] = 2 * b[1]  # add damping on rb modes for test
 
     h = 0.0002                             # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     d0 = np.random.randn(4)
     v0 = np.random.randn(4)
@@ -188,8 +188,8 @@ def test_ode_ic():
     check_true_derivatives(solu)
     check_true_derivatives(sole)
 
-    fru = m[:, None]*solu.a + b[:, None]*solu.v + k[:, None]*solu.d
-    fre = m[:, None]*sole.a + b[:, None]*sole.v + k[:, None]*sole.d
+    fru = m[:, None] * solu.a + b[:, None] * solu.v + k[:, None] * solu.d
+    fre = m[:, None] * sole.a + b[:, None] * sole.v + k[:, None] * sole.d
 
     assert np.allclose(f, fru)
     assert np.allclose(f, fre)
@@ -208,13 +208,13 @@ def test_rbdamped_modes_coupled():
     m = m.T @ m
     k = np.zeros(N)
     h = 0.001
-    t = np.arange(int(1/h))*h
+    t = np.arange(int(1 / h)) * h
     f = np.zeros((N, len(t)))
     f[:, :win] = np.ones((N, 1)) * np.hanning(win) * 20
 
-    for b in (np.zeros(N), 10*np.ones(N)):
+    for b in (np.zeros(N), 10 * np.ones(N)):
         se2 = ode.SolveExp2(m, b, k, h)
-        su = ode.SolveUnc(m, b, k, h) # , rb=[])
+        su = ode.SolveUnc(m, b, k, h)  # , rb=[])
         sole = se2.tsolve(f)
         solu = su.tsolve(f)
 
@@ -224,8 +224,8 @@ def test_rbdamped_modes_coupled():
         check_true_derivatives(solu)
         check_true_derivatives(sole)
 
-        fru = m @ solu.a + b[:, None]*solu.v + k[:, None]*solu.d
-        fre = m @ sole.a + b[:, None]*sole.v + k[:, None]*sole.d
+        fru = m @ solu.a + b[:, None] * solu.v + k[:, None] * solu.d
+        fre = m @ sole.a + b[:, None] * sole.v + k[:, None] * sole.d
 
         assert np.allclose(f, fru)
         assert np.allclose(f, fre)
@@ -237,7 +237,7 @@ def test_rbdamped_modes_coupled():
             v.__warningregistry__ = {}
 
     with assert_warns(RuntimeWarning) as cm:
-        ode.SolveUnc(m, b*0, k, h, rb=[])
+        ode.SolveUnc(m, b * 0, k, h, rb=[])
     found = False
     for w in cm.warnings:
         if str(w.message).find(
@@ -269,15 +269,15 @@ def test_ode_uncoupled():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1, 1, 0):
         m = np.diag(m)
@@ -309,7 +309,7 @@ def test_ode_uncoupled():
                 if m.ndim > 1:
                     f2 = la.solve(m, f)
                 else:
-                    f2 = (1/m)[:, None]*f
+                    f2 = (1 / m)[:, None] * f
                 tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                t, X0=ic,
                                                interp=order)
@@ -329,11 +329,11 @@ def test_ode_uncoupled():
                 if rf is not None:
                     rfsol = get_rfsol(k, rf, f)
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -353,15 +353,15 @@ def test_ode_uncoupled_2():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b_ = 2.*zeta*np.sqrt(k_/m)*m             # diagonal of damping
+    b_ = 2. * zeta * np.sqrt(k_ / m) * m             # diagonal of damping
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1, 1, 0):
         m = np.diag(m)
@@ -369,8 +369,8 @@ def test_ode_uncoupled_2():
         b_ = np.diag(b_)
         for rf, kmult in zip((None, None, 3, np.array([0, 1, 2, 3])),
                              (0.0, 1.0, 1.0, 1.0)):
-            k = k_*kmult
-            b = b_*kmult
+            k = k_ * kmult
+            b = b_ * kmult
             for static_ic in (0, 1):
                 ts = ode.SolveExp2(m, b, k, h,
                                    order=order, rf=rf)
@@ -396,7 +396,7 @@ def test_ode_uncoupled_2():
                 if m.ndim > 1:
                     f2 = la.solve(m, f)
                 else:
-                    f2 = (1/m)[:, None]*f
+                    f2 = (1 / m)[:, None] * f
                 tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T,
                                                t, X0=ic,
                                                interp=order)
@@ -413,11 +413,11 @@ def test_ode_uncoupled_2():
                 if rf is not None:
                     rfsol = get_rfsol(k, rf, f)
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -452,22 +452,22 @@ def test_ode_coupled():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
     m = np.diag(m)
     k = np.diag(k)
     b = np.diag(b)
 
     m[1:, 1:] += np.random.randn(3, 3)
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1):
         for rf in (None, 3, 2, np.array([1, 2, 3])):
@@ -543,11 +543,11 @@ def test_ode_coupled():
                     assert np.allclose(yl[:1, :], yl2.T)
 
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -567,28 +567,28 @@ def test_ode_coupled_2():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b_ = 2.*zeta*np.sqrt(k_/m)*m             # diagonal of damping
+    b_ = 2. * zeta * np.sqrt(k_ / m) * m             # diagonal of damping
     m = np.diag(m)
     k_ = np.diag(k_)
     b_ = np.diag(b_)
 
     m += np.random.randn(4, 4)
-    k_ += np.random.randn(4, 4)*1000
+    k_ += np.random.randn(4, 4) * 1000
     b_ += np.random.randn(4, 4)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1):
         for rf, kmult in zip((None, None, 3, np.array([0, 1, 2, 3])),
                              (0.0, 1.0, 1.0, 1.0)):
-            k = k_*kmult
-            b = b_*kmult
+            k = k_ * kmult
+            b = b_ * kmult
             for static_ic in (0, 1):
                 ts = ode.SolveExp2(m, b, k, h,
                                    order=order, rf=rf)
@@ -650,11 +650,11 @@ def test_ode_coupled_2():
                     assert np.allclose(yl[:1, :], yl2.T)
 
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -674,15 +674,15 @@ def test_ode_uncoupled_mNone():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)                 # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)                 # diagonal of damping
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1, 1, 0):
         k = np.diag(k)
@@ -727,11 +727,11 @@ def test_ode_uncoupled_mNone():
                 if rf is not None:
                     rfsol = get_rfsol(k, rf, f)
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -751,23 +751,23 @@ def test_ode_uncoupled_2_mNone():
     m = None
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b_ = 2.*zeta*np.sqrt(k_)                # diagonal of damping
+    b_ = 2. * zeta * np.sqrt(k_)                # diagonal of damping
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1, 1, 0):
         k_ = np.diag(k_)
         b_ = np.diag(b_)
         for rf, kmult in zip((None, None, np.array([0, 1, 2, 3])),
                              (0.0, 1.0, 1.0)):
-            k = k_*kmult
-            b = b_*kmult
+            k = k_ * kmult
+            b = b_ * kmult
             for static_ic in (0, 1):
                 ts = ode.SolveExp2(m, b, k, h,
                                    order=order, rf=rf)
@@ -807,11 +807,11 @@ def test_ode_uncoupled_2_mNone():
                 if rf is not None:
                     rfsol = get_rfsol(k, rf, f)
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -831,20 +831,20 @@ def test_ode_coupled_mNone():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)                 # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)                 # diagonal of damping
     k = np.diag(k)
     b = np.diag(b)
 
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1):
         for rf in (None, 3, 2, np.array([1, 2, 3])):
@@ -909,11 +909,11 @@ def test_ode_coupled_mNone():
                     assert np.allclose(yl[:1, :], yl2.T)
 
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -933,26 +933,26 @@ def test_ode_coupled_2_mNone():
     m = None
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b_ = 2.*zeta*np.sqrt(k_)                # diagonal of damping
+    b_ = 2. * zeta * np.sqrt(k_)                # diagonal of damping
     k_ = np.diag(k_)
     b_ = np.diag(b_)
 
-    k_ += np.random.randn(4, 4)*1000
+    k_ += np.random.randn(4, 4) * 1000
     b_ += np.random.randn(4, 4)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1):
         for rf, kmult in zip((None, None, np.array([0, 1, 2, 3])),
                              (0.0, 1.0, 1.0)):
-            k = k_*kmult
-            b = b_*kmult
+            k = k_ * kmult
+            b = b_ * kmult
             for static_ic in (0, 1):
                 ts = ode.SolveExp2(m, b, k, h,
                                    order=order, rf=rf)
@@ -1019,11 +1019,11 @@ def test_ode_coupled_2_mNone():
                     assert np.allclose(yl[:1, :], yl2.T)
 
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -1043,20 +1043,20 @@ def test_ode_coupled_mNone_rblast():
     m = None
     k = np.array([6.e5, 6.e5, 6.e5, 0.])   # diagonal of stiffness
     zeta = np.array([.05, 1., 2., 0.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)                 # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)                 # diagonal of damping
     k = np.diag(k)
     b = np.diag(b)
 
-    k[:-1, :-1] += np.random.randn(3, 3)*1000
+    k[:-1, :-1] += np.random.randn(3, 3) * 1000
     b[:-1, :-1] += np.random.randn(3, 3)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t)),
-                   3*(1-np.cos(c*2*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   3 * (1 - np.cos(c * 2 * t)))) * 1.e4
 
     rb = 3
     for order in (0, 1):
@@ -1126,11 +1126,11 @@ def test_ode_coupled_mNone_rblast():
                     assert np.allclose(yl[:1, :], yl2.T)
 
                     yl[:, rf] = 0.
-                    yl[:, rf+n] = 0.
-                    yl[:, rf+2*n] = rfsol
+                    yl[:, rf + n] = 0.
+                    yl[:, rf + 2 * n] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
-                assert np.allclose(yl[:, n:2*n], sol.v.T)
-                assert np.allclose(yl[:, 2*n:], sol.d.T)
+                assert np.allclose(yl[:, n:2 * n], sol.v.T)
+                assert np.allclose(yl[:, 2 * n:], sol.d.T)
 
                 assert np.allclose(sol.a, solu.a)
                 assert np.allclose(sol.v, solu.v)
@@ -1157,23 +1157,23 @@ def test_make_A():
     b = np.random.randn(3, 3)
     k = np.random.randn(3)
     A1 = ode.make_A(m, b, k)
-    A2 = ode.make_A(m, b+0j, k)
+    A2 = ode.make_A(m, b + 0j, k)
     assert np.all(A1 == A2)
 
     m = np.eye(3)
     A1 = ode.make_A(m, b, k)
-    A2 = ode.make_A(m, b, k+0j)
+    A2 = ode.make_A(m, b, k + 0j)
     assert np.all(A1 == A2)
 
 
 def test_se1():
     f = 5           # 5 hz oscillator
-    w = 2*np.pi*f
-    w2 = w*w
+    w = 2 * np.pi * f
+    w2 = w * w
     zeta = .05
     h = .01
     nt = 500
-    A = np.array([[0, 1], [-w2, -2*w*zeta]])
+    A = np.array([[0, 1], [-w2, -2 * w * zeta]])
     B = np.array([[0], [3]])
     C = np.array([[8, -5]])
     D = np.array([[0]])
@@ -1183,11 +1183,11 @@ def test_se1():
     y = C.dot(sol.d)
     ssmodel = SSModel(A, B, C, D)
     z = ssmodel.c2d(h=h, method='zoh')
-    x = np.zeros((A.shape[1], nt+1), float)
+    x = np.zeros((A.shape[1], nt + 1), float)
     y2 = np.zeros((C.shape[0], nt), float)
     x[:, 0:1] = B
     for k in range(nt):
-        x[:, k+1] = z.A.dot(x[:, k]) + z.B.dot(F[:, k])
+        x[:, k + 1] = z.A.dot(x[:, k]) + z.B.dot(F[:, k])
         y2[:, k] = z.C.dot(x[:, k]) + z.D.dot(F[:, k])
     assert np.allclose(y, y2)
 
@@ -1247,15 +1247,15 @@ def runsim(ss_sysz, sysz):
     yr = ss_sysz.C.shape[0]
     nt = 301
     u = np.random.randn(c, nt)
-    x1 = np.zeros((r, nt+1), float)
+    x1 = np.zeros((r, nt + 1), float)
     y1 = np.zeros((yr, nt), float)
     x2 = x1.copy()
     y2 = y1.copy()
     for j in range(nt):
         uj = u[:, j]
-        x1[:, j+1] = ss_sysz.A.dot(x1[:, j]) + ss_sysz.B.dot(uj)
+        x1[:, j + 1] = ss_sysz.A.dot(x1[:, j]) + ss_sysz.B.dot(uj)
         y1[:, j] = ss_sysz.C.dot(x1[:, j]) + ss_sysz.D.dot(uj)
-        x2[:, j+1] = sysz[0].dot(x2[:, j]) + sysz[1].dot(uj)
+        x2[:, j + 1] = sysz[0].dot(x2[:, j]) + sysz[1].dot(uj)
         y2[:, j] = sysz[2].dot(x2[:, j]) + sysz[3].dot(uj)
     return np.allclose(y1, y2)
 
@@ -1272,13 +1272,13 @@ def test_SSModel_c2d_d2c():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
     m = np.diag(m)
     k = np.diag(k)
     b = np.diag(b)
 
     m += np.random.randn(4, 4)
-    k += np.random.randn(4, 4)*1000
+    k += np.random.randn(4, 4) * 1000
     b += np.random.randn(4, 4)
     h = .001                               # time step
 
@@ -1309,13 +1309,13 @@ def test_zoha_c2d_d2c():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
     m = np.diag(m)
     k = np.diag(k)
     b = np.diag(b)
 
     m += np.random.randn(4, 4)
-    k += np.random.randn(4, 4)*1000
+    k += np.random.randn(4, 4) * 1000
     b += np.random.randn(4, 4)
     h = .001                               # time step
 
@@ -1335,21 +1335,21 @@ def test_zoha_c2d_d2c():
     nt = 301
     u = np.random.randn(c, nt)
     u[:, 0] = 0   # don't let initial conditions mess us up
-    x1 = np.zeros((r, nt+1), float)
+    x1 = np.zeros((r, nt + 1), float)
     y1 = np.zeros((yr, nt), float)
     for j in range(nt):
-        x1[:, j+1] = za.A.dot(x1[:, j]) + za.B.dot(u[:, j])
+        x1[:, j + 1] = za.A.dot(x1[:, j]) + za.B.dot(u[:, j])
         y1[:, j] = za.C.dot(x1[:, j]) + za.D.dot(u[:, j])
 
     ts = ode.SolveExp1(A, h, order=1)
     F = B.dot(u)
-    PQF = np.copy((ts.P+ts.Q).dot((F[:, :-1] +
-                                   F[:, 1:])/2), order='F')
+    PQF = np.copy((ts.P + ts.Q).dot((F[:, :-1] +
+                                     F[:, 1:]) / 2), order='F')
     E = ts.E
     d = np.zeros((r, nt), float)
     d0 = d[:, 0]
     for j in range(1, nt):
-        d0 = d[:, j] = E.dot(d0) + PQF[:, j-1]
+        d0 = d[:, j] = E.dot(d0) + PQF[:, j - 1]
     y2 = C.dot(d) + D.dot(u)
     assert np.allclose(y1, y2)
 
@@ -1358,10 +1358,10 @@ def test_tustin_c2d_d2c():
     # engine actuator dynamics (5 hz, 70% damping):
     # input:   actuator command
     # output:  [actuator angle, angular rate, angular acceleration]'
-    w = 5*2*np.pi
+    w = 5 * 2 * np.pi
     zeta = .7
-    w2 = w*w
-    damp = 2*w*zeta
+    w2 = w * w
+    damp = 2 * w * zeta
     A = np.array([[0, 1], [-w2, -damp]])
     B = np.array([[0], [w2]])
     C = np.array([[1, 0], [0, 1], [-w2, -damp]])
@@ -1373,7 +1373,7 @@ def test_tustin_c2d_d2c():
     Am = np.array([[0.958796353566434, 0.008171399133845],
                    [-8.064847685445468, 0.599399448728309]])
     Bm = np.array([[0.041203646433566], [8.064847685445468]])
-    Cm = 1.e2 * np.array([[ 0.009793981767832,  0.000040856995669],
+    Cm = 1.e2 * np.array([[0.009793981767832,  0.000040856995669],
                           [-0.040324238427227,  0.007996997243642],
                           [-7.892719919134404, -0.392050547506857]])
     Dm = 1.e2 * np.array([[0.000206018232168],
@@ -1391,10 +1391,10 @@ def test_foh_c2d_d2c():
     # engine actuator dynamics (5 hz, 70% damping):
     # input:   actuator command
     # output:  [actuator angle, angular rate, angular acceleration]'
-    w = 5*2*np.pi
+    w = 5 * 2 * np.pi
     zeta = .7
-    w2 = w*w
-    damp = 2*w*zeta
+    w2 = w * w
+    damp = 2 * w * zeta
     A = np.array([[0, 1], [-w2, -damp]])
     B = np.array([[0], [w2]])
     C = np.array([[1, 0], [0, 1], [-w2, -damp]])
@@ -1428,7 +1428,7 @@ def test_eigss():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, .05, 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
     m = np.diag(m)
     k = np.diag(k)
     b = np.diag(b)
@@ -1462,11 +1462,11 @@ def test_eigss():
 
     # pure fakery for test coverage:
     lam, ur, uri = luud_d[:3]
-    assert_raises(ValueError, ode.addconj, lam, ur/2, uri)
+    assert_raises(ValueError, ode.addconj, lam, ur / 2, uri)
     assert_raises(ValueError, ode.addconj,
                   np.hstack((lam, lam[-1])), ur, uri)
     lam = lam[[1, 2, 3, 4, 0]]
-    assert_raises(ValueError, ode.addconj, lam, 2*ur, uri)
+    assert_raises(ValueError, ode.addconj, lam, 2 * ur, uri)
 
     lam, ur, uri = luu2
     urfake = np.vstack((ur, ur[:1]))
@@ -1480,15 +1480,15 @@ def test_getfsucoef():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     rf = 3
     s = ode.get_su_coef(m, b, k, h, rfmodes=rf)
@@ -1496,12 +1496,12 @@ def test_getfsucoef():
     d = np.zeros((4, nt), float)
     v = np.zeros((4, nt), float)
     P = f
-    d[rf, 0] = f[rf, 0]/k[rf]
-    for j in range(nt-1):
-        d[:, j+1] = (s.F * d[:, j] + s.G * v[:, j] +
-                     s.A * P[:, j] + s.B * P[:, j+1])
-        v[:, j+1] = (s.Fp * d[:, j] + s.Gp * v[:, j] +
-                     s.Ap * P[:, j] + s.Bp * P[:, j+1])
+    d[rf, 0] = f[rf, 0] / k[rf]
+    for j in range(nt - 1):
+        d[:, j + 1] = (s.F * d[:, j] + s.G * v[:, j] +
+                       s.A * P[:, j] + s.B * P[:, j + 1])
+        v[:, j + 1] = (s.Fp * d[:, j] + s.Gp * v[:, j] +
+                       s.Ap * P[:, j] + s.Bp * P[:, j + 1])
     ts = ode.SolveUnc(m, b, k, h, rf=rf)
     sol = ts.tsolve(f, static_ic=0)
     assert np.allclose(sol.v, v)
@@ -1515,7 +1515,7 @@ def test_getfsucoef():
 
 def test_no_h():
     m = 1
-    b = 2*35*.05
+    b = 2 * 35 * .05
     k = 35**2
     A = ode.make_A(m, b, k)
     h = None
@@ -1555,16 +1555,16 @@ def test_ode_uncoupled_freq():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     rb = 0
 
     freq = np.arange(0, 35, .1)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     H = (k[:, None] - m[:, None].dot(freqw[None, :]**2) +
-         (1j*b[:, None].dot(freqw[None, :])))
+         (1j * b[:, None].dot(freqw[None, :])))
     # to accommodate a freqw of zero:
     H[rb, 0] = 1.
     for rf in (None, [3], [2], np.array([1, 2, 3])):
@@ -1573,11 +1573,11 @@ def test_ode_uncoupled_freq():
             sol = tsu.fsolve(f, freq, incrb=incrb)
             d = f / H
             d[rb, 0] = 0
-            v = 1j*freqw*d
-            a = 1j*freqw*v
-            a[rb, 0] = f[rb, 0]/m[rb]
+            v = 1j * freqw * d
+            a = 1j * freqw * v
+            a[rb, 0] = f[rb, 0] / m[rb]
             if rf is not None:
-                d[rf] = f[rf]/(k[rf][:, None])
+                d[rf] = f[rf] / (k[rf][:, None])
                 v[rf] = 0
                 a[rf] = 0
             if incrb < 2:
@@ -1596,16 +1596,16 @@ def test_ode_uncoupled_freq_rblast():
     m = np.array([30., 30., 30., 10])     # diagonal of mass
     k = np.array([6.e5, 6.e5, 6.e5, 0])   # diagonal of stiffness
     zeta = np.array([.05, 1., 2., 0])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     rb = 3
 
     freq = np.arange(0, 35, .1)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     H = (k[:, None] - m[:, None].dot(freqw[None, :]**2) +
-         (1j*b[:, None].dot(freqw[None, :])))
+         (1j * b[:, None].dot(freqw[None, :])))
     # to accommodate a freqw of zero:
     H[rb, 0] = 1.
     for rf in (None, [2], [1], np.array([0, 1, 2])):
@@ -1614,11 +1614,11 @@ def test_ode_uncoupled_freq_rblast():
             sol = tsu.fsolve(f, freq, incrb=incrb)
             d = f / H
             d[rb, 0] = 0
-            v = 1j*freqw*d
-            a = 1j*freqw*v
-            a[rb, 0] = f[rb, 0]/m[rb]
+            v = 1j * freqw * d
+            a = 1j * freqw * v
+            a[rb, 0] = f[rb, 0] / m[rb]
             if rf is not None:
-                d[rf] = f[rf]/(k[rf][:, None])
+                d[rf] = f[rf] / (k[rf][:, None])
                 v[rf] = 0
                 a[rf] = 0
             if incrb < 2:
@@ -1637,16 +1637,16 @@ def test_ode_uncoupled_freq_mNone():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)             # diagonal of damping
 
     rb = 0
 
     freq = np.arange(0, 35, .1)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     H = (k[:, None] - np.ones((4, 1)).dot(freqw[None, :]**2) +
-         (1j*b[:, None].dot(freqw[None, :])))
+         (1j * b[:, None].dot(freqw[None, :])))
     # to accommodate a freqw of zero:
     H[rb, 0] = 1.
     for rf in (None, [3], [2], np.array([1, 2, 3])):
@@ -1655,11 +1655,11 @@ def test_ode_uncoupled_freq_mNone():
             sol = tsu.fsolve(f, freq, incrb=incrb)
             d = f / H
             d[rb, 0] = 0
-            v = 1j*freqw*d
-            a = 1j*freqw*v
+            v = 1j * freqw * d
+            a = 1j * freqw * v
             a[rb, 0] = f[rb, 0]
             if rf is not None:
-                d[rf] = f[rf]/(k[rf][:, None])
+                d[rf] = f[rf] / (k[rf][:, None])
                 v[rf] = 0
                 a[rf] = 0
             if incrb < 2:
@@ -1678,14 +1678,14 @@ def test_ode_coupled_freq():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     m = np.diag(m)
     k = np.diag(k)
     b = np.diag(b)
 
     m[1:, 1:] += np.random.randn(3, 3)
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
     rb = 0
@@ -1693,7 +1693,7 @@ def test_ode_coupled_freq():
     freq = np.arange(0, 35, .5)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     for rf in (None, [3], [2], np.array([1, 2, 3])):
         tsu = ode.SolveUnc(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
@@ -1702,16 +1702,16 @@ def test_ode_coupled_freq():
             m2, b2, k2 = decouple_rf((m, b, k), rf)
             d = np.zeros((4, freqw.size), complex)
             for i, w in enumerate(freqw):
-                H = (k2 - m2*w**2) + 1j*(b2*w)
+                H = (k2 - m2 * w**2) + 1j * (b2 * w)
                 if w == 0.:
                     H[rb, 0] = 1.
                 d[:, i] = la.solve(H, f[:, i])
                 if w == 0.:
                     d[rb, 0] = 0
 
-            v = 1j*freqw*d
-            a = 1j*freqw*v
-            a[rb, 0] = f[rb, 0]/m[rb, rb]
+            v = 1j * freqw * d
+            a = 1j * freqw * v
+            a[rb, 0] = f[rb, 0] / m[rb, rb]
             if rf is not None:
                 d[rf] = la.solve(k[np.ix_(rf, rf)], f[rf])
                 v[rf] = 0
@@ -1732,19 +1732,19 @@ def test_ode_coupled_freq_mNone():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)             # diagonal of damping
 
     k = np.diag(k)
     b = np.diag(b)
 
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
     rb = 0
     freq = np.arange(0, 35, .5)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     for rf in (None, [3], [2], np.array([1, 2, 3])):
         tsu = ode.SolveUnc(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
@@ -1753,15 +1753,15 @@ def test_ode_coupled_freq_mNone():
             b2, k2 = decouple_rf((b, k), rf)
             d = np.zeros((4, freqw.size), complex)
             for i, w in enumerate(freqw):
-                H = (k2 - np.eye(4)*w**2) + 1j*(b2*w)
+                H = (k2 - np.eye(4) * w**2) + 1j * (b2 * w)
                 if w == 0.:
                     H[rb, 0] = 1.
                 d[:, i] = la.solve(H, f[:, i])
                 if w == 0.:
                     d[rb, 0] = 0
 
-            v = 1j*freqw*d
-            a = 1j*freqw*v
+            v = 1j * freqw * d
+            a = 1j * freqw * v
             a[rb, 0] = f[rb, 0]
             if rf is not None:
                 d[rf] = la.solve(k[np.ix_(rf, rf)], f[rf])
@@ -1783,18 +1783,18 @@ def test_ode_fsd_1():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     freq = np.arange(.1, 35, .1)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     H = (k[:, None] - m[:, None].dot(freqw[None, :]**2) +
-         (1j*b[:, None].dot(freqw[None, :])))
+         (1j * b[:, None].dot(freqw[None, :])))
 
     d = f / H
-    v = 1j*freqw*d
-    a = 1j*freqw*v
+    v = 1j * freqw * d
+    a = 1j * freqw * v
 
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
@@ -1838,17 +1838,17 @@ def test_ode_fsd_2():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)             # diagonal of damping
 
     freq = np.arange(.1, 35, .1)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
-    H = ((1j*b[:, None].dot(freqw[None, :]) + k[:, None]) -
+    freqw = 2 * np.pi * freq
+    H = ((1j * b[:, None].dot(freqw[None, :]) + k[:, None]) -
          freqw[None, :]**2)
     d = f / H
-    v = 1j*freqw*d
-    a = 1j*freqw*v
+    v = 1j * freqw * d
+    a = 1j * freqw * v
 
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
@@ -1869,20 +1869,20 @@ def test_ode_fsd_3():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     m = np.diag(m)
     k = np.diag(k)
     b = np.diag(b)
 
     m[1:, 1:] += np.random.randn(3, 3)
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -1898,18 +1898,18 @@ def test_ode_fsd_4():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)            # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)            # diagonal of damping
 
     k = np.diag(k)
     b = np.diag(b)
 
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -1925,16 +1925,16 @@ def test_ode_fsd_uncoupled_complex_1():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m            # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m            # diagonal of damping
 
-    m = m + 1j*np.random.randn(4)
-    k = k + 1j*np.random.randn(4)*14
-    b = b + 1j*np.random.randn(4)
+    m = m + 1j * np.random.randn(4)
+    k = k + 1j * np.random.randn(4) * 14
+    b = b + 1j * np.random.randn(4)
 
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -1950,15 +1950,15 @@ def test_ode_fsd_uncoupled_complex_2():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)            # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)            # diagonal of damping
 
-    k = k + 1j*np.random.randn(4)*14
-    b = b + 1j*np.random.randn(4)
+    k = k + 1j * np.random.randn(4) * 14
+    b = b + 1j * np.random.randn(4)
 
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -1974,23 +1974,23 @@ def test_ode_fsd_coupled_complex_1():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m            # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m            # diagonal of damping
 
     m = np.diag(m)
     k = np.diag(k)
     b = np.diag(b)
 
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
-    m = m + 1j*np.random.randn(4, 4)
-    k = k + 1j*np.random.randn(4, 4)*14
-    b = b + 1j*np.random.randn(4, 4)
+    m = m + 1j * np.random.randn(4, 4)
+    k = k + 1j * np.random.randn(4, 4) * 14
+    b = b + 1j * np.random.randn(4, 4)
 
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -2006,21 +2006,21 @@ def test_ode_fsd_coupled_complex_2():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)            # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)            # diagonal of damping
 
     k = np.diag(k)
     b = np.diag(b)
 
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
-    k = k + 1j*np.random.randn(4, 4)*14
-    b = b + 1j*np.random.randn(4, 4)
+    k = k + 1j * np.random.randn(4, 4) * 14
+    b = b + 1j * np.random.randn(4, 4)
 
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -2034,14 +2034,14 @@ def test_ode_fsd_coupled_complex_2():
 def test_ode_complex_coefficients():
     aa = np.ones((2, 2)) * (1. + 1j)
     m = aa.copy()
-    m[0, 0] = 3.+2j
+    m[0, 0] = 3. + 2j
     b = aa.copy()
     b[1, 0] = -2.
     k = aa.copy()
     k[0, 1] = 2.
     h = .001
     t = np.arange(0, 1, h)
-    f = np.array([np.sin(2*np.pi*3*t), np.cos(2*np.pi*1*t)])
+    f = np.array([np.sin(2 * np.pi * 3 * t), np.cos(2 * np.pi * 1 * t)])
     for use_diag in [0, 1]:
         if use_diag:
             m = np.diag(m)
@@ -2050,7 +2050,7 @@ def test_ode_complex_coefficients():
         ts = ode.SolveUnc(m, b, k, h)
         sol = ts.tsolve(f, static_ic=0)
         if use_diag:
-            fr = m[:, None]*sol.a + b[:, None]*sol.v + k[:, None]*sol.d
+            fr = m[:, None] * sol.a + b[:, None] * sol.v + k[:, None] * sol.d
         else:
             fr = m.dot(sol.a) + b.dot(sol.v) + k.dot(sol.d)
 
@@ -2072,7 +2072,7 @@ def test_ode_complex_coefficients():
         nt = len(sol.t)
         gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
-            fi = f[:, i]/2
+            fi = f[:, i] / 2
             gen.send((i, fi))
             gen.send((-1, fi))
         sol2 = ts.finalize(1)
@@ -2087,7 +2087,7 @@ def test_ode_complex_coefficients():
             nt = len(sol.t)
             gen, d, v = ts.generator(nt, f[:, 0])
             for i in range(1, nt):
-                fi = f[:, i]/2
+                fi = f[:, i] / 2
                 gen.send((i, fi))
                 gen.send((-1, fi))
             sol2 = ts.finalize(1)
@@ -2100,7 +2100,7 @@ def test_ode_complex_coefficients():
 def test_ode_complex_coefficients_with_rf():
     aa = np.ones((2, 2)) * (1. + 1j)
     m = aa.copy()
-    m[0, 0] = 3.+2j
+    m[0, 0] = 3. + 2j
     b = aa.copy()
     b[1, 0] = -2.
     k = aa.copy()
@@ -2125,9 +2125,9 @@ def test_ode_complex_coefficients_with_rf():
     krf = 10.
     k[2, 2] = krf
 
-    f = np.array([np.sin(2*np.pi*3*t),
-                  np.cos(2*np.pi*1*t),
-                  np.sin(2*np.pi*2.5*t)])
+    f = np.array([np.sin(2 * np.pi * 3 * t),
+                  np.cos(2 * np.pi * 1 * t),
+                  np.sin(2 * np.pi * 2.5 * t)])
 
     for use_diag in [0, 1]:
         if use_diag:
@@ -2137,7 +2137,7 @@ def test_ode_complex_coefficients_with_rf():
         ts = ode.SolveUnc(m, b, k, h, rf=2)
         sol = ts.tsolve(f, static_ic=0)
         if use_diag:
-            fr = m[:, None]*sol.a + b[:, None]*sol.v + k[:, None]*sol.d
+            fr = m[:, None] * sol.a + b[:, None] * sol.v + k[:, None] * sol.d
         else:
             fr = m.dot(sol.a) + b.dot(sol.v) + k.dot(sol.d)
 
@@ -2146,8 +2146,8 @@ def test_ode_complex_coefficients_with_rf():
         d[2] = fr[2] / krf
 
         assert np.allclose(f, fr)
-        assert abs(v-sol.v).max() < 1e-5
-        assert abs(d-sol.d).max() < 1e-5
+        assert abs(v - sol.v).max() < 1e-5
+        assert abs(d - sol.d).max() < 1e-5
 
         # test the generator solver:
         nt = len(sol.t)
@@ -2164,7 +2164,7 @@ def test_ode_complex_coefficients_with_rf():
         nt = len(sol.t)
         gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
-            fi = f[:, i]/2
+            fi = f[:, i] / 2
             gen.send((i, fi))
             gen.send((-1, fi))
         sol2 = ts.finalize(1)
@@ -2183,7 +2183,7 @@ def test_ode_complex_coefficients_mNone():
     k[0, 1] = 2.
     h = .001
     t = np.arange(0, 1, h)
-    f = np.array([np.sin(2*np.pi*3*t), np.cos(2*np.pi*1*t)])
+    f = np.array([np.sin(2 * np.pi * 3 * t), np.cos(2 * np.pi * 1 * t)])
     for use_diag in [0, 1]:
         if use_diag:
             b = np.diag(b)
@@ -2191,7 +2191,7 @@ def test_ode_complex_coefficients_mNone():
         ts = ode.SolveUnc(m, b, k, h)
         sol = ts.tsolve(f, static_ic=0)
         if use_diag:
-            fr = sol.a + b[:, None]*sol.v + k[:, None]*sol.d
+            fr = sol.a + b[:, None] * sol.v + k[:, None] * sol.d
         else:
             fr = sol.a + b.dot(sol.v) + k.dot(sol.d)
 
@@ -2213,7 +2213,7 @@ def test_ode_complex_coefficients_mNone():
         nt = len(sol.t)
         gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
-            fi = f[:, i]/2
+            fi = f[:, i] / 2
             gen.send((i, fi))
             gen.send((-1, fi))
         sol2 = ts.finalize(1)
@@ -2244,7 +2244,7 @@ def test_ode_complex_coefficients_mNone():
 def test_ode_complex_coefficients_rb():
     aa = np.ones((2, 2)) * (1. + 1j)
     m = aa.copy()
-    m[0, 0] = 3.+2j
+    m[0, 0] = 3. + 2j
     b = aa.copy()
     b[1, 0] = -2.
     k = aa.copy()
@@ -2253,7 +2253,7 @@ def test_ode_complex_coefficients_rb():
     k[0, 0] = 0.
     h = .001
     t = np.arange(0, 1, h)
-    f = np.array([np.sin(2*np.pi*3*t), np.cos(2*np.pi*1*t)])
+    f = np.array([np.sin(2 * np.pi * 3 * t), np.cos(2 * np.pi * 1 * t)])
     for use_diag in [0, 1]:
         if use_diag:
             m = np.diag(m)
@@ -2262,7 +2262,7 @@ def test_ode_complex_coefficients_rb():
         ts = ode.SolveUnc(m, b, k, h)
         sol = ts.tsolve(f, static_ic=0)
         if use_diag:
-            fr = m[:, None]*sol.a + b[:, None]*sol.v + k[:, None]*sol.d
+            fr = m[:, None] * sol.a + b[:, None] * sol.v + k[:, None] * sol.d
         else:
             fr = m.dot(sol.a) + b.dot(sol.v) + k.dot(sol.d)
 
@@ -2284,7 +2284,7 @@ def test_ode_complex_coefficients_rb():
         nt = len(sol.t)
         gen, d, v = ts.generator(nt, f[:, 0])
         for i in range(1, nt):
-            fi = f[:, i]/2
+            fi = f[:, i] / 2
             gen.send((i, fi))
             gen.send((-1, fi))
         sol2 = ts.finalize(1)
@@ -2295,8 +2295,7 @@ def test_ode_complex_coefficients_rb():
 
 
 def test_approx_rbmodes():
-    from pyyeti import op2
-    from pyyeti import n2p
+    from pyyeti.nastran import op2, n2p
     from pyyeti.ode import SolveUnc as su
     from pyyeti.ode import SolveExp2 as se2
     nas = op2.rdnas2cam('pyyeti/tests/nas2cam/with_se_nas2cam')
@@ -2306,13 +2305,13 @@ def test_approx_rbmodes():
     k = nas['lambda'][0]   # imperfect zeros
     zeta = 1000  # VERY high damping, for testing
     # we end up with RB modes with damping ... good for testing
-    b = 2*np.sqrt(abs(k))*zeta
+    b = 2 * np.sqrt(abs(k)) * zeta
     # k[:6] = 0.0
     # b[:6] = 1e-4
 
     # step input, 2 second duration
     h = .001
-    f = np.ones((1, int(2/h)))
+    f = np.ones((1, int(2 / h)))
 
     # form drm for force application: node 8, dof x of se 0:
     drm, dof = n2p.formdrm(nas, 0, [[8, 1]])
@@ -2342,18 +2341,18 @@ def test_approx_rbmodes():
     check_true_derivatives(sole_nosic)
     check_true_derivatives(sole_sic)
 
-    fru = (solu_nosic.a + b[:, None]*solu_nosic.v +
-           k[:, None]*solu_nosic.d)
-    fre = (sole_nosic.a + b[:, None]*sole_nosic.v +
-           k[:, None]*sole_nosic.d)
+    fru = (solu_nosic.a + b[:, None] * solu_nosic.v +
+           k[:, None] * solu_nosic.d)
+    fre = (sole_nosic.a + b[:, None] * sole_nosic.v +
+           k[:, None] * sole_nosic.d)
 
     assert np.allclose(g, fru)
     assert np.allclose(g, fre)
 
-    fru = (solu_sic.a + b[:, None]*solu_sic.v +
-           k[:, None]*solu_sic.d)
-    fre = (sole_sic.a + b[:, None]*sole_sic.v +
-           k[:, None]*sole_sic.d)
+    fru = (solu_sic.a + b[:, None] * solu_sic.v +
+           k[:, None] * solu_sic.d)
+    fre = (sole_sic.a + b[:, None] * sole_sic.v +
+           k[:, None] * sole_sic.d)
 
     assert np.allclose(g, fru)
     assert np.allclose(g, fre)
@@ -2415,12 +2414,12 @@ def test_ode_pre_eig():
                      [0, 0, M3, 0],
                      [0, 0, 0, M4]])
     DAMP = np.array([[c1, -c1, 0, 0],
-                     [-c1, c1+c2, -c2, 0],
-                     [0, -c2, c2+c3, -c3],
+                     [-c1, c1 + c2, -c2, 0],
+                     [0, -c2, c2 + c3, -c3],
                      [0, 0, -c3, c3]])
     STIF = np.array([[k1, -k1, 0, 0],
-                     [-k1, k1+k2, -k2, 0],
-                     [0, -k2, k2+k3, -k3],
+                     [-k1, k1 + k2, -k2, 0],
+                     [0, -k2, k2 + k3, -k3],
                      [0, 0, -k3, k3]])
 
     # frequency domain first:
@@ -2478,7 +2477,7 @@ def test_ode_pre_eig():
     pv = np.where(time < .8)[0]
     F[0][pv] = 10.
     sol1 = ode.SolveUnc(MASS, DAMP, STIF, h,
-                      pre_eig=True).tsolve(F, static_ic=1)
+                        pre_eig=True).tsolve(F, static_ic=1)
     sol2 = (ode.SolveExp2(MASS, DAMP, STIF, h, pre_eig=True)
             .tsolve(F, static_ic=1))
 
@@ -2487,8 +2486,8 @@ def test_ode_pre_eig():
     assert np.allclose(sol1.a, sol2.a)
 
     STIF2 = np.array([[k1, -k1, 0, 0],
-                      [-k1, k1+k2, -k2, 0],
-                      [k1, -k2, k2+k3, -k3],
+                      [-k1, k1 + k2, -k2, 0],
+                      [k1, -k2, k2 + k3, -k3],
                       [k1, 0, -k3, k3]])
     assert_raises(ValueError, ode.SolveUnc, MASS, DAMP, STIF2, h,
                   pre_eig=True)
@@ -2515,7 +2514,7 @@ def test_precalc_warnings():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([50., 6.e5, 6.e5, 6.e-15])  # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
     h = .001                               # time step
 
     import sys
@@ -2536,11 +2535,11 @@ def test_ode_solvepsd():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     freq = np.arange(.1, 35, .1)
 
-    forcepsd = 10000*np.ones((4, freq.size))  # constant PSD forces
+    forcepsd = 10000 * np.ones((4, freq.size))  # constant PSD forces
     ts = ode.SolveUnc(m, b, k)
     atm = np.random.randn(4, 4)
     dtm = np.random.randn(4, 4)
@@ -2553,21 +2552,21 @@ def test_ode_solvepsd():
 
     rms, psd = ode.solvepsd(ts, forcepsd, t_frc, freq, drms)
     rmsrb1, psdrb1 = ode.solvepsd(ts, forcepsd, t_frc, freq, drms,
-                                      incrb=1)
+                                  incrb=1)
     rmsrb0, psdrb0 = ode.solvepsd(ts, forcepsd, t_frc, freq, drms,
-                                      incrb=0)
+                                  incrb=0)
     rmsduf, psdduf = ode.solvepsd(ts, forcepsd, t_frc, freq, drms,
-                                      rbduf=rbduf, elduf=elduf)
+                                  rbduf=rbduf, elduf=elduf)
     rmsf, psdf = ode.solvepsd(ts, forcepsd, t_frc, freq, drms)
     rmsphi, psdphi = ode.solvepsd(ts, forcepsd, t_frc, freq, drms,
-                                      forcephi=forcephi)
+                                  forcephi=forcephi)
     assert_raises(ValueError, ode.solvepsd, ts, forcepsd, t_frc,
                   freq[:-1], drms)
 
     # solve by hand for comparison:
-    freqw = 2*np.pi*freq
+    freqw = 2 * np.pi * freq
     H = (k[:, None] - m[:, None].dot(freqw[None, :]**2) +
-         (1j*b[:, None].dot(freqw[None, :])))
+         (1j * b[:, None].dot(freqw[None, :])))
 
     dpsd = 0.
     apsd = 0.
@@ -2587,27 +2586,27 @@ def test_ode_solvepsd():
     unitforce = np.ones((1, len(freq)))
     for i in range(forcepsd.shape[0]):
         # solve for unit frequency response function:
-        genforce = t_frc[i:i+1].T @ unitforce
+        genforce = t_frc[i:i + 1].T @ unitforce
         # sol = ts.fsolve(genforce, freq)
         d = genforce / H
-        v = 1j*freqw*d
-        a = 1j*freqw*v
+        v = 1j * freqw * d
+        a = 1j * freqw * v
         dpsd = dpsd + abs(dtm @ d)**2 * forcepsd[i]
         apsd = apsd + abs(atm @ a)**2 * forcepsd[i]
         adpsd = adpsd + abs(atm @ a + dtm @ d)**2 * forcepsd[i]
 
-        F = forcephi[:, i:i+1] @ unitforce
+        F = forcephi[:, i:i + 1] @ unitforce
         dpsdphi = (dpsdphi + abs(dtm @ d - F)**2 * forcepsd[i])
         apsdphi = (apsdphi + abs(atm @ a - F)**2 * forcepsd[i])
         adpsdphi = (adpsdphi + abs(atm @ a + dtm @ d - F)**2 *
                     forcepsd[i])
 
         dduf = d.copy()
-        dduf[0] = dduf[0]*rbduf
-        dduf[1:] = dduf[1:]*elduf
+        dduf[0] = dduf[0] * rbduf
+        dduf[1:] = dduf[1:] * elduf
         aduf = a.copy()
-        aduf[0] = aduf[0]*rbduf
-        aduf[1:] = aduf[1:]*elduf
+        aduf[0] = aduf[0] * rbduf
+        aduf[1:] = aduf[1:] * elduf
         dpsdduf = dpsdduf + abs(dtm @ dduf)**2 * forcepsd[i]
         apsdduf = apsdduf + abs(atm @ aduf)**2 * forcepsd[i]
         adpsdduf = adpsdduf + abs(atm @ aduf +
@@ -2624,7 +2623,6 @@ def test_ode_solvepsd():
         dpsd0 = dpsd0 + abs(dtm @ d)**2 * forcepsd[i]
         apsd0 = apsd0 + abs(atm @ a)**2 * forcepsd[i]
         adpsd0 = adpsd0 + abs(atm @ a + dtm @ d)**2 * forcepsd[i]
-
 
     assert np.allclose(psd[0], apsd)
     assert np.allclose(psd[1], dpsd)
@@ -2652,16 +2650,16 @@ def test_ode_solvepsd():
 
 
 def test_getmodepart():
-    K = [[ 12312.27,   -38.20,   611.56, -4608.26,  2845.92],
-         [   -38.20,  3072.44, -1487.68,  3206.59,   746.56],
-         [   611.56, -1487.68,   800.91, -1718.08,  -164.51],
-         [ -4608.26,  3206.59, -1718.08,  9189.42, -1890.31],
-         [  2845.92,   746.56,  -164.51, -1890.31, 10908.62]]
+    K = [[12312.27,   -38.20,   611.56, -4608.26,  2845.92],
+         [-38.20,  3072.44, -1487.68,  3206.59,   746.56],
+         [611.56, -1487.68,   800.91, -1718.08,  -164.51],
+         [-4608.26,  3206.59, -1718.08,  9189.42, -1890.31],
+         [2845.92,   746.56,  -164.51, -1890.31, 10908.62]]
     M = None
     w2, phi = la.eigh(K)
     zetain = np.array([.02, .02, .05, .02, .05])
-    Z = np.diag(2*zetain*np.sqrt(w2))
-    mfreq = np.sqrt(w2)/2/np.pi
+    Z = np.diag(2 * zetain * np.sqrt(w2))
+    mfreq = np.sqrt(w2) / 2 / np.pi
 
     freq = np.arange(0.1, 15.05, .1)
     f = np.ones((1, len(freq)))
@@ -2683,8 +2681,8 @@ def test_getmodepart():
     # APPROACH 1:  let getmodepart() do the FRF plotting:
     #
     modes, freqs = ode.getmodepart(freq, sols, mfreq,
-                               ylog=1, idlabel='getmodepart demo 1',
-                               factor=.1, auto=[1, 0])
+                                   ylog=1, idlabel='getmodepart demo 1',
+                                   factor=.1, auto=[1, 0])
 
     mds2, frqs2, r = ode.modeselect('modeselect demo 1', ts,
                                     Tbot.T @ f, freq, Ttop,
@@ -2702,6 +2700,7 @@ def test_getmodepart():
     import matplotlib.pyplot as plt
     plt.close('all')
     from pyyeti.datacursor import DataCursor
+
     def getdata(self):
         self.off()
         plt.figure('FRF')
@@ -2774,15 +2773,15 @@ def test_ode_ic_generator():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 1.2])    # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     d0 = np.random.randn(4)
     v0 = np.random.randn(4)
@@ -2825,14 +2824,14 @@ def test_ode_ic_generator():
             # test the generator solver w/ partial update:
             gen, d, v = su.generator(nt, f[:, 0], d0, v0)
             for i in range(1, nt):
-                fi = f[:, i]/2
+                fi = f[:, i] / 2
                 gen.send((i, fi))
                 gen.send((-1, fi))
             solu2 = su.finalize(get_force)
 
             gen, d, v = se.generator(nt, f[:, 0], d0, v0)
             for i in range(1, nt):
-                fi = f[:, i]/2
+                fi = f[:, i] / 2
                 gen.send((i, fi))
                 gen.send((-1, fi))
             sole2 = se.finalize(get_force)
@@ -2851,15 +2850,15 @@ def test_ode_uncoupled_generator():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
     get_force = True
     for order in (0, 1, 1, 0):
         m = np.diag(m)
@@ -2870,7 +2869,7 @@ def test_ode_uncoupled_generator():
                 get_force = not get_force
                 # su
                 tsu = ode.SolveUnc(m, b, k, h,
-                                 order=order, rf=rf)
+                                   order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -2881,7 +2880,7 @@ def test_ode_uncoupled_generator():
                 solu2 = tsu.finalize(get_force)
 
                 tsu0 = ode.SolveUnc(m, b, k, h=None,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
 
                 nt = 1
@@ -2908,7 +2907,7 @@ def test_ode_uncoupled_generator():
                 gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 solu2 = tsu.finalize(get_force)
@@ -2917,7 +2916,7 @@ def test_ode_uncoupled_generator():
                 gen, d, v = tsu0.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 solu20 = tsu0.finalize(get_force)
@@ -2936,7 +2935,7 @@ def test_ode_uncoupled_generator():
 
                 # se2
                 tse = ode.SolveExp2(m, b, k, h,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -2947,7 +2946,7 @@ def test_ode_uncoupled_generator():
                 sole2 = tse.finalize(get_force)
 
                 tse0 = ode.SolveExp2(m, b, k, h=None,
-                                   order=order, rf=rf)
+                                     order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
 
                 nt = 1
@@ -2978,7 +2977,7 @@ def test_ode_uncoupled_generator():
                 gen, d, v = tse.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 sole2 = tse.finalize(get_force)
@@ -2987,7 +2986,7 @@ def test_ode_uncoupled_generator():
                 gen, d, v = tse0.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 sole20 = tse0.finalize(get_force)
@@ -3037,15 +3036,15 @@ def test_ode_uncoupled_2_generator():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b_ = 2.*zeta*np.sqrt(k_/m)*m             # diagonal of damping
+    b_ = 2. * zeta * np.sqrt(k_ / m) * m             # diagonal of damping
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     get_force = True
     for order in (0, 1, 1, 0):
@@ -3054,13 +3053,13 @@ def test_ode_uncoupled_2_generator():
         b_ = np.diag(b_)
         for rf, kmult in zip((None, None, 3, np.array([0, 1, 2, 3])),
                              (0.0, 1.0, 1.0, 1.0)):
-            k = k_*kmult
-            b = b_*kmult
+            k = k_ * kmult
+            b = b_ * kmult
             for static_ic in (0, 1):
                 get_force = not get_force
                 # su
                 tsu = ode.SolveUnc(m, b, k, h,
-                                 order=order, rf=rf)
+                                   order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3071,7 +3070,7 @@ def test_ode_uncoupled_2_generator():
                 solu2 = tsu.finalize(get_force)
 
                 tsu0 = ode.SolveUnc(m, b, k, h=None,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3098,7 +3097,7 @@ def test_ode_uncoupled_2_generator():
                 gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 solu2 = tsu.finalize(get_force)
@@ -3109,7 +3108,7 @@ def test_ode_uncoupled_2_generator():
 
                 # se2
                 tse = ode.SolveExp2(m, b, k, h,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3120,7 +3119,7 @@ def test_ode_uncoupled_2_generator():
                 sole2 = tse.finalize(get_force)
 
                 tse0 = ode.SolveExp2(m, b, k, h=None,
-                                   order=order, rf=rf)
+                                     order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3151,7 +3150,7 @@ def test_ode_uncoupled_2_generator():
                 gen, d, v = tse.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 sole2 = tse.finalize(get_force)
@@ -3166,22 +3165,22 @@ def test_ode_coupled_generator():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k/m)*m             # diagonal of damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
     m = np.diag(m)
     k = np.diag(k)
     b = np.diag(b)
 
     m[1:, 1:] += np.random.randn(3, 3)
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1):
         for rf in (None, 3, np.array([1, 2, 3])):
@@ -3191,7 +3190,7 @@ def test_ode_coupled_generator():
             for static_ic in (0, 1):
                 # su
                 tsu = ode.SolveUnc(m, b, k, h,
-                                 order=order, rf=rf)
+                                   order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3202,7 +3201,7 @@ def test_ode_coupled_generator():
                 solu2 = tsu.finalize()
 
                 tsu0 = ode.SolveUnc(m, b, k, h=None,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3225,7 +3224,7 @@ def test_ode_coupled_generator():
                 gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 solu2 = tsu.finalize()
@@ -3236,7 +3235,7 @@ def test_ode_coupled_generator():
 
                 # se
                 tse = ode.SolveExp2(m, b, k, h,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3247,7 +3246,7 @@ def test_ode_coupled_generator():
                 sole2 = tse.finalize()
 
                 tse0 = ode.SolveExp2(m, b, k, h=None,
-                                   order=order, rf=rf)
+                                     order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3274,7 +3273,7 @@ def test_ode_coupled_generator():
                 gen, d, v = tse.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 sole2 = tse.finalize()
@@ -3289,34 +3288,34 @@ def test_ode_coupled_2_generator():
     m = np.array([10., 30., 30., 30.])     # diagonal of mass
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b_ = 2.*zeta*np.sqrt(k_/m)*m             # diagonal of damping
+    b_ = 2. * zeta * np.sqrt(k_ / m) * m             # diagonal of damping
     m = np.diag(m)
     k_ = np.diag(k_)
     b_ = np.diag(b_)
 
     m += np.random.randn(4, 4)
-    k_ += np.random.randn(4, 4)*1000
+    k_ += np.random.randn(4, 4) * 1000
     b_ += np.random.randn(4, 4)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     get_force = True
     for order in (0, 1):
         for rf, kmult in zip((None, None, 3, np.array([0, 1, 2, 3])),
                              (0.0, 1.0, 1.0, 1.0)):
-            k = k_*kmult
-            b = b_*kmult
+            k = k_ * kmult
+            b = b_ * kmult
             for static_ic in (0, 1):
                 get_force = not get_force
                 # su
                 tsu = ode.SolveUnc(m, b, k, h,
-                                    order=order, rf=rf)
+                                   order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3327,7 +3326,7 @@ def test_ode_coupled_2_generator():
                 solu2 = tsu.finalize(get_force)
 
                 tsu0 = ode.SolveUnc(m, b, k, h=None,
-                                     order=order, rf=rf)
+                                    order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3354,7 +3353,7 @@ def test_ode_coupled_2_generator():
                 gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 solu2 = tsu.finalize(get_force)
@@ -3365,7 +3364,7 @@ def test_ode_coupled_2_generator():
 
                 # se
                 tse = ode.SolveExp2(m, b, k, h,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3376,7 +3375,7 @@ def test_ode_coupled_2_generator():
                 sole2 = tse.finalize(get_force)
 
                 tse0 = ode.SolveExp2(m, b, k, h=None,
-                                   order=order, rf=rf)
+                                     order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3407,7 +3406,7 @@ def test_ode_coupled_2_generator():
                 gen, d, v = tse.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 sole2 = tse.finalize(get_force)
@@ -3422,27 +3421,27 @@ def test_ode_coupled_mNone_generator():
     m = None
     k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0., .05, 1., 2.])     # percent damping
-    b = 2.*zeta*np.sqrt(k)                 # diagonal of damping
+    b = 2. * zeta * np.sqrt(k)                 # diagonal of damping
     k = np.diag(k)
     b = np.diag(b)
 
-    k[1:, 1:] += np.random.randn(3, 3)*1000
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
     b[1:, 1:] += np.random.randn(3, 3)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1):
         for rf in (None, 3, np.array([1, 2, 3])):
             for static_ic in (0, 1):
                 # su
                 tsu = ode.SolveUnc(m, b, k, h,
-                                    order=order, rf=rf)
+                                   order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3453,7 +3452,7 @@ def test_ode_coupled_mNone_generator():
                 solu2 = tsu.finalize()
 
                 tsu0 = ode.SolveUnc(m, b, k, h=None,
-                                     order=order, rf=rf)
+                                    order=order, rf=rf)
                 solu0 = tsu0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tsu0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3476,7 +3475,7 @@ def test_ode_coupled_mNone_generator():
                 gen, d, v = tsu.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 solu2 = tsu.finalize()
@@ -3487,7 +3486,7 @@ def test_ode_coupled_mNone_generator():
 
                 # se
                 tse = ode.SolveExp2(m, b, k, h,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3498,7 +3497,7 @@ def test_ode_coupled_mNone_generator():
                 sole2 = tse.finalize()
 
                 tse0 = ode.SolveExp2(m, b, k, h=None,
-                                   order=order, rf=rf)
+                                     order=order, rf=rf)
                 sole0 = tse0.tsolve(f[:, :1], static_ic=static_ic)
                 gen, d, v = tse0.generator(
                     1, f[:, 0], static_ic=static_ic)
@@ -3525,7 +3524,7 @@ def test_ode_coupled_mNone_generator():
                 gen, d, v = tse.generator(
                     nt, f[:, 0], static_ic=static_ic)
                 for i in range(1, nt):
-                    fi = f[:, i]/2
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
                 sole2 = tse.finalize()
@@ -3540,30 +3539,30 @@ def test_ode_coupled_2_mNone_generator():
     m = None
     k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
     zeta = np.array([0.1, .05, 1., 2.])     # percent damping
-    b_ = 2.*zeta*np.sqrt(k_)                # diagonal of damping
+    b_ = 2. * zeta * np.sqrt(k_)                # diagonal of damping
     k_ = np.diag(k_)
     b_ = np.diag(b_)
 
-    k_ += np.random.randn(4, 4)*1000
+    k_ += np.random.randn(4, 4) * 1000
     b_ += np.random.randn(4, 4)
 
     h = .001                               # time step
     t = np.arange(0, .3001, h)             # time vector
-    c = 2*np.pi
-    f = np.vstack((3*(1-np.cos(c*2*t)),    # forcing function
-                   4*(np.cos(np.sqrt(6e5/30)*t)),
-                   5*(np.cos(np.sqrt(6e5/30)*t)),
-                   6*(np.cos(np.sqrt(6e5/30)*t))))*1.e4
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
 
     for order in (0, 1):
         for rf, kmult in zip((None, 3, np.array([0, 1, 2, 3])),
                              (0.0, 1.0, 1.0)):
-            k = k_*kmult
-            b = b_*kmult
+            k = k_ * kmult
+            b = b_ * kmult
             for static_ic in (0, 1):
                 # su
                 tsu = ode.SolveUnc(m, b, k, h,
-                                    order=order, rf=rf)
+                                   order=order, rf=rf)
                 solu = tsu.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3573,8 +3572,8 @@ def test_ode_coupled_2_mNone_generator():
                     gen.send((i, f[:, i]))
 
                 # resolve some time steps for test:
-                for i in range(nt-5, nt):
-                    fi = f[:, i]/2
+                for i in range(nt - 5, nt):
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
 
@@ -3601,7 +3600,7 @@ def test_ode_coupled_2_mNone_generator():
 
                 # se
                 tse = ode.SolveExp2(m, b, k, h,
-                                  order=order, rf=rf)
+                                    order=order, rf=rf)
                 sole = tse.tsolve(f, static_ic=static_ic)
 
                 nt = f.shape[1]
@@ -3611,8 +3610,8 @@ def test_ode_coupled_2_mNone_generator():
                     gen.send((i, f[:, i]))
 
                 # resolve some time steps for test:
-                for i in range(nt-5, nt):
-                    fi = f[:, i]/2
+                for i in range(nt - 5, nt):
+                    fi = f[:, i] / 2
                     gen.send((i, fi))
                     gen.send((-1, fi))
 
@@ -3692,14 +3691,14 @@ def test_henkel_mar():
                 full.M = np.array([[M1, 0, 0],
                                    [0, M2, 0],
                                    [0, 0, M3]])
-                full.K = np.array([[k1+k2, -k2, 0],
-                                   [-k2, k2+k3, -k3],
+                full.K = np.array([[k1 + k2, -k2, 0],
+                                   [-k2, k2 + k3, -k3],
                                    [0, -k3, k3]])
-                full.C = np.array([[c1+c2, -c2, 0],
-                                   [-c2, c2+c3, -c3],
+                full.C = np.array([[c1 + c2, -c2, 0],
+                                   [-c2, c2 + c3, -c3],
                                    [0, -c3, c3]])
                 w, u = la.eigh(full.K, full.M)
-                full.freq = np.sqrt(w)/(2*np.pi)
+                full.freq = np.sqrt(w) / (2 * np.pi)
                 full.m = None
                 full.w = w
                 full.u = u
@@ -3708,7 +3707,7 @@ def test_henkel_mar():
 
                 # setup time vector:
                 sr = 1000.
-                h = 1/sr
+                h = 1 / sr
                 time = np.arange(0, 0.5, h)
                 L = len(time)
                 zeta0 = 0.0
@@ -3735,10 +3734,10 @@ def test_henkel_mar():
                 # looking at pad:
                 #   sum of forces on m1 = m a = -iff - k1*x1 - c1*xd1
                 # iff = -m a - k1*x1 - c1*xd1
-                full.iff = -(M1_p*full.xdd[0] + k1*full.x[0] +
-                             c1*full.xd[0])
+                full.iff = -(M1_p * full.xdd[0] + k1 * full.x[0] +
+                             c1 * full.xd[0])
 
-                #### Henkel Mar
+                # Henkel Mar
 
                 # make 'pad' and lv models - split the 30 mass into
                 # two parts:
@@ -3766,10 +3765,10 @@ def test_henkel_mar():
                                  [0., M2, 0.],
                                  [0., 0., M3]])
                 lv.K = np.array([[k2, -k2, 0.],
-                                 [-k2, k2+k3, -k3],
+                                 [-k2, k2 + k3, -k3],
                                  [0., -k3, k3]])
                 lv.C = np.array([[c2, -c2, 0.],
-                                 [-c2, c2+c3, -c3],
+                                 [-c2, c2 + c3, -c3],
                                  [0., -c3, c3]])
                 w, u = la.eigh(lv.K, lv.M)
                 #print('lv lambda:', w)
@@ -3791,8 +3790,8 @@ def test_henkel_mar():
                 lv.dflex = lv.parms.get_f2x(lv.phi, 0)
                 pad.flex = pad.parms.get_f2x(pad.phi, use_velo)
                 lv.flex = lv.parms.get_f2x(lv.phi, use_velo)
-                assert 10*abs(pad.dflex) < abs(pad.flex)
-                assert 10*abs(lv.dflex) < abs(lv.flex)
+                assert 10 * abs(pad.dflex) < abs(pad.flex)
+                assert 10 * abs(lv.dflex) < abs(lv.flex)
 
                 # setup some variables for working with Henkel-Mar:
                 r = 1  # number of i/f dof
@@ -3805,7 +3804,7 @@ def test_henkel_mar():
                 # all constrained to begin:
                 Work.constraints = np.ones(r)
                 Work.Flex = pad.flex + lv.flex
-                Work.rhs = np.zeros(r*2)
+                Work.rhs = np.zeros(r * 2)
 
                 # initialize coupled solution solution and interface
                 #  disps and forces:
@@ -3817,10 +3816,10 @@ def test_henkel_mar():
                 nrb = 1
                 flr = lv.u[:, :nrb].T @ physF3[:, :1]
                 fpad = -la.inv(lv.phi[:, :nrb].T) @ flr
-                qel = (1/lv.k[nrb:][:, None] *
+                qel = (1 / lv.k[nrb:][:, None] *
                        (lv.u[:, nrb:].T @ physF3[:, :1] +
                         lv.phi[:, nrb:].T @ fpad))
-                qep = 1/pad.k[:, None] * (-pad.phi.T @ fpad)
+                qep = 1 / pad.k[:, None] * (-pad.phi.T @ fpad)
                 qrl = la.inv(lv.phi[:, :nrb]) @ (
                     pad.phi @ qep - lv.phi[:, nrb:] @ qel)
                 x0_lv = lv.u[:, :nrb] @ qrl + lv.u[:, nrb:] @ qel
@@ -3841,7 +3840,7 @@ def test_henkel_mar():
                     L, pad.force[:, 0], d0=pad.d0.ravel())
 
                 # while bolted to the pad:
-                Work.K = np.zeros((2*r, 2*r))
+                Work.K = np.zeros((2 * r, 2 * r))
                 Work.K[:r, :r] = np.eye(r)
                 Work.K[:r, r:] = -Work.Flex
                 Work.K[r:, :r] = np.diag(Work.constraints)
