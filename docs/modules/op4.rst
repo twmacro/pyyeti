@@ -1,8 +1,8 @@
 Read/write Nastran op4 files
 ============================
 
-.. automodule:: pyyeti.op4
-.. currentmodule:: pyyeti.op4
+.. automodule:: pyyeti.nastran.op4
+.. currentmodule:: pyyeti.nastran.op4
 
 Main routines
 -------------

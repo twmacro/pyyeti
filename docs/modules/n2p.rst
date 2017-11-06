@@ -1,8 +1,8 @@
 Nastran-to-Python tools
 =======================
 
-.. automodule:: pyyeti.n2p
-.. currentmodule:: pyyeti.n2p
+.. automodule:: pyyeti.nastran.n2p
+.. currentmodule:: pyyeti.nastran.n2p
 .. autosummary::
     :toctree: generated/
 

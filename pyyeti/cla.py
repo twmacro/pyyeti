@@ -1071,12 +1071,11 @@ class DR_Def(OrderedDict):
             data recovery function in `drfile`. For example: ``drms =
             {'scatm': scatm}``. If `se` is greater than 0, each matrix
             will be multiplied by the appropriate "ULVS" matrix (see
-            :func:`pyyeti.op2.rdnas2cam`) during event simulation. If
-            `se` is 0, it is used as is and is likely added during
-            event simulation since system modes are often
+            :func:`pyyeti.nastran.op2.rdnas2cam`) during event
+            simulation. If `se` is 0, it is used as is and is likely
+            added during event simulation since system modes are often
             needed. (Also, when `se` is 0, using `drms` is equivalent
             to using `nondrms`.)
-
         drfunc : string or None; optional
             A string that either defines the data recovery
             calculations directly (a "Type 1" `drfunc`) or, if it is a
@@ -1323,7 +1322,8 @@ class DR_Def(OrderedDict):
                    .d members (modal accelerations, velocities and
                    displacements). See
                    :func:`pyyeti.ode.SolveUnc.tsolve`.
-            nas    The nas2cam dict: ``nas = pyyeti.op2.rdnas2cam()``
+            nas    The nas2cam dict:
+                   ``nas = pyyeti.nastran.op2.rdnas2cam()``
             DR     Defines data recovery for an event simulation (and
                    is created in the simulation script via
                    ``DR = cla.DR_Event()``). It is an event specific
@@ -1692,10 +1692,10 @@ class DR_Event(object):
         ----------
         nas : dictionary
             This is the nas2cam dictionary:
-            ``nas = pyyeti.op2.rdnas2cam()``. Only used if at least
-            one category in `drdefs` is for an upstream superelement
-            (se != 0) and has a data recovery matrix. Can be anything
-            (like None) if not needed.
+            ``nas = pyyeti.nastran.op2.rdnas2cam()``. Only used if at
+            least one category in `drdefs` is for an upstream
+            superelement (se != 0) and has a data recovery matrix. Can
+            be anything (like None) if not needed.
         drdefs : :class:`DR_Def` instance or None
             Contains the data recovery definitions for, typically, one
             superelement. See :class:`DR_Def`. If None, this routine
@@ -2810,10 +2810,10 @@ class DR_Results(OrderedDict):
             from :func:`DR_Event.apply_uf`.
         nas : dictionary
             Typically, this is the nas2cam dictionary:
-            ``nas = pyyeti.op2.rdnas2cam()``. Can be None if not
-            needed: it is not used in this routine; it is only passed
-            to the data recovery routines (the `drfunc` setting in
-            :func:`DR_Def.add`).
+            ``nas = pyyeti.nastran.op2.rdnas2cam()``.
+            Can be None if not needed: it is not used in this routine;
+            it is only passed to the data recovery routines (the
+            `drfunc` setting in :func:`DR_Def.add`).
         case : string
             Unique string identifying the case; stored in, for
             example, the ``self['SC_atm'].cases`` and the `.mincase`
@@ -2896,10 +2896,10 @@ class DR_Results(OrderedDict):
         ----------
         nas : dictionary
             Typically, this is the nas2cam dictionary:
-            ``nas = pyyeti.op2.rdnas2cam()``. However, only the "nrb"
-            member is needed directly by this routine (for uncertainty
-            factor application). It is also passed to the data
-            recovery routines (the `drfunc` setting in
+            ``nas = pyyeti.nastran.op2.rdnas2cam()``. However, only
+            the "nrb" member is needed directly by this routine (for
+            uncertainty factor application). It is also passed to the
+            data recovery routines (the `drfunc` setting in
             :func:`DR_Def.add`).
         case : string
             Unique string identifying the case; stored in, for

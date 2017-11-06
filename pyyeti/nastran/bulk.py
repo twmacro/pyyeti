@@ -1107,8 +1107,7 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
 
 def bulk2uset(*args):
     """
-    Read CORD2* and GRID cards from file(s) to make a USET table and
-    coordinate system dictionary via :func:`pyyeti.n2p.addgrid`.
+    Read CORD2* and GRID cards from file(s) to make a USET table
 
     Parameters
     ----------
@@ -1121,7 +1120,7 @@ def bulk2uset(*args):
     -------
     uset : ndarray
         A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
     coordref : dictionary
         Dictionary with the keys being the coordinate system id and
         the values being the 5x3 matrix::
@@ -1134,12 +1133,14 @@ def bulk2uset(*args):
 
     Notes
     -----
-    All grids are put in the 'b' set.
+    All grids are put in the 'b' set. This routine uses
+    :func:`pyyeti.nastran.n2p.addgrid` to build the output.
 
     See also
     --------
-    :func:`rdcards`, :func:`rdgrids`, :func:`pyyeti.op2.OP2.rdn2cop2`,
-    :mod:`pyyeti.n2p`.
+    :func:`rdcards`, :func:`rdgrids`,
+    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
+    :mod:`pyyeti.nastran.n2p`.
     """
     grids = np.zeros((0, 8))
     no_data = np.zeros((0, 11))
@@ -1471,7 +1472,7 @@ def rdextrn(f, expand=True):
 
     Notes
     -----
-    The expansion is done by :func:`pyyeti.n2p.expanddof`.
+    The expansion is done by :func:`pyyeti.nastran.n2p.expanddof`.
 
     Examples
     --------
@@ -2371,7 +2372,7 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
 
           - If 4 columns: ``[id, x, y, z]``  <-- basic coordinates
           - If 6 columns: input is assumed to be USET table of ring 1
-            grids (see :func:`pyyeti.op2.OP2.rdn2cop2` for
+            grids (see :func:`pyyeti.nastran.op2.OP2.rdn2cop2` for
             description).
 
     r2grids : 2d array_like
@@ -2588,8 +2589,8 @@ def wtcoordcards(f, ci):
         opened for file selection.
     ci : dictionary or None
         Dictionary of coordinate card info as returned by
-        :func:`pyyeti.n2p.coordcardinfo`. If None or if dict is empty,
-        this routine quietly does nothing.
+        :func:`pyyeti.nastran.n2p.coordcardinfo`. If None or if dict
+        is empty, this routine quietly does nothing.
 
     Returns
     -------
@@ -2699,7 +2700,7 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
         Index partition vector for the bset
     uset : ndarray
         A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
     spoint1 : integer
         Starting value for the SPOINTs (for modal DOF)
     sedn : integer; optional

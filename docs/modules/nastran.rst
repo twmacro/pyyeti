@@ -1,41 +1,22 @@
-Limited set of read/write routines for Nastran bulk data
-========================================================
+Tools for working with Nastran data
+===================================
 
-.. automodule:: pyyeti.nastran
-.. currentmodule:: pyyeti.nastran
-.. autosummary::
-    :toctree: generated/
+:doc:`nastran <nastran>` is a subpackage of pyYeti that imports
+functions from the modules: :doc:`bulk <bulk>`, :doc:`n2p <n2p>`,
+:doc:`op2 <op2>`. It also imports the module :doc:`op4 <op4>`.
 
-    bulk2uset
-    findcenter
-    fsearch
-    intersect
-    mknast
-    nas_sscanf
-    rdcards
-    rdcsupers
-    rddmig
-    rddtipch
-    rdeigen
-    rdextrn
-    rdgpwg
-    rdgrids
-    rdtabled1
-    rdwtbulk
-    wt_extseout
-    wtcoordcards
-    wtcsuper
-    wtextrn
-    wtgrids
-    wtnasints
-    wtqcset
-    wtrbe2
-    wtrbe3
-    wtrspline
-    wtrspline_rings
-    wtseset
-    wtset
-    wtspc1
-    wttabled1
-    wtvcomp
-    wtxset1
+    .. table::
+       :align: center
+       :widths: 20, 60
+    
+       +---------------------+---------------+
+       | Module Name         | Description   |
+       +=====================+===============+
+       | :doc:`bulk <bulk>`  | :doc:`bulk`   |
+       +---------------------+---------------+
+       | :doc:`n2p <n2p>`    | :doc:`n2p`    |
+       +---------------------+---------------+
+       | :doc:`op2 <op2>`    | :doc:`op2`    |
+       +---------------------+---------------+
+       | :doc:`op4 <op4>`    | :doc:`op4`    |
+       +---------------------+---------------+
