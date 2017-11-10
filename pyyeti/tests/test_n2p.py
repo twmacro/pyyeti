@@ -967,6 +967,27 @@ def test_upasetpv():
     assert np.all(pv == shouldbe)
 
 
+def test_upqsetpv():
+    nas_extseout = nastran.rdnas2cam(
+        'pyyeti/tests/nas2cam_extseout/nas2cam')
+    pv_extseout = nastran.upqsetpv(nas_extseout, 0)
+
+    ue = nas_extseout['uset'][0]
+    assert np.all((ue[:, 0] > 200) == pv_extseout)
+
+    nas_csuper = nastran.rdnas2cam(
+        'pyyeti/tests/nas2cam_csuper/nas2cam')
+    pv_csuper = nastran.upqsetpv(nas_csuper)
+
+    uc = nas_csuper['uset'][0]
+    # last four are dummy dof from grids:
+    pv = (uc[:, 0] > 200)
+    pv[-4:] = False
+    assert np.all(pv == pv_csuper)
+
+    assert_raises(ValueError, nastran.upqsetpv, nas_csuper, 1000)
+
+
 def test_formtran1_seup():
     o4 = op4.OP4()
     tug1 = nastran.rddtipch('pyyeti/tests/nas2cam_extseout/outboard.pch')

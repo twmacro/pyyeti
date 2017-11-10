@@ -383,7 +383,7 @@ def test_rdpostop2():
         o2._rowsCutoff = 0
         fpos = o2.dbnames['OUGV1'][0][0][0]
         o2._fileh.seek(fpos)
-        name, trailer, dbtype = o2._rdop2nt()
+        name, trailer, dbtype = o2.rdop2nt()
         oug = o2._rdop2ougv1('OUGV1')
 
     assert np.all(oug['ougv1'] == ougv1)
@@ -405,7 +405,7 @@ def test_rdpostop2_assemble():
         fpos = o2.dbnames['GEOM1S'][2][0][0]
 
         o2._fileh.seek(fpos)
-        name, trailer, dbtype = o2._rdop2nt()
+        name, trailer, dbtype = o2.rdop2nt()
         cords, sebulk, selist = o2._rdop2geom1cord2()
 
     assert np.all(post['selist'] == selist)
@@ -418,22 +418,22 @@ def test_rdop2record():
         fpos = o2.dbnames['DYNAMICS'][0][0][0]
 
         o2._fileh.seek(fpos)
-        name, trailer, dbtype = o2._rdop2nt()
+        name, trailer, dbtype = o2.rdop2nt()
         o2._rowsCutoff = 40000
         r1 = o2.rdop2record()
 
         o2._fileh.seek(fpos)
-        name, trailer, dbtype = o2._rdop2nt()
+        name, trailer, dbtype = o2.rdop2nt()
         o2._rowsCutoff = 0
         r2 = o2.rdop2record()
         assert np.all(r1 == r2)
 
         o2._fileh.seek(fpos)
-        name, trailer, dbtype = o2._rdop2nt()
+        name, trailer, dbtype = o2.rdop2nt()
         assert_raises(ValueError, o2.rdop2record, 'badform')
 
         o2._fileh.seek(fpos)
-        name, trailer, dbtype = o2._rdop2nt()
+        name, trailer, dbtype = o2.rdop2nt()
         o2.rdop2tabheaders('DYNAMICS')
 
 

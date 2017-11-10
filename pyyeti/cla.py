@@ -1063,8 +1063,9 @@ class DR_Def(OrderedDict):
         labels : list or integer
             List of strings, describing each row. Can also be an
             integer specifying number of rows being recovered; in this
-            case, the list is ``['Row 1', 'Row 2', ...]``. This input
-            is used to determine number of rows being recovered.
+            case, the list is formed internally as:
+            ``['Row 1', 'Row 2', ...]``. This input is used to
+            determine number of rows being recovered.
         drms : dict or None
             Dictionary of data recovery matrices for this category;
             keys are matrix names and must match what is used in the

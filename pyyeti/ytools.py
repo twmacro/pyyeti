@@ -71,15 +71,15 @@ def histogram(data, binsize):
             return
         mn = data.min()
         mx = data.max()
-        a = int(np.floor(mn/binsize))
-        b = int(np.ceil(mx/binsize))
-        for i in range(a, b+1):
-            lft = (i-1/2)*binsize
-            rgt = (i+1/2)*binsize
+        a = int(np.floor(mn / binsize))
+        b = int(np.ceil(mx / binsize))
+        for i in range(a, b + 1):
+            lft = (i - 1 / 2) * binsize
+            rgt = (i + 1 / 2) * binsize
             count = np.count_nonzero((lft <= data) &
                                      (data < rgt))
             if count > 0:
-                yield [i*binsize, count]
+                yield [i * binsize, count]
 
     bins = []
     for b in _get_next_bin(data, binsize):
@@ -88,7 +88,7 @@ def histogram(data, binsize):
     histo[:, :2] = bins
     s = histo[:, 1].sum()
     if s > 0:
-        histo[:, 2] = 100*histo[:, 1]/s
+        histo[:, 2] = 100 * histo[:, 1] / s
     return histo
 
 
@@ -130,9 +130,9 @@ def multmd(a, b):
     array([  100, 10000])
     """
     if np.ndim(a) == 1:
-        return (a*b.T).T
+        return (a * b.T).T
     else:
-        return a*b
+        return a * b
 
 
 def mkpattvec(start, stop, inc):
@@ -179,7 +179,7 @@ def mkpattvec(start, stop, inc):
     """
     start = np.array(start)
     s = start.ravel()
-    xn = np.array([s+i for i in range(0, stop-s[0], inc)])
+    xn = np.array([s + i for i in range(0, stop - s[0], inc)])
     return xn.reshape((-1,) + start.shape)
 
 
@@ -229,7 +229,7 @@ def isdiag(A, tol=1e-12):
     d = np.diag(A)
     max_off = abs(np.diag(d) - A).max()
     max_on = abs(d).max()
-    return max_off <= tol*max_on
+    return max_off <= tol * max_on
 
 
 def mattype(A, mtype=None):
@@ -380,71 +380,6 @@ def mattype(A, mtype=None):
     raise ValueError('invalid `mtype`')
 
 
-def diagmat(*args):
-    """
-    Assemble matrices on the diagonal
-
-    Parameters
-    ----------
-    *args : 2d array_like variables
-        Any number of matrices (2d arrays) to assemble on the diagonal
-        of new, larger matrix. Any ``None`` entries are quietly
-        skipped.
-
-    Returns
-    -------
-    mat : 2d ndarray
-        The assembled matrix.
-
-    Examples
-    --------
-    >>> from pyyeti import ytools
-    >>> a = [[1, 1], [2, 2]]
-    >>> b = 40
-    >>> c = None
-    >>> d = [10, 20, 30]
-    >>> e = [[10], [11]]
-    >>> f = 100
-    >>> ytools.diagmat(a, b, c, d, e, f)
-    array([[  1,   1,   0,   0,   0,   0,   0,   0],
-           [  2,   2,   0,   0,   0,   0,   0,   0],
-           [  0,   0,  40,   0,   0,   0,   0,   0],
-           [  0,   0,   0,  10,  20,  30,   0,   0],
-           [  0,   0,   0,   0,   0,   0,  10,   0],
-           [  0,   0,   0,   0,   0,   0,  11,   0],
-           [  0,   0,   0,   0,   0,   0,   0, 100]])
-
-    >>> ytools.diagmat(None, None)
-    array([], shape=(0, 0), dtype=float64)
-    """
-    R = C = 0
-    dtype = None
-    args2d = []
-    for arg in args:
-        if arg is not None:
-            arg = np.atleast_2d(arg)
-            args2d.append(arg)
-            r, c = arg.shape
-            R += r
-            C += c
-            if dtype is None:
-                dtype = arg.dtype
-            else:
-                dtype = np.promote_types(dtype, arg.dtype)
-
-    if dtype is None:
-        return np.zeros((R, C))
-
-    M = np.zeros((R, C), dtype)
-    R = C = 0
-    for arg in args2d:
-        r, c = arg.shape
-        M[R:R+r, C:C+c] = arg
-        R += r
-        C += c
-    return M
-
-
 def sturm(A, lam):
     """
     Count number of eigenvalues <= `lam` of symmetric matrix `A`.
@@ -522,7 +457,7 @@ def sturm(A, lam):
         else:
             c = 0
         for j in range(1, n):
-            tmp = d[j] - ssq[j-1] / tmp - val
+            tmp = d[j] - ssq[j - 1] / tmp - val
             if abs(tmp) < pivmin:
                 tmp = -pivmin
             if tmp <= 0:
@@ -634,11 +569,11 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
     n = np.size(K, 0)
     if f is not None:
         # use sturm sequence check to determine p:
-        lamk = (2*np.pi*f)**2
-        p = sturm(K - lamk*M, 0)[0]
+        lamk = (2 * np.pi * f)**2
+        p = sturm(K - lamk * M, 0)[0]
 
     if mu != 0:
-        Kmod = K - mu*M
+        Kmod = K - mu * M
         Kd = linalg.lu_factor(Kmod)
     else:
         Kd = linalg.lu_factor(K)
@@ -647,7 +582,7 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
         p = pmax
     if p > n:
         p = n
-    q = max(2*p, p+8)
+    q = max(2 * p, p + 8)
     if q > n:
         q = n
     if Xk is not None:
@@ -656,9 +591,9 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
         c = 0
     if c < q:
         if Xk is None:
-            Xk = np.random.rand(n, q)-.5
+            Xk = np.random.rand(n, q) - .5
         else:
-            Xk = np.hstack((Xk, np.random.rand(n, q-c)-.5))
+            Xk = np.hstack((Xk, np.random.rand(n, q - c) - .5))
     elif c > q:
         Xk = Xk[:, :q]
     lamk = np.ones(q)
@@ -678,11 +613,11 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
         # solve subspace eigenvalue problem:
         mtp = mattype(Mk)[0]
         if not mtp & posdef:
-            factor = 1000*eps
+            factor = 1000 * eps
             pc = 0
             while 1:
                 pc += 1
-                Mk += np.diag(np.diag(Mk)*factor)
+                Mk += np.diag(np.diag(Mk) * factor)
                 factor *= 10.
                 mtp = mattype(Mk)[0]
                 if mtp & posdef or pc > 5:
@@ -691,7 +626,7 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
         if mtp & posdef:
             Mkll = linalg.cholesky(Mk, lower=True)
             Kkmod = linalg.solve(Mkll, linalg.solve(Mkll, Kk).T).T
-            Kkmod = (Kkmod+Kkmod.T)/2
+            Kkmod = (Kkmod + Kkmod.T) / 2
             lamk, Qmod = linalg.eigh(Kkmod)
             Q = linalg.solve(Mkll.T, Qmod)
         else:
@@ -713,7 +648,7 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
                 print('Iteration 1 completed')
             nconv = 0
         Xk = np.dot(Xkbar, Q)
-    return lamk[:p]+mu, Xk[:, :p], Xk
+    return lamk[:p] + mu, Xk[:, :p], Xk
 
 
 def gensweep(ppc, fstart, fstop, rate):
@@ -774,12 +709,12 @@ def gensweep(ppc, fstart, fstop, rate):
         >>> _ = plt.tight_layout()
     """
     # make a unity sine sweep
-    rate = rate/60.
-    dt = 1./fstop/ppc
-    tstop = (np.log(fstop) - np.log(fstart))/np.log(2.)/rate
-    t = np.arange(0., tstop+dt/2, dt)
-    f = fstart * 2 ** (t*rate)
-    sig = np.sin(2*np.pi/np.log(2)/rate*(f-fstart))
+    rate = rate / 60.
+    dt = 1. / fstop / ppc
+    tstop = (np.log(fstop) - np.log(fstart)) / np.log(2.) / rate
+    t = np.arange(0., tstop + dt / 2, dt)
+    f = fstart * 2 ** (t * rate)
+    sig = np.sin(2 * np.pi / np.log(2) / rate * (f - fstart))
     return sig, t, f
 
 

@@ -1,5 +1,6 @@
 0. Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
 1. Update duf explanation in cla.apply_uf
+~2. Get rid of ytools.diagmat ... use scipy.linalg.block_diag
 3. Rearrange code: op2, op4, n2p, nastran overlap ... ?
    - primarly rdnas2cam ... seems like this should be in n2p
    - i think all of these should probably just be in "nastran" ...
@@ -50,8 +51,32 @@
 
     6 y-axis label written far away in srs3/net_ifatm_0rb_eqsine_all.pdf plot ... why?
 ~    7 include documentation link for "load" and "save"
+    8 Save eqsine to xlsx file
 
-16. op2 updates:
+~16. op2 updates:
   - some functions should be "public", like _rdop2nt()
 19. Add windowends to srs ?
 ~20. Change output of fdepsd to DataFrames
+
+
+21. In cb or cla:
+    - In mk_net_drms, add use_g_units
+    - make routine that returns string for adding data recovery categories for mk_net_drms output:
+        """
+        @cla.DR_Def.addcat
+        def _():
+            name = 'net_ifatm'
+            ...
+        ...
+        """
+        o   Could accept s/c name for description strings
+        o   Or, make this just a function call? … that actually runs it?
+            §  Would need defaults and maybe other inputs
+            §  Could have it call mk_net_drms internally
+
+~22.
+~    -        Incorporate upqsetpv & update help & add tests
+~    -        Update upasetpv help
+~    -        Formulvs help says it returns 1 … should say 1.0
+~    -        Rdop2n2c dnids: fix wording here (“pair” would be better I think):
+~    These ids are internally generated and should match with ‘dnids’.

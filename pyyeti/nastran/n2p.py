@@ -9,7 +9,9 @@ can be used to create rigid-body modes, form data recovery matrices,
 make partition vectors based on sets, form RBE3-like interpolation
 matrices, etc.
 
-This module is typically used by importing the "nastran" module:
+The functions provided by this module can be accessed by just
+importing the "nastran" package. For example, you can access the
+:func:`rbgeom` function in these two ways:
 
 >>> from pyyeti import nastran
 >>> from pyyeti.nastran import n2p
@@ -28,7 +30,7 @@ __all__ = ['addgrid', 'addulvs', 'build_coords', 'coordcardinfo',
            'expanddof', 'formdrm', 'formrbe3', 'formtran', 'formulvs',
            'get_coordinfo', 'getcoords', 'mkdofpv', 'mksetpv',
            'mkusetmask', 'rbcoords', 'rbgeom', 'rbgeom_uset',
-           'rbmove', 'upasetpv', 'usetprt']
+           'rbmove', 'upasetpv', 'upqsetpv', 'usetprt']
 
 
 def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
@@ -791,8 +793,9 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     for i in range(c):
         pv = table[:, i].astype(bool)
         table[pv, i] = 1 + np.arange(n[i])
-    allsets = list('MSOQRCBELTADF') + ['FE', 'N', 'NE', 'G', 'P', 'U1',
-                                       'U2', 'U3', 'U4', 'U5', 'U6']
+    allsets = (list('MSOQRCBELTADF') +
+               ['FE', 'N', 'NE', 'G', 'P', 'U1',
+                'U2', 'U3', 'U4', 'U5', 'U6'])
     if printsets == '*':
         printsets = allsets
     else:
@@ -806,8 +809,9 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     pv = np.any(table, axis=1)
     if np.any(pv):
         # add 3 more cols to table:
-        return_table = np.hstack((1 + np.arange(r).reshape(r, 1),
-                                  uset[:, :2].astype(np.int64), table))
+        return_table = np.hstack(
+            (1 + np.arange(r).reshape(r, 1),
+             uset[:, :2].astype(np.int64), table))
         return_table = return_table[pv]
     else:
         return_table = None
@@ -879,8 +883,9 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
                         f.write('{:6d}='.format(count))
                         for k in range(10):
                             r = j * 10 + k
-                            f.write(' {:8d}-{:1d}'.format(usetfr[r, 0],
-                                                          usetfr[r, 1]))
+                            f.write(
+                                ' {:8d}-{:1d}'.format(usetfr[r, 0],
+                                                      usetfr[r, 1]))
                         f.write(' ={:6d}\n'.format(count + 9))
                         curlines += 1
                         count += 10
@@ -1119,7 +1124,7 @@ def mkdofpv(uset, nasset, dof):
     >>> uset = np.vstack((uset, [991, 0, 4194304, 0, 0, 0]))
     >>> # request spoint 991 and dof 123 for grid 100 (in that order):
     >>> ids2 = [[991, 0], [100, 123]]
-    >>> nastran.mkdofpv(uset, "a", ids2)             # doctest: +ELLIPSIS
+    >>> nastran.mkdofpv(uset, "a", ids2)        # doctest: +ELLIPSIS
     (array([12,  0,  1,  2]...), array([[991,   0],
            [100,   1],
            [100,   2],
@@ -1563,9 +1568,9 @@ def getcoords(uset, gid, csys, coordref=None):
     coords : ndarray
         3-element ndarray of location in `csys`::
 
-            - Rectangular:  [x, y, z]
-            - Cylindrical:  [R, theta, z]    (theta is in deg)
-            - Spherical:    [R, theta, phi]  (theta and phi are in deg)
+            - Rectangular: [x, y, z]
+            - Cylindrical: [R, theta, z]    (theta is in deg)
+            - Spherical:   [R, theta, phi]  (theta and phi are in deg)
 
     Notes
     -----
@@ -2044,9 +2049,8 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     Notes
     -----
     The approach used is:
-
-        - Use :func:`rbgeom_uset` to form the rigid-body modes based on
-          geometry and relative to `GRID_dep`.
+        - Use :func:`rbgeom_uset` to form the rigid-body modes based
+          on geometry and relative to `GRID_dep`.
         - Partition the rows of the rigid-body modes down to the
           independent DOF.
         - Use least squares approach to 'invert' the rigid-body modes.
@@ -2138,7 +2142,6 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
      [ 1.    0.    0.    0.    0.    0.    0.    0.    0.    0.    2.    0.  ]
      [ 0.    0.25  0.25  0.    0.5  -0.25  0.25  0.    0.    0.    0.    1.  ]
      [ 0.5   0.    0.    0.    0.    0.    0.    0.5   0.    0.5   0.5   0.  ]]
-
     """
     # form dependent DOF table:
     ddof = expanddof([[GRID_dep, DOF_dep]])
@@ -2229,8 +2232,8 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         pv = locate.mat_intersect(curdof, usetdof, 2)[0]
         return rbe3[:, pv]
 
-    # some dependent retained, so find m-set dof that belong to current
-    # independent set:
+    # some dependent retained, so find m-set dof that belong to
+    # current independent set:
     ipv_m = locate.mat_intersect(idof, mdof, 2)[0]
 
     if not np.any(ipv_m):
@@ -2318,24 +2321,24 @@ def _findse(nas, se):
 
 def upasetpv(nas, seup):
     """
-    Form upstream A-set partition vector for a downstream
-    superelement.
+    Form upstream A-set partition vector for a downstream SE
 
     Parameters
     ----------
     nas : dictionary
-        This is the nas2cam dictionary:  ``nas = op2.rdnas2cam()``
+        This is the nas2cam dictionary: ``nas = op2.rdnas2cam()``
     seup : integer
         The id of the upstream superelement.
 
     Returns
     -------
-    pv : array
+    pv : 1d ndarray
         An index partition vector for partitioning the upstream A-set
         degrees of freedom of superelement SEUP from the P-set of the
-        downstream superelement. This partition vector is not a 0-1
-        type because the A-set DOF order may be different downstream
-        than from upstream (from reordering done on a CSUPER entry).
+        downstream superelement. This partition vector is not a
+        True/False type because the A-set DOF order may be different
+        downstream than from upstream (from reordering done on a
+        CSUPER entry).
 
     Notes
     -----
@@ -2345,14 +2348,14 @@ def upasetpv(nas, seup):
         # the CSUPER entry, the A-set of 100 were assigned new ids and
         # the order was changed. Form the ULVS matrix:
         from pyyeti import nastran
-        import op2
-        nas = op2.rdnas2cam('nas2cam')
+        nas = nastran.rdnas2cam('nas2cam')
         pv = nastran.upasetpv(nas, 100)
         ulvs100 = nas['phg'][0][pv]  # this will reorder as needed
 
     See also
     --------
-    :func:`mksetpv`, :func:`pyyeti.op2.rdnas2cam`, :func:`formulvs`
+    :func:`mksetpv`, :func:`pyyeti.op2.rdnas2cam`, :func:`formulvs`,
+    :func:`upqsetpv`.
     """
     r = _findse(nas, seup)
     sedn = nas['selist'][r, 1]
@@ -2372,11 +2375,11 @@ def upasetpv(nas, seup):
 
         # number of rows should equal size of upstream a-set
         pv = locate.find_vals(usetdn[:, 0], ids[pv])
-        if len(pv) < len(dnids):
+        if len(pv) < len(dnids):   # pragma: no cover
             raise ValueError('not all upstream DOF could'
                              ' be found in downstream')
     if len(maps) > 0:
-        if not np.all(maps[:, 1] == 1):
+        if not np.all(maps[:, 1] == 1):   # pragma: no cover
             raise ValueError('column 2 of MAPS for {} is not all 1.'
                              '  Stopping.'.format(seup))
         # definition of maps:  dn = up(maps) ... want up = dn(maps2)
@@ -2385,6 +2388,121 @@ def upasetpv(nas, seup):
         # maps2 = [ pos_of_1st pos_of_2nd pos_of_3rd ] = [ 1, 2, 0 ]
         maps2 = np.argsort(maps[:, 0])
         pv = pv[maps2]
+    return pv
+
+
+def upqsetpv(nas, sedn=0):
+    """
+    Form upstream Q-set partition vector for a downstream SE
+
+    Parameters
+    ----------
+    nas : dictionary
+        This is the nas2cam dictionary: ``nas = op2.rdnas2cam()``
+    sedn : integer; optional
+        The id of the downstream superelement.
+
+    Returns
+    -------
+    pv : 1d ndarray
+        A True/False vector for partitioning upstream Q-set DOF from
+        downstream P-set.
+
+    Notes
+    -----
+    If necessary, this routine will call itself recursively up the
+    superelement tree to account for all upstream Q-set. This will
+    take care of the Benfield-Hruda case where upstream Q-set go to
+    the B-set of another superelement before going to its ultimate
+    superelement.
+
+    Note: if any upstream SEe does not have any DOF assigned to the
+    Q-set (as is quite typical for partitioned SE's), this routine
+    will then assume that all SPOINTs are Q-set DOF.
+
+    Example usage::
+
+        # Form rigid-body modes for SE 0, and then zero out all DOF
+        # that correspond to upstream Q-set:
+        from pyyeti import nastran
+        nas = nastran.rdnas2cam('nas2cam')
+        rb = nastran.rbgeom_uset(nas['uset'][0])
+        pv = nastran.upqsetpv(nas, 0)
+        rb[pv] = 0.0
+
+    See also
+    --------
+    :func:`mksetpv`, :func:`pyyeti.op2.rdnas2cam`, :func:`formulvs`,
+    :func:`upasetpv`.
+    """
+    selist = nas['selist']
+    rows = (selist[:, 1] == sedn).nonzero()[0]
+    if rows.size == 0:
+        msg = ('downstream superelement {} not found in 2nd '
+               'column of `selist`. Current `selist` is:\n{!s}'
+               .format(sedn, nas['selist']))
+        raise ValueError(msg)
+
+    usetdn = nas['uset'][sedn]
+    pv = np.zeros(usetdn.shape[0], bool)
+
+    for r in rows:
+        seup = selist[r, 0]
+        if seup == sedn:
+            continue
+        usetup = nas['uset'][seup]
+        dnids = nas['dnids'][seup]
+        maps = nas['maps'][seup]
+
+        qup = mksetpv(usetup, 'a', 'q')
+        if not qup.any():
+            # assume any a-set spoints are q-set
+            qup = usetup[mksetpv(usetup, 'p', 'a'), 1] == 0
+
+        # check to see if the upstream se has upstreams;
+        # if so, include its qup:
+        if (selist[:, 1] == seup).any():
+            qup2 = upqsetpv(nas, seup)
+            qup = qup | qup2[mksetpv(usetup, 'p', 'a')]
+
+        if qup.any():
+            # expand downstream ids to include all dof:
+            # number of rows in pv1 should equal size of
+            # upstream a-set
+            usetdn_ids = usetdn[:, 0].astype(np.int64)
+            pv1 = locate.find_vals(usetdn_ids, dnids)
+
+            if pv1.size < dnids.size:
+                # must be an external se, but non-csuper type (the
+                # extseout, seconct, etc, type)
+
+                # The downstream "upids" contains all upstream
+                # internally generated ids. It also has zeros for the
+                # downstream DOF (in the uset table) that are not from
+                # upstream SEs. Each upstream "dnids" is a subset of
+                # the downstream "upids". By finding where "dnids"
+                # occurs in "upids", we're actually finding where
+                # "dnids" occurs in the p-set of the downstream ...
+                # just what we want.
+                upids = nas['upids'][sedn]
+                pv1 = locate.find_vals(upids, dnids)
+                ids = usetdn[usetdn[:, 1] <= 1, 0].astype(np.int64)
+
+                # length of pv1 should equal size of upstream a-set
+                pv1 = locate.find_vals(usetdn_ids, ids[pv1])
+
+                if pv1.size < dnids.size:   # pragma: no cover
+                    raise ValueError('not all upstream DOF could'
+                                     ' be found in downstream')
+
+            if len(maps) > 0:
+                if not np.all(maps[:, 1] == 1):   # pragma: no cover
+                    raise ValueError(
+                        'column 2 of MAPS for {} is not all 1.'
+                        ' Stopping.'.format(seup))
+                pv[pv1] = qup[maps[:, 0].astype(np.int64)]
+            else:
+                pv[pv1] = qup
     return pv
 
 
@@ -2434,7 +2552,7 @@ def _formtran_0(nas, dof, gset):
                            "nas['pha'][0] are available.")
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
-    if o.size > 0:
+    if o.size > 0:   # pragma: no cover
         v = locate.mat_intersect(
             uset[o, :2].astype(np.int64), dof)[0]
         if v.size > 0:
@@ -2506,8 +2624,8 @@ def _formtran_0(nas, dof, gset):
 
 def formtran(nas, se, dof, gset=False):
     """
-    Make a transformation matrix from A-set DOF to specified DOF within
-    the same SE.
+    Make a transformation matrix from A-set DOF to specified DOF
+    within the same SE.
 
     Parameters
     ----------
@@ -2738,7 +2856,7 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
 
     Returns
     -------
-    ULVS : 2d numpy ndarray or 1
+    ULVS : 2d numpy ndarray or 1.0
         Transformation from either the modal or physical DOF of the
         downstream superelement sedn to the T and Q-set DOF of the
         upstream superelement seup. The transformation (called ULVS
@@ -2780,12 +2898,12 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
     r = _findse(nas, seup)
     sedown = nas['selist'][r, 1]
     if sedown == seup or sedn == seup:
-        return 1.
+        return 1.0
     if (shortcut and sedn == 0 and not gset and
             'ulvs' in nas and seup in nas['ulvs']):
         return nas['ulvs'][seup]
-    ulvs = 1.
-    while 1:
+    ulvs = 1.0
+    while True:
         usetup = nas['uset'][seup]
         usetdn = nas['uset'][sedown]
         tqup = upasetpv(nas, seup)
@@ -2825,7 +2943,8 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
             dof = 99
             dof = [99]
             dof = [[99, 123456]]
-            dof = [[99, 1], [99, 2], [99, 3], [99, 4], [99, 5], [99, 6]]
+            dof = [[99, 1], [99, 2], [99, 3],
+                   [99, 4], [99, 5], [99, 6]]
 
     sedn : integer
         The id of the downstream superelement.

@@ -9,7 +9,6 @@ Math routines
 .. autosummary::
     :toctree: generated/
 
-    diagmat
     eig_si
     gensweep
     histogram

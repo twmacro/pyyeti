@@ -28,6 +28,9 @@ Member functions:
 
     OP2.directory
     OP2.prtdir
+    OP2.rdop2eot
+    OP2.rdop2header
+    OP2.rdop2nt
     OP2.rddrm2op2
     OP2.rdn2cop2
     OP2.rdop2dynamics

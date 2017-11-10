@@ -743,7 +743,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
                 ref=[0, 0, 0], sccoord=None, conv=None, reorder=True,
                 g=9.80665 / 0.0254):
     """
-    Form common data recovery matrices.
+    Form common data recovery matrices for "net" interface responses.
 
     The Craig-Bampton model is referred to as "spacecraft" or "s/c".
     The system is referred to as "launch vehicle" or "l/v". All

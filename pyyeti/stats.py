@@ -87,8 +87,8 @@ def ksingle(p, c, n):
     """
     n = np.asarray(n)
     sn = np.sqrt(n)
-    pnonc = sn*norm.ppf(p)
-    return nct.ppf(c, n-1, pnonc)/sn
+    pnonc = sn * norm.ppf(p)
+    return nct.ppf(c, n - 1, pnonc) / sn
 
 
 def _getr(n, prob, tol):
@@ -111,20 +111,20 @@ def _getr(n, prob, tol):
 
     See also :func:`kdouble`.
     """
-    sn = 1/np.sqrt(n)
-    spi = 1/np.sqrt(2*np.pi)
+    sn = 1 / np.sqrt(n)
+    spi = 1 / np.sqrt(2 * np.pi)
 
     # initial guess at r = r_inf * (1+1/(2*n)
-    r = norm.ppf(prob+(1-prob)/2) * (1+1/(2*n))
+    r = norm.ppf(prob + (1 - prob) / 2) * (1 + 1 / (2 * n))
     rold = r + 10
     loops = 0
     MAXLOOPS = 100
     while np.any(abs(r - rold) > tol) and loops < MAXLOOPS:
         rold = r
-        lhi = sn+rold
-        llo = sn-rold
+        lhi = sn + rold
+        llo = sn - rold
         num = norm.cdf(lhi) - norm.cdf(llo) - prob
-        den = spi*(np.exp(-(lhi**2)/2) + np.exp(-(llo**2)/2))
+        den = spi * (np.exp(-(lhi**2) / 2) + np.exp(-(llo**2) / 2))
         r = rold - num / den
         loops += 1
     if loops == MAXLOOPS:   # pragma: no cover
@@ -237,9 +237,9 @@ def kdouble(p, c, n, tol=1e-12):
     p = np.asarray(p)
     c = np.asarray(c)
     n = np.asarray(n)
-    chi = chi2.ppf(1-c, n-1)
+    chi = chi2.ppf(1 - c, n - 1)
     r = _getr(n, p, tol)
-    return np.sqrt((n-1)/chi)*r
+    return np.sqrt((n - 1) / chi) * r
 
 
 def order_stats(which, *, p=None, c=None, n=None, r=None):
@@ -330,7 +330,7 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
     >>> r = np.arange(1, 13).reshape(-1, 1)
     >>> p = [.95, .97725, .99, .9973, .99865]
     >>> table = order_stats('n', c=.90, r=r, p=p)
-    >>> DataFrame(table, index=r, columns=p)
+    >>> DataFrame(table, index=r.ravel(), columns=p)
         0.95000  0.97725  0.99000  0.99730  0.99865
     1        45      101      230      852     1705
     2        77      170      388     1440     2880
@@ -344,36 +344,35 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
     10      282      622     1418     5259    10521
     11      306      675     1538     5704    11410
     12      330      727     1658     6145    12293
-
     """
     if which == 'c':
         r = np.asarray(r)
         p = np.asarray(p)
-        return binom.sf(r-1, n, 1-p)
+        return binom.sf(r - 1, n, 1 - p)
     elif which == 'r':
         # c = np.asarray(c)
         # p = np.asarray(p)
         # return binom.ppf(1-c, n, 1-p)  # gets 'value too deep error'
         b = np.broadcast(c, n, p)
         r = np.empty(b.shape)
-        r.flat = [binom.ppf(1-c, n, 1-p) for (c, n, p) in b]
+        r.flat = [binom.ppf(1 - c, n, 1 - p) for (c, n, p) in b]
         if r.ndim == 0:
             return int(r[()])
         return r.astype(int)
     elif which == 'n':
         def _func(n, p, s, pr):
-            return p-(1-betainc(s+1, n-s, pr))
+            return p - (1 - betainc(s + 1, n - s, pr))
 
         def _run_brentq(c, r, p):
             # find [a, b] interval by brute force:
             a = r
-            b = 2*a
+            b = 2 * a
             loops = 0
-            while _func(b, 1-c, r-1, 1-p) < 0 and loops < 30:
+            while _func(b, 1 - c, r - 1, 1 - p) < 0 and loops < 30:
                 a = b
-                b = 2*a
+                b = 2 * a
                 loops += 1
-            return brentq(_func, a, b, args=(1-c, r-1, 1-p))
+            return brentq(_func, a, b, args=(1 - c, r - 1, 1 - p))
 
         b = np.broadcast(c, r, p)
         n = np.empty(b.shape)
@@ -381,10 +380,10 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
         return np.ceil(n).astype(int)
     elif which == 'p':
         def _func(pr, p, s, n):
-            return p-binom.cdf(s, n, pr)
+            return p - binom.cdf(s, n, pr)
         b = np.broadcast(c, r, n)
         n = np.empty(b.shape)
-        n.flat = [1-brentq(_func, 0, 1, args=(1-c, r-1, n))
+        n.flat = [1 - brentq(_func, 0, 1, args=(1 - c, r - 1, n))
                   for (c, r, n) in b]
         if n.ndim == 0:
             return n[()]

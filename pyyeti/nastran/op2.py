@@ -5,7 +5,9 @@ Converted from the Yeti version.
 
 Can read files in big or little endian format.
 
-This module is typically used by importing the "nastran" module:
+The functions/classes provided by this module can be accessed by just
+importing the "nastran" package. For example, you can access the
+:class:`OP2` class in these two ways:
 
 >>> from pyyeti import nastran
 >>> from pyyeti.nastran import op2
@@ -294,7 +296,7 @@ class OP2(object):
         self._rowsCutoff = 3000
         self._int32str = self._endian + 'i4'
         self._int32stru = self._endian + '%di'
-        self._rdop2header()
+        self.rdop2header()
         self._postheaderpos = self._fileh.tell()
         self.directory(verbose=False)
 
@@ -309,7 +311,7 @@ class OP2(object):
         """Skips `n` key triplets ([reclen, key, endrec])."""
         self._fileh.read(n * (8 + self._ibytes))
 
-    def _rdop2header(self):
+    def rdop2header(self):
         """
         Reads Nastran output2 header label.
         """
@@ -345,7 +347,7 @@ class OP2(object):
         return ''.join(chr(c) for c in bstr if (
             47 < c < 58 or 64 < c < 91 or c == 95 or 96 < c < 123))
 
-    def _rdop2eot(self):
+    def rdop2eot(self):
         """
         Read Nastran output2 end-of-table marker.
 
@@ -367,7 +369,7 @@ class OP2(object):
             return 1, 0
         return 0, key
 
-    def _rdop2nt(self):
+    def rdop2nt(self):
         """
         Read Nastran output2 datablock name and trailer.
 
@@ -383,7 +385,7 @@ class OP2(object):
 
         All outputs will be None for end-of-file.
         """
-        eot, key = self._rdop2eot()
+        eot, key = self.rdop2eot()
         if key == 0:
             return None, None, None
 
@@ -459,7 +461,7 @@ class OP2(object):
             col += 1
             self._getkey()
             dtype = self._getkey()
-        self._rdop2eot()
+        self.rdop2eot()
         if mtype > 2:
             matrix.dtype = complex
         return matrix
@@ -488,11 +490,11 @@ class OP2(object):
                 key = self._getkey()
             self._getkey()
             dtype = self._getkey()
-        self._rdop2eot()
+        self.rdop2eot()
 
     def skipop2table(self):
         """Skip over Nastran output2 table."""
-        eot, key = self._rdop2eot()
+        eot, key = self.rdop2eot()
         if key == 0:
             return
         while key > 0:
@@ -503,7 +505,7 @@ class OP2(object):
                     self._fileh.read(self._ibytes))[0]
                 self._fileh.read(4)  # endrec
             self._skipkey(2)
-            eot, key = self._rdop2eot()
+            eot, key = self.rdop2eot()
 
     def rdop2mats(self):
         """Read all matrices from Nastran output2 file.
@@ -516,7 +518,7 @@ class OP2(object):
         self._fileh.seek(self._postheaderpos)
         mats = {}
         while 1:
-            name, trailer, rectype = self._rdop2nt()
+            name, trailer, rectype = self.rdop2nt()
             if name is None:
                 break
             if rectype > 0:
@@ -581,7 +583,7 @@ class OP2(object):
             o2 = op2.OP2('mds.op2')
             fpos = o2.dbnames['KAA'][0][0][0]
             o2._fileh.seek(fpos)
-            name, trailer, rectype = o2._rdop2nt()
+            name, trailer, rectype = o2.rdop2nt()
             kaa = o2.rdop2matrix(trailer)
 
         This routine also sets self.dbnames = dbnames.
@@ -596,7 +598,7 @@ class OP2(object):
         self._fileh.seek(self._postheaderpos)
         pos = self._postheaderpos
         while 1:
-            name, trailer, dbtype = self._rdop2nt()
+            name, trailer, dbtype = self.rdop2nt()
             if name is None:
                 break
             if dbtype > 0:
@@ -658,7 +660,7 @@ class OP2(object):
                 self._fileh.read(4)  # endrec
                 key = self._getkey()
             self._skipkey(2)
-            eot, key = self._rdop2eot()
+            eot, key = self.rdop2eot()
 
         if np.any(data):
             L = len(data)
@@ -700,7 +702,7 @@ class OP2(object):
         """
         fpos = self.dbnames['DYNAMICS'][0][0][0]
         self._fileh.seek(fpos)
-        name, trailer, dbtype = self._rdop2nt()
+        name, trailer, dbtype = self.rdop2nt()
         return self.rdop2dynamics()
 
     def rdop2record(self, form=None, N=0):
@@ -830,7 +832,7 @@ class OP2(object):
             o2 = op2.OP2('modes.op2')
             fpos = o2.dbnames['GEOM1S'][-1][0][0]
             o2._fileh.seek(fpos)
-            name, trailer, dbtype = o2._rdop2nt()
+            name, trailer, dbtype = o2.rdop2nt()
             o2.rdop2tabheaders('GEOM1S')
 
         """
@@ -847,7 +849,7 @@ class OP2(object):
                 self._fileh.read(4)
                 key = self._getkey()
             self._skipkey(2)
-            eot, key = self._rdop2eot()
+            eot, key = self.rdop2eot()
 
     def _check_code(self, item_code, funcs, vals, name):
         """
@@ -1047,7 +1049,7 @@ class OP2(object):
                 data = self.rdop2record('single', V.shape[0])
                 ougv1[:, J] = data[V]
             J += 1
-            eot, key = self._rdop2eot()
+            eot, key = self.rdop2eot()
         return {'ougv1': ougv1, 'lambda': lam, 'dof': dof}
 
     def _rdop2emap(self, nas, nse, trailer):
@@ -1191,7 +1193,7 @@ class OP2(object):
         """
         cstm_rec1 = self.rdop2record()
         cstm_rec2 = self.rdop2record('double')
-        self._rdop2eot()
+        self.rdop2eot()
 
         # assemble coordinate system table
         length = len(cstm_rec1)
@@ -1295,7 +1297,7 @@ class OP2(object):
                 self._fileh.read(4)  # endrec
                 key = self._getkey()
             self._skipkey(2)
-            eot, key = self._rdop2eot()
+            eot, key = self.rdop2eot()
         cord2 = np.delete(cord2, 2, axis=1)
         return n2p.build_coords(cord2), sebulk, selist
 
@@ -1309,7 +1311,7 @@ class OP2(object):
         slist = self.rdop2record()
         slist[1::7] = 0
         self.skipop2record()
-        self._rdop2eot()
+        self.rdop2eot()
         return np.vstack((slist[::7], slist[4::7])).T
 
     def _rdop2uset(self):
@@ -1325,7 +1327,7 @@ class OP2(object):
         sset = (uset & n2p.mkusetmask("s")) != 0
         if any(sset):
             uset[sset] = uset[sset] & ~2
-        self._rdop2eot()
+        self.rdop2eot()
         return uset
 
     def _rdop2eqexin(self):
@@ -1338,7 +1340,7 @@ class OP2(object):
         """
         eqexin1 = self.rdop2record()
         eqexin = self.rdop2record()
-        self._rdop2eot()
+        self.rdop2eot()
         return eqexin1, eqexin
 
     def _proc_bgpdt(self, eqexin1, eqexin, ver68=False, bgpdtin=None):
@@ -1746,7 +1748,7 @@ class OP2(object):
         self._fileh.seek(self._postheaderpos)
         drmkeys = {}
         while 1:
-            name, trailer, rectype = self._rdop2nt()
+            name, trailer, rectype = self.rdop2nt()
             if name is None:
                 break
             if rectype > 0:
@@ -1762,7 +1764,7 @@ class OP2(object):
                 # - starting at 10: type, id, number, row, 0
                 info = self.rdop2record()[10:]
                 drmkeys[name.lower()] = (info.reshape(-1, 5).T)[:-1]
-                self._rdop2eot()
+                self.rdop2eot()
             elif len(name) > 4 and name[:4] == 'XYCD':
                 if verbose:
                     print("Reading {}...".format(name))
@@ -1770,7 +1772,7 @@ class OP2(object):
                 drmkeys['dr'] = self.rdop2record()
                 # record 2 contains sorted list
                 drmkeys['drs'] = self.rdop2record().reshape(-1, 6).T
-                self._rdop2eot()
+                self.rdop2eot()
             else:
                 if verbose:
                     print("Skipping table {}...".format(name))
@@ -1809,16 +1811,21 @@ class OP2(object):
         'dnids' : dictionary
             Indexed by the SE number. Each member is a vector of ids
             of the A-set ids of grids and spoints for SE in the
-            downstream superelement. When using the CSUPER entry,
-            these will be the ids on that entry. (Does not have each
-            DOF, just ids.)
+            downstream superelement. (Does not have each DOF, just
+            ids.) When using the CSUPER entry, these will be the ids
+            on that entry. When using SECONCT entry, the ids are
+            internally generated and will be a subset of the 'upids'
+            entry for the downstream SE.
         'upids' : dictionary
             Indexed by the SE number. Each member is a vector of ids
             of the A-set grids and spoints for upstream se's that
-            connect to SE. These ids are internally generated and
-            should match with 'dnids'. This allows, for example, the
-            routine :func:`pyyeti.n2p.upasetpv` to work. (Does not
-            have each DOF, just ids.)
+            connect to SE. (Does not have each DOF, just ids.) This
+            will only be present for SECONCT type SEs. These ids are
+            internally generated and will contain all the values in
+            the 'dnids' of each upstream SE. This allows, for example,
+            the routine :func:`pyyeti.n2p.upasetpv` to work. Has 0's
+            for downstream ids (in P-set) that are not part of
+            upstream SEs.
 
         Notes
         -----
@@ -1947,30 +1954,30 @@ class OP2(object):
                'upids': {}}
         self._fileh.seek(self._postheaderpos)
         # read datablock (slist) header record:
-        name, trailer, dbtype = self._rdop2nt()
+        name, trailer, dbtype = self.rdop2nt()
         if dbtype > 0:
             selist = np.hstack((self.rdop2matrix(trailer), [[0]]))
             selist = selist.astype(int)
-            name, trailer, dbtype = self._rdop2nt()
+            name, trailer, dbtype = self.rdop2nt()
         else:
             selist = self._rdop2selist()
             nse = np.size(selist, 0)
-            name, trailer, dbtype = self._rdop2nt()
+            name, trailer, dbtype = self.rdop2nt()
             if name == "EMAP":
                 self._rdop2emap(nas, nse, trailer)
-                name, trailer, dbtype = self._rdop2nt()
+                name, trailer, dbtype = self.rdop2nt()
 
         # read uset and eqexins tables and do some processing:
         for se in selist[:, 0]:
             if not name:
                 break
             uset = self._rdop2uset()
-            name, trailer, dbtype = self._rdop2nt()
+            name, trailer, dbtype = self.rdop2nt()
             eqexin1, eqexin = self._rdop2eqexin()
-            name, trailer, dbtype = self._rdop2nt()
+            name, trailer, dbtype = self.rdop2nt()
             if name == "CSTMS":
                 cstm = np.vstack((bc, self._rdop2cstm()))
-                name, trailer, dbtype = self._rdop2nt()
+                name, trailer, dbtype = self.rdop2nt()
             else:
                 cstm = bc
             (xyz, cid, dof,
@@ -1982,10 +1989,10 @@ class OP2(object):
             nas['uset'][se] = Uset
             nas['cstm'][se] = cstm
             nas['cstm2'][se] = cstm2
-            name, trailer, dbtype = self._rdop2nt()
+            name, trailer, dbtype = self.rdop2nt()
             if name == "MAPS":
                 nas['maps'][se] = self._rdop2maps()
-                name, trailer, dbtype = self._rdop2nt()
+                name, trailer, dbtype = self.rdop2nt()
             else:
                 nas['maps'][se] = []
         nas['selist'] = selist
@@ -2949,7 +2956,7 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
         Uset = None
         cstm = None
         while 1:
-            name, trailer, dbtype = o2._rdop2nt()
+            name, trailer, dbtype = o2.rdop2nt()
             if name is None:
                 break
             if dbtype > 0:

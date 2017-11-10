@@ -2,7 +2,9 @@
 """
 Collection of tools for reading/writing Nastran bulk data.
 
-This module is typically used by importing the "nastran" module:
+The functions provided by this module can be accessed by just
+importing the "nastran" package. For example, you can access the
+:func:`rdgrids` function in these two ways:
 
 >>> from pyyeti import nastran
 >>> from pyyeti.nastran import bulk
@@ -689,7 +691,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     def _read_op2_dmig(o2, dmig_names):
         o2._fileh.seek(o2._postheaderpos)
         dct = {}
-        name, trailer, dbtype = o2._rdop2nt()
+        name, trailer, dbtype = o2.rdop2nt()
         while name is not None:
             # print(f'op2: found {name}')
             if (dmig_names is not None and
@@ -700,7 +702,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                 if np.all(rec[:3] == (114, 1, 120)):
                     dct[name] = rec
                 o2.go_to_next_db()
-            name, trailer, dbtype = o2._rdop2nt()
+            name, trailer, dbtype = o2.rdop2nt()
         return dct
 
     def _recs_to_df(recs):
