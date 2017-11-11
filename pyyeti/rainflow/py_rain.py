@@ -13,7 +13,7 @@ def rainflow(peaks, getoffsets=False):
     ----------
     peaks : 1d array-like
         Vector of alternating peaks (as returned by
-        :func:`pyyeti.findap`, for example)
+        :func:`pyyeti.cyclecount.findap`, for example)
     getoffsets : bool; optional
         If True, the tuple ``(rf, os)`` is returned; otherwise, only
         `rf` is returned.
@@ -92,7 +92,7 @@ def rainflow(peaks, getoffsets=False):
 
     # not getting offsets:
     pts = np.empty(L, float)
-    rf = np.empty((L-1, 3), float)
+    rf = np.empty((L - 1, 3), float)
     j = -1
     fullcyclesp1 = 1  # full cycles plus 1
     n = -1
@@ -103,16 +103,16 @@ def rainflow(peaks, getoffsets=False):
         # /* step 2 from [1]: */
         while j > 1:
             # /* step 3 from [1]: */
-            Y = abs(pts[j-2]-pts[j-1])
-            X = abs(pts[j-1]-pts[j])
+            Y = abs(pts[j - 2] - pts[j - 1])
+            X = abs(pts[j - 1] - pts[j])
             if X < Y:
                 break
             if j == 2:
                 # /* step 5 from [1]: */
                 # /* [count Y as half cycle] */
                 n += 1
-                rf[n, 0] = Y/2
-                rf[n, 1] = (pts[0]+pts[1])/2
+                rf[n, 0] = Y / 2
+                rf[n, 1] = (pts[0] + pts[1]) / 2
                 rf[n, 2] = 0.5
                 pts[0] = pts[1]  # /* discard j-2 pt */
                 pts[1] = pts[2]
@@ -122,35 +122,35 @@ def rainflow(peaks, getoffsets=False):
                 # /* [count Y as full cycle] */
                 fullcyclesp1 += 1
                 n += 1
-                rf[n, 0] = Y/2
-                rf[n, 1] = (pts[j-2]+pts[j-1])/2
+                rf[n, 0] = Y / 2
+                rf[n, 1] = (pts[j - 2] + pts[j - 1]) / 2
                 rf[n, 2] = 1.0
-                pts[j-2] = pts[j]  # /* discard j-2, j-1 pts */
+                pts[j - 2] = pts[j]  # /* discard j-2, j-1 pts */
                 j -= 2
 
     # /* step 6 from [1]: */
     # /* [count all ranges in pts as half cycles] */
     A = pts[0]
     for k in range(j):
-        B = pts[k+1]
+        B = pts[k + 1]
         n += 1
-        rf[n, 0] = abs(A-B)/2
-        rf[n, 1] = (A+B)/2
+        rf[n, 0] = abs(A - B) / 2
+        rf[n, 1] = (A + B) / 2
         rf[n, 2] = 0.5
         A = B
 
-    return rf[:L-fullcyclesp1]
+    return rf[:L - fullcyclesp1]
 
 
 def _rainflow2(peaks, L):
     """Utility routine for :func:`rainflow`; returns (rf, os)."""
     pts = np.empty(L, float)
-    rf = np.empty((L-1, 3), float)
+    rf = np.empty((L - 1, 3), float)
     j = -1
     fullcyclesp1 = 1  # full cycles plus 1
     n = -1
     cycle_index = np.empty(L, int)
-    os = np.empty((L-1, 2), np.int64)
+    os = np.empty((L - 1, 2), np.int64)
     for k in range(L):
         # /* step 1 from [1]: */
         j += 1
@@ -159,16 +159,16 @@ def _rainflow2(peaks, L):
         # /* step 2 from [1]: */
         while j > 1:
             # /* step 3 from [1]: */
-            Y = abs(pts[j-2]-pts[j-1])
-            X = abs(pts[j-1]-pts[j])
+            Y = abs(pts[j - 2] - pts[j - 1])
+            X = abs(pts[j - 1] - pts[j])
             if X < Y:
                 break
             if j == 2:
                 # /* step 5 from [1]: */
                 # /* [count Y as half cycle] */
                 n += 1
-                rf[n, 0] = Y/2
-                rf[n, 1] = (pts[0]+pts[1])/2
+                rf[n, 0] = Y / 2
+                rf[n, 1] = (pts[0] + pts[1]) / 2
                 rf[n, 2] = 0.5
                 os[n, 0] = cycle_index[0]
                 os[n, 1] = cycle_index[1]
@@ -182,26 +182,26 @@ def _rainflow2(peaks, L):
                 # /* [count Y as full cycle] */
                 fullcyclesp1 += 1
                 n += 1
-                rf[n, 0] = Y/2
-                rf[n, 1] = (pts[j-2]+pts[j-1])/2
+                rf[n, 0] = Y / 2
+                rf[n, 1] = (pts[j - 2] + pts[j - 1]) / 2
                 rf[n, 2] = 1.0
-                os[n, 0] = cycle_index[j-2]
-                os[n, 1] = cycle_index[j-1]
-                pts[j-2] = pts[j]  # /* discard j-2, j-1 pts */
-                cycle_index[j-2] = cycle_index[j]
+                os[n, 0] = cycle_index[j - 2]
+                os[n, 1] = cycle_index[j - 1]
+                pts[j - 2] = pts[j]  # /* discard j-2, j-1 pts */
+                cycle_index[j - 2] = cycle_index[j]
                 j -= 2
 
     # /* step 6 from [1]: */
     # /* [count all ranges in pts as half cycles] */
     A = pts[0]
     for k in range(j):
-        B = pts[k+1]
+        B = pts[k + 1]
         n += 1
-        rf[n, 0] = abs(A-B)/2
-        rf[n, 1] = (A+B)/2
+        rf[n, 0] = abs(A - B) / 2
+        rf[n, 1] = (A + B) / 2
         rf[n, 2] = 0.5
         os[n, 0] = cycle_index[k]
-        os[n, 1] = cycle_index[k+1]
+        os[n, 1] = cycle_index[k + 1]
         A = B
 
-    return rf[:L-fullcyclesp1], os[:L-fullcyclesp1]
+    return rf[:L - fullcyclesp1], os[:L - fullcyclesp1]

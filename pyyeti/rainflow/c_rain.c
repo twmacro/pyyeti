@@ -18,7 +18,7 @@ static char rainflow_docstring[] =
     "----------\n"
     "peaks : 1d array_like\n"
     "    Vector of alternating peaks (as returned by\n"
-    "    :func:`pyyeti.findap`, for example)\n"
+    "    :func:`pyyeti.cyclecount.findap`, for example)\n"
     "getoffsets : bool; optional\n"
     "    If True, the tuple ``(rf, os)`` is returned; otherwise, only\n"
     "    `rf` is returned.\n"
