@@ -1093,8 +1093,8 @@ class OP2(object):
             self._fileh.read(4)  # endrec
             key = self._getkey()
         if self._ibytes == 8:
-            data2 = np.reshape(data2, (4, -1))
-            data2 = data2[[0, 3], :].ravel()
+            data2 = np.reshape(data2, (-1, 4))
+            data2 = data2[:, [0, 3]].ravel()
         self._skipkey(2)
 
         # [ grid_id [bitmap] ]

@@ -287,12 +287,13 @@ class OP4(object):
     @staticmethod
     def _check_name(name):
         """
-        Check name read from op4 file: strip trailing blanks/nulls and
+        Check name read from op4 file: strip all blanks/nulls and
         put '_' on front if needed.
 
         Returns new name (usually the same as the input name).
         """
-        name = name.strip(' \x00').lower()
+        name = (name.strip(' \x00').replace(' ', '').
+                replace('\x00', '').lower())
         if not (name[0].isalpha() or name[0] == '_'):
             oldname, name = name, '_' + name
             warnings.warn('Output4 file has matrix name: {}. '
