@@ -5670,7 +5670,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             small = 8
             big = 12
 
-        if maxlen > 10:
+        if maxlen > 35:
             ttl = '{} {}\nRow {}'.format(name, sname, row)
             plt.annotate(label, xy=(0, 1),
                          xycoords='axes fraction',
