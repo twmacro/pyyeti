@@ -1841,7 +1841,7 @@ class OP4(object):
             dictionary (which would contain this information). If not
             None, `forms` must be the same length as `names`, but you
             can use None as the form for one or more matrices (see
-            example in :func:`pyyeti.op4.write`). From Nastran
+            example in :func:`pyyeti.nastran.op4.write`). From Nastran
             documentation:
 
             ======   ==============================
@@ -1877,12 +1877,12 @@ class OP4(object):
         order they are retrieved from the dictionary; use a
         ``collections.OrderedDict`` to specify a certain order.
 
-        See the examples in :func:`pyyeti.op4.write`.
+        See the examples in :func:`pyyeti.nastran.op4.write`.
 
         See also
         --------
-        :func:`pyyeti.op4.write`, :func:`dctload`, :func:`listload`,
-        :func:`dir`.
+        :func:`pyyeti.nastran.op4.write`, :func:`dctload`,
+        :func:`listload`, :func:`dir`.
         """
         def ensure_dp(m):
             """
@@ -2344,7 +2344,7 @@ def write(filename, names, matrices=None,
     approach:
 
     >>> op4.write('mkb.op4', ['m', 'k', 'b'], [m, k, b],
-    ...          forms=[1, None, None])
+    ...           forms=[1, None, None])
     >>> _ = op4.dir('mkb.op4')
     m       ,      2 x 2     , form=1, mtype=2
     k       ,      1 x 2     , form=2, mtype=2
