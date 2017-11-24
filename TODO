@@ -80,3 +80,8 @@
 ~    -        Formulvs help says it returns 1 … should say 1.0
 ~    -        Rdop2n2c dnids: fix wording here (“pair” would be better I think):
 ~    These ids are internally generated and should match with ‘dnids’.
+
+23. ? Add option to change time step during simulation
+    o   Save parameters in dictionary for each time step?
+    o   Or, are the params cheap to recompute?
+    Hmm ... would have to decide how to save results (even time steps?)
