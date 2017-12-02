@@ -1,7 +1,9 @@
 0. Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
+    - base this off of scipy.linalg.block_diag ... or is there
+      something there already?
 1. Update duf explanation in cla.apply_uf
 ~2. Get rid of ytools.diagmat ... use scipy.linalg.block_diag
-3. Rearrange code: op2, op4, n2p, nastran overlap ... ?
+~3. Rearrange code: op2, op4, n2p, nastran overlap ... ?
    - primarly rdnas2cam ... seems like this should be in n2p
    - i think all of these should probably just be in "nastran" ...
      or under it: nastran.op4.read()
