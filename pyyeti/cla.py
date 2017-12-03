@@ -348,14 +348,6 @@ def get_drfunc(drinfo, get_psd=False):
     return g['_func']
 
 
-def _ensure_iter(obj):
-    try:
-        iter(obj)
-    except TypeError:
-        obj = (obj,)
-    return obj
-
-
 def _is_eqsine(opts):
     """
     Checks to see if 'eqsine' option is set to true
@@ -1003,7 +995,7 @@ class DR_Def(OrderedDict):
             ns.srsconv = 1.0
 
         if ns.srsQs is not None:
-            ns.srsQs = _ensure_iter(ns.srsQs)
+            ns.srsQs = n2p._ensure_iter(ns.srsQs)
             if ns.srspv is None:
                 ns.srspv = slice(len(ns.labels))
 
@@ -5562,7 +5554,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         if Q == 'auto':
             Qs = srsQs
         else:
-            Q_in = _ensure_iter(Q)
+            Q_in = n2p._ensure_iter(Q)
             Qs = []
             for q in Q_in:
                 if q in srsQs:
@@ -5572,7 +5564,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                                   format(q, name), RuntimeWarning)
             if len(Qs) == 0:
                 return None
-        Qs = _ensure_iter(Qs)
+        Qs = n2p._ensure_iter(Qs)
         if len(Qs) > 1 and showall:
             raise ValueError('`Q` must be a scalar if `showall` '
                              'is true')

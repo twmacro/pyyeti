@@ -1178,16 +1178,21 @@ def bulk2uset(*args):
     coordref = n2p.build_coords(cords)
     i = np.argsort(grids[:, 0])
     grids = grids[i, :]
-    n = np.size(grids, 0)
-    uset = np.zeros((n * 6, 6))
-    for j in range(n):
-        grid = grids[j, 0]
-        csin = grids[j, 1]
-        csout = grids[j, 5]
-        xyz = grids[j, 2:5]
-        r = j * 6
-        uset[r:r + 6, :] = n2p.addgrid(
-            None, grid, 'b', csin, xyz, csout, coordref)
+    uset = n2p.addgrid(None, grids[:, 0].astype(np.int64), 'b',
+                       grids[:, 1], grids[:, 2:5], grids[:, 5],
+                       coordref)
+
+    # n = np.size(grids, 0)
+    # uset = np.zeros((n * 6, 6))
+    # for j in range(n):
+    #     grid = grids[j, 0]
+    #     csin = grids[j, 1]
+    #     csout = grids[j, 5]
+    #     xyz = grids[j, 2:5]
+    #     r = j * 6
+    #     uset[r:r + 6, :] = n2p.addgrid(
+    #         None, grid, 'b', csin, xyz, csout, coordref)
+
     return uset, coordref
 
 

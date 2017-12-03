@@ -22,7 +22,9 @@ True
 import math
 import sys
 import warnings
+import itertools
 import numpy as np
+import pandas as pd
 import scipy.linalg as linalg
 from pyyeti import locate
 
@@ -510,10 +512,10 @@ def mkusetmask(nasset=None):
 
         Sets              Supersets
 
-         M  -------------------------------------\\
-         S  ------------------------------\       > G --\\
-         O  -----------------------\       > N --/       \\
-         Q  ----------------\       > F --/       \       \\
+         M  -------------------------------------\
+         S  ------------------------------\       > G --\
+         O  -----------------------\       > N --/       \
+         Q  ----------------\       > F --/       \       \
          R  ---------\       > A --/       \       \       > P
          C  --\       > T --/       \       > FE    > NE  /
          B  ---> L --/               > D   /       /     /
@@ -656,10 +658,10 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
 
        Sets              Supersets
 
-        M  -------------------------------------\\
-        S  ------------------------------\       > G --\\
-        O  -----------------------\       > N --/       \\
-        Q  ----------------\       > F --/       \       \\
+        M  -------------------------------------\
+        S  ------------------------------\       > G --\
+        O  -----------------------\       > N --/       \
+        Q  ----------------\       > F --/       \       \
         R  ---------\       > A --/       \       \       > P
         C  --\       > T --/       \       > FE    > NE  /
         B  ---> L --/               > D   /       /     /
@@ -991,10 +993,10 @@ def mksetpv(uset, major, minor):
 
         Sets              Supersets
 
-         M  -------------------------------------\\
-         S  ------------------------------\       > G --\\
-         O  -----------------------\       > N --/       \\
-         Q  ----------------\       > F --/       \       \\
+         M  -------------------------------------\
+         S  ------------------------------\       > G --\
+         O  -----------------------\       > N --/       \
+         Q  ----------------\       > F --/       \       \
          R  ---------\       > A --/       \       \       > P
          C  --\       > T --/       \       > FE    > NE  /
          B  ---> L --/               > D   /       /     /
@@ -1801,28 +1803,102 @@ def _get_loc_a_basic(coordinfo, a):
     return location
 
 
+def _ensure_iter(obj):
+    try:
+        iter(obj)
+    except TypeError:
+        obj = (obj,)
+    return obj
+
+
+def _make_uset(idlist, doflist, uset=0, x=np.nan, y=np.nan, z=np.nan,
+               use_product=True):
+    if use_product:
+        ind = pd.MultiIndex.from_product([idlist, doflist],
+                                         names=['id', 'dof'])
+    else:
+        ind = pd.MultiIndex.from_arrays([idlist, doflist],
+                                        names=['id', 'dof'])
+    return pd.DataFrame(dict(uset=uset, x=x, y=y, z=z),
+                        index=ind,
+                        columns=['uset', *'xyz'])
+
+
+def _addgrid_get_ci(coord, uset, coordref, cmap):
+    cid = id(coord)
+    try:
+        ci = cmap[cid]
+    except KeyError:
+        ci = get_coordinfo(coord, uset, coordref)
+        cmap[cid] = ci
+    return ci
+
+
+def _addgrid_proc_ci(coord, uset, coordref, cmap):
+    """
+    :func:`addgrid` utility to ensure "coord" is iterable
+    """
+    try:
+        len(coord)
+    except TypeError:
+        # assume integer id, just make it iterable
+        coord = itertools.cycle((coord,))
+    else:
+        # is iterable ... but is it just one coord matrix?
+        try:
+            ci = _addgrid_get_ci(coord, uset, coordref, cmap)
+        except (TypeError, ValueError, IndexError):
+            # assume it's a good iterable already
+            pass
+        else:
+            # wasn't iterable of coords, save result & make it
+            # iterable:
+            cmap[id(coord)] = ci
+            coord = itertools.cycle((coord,))
+    return coord
+
+
+def _addgrid_get_uset(nasset, mask, smap):
+    sid = id(nasset)
+    try:
+        uset = smap[sid]
+    except KeyError:
+        if len(nasset) == 6:
+            uset = [mask[nasset[0]],
+                    mask[nasset[1]],
+                    mask[nasset[2]],
+                    mask[nasset[3]],
+                    mask[nasset[4]],
+                    mask[nasset[5]]]
+        else:
+            uset = mask[nasset]
+        smap[sid] = uset
+    return uset
+
+
 def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     """
-    Add a grid to a USET table.
+    Add a grid or grids to a USET table.
 
     Parameters
     ----------
-    uset : ndarray or None
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`; can be None.
-    gid : integer
-        Grid id, must be unique.
-    nasset : string
-        The set to put the grid in (eg "m"); must be one of these
-        letters: m, s, o, q, r, c, b, e. Can also be a 6-character
-        string of set letters, one for each dof.
-    coordin : integer or 4x3 matrix
-        If integer, it is the id of the input coordinate system which
-        is defined in uset (or coordref). If a 4x3 matrix, it
-        defines the input coordinate system (see below). Note the id
-        0 is the basic coordinate system and is always available.
-    xyz : three element vector
-        Defines grid location in `coordin` coordinates::
+    uset : pandas DataFrame or None
+        A DataFrame as output by :func:`pyyeti.op2.OP2.rdn2cop2`; can
+        be None. If not None, this routine will use
+        :func:`pandas.concat` to return a new, expanded DataFrame.
+    gid : integer or list_like of integers
+        Grid id(s), all must be unique.
+    nasset : string or list_like of strings
+        The set(s) to put the grid in (eg "m"); each string must
+        either be one of these letters: m, s, o, q, r, c, b, e, or it
+        can be a 6-character string of set letters, one for each dof.
+    coordin : integer or 4x3 matrix; or list_like of those items
+        If integer(s), specifies id(s) of the input coordinate system
+        which is defined in uset (or coordref). If a 4x3 matrix(es),
+        defines the input coordinate system (see below). Note the id 0
+        is the basic coordinate system and is always available.
+    xyz : 1d or 2d array_like
+        Each row defines grid location(s) in `coordin` coordinates::
 
                  rectangular:  [X, Y, Z]
                  cylindrical:  [R, Theta, Z]
@@ -1852,15 +1928,20 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
     Returns
     -------
-    uset : ndarray
+    uset : pandas DataFrame
         Updated version of the input `uset`
 
     Notes
     -----
-    Also updates the `coordref` dictionary (if it is a dictionary) for
-    future reference.
+    When defining multiple grid entries, it is most efficient to use
+    the list_like inputs as opposed to calling :func:`addgrid` for
+    each grid. When using the list_like inputs, each entry must be
+    compatible (singleton items are compatible with list_like items).
 
-    To define a coordinate system, coordin or coordout must be 4x3
+    This routine updates the `coordref` dictionary (if it is a
+    dictionary) for future reference.
+
+    To define a coordinate system, `coordin` or `coordout` must be 4x3
     size matrices containing the same information that would be on a
     CORD2R, CORD2C, or CORD2S entry::
 
@@ -1872,24 +1953,30 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     where 'cid' is the id of the new coordinate system (must be
     unique), 'type' is defined as::
 
-        1  - rectangular
-        2  - cylindrical
-        3  - spherical
+        1 - rectangular
+        2 - cylindrical
+        3 - spherical
 
     and the locations of A, B, and C are given in the coordinate
     system indicated by 'reference_id'.
 
-    Note: in the demo below, the uset matrix is expanded each call.
-    For a large number of nodes, it is more efficient to allocate the
-    matrix first and then fill in every 6 rows. For example, if there
-    are n nodes::
+    In the demo below, a single call to this routine is used both for
+    simplicity and efficiency. The other way to do this is to call
+    this routine for each node; in that case, the uset DataFrame is
+    expanded each call (meaning a new DataFrame is created every for
+    every successive node). For example, the less efficient method is
+    this:
 
-        uset = np.zeros((n*6, 6))
-        coordref = {}
-        for i in range(n):
-            j = i*6
-            uset[j:j+6] = nastran.addgrid(None, ids[i], 'b', cdin[i],
-                                          xyz[i], cdout[i], coordref)
+        uset = None
+        uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
+        uset = nastran.addgrid(uset, 200, 'b', cylcoord,
+                               [32, 90, 10], cylcoord)
+
+    And the more efficient method (as done below) is this:
+
+        uset = nastran.addgrid(
+            None, [100, 200], 'b', [0, cylcoord],
+            [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
 
     See also
     --------
@@ -1912,29 +1999,38 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     >>> # [r, th, z] = [32, 90, 10]
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
-    >>> uset = None
-    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = nastran.addgrid(uset, 200, 'b', cylcoord,
-    ...                        [32, 90, 10], cylcoord)
-    >>> uset.astype(int)
-    array([[    100,       1, 2097154,       5,      10,      15],
-           [    100,       2, 2097154,       0,       1,       0],
-           [    100,       3, 2097154,       0,       0,       0],
-           [    100,       4, 2097154,       1,       0,       0],
-           [    100,       5, 2097154,       0,       1,       0],
-           [    100,       6, 2097154,       0,       0,       1],
-           [    200,       1, 2097154,      10,       0,      32],
-           [    200,       2, 2097154,       1,       2,       0],
-           [    200,       3, 2097154,       0,       0,       0],
-           [    200,       4, 2097154,       0,       0,       1],
-           [    200,       5, 2097154,       1,       0,       0],
-           [    200,       6, 2097154,       0,       1,       0]])
+    >>> uset = nastran.addgrid(
+    ...     None, [100, 200], 'b', [0, cylcoord],
+    ...     [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
+    >>> pd.options.display.float_format = lambda x: '{:.1f}'.format(x)
+    >>> uset
+                uset    x    y    z
+    id  dof
+    100 1    2097154  5.0 10.0 15.0
+        2    2097154  0.0  1.0  0.0
+        3    2097154  0.0  0.0  0.0
+        4    2097154  1.0  0.0  0.0
+        5    2097154  0.0  1.0  0.0
+        6    2097154  0.0  0.0  1.0
+    200 1    2097154 10.0  0.0 32.0
+        2    2097154  1.0  2.0  0.0
+        3    2097154  0.0  0.0  0.0
+        4    2097154  0.0  0.0  1.0
+        5    2097154  1.0  0.0  0.0
+        6    2097154  0.0  1.0  0.0
+    >>> pd.options.display.float_format = None
     """
-    if uset is not None and np.any(uset[:, 0] == gid):
-        raise ValueError("grid {} already in `uset` table.".
-                         format(gid))
+    # if uset is not None and np.any(uset[:, 0] == gid):
+    gid = _ensure_iter(gid)
+    if uset is not None:
+        curgids = uset.index.levels[0]
+        pv = curgids.isin(gid)
+        if pv.any():
+            raise ValueError(
+                "these grid ids are already in `uset` table: {}".
+                format([*curgids[pv]]))
 
-    # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
+    # ensure basic coordinate system is present:
     if coordref is None:
         coordref = {0: np.vstack((np.array([[0, 1, 0], [0., 0., 0.]]),
                                   np.eye(3)))}
@@ -1945,39 +2041,58 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
             coordref[0] = np.vstack((np.array([[0, 1, 0],
                                                [0., 0., 0.]]),
                                      np.eye(3)))
-    coordinfo = get_coordinfo(coordin, uset, coordref)
 
-    # prepare set(s):
-    if len(nasset) == 6:
-        sets = np.array([[mkusetmask(nasset[0])],
-                         [mkusetmask(nasset[1])],
-                         [mkusetmask(nasset[2])],
-                         [mkusetmask(nasset[3])],
-                         [mkusetmask(nasset[4])],
-                         [mkusetmask(nasset[5])]], dtype=np.int64)
-    else:
-        sets = mkusetmask(nasset) * np.ones((6, 1), dtype=np.int64)
+    mask = mkusetmask()
+    # sets = None
+    # if isinstance(nasset, str):
+    #     if len(nasset) == 1:
+    #         sets = mask[nasset]
+    #     else:
+    #         nasset = (nasset,)
 
-    # get location of point in basic:
-    xyz = _get_loc_a_basic(coordinfo, xyz)
+    # allocate dataframe:
+    dof = np.arange(1, 7)
+    usetid = _make_uset(gid, dof)
 
-    # get output "coordinfo" [ id type 0; location(1x3); T(3x3) ]:
-    if np.any(coordout != coordin):
-        coordinfo = get_coordinfo(coordout, uset, coordref)
+    # ensure nasset is iterable:
+    smap = {}
+    if isinstance(nasset, str):
+        nasset = itertools.cycle((nasset,))
 
-    # prepare uset entry for grid:
-    last3 = np.vstack((xyz[None], coordinfo))
-    usetid = np.hstack((gid * np.ones((6, 1)),
-                        np.arange(1, 7).reshape(-1, 1),
-                        sets, last3))
+    # make sure coordin and coordout are iterables:
+    cmap = {}
+    cin = _addgrid_proc_ci(coordin, uset, coordref, cmap)
+    cout = _addgrid_proc_ci(coordout, uset, coordref, cmap)
+
+    # make sure xyz is 2d ndarray:
+    xyz = np.atleast_2d(xyz)
+
+    # cols = ['uset', 'x', 'y', 'z']
+    for g, u, _cin, _xyz, _cout in zip(gid, nasset, cin, xyz, cout):
+        _uset = _addgrid_get_uset(u, mask, smap)
+
+        # get location of point in basic:
+        _cin = _addgrid_get_ci(_cin, uset, coordref, cmap)
+        loc = _get_loc_a_basic(_cin, _xyz)
+
+        # form x, y, z columns of dataframe:
+        _cout = _addgrid_get_ci(_cout, uset, coordref, cmap)
+        _xyz = np.vstack((loc, _cout))
+
+        # put in dataframe:
+        usetid.loc[g, 'uset'] = _uset
+        usetid.loc[g, 'x':'z'] = _xyz
 
     if uset is not None:
-        # insert uset entry in numeric order
-        j = np.searchsorted(uset[:, 0], gid)
-        if j == uset.shape[0]:
-            usetid = np.vstack((uset, usetid))
-        else:
-            usetid = np.vstack((uset[:j], usetid, uset[j:]))
+        # # insert uset entry in numeric order
+        # j = np.searchsorted(uset[:, 0], gid)
+        # if j == uset.shape[0]:
+        #     usetid = np.vstack((uset, usetid))
+        # else:
+        #     usetid = np.vstack((uset[:j], usetid, uset[j:]))
+
+        # concatenate to maintain order as input:
+        usetid = pd.concat([uset, usetid], axis=0)
     return usetid
 
 
