@@ -3,11 +3,10 @@
 Tools for working with data that originated in Nastran. Typically,
 a Nastran modes run is executed with the "nas2cam" DMAP (CAM is now
 replaced by Python but the DMAP retains the old name). This creates an
-op2/op4 file pair which is read by
-:func:`pyyeti.nastran.rdnas2cam`. After that, the tools in this module
-can be used to create rigid-body modes, form data recovery matrices,
-make partition vectors based on sets, form RBE3-like interpolation
-matrices, etc.
+op2/op4 file pair which is read by :func:`pyyeti.nastran.rdnas2cam`.
+After that, the tools in this module can be used to create rigid-body
+modes, form data recovery matrices, make partition vectors based on
+sets, form RBE3-like interpolation matrices, etc.
 
 The functions provided by this module can be accessed by just
 importing the "nastran" package. For example, you can access the
@@ -144,10 +143,9 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     >>> #   [r, th, z] = [32, 90, 10]
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
-    >>> uset = None
-    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = nastran.addgrid(uset, 200, 'b', cylcoord, [32, 90, 10],
-    ...                    cylcoord)
+    >>> uset = nastran.addgrid(
+    ...     None, [100, 200], 'b', [0, cylcoord],
+    ...     [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
     >>> np.set_printoptions(precision=2, suppress=True)
     >>> nastran.rbgeom_uset(uset)   # rb modes relative to [0, 0, 0]
     array([[  1.,   0.,   0.,   0.,  15., -10.],
@@ -164,46 +162,51 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
            [  0.,   0.,   0.,   1.,   0.,   0.]])
     """
     # find the grids (ignore spoints and epoints)
-    r = np.shape(uset)[0]
-    grid_rows = uset[:, 1] != 0
+    r = uset.shape[0]
+    grids = uset.index.get_level_values('id')
+    dof = uset.index.get_level_values('dof')
+    grid_rows = dof != 0
     # get the q-set and the left-over c-set:
     qset = mksetpv(uset, "p", "q")
     if qset.any():
-        qdof1 = uset[qset, 1] == 1
-        qgrids = uset[qset, 0][qdof1]
+        qdof1 = dof[qset] == 1
+        qgrids = grids[qset][qdof1]
         if qgrids.any():
             pvq = mkdofpv(uset, 'p', qgrids)[0]
-            grid_rows = uset[:, 1] != 0
             grid_rows[pvq] = False
 
     rbmodes = np.zeros((r, 6))
     if not any(grid_rows):
         return rbmodes
-    grids = uset[grid_rows]
-    ngrids = grids.shape[0] // 6
+    uset = uset.iloc[grid_rows]
+    ngrids = uset.shape[0] // 6
 
     # rigid-body modes in basic coordinate system:
     if np.size(refpoint) == 1:
-        refpoint = np.nonzero(grids[::6, 0] == refpoint)[0]
-    rb = rbgeom(grids[::6, 3:], refpoint)
+        refpoint = uset.index.get_loc((refpoint, 1))
+    xyz = uset.loc[(slice(None), 1), 'x':'z'].values
+    rb = rbgeom(xyz, refpoint)
 
     # treat as rectangular here; fix cylindrical & spherical below
     rb2 = np.zeros((np.shape(rb)))
     for j in range(ngrids):
         i = 6 * j
-        t = grids[i + 3:i + 6, 3:].T
+        t = uset.iloc[i + 3:i + 6, 1:].values.T
+        # t = grids[i + 3:i + 6, 3:].T
         rb2[i:i + 3] = t @ rb[i:i + 3]
         rb2[i + 3:i + 6] = t @ rb[i + 3:i + 6]
 
     # fix up cylindrical:
-    grid_loc = np.arange(0, grids.shape[0], 6)
-    cyl = grids[1::6, 4] == 2
-    if np.any(cyl):
+    grid_loc = np.arange(0, uset.shape[0], 6)
+    cyl = uset.loc[(slice(None), 2), 'y'] == 2
+    # cyl = grids[1::6, 4] == 2
+    if cyl.any():
         grid_loc_cyl = grid_loc[cyl]
         for i in grid_loc_cyl:
-            t = grids[i + 3:i + 6, 3:].T
-            loc = grids[i, 3:]
-            loc2 = t @ (loc - grids[i + 2, 3:])
+            t = uset.iloc[i + 3:i + 6, 1:].values.T
+            # t = grids[i + 3:i + 6, 3:].T
+            loc = uset.iloc[i, 1:]
+            loc2 = t @ (loc - uset.iloc[i + 2, 1:]).values
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
                 th = math.atan2(loc2[1], loc2[0])
                 c = math.cos(th)
@@ -213,13 +216,15 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
                 rb2[i + 3:i + 5] = t @ rb2[i + 3:i + 5]
 
     # fix up spherical:
-    sph = grids[1::6, 4] == 3
-    if np.any(sph):
+    # sph = grids[1::6, 4] == 3
+    sph = uset.loc[(slice(None), 2), 'y'] == 3
+    if sph.any():
         grid_loc_sph = grid_loc[sph]
         for i in grid_loc_sph:
-            t = grids[i + 3:i + 6, 3:].T
-            loc = grids[i, 3:]
-            loc2 = t @ (loc - grids[i + 2, 3:])
+            t = uset.iloc[i + 3:i + 6, 1:].values.T
+            # t = grids[i + 3:i + 6, 3:].T
+            loc = uset.iloc[i, 1:]
+            loc2 = t @ (loc - uset.iloc[i + 2, 1:]).values
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
                 phi = math.atan2(loc2[1], loc2[0])
                 c = math.cos(phi)
@@ -761,37 +766,38 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
          11       200   5   ...      5          11  11  11  11  11  11
          12       200   6   ...      6          12  12  12  12  12  12
     """
+    #~~~~
     usetmask = mkusetmask()
-    dof = uset[:, 2:3].astype(np.int64)
-    table = np.hstack((dof & usetmask["m"],
-                       dof & usetmask["s"],
-                       dof & usetmask["o"],
-                       dof & usetmask["q"],
-                       dof & usetmask["r"],
-                       dof & usetmask["c"],
-                       dof & usetmask["b"],
-                       dof & usetmask["e"],
-                       dof & usetmask["l"],
-                       dof & usetmask["t"],
-                       dof & usetmask["a"],
-                       dof & usetmask["d"],
-                       dof & usetmask["f"],
-                       dof & usetmask["fe"],
-                       dof & usetmask["n"],
-                       dof & usetmask["ne"],
-                       dof & usetmask["g"],
-                       dof & usetmask["p"],
-                       dof & usetmask["u1"],
-                       dof & usetmask["u2"],
-                       dof & usetmask["u3"],
-                       dof & usetmask["u4"],
-                       dof & usetmask["u5"],
-                       dof & usetmask["u6"])) != 0
+    nasset = uset.iloc[:, :1].astype(np.int64)
+    table = np.hstack((nasset & usetmask["m"],
+                       nasset & usetmask["s"],
+                       nasset & usetmask["o"],
+                       nasset & usetmask["q"],
+                       nasset & usetmask["r"],
+                       nasset & usetmask["c"],
+                       nasset & usetmask["b"],
+                       nasset & usetmask["e"],
+                       nasset & usetmask["l"],
+                       nasset & usetmask["t"],
+                       nasset & usetmask["a"],
+                       nasset & usetmask["d"],
+                       nasset & usetmask["f"],
+                       nasset & usetmask["fe"],
+                       nasset & usetmask["n"],
+                       nasset & usetmask["ne"],
+                       nasset & usetmask["g"],
+                       nasset & usetmask["p"],
+                       nasset & usetmask["u1"],
+                       nasset & usetmask["u2"],
+                       nasset & usetmask["u3"],
+                       nasset & usetmask["u4"],
+                       nasset & usetmask["u5"],
+                       nasset & usetmask["u6"])) != 0
 
-    # replace True's with set membership number:  1 to ?
+    # replace True's with set membership number: 1 to ?
     table = table.astype(np.int64)
-    r, c = np.shape(table)
-    n = np.sum(table, 0)
+    r, c = table.shape
+    n = table.sum(axis=0)
     for i in range(c):
         pv = table[:, i].astype(bool)
         table[pv, i] = 1 + np.arange(n[i])
@@ -1026,10 +1032,9 @@ def mksetpv(uset, major, minor):
     >>> #  Also, put 100 in b-set and 200 in m-set.
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
-    >>> uset = None
-    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = nastran.addgrid(uset, 200, 'm', cylcoord, [32, 90, 10],
-    ...                    cylcoord)
+    >>> uset = nastran.addgrid(
+    ...     None, [100, 200], ['b', 'm'], [0, cylcoord],
+    ...     [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
     >>> bset = nastran.mksetpv(uset, 'p', 'b')        # 1:6 are true
     >>> np.set_printoptions(linewidth=75)
     >>> bset
@@ -1048,7 +1053,7 @@ def mksetpv(uset, major, minor):
         major = mkusetmask(major)
     if isinstance(minor, str):
         minor = mkusetmask(minor)
-    uset_set = uset[:, 2].astype(np.int64)
+    uset_set = uset['uset']
     pvmajor = (uset_set & major) != 0
     pvminor = (uset_set & minor) != 0
     if np.any(~pvmajor & pvminor):
@@ -1132,12 +1137,28 @@ def mkdofpv(uset, nasset, dof):
            [100,   2],
            [100,   3]]...))
     """
-    if nasset == 'p':
-        uset_set = (uset[:, 0] * 10 + uset[:, 1]).astype(np.int64)
+    if isinstance(uset, pd.DataFrame):
+        if nasset != 'p':
+            setpv = mksetpv(uset, "p", nasset)
+            uset = uset.iloc[setpv]
+        uset_set = (uset.index.get_level_values('id') * 10 +
+                    uset.index.get_level_values('dof'))
+        # uset = uset.index.values
+        # uset_set =
+        # # dof = np.atleast_1d(dof)
+        # # if dof.ndim < 2 or dof.shape[1] == 1:
+        # #     dof = dof.ravel()
+        # # else:
+        # #     dof = [(node, int(i))
+        # #            for node, arg in dof
+        # #            for i in str(arg)]
     else:
-        setpv = mksetpv(uset, "p", nasset)
-        uset_set = (uset[setpv, 0] * 10 +
-                    uset[setpv, 1]).astype(np.int64)
+        if nasset == 'p':
+            uset_set = (uset[:, 0] * 10 + uset[:, 1]).astype(np.int64)
+        else:
+            setpv = mksetpv(uset, "p", nasset)
+            uset_set = (uset[setpv, 0] * 10 +
+                        uset[setpv, 1]).astype(np.int64)
 
     dof = expanddof(dof)
     dof = dof[:, 0] * 10 + dof[:, 1]
@@ -1151,15 +1172,14 @@ def mkdofpv(uset, nasset, dof):
     if np.any(chk):
         ids = (dof[chk] // 10)
         dof = dof[chk] - 10 * ids
-        missing_dof = np.hstack((ids.reshape(-1, 1),
-                                 dof.reshape(-1, 1)))
+        missing_dof = np.column_stack((ids, dof))
         msg = ("set '{}' does not contain all of the dof in `dof`."
                " These are missing:\n{!s}"
                .format(nasset, missing_dof))
         raise ValueError(msg)
     ids = dof // 10
     dof = dof - 10 * ids
-    outdof = np.hstack((ids.reshape(-1, 1), dof.reshape(-1, 1)))
+    outdof = np.column_stack((ids, dof))
     return pv, outdof
 
 
