@@ -601,8 +601,7 @@ def mkusetmask(nasset=None):
     return usetmask
 
 
-def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
-            form=0, perpage=float('inf')):
+def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
     r"""
     Print Nastran DOF set membership information from USET table.
 
@@ -618,25 +617,12 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     printsets : string; optional
         A comma delimited string specifying which sets to print, see
         description below.
-    form : integer; optional
-        If `form` == 0, print a set at a time (like sets are grouped
-        together). If `form` > 0, print a table showing set
-        membership in columns and `form` is used as the minimum field
-        width (see more notes below). `form` is ignored if `file` is
-        0.
-    perpage : integer; optional
-        Number of lines to print per page. `perpage` is ignored if
-        `file` is 0.
 
     Returns
     -------
-    table : ndarray
-        Up to a 27 column matrix::
-
-            [ DOF_number, ID, DOF, sets(up to 24 cols) ]
-
-        Columns 4 and up will have 0's and DOF numbers; the 0's show
-        non-membership. The columns will correspond to printsets, in
+    table : pandas DataFrame
+        DataFrame showing set membership. The index has 'id', 'dof',
+        'dof#'; the columns are the sets requested in `printsets` in
         the order given below. The rows will be truncated to non-zero
         rows.
 
@@ -651,13 +637,6 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
 
     For example, `printsets` = "R, C, B, A" will print only those sets
     (but not necessarily in that order).
-
-    If `form` is greater than 0, table is printed but, for easier
-    visualization, the 0's are not printed being replaced with spaces.
-    The non-zero values for each set are the DOF numbers in each set.
-    The value of form specifies the minimum width for each of the last
-    24 columns of the table. Note that the width will be more than
-    form if a set DOF number requires more space.
 
     The sets (and supersets) currently accounted for are::
 
@@ -689,10 +668,9 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     >>> #   [r, th, z] = [32, 90, 10]
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
-    >>> uset = None
-    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = nastran.addgrid(uset, 200, 'c', cylcoord, [32, 90, 10],
-    ...                        cylcoord)
+    >>> uset = nastran.addgrid(
+    ...     None, [100, 200], ['b', 'c'], [0, cylcoord],
+    ...     [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
     >>> table = nastran.usetprt(
     ...      1, uset, printsets='r, c')  # doctest: +ELLIPSIS
     R-set
@@ -737,73 +715,39 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
          1=      100-1      100-2  ...    200-4 =    10
         11=      200-5      200-6
     <BLANKLINE>
-    >>> print(table)  # doctest: +ELLIPSIS
-    [[  1 100   1   0 ...  0   0   1   0   1   1   1   1   1   1]
-     [  2 100   2   0 ...  0   0   2   0   2   2   2   2   2   2]
-     [  3 100   3   0 ...  0   0   3   0   3   3   3   3   3   3]
-     [  4 100   4   0 ...  0   0   4   0   4   4   4   4   4   4]
-     [  5 100   5   0 ...  0   0   5   0   5   5   5   5   5   5]
-     [  6 100   6   0 ...  0   0   6   0   6   6   6   6   6   6]
-     [  7 200   1   0 ...  0   1   0   0   7   7   7   7   7   7]
-     [  8 200   2   0 ...  0   2   0   0   8   8   8   8   8   8]
-     [  9 200   3   0 ...  0   3   0   0   9   9   9   9   9   9]
-     [ 10 200   4   0 ...  0   4   0   0  10  10  10  10  10  10]
-     [ 11 200   5   0 ...  0   5   0   0  11  11  11  11  11  11]
-     [ 12 200   6   0 ...  0   6   0   0  12  12  12  12  12  12]]
-    >>> table = nastran.usetprt(1, uset, form=1)  # doctest: +ELLIPSIS
-     DOF #     GRID    DOF  ... R   C   B   E   L   T   A   F   N   G
-    -------  --------  ---  ... --  --  --  --  --  --  --  --  --  --
-          1       100   1   ...          1       1   1   1   1   1   1
-          2       100   2   ...          2       2   2   2   2   2   2
-          3       100   3   ...          3       3   3   3   3   3   3
-          4       100   4   ...          4       4   4   4   4   4   4
-          5       100   5   ...          5       5   5   5   5   5   5
-          6       100   6   ...          6       6   6   6   6   6   6
-          7       200   1   ...      1           7   7   7   7   7   7
-          8       200   2   ...      2           8   8   8   8   8   8
-          9       200   3   ...      3           9   9   9   9   9   9
-         10       200   4   ...      4          10  10  10  10  10  10
-         11       200   5   ...      5          11  11  11  11  11  11
-         12       200   6   ...      6          12  12  12  12  12  12
+    >>> table   # doctest: +ELLIPSIS
+                  M  S  O  Q  R  C  B  E   L   T   A   F   N   G
+    id  dof dof#...
+    100 1   1     0  0  0  0  0  0  1  0   1   1   1   1   1   1
+        2   2     0  0  0  0  0  0  2  0   2   2   2   2   2   2
+        3   3     0  0  0  0  0  0  3  0   3   3   3   3   3   3
+        4   4     0  0  0  0  0  0  4  0   4   4   4   4   4   4
+        5   5     0  0  0  0  0  0  5  0   5   5   5   5   5   5
+        6   6     0  0  0  0  0  0  6  0   6   6   6   6   6   6
+    200 1   7     0  0  0  0  0  1  0  0   7   7   7   7   7   7
+        2   8     0  0  0  0  0  2  0  0   8   8   8   8   8   8
+        3   9     0  0  0  0  0  3  0  0   9   9   9   9   9   9
+        4   10    0  0  0  0  0  4  0  0  10  10  10  10  10  10
+        5   11    0  0  0  0  0  5  0  0  11  11  11  11  11  11
+        6   12    0  0  0  0  0  6  0  0  12  12  12  12  12  12
     """
-    #~~~~
     usetmask = mkusetmask()
-    nasset = uset.iloc[:, :1].astype(np.int64)
-    table = np.hstack((nasset & usetmask["m"],
-                       nasset & usetmask["s"],
-                       nasset & usetmask["o"],
-                       nasset & usetmask["q"],
-                       nasset & usetmask["r"],
-                       nasset & usetmask["c"],
-                       nasset & usetmask["b"],
-                       nasset & usetmask["e"],
-                       nasset & usetmask["l"],
-                       nasset & usetmask["t"],
-                       nasset & usetmask["a"],
-                       nasset & usetmask["d"],
-                       nasset & usetmask["f"],
-                       nasset & usetmask["fe"],
-                       nasset & usetmask["n"],
-                       nasset & usetmask["ne"],
-                       nasset & usetmask["g"],
-                       nasset & usetmask["p"],
-                       nasset & usetmask["u1"],
-                       nasset & usetmask["u2"],
-                       nasset & usetmask["u3"],
-                       nasset & usetmask["u4"],
-                       nasset & usetmask["u5"],
-                       nasset & usetmask["u6"])) != 0
+    nasset = uset.iloc[:, 0].values
+    allsets = (list('MSOQRCBELTADF') +
+               ['FE', 'N', 'NE', 'G', 'P', 'U1',
+                'U2', 'U3', 'U4', 'U5', 'U6'])
+    table = []
+    for _set in allsets:
+        table.append((nasset & usetmask[_set.lower()]) != 0)
+    table = np.column_stack(table)
 
     # replace True's with set membership number: 1 to ?
     table = table.astype(np.int64)
     r, c = table.shape
-    n = table.sum(axis=0)
+    n = np.count_nonzero(table, axis=0)
     for i in range(c):
         pv = table[:, i].astype(bool)
         table[pv, i] = 1 + np.arange(n[i])
-    allsets = (list('MSOQRCBELTADF') +
-               ['FE', 'N', 'NE', 'G', 'P', 'U1',
-                'U2', 'U3', 'U4', 'U5', 'U6'])
     if printsets == '*':
         printsets = allsets
     else:
@@ -814,13 +758,18 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
     printsets = [printsets[i] for i in pv2]
     table = table[:, printpv]
 
-    pv = np.any(table, axis=1)
-    if np.any(pv):
-        # add 3 more cols to table:
-        return_table = np.hstack(
-            (1 + np.arange(r).reshape(r, 1),
-             uset[:, :2].astype(np.int64), table))
-        return_table = return_table[pv]
+    pv = table.any(axis=1)
+    if pv.any():
+        # make a dataframe:
+        uset_index = uset.index
+        ind = [uset_index.get_level_values(i)
+               for i in range(uset_index.nlevels)]
+        ind.append(1 + np.arange(r))
+        ind = pd.MultiIndex.from_arrays(
+            ind, names=[*uset_index.names, 'dof#'])
+        return_table = pd.DataFrame(
+            table, index=ind, columns=printsets)
+        return_table = return_table.loc[pv]
     else:
         return_table = None
 
@@ -835,135 +784,61 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G",
         f = file
 
     nsets = len(printsets)
-    if form == 0:
-        colheader = ("     "
-                     "        -1-        -2-        -3-        -4-"
-                     "        -5-        -6-        -7-        -8-"
-                     "        -9-       -10-")
-        curlines = 0
-        printed = np.zeros((nsets), dtype=np.int64)
+    colheader = ("     "
+                 "        -1-        -2-        -3-        -4-"
+                 "        -5-        -6-        -7-        -8-"
+                 "        -9-       -10-")
+    printed = np.zeros((nsets), dtype=np.int64)
 
-        def _pager():
-            # nonlocal curlines
-            if curlines >= perpage:
-                f.write(chr(12))
-                f.write("{} (continued)\n{}\n".format(header,
-                                                      colheader))
-                return 2
-            return curlines
+    s = 0
+    while s < nsets:  # loop over printing-sets:
+        header = printsets[s] + "-set"
+        printed[s] = 1
+        S = s + 1
+        while S < nsets:
+            if np.all(table[:, S] == table[:, s]):
+                header += ", " + printsets[S] + "-set"
+                printed[S] = 1
+            S += 1
 
-        s = 0
-        while s < nsets:  # loop over printing-sets:
-            header = printsets[s] + "-set"
-            printed[s] = 1
-            S = s + 1
-            while S < nsets:
-                if np.all(table[:, S] == table[:, s]):
-                    header += ", " + printsets[S] + "-set"
-                    printed[S] = 1
-                S += 1
+        # form a modified version of USET for printing this set
+        pv = table[:, s].nonzero()[0]
 
-            # form a modified version of USET for printing this set
-            pv = table[:, s].nonzero()[0]
-
-            # set s for next loop:
-            s = (printed == 0).nonzero()[0]
-            if s.size > 0:
-                s = s[0]
-            else:
-                s = nsets
-
-            if curlines >= perpage - 2:
-                f.write(chr(12))
-                curlines = 0
-
-            if np.any(pv):
-                f.write("{}\n{}\n".format(header, colheader))
-                curlines += 2
-                uset_mod = uset[pv, :2].astype(np.int64)
-                full_rows = pv.size // 10
-                rem = pv.size - 10 * full_rows
-                count = 1
-                if full_rows:
-                    usetfr = uset_mod[:full_rows * 10]
-                    for j in range(full_rows):
-                        curlines = _pager()
-                        f.write('{:6d}='.format(count))
-                        for k in range(10):
-                            r = j * 10 + k
-                            f.write(
-                                ' {:8d}-{:1d}'.format(usetfr[r, 0],
-                                                      usetfr[r, 1]))
-                        f.write(' ={:6d}\n'.format(count + 9))
-                        curlines += 1
-                        count += 10
-                if rem:
-                    curlines = _pager()
-                    uset_rem = uset_mod[-rem:].astype(np.int64)
-                    f.write('{:6d}='.format(count))
-                    for j in range(rem):
-                        f.write(' {:8d}-{:1d}'.format(uset_rem[j, 0],
-                                                      uset_rem[j, 1]))
-                    f.write("\n")
-                    curlines += 1
-                f.write("\n")
-                curlines += 1
-            else:
-                f.write("{}\n      -None-\n\n".format(header))
-                curlines += 3
-        if isinstance(file, str):
-            f.close()
-        return return_table
-
-    # width of field depends on number of DOF:
-    mx = np.max(table)
-    n = int(math.ceil(math.log10(mx)))
-
-    if form > n:
-        n = form
-    # format for header line:
-    pre = (n - 1) // 2 + 1
-    post = n - pre + 2
-    format1 = "{{:{}}}{{:{}}}".format(pre, post)
-    if n < 3:
-        format2 = "{{:{}}}{{:{}}}".format(pre, post - 1)
-    else:
-        format2 = format1
-
-    s = " "
-    headersets = format1.format(printsets[0], s)
-    underline = "-" * n
-    underlsets = (underline + "  ") * nsets
-    numformat = ("{{:{}}}  ".format(n)) * nsets
-
-    for j in range(1, nsets):
-        if len(printsets[j]) == 1:
-            headersets += format1.format(printsets[j], s)
+        # set s for next loop:
+        s = (printed == 0).nonzero()[0]
+        if s.size > 0:
+            s = s[0]
         else:
-            headersets += format2.format(printsets[j], s)
+            s = nsets
 
-    # chop off 2 trailing spaces:
-    headersets = headersets[:-2]
-    underlsets = underlsets[:-2]
-    numformat = numformat[:-2]
-
-    header = (" DOF #     GRID    DOF     " + headersets).rstrip()
-    underl = "-------  --------  ---     " + underlsets
-    numformat = "{:7}  {:8}  {:2}      " + numformat + "\n"
-    r = return_table.shape[0]
-    if perpage == np.inf:
-        perpage = r + 10  # on Windows, i % inf gives nan
-    else:
-        perpage -= 2
-    for i in range(r):
-        if i % perpage == 0:
-            if i > 0:
-                f.write(chr(12))
-            f.write('{}\n{}\n'.format(header, underl))
-        string = numformat.format(*return_table[i])
-        string = string.replace(' 0 ', '   ')
-        string = string.replace(' 0\n', '').rstrip() + '\n'
-        f.write(string)
+        if pv.any():
+            f.write("{}\n{}\n".format(header, colheader))
+            # uset_mod = uset[pv, :2].astype(np.int64)
+            uset_mod = uset.iloc[pv, :0].reset_index().values
+            full_rows = pv.size // 10
+            rem = pv.size - 10 * full_rows
+            count = 1
+            if full_rows:
+                usetfr = uset_mod[:full_rows * 10]
+                for j in range(full_rows):
+                    f.write('{:6d}='.format(count))
+                    for k in range(10):
+                        r = j * 10 + k
+                        f.write(
+                            ' {:8d}-{:1d}'.format(usetfr[r, 0],
+                                                  usetfr[r, 1]))
+                    f.write(' ={:6d}\n'.format(count + 9))
+                    count += 10
+            if rem:
+                uset_rem = uset_mod[-rem:].astype(np.int64)
+                f.write('{:6d}='.format(count))
+                for j in range(rem):
+                    f.write(' {:8d}-{:1d}'.format(uset_rem[j, 0],
+                                                  uset_rem[j, 1]))
+                f.write("\n")
+            f.write("\n")
+        else:
+            f.write("{}\n      -None-\n\n".format(header))
     if isinstance(file, str):
         f.close()
     return return_table
@@ -1112,11 +987,11 @@ def mkdofpv(uset, nasset, dof):
     >>> # Want an A-set partition vector for all available a-set dof
     >>> # of grids 100 and 200:
     >>> ids = np.array([[100], [200]])
-    >>> uset = None
-    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = nastran.addgrid(uset, 200, 'b', 0, [32, 90, 10], 0)
+    >>> uset = nastran.addgrid(
+    ...     None, [100, 200], 'b', 0,
+    ...     [[5, 10, 15], [32, 90, 10]], 0)
     >>> nastran.mkdofpv(uset, "a", ids)         # doctest: +ELLIPSIS
-    (array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11]...), array([[100,   1],
+    (array([ 0,  1,  2,  3,  4,  5... 10, 11]...), array([[100,   1],
            [100,   2],
            [100,   3],
            [100,   4],
@@ -1140,18 +1015,9 @@ def mkdofpv(uset, nasset, dof):
     if isinstance(uset, pd.DataFrame):
         if nasset != 'p':
             setpv = mksetpv(uset, "p", nasset)
-            uset = uset.iloc[setpv]
+            uset = uset.loc[setpv]
         uset_set = (uset.index.get_level_values('id') * 10 +
                     uset.index.get_level_values('dof'))
-        # uset = uset.index.values
-        # uset_set =
-        # # dof = np.atleast_1d(dof)
-        # # if dof.ndim < 2 or dof.shape[1] == 1:
-        # #     dof = dof.ravel()
-        # # else:
-        # #     dof = [(node, int(i))
-        # #            for node, arg in dof
-        # #            for i in str(arg)]
     else:
         if nasset == 'p':
             uset_set = (uset[:, 0] * 10 + uset[:, 1]).astype(np.int64)
@@ -1243,7 +1109,7 @@ def coordcardinfo(uset, cid=None):
     >>> sccoord = np.array([[501, 1, 0], [2345.766, 0, 0],
     ...                     [2345.766, 10, 0], [3000, 0, 0]])
     >>> uset = nastran.addgrid(None, 1001, 'b', sccoord, [0, 0, 0],
-    ...                    sccoord)
+    ...                        sccoord)
     >>> np.set_printoptions(precision=4, suppress=True)
     >>> nastran.coordcardinfo(uset)
     {501: ['CORD2R', array([[  501.   ,     1.   ,     0.   ],
@@ -1266,13 +1132,13 @@ def coordcardinfo(uset, cid=None):
     >>> sphcoord = np.array([[701, 3, 601], [35, 15, -10],
     ...                      [55, 15, -10], [45, 30, 1]])
     >>> uset = nastran.addgrid(uset, 1002, 'b', cylcoord, [2, 90, 5],
-    ...                    cylcoord)
+    ...                        cylcoord)
     >>> uset = nastran.addgrid(
     ...     uset, 1003, 'b', sphcoord, [12, 40, 45], sphcoord)
     >>> cyl601 = nastran.coordcardinfo(uset, 601)
     >>> sph701 = nastran.coordcardinfo(uset, 701)
     >>> uset = nastran.addgrid(uset, 2002, 'b', cyl601[1], [2, 90, 5],
-    ...                    cyl601[1])
+    ...                        cyl601[1])
     >>> uset = nastran.addgrid(
     ...     uset, 2003, 'b', sph701[1], [12, 40, 45], sph701[1])
     >>> np.allclose(uset[6, 3:], uset[18, 3:])
@@ -1286,7 +1152,8 @@ def coordcardinfo(uset, cid=None):
                                     [0., 0., 1.],
                                     [1., 0., 0.]])]
 
-    pv = (uset[:, 1] == 2).nonzero()[0]
+    dof = uset.index.get_level_values('dof')
+    pv = (dof == 2).nonzero()[0]
     if pv.size == 0:
         if cid is not None:
             raise ValueError('{} not found ... USET table '
@@ -1304,25 +1171,25 @@ def coordcardinfo(uset, cid=None):
         return [name, np.vstack(([cid, typ, 0], A, B, C))]
 
     if cid is not None:
-        pv2 = (uset[pv, 3] == cid).nonzero()[0]
+        pv2 = (uset.iloc[pv, 1] == cid).nonzero()[0]
         if pv2.size == 0:
             raise ValueError('{} not found in USET table.'.
                              format(cid))
         pv2 = pv2[0]
         r = pv[pv2]
-        coordinfo = uset[r:r + 5, 3:]
+        coordinfo = uset.iloc[r:r + 5, 1:]
         return _getlist(coordinfo)
 
     CI = {}
-    pv2 = (uset[pv, 3] > 0).nonzero()[0]
+    pv2 = (uset.iloc[pv, 1] > 0).nonzero()[0]
     if pv2.size == 0:
         return CI
     pv = pv[pv2]
-    ids = set(uset[pv, 3].astype(np.int64))
+    ids = set(uset.iloc[pv, 1].astype(np.int64))
     for cid in ids:
-        pv2 = (uset[pv, 3] == cid).nonzero()[0][0]
+        pv2 = (uset.iloc[pv, 1] == cid).nonzero()[0][0]
         r = pv[pv2]
-        coordinfo = uset[r:r + 5, 3:]
+        coordinfo = uset.iloc[r:r + 5, 1:]
         CI[cid] = _getlist(coordinfo)
     return CI
 
@@ -1351,11 +1218,12 @@ def _get_coordinfo_byid(refid, uset):
         return np.vstack((np.array([[0, 1, 0], [0., 0., 0.]]),
                           np.eye(3)))
     try:
-        pv = (uset[:, 1] == 2).nonzero()[0]
-        pos = (uset[pv, 3] == refid).nonzero()[0][0]
-        if np.size(pos) > 0:
+        dof = uset.index.get_level_values('dof')
+        pv = (dof == 2).nonzero()[0]
+        pos = (uset.iloc[pv, 1] == refid).nonzero()[0][0]
+        if pos.size > 0:
             i = pv[pos]
-            return uset[i:i + 5, 3:]
+            return uset.iloc[i:i + 5, 1:].values
     except:
         raise ValueError('reference coordinate id {} not '
                          'found in `uset`.'.format(refid))
@@ -1765,8 +1633,7 @@ def getcoords(uset, gid, csys, coordref=None):
     array([ 0.,  0.,  0.])
     """
     if np.size(gid) == 1:
-        pv = mkdofpv(uset, 'p', gid)[0][0]
-        xyz_basic = uset[pv, 3:]
+        xyz_basic = uset.loc[(gid, 1), 'x':'z']
     else:
         xyz_basic = np.asarray(gid).ravel()
     if np.size(csys) == 1 and csys == 0:
@@ -2229,17 +2096,13 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     >>> from pyyeti import nastran
     >>> # First, make a uset table using all basic coords to simplify
     >>> # visual inspection:
-    >>> #  node 100 in basic is @ [ 1,  0, 0]
-    >>> #  node 200 in basic is @ [ 0,  1, 0]
-    >>> #  node 300 in basic is @ [-1,  0, 0]
-    >>> #  node 400 in basic is @ [ 0, -1, 0]
-    >>> #  node 500 in basic is @ [ 0,  0, 0]
-    >>> uset = None
-    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [1, 0, 0], 0)
-    >>> uset = nastran.addgrid(uset, 200, 'b', 0, [0, 1, 0], 0)
-    >>> uset = nastran.addgrid(uset, 300, 'b', 0, [-1, 0, 0], 0)
-    >>> uset = nastran.addgrid(uset, 400, 'b', 0, [0, -1, 0], 0)
-    >>> uset = nastran.addgrid(uset, 500, 'b', 0, [0, 0, 0], 0)
+    >>> locs = [[ 1,  0, 0],   #  node 100 in basic
+    ...         [ 0,  1, 0],   #  node 200 in basic
+    ...         [-1,  0, 0],   #  node 300 in basic
+    ...         [ 0, -1, 0],   #  node 400 in basic
+    ...         [ 0,  0, 0]]   #  node 500 in basic
+    >>> uset = nastran.addgrid(None, np.arange(100, 600, 100), 'b', 0,
+    ...                        locs, 0)
     >>> #
     >>> # Define the motion of grid 500 to be average of translational
     >>> # motion of grids:  100, 200, 300, and 400.
@@ -2282,7 +2145,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     ddof = expanddof([[GRID_dep, DOF_dep]])
 
     # form independent DOF table:
-    usetdof = uset[:, :2].astype(np.int64)
+    usetdof = uset.iloc[:, :0].reset_index().values
     idof = []
     wtdof = []
     for j in range(0, len(Ind_List), 2):
@@ -2324,7 +2187,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     npids = np.vstack((ddof[0, :1], idof[:, :1]))
     ids = sorted(list(set(npids[:, 0])))
     alldof = mkdofpv(uset, "p", ids)[0]
-    uset = uset[alldof]
+    uset = uset.iloc[alldof]
 
     # form partition vectors:
     ipv = mkdofpv(uset, "p", idof)[0]
@@ -2336,9 +2199,9 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     rot = idof[:, 1] > 3
     if np.any(rot):
         # get characterstic length of rbe3:
-        deploc = uset[pv[0], 3:]
-        n = np.size(uset, 0) // 6
-        delta = uset[::6, 3:] - deploc
+        deploc = uset.iloc[pv[0], 1:]
+        n = uset.shape[0] // 6
+        delta = uset.iloc[::6, 1:] - deploc
         Lc = np.sum(np.sqrt(np.sum(delta * delta, axis=1))) / (n - 1)
         if Lc > 1.e-12:
             wtdof[rot] = wtdof[rot] * (Lc * Lc)
@@ -2357,7 +2220,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     dpv_m = locate.mat_intersect(ddof, mdof, 2)[0]
     # this works when the m-set is a subset of the independent set:
     if not dpv_m.any():
-        mpv = mkdofpv(uset[ipv], "p", mdof)[0]
+        mpv = mkdofpv(uset.iloc[ipv], "p", mdof)[0]
         rbe3_um = rbe3[:, mpv]
         notmpv = locate.flippv(mpv, len(ipv))
         rhs = np.hstack((np.eye(len(mpv)), -rbe3[:, notmpv]))
@@ -2499,17 +2362,19 @@ def upasetpv(nas, seup):
     maps = nas['maps'][seup]
 
     # number of rows in pv should equal size of upstream a-set
-    pv = locate.find_vals(usetdn[:, 0], dnids)
-
+    pv = usetdn.index.isin(dnids, level=0).nonzero()[0]
     if len(pv) < len(dnids):
         # must be an external se, but non-csuper type (the extseout,
         # seconct, etc, type)
         upids = nas['upids'][sedn]
         pv = locate.find_vals(upids, dnids)
-        ids = usetdn[usetdn[:, 1] <= 1, 0]
+        # ~~~
+        ids = usetdn.index.get_level_values('id')
+        dof = usetdn.index.get_level_values('dof')
+        ids = ids[dof <= 1]
 
         # number of rows should equal size of upstream a-set
-        pv = locate.find_vals(usetdn[:, 0], ids[pv])
+        pv = usetdn.index.isin(ids[pv], level='id').nonzero()[0]
         if len(pv) < len(dnids):   # pragma: no cover
             raise ValueError('not all upstream DOF could'
                              ' be found in downstream')
@@ -2592,7 +2457,9 @@ def upqsetpv(nas, sedn=0):
         qup = mksetpv(usetup, 'a', 'q')
         if not qup.any():
             # assume any a-set spoints are q-set
-            qup = usetup[mksetpv(usetup, 'p', 'a'), 1] == 0
+            dof = usetup.index.get_level_values('dof')
+            qup = dof[mksetpv(usetup, 'p', 'a')] == 0
+            # qup = usetup[mksetpv(usetup, 'p', 'a'), 1] == 0
 
         # check to see if the upstream se has upstreams;
         # if so, include its qup:
@@ -2604,8 +2471,7 @@ def upqsetpv(nas, sedn=0):
             # expand downstream ids to include all dof:
             # number of rows in pv1 should equal size of
             # upstream a-set
-            usetdn_ids = usetdn[:, 0].astype(np.int64)
-            pv1 = locate.find_vals(usetdn_ids, dnids)
+            pv1 = usetdn.index.isin(dnids, level='id')
 
             if pv1.size < dnids.size:
                 # must be an external se, but non-csuper type (the
@@ -2621,6 +2487,8 @@ def upqsetpv(nas, sedn=0):
                 # just what we want.
                 upids = nas['upids'][sedn]
                 pv1 = locate.find_vals(upids, dnids)
+
+                # ~~~~
                 ids = usetdn[usetdn[:, 1] <= 1, 0].astype(np.int64)
 
                 # length of pv1 should equal size of upstream a-set
