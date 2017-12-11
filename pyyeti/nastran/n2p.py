@@ -484,6 +484,8 @@ def expanddof(dof):
         return np.array([[n, i]
                          for n in dof.ravel()
                          for i in range(1, 7)])
+    elif dof[:, 1].max() <= 6:
+        return dof
     return np.array([[node, int(i)]
                      for node, arg in dof
                      for i in str(arg)])
@@ -928,7 +930,7 @@ def mksetpv(uset, major, minor):
         major = mkusetmask(major)
     if isinstance(minor, str):
         minor = mkusetmask(minor)
-    uset_set = uset['uset']
+    uset_set = uset['uset'].values
     pvmajor = (uset_set & major) != 0
     pvminor = (uset_set & minor) != 0
     if np.any(~pvmajor & pvminor):
@@ -1141,9 +1143,11 @@ def coordcardinfo(uset, cid=None):
     ...                        cyl601[1])
     >>> uset = nastran.addgrid(
     ...     uset, 2003, 'b', sph701[1], [12, 40, 45], sph701[1])
-    >>> np.allclose(uset[6, 3:], uset[18, 3:])
+    >>> np.allclose(uset.loc[(1002, 1), 'x':'z'],
+    ...             uset.loc[(2002, 1), 'x':'z'])
     True
-    >>> np.allclose(uset[12, 3:], uset[24, 3:])
+    >>> np.allclose(uset.loc[(1003, 1), 'x':'z'],
+    ...             uset.loc[(2003, 1), 'x':'z'])
     True
     """
     if cid == 0:
@@ -1161,6 +1165,7 @@ def coordcardinfo(uset, cid=None):
         return {}
 
     def _getlist(coordinfo):
+        coordinfo = coordinfo.values
         A = coordinfo[1]
         # transpose so T transforms from basic to local:
         T = coordinfo[2:].T
@@ -1816,7 +1821,8 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     Returns
     -------
     uset : pandas DataFrame
-        Updated version of the input `uset`
+        Updated version of the input `uset`. Order of grids is as
+        input.
 
     Notes
     -----
@@ -1890,9 +1896,9 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     ...     None, [100, 200], 'b', [0, cylcoord],
     ...     [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
     >>> pd.options.display.float_format = lambda x: '{:.1f}'.format(x)
-    >>> uset
+    >>> uset     # doctest: +ELLIPSIS
                 uset    x    y    z
-    id  dof
+    id  dof...
     100 1    2097154  5.0 10.0 15.0
         2    2097154  0.0  1.0  0.0
         3    2097154  0.0  0.0  0.0
@@ -1930,12 +1936,6 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
                                      np.eye(3)))
 
     mask = mkusetmask()
-    # sets = None
-    # if isinstance(nasset, str):
-    #     if len(nasset) == 1:
-    #         sets = mask[nasset]
-    #     else:
-    #         nasset = (nasset,)
 
     # allocate dataframe:
     dof = np.arange(1, 7)
@@ -1971,13 +1971,6 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         usetid.loc[g, 'x':'z'] = _xyz
 
     if uset is not None:
-        # # insert uset entry in numeric order
-        # j = np.searchsorted(uset[:, 0], gid)
-        # if j == uset.shape[0]:
-        #     usetid = np.vstack((uset, usetid))
-        # else:
-        #     usetid = np.vstack((uset[:j], usetid, uset[j:]))
-
         # concatenate to maintain order as input:
         usetid = pd.concat([uset, usetid], axis=0)
     return usetid
@@ -2317,6 +2310,12 @@ def _findse(nas, se):
     return r[0]
 
 
+def _get_node_ids(uset):
+    ids = uset.index.get_level_values('id')
+    dof = uset.index.get_level_values('dof')
+    return ids[dof <= 1]
+
+
 def upasetpv(nas, seup):
     """
     Form upstream A-set partition vector for a downstream SE
@@ -2368,10 +2367,7 @@ def upasetpv(nas, seup):
         # seconct, etc, type)
         upids = nas['upids'][sedn]
         pv = locate.find_vals(upids, dnids)
-        # ~~~
-        ids = usetdn.index.get_level_values('id')
-        dof = usetdn.index.get_level_values('dof')
-        ids = ids[dof <= 1]
+        ids = _get_node_ids(usetdn)
 
         # number of rows should equal size of upstream a-set
         pv = usetdn.index.isin(ids[pv], level='id').nonzero()[0]
@@ -2487,13 +2483,10 @@ def upqsetpv(nas, sedn=0):
                 # just what we want.
                 upids = nas['upids'][sedn]
                 pv1 = locate.find_vals(upids, dnids)
-
-                # ~~~~
-                ids = usetdn[usetdn[:, 1] <= 1, 0].astype(np.int64)
+                ids = _get_node_ids(usetdn)
 
                 # length of pv1 should equal size of upstream a-set
-                pv1 = locate.find_vals(usetdn_ids, ids[pv1])
-
+                pv1 = usetdn.index.isin(ids[pv1], level='id')
                 if pv1.size < dnids.size:   # pragma: no cover
                     raise ValueError('not all upstream DOF could'
                                      ' be found in downstream')
@@ -2522,8 +2515,9 @@ def _proc_mset(nas, se, dof):
     m = np.nonzero(mksetpv(uset, "g", "m"))[0]
     pvdofm = gm = None
     if m.size > 0:
-        pvdofm = locate.mat_intersect(
-            uset[m, :2].astype(np.int64), dof)[0]
+        iddof = uset.iloc[m, :0].reset_index().values
+        pvdofm = locate.mat_intersect(iddof, dof)[0]
+
         if pvdofm.size > 0:
             hasm = 1
             m = m[pvdofm]
@@ -2542,7 +2536,7 @@ def _formtran_0(nas, dof, gset):
     pvdof, dof = mkdofpv(uset, "g", dof)
 
     if gset:
-        ngset = sum(mksetpv(uset, 'p', 'g'))
+        ngset = np.count_nonzero(mksetpv(uset, 'p', 'g'))
         tran = np.zeros((len(pvdof), ngset))
         tran[:, pvdof] = np.eye(len(pvdof))
         return tran, dof
@@ -2555,17 +2549,16 @@ def _formtran_0(nas, dof, gset):
                            "nas['pha'][0] are available.")
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
+    iddof = uset.iloc[:, :0].reset_index().values
     if o.size > 0:   # pragma: no cover
-        v = locate.mat_intersect(
-            uset[o, :2].astype(np.int64), dof)[0]
+        v = locate.mat_intersect(iddof[o], dof)[0]
         if v.size > 0:
             raise RuntimeError("some of the DOF of SE 0 go to the"
                                " O-set. Routine not set up for"
                                " this.")
 
     a = np.nonzero(mksetpv(uset, "g", "a"))[0]
-    pvdofa = locate.mat_intersect(
-        uset[a, :2].astype(np.int64), dof)[0]
+    pvdofa = locate.mat_intersect(iddof[a], dof)[0]
     if pvdofa.size > 0:
         a = a[pvdofa]
         sets = a
@@ -2588,14 +2581,13 @@ def _formtran_0(nas, dof, gset):
     hass = 0
     s = np.nonzero(mksetpv(uset, "g", "s"))[0]
     if s.size > 0:
-        pvdofs = locate.mat_intersect(
-            uset[s, :2].astype(np.int64), dof)[0]
+        pvdofs = locate.mat_intersect(iddof[s], dof)[0]
         if pvdofs.size > 0:
             hass = 1
             s = s[pvdofs]
             sets = np.hstack((sets, s))
 
-    fulldof = uset[sets, :2].astype(np.int64)
+    fulldof = iddof[sets]
     pv, pv2 = locate.mat_intersect(fulldof, dof, 2)
 
     if len(pv2) != len(pvdof):
@@ -2701,8 +2693,8 @@ def formtran(nas, se, dof, gset=False):
 
     sets = np.zeros(0, np.int64)
     t = np.nonzero(mksetpv(uset, "g", "t"))[0]
-    pvdoft = locate.mat_intersect(
-        uset[t, :2].astype(np.int64), dof)[0]
+    iddof = uset.iloc[:, :0].reset_index().values
+    pvdoft = locate.mat_intersect(iddof[t], dof)[0]
     hast = 0
     if pvdoft.size > 0:
         hast = 1
@@ -2710,8 +2702,7 @@ def formtran(nas, se, dof, gset=False):
         sets = np.hstack((sets, t))
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
-    pvdofo = locate.mat_intersect(
-        uset[o, :2].astype(np.int64), dof)[0]
+    pvdofo = locate.mat_intersect(iddof[0], dof)[0]
     haso = 0
     if pvdofo.size > 0:
         haso = 1
@@ -2759,8 +2750,7 @@ def formtran(nas, se, dof, gset=False):
     q = np.nonzero(mksetpv(uset, "g", "q"))[0]
     hasq = 0
     if q.size > 0:
-        pvdofq = locate.mat_intersect(
-            uset[q, :2].astype(np.int64), dof)[0]
+        pvdofq = locate.mat_intersect(iddof[q], dof)[0]
         if pvdofq.size > 0:
             hasq = 1
             q = q[pvdofq]
@@ -2770,14 +2760,13 @@ def formtran(nas, se, dof, gset=False):
     hass = 0
     s = np.nonzero(mksetpv(uset, "g", "s"))[0]
     if s.size > 0:
-        pvdofs = locate.mat_intersect(
-            uset[s, :2].astype(np.int64), dof)[0]
+        pvdofs = locate.mat_intersect(iddof[s], dof)[0]
         if pvdofs.size > 0:
             hass = 1
             s = s[pvdofs]
             sets = np.hstack((sets, s))
 
-    fulldof = uset[sets, :2].astype(np.int64)
+    fulldof = iddof[sets]
     pv, pv2 = locate.mat_intersect(fulldof, dof, 2)
 
     if len(pv2) != len(pvdof):
