@@ -17,6 +17,7 @@ Nastran-to-Python tools
     formulvs
     get_coordinfo
     getcoords
+    make_uset
     mkdofpv
     mksetpv
     mkusetmask

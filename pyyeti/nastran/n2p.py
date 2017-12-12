@@ -29,9 +29,9 @@ from pyyeti import locate
 
 __all__ = ['addgrid', 'addulvs', 'build_coords', 'coordcardinfo',
            'expanddof', 'formdrm', 'formrbe3', 'formtran', 'formulvs',
-           'get_coordinfo', 'getcoords', 'mkdofpv', 'mksetpv',
-           'mkusetmask', 'rbcoords', 'rbgeom', 'rbgeom_uset',
-           'rbmove', 'upasetpv', 'upqsetpv', 'usetprt']
+           'get_coordinfo', 'getcoords', 'make_uset', 'mkdofpv',
+           'mksetpv', 'mkusetmask', 'rbcoords', 'rbgeom',
+           'rbgeom_uset', 'rbmove', 'upasetpv', 'upqsetpv', 'usetprt']
 
 
 def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
@@ -1005,7 +1005,8 @@ def mkdofpv(uset, nasset, dof):
            [200,   4],
            [200,   5],
            [200,   6]]...))
-    >>> uset = np.vstack((uset, [991, 0, 4194304, 0, 0, 0]))
+    >>> # add an spoint for testing:
+    >>> uset = uset.append(nastran.make_uset(991, 0, 4194304))
     >>> # request spoint 991 and dof 123 for grid 100 (in that order):
     >>> ids2 = [[991, 0], [100, 123]]
     >>> nastran.mkdofpv(uset, "a", ids2)        # doctest: +ELLIPSIS
@@ -1703,8 +1704,49 @@ def _ensure_iter(obj):
     return obj
 
 
-def _make_uset(idlist, doflist, uset=0, x=np.nan, y=np.nan, z=np.nan,
-               use_product=True):
+def make_uset(idlist, doflist, uset=0, x=np.nan, y=np.nan, z=np.nan,
+              use_product=True):
+    """
+    Make a uset DataFrame
+
+    Parameters
+    ----------
+    idlist : integer or list_like of integers
+        Grid or SPOINT id(s).
+    doflist : integer or list_like of integers
+        DOF to be used for all id(s) in `idlist` if `use_product` is
+        True. If `use_product` is False, `doflist` should be
+        compatibly-sized with `idlist`.
+    uset : integer or list_like of integers; optional
+        Specifies the Nastran set membership. The :func:`mkusetmask`
+        can return a suitable value; eg: ``mkusetmask('a')``
+    x : scalar float or list_like of floats; optional
+        The x coordinate(s) of node(s) in `idlist`
+    y : scalar float or list_like of floats; optional
+        The y coordinate(s) of node(s) in `idlist`
+    z : scalar float or list_like of floats; optional
+        The z coordinate(s) of node(s) in `idlist`
+    use_product : bool; optional
+        Use :func:`pandas.MultiIndex.from_product` to form MultiIndex;
+        otherwise, :func:`pandas.MultiIndex.from_arrays` is used (and
+        `idlist` and `doflist` must be compatibly-sized).
+
+    Returns
+    -------
+    pandas DataFrame
+        A DataFrame similar to what is output by
+        :func:`pyyeti.op2.OP2.rdn2cop2`.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> nastran.make_uset(991, 0, uset=4194304)  # doctest: +ELLIPSIS
+                uset   x   y   z
+    id  dof...
+    991 0    4194304 NaN NaN NaN
+    """
+    idlist = _ensure_iter(idlist)
+    doflist = _ensure_iter(doflist)
     if use_product:
         ind = pd.MultiIndex.from_product([idlist, doflist],
                                          names=['id', 'dof'])
@@ -1939,7 +1981,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
     # allocate dataframe:
     dof = np.arange(1, 7)
-    usetid = _make_uset(gid, dof)
+    usetid = make_uset(gid, dof)
 
     # ensure nasset is iterable:
     smap = {}
