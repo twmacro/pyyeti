@@ -1777,10 +1777,12 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     Returns
     -------
     coords : ndarray
-        A 3-column matrix of [x, y, z] locations of each node,
-        relative to `refpoint` (or as defined by `rb_normalizer`) and
-        in the local coordinate system of `refpoint` (again, or as
-        defined by .
+        A 3-column matrix of [x, y, z] locations of each node. If
+        `rb_normalizer` is None, the locations are relative to
+        `refpoint` and in the local coordinate system of
+        `refpoint`. Otherwise, if `rb_normalizer` is used, the
+        locations are in the basic coordinate system relative to the
+        location used to form `rb_normalizer`.
     rbmodes : ndarray
         Stiffness-based rigid-body modes (6 columns). Will have
         zeros corresponding to the modal DOF.
@@ -1840,7 +1842,9 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     if o.size > 0:
         kor = kbb[np.ix_(o, refpoint)]
         koo = kbb[np.ix_(o, o)]
-        rbmodes[o] = -linalg.solve(koo, kor)
+        # rbmodes[o] = -linalg.solve(koo, kor)
+        # to handle the cases where some rows/cols are zero:
+        rbmodes[o] = -linalg.lstsq(koo, kor)[0]
 
     if rb_normalizer is not None:
         rbmodes = rbmodes @ rb_normalizer
@@ -1855,6 +1859,61 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     return coords, rbmodes, maxerr
 
 
+def _solve_eig(fout, k, m, mtype, ktype, types):
+    """
+    Utility for cbcheck to solve free-free eigen problem.
+    """
+    # chop out zero rows/cols ... assume symmetry:
+    n = k.shape[0]
+    nz = k.any(axis=0)
+    if (~nz).any():
+        # there are zero cols
+        nz2 = np.ix_(nz, nz)
+        m = k[nz2]
+        k = k[nz2]
+        mtype, types = ytools.mattype(m)
+        ktype = ytools.mattype(k)[0]
+
+    if mtype & types['posdef'] and ktype & types['symmetric']:
+        fout.write('Solving hermitian eigen problem.\n')
+        w, v = linalg.eigh(k, m)
+        w = np.abs(w)
+        # due to trouble with low frequency accuracy in DSYEVR, use
+        # subspace iteration for lower frequency modes (up to 50 Hz,
+        # but limit to 350 modes)
+        f = np.sqrt(w) / (2 * math.pi)
+        p = np.sum(f < 50.)
+        # num = max(6, min(10, n/10))
+        if 0:
+            ws, vs = sp_la.eigsh(k, p, m, sigma=1., mode='normal')
+        else:
+            ws, vs, _ = ytools.eig_si(k, m, p=p,
+                                      mu=-10., Xk=v, pmax=350)
+        ws = np.abs(ws)
+        if len(w) > len(ws):
+            w[:len(ws)] = ws
+            v[:, :len(ws)] = vs
+        else:
+            w = ws
+            v = vs
+    else:
+        fout.write('Solving generalized eigen problem.\n')
+        w, v = linalg.eig(k, m, right=True)
+        if np.iscomplexobj(w):
+            j = np.argsort(np.abs(w))
+            w = np.abs(w[j])
+            v = np.real(v[:, j])
+            normfacs = np.abs(np.diag(v.T @ m @ v))
+            v = np.sqrt(1 / normfacs) * v
+
+    if v.shape[0] < n:
+        v2 = np.zeros((n, v.shape[1]))
+        v2[nz] = v
+        v = v2
+
+    return w, v
+
+
 def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
              rb_norm, reorder):
     """
@@ -1864,17 +1923,17 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     n = np.size(Mcb, 0)
 
     # check matrix properties:
-    mtype, mtypes = ytools.mattype(Mcb)
+    mtype, types = ytools.mattype(Mcb)
     ktype = ytools.mattype(Kcb)[0]
-    if mtype & mtypes['symmetric']:
+    if mtype & types['symmetric']:
         fout.write('Mass matrix is symmetric.\n')
     else:
         fout.write('Warning: mass matrix is not symmetric.\n')
-    if mtype & mtypes['posdef']:
+    if mtype & types['posdef']:
         fout.write('Mass matrix is positive definite.\n')
     else:
         fout.write('Warning: mass matrix is not positive definite.\n')
-    if ktype & mtypes['symmetric']:
+    if ktype & types['symmetric']:
         fout.write('Stiffness matrix is symmetric.\n')
     else:
         fout.write('Warning: stiffness matrix is not symmetric.\n')
@@ -2019,37 +2078,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                                 ttl, True, fout, rb_normalizer)
 
     # calculate free-free modes:
-    if mtype & mtypes['posdef'] and ktype & mtypes['symmetric']:
-        fout.write('Solving hermitian eigen problem.\n')
-        w, v = linalg.eigh(k, m)
-        w = np.abs(w)
-        # due to trouble with low frequency accuracy in DSYEVR, use
-        # subspace iteration for lower frequency modes (up to 50 Hz,
-        # but limit to 350 modes)
-        f = np.sqrt(w) / (2 * math.pi)
-        p = np.sum(f < 50.)
-        # num = max(6, min(10, n/10))
-        if 0:
-            ws, vs = sp_la.eigsh(k, p, m, sigma=1., mode='normal')
-        else:
-            ws, vs, _ = ytools.eig_si(k, m, p=p,
-                                      mu=-10., Xk=v, pmax=350)
-        ws = np.abs(ws)
-        if len(w) > len(ws):
-            w[:len(ws)] = ws
-            v[:, :len(ws)] = vs
-        else:
-            w = ws
-            v = vs
-    else:
-        fout.write('Solving generalized eigen problem.\n')
-        w, v = linalg.eig(k, m, right=True)
-        if np.iscomplexobj(w):
-            j = np.argsort(np.abs(w))
-            w = np.abs(w[j])
-            v = np.real(v[:, j])
-            normfacs = np.abs(np.diag(v.T @ m @ v))
-            v = np.sqrt(1 / normfacs) * v
+    w, v = _solve_eig(fout, k, m, mtype, ktype, types)
 
     # assuming 6 rigid-body modes
     rbe = linalg.solve(v[bref, :6].T, v[:, :6].T).T
