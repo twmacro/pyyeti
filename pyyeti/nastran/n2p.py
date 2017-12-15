@@ -182,9 +182,10 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     ngrids = uset.shape[0] // 6
 
     # rigid-body modes in basic coordinate system:
+    uset_dof1 = uset.iloc[::6, :]
     if np.size(refpoint) == 1:
-        refpoint = uset.index.get_loc((refpoint, 1))
-    xyz = uset.loc[(slice(None), 1), 'x':'z'].values
+        refpoint = uset_dof1.index.get_loc((refpoint, 1))
+    xyz = uset_dof1.loc[:, 'x':'z'].values
     rb = rbgeom(xyz, refpoint)
 
     # treat as rectangular here; fix cylindrical & spherical below
@@ -192,19 +193,16 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     for j in range(ngrids):
         i = 6 * j
         t = uset.iloc[i + 3:i + 6, 1:].values.T
-        # t = grids[i + 3:i + 6, 3:].T
         rb2[i:i + 3] = t @ rb[i:i + 3]
         rb2[i + 3:i + 6] = t @ rb[i + 3:i + 6]
 
     # fix up cylindrical:
     grid_loc = np.arange(0, uset.shape[0], 6)
     cyl = uset.loc[(slice(None), 2), 'y'] == 2
-    # cyl = grids[1::6, 4] == 2
     if cyl.any():
         grid_loc_cyl = grid_loc[cyl]
         for i in grid_loc_cyl:
             t = uset.iloc[i + 3:i + 6, 1:].values.T
-            # t = grids[i + 3:i + 6, 3:].T
             loc = uset.iloc[i, 1:]
             loc2 = t @ (loc - uset.iloc[i + 2, 1:]).values
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
@@ -216,13 +214,11 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
                 rb2[i + 3:i + 5] = t @ rb2[i + 3:i + 5]
 
     # fix up spherical:
-    # sph = grids[1::6, 4] == 3
     sph = uset.loc[(slice(None), 2), 'y'] == 3
     if sph.any():
         grid_loc_sph = grid_loc[sph]
         for i in grid_loc_sph:
             t = uset.iloc[i + 3:i + 6, 1:].values.T
-            # t = grids[i + 3:i + 6, 3:].T
             loc = uset.iloc[i, 1:]
             loc2 = t @ (loc - uset.iloc[i + 2, 1:]).values
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
@@ -276,7 +272,6 @@ def rbmove(rb, oldref, newref):
     >>> rb1_b = nastran.rbmove(rb0, [0., 0., 0.], [2., 4., -5.])
     >>> np.all(rb1_b == rb1)
     True
-
     """
     return rb @ rbgeom(oldref, newref)
 
@@ -1639,7 +1634,7 @@ def getcoords(uset, gid, csys, coordref=None):
     array([ 0.,  0.,  0.])
     """
     if np.size(gid) == 1:
-        xyz_basic = uset.loc[(gid, 1), 'x':'z']
+        xyz_basic = uset.loc[(gid, 1), 'x':'z'].values
     else:
         xyz_basic = np.asarray(gid).ravel()
     if np.size(csys) == 1 and csys == 0:
