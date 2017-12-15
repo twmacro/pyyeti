@@ -1726,7 +1726,7 @@ def rbdispchk(f, rbdisp, grids=None,
 
 
 def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
-               verbose, rb_normalizer):
+                verbose, rb_normalizer):
     """
     Routine used by :func:`cbcoordchk`. See documentation for
     :func:`cbcoordchk`.
