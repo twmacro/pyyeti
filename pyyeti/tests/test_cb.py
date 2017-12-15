@@ -276,8 +276,8 @@ def comptable(s1, s2, j, col=0, label=None, skip=0, sort2=0):
 def compare_cbcheck_output(s, sy):
     j = [15]
     assert comptable(s, sy, j, label=' ID ', skip=2)
-    assert comptable(s, sy, j, label='RB ', skip=4)
-    assert comptable(s, sy, j, label='RB ', skip=4)
+    assert comptable(s, sy, j, label='----------', skip=1)
+    assert comptable(s, sy, j, label='----------', skip=1)
     assert comptable(s, sy, j, label='6x6 ', skip=2)
     assert comptable(s, sy, j, label='6x6 ', skip=2)
     assert comptable(s, sy, j, label='6x6 ', skip=2)

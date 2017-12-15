@@ -1725,6 +1725,69 @@ def rbdispchk(f, rbdisp, grids=None,
                          verbose, tol)
 
 
+def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
+               verbose, rb_normalizer):
+    """
+    Routine used by :func:`cbcoordchk`. See documentation for
+    :func:`cbcoordchk`.
+    """
+    lt = np.size(K, 0)
+    lb = len(bset)
+    lq = lt - lb
+
+    if (lb // 6) * 6 != lb:
+        raise ValueError('b-set not a multiple of 6.')
+
+    if len(refpoint) != 6:
+        raise ValueError('reference point must have length of 6.')
+
+    kbb = K[np.ix_(bset, bset)]
+    o = locate.flippv(refpoint, lb)
+    rbmodes = np.zeros((lb, 6))
+    rbmodes[refpoint] = np.eye(6)
+    if o.size > 0:
+        kor = kbb[np.ix_(o, refpoint)]
+        koo = kbb[np.ix_(o, o)]
+        # rbmodes[o] = -linalg.solve(koo, kor)
+        # to handle the cases where some rows/cols are zero:
+        rbmodes[o] = -linalg.lstsq(koo, kor)[0]
+
+        # check for proper refpoint selection (dof that properly
+        # restrains all rb motion, but nothing more). this should be
+        # zero:
+        #   krr - kro @ inv(koo) @ kor
+        krr = kbb[np.ix_(refpoint, refpoint)]
+        rhs = -kor.T @ rbmodes[o]
+        if not np.allclose(krr, rhs):
+            def _write_matrix(mat):
+                fout.write('\t' + str(mat).replace('\n ', '\n\t ') +
+                           '\n\n')
+            fout.write(
+                '\nWarning: reference DOF do not appear to '
+                'properly restrain rigid-body motion.\n'
+                'Splitting "kbb" into the "r" (reference) and '
+                '"o" (other) sets, this should be zero:\n\n')
+            fout.write('\tkrr - kro @ inv(koo) @ kor\n\n')
+            fout.write('However, "krr" is:\n\n')
+            _write_matrix(krr)
+            fout.write('"-kro @ inv(koo) @ kor" is:\n\n')
+            _write_matrix(rhs)
+            fout.write('and they sum to:\n\n')
+            _write_matrix(krr + rhs)
+
+    if rb_normalizer is not None:
+        rbmodes = rbmodes @ rb_normalizer
+
+    xyz = ytools.mkpattvec([0, 1, 2], lb, 6).ravel()
+    coords, maxerr = rbdispchk(fout, rbmodes[xyz],
+                               grids, ttl, verbose)
+    if lq > 0:
+        rbmodes1 = rbmodes
+        rbmodes = np.zeros((lt, 6))
+        rbmodes[bset] = rbmodes1
+    return coords, rbmodes, maxerr
+
+
 def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
                verbose=True, outfile=1, rb_normalizer=None):
     """
@@ -1761,11 +1824,13 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
             rbmodes = rbmodes @ rb_normalizer
 
         `rb_normalizer` is 6 x 6. This normalization is necessary when
-        the DOF in `refpoint` are spread out amongst multiple nodes.
-        `rb_normalizer` defines the motion of the `refpoint` DOF
-        relative to some reference location. For example, the
-        following creates an `rb_normalizer` relative to the origin of
-        the basic coordinate system::
+        the DOF in `refpoint` are spread out amongst multiple nodes
+        (which is necessary when all DOF of a single node cannot
+        restrain all rigid-body motion). `rb_normalizer` defines the
+        motion of the `refpoint` DOF relative to some reference
+        location. For example, the following creates an
+        `rb_normalizer` relative to the origin of the basic coordinate
+        system::
 
             R = [0., 0., 0.]
             rb_normalizer = n2p.rbgeom_uset(uset[bset], R)[refpoint]
@@ -1825,38 +1890,8 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     :func:`pyyeti.nastran.n2p.rbgeom`,
     :func:`pyyeti.nastran.n2p.rbgeom_uset`
     """
-    lt = np.size(K, 0)
-    lb = len(bset)
-    lq = lt - lb
-
-    if (lb // 6) * 6 != lb:
-        raise ValueError('b-set not a multiple of 6.')
-
-    if len(refpoint) != 6:
-        raise ValueError('reference point must have length of 6.')
-
-    kbb = K[np.ix_(bset, bset)]
-    o = locate.flippv(refpoint, lb)
-    rbmodes = np.zeros((lb, 6))
-    rbmodes[refpoint] = np.eye(6)
-    if o.size > 0:
-        kor = kbb[np.ix_(o, refpoint)]
-        koo = kbb[np.ix_(o, o)]
-        # rbmodes[o] = -linalg.solve(koo, kor)
-        # to handle the cases where some rows/cols are zero:
-        rbmodes[o] = -linalg.lstsq(koo, kor)[0]
-
-    if rb_normalizer is not None:
-        rbmodes = rbmodes @ rb_normalizer
-
-    xyz = ytools.mkpattvec([0, 1, 2], lb, 6).ravel()
-    coords, maxerr = rbdispchk(outfile, rbmodes[xyz],
-                               grids, ttl, verbose)
-    if lq > 0:
-        rbmodes1 = rbmodes
-        rbmodes = np.zeros((lt, 6))
-        rbmodes[bset] = rbmodes1
-    return coords, rbmodes, maxerr
+    return ytools.wtfile(outfile, _cbcoordchk, K, bset, refpoint,
+                         grids, ttl, verbose, rb_normalizer)
 
 
 def _solve_eig(fout, k, m, mtype, ktype, types):
@@ -1866,10 +1901,15 @@ def _solve_eig(fout, k, m, mtype, ktype, types):
     # chop out zero rows/cols ... assume symmetry:
     n = k.shape[0]
     nz = k.any(axis=0)
-    if (~nz).any():
+    z = ~nz
+    if z.any():
         # there are zero cols
+        fout.write(
+            '\nTrimming out null columns (and corresponding '
+            'rows) for free-free eigen problem:\n')
+        fout.write('\tpv = ' + str(z.nonzero()[0]) + '\n\n')
         nz2 = np.ix_(nz, nz)
-        m = k[nz2]
+        m = m[nz2]
         k = k[nz2]
         mtype, types = ytools.mattype(m)
         ktype = ytools.mattype(k)[0]
@@ -2086,6 +2126,22 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         rbe = rbe @ rb_normalizer
 
     # distance of motion check:
+    def _write_move_chk(ttl, rss_s, rss_g, rss_e, uset):
+        fout.write(
+            ttl + '\n'
+            '-- should all be 1.0s (can be 0.0 for DOF with zero '
+            'stiffness):\n\n')
+        fout.write('\tNode          Stiffness-based      '
+                   '  Geometry-based        Eigenvalue-based\n')
+        fout.write('\t---------   -------------------    '
+                   '-------------------    -------------------\n')
+        writer.vecwrite(fout, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
+                        '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
+                        '{:5.3f}  {:5.3f}\n',
+                        uset[::6, 0].astype(np.int64),
+                        rss_s, rss_g, rss_e)
+        fout.write('\n\n')
+
     rbs_b = rbs[bset]
     rbg_b = rbg
     rbe_b = rbe[bset]
@@ -2099,18 +2155,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         rss_g[i] = np.sqrt((rbg_b[s, :3]**2).sum(axis=0))
         rss_e[i] = np.sqrt((rbe_b[s, :3]**2).sum(axis=0))
 
-    fout.write('RB Translation Movement Check '
-               '-- should all be 1.0s:\n\n')
-    fout.write('\tNode          Stiffness-based      '
-               '  Geometry-based        Eigenvalue-based\n')
-    fout.write('\t---------   -------------------    '
-               '-------------------    -------------------\n')
-    writer.vecwrite(fout, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
-                    '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
-                    '{:5.3f}  {:5.3f}\n',
-                    uset[::6, 0].astype(np.int64),
-                    rss_s, rss_g, rss_e)
-    fout.write('\n\n')
+    _write_move_chk('RB Translation Movement Check',
+                    rss_s, rss_g, rss_e, uset)
 
     rss_rot_s = np.zeros((nb, 3))
     rss_rot_g = np.zeros((nb, 3))
@@ -2121,18 +2167,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         rss_rot_g[i] = np.sqrt((rbg_b[s, 3:]**2).sum(axis=0))
         rss_rot_e[i] = np.sqrt((rbe_b[s, 3:]**2).sum(axis=0))
 
-    fout.write('RB Rotation Movement Check '
-               '-- should all be 1.0s:\n\n')
-    fout.write('\tNode          Stiffness-based      '
-               '  Geometry-based        Eigenvalue-based\n')
-    fout.write('\t---------   -------------------    '
-               '-------------------    -------------------\n')
-    writer.vecwrite(fout, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
-                    '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
-                    '{:5.3f}  {:5.3f}\n',
-                    uset[::6, 0].astype(np.int64),
-                    rss_rot_s, rss_rot_g, rss_rot_e)
-    fout.write('\n\n')
+    _write_move_chk('RB Rotation Movement Check',
+                    rss_rot_s, rss_rot_g, rss_rot_e, uset)
 
     # get mass properties:
     ms = rbs.T @ m @ rbs
@@ -2239,7 +2275,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     fout.write('\tMode   Frequency (Hz)\n')
     fout.write('\t----   --------------\n')
     writer.vecwrite(fout, '\t{:4d}  {:15.6f}\n',
-                    np.arange(n) + 1, np.sqrt(w) / (2 * math.pi))
+                    np.arange(len(w)) + 1, np.sqrt(w) / (2 * math.pi))
 
     # compute modal-effective mass:
     if nq > 0:
