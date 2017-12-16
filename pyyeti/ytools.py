@@ -468,7 +468,7 @@ def sturm(A, lam):
 
 def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
            pmax=None, maxiter=50, verbose=True):
-    """
+    r"""
     Perform subspace iteration to calculate eigenvalues and eigenvectors.
 
     Parameters
@@ -510,9 +510,17 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
 
     Notes
     -----
+    The routine solves the eigenvalue problem:
+
+    .. math::
+       K \Phi = M \Phi \Lambda
+
+    Where :math:`\Phi` is a matrix of right eigenvectors and
+    :math:`\Lambda` is a diagonal matrix of eigenvalues.
+
     This routine works well for relatively small `p`. Trying to
-    recover all modes may fail. Craig-Bampton models with residual
-    flexibility modes also cause trouble.
+    recover a large portion of modes may fail. Craig-Bampton models
+    with residual flexibility modes also cause trouble.
 
     `mu` must not equal any eigenvalue. For systems with rigid-body
     modes, `mu` must be non-zero. Recommendations:
