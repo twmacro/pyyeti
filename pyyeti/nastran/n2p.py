@@ -198,7 +198,7 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
 
     # fix up cylindrical:
     grid_loc = np.arange(0, uset.shape[0], 6)
-    cyl = uset.loc[(slice(None), 2), 'y'] == 2
+    cyl = (uset.loc[(slice(None), 2), 'y'] == 2).values
     if cyl.any():
         grid_loc_cyl = grid_loc[cyl]
         for i in grid_loc_cyl:
@@ -214,7 +214,7 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
                 rb2[i + 3:i + 5] = t @ rb2[i + 3:i + 5]
 
     # fix up spherical:
-    sph = uset.loc[(slice(None), 2), 'y'] == 3
+    sph = (uset.loc[(slice(None), 2), 'y'] == 3).values
     if sph.any():
         grid_loc_sph = grid_loc[sph]
         for i in grid_loc_sph:
@@ -1218,16 +1218,16 @@ def _get_coordinfo_byid(refid, uset):
     if refid == 0:
         return np.vstack((np.array([[0, 1, 0], [0., 0., 0.]]),
                           np.eye(3)))
-    try:
+    if uset is not None:
         dof = uset.index.get_level_values('dof')
         pv = (dof == 2).nonzero()[0]
-        pos = (uset.iloc[pv, 1] == refid).nonzero()[0][0]
-        if pos.size > 0:
-            i = pv[pos]
-            return uset.iloc[i:i + 5, 1:].values
-    except:
-        raise ValueError('reference coordinate id {} not '
-                         'found in `uset`.'.format(refid))
+        if pv.size > 0:
+            pos = (uset.iloc[pv, 1] == refid).nonzero()[0]
+            if pos.size > 0:
+                i = pv[pos[0]]
+                return uset.iloc[i:i + 5, 1:].values
+    raise ValueError('reference coordinate id {} not '
+                     'found in `uset`.'.format(refid))
 
 
 def get_coordinfo(cord, uset, coordref):
@@ -1237,7 +1237,7 @@ def get_coordinfo(cord, uset, coordref):
 
     Parameters
     ----------
-    cord : scalar or 4x3 array_like
+    cord : scalar integer or 4x3 array_like
         If scalar, it is a coordinate system id (must be 0 or appear
         in either `uset` or `coordref`). If 4x3 matrix, format is as
         on a Nastran CORD2* card::
@@ -1249,7 +1249,7 @@ def get_coordinfo(cord, uset, coordref):
 
         where type is 0 (rectangular), 1 (cylindrical), or 2
         (spherical).
-    uset : ndarray
+    uset : ndarray or None
         A 6-column matrix as output by
         :func:`pyyeti.op2.OP2.rdn2cop2`. Not used unless needed.
     coordref : dictionary
@@ -1281,14 +1281,30 @@ def get_coordinfo(cord, uset, coordref):
     :func:`addgrid`, :func:`pyyeti.op2.OP2.rdn2cop2`
     """
     if np.size(cord) == 1:
+        cid = int(cord)
         try:
-            return coordref[cord]
+            return coordref[cid]
         except KeyError:
-            ci = _get_coordinfo_byid(cord, uset)
+            ci = _get_coordinfo_byid(cid, uset)
             coordref[cord] = ci
             return ci
     cord = np.atleast_2d(cord)
-    cid_type = cord[0, :2].astype(np.int64)
+    if cord.shape != (4, 3):
+        raise ValueError('incorrectly sized `cord` input')
+    cid, ctype = cord[0, :2].astype(np.int64)
+
+    try:
+        return coordref[cid]
+    except KeyError:
+        try:
+            ci = _get_coordinfo_byid(cid, uset)
+        except ValueError:
+            # id not already processed ... go through calcs below
+            pass
+        else:
+            coordref[cid] = ci
+            return ci
+
     try:
         refinfo = coordref[cord[0, 2]]
     except KeyError:
@@ -1331,9 +1347,9 @@ def get_coordinfo(cord, uset, coordref):
     Tg = refinfo[2:]
     location = refinfo[1] + Tg @ a
     T = Tg @ np.vstack((x, y, z)).T
-    row1 = np.hstack((cid_type, 0))
+    row1 = np.hstack((cid, ctype, 0))
     coordinfo = np.vstack((row1, location, T))
-    coordref[cid_type[0]] = coordinfo
+    coordref[cid] = coordinfo
     return coordinfo
 
 
@@ -1753,17 +1769,17 @@ def make_uset(idlist, doflist, uset=0, x=np.nan, y=np.nan, z=np.nan,
                         columns=['uset', *'xyz'])
 
 
-def _addgrid_get_ci(coord, uset, coordref, cmap):
-    cid = id(coord)
-    try:
-        ci = cmap[cid]
-    except KeyError:
-        ci = get_coordinfo(coord, uset, coordref)
-        cmap[cid] = ci
-    return ci
+#- def _addgrid_get_ci(coord, uset, coordref, cmap):
+#-     cid = id(coord)
+#-     try:
+#-         ci = cmap[cid]
+#-     except KeyError:
+#-         ci = get_coordinfo(coord, uset, coordref)
+#-         cmap[cid] = ci
+#-     return ci
 
 
-def _addgrid_proc_ci(coord, uset, coordref, cmap):
+def _addgrid_proc_ci(coord, uset, coordref):
     """
     :func:`addgrid` utility to ensure "coord" is iterable
     """
@@ -1775,15 +1791,13 @@ def _addgrid_proc_ci(coord, uset, coordref, cmap):
     else:
         # is iterable ... but is it just one coord matrix?
         try:
-            ci = _addgrid_get_ci(coord, uset, coordref, cmap)
+            ci = get_coordinfo(coord, uset, coordref)
         except (TypeError, ValueError, IndexError):
             # assume it's a good iterable already
             pass
         else:
-            # wasn't iterable of coords, save result & make it
-            # iterable:
-            cmap[id(coord)] = ci
-            coord = itertools.cycle((coord,))
+            # was just one coord matrix ... make iterable of cid
+            coord = itertools.cycle((int(ci[0, 0]),))
     return coord
 
 
@@ -1984,9 +1998,8 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         nasset = itertools.cycle((nasset,))
 
     # make sure coordin and coordout are iterables:
-    cmap = {}
-    cin = _addgrid_proc_ci(coordin, uset, coordref, cmap)
-    cout = _addgrid_proc_ci(coordout, uset, coordref, cmap)
+    cin = _addgrid_proc_ci(coordin, uset, coordref)
+    cout = _addgrid_proc_ci(coordout, uset, coordref)
 
     # make sure xyz is 2d ndarray:
     xyz = np.atleast_2d(xyz)
@@ -1996,11 +2009,11 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         _uset = _addgrid_get_uset(u, mask, smap)
 
         # get location of point in basic:
-        _cin = _addgrid_get_ci(_cin, uset, coordref, cmap)
+        _cin = get_coordinfo(_cin, uset, coordref)
         loc = _get_loc_a_basic(_cin, _xyz)
 
         # form x, y, z columns of dataframe:
-        _cout = _addgrid_get_ci(_cout, uset, coordref, cmap)
+        _cout = get_coordinfo(_cout, uset, coordref)
         _xyz = np.vstack((loc, _cout))
 
         # put in dataframe:
@@ -2506,7 +2519,7 @@ def upqsetpv(nas, sedn=0):
             # upstream a-set
             pv1 = usetdn.index.isin(dnids, level='id')
 
-            if pv1.size < dnids.size:
+            if np.count_nonzero(pv1) < dnids.size:
                 # must be an external se, but non-csuper type (the
                 # extseout, seconct, etc, type)
 
@@ -2524,7 +2537,8 @@ def upqsetpv(nas, sedn=0):
 
                 # length of pv1 should equal size of upstream a-set
                 pv1 = usetdn.index.isin(ids[pv1], level='id')
-                if pv1.size < dnids.size:   # pragma: no cover
+                cnt = np.count_nonzero(pv1)
+                if cnt < dnids.size:   # pragma: no cover
                     raise ValueError('not all upstream DOF could'
                                      ' be found in downstream')
 
@@ -2662,14 +2676,14 @@ def formtran(nas, se, dof, gset=False):
     Parameters
     ----------
     nas : dictionary
-        This is the nas2cam dictionary:  ``nas = op2.rdnas2cam()``
+        This is the nas2cam dictionary: ``nas = op2.rdnas2cam()``
     se : integer
         The id of the superelement.
     dof : 1d or 2d array
         One or two column matrix: [ids] or [ids, dofs]; if one column,
         the second column is internally set to 123456 for each id
     gset : bool; optional
-        If true, and `sedn` == 0, transform from g-set instead of
+        If True, and `sedn` == 0, transform from g-set instead of
         modal DOF. See below.
 
     Returns
@@ -2739,7 +2753,7 @@ def formtran(nas, se, dof, gset=False):
         sets = np.hstack((sets, t))
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
-    pvdofo = locate.mat_intersect(iddof[0], dof)[0]
+    pvdofo = locate.mat_intersect(iddof[o], dof)[0]
     haso = 0
     if pvdofo.size > 0:
         haso = 1
@@ -2818,9 +2832,8 @@ def formtran(nas, se, dof, gset=False):
     tran = np.zeros((len(pv), ct + cq))
     R = 0
     if hast:
-        I = np.eye(ct)
         R = len(t)
-        tran[:R, t_a] = I[pvdoft]
+        tran[:R, t_a] = np.eye(ct)[pvdoft]
 
     if haso:
         tran[R:R + len(o), t_a] = got[pvdofo]
@@ -2846,8 +2859,7 @@ def formtran(nas, se, dof, gset=False):
         R += len(m)
 
     if hasq:
-        I = np.eye(cq)
-        tran[R:R + len(q), q_a] = I[pvdofq]
+        tran[R:R + len(q), q_a] = np.eye(cq)[pvdofq]
         R += len(q)
 
     if hass:
@@ -2936,7 +2948,8 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
         usetup = nas['uset'][seup]
         usetdn = nas['uset'][sedown]
         tqup = upasetpv(nas, seup)
-        ulvs1 = formtran(nas, sedown, usetdn[tqup, :2], gset)[0]
+        iddof = usetdn.iloc[tqup, :0].reset_index().values
+        ulvs1 = formtran(nas, sedown, iddof, gset)[0]
         # get rid of c-set if required
         if not keepcset:
             noncrows = np.logical_not(mksetpv(usetup, "a", "c"))

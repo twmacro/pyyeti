@@ -9,6 +9,14 @@ from pyyeti.nastran import n2p, op2, op4
 from nose.tools import *
 
 
+def conv_uset(uset):
+    x, y, z = uset[:, 3:].T
+    return n2p.make_uset(uset[:, 0].astype(int),
+                         uset[:, 1].astype(int),
+                         uset[:, 2].astype(int),
+                         x, y, z, use_product=False)
+
+
 def test_rbgeom():
     x, y, z = 30., 10., 20.
     grids = np.array([[0., 0., 0.], [x, y, z]])
@@ -58,6 +66,7 @@ def test_rbgeom_uset():
         [400,        4,        1,        1,        0,        0],
         [400,        5,        1,        0,        1,        0],
         [400,        6,        1,        0,        0,        1]])
+    uset = conv_uset(uset)
     pv = n2p.mksetpv(uset, 'a', 'b')
     assert np.sum(pv) == 6
     pv = n2p.mksetpv(uset, 'p', 'b+q')
@@ -65,7 +74,9 @@ def test_rbgeom_uset():
     pv = n2p.mksetpv(uset, 'p', 'm+a')
     assert np.sum(pv) == 18
     pv = n2p.mksetpv(uset, 'g', 'q')
-    assert np.all(uset[pv, 0] == [200, 200, 200, 200, 200, 200])
+
+    assert np.all(uset.iloc[pv].index.get_level_values(0) ==
+                  [200, 200, 200, 200, 200, 200])
     rb = n2p.rbgeom_uset(uset, 300)
     rb_should_be = np.array([
         [1,    0,    0,    0,  -15,   10],
@@ -95,56 +106,43 @@ def test_rbgeom_uset():
     err = (np.abs(rb - rb_should_be)).max()
     assert err < 1.e-14
 
-    fname = 'delete.this'
-    n2p.usetprt(fname, uset, form=2, perpage=8,
-                printsets='m, o, q, b, a, n, g')
-    sbe = (' DOF #     GRID    DOF     M   O   Q   B   A   N   G\n'
-           '-------  --------  ---     --  --  --  --  --  --  --\n'
-           '      1       100   1                   1   1   1   1\n'
-           '      2       100   2                   2   2   2   2\n'
-           '      3       100   3                   3   3   3   3\n'
-           '      4       100   4                   4   4   4   4\n'
-           '      5       100   5                   5   5   5   5\n'
-           '      6       100   6                   6   6   6   6\n'
-           '{} DOF #     GRID    DOF     M   O   Q   B   A   N   G\n'
-           '-------  --------  ---     --  --  --  --  --  --  --\n'
-           '      7       200   1               1       7   7   7\n'
-           '      8       200   2               2       8   8   8\n'
-           '      9       200   3               3       9   9   9\n'
-           '     10       200   4               4      10  10  10\n'
-           '     11       200   5               5      11  11  11\n'
-           '     12       200   6               6      12  12  12\n'
-           '{} DOF #     GRID    DOF     M   O   Q   B   A   N   G\n'
-           '-------  --------  ---     --  --  --  --  --  --  --\n'
-           '     13       300   1           1              13  13\n'
-           '     14       300   2           2              14  14\n'
-           '     15       300   3           3              15  15\n'
-           '     16       300   4           4              16  16\n'
-           '     17       300   5           5              17  17\n'
-           '     18       300   6           6              18  18\n'
-           '{} DOF #     GRID    DOF     M   O   Q   B   A   N   G\n'
-           '-------  --------  ---     --  --  --  --  --  --  --\n'
-           '     19       400   1       1                      19\n'
-           '     20       400   2       2                      20\n'
-           '     21       400   3       3                      21\n'
-           '     22       400   4       4                      22\n'
-           '     23       400   5       5                      23\n'
-           '     24       400   6       6                      24\n'.
-           format(chr(12), chr(12), chr(12)))
-
-    with open(fname) as f:
-        tbl = ''.join(f.readlines())
-    assert tbl == sbe
-
-    n2p.usetprt(fname, uset, form=0, perpage=8)
+    with io.StringIO() as f:
+        tab = n2p.usetprt(f, uset, printsets='m, o, q, b, a, n, g')
+        prt = f.getvalue()
+    s = str(tab).split('\n')
+    sbe = [
+        '              M  O  Q  B   A   N   G',
+        'id  dof dof#                        ',
+        '100 1   1     0  0  0  1   1   1   1',
+        '    2   2     0  0  0  2   2   2   2',
+        '    3   3     0  0  0  3   3   3   3',
+        '    4   4     0  0  0  4   4   4   4',
+        '    5   5     0  0  0  5   5   5   5',
+        '    6   6     0  0  0  6   6   6   6',
+        '200 1   7     0  0  1  0   7   7   7',
+        '    2   8     0  0  2  0   8   8   8',
+        '    3   9     0  0  3  0   9   9   9',
+        '    4   10    0  0  4  0  10  10  10',
+        '    5   11    0  0  5  0  11  11  11',
+        '    6   12    0  0  6  0  12  12  12',
+        '300 1   13    0  1  0  0   0  13  13',
+        '    2   14    0  2  0  0   0  14  14',
+        '    3   15    0  3  0  0   0  15  15',
+        '    4   16    0  4  0  0   0  16  16',
+        '    5   17    0  5  0  0   0  17  17',
+        '    6   18    0  6  0  0   0  18  18',
+        '400 1   19    1  0  0  0   0   0  19',
+        '    2   20    2  0  0  0   0   0  20',
+        '    3   21    3  0  0  0   0   0  21',
+        '    4   22    4  0  0  0   0   0  22',
+        '    5   23    5  0  0  0   0   0  23',
+        '    6   24    6  0  0  0   0   0  24']
+    assert s == sbe
     sbe = ('M-set\n'
            '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
            '     1=      400-1      400-2      400-3      400-4      400-5      400-6\n'
            '\n'
-           'S-set, R-set, C-set, E-set\n'
-           '      -None-\n'
-           '\n'
-           '{}O-set\n'
+           'O-set\n'
            '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
            '     1=      300-1      300-2      300-3      300-4      300-5      300-6\n'
            '\n'
@@ -152,7 +150,7 @@ def test_rbgeom_uset():
            '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
            '     1=      200-1      200-2      200-3      200-4      200-5      200-6\n'
            '\n'
-           '{}B-set, L-set, T-set\n'
+           'B-set\n'
            '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
            '     1=      100-1      100-2      100-3      100-4      100-5      100-6\n'
            '\n'
@@ -161,7 +159,7 @@ def test_rbgeom_uset():
            '     1=      100-1      100-2      100-3      100-4      100-5      100-6      200-1      200-2      200-3      200-4 =    10\n'
            '    11=      200-5      200-6\n'
            '\n'
-           '{}F-set, N-set\n'
+           'N-set\n'
            '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
            '     1=      100-1      100-2      100-3      100-4      100-5      100-6      200-1      200-2      200-3      200-4 =    10\n'
            '    11=      200-5      200-6      300-1      300-2      300-3      300-4      300-5      300-6\n'
@@ -169,63 +167,52 @@ def test_rbgeom_uset():
            'G-set\n'
            '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
            '     1=      100-1      100-2      100-3      100-4      100-5      100-6      200-1      200-2      200-3      200-4 =    10\n'
-           '{}G-set (continued)\n'
-           '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
            '    11=      200-5      200-6      300-1      300-2      300-3      300-4      300-5      300-6      400-1      400-2 =    20\n'
            '    21=      400-3      400-4      400-5      400-6\n'
-           '\n'.format(chr(12), chr(12), chr(12), chr(12)))
-
-    with open(fname) as f:
-        tbl = ''.join(f.readlines())
-    os.remove(fname)
-    assert tbl == sbe
+           '\n')
+    assert prt == sbe
 
     with io.StringIO() as f:
-        n2p.usetprt(f, uset, form=4, perpage=8,
-                    printsets='m, b')
-        tbl = f.getvalue()
-    sbe = (' DOF #     GRID    DOF     M     B\n'
-           '-------  --------  ---     ----  ----\n'
-           '      1       100   1               1\n'
-           '      2       100   2               2\n'
-           '      3       100   3               3\n'
-           '      4       100   4               4\n'
-           '      5       100   5               5\n'
-           '      6       100   6               6\n'
-           '{} DOF #     GRID    DOF     M     B\n'
-           '-------  --------  ---     ----  ----\n'
-           '     19       400   1         1\n'
-           '     20       400   2         2\n'
-           '     21       400   3         3\n'
-           '     22       400   4         4\n'
-           '     23       400   5         5\n'
-           '     24       400   6         6\n'.format(chr(12)))
-    assert tbl == sbe
+        tab = n2p.usetprt(f, uset)
+        prt = f.getvalue()
+    sbe = ('M-set\n'
+           '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
+           '     1=      400-1      400-2      400-3      400-4      400-5      400-6\n'
+           '\n'
+           'S-set, R-set, C-set, E-set\n'
+           '      -None-\n'
+           '\n'
+           'O-set\n'
+           '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
+           '     1=      300-1      300-2      300-3      300-4      300-5      300-6\n'
+           '\n'
+           'Q-set\n'
+           '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
+           '     1=      200-1      200-2      200-3      200-4      200-5      200-6\n'
+           '\n'
+           'B-set, L-set, T-set\n'
+           '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
+           '     1=      100-1      100-2      100-3      100-4      100-5      100-6\n'
+           '\n'
+           'A-set\n'
+           '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
+           '     1=      100-1      100-2      100-3      100-4      100-5      100-6      200-1      200-2      200-3      200-4 =    10\n'
+           '    11=      200-5      200-6\n'
+           '\n'
+           'F-set, N-set\n'
+           '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
+           '     1=      100-1      100-2      100-3      100-4      100-5      100-6      200-1      200-2      200-3      200-4 =    10\n'
+           '    11=      200-5      200-6      300-1      300-2      300-3      300-4      300-5      300-6\n'
+           '\n'
+           'G-set\n'
+           '             -1-        -2-        -3-        -4-        -5-        -6-        -7-        -8-        -9-       -10-\n'
+           '     1=      100-1      100-2      100-3      100-4      100-5      100-6      200-1      200-2      200-3      200-4 =    10\n'
+           '    11=      200-5      200-6      300-1      300-2      300-3      300-4      300-5      300-6      400-1      400-2 =    20\n'
+           '    21=      400-3      400-4      400-5      400-6\n'
+           '\n')
+
+    assert prt == sbe
     assert n2p.usetprt(0, uset, printsets='r') is None
-    with io.StringIO() as f:
-        n2p.usetprt(f, uset, printsets='b,fe', form=1)
-        tbl = f.getvalue()
-    sbe = (' DOF #     GRID    DOF     B   FE\n'
-           '-------  --------  ---     --  --\n'
-           '      1       100   1       1   1\n'
-           '      2       100   2       2   2\n'
-           '      3       100   3       3   3\n'
-           '      4       100   4       4   4\n'
-           '      5       100   5       5   5\n'
-           '      6       100   6       6   6\n'
-           '      7       200   1           7\n'
-           '      8       200   2           8\n'
-           '      9       200   3           9\n'
-           '     10       200   4          10\n'
-           '     11       200   5          11\n'
-           '     12       200   6          12\n'
-           '     13       300   1          13\n'
-           '     14       300   2          14\n'
-           '     15       300   3          15\n'
-           '     16       300   4          16\n'
-           '     17       300   5          17\n'
-           '     18       300   6          18\n')
-    assert sbe == tbl
 
 
 def test_rbgeom_uset_cylindrical():
@@ -255,7 +242,7 @@ def test_rbgeom_uset_cylindrical():
         [400,        4,        1,        0,        0,        1],
         [400,        5,        1,        1,        0,        0],
         [400,        6,        1,        0,        1,        0]])
-
+    uset = conv_uset(uset)
     rb = n2p.rbgeom_uset(uset)
     rb_should_be = np.array([
         [1.0000,         0,         0,         0,   15.0000,  -10.0000],
@@ -344,6 +331,7 @@ def test_rbgeom_uset_spherical():
         [400,     4,         1,              0,              0,         1.0000],
         [400,     5,         1,         1.0000,              0,              0],
         [400,     6,         1,              0,         1.0000,              0]])
+    uset = conv_uset(uset)
 
     rb = n2p.rbgeom_uset(uset)
     rb_should_be = np.array([
@@ -420,10 +408,20 @@ def test_addgrid():
     # [r, th, z] = [32, 90, 10]
     cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]])
     sphcoord = np.array([[2, 3, 0], [0, 0, 0], [0, 1, 0], [0, 0, 1]])
+
     uset = None
     uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
     uset = n2p.addgrid(uset, 200, 'b', cylcoord, [32, 90, 10], cylcoord)
     uset = n2p.addgrid(uset, 300, 'b', sphcoord, [50, 90, 90], sphcoord)
+
+    uset2 = n2p.addgrid(None, [100, 200, 300], 'b',
+                        [0, cylcoord, sphcoord],
+                        [[5, 10, 15],
+                         [32, 90, 10],
+                         [50, 90, 90]],
+                        [0, cylcoord, sphcoord])
+    assert np.all(uset == uset2)
+
     # get coordinates of node 200 in basic:
     assert np.allclose(np.array([10., 0, 32.]),
                        n2p.getcoords(uset, 200, 0))
@@ -432,17 +430,15 @@ def test_addgrid():
                        n2p.getcoords(uset, [10., 0, 32.], 1))
     assert_raises(ValueError, n2p.addgrid, None, 555, 'b',
                   555, [0, 0, 0], 555)
-    assert_raises(ValueError, n2p.addgrid, uset, uset[0, 0], 'b',
-                  0, [0, 0, 0], 0)
+    assert_raises(ValueError, n2p.addgrid, uset, uset.index[0][0],
+                  'b', 0, [0, 0, 0], 0)
     uset = n2p.addgrid(None, 1, 'brbccq', 0, [0, 0, 0], 0)
     b = n2p.mkusetmask('b')
     r = n2p.mkusetmask('r')
     c = n2p.mkusetmask('c')
     q = n2p.mkusetmask('q')
     sets = [b, r, b, c, c, q]
-    print(uset[:, 2])
-    print(np.array(sets))
-    assert np.all(uset[:, 2] == np.array(sets))
+    assert np.all(uset['uset'] == np.array(sets))
 
 
 def test_getcoords():
@@ -523,15 +519,15 @@ def gettestuset():
               300: [[10, 20, 30], 'o', sphcoord],
               400: [[20, 30, 40], 'm', cylcoord]}
     n = len(coords)
-    uset = np.zeros((n * 6, 6))
+    uset = None
     coordref = {}
     for i, id in enumerate(sorted(coords)):
         j = i * 6
         loc = coords[id][0]
         dofset = coords[id][1]
         csys = coords[id][2]
-        uset[j:j + 6, :] = n2p.addgrid(None, id, dofset, csys, loc,
-                                       csys, coordref)
+        uset = n2p.addgrid(uset, id, dofset, csys, loc,
+                           csys, coordref)
     return uset
 
 
@@ -551,11 +547,8 @@ def test_mksetpv_mkdofpv():
 
 
 def test_coordcardinfo():
-    uset = np.zeros((2, 2))
+    uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
     ci = n2p.coordcardinfo(uset)
-    assert ci == {}
-    uset2 = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
-    ci = n2p.coordcardinfo(uset2)
     assert ci == {}
     assert_raises(ValueError, n2p.coordcardinfo, uset, 5)
 
@@ -657,7 +650,7 @@ def test_formrbe3_1():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_1.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -675,7 +668,7 @@ def test_formrbe3_1():
                          [136, 5.5], [101, 102, 103],
                          [123456, 4.2], [111, 112, 113],
                          [25, .05], [121, 122, 123]])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -690,7 +683,7 @@ def test_formrbe3_2():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_2.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -708,7 +701,7 @@ def test_formrbe3_2():
                          [136, 5.5], [101, 102, 103],
                          [123456, 4.2], [111, 112, 113],
                          [25, .05], [121, 122, 123]])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -723,7 +716,7 @@ def test_formrbe3_3():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_3.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -741,7 +734,7 @@ def test_formrbe3_3():
                          [136, 5.5], [101, 102, 103],
                          [123456, 4.2], [111, 112, 113],
                          [25, .05], [121, 122, 123]])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -753,7 +746,7 @@ def test_formrbe3_4():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_4.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -765,7 +758,7 @@ def test_formrbe3_4():
     pygm = n2p.formrbe3(pyuset, 124, 1346,
                         [[123, 2.6], 100,
                          [456, 1.8], 200])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -783,7 +776,7 @@ def test_formrbe3_UM_1():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_um_1.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -802,7 +795,7 @@ def test_formrbe3_UM_1():
                          [123456, 4.2], [111, 112, 113],
                          [25, .05], [121, 122, 123]],
                         [100, 2, 111, 2346, 122, 5])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -814,7 +807,7 @@ def test_formrbe3_UM_2():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_um_2.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -827,7 +820,7 @@ def test_formrbe3_UM_2():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [124, 123, 200, 456])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -840,7 +833,7 @@ def test_formrbe3_UM_3():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_um_3.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -853,7 +846,7 @@ def test_formrbe3_UM_3():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [124, 152346])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -867,7 +860,7 @@ def test_formrbe3_UM_4():
     # same as test 4:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_4.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -880,7 +873,7 @@ def test_formrbe3_UM_4():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [124, 6341])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -893,7 +886,7 @@ def test_formrbe3_UM_5():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_um_5.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -906,7 +899,7 @@ def test_formrbe3_UM_5():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [100, 12, 200, 56])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -919,7 +912,7 @@ def test_formrbe3_UM_6():
     # load the data from above modes run:
     nasdata = matlab.loadmat('pyyeti/tests/nastran_gm_data/'
                              'make_gm_nx9_rbe3_um_6.mat')
-    uset = nasdata['uset'][0][0][0]
+    uset = conv_uset(nasdata['uset'][0][0][0])
     gm = nasdata['gm'][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
@@ -932,7 +925,7 @@ def test_formrbe3_UM_6():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [100, 12, 200, 5, 124, 6])
-    pyuset[:, 2] = uset[:, 2]  # so set-membership gets ignored
+    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -972,16 +965,16 @@ def test_upqsetpv():
         'pyyeti/tests/nas2cam_extseout/nas2cam')
     pv_extseout = nastran.upqsetpv(nas_extseout, 0)
 
-    ue = nas_extseout['uset'][0]
-    assert np.all((ue[:, 0] > 200) == pv_extseout)
+    ue = nas_extseout['uset'][0].index.get_level_values(0)
+    assert np.all((ue > 200) == pv_extseout)
 
     nas_csuper = nastran.rdnas2cam(
         'pyyeti/tests/nas2cam_csuper/nas2cam')
     pv_csuper = nastran.upqsetpv(nas_csuper)
 
-    uc = nas_csuper['uset'][0]
+    uc = nas_csuper['uset'][0].index.get_level_values(0)
     # last four are dummy dof from grids:
-    pv = (uc[:, 0] > 200)
+    pv = (uc > 200)
     pv[-4:] = False
     assert np.all(pv == pv_csuper)
 
@@ -1273,7 +1266,7 @@ def test_formdrm_noqset():
     # move 'q' set into 's' set:
     s = n2p.mkusetmask('s')
     q = n2p.mksetpv(nas['uset'][100], 'g', 'q')
-    nas['uset'][100][q, 2] = s
+    nas['uset'][100].iloc[q, 0] = s
     drm, dof = n2p.formdrm(nas, seup=100, sedn=100, dof=11)
 
 
@@ -1333,7 +1326,7 @@ def test_rbmodes_allq():
     uset2 = n2p.addgrid(uset2, 100, 'q', 0, [5, 10, 15], 0)
     uset2 = n2p.addgrid(uset2, 300, 'q', sphcoord, [50, 90, 90], sphcoord)
     uset2 = n2p.addgrid(uset2, 200, 'q', cylcoord, [32, 90, 10], cylcoord)
-    assert np.allclose(uset, uset2)
+    assert np.allclose(uset, uset2.sort_index())
 
 
 def test_formdrm_go_warnings():
@@ -1388,13 +1381,18 @@ def test_formdrm_go_warnings():
 
 def test_badrbe3_error():
     # put some grids on the x-axis and build a bad rbe3 to test for
-    # the 'poorly conditioned' message:
     x = np.arange(0, 5, 1.)
-    uset = np.zeros((6 * len(x), 6), float)
-    for i in range(len(x)):
-        j = i * 6
-        uset[j:j + 6, :] = n2p.addgrid(None, i + 1, 'b',
-                                       0, [x[i], 0, 0], 0)
+    n = x.shape[0]
+    y = np.zeros(n)
+    # the 'poorly conditioned' message:
+    uset = n2p.addgrid(None, np.arange(1, n + 1), 'b', 0,
+                       np.column_stack((x, y, y)), 0)
+
+    # uset = np.zeros((6 * len(x), 6), float)
+    # for i in range(len(x)):
+    #     j = i * 6
+    #     uset[j:j + 6, :] = n2p.addgrid(None, i + 1, 'b',
+    #                                    0, [x[i], 0, 0], 0)
     uset = n2p.addgrid(uset, 100, 'b', 0, [5, 5, 5], 0)
     with assert_warns(RuntimeWarning) as cm:
         assert_raises(la.LinAlgError, n2p.formrbe3, uset, 100, 123456,
@@ -1407,15 +1405,18 @@ def test_badrbe3_warn():
     # put some grids on the x-axis and build a bad rbe3 to test for
     # the 'poorly conditioned' message:
     x = np.arange(0, 5, 1.)
-    uset = np.zeros((6 * len(x), 6), float)
+    n = x.shape[0]
+    y = np.zeros(n)
+    z = np.zeros(n)
     for i in range(len(x)):
         j = i * 6
         if i == 4:
-            z = 0.00000000000001
+            _z = 0.00000000000001
         else:
-            z = 0.
-        uset[j:j + 6, :] = n2p.addgrid(None, i + 1, 'b',
-                                       0, [x[i], 0, z], 0)
+            _z = 0.
+        z[i] = _z
+    uset = n2p.addgrid(None, np.arange(1, n + 1), 'b', 0,
+                       np.column_stack((x, y, z)), 0)
     uset = n2p.addgrid(uset, 100, 'b', 0, [5, 5, 5], 0)
     with assert_warns(RuntimeWarning) as cm:
         rbe3 = n2p.formrbe3(uset, 100, 123456,
@@ -1426,11 +1427,11 @@ def test_badrbe3_warn():
 
 def test_rbe3_badum():
     x = np.arange(0, 2, 1.)
-    uset = np.zeros((6 * len(x), 6), float)
-    for i in range(len(x)):
-        j = i * 6
-        uset[j:j + 6, :] = n2p.addgrid(None, i + 1, 'b',
-                                       0, [x[i], 0, 0], 0)
+    n = x.shape[0]
+    y = np.zeros(n)
+    z = np.zeros(n)
+    uset = n2p.addgrid(None, np.arange(1, n + 1), 'b', 0,
+                       np.column_stack((x, y, z)), 0)
     uset = n2p.addgrid(uset, 100, 'b', 0, [5, 5, 5], 0)
     with assert_raises(ValueError) as cm:
         rbe3 = n2p.formrbe3(uset, 100, 123456,

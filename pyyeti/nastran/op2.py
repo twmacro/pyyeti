@@ -1444,8 +1444,8 @@ class OP2(object):
             uset = np.zeros(len(doflist), int) + b
         # uset = np.hstack((np.vstack((idlist, doflist, uset)).T,
         #                   coordinfo))
-        uset = n2p._make_uset(idlist, doflist, uset, *coordinfo.T,
-                              use_product=False)
+        uset = n2p.make_uset(idlist, doflist, uset, *coordinfo.T,
+                             use_product=False)
 
         if cstm2 is None:
             cstm2 = {}
