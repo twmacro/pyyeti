@@ -369,10 +369,12 @@ def _get_conv_factors(conv):
 def _uset_convert(uset, uref, conv):
     lengthconv = _get_conv_factors(conv)[0]
     uset = uset.copy()
-    pv = uset[:, 1] == 1
-    uset[pv, 3:] *= lengthconv
-    pv = uset[:, 1] == 3
-    uset[pv, 3:] *= lengthconv
+    # pv = uset[:, 1] == 1
+    dof = uset.index.get_level_values('dof')
+    pv = dof == 1
+    uset.iloc[pv, 1:] *= lengthconv
+    pv = dof == 3
+    uset.iloc[pv, 1:] *= lengthconv
     try:
         if len(uref) == 3:
             uref = np.atleast_1d(uref) * lengthconv
@@ -1037,7 +1039,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         Mcb = cbreorder(Mcb, bset)
         Kcb = cbreorder(Kcb, bset)
         i = np.argsort(bset)
-        uset = uset[i]
+        uset = uset.iloc[i]
         if bsubset is not None:
             bsubset = locate.index2bool(bsubset, len(bset))
             bsubset = bsubset[i]
@@ -1048,7 +1050,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     # only ifltm needs to be computed for both sets of units
     # (ifatm and cgatm both output g's and rad/sec^2)
     # rigid-body modes relative to reference:
-    uset_if = uset[bset_if]
+    uset_if = uset.iloc[bset_if]
     rb = n2p.rbgeom_uset(uset_if, ref)
     bifb = np.ix_(bset_if, bset)
     ifltma_sc = rb.T @ Mcb[bset_if]
@@ -1072,7 +1074,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         Mcb = cbconvert(Mcb, bset, conv)
         Kcb = cbconvert(Kcb, bset, conv)
         uset, ref = _uset_convert(uset, ref, conv)
-        uset_if = uset[bset_if]
+        uset_if = uset.iloc[bset_if]
 
         # rigid-body modes relative to reference:
         rb = n2p.rbgeom_uset(uset_if, ref)
@@ -1094,9 +1096,11 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
     # add center point for RBE3
     if isinstance(ref, numbers.Integral):
-        i = np.nonzero(uset_if[:, 0] == ref)[0][0]
-        ref = uset[i, 3:]
-    grids = uset_if[::6, 0].astype(np.int64)
+        # i = np.nonzero(uset_if[:, 0] == ref)[0][0]
+        # ref = uset[i, 3:]
+        ref = uset.loc[ref, 'x':'z']
+    # grids = uset_if[::6, 0].astype(np.int64)
+    grids = uset_if.index.get_level_values('id')[::6]
     new_id = grids.max() + 1
     uset2 = n2p.addgrid(uset_if, new_id, 'b', 0, ref, 0)
     rbe3 = n2p.formrbe3(uset2, new_id, 123456, [dof_indep, grids])
@@ -1833,7 +1837,8 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         system::
 
             R = [0., 0., 0.]
-            rb_normalizer = n2p.rbgeom_uset(uset[bset], R)[refpoint]
+            rb_normalizer = n2p.rbgeom_uset(
+                uset.iloc[bset], R)[refpoint]
 
         This would cause the returned coordinates (see `coords` below)
         to be relative to the basic origin and in the basic coordinate
@@ -2003,7 +2008,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         m = cbreorder(m, bseto)
         k = cbreorder(k, bseto)
         i = np.argsort(bseto)
-        uset = uset[i]
+        uset = uset.iloc[i]
 
         # define "new" order of b-set:
         b = locate.index2bool(bref, n)
@@ -2113,9 +2118,11 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                'the reference node.)\n'.format(bref[0] + 1))
 
     # coordinates of boundary points according to stiffness:
-    coords, rbs, _ = cbcoordchk(k, bset, bref,
-                                uset[::6, 0].astype(np.int64),
-                                ttl, True, fout, rb_normalizer)
+    coords, rbs, _ = cbcoordchk(
+        k, bset, bref,
+        # uset[::6, 0].astype(np.int64),
+        uset.index.get_level_values('id')[::6],
+        ttl, True, fout, rb_normalizer)
 
     # calculate free-free modes:
     w, v = _solve_eig(fout, k, m, mtype, ktype, types)
@@ -2138,7 +2145,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         writer.vecwrite(fout, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
                         '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
                         '{:5.3f}  {:5.3f}\n',
-                        uset[::6, 0].astype(np.int64),
+                        # uset[::6, 0].astype(np.int64),
+                        uset.index.get_level_values('id')[::6],
                         rss_s, rss_g, rss_e)
         fout.write('\n\n')
 
@@ -2246,10 +2254,11 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         fout.write('-------------     -------------------------------'
                    '-------------------------------------\n')
         nb = uset.shape[0]
+        iddof = uset.iloc[:, :0].reset_index().values
         writer.vecwrite(
             fout, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
             '  {:10.3f}  {:10.3f}  {:10.3f}\n',
-            uset[:, :2].astype(np.int64), rbf[:nb])
+            iddof, rbf[:nb])
         nq = rbf.shape[0] - nb
         if nq > 0:
             writer.vecwrite(

@@ -48,7 +48,7 @@ def test_cbtf():
     q = ~b
     b = np.nonzero(b)[0]
 
-    rb = n2p.rbgeom_uset(uset[b], 3)
+    rb = n2p.rbgeom_uset(uset.iloc[b], 3)
     freq = np.arange(1., 80., 1.)
     a = rb[:, :1]
     a2 = a.dot(np.ones((1, len(freq))))
@@ -329,7 +329,7 @@ def test_cbcheck_indeterminate():
 
     uset = nas['uset'][se]
     bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se][bset]
+    usetb = nas['uset'][se].iloc[bset]
     b = n2p.mksetpv(uset, 'a', 'b')
     q = ~b
     b = np.nonzero(b)[0]
@@ -346,7 +346,7 @@ def test_cbcheck_indeterminate():
     os.remove(name)
     assert (out.m == maa).all()
     assert (out.k == kaa).all()
-    assert (out.uset == usetb).all()
+    assert out.uset.equals(usetb)
 
     rbg = n2p.rbgeom_uset(out.uset)
     assert np.allclose(rbg, out.rbg)
@@ -386,7 +386,7 @@ def test_cbcheck_indeterminate():
     # check for error catches:
     with StringIO() as f:
         assert_raises(ValueError, cb.cbcheck, f, maa, kaa, b, b[:6],
-                      usetb[:-6], em_filt=2)
+                      usetb.iloc[:-6], em_filt=2)
 
 
 def test_cbcheck_determinate():
@@ -401,15 +401,15 @@ def test_cbcheck_determinate():
 
     uset = nas['uset'][se]
     bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se][bset]
+    usetb = nas['uset'][se].iloc[bset]
     b = n2p.mksetpv(uset, 'a', 'b')
 
     q = ~b
     b = np.nonzero(b)[0]
     q = np.nonzero(q)[0]
 
-    center = np.mean(usetb[::6, 3:], axis=0)
-    rb = n2p.rbgeom_uset(usetb, center)
+    center = np.mean(usetb.iloc[::6, 1:], axis=0)
+    rb = n2p.rbgeom_uset(usetb, center.values)
 
     # transform to single pt on centerline:
     # [b, q]_old = T*[b, q]_new
@@ -454,7 +454,7 @@ def test_cbcheck_unit_convert():
 
     uset = nas['uset'][se]
     bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se][bset]
+    usetb = nas['uset'][se].iloc[bset]
     b = n2p.mksetpv(uset, 'a', 'b')
 
     q = ~b
@@ -492,7 +492,7 @@ def test_cbcheck_reorder():
 
     uset = nas['uset'][se]
     bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se][bset]
+    usetb = nas['uset'][se].iloc[bset]
     b = np.nonzero(n2p.mksetpv(uset, 'a', 'b'))[0]
 
     maa = cb.cbreorder(maa, b, last=True)
@@ -527,7 +527,7 @@ def test_cbcheck_indeterminate_rb_norm():
 
     uset = nas['uset'][se]
     bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se][bset]
+    usetb = nas['uset'][se].iloc[bset]
     b = n2p.mksetpv(uset, 'a', 'b')
     q = ~b
     b = np.nonzero(b)[0]
@@ -564,7 +564,7 @@ def test_cbcheck_indeterminate_rb_norm2():
 
     uset = nas['uset'][se]
     bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se][bset]
+    usetb = nas['uset'][se].iloc[bset]
     b = n2p.mksetpv(uset, 'a', 'b')
     q = ~b
     b = np.nonzero(b)[0]
@@ -601,7 +601,7 @@ def test_rbmultchk():
 
     uset = nas['uset'][se]
     bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se][bset]
+    usetb = nas['uset'][se].iloc[bset]
     b = n2p.mksetpv(uset, 'a', 'b')
     q = ~b
     b = np.nonzero(b)[0]
@@ -932,8 +932,9 @@ def test_mk_net_drms():
 
     u = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
     Tsc2lv = np.zeros((6, 6))
-    Tsc2lv[:3, :3] = u[3:, 3:]
-    Tsc2lv[3:, 3:] = u[3:, 3:]
+    T = u.iloc[3:, 1:]
+    Tsc2lv[:3, :3] = T
+    Tsc2lv[3:, 3:] = T
     assert np.allclose(Tl2s.T, Tsc2lv[:3, :3])
 
     net = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
