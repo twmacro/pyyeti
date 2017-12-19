@@ -87,3 +87,5 @@
     o   Save parameters in dictionary for each time step?
     o   Or, are the params cheap to recompute?
     Hmm ... would have to decide how to save results (even time steps?)
+
+24. Add ability to write more matrices in wt_extseout (like mug1).
