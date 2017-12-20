@@ -164,7 +164,7 @@ def test_wt_extseout():
 
     uset = nas['uset'][se]
     bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se][bset]
+    usetb = nas['uset'][se].iloc[bset]
     b = n2p.mksetpv(uset, 'a', 'b')
     q = ~b
     b = np.nonzero(b)[0]
@@ -402,13 +402,10 @@ def test_wtrspline_rings():
                        rad2 * np.cos(theta2),     # y
                        rad2 * np.sin(theta2))).T  # z
 
-    uset1 = None
-    for row in ring1:
-        uset1 = n2p.addgrid(uset1, int(row[0]), 'b', 0, row[1:], 0)
-
-    uset2 = None
-    for row in ring2:
-        uset2 = n2p.addgrid(uset2, int(row[0]), 'b', 0, row[1:], 0)
+    uset1 = n2p.addgrid(None, ring1[:, 0].astype(int),
+                        'b', 0, ring1[:, 1:], 0)
+    uset2 = n2p.addgrid(None, ring2[:, 0].astype(int),
+                        'b', 0, ring2[:, 1:], 0)
 
     with StringIO() as f:
         nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001, doplot=0)

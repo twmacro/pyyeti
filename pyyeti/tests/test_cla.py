@@ -383,15 +383,12 @@ def prepare_4_cla(pth):
                 for g, i in id_dof]
 
     atm_labels = getlabels('Grid', nastran.rddtipch(pch, 'tug1'))
-    iflabels = getlabels('Grid', uset[:, :2].astype(int))
 
     # setup CLA parameters:
     mission = 'Micro Space Station'
 
     nb = uset.shape[0]
-    nq = maa.shape[0] - nb
     bset = np.arange(nb)
-    qset = np.arange(nq) + nb
     ref = [600., 150., 150.]
     g = 9806.65
     net = cb.mk_net_drms(maa, kaa, bset, uset=uset, ref=ref, g=g)
@@ -1387,7 +1384,7 @@ def test_event_add():
     uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
     nas = {
         'ulvs': {10: np.ones((1, 1), float)},
-        'uset': {10: uset[:1]},
+        'uset': {10: uset.iloc[:1]},
     }
 
     @cla.DR_Def.addcat

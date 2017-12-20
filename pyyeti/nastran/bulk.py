@@ -2226,19 +2226,21 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     Routine used by :func:`wtrspline`. See documentation for
     :func:`wtrspline`.
     """
-    rgrids = np.atleast_2d(r1grids, r2grids)
+    # rgrids = np.atleast_2d(r1grids, r2grids)
     IDs = []
     xyz = []
-    for ring, name in zip(rgrids, ('r1grids', 'r2grids')):
-        if ring.shape[1] == 6:
+    for ring, name in ((r1grids, 'r1grids'),
+                       (r2grids, 'r2grids')):
+        if isinstance(ring, pd.DataFrame):
             r = ring.shape[0]
             if (r // 6) * 6 != r:
                 raise ValueError('number of rows `{}` is not '
                                  'multiple of 6 for USET input'.
                                  format(name))
-            IDs.append(ring[::6, 0].astype(np.int64))
-            xyz.append(ring[::6, 3:])
+            IDs.append(ring.index.get_level_values('id')[::6])
+            xyz.append(ring.iloc[::6, 1:].values)
         else:
+            ring = np.atleast_2d(ring)
             IDs.append(ring[:, 0].astype(np.int64))
             xyz.append(ring[:, 1:])
 
@@ -2374,17 +2376,18 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         :func:`open`. Use 1 to write to stdout. Can also be the name
         of a directory or None; in these cases, a GUI is
         opened for file selection.
-    r1grids : 2d array_like
-        4 or 6 column matrix of info on ring 1 grids:
+    r1grids : 2d array_like or dataframe
+        Contains the locations of the ring 1 grids. If 2d array_like,
+        it has 4 columns describing the ring 1 grids::
 
-          - If 4 columns: ``[id, x, y, z]``  <-- basic coordinates
-          - If 6 columns: input is assumed to be USET table of ring 1
-            grids (see :func:`pyyeti.nastran.op2.OP2.rdn2cop2` for
-            description).
+             [id, x, y, z]  <-- basic coordinates
 
-    r2grids : 2d array_like
-        4 or 6 column matrix of info on ring 2 grids (same format as
-        `r1grids`)
+        If dataframe, it is assumed to be the USET dataframe
+        containing just the ring 1 grids. The format is described in
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
+    r2grids : 2d array_like or dataframe
+        Contains the locations of the ring 2 grids. See `r1grids` for
+        description of format.
     node_id0 : integer
         1st id of new nodes created to 'move' ring 1 nodes
     rspline_id0 : integer
@@ -2722,7 +2725,7 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
     -------
     None
     """
-    maa, baa, kaa, uset = np.atleast_2d(maa, baa, kaa, uset)
+    maa, baa, kaa = np.atleast_2d(maa, baa, kaa)
     bset = np.atleast_1d(bset)
     n = maa.shape[0]
     nq = n - len(bset)
@@ -2762,10 +2765,13 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
 
     # Get some data from the uset table:
     ci = n2p.coordcardinfo(uset)
-    pv = np.nonzero(uset[:, 1] == 1)[0]
-    grids = uset[pv, 0].astype(int)
-    xyz = uset[pv, 3:]
-    cd = uset[pv + 1, 3].astype(int)
+    grids = uset.index.get_level_values('id')
+    dof = uset.index.get_level_values('dof')
+    pv = dof == 1
+    grids = grids[pv]
+    xyz = uset.loc[pv, 'x':'z'].values
+    pv = dof == 2
+    cd = uset.loc[pv, 'x'].values.astype(int)
 
     # Write out ASM file
     unit = se

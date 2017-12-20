@@ -19,6 +19,8 @@ def runcomp(nas, m):
                     m1 = m1.flatten()
                 if name == 'maps' and len(m2) > 0:
                     m1[:, 0] -= 1
+                if name == 'uset':
+                    m2 = m2.reset_index().values
                 assert np.allclose(m1, m2)
         else:
             m1 = matnas[name][0][0]

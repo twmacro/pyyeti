@@ -13,7 +13,6 @@ def test_calcAM():
     q = ~b
     b = np.nonzero(b)[0]
 
-    rb = n2p.rbgeom_uset(uset[b], 3)
     freq = np.arange(1., 80., 1.)
 
     pv = np.any(maa, axis=0)

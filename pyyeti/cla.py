@@ -1756,7 +1756,8 @@ class DR_Event(object):
                 if bset.all():
                     # manually check for q-set in the a-set:
                     aset = np.nonzero(n2p.mksetpv(uset, 'p', 'a'))[0]
-                    qset = uset[aset, 1] == 0   # spoints
+                    dof = uset.index.get_level_values('dof')[aset]
+                    qset = dof == 0   # spoints
                     bset = ~qset
                 bset = np.nonzero(bset)[0]
                 Lb = len(bset)
