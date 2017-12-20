@@ -1851,7 +1851,7 @@ class DR_Event(object):
             of `.a`, `.v`, `.d` and `.pg`. The keys are all the
             "uf_reds" values. Additionally, the displacement member is
             separated into static and dynamic parts: `.d_static`,
-            `.d_dynamic`. On output, ``.d = .d_static + d_dynamic``.
+            `.d_dynamic`. On output, ``.d = .d_static + .d_dynamic``.
             For example, if one of the "uf_reds" tuples is:
             ``(1, 1, 1.25, 1)``, then these variables will exist::
 
