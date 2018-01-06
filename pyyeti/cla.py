@@ -1019,6 +1019,12 @@ class DR_Def(OrderedDict):
                 if dct[unt] is None:
                     dct[unt] = ns.units
 
+        # ensure that the labels are lists (or None):
+        for i in ('', 'hist', 'srs'):
+            lbl = i + 'labels'
+            if not isinstance(dct[lbl], (list, type(None))):
+                dct[lbl] = list(dct[lbl])
+
     def add(self, *, name, labels, drms=None, drfunc=None,
             drfile=None, se=None, desc=None, units='Not specified',
             uf_reds=None, filterval=1.e-6, histlabels=None,
@@ -1052,12 +1058,13 @@ class DR_Def(OrderedDict):
             typically also defines `drfunc`, the name of the function
             in `drfile` that is called to do data recovery; in that
             case, it must be a valid Python variable name.
-        labels : list or integer
-            List of strings, describing each row. Can also be an
+        labels : list_like or integer
+            List-like of strings describing each row. Can also be an
             integer specifying number of rows being recovered; in this
             case, the list is formed internally as:
             ``['Row 1', 'Row 2', ...]``. This input is used to
-            determine number of rows being recovered.
+            determine number of rows being recovered. If not a list,
+            it is converted to a list via :func:`list`.
         drms : dict or None
             Dictionary of data recovery matrices for this category;
             keys are matrix names and must match what is used in the
@@ -1155,7 +1162,7 @@ class DR_Def(OrderedDict):
             during comparison to another set of results. If 1d
             array_like, length must be ``len(labels)`` allowing for a
             unique filter value for each row.
-        histlabels : list or None
+        histlabels : list_like or None
             Analogous to `labels` but just for the `histpv` rows.
 
             DA: derive from `labels` according to `histpv` if
@@ -1197,7 +1204,7 @@ class DR_Def(OrderedDict):
         srsconv : scalar or 1d array_like or None
             Conversion factor scalar or vector same length as
             `srspv`. If None, it is internally reset to 1.0.
-        srslabels : list or None
+        srslabels : list_like or None
             Analogous to `labels` but just for the `srspv` rows.
 
             DA: derive from `labels` according to `srspv` if needed;
@@ -5884,7 +5891,8 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                             #   up bigger percentage)
                             w = 0.05 * 11.0 / figsize[0]
                             n4s = adjust4legend[1] // 4 + 1
-                            ax = plt.subplot(rows, cols, cols)
+                            # get top right plot
+                            ax = plt.gcf().get_axes()[cols - 1]
                             pos = ax.get_position()
                             _sub_right = pos.xmax - w * n4s
                             if _sub_right < 0.5:
