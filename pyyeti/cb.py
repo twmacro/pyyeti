@@ -1770,10 +1770,10 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
             fout.write('\tkrr - kro @ inv(koo) @ kor\n\n')
             fout.write('However, "krr" is:\n\n')
             _write_matrix(krr)
-            fout.write('"-kro @ inv(koo) @ kor" is:\n\n')
+            fout.write('"kro @ inv(koo) @ kor" is:\n\n')
             _write_matrix(rhs)
-            fout.write('and they sum to:\n\n')
-            _write_matrix(krr + rhs)
+            fout.write('and the difference is:\n\n')
+            _write_matrix(krr - rhs)
 
     if rb_normalizer is not None:
         rbmodes = rbmodes @ rb_normalizer

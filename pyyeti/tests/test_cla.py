@@ -32,21 +32,22 @@ def LTM():
     pass
 
 
+# return these labels as ndarrays for testing:
 def _get_labels0(rows, name):
-    return ['{} Row  {:6d}'.format(name, i + 1)
-            for i in range(rows[name])]
+    return np.array(['{} Row  {:6d}'.format(name, i + 1)
+                     for i in range(rows[name])])
 
 
 def _get_labels1(rows, name):
-    return ['{} Row  {:6d}'.format(name, i + 1)
-            for i in range(0, 2 * rows[name], 2)]
+    return np.array(['{} Row  {:6d}'.format(name, i + 1)
+                     for i in range(0, 2 * rows[name], 2)])
 
 
 def _get_labels2(rows, name):
     # word = itertools.cycle(['Item', 'Row', 'Id'])
     word = itertools.cycle(['Item'])
-    return ['{} {:4} {:6d}'.format(name, w, i + 1)
-            for w, i in zip(word, range(rows[name]))]
+    return np.array(['{} {:4} {:6d}'.format(name, w, i + 1)
+                     for w, i in zip(word, range(rows[name]))])
 
 
 def _get_minmax(drm, eventnumber, cyclenumber):
@@ -246,6 +247,7 @@ def compresults(f1, f2):
 
 def test_form_extreme():
     results = cla.DR_Results()
+    # use not-exactly-matching row labels for testing
     results.merge(
         (get_fake_cla_results('FLAC', _get_labels0, 0),
          get_fake_cla_results('VLC', _get_labels1, 1),
@@ -331,18 +333,6 @@ class cd():
 
     def __exit__(self, *args):
         os.chdir(self.olddir)
-
-
-# def scatm(sol, nas, Vars, se):
-#     return Vars[se]['atm'] @ sol.a
-#
-#
-# def net_ifltm(sol, nas, Vars, se):
-#     return Vars[se]['net_ifltm'] @ sol.a
-#
-#
-# def net_ifatm(sol, nas, Vars, se):
-#     return Vars[se]['net_ifatm'] @ sol.a
 
 
 def get_xyr():
