@@ -2027,14 +2027,14 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     this routine for each node; in that case, the uset DataFrame is
     expanded each call (meaning a new DataFrame is created every for
     every successive node). For example, the less efficient method is
-    this:
+    this::
 
         uset = None
         uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
         uset = nastran.addgrid(uset, 200, 'b', cylcoord,
                                [32, 90, 10], cylcoord)
 
-    And the more efficient method (as done below) is this:
+    And the more efficient method (as done below) is this::
 
         uset = nastran.addgrid(
             None, [100, 200], 'b', [0, cylcoord],

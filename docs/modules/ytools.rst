@@ -16,6 +16,7 @@ Math routines
     mattype
     mkpattvec
     multmd
+    np_printoptions
     sturm
 
 I/O helper routines

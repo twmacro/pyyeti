@@ -7,6 +7,7 @@ import pickle
 import gzip
 import bz2
 import sys
+import contextlib
 import numpy as np
 import scipy.linalg as linalg
 from pyyeti import guitools
@@ -90,6 +91,39 @@ def histogram(data, binsize):
     if s > 0:
         histo[:, 2] = 100 * histo[:, 1] / s
     return histo
+
+
+@contextlib.contextmanager
+def np_printoptions(*args, **kwargs):
+    """
+    Defines a context manager for :func:`numpy.set_printoptions`
+
+    Parameters
+    ----------
+    *args, **kwargs : arguments for :func:`numpy.set_printoptions`
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import ytools
+    >>> a = np.arange(np.pi/20, 1.5, np.pi/17).reshape(2, -1)
+    >>> print(a)
+    [[ 0.15707963  0.3418792   0.52667877  0.71147834]
+     [ 0.8962779   1.08107747  1.26587704  1.45067661]]
+    >>> with ytools.np_printoptions(precision=2, linewidth=45,
+    ...                             suppress=1):
+    ...     print(a)
+    [[ 0.16  0.34  0.53  0.71]
+     [ 0.9   1.08  1.27  1.45]]
+    >>> print(a)
+    [[ 0.15707963  0.3418792   0.52667877  0.71147834]
+     [ 0.8962779   1.08107747  1.26587704  1.45067661]]
+    """
+    original = np.get_printoptions()
+    np.set_printoptions(*args, **kwargs)
+    try:
+        yield
+    finally:
+        np.set_printoptions(**original)
 
 
 def multmd(a, b):

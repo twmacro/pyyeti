@@ -1762,22 +1762,38 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
         #   krr - kro @ inv(koo) @ kor
         krr = kbb[np.ix_(refpoint, refpoint)]
         rhs = -kor.T @ rbmodes[o]
-        if not np.allclose(krr, rhs):
-            def _write_matrix(mat):
-                fout.write('\t' + str(mat).replace('\n ', '\n\t ') +
-                           '\n\n')
+
+        fout.write(
+            '\nChecking to see if reference DOF '
+            'properly restrain rigid-body motion.\n'
+            'Splitting "kbb" into the "r" (reference) and '
+            '"o" (other) sets, this should be zero:\n\n')
+        fout.write('\tkrr - kro @ inv(koo) @ kor\n\n')
+        fout.write('Check: ')
+        if np.allclose(krr, rhs, atol=abs(krr).max() * 1e-10):
             fout.write(
-                '\nWarning: reference DOF do not appear to '
-                'properly restrain rigid-body motion.\n'
-                'Splitting "kbb" into the "r" (reference) and '
-                '"o" (other) sets, this should be zero:\n\n')
-            fout.write('\tkrr - kro @ inv(koo) @ kor\n\n')
-            fout.write('However, "krr" is:\n\n')
+                'PASS. Values printed below for reference.\n\n')
+        else:
+            fout.write(
+                'FAIL. Assess values below before running CLA.\n\n')
+
+        def _write_matrix(mat):
+            fout.write('\t' + str(mat).replace('\n ', '\n\t ') +
+                       '\n\n')
+
+        with ytools.np_printoptions(precision=2, suppress=0,
+                                    linewidth=140):
+            fout.write('"krr" is:\n\n')
             _write_matrix(krr)
             fout.write('"kro @ inv(koo) @ kor" is:\n\n')
             _write_matrix(rhs)
             fout.write('and the difference is:\n\n')
             _write_matrix(krr - rhs)
+
+        with ytools.np_printoptions(precision=2, suppress=1,
+                                    linewidth=140):
+            fout.write('The percent difference is:\n\n')
+            _write_matrix((rhs - krr) / krr * 100)
 
     if rb_normalizer is not None:
         rbmodes = rbmodes @ rb_normalizer
