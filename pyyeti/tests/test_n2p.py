@@ -10,11 +10,9 @@ from nose.tools import *
 
 
 def conv_uset(uset):
-    x, y, z = uset[:, 3:].T
-    return n2p.make_uset(uset[:, 0].astype(int),
-                         uset[:, 1].astype(int),
+    return n2p.make_uset(uset[:, :2].astype(int),
                          uset[:, 2].astype(int),
-                         x, y, z, use_product=False)
+                         uset[:, 3:])
 
 
 def test_rbgeom():
@@ -402,6 +400,192 @@ def test_rbmove():
     assert np.all(rb1_b == rb1)
 
 
+def test_make_uset():
+    # improper sized xyz:
+    assert_raises(ValueError, n2p.make_uset, [[1, 123456], [2, 0]], 1,
+                  [[1, 1, 1]])
+
+    # wrong number of dof for grid 1:
+    assert_raises(ValueError, n2p.make_uset, [[1, 13456], [2, 0]], 1)
+
+    # improper sized nasset:
+    assert_raises(ValueError, n2p.make_uset, 1, [1, 1])
+
+    u = n2p.make_uset(dof=[[1, 123456], [2, 0]],
+                      nasset=[n2p.mkusetmask('b'),
+                              n2p.mkusetmask('q')],
+                      xyz=[[1, 2, 3], [0, 0, 0]])
+    mask = n2p.mkusetmask()
+    b = mask['b']
+    q = mask['q']
+    s = mask['s']
+
+    sbe = np.array([[1.,   1.,  b,   1.,   2.,   3.],
+                    [1.,   2.,  b,   0.,   1.,   0.],
+                    [1.,   3.,  b,   0.,   0.,   0.],
+                    [1.,   4.,  b,   1.,   0.,   0.],
+                    [1.,   5.,  b,   0.,   1.,   0.],
+                    [1.,   6.,  b,   0.,   0.,   1.],
+                    [2.,   0.,  q,   0.,   0.,   0.]])
+    assert np.allclose(
+        u.reset_index().values,
+        sbe
+    )
+
+    u = n2p.make_uset(dof=sbe[:, :2],
+                      nasset=sbe[:, 2],
+                      xyz=sbe[:, 3:])
+    assert np.allclose(
+        u.reset_index().values,
+        sbe
+    )
+
+    u = n2p.make_uset(dof=[[1, 123456], [2, 0]],
+                      nasset=n2p.mkusetmask('b'),
+                      xyz=[[1, 2, 3], [0, 0, 0]])
+
+    sbe = np.array([[1.,   1.,  b,   1.,   2.,   3.],
+                    [1.,   2.,  b,   0.,   1.,   0.],
+                    [1.,   3.,  b,   0.,   0.,   0.],
+                    [1.,   4.,  b,   1.,   0.,   0.],
+                    [1.,   5.,  b,   0.,   1.,   0.],
+                    [1.,   6.,  b,   0.,   0.,   1.],
+                    [2.,   0.,  b,   0.,   0.,   0.]])
+    assert np.allclose(
+        u.reset_index().values,
+        sbe
+    )
+
+    u = n2p.make_uset(dof=[[1, 123456], [2, 0]],
+                      nasset=n2p.mkusetmask('b'))
+
+    sbe = np.array([[1.,   1.,  b,   np.nan, np.nan, np.nan],
+                    [1.,   2.,  b,   np.nan, np.nan, np.nan],
+                    [1.,   3.,  b,   np.nan, np.nan, np.nan],
+                    [1.,   4.,  b,   np.nan, np.nan, np.nan],
+                    [1.,   5.,  b,   np.nan, np.nan, np.nan],
+                    [1.,   6.,  b,   np.nan, np.nan, np.nan],
+                    [2.,   0.,  b,   np.nan, np.nan, np.nan]])
+    assert np.allclose(
+        u.reset_index().values,
+        sbe,
+        equal_nan=True
+    )
+
+    dof = [[1, 123456],
+           [2, 0],
+           [3, 1],
+           [3, 2],
+           [3, 3],
+           [3, 4],
+           [3, 5],
+           [3, 6],
+           [4, 123456]]
+    xyz = [[1, 2, 3],
+           [0, 0, 0],
+           [4, 5, 6],
+           [0, 1, 0],
+           [2, 2, 2],
+           [0, 1, 0],
+           [0, 0, -1],
+           [1, 0, 0],
+           [10, 20, 30]]
+
+    u = n2p.make_uset(dof, n2p.mkusetmask('b'), xyz)
+    sbe = np.array(
+        [[1.,   1.,  b,   1.,   2.,   3.],
+         [1.,   2.,  b,   0.,   1.,   0.],
+         [1.,   3.,  b,   0.,   0.,   0.],
+         [1.,   4.,  b,   1.,   0.,   0.],
+         [1.,   5.,  b,   0.,   1.,   0.],
+         [1.,   6.,  b,   0.,   0.,   1.],
+         [2.,   0.,  b,   0.,   0.,   0.],
+         [3.,   1.,  b,   4.,   5.,   6.],
+         [3.,   2.,  b,   0.,   1.,   0.],
+         [3.,   3.,  b,   2.,   2.,   2.],
+         [3.,   4.,  b,   0.,   1.,   0.],
+         [3.,   5.,  b,   0.,   0.,  -1.],
+         [3.,   6.,  b,   1.,   0.,   0.],
+         [4.,   1.,  b,  10.,  20.,  30.],
+         [4.,   2.,  b,   0.,   1.,   0.],
+         [4.,   3.,  b,   0.,   0.,   0.],
+         [4.,   4.,  b,   1.,   0.,   0.],
+         [4.,   5.,  b,   0.,   1.,   0.],
+         [4.,   6.,  b,   0.,   0.,   1.]])
+
+    assert np.allclose(
+        u.reset_index().values,
+        sbe)
+
+    dof = [[1, 123456],
+           [2, 0],
+           [3, 1],
+           [3, 2],
+           [3, 3],
+           [3, 4],
+           [3, 5],
+           [3, 6],
+           [4, 123456]]
+    nasset = [b,   # 1
+
+              q,   # 2
+
+              b,   # 3
+              b,
+              b,
+              q,
+              q,
+              b,
+
+              s,   # 4
+              ]
+
+    u = n2p.make_uset(dof, nasset, xyz)
+    sbe = np.array(
+        [[1.,   1.,  b,   1.,   2.,   3.],
+         [1.,   2.,  b,   0.,   1.,   0.],
+         [1.,   3.,  b,   0.,   0.,   0.],
+         [1.,   4.,  b,   1.,   0.,   0.],
+         [1.,   5.,  b,   0.,   1.,   0.],
+         [1.,   6.,  b,   0.,   0.,   1.],
+         [2.,   0.,  q,   0.,   0.,   0.],
+         [3.,   1.,  b,   4.,   5.,   6.],
+         [3.,   2.,  b,   0.,   1.,   0.],
+         [3.,   3.,  b,   2.,   2.,   2.],
+         [3.,   4.,  q,   0.,   1.,   0.],
+         [3.,   5.,  q,   0.,   0.,  -1.],
+         [3.,   6.,  b,   1.,   0.,   0.],
+         [4.,   1.,  s,  10.,  20.,  30.],
+         [4.,   2.,  s,   0.,   1.,   0.],
+         [4.,   3.,  s,   0.,   0.,   0.],
+         [4.,   4.,  s,   1.,   0.,   0.],
+         [4.,   5.,  s,   0.,   1.,   0.],
+         [4.,   6.,  s,   0.,   0.,   1.]])
+
+    u = n2p.make_uset(dof=[1, 2],
+                      nasset=[n2p.mkusetmask('b'),
+                              n2p.mkusetmask('q')],
+                      xyz=[[1, 2, 3], [0, 0, 0]])
+
+    sbe = np.array(
+        [[1.,   1.,  2097154.,   1.,   2.,   3.],
+         [1.,   2.,  2097154.,   0.,   1.,   0.],
+         [1.,   3.,  2097154.,   0.,   0.,   0.],
+         [1.,   4.,  2097154.,   1.,   0.,   0.],
+         [1.,   5.,  2097154.,   0.,   1.,   0.],
+         [1.,   6.,  2097154.,   0.,   0.,   1.],
+         [2.,   1.,  4194304.,   0.,   0.,   0.],
+         [2.,   2.,  4194304.,   0.,   1.,   0.],
+         [2.,   3.,  4194304.,   0.,   0.,   0.],
+         [2.,   4.,  4194304.,   1.,   0.,   0.],
+         [2.,   5.,  4194304.,   0.,   1.,   0.],
+         [2.,   6.,  4194304.,   0.,   0.,   1.]])
+
+    assert np.allclose(
+        u.reset_index().values,
+        sbe)
+
+
 def test_addgrid():
     # node 100 in basic is @ [5, 10, 15]
     # node 200 in cylindrical coordinate system is @
@@ -438,7 +622,7 @@ def test_addgrid():
     c = n2p.mkusetmask('c')
     q = n2p.mkusetmask('q')
     sets = [b, r, b, c, c, q]
-    assert np.all(uset['uset'] == np.array(sets))
+    assert np.all(uset['nasset'] == np.array(sets))
 
 
 def test_getcoords():
@@ -668,7 +852,7 @@ def test_formrbe3_1():
                          [136, 5.5], [101, 102, 103],
                          [123456, 4.2], [111, 112, 113],
                          [25, .05], [121, 122, 123]])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -701,7 +885,7 @@ def test_formrbe3_2():
                          [136, 5.5], [101, 102, 103],
                          [123456, 4.2], [111, 112, 113],
                          [25, .05], [121, 122, 123]])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -734,7 +918,7 @@ def test_formrbe3_3():
                          [136, 5.5], [101, 102, 103],
                          [123456, 4.2], [111, 112, 113],
                          [25, .05], [121, 122, 123]])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -758,7 +942,7 @@ def test_formrbe3_4():
     pygm = n2p.formrbe3(pyuset, 124, 1346,
                         [[123, 2.6], 100,
                          [456, 1.8], 200])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -795,7 +979,7 @@ def test_formrbe3_UM_1():
                          [123456, 4.2], [111, 112, 113],
                          [25, .05], [121, 122, 123]],
                         [100, 2, 111, 2346, 122, 5])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -820,7 +1004,7 @@ def test_formrbe3_UM_2():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [124, 123, 200, 456])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -846,7 +1030,7 @@ def test_formrbe3_UM_3():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [124, 152346])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -873,7 +1057,7 @@ def test_formrbe3_UM_4():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [124, 6341])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -899,7 +1083,7 @@ def test_formrbe3_UM_5():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [100, 12, 200, 56])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 
@@ -925,7 +1109,7 @@ def test_formrbe3_UM_6():
                         [[123, 2.6], 100,
                          [456, 1.8], 200],
                         [100, 12, 200, 5, 124, 6])
-    pyuset['uset'] = uset['uset']  # so set-membership gets ignored
+    pyuset['nasset'] = uset['nasset']  # so set-membership gets ignored
     assert np.allclose(uset, pyuset)
     assert np.allclose(gmmod, pygm)
 

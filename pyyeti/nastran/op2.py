@@ -1442,10 +1442,8 @@ class OP2(object):
                           'DOF in b-set.', RuntimeWarning)
             b = n2p.mkusetmask('b')
             uset = np.zeros(len(doflist), int) + b
-        # uset = np.hstack((np.vstack((idlist, doflist, uset)).T,
-        #                   coordinfo))
-        uset = n2p.make_uset(idlist, doflist, uset, *coordinfo.T,
-                             use_product=False)
+        uset = n2p.make_uset(np.column_stack((idlist, doflist)),
+                             uset, coordinfo)
 
         if cstm2 is None:
             cstm2 = {}
@@ -1652,8 +1650,8 @@ class OP2(object):
             dnseid is the downstream superelement for seid. (dnseid =
             0 if seid = 0).
         'uset' : dictionary
-            Indexed by the SE number. Each member is a 6-column matrix
-            described below.
+            Indexed by the SE number. Each member is a pandas
+            DataFrame described below.
         'cstm' : dictionary
             Indexed by the SE number. Each member is a 14-column
             matrix containing the coordinate system transformation
@@ -1682,9 +1680,9 @@ class OP2(object):
             will only be present for SECONCT type SEs. These ids are
             internally generated and will contain all the values in
             the 'dnids' of each upstream SE. This allows, for example,
-            the routine :func:`pyyeti.n2p.upasetpv` to work. Has 0's
-            for downstream ids (in P-set) that are not part of
-            upstream SEs.
+            the routine :func:`pyyeti.nastran.n2p.upasetpv` to
+            work. Has 0's for downstream ids (in P-set) that are not
+            part of upstream SEs.
 
         Notes
         -----
@@ -1693,26 +1691,46 @@ class OP2(object):
 
         *'uset' description*
 
-        Each USET variable is a 6-column matrix where the rows
-        correspond to the DOF in Nastran internal sort, and the
-        columns are::
+        Each `uset` variable is a 4-column pandas DataFrame with ID
+        and DOF forming the row MultiIndex. The column index is:
+        ``['nasset', 'x', 'y', 'z']``. The order of the degrees of
+        freedom is in Nastran internal sort. GRIDs have 6 rows each
+        and SPOINTs have 1 row. Here is an example `uset` variable
+        with some notes for the ['x', 'y', 'z'] columns (described in
+        more detail below)::
 
-            USET = [ ID DOF Set_Membership Coord_Info ]
+                     nasset    x    y    z
+            id dof
+            1  1    2097154  1.0  2.0  3.0     # grid location
+               2    2097154  0.0  1.0  0.0     # coord system info
+               3    2097154  0.0  0.0  0.0     # coord system origin
+               4    2097154  1.0  0.0  0.0     # | transform to basic
+               5    2097154  0.0  1.0  0.0     # | for coord system
+               6    2097154  0.0  0.0  1.0     # |
+            2  0    4194304  0.0  0.0  0.0     # spoint location
 
-        ID is the node id and DOF is 1, 2, 3, 4, 5, or 6 for a grid
-        and 0 for an SPOINT.
+        That example was formed by using
+        :func:`pyyeti.nastran.n2p.make_uset`::
 
-        Set_Membership is a single column that contains a 32-bit
-        integer for each DOF. The integer has bits set to specify
-        which Nastran set that particular DOF belongs to. For example,
-        if the integer has the 1 bit set, the DOF is in the m-set. See
-        the source code in :func:`pyyeti.n2p.mkusetmask` for all
-        the bit positions. Note that you rarely (if ever) need to call
-        :func:`pyyeti.n2p.mkusetmask` directly since the function
-        :func:`pyyeti.n2p.mksetpv` does this behind the scenes to
-        make partition vectors.
+            from pyyeti.nastran import n2p
+            uset = n2p.make_uset(dof=[[1, 123456], [2, 0]],
+                                 nasset=[n2p.mkusetmask('b'),
+                                         n2p.mkusetmask('q')],
+                                 xyz=[[1, 2, 3], [0, 0, 0]])
 
-        For grids, Coord_Info is a 6 row by 3 column matrix::
+        The "nasset" column specifies Nastran set membership. It is a
+        32-bit integer for each DOF. The integer has bits set to
+        specify which Nastran set that particular DOF belongs to. For
+        example, if the integer has the 1 bit set, the DOF is in the
+        m-set. See the source code in
+        :func:`pyyeti.nastran.n2p.mkusetmask` for all the bit
+        positions. Note that you rarely (if ever) need to call
+        :func:`pyyeti.nastran.n2p.mkusetmask` directly since the
+        function :func:`pyyeti.nastran.n2p.mksetpv` does this behind
+        the scenes to make partition vectors.
+
+        For grids, the ['x', 'y', 'z'] part of the DataFrame is a 6
+        row by 3 column matrix::
 
             Coord_Info = [[x   y    z]   # location of node in basic
                           [id  type 0]   # coord. id and type
@@ -1720,26 +1738,28 @@ class OP2(object):
                           [    T     ]]  # 3x3 transformation to basic
                                          #  for coordinate system
 
-            Coord_Info = [ 0 0 0 ]       # for SPOINTs
+        For spoints, the ['x', 'y', 'z'] part of the DataFrame is a 1
+        row by 3 column matrix::
 
+            Coord_Info = [0.0, 0.0, 0.0]
 
         *'cstm' description*
 
-        Each CSTM contains all the coordinate system information for
-        the superelement. Some or all of this info is in the USET
+        Each `cstm` contains all the coordinate system information for
+        the superelement. Some or all of this info is in the `uset`
         table, but if a coordinate system is not used as an output
-        system of any grid, it will not show up in USET. That is why
-        CSTM is here. CSTM has 14 columns::
+        system of any grid, it will not show up in `uset`. That is why
+        `cstm` is here. `cstm` has 14 columns::
 
-            CSTM = [ id type xo yo zo T(1,:) T(2,:) T(3,:) ]
+            cstm = [ id type xo yo zo T(1,:) T(2,:) T(3,:) ]
 
-        Note that each CSTM always starts with the two ids 0 and -1.
+        Note that each `cstm` always starts with the two ids 0 and -1.
         The 0 is the basic coordinate system and the -1 is a dummy for
         SPOINTs. Note the T is transformation between coordinate
         systems as defined (not necessarily the same as the
         transformation for a particular grid ... which, for
         cylindrical and spherical, depends on grid location). This is
-        the same T as in the USET table.
+        the same T as in the `uset` table.
 
         For example, to convert coordinates from global to basic::
 
@@ -1756,22 +1776,23 @@ class OP2(object):
 
         *'cstm2' description*
 
-        Each CSTM2 is a dictionary with the same 5x3 that the
+        Each `cstm2` is a dictionary with the same 5x3 that the
         'Coord_Info' listed above has (doesn't include the first row
         which is the node location). The dictionary is indexed by the
         coordinate id.
 
         *'maps' description*
 
-        MAPS will be [] for superelements whose A-set dof did not get
-        rearranged going downstream (on the CSUPER entry.)  For other
-        superelements, MAPS will contain two columns: [order, scale].
-        The first column reorders upstream A-set to be in the order
-        that they appear in the downstream: Down = Up(MAPS(:,1)). The
-        second column is typically 1.0; if not, these routines will
-        print an error message and stop. Together with DNIDS, a
-        partition vector can be formed for the A-set of an upstream
-        superelement (see :func:`pyyeti.n2p.upasetpv`).
+        `maps` will be [] for superelements whose A-set dof did not
+        get rearranged going downstream (on the CSUPER entry.)  For
+        other superelements, `maps` will contain two columns: [order,
+        scale].  The first column reorders upstream A-set to be in the
+        order that they appear in the downstream:
+        ``down = up[maps[:, 0]]``. The second column is typically 1.0;
+        if not, these routines will print an error message and
+        stop. Together with `dnids`, a partition vector can be formed
+        for the A-set of an upstream superelement (see
+        :func:`pyyeti.nastran.n2p.upasetpv`).
 
         The op2 file that this routine reads is written by the Nastran
         DMAP NAS2CAM. The data in the file are expected to be in this
@@ -1785,9 +1806,9 @@ class OP2(object):
               BGPDTS
               MAPS     (if required)
 
-        Note: The 2nd bit for the DOF column of all USET tables is
-        cleared for all S-set. See :func:`pyyeti.n2p.mkusetmask`
-        for more information.
+        Note: The 2nd bit for the DOF column of all `uset` tables is
+        cleared for all S-set. See
+        :func:`pyyeti.nastran.n2p.mkusetmask` for more information.
 
         Example usage::
 
@@ -1930,8 +1951,8 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
         G-set rigid-body modes; see also drg output and rbgeom_uset
     'drg' : dictionary indexed by SE
         G-set transpose of rigid-body modes; see also 'rbg' and
-        :func:`pyyeti.n2p.rbgeom_uset`. `drg` = `rbg.T` if both
-        are present.
+        :func:`pyyeti.nastran.n2p.rbgeom_uset`. `drg` = `rbg.T` if
+        both are present.
     'pg' : dictionary indexed by SE
         G-set loads
     'fgravh' : array
@@ -2781,9 +2802,8 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
     -------
     pop2 : dictionary
         With following members.
-    'uset' : array
-        6-column matrix as described in :class:`OP2`, member function
-        :func:`OP2.rdn2cop2`.
+    'uset' : pandas DataFrame
+        A DataFrame as output by :func:`OP2.rdn2cop2`
     'cstm' : array
         14-column matrix containing the coordinate system
         transformation matrix for each coordinate system. See

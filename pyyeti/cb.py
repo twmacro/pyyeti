@@ -766,8 +766,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         only consider forces on this subset so if there are other
         boundary DOF that are connected to other superelements, the CG
         recovery transforms are probably not very useful.
-    uset : 2d ndarray; optional for single point interface
-        A 6-column matrix as output by
+    uset : pandas DataFrame; optional for single point interface
+        A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2` or
         :func:`pyyeti.nastran.n2p.addgrid`. For information on the
         format of this matrix, see
@@ -2120,7 +2120,6 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     # coordinates of boundary points according to stiffness:
     coords, rbs, _ = cbcoordchk(
         k, bset, bref,
-        # uset[::6, 0].astype(np.int64),
         uset.index.get_level_values('id')[::6],
         ttl, True, fout, rb_normalizer)
 
@@ -2145,7 +2144,6 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
         writer.vecwrite(fout, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
                         '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
                         '{:5.3f}  {:5.3f}\n',
-                        # uset[::6, 0].astype(np.int64),
                         uset.index.get_level_values('id')[::6],
                         rss_s, rss_g, rss_e)
         fout.write('\n\n')
@@ -2349,8 +2347,8 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         Nastran). These DOF are used for the stiffness and eigenvalue
         based rigid-body modes. If `bref` is not all 6-DOF of a single
         node, you'll also want to set `rb_norm` to True.
-    uset : 2d ndarray; optional
-        A 6-column matrix as output by
+    uset : pandas DataFrame; optional for single point interface
+        A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2` or
         :func:`pyyeti.nastran.n2p.addgrid`. For information on the
         format of this matrix, see
@@ -2422,7 +2420,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     rbe : 2d ndarray
         The eigenvalue-based rigid-body modes (b+q x 6). DOF order is
         consistent with returned `m` and `k`.
-    uset : 2d ndarray
+    uset : pandas DataFrame
         Converted, reordered version of the input `uset`. Will equal
         `uset` if there is no unit conversion or reordering.
 

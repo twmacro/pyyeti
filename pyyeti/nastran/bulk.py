@@ -1120,9 +1120,9 @@ def bulk2uset(*args):
 
     Returns
     -------
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     coordref : dictionary
         Dictionary with the keys being the coordinate system id and
         the values being the 5x3 matrix::
@@ -1181,18 +1181,6 @@ def bulk2uset(*args):
     uset = n2p.addgrid(None, grids[:, 0].astype(np.int64), 'b',
                        grids[:, 1], grids[:, 2:5], grids[:, 5],
                        coordref)
-
-    # n = np.size(grids, 0)
-    # uset = np.zeros((n * 6, 6))
-    # for j in range(n):
-    #     grid = grids[j, 0]
-    #     csin = grids[j, 1]
-    #     csout = grids[j, 5]
-    #     xyz = grids[j, 2:5]
-    #     r = j * 6
-    #     uset[r:r + 6, :] = n2p.addgrid(
-    #         None, grid, 'b', csin, xyz, csout, coordref)
-
     return uset, coordref
 
 
@@ -1340,20 +1328,6 @@ def rdeigen(f, use_pandas=True):
                      'cycles', 'genmass', 'genstif']
                 table = pd.DataFrame(table, index=i, columns=c)
             dct[se] = table
-
-        while True:
-            se = _find_eigen(f)
-            if se is None:
-                break
-            dct[se] = _rd_eigen_table(f)
-        if use_pandas:
-            for se in dct:
-                table = dct[se]
-                i = table[:, 0].astype(int)
-                c = ['Mode #', 'ext #', 'eigenvalue', 'radians',
-                     'cycles', 'genmass', 'genstif']
-                dct[se] = pd.DataFrame(table, index=i, columns=c)
-        return dct
 
     return ytools.rdfile(f, _rdeigen, use_pandas)
 
@@ -2708,9 +2682,9 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
         matrices respectively.
     bset : 1d array_like
         Index partition vector for the bset
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     spoint1 : integer
         Starting value for the SPOINTs (for modal DOF)
     sedn : integer; optional

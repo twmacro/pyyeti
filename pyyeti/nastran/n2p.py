@@ -100,9 +100,9 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
 
     Parameters
     ----------
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     refpoint : integer or vector
         Defines location that rb modes will be relative to. Either an
         integer specifying the node ID (which is in the uset table),
@@ -129,9 +129,9 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
 
     See also
     --------
-    :func:`pyyeti.nastran.bulk2uset`, :func:`rbgeom`,
-    :func:`pyyeti.op2.rdnas2cam`, :func:`pyyeti.op2.OP2.rdn2cop2`,
-    :func:`usetprt`.
+    :func:`pyyeti.nastran.bulk.bulk2uset`, :func:`rbgeom`,
+    :func:`pyyeti.nastran.op2.rdnas2cam`,
+    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`, :func:`usetprt`.
 
     Examples
     --------
@@ -436,7 +436,7 @@ def expanddof(dof):
 
     Parameters
     ----------
-    dof : 1d or 2d array
+    dof : 1d or 2d array_like
         `dof` can be input in 2 different ways:
 
          1. 1d array. Each element is assumed to be a GRID ID. All 6
@@ -530,15 +530,15 @@ def mkusetmask(nasset=None):
     Sometimes the 2nd bit goes to the B-set and sometimes it goes to
     the S-set. However, so far, the S-set always has other bits set
     that can be (and are) checked. Therefore, to work around this
-    difficulty, the :func:`pyyeti.op2.OP2.rdn2cop2` routine clears the
-    2nd bit for all S-set DOF. Because of that, this routine can
-    safely assume that the 2nd bit belongs to the B-set and no manual
-    changes are required.
+    difficulty, the :func:`pyyeti.nastran.op2.OP2.rdn2cop2` routine
+    clears the 2nd bit for all S-set DOF. Because of that, this
+    routine can safely assume that the 2nd bit belongs to the B-set
+    and no manual changes are required.
 
     See also
     --------
-    :func:`mksetpv`, :func:`pyyeti.op2.rdnas2cam`,
-    :func:`pyyeti.op2.OP2.rdn2cop2`, :func:`usetprt`
+    :func:`mksetpv`, :func:`pyyeti.nastran.op2.rdnas2cam`,
+    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`, :func:`usetprt`
 
     Examples
     --------
@@ -608,9 +608,9 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
         Either a name of a file or a file handle as returned by
         :func:`open`. Use 1 to write to the screen, 0 to write nothing
         -- just get output.
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     printsets : string; optional
         A comma delimited string specifying which sets to print, see
         description below.
@@ -652,8 +652,8 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
 
     See also
     --------
-    :func:`pyyeti.op2.OP2.rdn2cop2`, :func:`mksetpv`,
-    :func:`rbgeom_uset`, :func:`pyyeti.op2.rdnas2cam`
+    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`, :func:`mksetpv`,
+    :func:`rbgeom_uset`, :func:`pyyeti.nastran.op2.rdnas2cam`
 
     Examples
     --------
@@ -810,7 +810,6 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
 
         if pv.any():
             f.write("{}\n{}\n".format(header, colheader))
-            # uset_mod = uset[pv, :2].astype(np.int64)
             uset_mod = uset.iloc[pv, :0].reset_index().values
             full_rows = pv.size // 10
             rem = pv.size - 10 * full_rows
@@ -847,9 +846,9 @@ def mksetpv(uset, major, minor):
 
     Parameters
     ----------
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     majorset : integer or string
         An integer bitmask or a set letter or letters (see below).
     minorset : integer or string
@@ -884,9 +883,9 @@ def mksetpv(uset, major, minor):
 
     See also
     --------
-    :func:`mkdofpv`, :func:`pyyeti.op2.rdnas2cam`,
+    :func:`mkdofpv`, :func:`pyyeti.nastran.op2.rdnas2cam`,
     :func:`formulvs`, :func:`usetprt`, :func:`rbgeom_uset`,
-    :func:`mkusetmask`, :func:`pyyeti.op2.OP2.rdn2cop2`
+    :func:`mkusetmask`, :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
 
     Raises
     ------
@@ -925,7 +924,7 @@ def mksetpv(uset, major, minor):
         major = mkusetmask(major)
     if isinstance(minor, str):
         minor = mkusetmask(minor)
-    uset_set = uset['uset'].values
+    uset_set = uset['nasset'].values
     pvmajor = (uset_set & major) != 0
     pvminor = (uset_set & minor) != 0
     if np.any(~pvmajor & pvminor):
@@ -942,10 +941,12 @@ def mkdofpv(uset, nasset, dof):
 
     Parameters
     ----------
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`. Allowed to have only the
-        first two columns if ``nasset == 'p'``.
+    uset : pandas DataFrame or ndarray
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. It can also be an
+        ndarray with at least 2-columns of [id, dof]; any other
+        columns are quietly ignored. If ndarray, `nasset` must be 'p'
+        (so no set partitions are needed).
     nasset : string or integer
         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
         May also be an integer bitmask (see :func:`mkusetmask` for
@@ -1000,8 +1001,9 @@ def mkdofpv(uset, nasset, dof):
            [200,   4],
            [200,   5],
            [200,   6]]...))
+    >>>
     >>> # add an spoint for testing:
-    >>> uset = uset.append(nastran.make_uset(991, 0, 4194304))
+    >>> uset = uset.append(nastran.make_uset([[991, 0]], 4194304))
     >>> # request spoint 991 and dof 123 for grid 100 (in that order):
     >>> ids2 = [[991, 0], [100, 123]]
     >>> nastran.mkdofpv(uset, "a", ids2)        # doctest: +ELLIPSIS
@@ -1020,9 +1022,9 @@ def mkdofpv(uset, nasset, dof):
         if nasset == 'p':
             uset_set = (uset[:, 0] * 10 + uset[:, 1]).astype(np.int64)
         else:
-            setpv = mksetpv(uset, "p", nasset)
-            uset_set = (uset[setpv, 0] * 10 +
-                        uset[setpv, 1]).astype(np.int64)
+            raise ValueError(
+                '`nasset` must be "p" if `uset` is not a '
+                'pandas DataFrame')
 
     dof = expanddof(dof)
     dof = dof[:, 0] * 10 + dof[:, 1]
@@ -1053,9 +1055,9 @@ def coordcardinfo(uset, cid=None):
 
     Parameters
     ----------
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     cid : None or integer
         If integer, it is the id of the coordinate system to get data
         for. If None, all coordinate system information is returned.
@@ -1204,9 +1206,9 @@ def _get_coordinfo_byid(refid, uset):
     ----------
     refid : integer
         Coordinate system id.
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
 
     Returns
     -------
@@ -1249,9 +1251,10 @@ def get_coordinfo(cord, uset, coordref):
 
         where type is 0 (rectangular), 1 (cylindrical), or 2
         (spherical).
-    uset : ndarray or None
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`. Not used unless needed.
+    uset : pandas DataFrame or None
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Not used unless
+        needed.
     coordref : dictionary
         Read/write dictionary with the keys being the coordinate
         system id and the values being the 5x3 matrix returned below.
@@ -1278,7 +1281,7 @@ def get_coordinfo(cord, uset, coordref):
 
     See also
     --------
-    :func:`addgrid`, :func:`pyyeti.op2.OP2.rdn2cop2`
+    :func:`addgrid`, :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     """
     if np.size(cord) == 1:
         cid = int(cord)
@@ -1445,9 +1448,9 @@ def getcoords(uset, gid, csys, coordref=None):
 
     Parameters
     ----------
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     gid : integer or 3 element vector
         If integer, it is a grid id in `uset`. Otherwise, it is a 3
         element vector:  [x, y, z] specifiy location in basic.
@@ -1614,9 +1617,9 @@ def getcoords(uset, gid, csys, coordref=None):
 
     See also
     --------
-    :func:`pyyeti.op2.OP2.rdn2cop2`, :func:`pyyeti.nastran.bulk2uset`,
-    :func:`coordcardinfo`, :func:`pyyeti.nastran.wtcoordcards`,
-    :func:`rbgeom_uset`.
+    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
+    :func:`pyyeti.nastran.bulk.bulk2uset`, :func:`coordcardinfo`,
+    :func:`pyyeti.nastran.wtcoordcards`, :func:`rbgeom_uset`.
 
     Examples
     --------
@@ -1715,68 +1718,182 @@ def _ensure_iter(obj):
     return obj
 
 
-def make_uset(idlist, doflist, uset=0, x=np.nan, y=np.nan, z=np.nan,
-              use_product=True):
+def make_uset(dof, nasset=0, xyz=None):
     """
     Make a uset DataFrame
 
     Parameters
     ----------
-    idlist : integer or list_like of integers
-        Grid or SPOINT id(s).
-    doflist : integer or list_like of integers
-        DOF to be used for all id(s) in `idlist` if `use_product` is
-        True. If `use_product` is False, `doflist` should be
-        compatibly-sized with `idlist`.
-    uset : integer or list_like of integers; optional
+    dof : 1d or 2d array_like
+        `dof` can be input in 2 different ways (as input to
+        :func:`expanddof`):
+
+         1. 1d array. Each element is assumed to be a GRID ID. All 6
+            DOF associated with the ID will be included in the output.
+         2. 2d 2-column DOF array. Each row is: [ID, DOF]. Here, DOF
+            specifies which degrees-of-freedom of the ID to find.
+            The DOF can be input in the same way as Nastran accepts
+            it: 0 or any combo of digits 1-6; eg, 123456 for all 6.
+            For this routine, all 6 DOF are required for each GRID.
+
+    nasset : integer or list_like of integers; optional
         Specifies the Nastran set membership. The :func:`mkusetmask`
-        can return a suitable value; eg: ``mkusetmask('a')``
-    x : scalar float or list_like of floats; optional
-        The x coordinate(s) of node(s) in `idlist`
-    y : scalar float or list_like of floats; optional
-        The y coordinate(s) of node(s) in `idlist`
-    z : scalar float or list_like of floats; optional
-        The z coordinate(s) of node(s) in `idlist`
-    use_product : bool; optional
-        Use :func:`pandas.MultiIndex.from_product` to form MultiIndex;
-        otherwise, :func:`pandas.MultiIndex.from_arrays` is used (and
-        `idlist` and `doflist` must be compatibly-sized).
+        can return a suitable value; eg: ``mkusetmask('a')``. Length
+        must be 1 or equal the number of rows in `dof`.
+    xyz : 2d array_like or None; optional
+        Specifies the ['x', 'y', 'z'] columns of the DataFrame (see
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2` for description). If
+        None, these columns are filled with NaNs. Otherwise, the
+        number of rows must match the number of rows in `dof` (before
+        expansion). For each GRID in `dof` that take up only one row
+        (so that :func:`expanddof` will expand it to 6 rows), the
+        corresponding row in `xyz` specifies the location in basic;
+        the coordinate system information is set to be basic as
+        well. For each GRID that is already expanded, the
+        corresponding 6 rows in `xyz` specify location (in basic) and
+        provides all the coordinate system information as described in
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
 
     Returns
     -------
     pandas DataFrame
         A DataFrame similar to what is output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
+
+    Raises
+    ------
+    ValueError
+        When the DOF for any GRID is not the complete set of 1-6.
+
+        When the number of rows in `xyz` does not match the number of
+        rows in `dof` (if `xyz` is not None).
+
+        When the number of rows in `nasset` does not match the number
+        of rows in `dof` (and is not 1).
 
     Examples
     --------
-    >>> from pyyeti import nastran
-    >>> nastran.make_uset(991, 0, uset=4194304)  # doctest: +ELLIPSIS
-                uset   x   y   z
-    id  dof...
-    991 0    4194304 NaN NaN NaN
+    >>> from pyyeti.nastran import n2p
+    >>> n2p.make_uset(dof=[[1, 123456],
+    ...                    [2, 0]],
+    ...               nasset=[n2p.mkusetmask('b'),
+    ...                       n2p.mkusetmask('q')],
+    ...               xyz=[[1, 2, 3],
+    ...                    [0, 0, 0]])        # doctest: +ELLIPSIS
+             nasset    x    y    z
+    id dof...
+    1  1    2097154  1.0  2.0  3.0
+       2    2097154  0.0  1.0  0.0
+       3    2097154  0.0  0.0  0.0
+       4    2097154  1.0  0.0  0.0
+       5    2097154  0.0  1.0  0.0
+       6    2097154  0.0  0.0  1.0
+    2  0    4194304  0.0  0.0  0.0
     """
-    idlist = _ensure_iter(idlist)
-    doflist = _ensure_iter(doflist)
-    if use_product:
-        ind = pd.MultiIndex.from_product([idlist, doflist],
-                                         names=['id', 'dof'])
+    dof = np.atleast_1d(dof)
+    if xyz is not None:
+        xyz = np.atleast_2d(xyz)
+        if xyz.shape[0] != dof.shape[0]:
+            raise ValueError(
+                'number of rows in `xyz` ({}) '
+                'must match number of rows in `dof` ({})'
+                .format(xyz.shape[0], dof.shape[0]))
+
+    nasset = np.atleast_1d(nasset).astype(int)
+    if nasset.shape[0] not in (1, dof.shape[0]):
+        raise ValueError(
+            'number of rows in `nasset` ({}) '
+            'must either be 1 or match number of rows in `dof` ({})'
+            .format(nasset.shape[0], dof.shape[0]))
+
+    edof = expanddof(dof)
+    # ensure that each grid has the full 6 rows:
+    # 1. length must be multiple of 6: n*6
+    # 2. the pattern must be [1-6, 1-6, ...]
+    pv = edof[:, 1] > 0
+    gdof = edof[pv, 1]
+    if gdof.shape[0] > 0:
+        # there are grids
+        n = gdof.shape[0] // 6
+        if (n * 6 != gdof.shape[0] or
+                not np.all(gdof == np.tile(np.arange(1, 7), n))):
+            raise ValueError(
+                'each GRID must have all DOF 1-6 specified')
+    ind = pd.MultiIndex.from_arrays([edof[:, 0], edof[:, 1]],
+                                    names=['id', 'dof'])
+    usetdf = pd.DataFrame(dict(uset=0, x=np.nan, y=np.nan, z=np.nan),
+                          index=ind,
+                          columns=['nasset', *'xyz'])
+
+    def _ensure_2cols(dof):
+        # ensure dof has two # commentlumns
+        if dof.ndim < 2:
+            dof = dof[:, None]   # make 2d
+            dof = np.column_stack(
+                (dof, 123456 * np.ones(dof.shape[0], int)))
+        return dof
+
+    if nasset.shape[0] == 1 or edof.shape[0] == dof.shape[0]:
+        # nasset doesn't need expanding either, so just put it in:
+        if nasset.shape[0] == 1:
+            nasset = nasset[0]
+        usetdf.loc[:, 'nasset'] = nasset
     else:
-        ind = pd.MultiIndex.from_arrays([idlist, doflist],
-                                        names=['id', 'dof'])
-    return pd.DataFrame(dict(uset=uset, x=x, y=y, z=z),
-                        index=ind,
-                        columns=['uset', *'xyz'])
+        # loop over each id to put in the nastran set information:
+        dof = _ensure_2cols(dof)
+        jdof = juset = 0
+        while jdof < dof.shape[0]:
+            if dof[jdof, 1] == 123456:
+                usetdf.iloc[juset:juset + 6, 0] = nasset[jdof]
+                jdof += 1
+                juset += 6
+            elif dof[jdof, 1] == 1:
+                usetdf.iloc[juset:juset + 6, 0] = nasset[jdof:jdof + 6]
+                jdof += 6
+                juset += 6
+            else:
+                # spoint
+                usetdf.iloc[juset, 0] = nasset[jdof]
+                jdof += 1
+                juset += 1
 
+    if xyz is None:
+        return usetdf
 
-#- def _addgrid_get_ci(coord, uset, coordref, cmap):
-#-     cid = id(coord)
-#-     try:
-#-         ci = cmap[cid]
-#-     except KeyError:
-#-         ci = get_coordinfo(coord, uset, coordref)
-#-         cmap[cid] = ci
-#-     return ci
+    if edof.shape[0] == dof.shape[0]:
+        usetdf.loc[:, 'x':'z'] = xyz
+    else:
+        # define default coord info data for xyz columns:
+        basic = np.array([
+            [0.0, 1.0, 0.0],     # coord system info
+            [0.0, 0.0, 0.0],     # coord system origin
+            [1.0, 0.0, 0.0],     # | transform to basic
+            [0.0, 1.0, 0.0],     # | for coord system
+            [0.0, 0.0, 1.0]])    # |
+
+        # loop over each id to put in the coordinate system
+        # information:
+        dof = _ensure_2cols(dof)
+        jdof = juset = 0
+        while jdof < dof.shape[0]:
+            if dof[jdof, 1] == 123456:
+                # plug in default coord info:
+                usetdf.iloc[juset, 1:] = xyz[jdof]
+                usetdf.iloc[juset + 1:juset + 6, 1:] = basic
+                jdof += 1
+                juset += 6
+            elif dof[jdof, 1] == 1:
+                # coord info provided in xyz:
+                usetdf.iloc[juset:juset + 6, 1:] = xyz[jdof:jdof + 6]
+                jdof += 6
+                juset += 6
+            else:
+                # spoint
+                usetdf.iloc[juset, 1:] = xyz[jdof]
+                jdof += 1
+                juset += 1
+
+    return usetdf
 
 
 def _addgrid_proc_ci(coord, uset, coordref):
@@ -1826,9 +1943,10 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     Parameters
     ----------
     uset : pandas DataFrame or None
-        A DataFrame as output by :func:`pyyeti.op2.OP2.rdn2cop2`; can
-        be None. If not None, this routine will use
-        :func:`pandas.concat` to return a new, expanded DataFrame.
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`; can be None. If not
+        None, this routine will use :func:`pandas.concat` to return a
+        new, expanded DataFrame.
     gid : integer or list_like of integers
         Grid id(s), all must be unique.
     nasset : string or list_like of strings
@@ -1924,9 +2042,10 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
     See also
     --------
-    :func:`pyyeti.nastran.bulk2uset`, :func:`rbgeom_uset`,
-    :func:`formrbe3`, :func:`pyyeti.op2.rdnas2cam`,
-    :func:`pyyeti.op2.OP2.rdn2cop2`, :func:`usetprt`
+    :func:`pyyeti.nastran.bulk.bulk2uset`, :func:`make_uset`,
+    :func:`rbgeom_uset`, :func:`formrbe3`,
+    :func:`pyyeti.nastran.op2.rdnas2cam`,
+    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`, :func:`usetprt`
 
     Raises
     ------
@@ -1948,7 +2067,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     ...     [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
     >>> pd.options.display.float_format = lambda x: '{:.1f}'.format(x)
     >>> uset     # doctest: +ELLIPSIS
-                uset    x    y    z
+              nasset    x    y    z
     id  dof...
     100 1    2097154  5.0 10.0 15.0
         2    2097154  0.0  1.0  0.0
@@ -1989,8 +2108,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     mask = mkusetmask()
 
     # allocate dataframe:
-    dof = np.arange(1, 7)
-    usetid = make_uset(gid, dof)
+    usetid = make_uset(gid)
 
     # ensure nasset is iterable:
     smap = {}
@@ -2004,7 +2122,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     # make sure xyz is 2d ndarray:
     xyz = np.atleast_2d(xyz)
 
-    # cols = ['uset', 'x', 'y', 'z']
+    # cols = ['nasset', 'x', 'y', 'z']
     for g, u, _cin, _xyz, _cout in zip(gid, nasset, cin, xyz, cout):
         _uset = _addgrid_get_uset(u, mask, smap)
 
@@ -2017,7 +2135,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         _xyz = np.vstack((loc, _cout))
 
         # put in dataframe:
-        usetid.loc[g, 'uset'] = _uset
+        usetid.loc[g, 'nasset'] = _uset
         usetid.loc[g, 'x':'z'] = _xyz
 
     if uset is not None:
@@ -2043,9 +2161,9 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
     Parameters
     ----------
-    uset : ndarray
-        A 6-column matrix as output by
-        :func:`pyyeti.op2.OP2.rdn2cop2`.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     GRID_dep : integer
         Id of dependent grid.
     DOF_dep : integer
@@ -2401,8 +2519,8 @@ def upasetpv(nas, seup):
 
     See also
     --------
-    :func:`mksetpv`, :func:`pyyeti.op2.rdnas2cam`, :func:`formulvs`,
-    :func:`upqsetpv`.
+    :func:`mksetpv`, :func:`pyyeti.nastran.op2.rdnas2cam`,
+    :func:`formulvs`, :func:`upqsetpv`.
     """
     r = _findse(nas, seup)
     sedn = nas['selist'][r, 1]
@@ -2478,8 +2596,8 @@ def upqsetpv(nas, sedn=0):
 
     See also
     --------
-    :func:`mksetpv`, :func:`pyyeti.op2.rdnas2cam`, :func:`formulvs`,
-    :func:`upasetpv`.
+    :func:`mksetpv`, :func:`pyyeti.nastran.op2.rdnas2cam`,
+    :func:`formulvs`, :func:`upasetpv`.
     """
     selist = nas['selist']
     rows = (selist[:, 1] == sedn).nonzero()[0]
