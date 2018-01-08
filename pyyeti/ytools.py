@@ -101,12 +101,23 @@ def np_printoptions(*args, **kwargs):
     Parameters
     ----------
     *args, **kwargs : arguments for :func:`numpy.set_printoptions`
+        See that function for a description of all available inputs.
+
+    Notes
+    -----
+    This is for temporarily (locally) changing how NumPy prints
+    matrices.
+
     Examples
     --------
+    Print a matrix with current defaults, re-print it with 2 decimals
+    using the "with" statement enabled by this routine, and then
+    re-print it one last time again using the current defaults:
+
     >>> import numpy as np
     >>> from pyyeti import ytools
     >>> a = np.arange(np.pi/20, 1.5, np.pi/17).reshape(2, -1)
-    >>> print(a)
+    >>> print(a)     # doctest: +SKIP
     [[ 0.15707963  0.3418792   0.52667877  0.71147834]
      [ 0.8962779   1.08107747  1.26587704  1.45067661]]
     >>> with ytools.np_printoptions(precision=2, linewidth=45,
@@ -114,7 +125,7 @@ def np_printoptions(*args, **kwargs):
     ...     print(a)
     [[ 0.16  0.34  0.53  0.71]
      [ 0.9   1.08  1.27  1.45]]
-    >>> print(a)
+    >>> print(a)     # doctest: +SKIP
     [[ 0.15707963  0.3418792   0.52667877  0.71147834]
      [ 0.8962779   1.08107747  1.26587704  1.45067661]]
     """
@@ -586,7 +597,7 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
     >>> w, phi, phiv = ytools.eig_si(k, m, mu=-1) # doctest: +ELLIPSIS
     Iteration 1 completed
     Convergence: 3 of 3, tolerance range after 2 iterations is [...
-    >>> print(w+0)
+    >>> print(abs(w))
     [  0.   5.  15.]
     >>> import scipy.linalg as linalg
     >>> k = np.random.randn(40, 40)

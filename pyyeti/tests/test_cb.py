@@ -264,57 +264,59 @@ def gettable(lines, j, col=0, label=None, skip=0):
     return np.array(table), j + len(table)
 
 
-def comptable(s1, s2, j, col=0, label=None, skip=0, sort2=0):
-    table1, nj1 = gettable(s1, j[0], col, label, skip)
-    table2, nj2 = gettable(s2, j[0], col, label, skip)
+def comptable(s1, s2, j1, j2, col=0, label=None, skip=0, sort2=0):
+    table1, nj1 = gettable(s1, j1[0], col, label, skip)
+    table2, nj2 = gettable(s2, j2[0], col, label, skip)
     if sort2:
         table2 = np.sort(table2, axis=1)
-    j[0] = min(nj1, nj2)
+    j1[0] = nj1
+    j2[0] = nj2
     return np.allclose(table1, table2, atol=1e-1)
 
 
 def compare_cbcheck_output(s, sy):
     j = [15]
-    assert comptable(s, sy, j, label=' ID ', skip=2)
-    assert comptable(s, sy, j, label='----------', skip=1)
-    assert comptable(s, sy, j, label='----------', skip=1)
-    assert comptable(s, sy, j, label='6x6 ', skip=2)
-    assert comptable(s, sy, j, label='6x6 ', skip=2)
-    assert comptable(s, sy, j, label='6x6 ', skip=2)
+    jy = [15]
+    assert comptable(s, sy, j, jy, label=' ID ', skip=2)
+    assert comptable(s, sy, j, jy, label='----------', skip=1)
+    assert comptable(s, sy, j, jy, label='----------', skip=1)
+    assert comptable(s, sy, j, jy, label='6x6 ', skip=2)
+    assert comptable(s, sy, j, jy, label='6x6 ', skip=2)
+    assert comptable(s, sy, j, jy, label='6x6 ', skip=2)
 
-    assert comptable(s, sy, j, label='Distance to CG', skip=4, col=23)
-    assert comptable(s, sy, j, label=' gyration', skip=4, col=23)
-    assert comptable(s, sy, j, label=' gyration', skip=4, col=23,
+    assert comptable(s, sy, j, jy, label='Distance to CG', skip=4, col=23)
+    assert comptable(s, sy, j, jy, label=' gyration', skip=4, col=23)
+    assert comptable(s, sy, j, jy, label=' gyration', skip=4, col=23,
                      sort2=True)
 
-    assert comptable(s, sy, j, label='Inertia ', skip=2)
-    assert comptable(s, sy, j, label='Principal ', skip=2)
+    assert comptable(s, sy, j, jy, label='Inertia ', skip=2)
+    assert comptable(s, sy, j, jy, label='Principal ', skip=2)
 
-    assert comptable(s, sy, j, label='Inertia ', skip=2)
-    assert comptable(s, sy, j, label='Principal ', skip=2)
+    assert comptable(s, sy, j, jy, label='Inertia ', skip=2)
+    assert comptable(s, sy, j, jy, label='Principal ', skip=2)
 
-    assert comptable(s, sy, j, label='Inertia ', skip=2)
-    assert comptable(s, sy, j, label='Principal ', skip=2)
+    assert comptable(s, sy, j, jy, label='Inertia ', skip=2)
+    assert comptable(s, sy, j, jy, label='Principal ', skip=2)
 
-    assert comptable(s, sy, j, label='-----------', skip=1, col=8)
-    assert comptable(s, sy, j, label='Summation', skip=2, col=8)
+    assert comptable(s, sy, j, jy, label='-----------', skip=1, col=8)
+    assert comptable(s, sy, j, jy, label='Summation', skip=2, col=8)
 
-    assert comptable(s, sy, j, label='-----------', skip=1, col=8)
-    assert comptable(s, sy, j, label='Summation', skip=2, col=8)
+    assert comptable(s, sy, j, jy, label='-----------', skip=1, col=8)
+    assert comptable(s, sy, j, jy, label='Summation', skip=2, col=8)
 
-    assert comptable(s, sy, j, label='-----------', skip=1, col=8)
-    assert comptable(s, sy, j, label='Summation', skip=2, col=8)
+    assert comptable(s, sy, j, jy, label='-----------', skip=1, col=8)
+    assert comptable(s, sy, j, jy, label='Summation', skip=2, col=8)
 
-    assert comptable(s, sy, j, label='Mode', skip=2, col=8)
+    assert comptable(s, sy, j, jy, label='Mode', skip=2, col=8)
 
     mef1 = gettable(s, j[0], label='Mode No.', skip=2)[0]
-    mef2 = gettable(sy, j[0], label='Mode No.', skip=2)[0]
+    mef2 = gettable(sy, jy[0], label='Mode No.', skip=2)[0]
     # trim mef2 down:
     pv = np.any(mef2[:, 2:] >= 2.0, axis=1)
     mef2 = mef2[pv]
     assert np.allclose(mef1, mef2)
 
-    assert comptable(s, sy, j, label='Total Eff', skip=0, col=21)
+    assert comptable(s, sy, j, jy, label='Total Eff', skip=0, col=21)
 
 
 def test_cbcheck_indeterminate():
@@ -438,7 +440,8 @@ def test_cbcheck_determinate():
     assert s[2] == 'Warning: stiffness matrix is not symmetric.'
 
     j = [10]
-    assert comptable(s, sy, j, label='KBB =', skip=1)
+    jy = [10]
+    assert comptable(s, sy, j, jy, label='KBB =', skip=1)
     compare_cbcheck_output(s, sy)
 
 
@@ -678,10 +681,11 @@ def test_rbmultchk():
         sy = f.read().splitlines()
 
     j = [2]
-    assert comptable(s, sy, j, label='Extreme ', skip=3, col=11)
-    assert comptable(s, sy, j, label=' Row ', skip=2, col=68)
-    assert comptable(s, sy, j, label=' Row ', skip=2)
-    assert comptable(s, sy, j, label=' Row ', skip=2)
+    jy = [2]
+    assert comptable(s, sy, j, jy, label='Extreme ', skip=3, col=11)
+    assert comptable(s, sy, j, jy, label=' Row ', skip=2, col=68)
+    assert comptable(s, sy, j, jy, label=' Row ', skip=2)
+    assert comptable(s, sy, j, jy, label=' Row ', skip=2)
 
 
 def test_rbmultchk2():
