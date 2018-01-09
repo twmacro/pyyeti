@@ -88,8 +88,11 @@
     o   Or, are the params cheap to recompute?
     Hmm ... would have to decide how to save results (even time steps?)
 
-24. Add ability to write more matrices in wt_extseout (like mug1).
+~24. Add ability to write more matrices in wt_extseout (like mug1).
+~     - added in post version v0.92.3
+
 25. DR_Results.add should have ability to multiply a new factor on top of
     current setting … right now, all it can do is replace
+
 26. The DR_Results.solve_psd routine does ode.SolveUnc everytime ????
 

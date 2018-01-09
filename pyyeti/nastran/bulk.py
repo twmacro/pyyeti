@@ -2660,13 +2660,13 @@ def wtextrn(f, ids, dof):
 
 
 def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
-                sedn=0, bh=False):
+                sedn=0, bh=False, **kwargs):
     """
     Write .op4, .asm, .pch and possibly the damping DMIG file for an
     external SE.
 
-    Note that all inputs except `f` must be named and can be input in
-    any order.
+    Note that all inputs except `name` must be named and can be input
+    in any order.
 
     Parameters
     ----------
@@ -2694,6 +2694,18 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
         '.baa_dmig' file will be created with VCOMP DMIG. In this
         case, the BAA matrix written to the .op4 file is zeroed out to
         avoid double application of damping.
+    **kwargs : optional
+        Allows user to input other matrices to be written to the op4
+        file. Name must be one of the following to be included (order
+        is as written to op4)::
+
+            'k4xx', 'pa', 'gpxx', 'gdxx', 'va', 'mug1', 'mug1o',
+            'mes1', 'mes1o', 'mee1', 'mee1o', 'mgpf', 'mgpfo', 'mef1',
+            'mef1o', 'mqg1', 'mqg1o', 'mqmg1', 'mqmg1o'
+
+        By default, 1x1 zero matrices are written for all these names
+        except for two: 'pa' is a vector of zeros and 'va' is a vector
+        of ones.
 
     Returns
     -------
@@ -2733,7 +2745,7 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
                 'va', 'mug1', 'mug1o', 'mes1', 'mes1o', 'mee1',
                 'mee1o', 'mgpf', 'mgpfo', 'mef1', 'mef1o', 'mqg1',
                 'mqg1o', 'mqmg1', 'mqmg1o']
-    dct = locals()
+    dct = {**locals(), **kwargs}
     varlist = [dct[i] for i in namelist]
     op4.write(name + '.op4', namelist, varlist)
 

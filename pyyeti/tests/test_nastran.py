@@ -200,6 +200,39 @@ def test_wt_extseout():
                 if os.path.exists(name + ext):
                     os.remove(name + ext)
 
+    # test the additional writing of matrices:
+    mug1 = np.arange(12).reshape(3, 4)
+    mef1 = 10 * mug1
+    try:
+        nastran.wt_extseout(name, se=101, maa=maa, kaa=kaa,
+                            baa=baa, bset=b, uset=usetb,
+                            spoint1=9900101,
+                            mug1=mug1,
+                            mef1=mef1)
+        names, mats, f, t = op4.load(name + '.op4', into='list')
+        namesy, matsy, fy, ty = op4.load(pre + '.op4',
+                                         into='list')
+        assert names == namesy
+        for i, (m, my) in enumerate(zip(mats, matsy)):
+            if names[i] in ('mug1', 'mef1'):
+                assert np.allclose(m, eval(names[i]))
+            else:
+                assert f[i] == fy[i]
+                assert t[i] == ty[i]
+                assert np.allclose(m, my)
+        lst = ('.asm', '.pch')
+        for ext in lst:
+            with open(name + ext) as f:
+                s = f.read()
+            with open(pre + nm + ext) as f:
+                sy = f.read()
+            assert s.replace(name.upper(), 'SE101') == sy
+
+    finally:
+        for ext in ('.asm', '.pch', '.op4', '.baa_dmig'):
+            if os.path.exists(name + ext):
+                os.remove(name + ext)
+
 
 def test_rdeigen():
     e1 = nastran.rdeigen('pyyeti/tests/nas2cam_csuper/assemble.out')
