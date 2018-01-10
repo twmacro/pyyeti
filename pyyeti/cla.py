@@ -659,9 +659,17 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         _put_time(curext, mm, j, 1, 1)
 
 
-def _merge_uf_reds(new, old):
-    merged = (i if i is not None else j
-              for i, j in zip(new, old))
+def _merge_uf_reds(new, old, method='replace'):
+    if method == 'replace':
+        merged = (i if i is not None else j
+                  for i, j in zip(new, old))
+    elif method == 'multiply':
+        merged = (j * i if i is not None else j
+                  for i, j in zip(new, old))
+    else:
+        raise ValueError(
+            '`method` value must be either "replace" or'
+            ' "multiply"')
     return tuple(merged)
 
 
@@ -1684,7 +1692,7 @@ class DR_Event(object):
         self.UF_reds = []
         self.Vars = {}
 
-    def add(self, nas, drdefs, uf_reds=None):
+    def add(self, nas, drdefs, uf_reds=None, method='replace'):
         """
         Add data recovery definitions for an event or set of modes.
 
@@ -1702,18 +1710,39 @@ class DR_Event(object):
             does nothing.
         uf_reds : 4-element tuple or None; optional
             If not None, this is the uncertainty factors in "reds"
-            order: [rigid, elastic, dynamic, static]. In that case,
-            this entry overrides any `uf_reds` settings already
-            defined in `drdefs`. Set any of the four values to None to
-            keep the original value (often used for "rigid" since that
-            is typically either 0 or 1). This `uf_reds` option can be
-            useful when uncertainty factors are event specific rather
-            than data recovery category specific.
+            order: [rigid, elastic, dynamic, static]. The values in
+            `uf_reds` either replace or multiply the original values
+            (see `method`). Use a value of None for a particular
+            uncertainty value to retain the original value
+            unmodified. This `uf_reds` option can be useful when
+            uncertainty factors are event specific rather than data
+            recovery category specific or you need to add in a forcing
+            function uncertainty factor.
 
             For example, to reset the dynamic uncertainty factor to
             1.1 while leaving the other values unchanged::
 
                 uf_reds=(None, None, 1.1, None)
+                DR.add(nas, drdefs, uf_reds)
+
+            For another example, to increase the rigid-body and
+            elastic uncertainty factors by a factor of 1.05 while
+            leaving the other two values unchanged::
+
+                uf_reds=(1.05, 1.05, None, None)
+                DR.add(nas, drdefs, uf_reds, method='multiply')
+
+        method : string; optional
+            Specifies how to update the "uf_reds" settings:
+
+              ============  ========================================
+                `method`                 Description
+              ============  ========================================
+              'replace'     Values in `uf_reds` (that are not None)
+                            replace old values.
+              'multiply'    Values in `uf_reds` (that are not None)
+                            multiply the old values.
+              ============  ========================================
 
         Notes
         -----
@@ -1736,7 +1765,8 @@ class DR_Event(object):
             # reset uf_reds if input:
             if uf_reds is not None:
                 self.Info[name].uf_reds = _merge_uf_reds(
-                    uf_reds, self.Info[name].uf_reds)
+                    uf_reds, self.Info[name].uf_reds,
+                    method=method)
 
             # collect all sets of uncertainty factors together for the
             # apply_uf routine later:

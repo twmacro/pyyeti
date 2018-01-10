@@ -1432,42 +1432,53 @@ def test_event_add():
     DR.add(None, None)
     assert len(DR.Info) == 0
 
-    DR.add(nas, drdefs, uf_reds=(2, 2, 2, 2))
+    tup = (2, 2, 2, 2)
+    DR.add(nas, drdefs, uf_reds=tup)
     assert_raises(ValueError, DR.add, nas, drdefs2)
     assert_raises(ValueError, DR.add, nas, drdefs3)
     assert_raises(ValueError, DR.add, nas, drdefs4)
 
-    # for testing apply_uf:
-    sol = SimpleNamespace()
-    sol.a = np.ones((1, 10), float)
-    sol.v = sol.a + 1.0
-    sol.d = sol.a + 2.0
-    sol.pg = np.array([45])
-    SOL1 = DR.apply_uf(sol, None, np.ones(1, float),
-                       np.ones(1, float) + 1.0, 0, None)
-    SOL2 = DR.apply_uf(sol, np.ones(1, float), np.ones((1, 1), float),
-                       np.ones((1, 1), float) + 1.0, 0, None)
-    SOL3 = DR.apply_uf(sol, np.ones((1, 1), float),
-                       np.ones((1, 1), float),
-                       np.ones((1, 1), float) + 1.0, 0, None)
+    for _ in range(2):
+        # for testing apply_uf:
+        sol = SimpleNamespace()
+        sol.a = np.ones((1, 10), float)
+        sol.v = sol.a + 1.0
+        sol.d = sol.a + 2.0
+        sol.pg = np.array([45])
+        SOL1 = DR.apply_uf(
+            sol, None, np.ones(1, float),
+            np.ones(1, float) + 1.0, 0, None)
+        SOL2 = DR.apply_uf(
+            sol, np.ones(1, float), np.ones((1, 1), float),
+            np.ones((1, 1), float) + 1.0, 0, None)
+        SOL3 = DR.apply_uf(sol, np.ones((1, 1), float),
+                           np.ones((1, 1), float),
+                           np.ones((1, 1), float) + 1.0, 0, None)
 
-    for k, d1 in SOL1.items():   # loop over uf_reds
-        d2 = SOL2[k]
-        d3 = SOL3[k]
-        for k, v1 in d1.__dict__.items():  # loop over a, v, d, ...
-            v2 = getattr(d2, k)
-            v3 = getattr(d3, k)
-            assert np.all(v2 == v1)
-            assert np.all(v3 == v1)
+        for k, d1 in SOL1.items():   # loop over uf_reds
+            d2 = SOL2[k]
+            d3 = SOL3[k]
+            # loop over a, v, d, ...
+            for k, v1 in d1.__dict__.items():
+                v2 = getattr(d2, k)
+                v3 = getattr(d3, k)
+                assert np.all(v2 == v1)
+                assert np.all(v3 == v1)
 
-    assert SOL1[(2, 2, 2, 2)].pg == 90
+        assert np.allclose(SOL1[tup].pg, 90)
 
-    SOL = DR.frf_apply_uf(sol, 0)
+        SOL = DR.frf_apply_uf(sol, 0)
 
-    assert np.all(SOL[(2, 2, 2, 2)].a == 4 * sol.a)
-    assert np.all(SOL[(2, 2, 2, 2)].v == 4 * sol.v)
-    assert np.all(SOL[(2, 2, 2, 2)].d == 4 * sol.d)
-    assert np.all(SOL[(2, 2, 2, 2)].pg == 2 * sol.pg)
+        assert np.allclose(SOL[tup].a, 4 * sol.a)
+        assert np.allclose(SOL[tup].v, 4 * sol.v)
+        assert np.allclose(SOL[tup].d, 4 * sol.d)
+        assert np.allclose(SOL[tup].pg, 2 * sol.pg)
+
+        # for second loop, use "multiply" method of uf_reds updating:
+        DR = cla.DR_Event()
+        DR.add(nas, drdefs, uf_reds=(2, 2, 2 / 1.2, 2),
+               method='multiply')
+        tup = DR.UF_reds[0]
 
 
 def test_merge():
