@@ -95,5 +95,7 @@
 ~    current setting … right now, all it can do is replace
 ~     - added in version v0.92.3
 
-26. The DR_Results.solve_psd routine does ode.SolveUnc everytime ????
+~ 26. The DR_Results.solve_psd routine does ode.SolveUnc everytime ????
+~  changed input to class instance "fs" in v0.92.3
 
+27. Implement a Newmark-Beta ode solver

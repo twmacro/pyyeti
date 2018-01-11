@@ -582,12 +582,13 @@ def owlab(pth):
                          [31.0,  90.0, 110.0, 110.0],
                          [50.0,  90.0, 110.0, 110.0]])]
 
+        fs = ode.SolveUnc(*mbk)
         for j, ff in enumerate(rnd):
             caseid = '{} {:2d}'.format(event, j + 1)
             print('Running {} case {}'.format(event, j + 1))
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T,
                                 axis=1, fill_value=0.0)(freq)
-            results.solvepsd(nas, caseid, DR, *mbk, F, T, freq)
+            results.solvepsd(nas, caseid, DR, fs, F, T, freq)
             results.psd_data_recovery(caseid, DR, len(rnd), j)
 
         # save results:
@@ -604,8 +605,8 @@ def owlab(pth):
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T,
                                 axis=1, fill_value=0.0)(freq)
             if j == 0:
-                results2.solvepsd(nas, caseid, DR, *mbk, F, T, freq,
-                                  verbose=verbose)
+                results2.solvepsd(nas, caseid, DR, fs, F, T, freq,
+                                  verbose=verbose, incrb=1)
                 verbose = not verbose
                 freq = +freq  # make copy
                 freq[-1] = 49.7  # to cause error on next 'solvepsd'
@@ -613,7 +614,7 @@ def owlab(pth):
                                            resp_time=20)
             else:
                 assert_raises(ValueError, results2.solvepsd, nas,
-                              caseid, DR, *mbk, F, T, freq,
+                              caseid, DR, fs, F, T, freq,
                               verbose=verbose)
 
         # compare srs results using 3.0 peak factor and frequency

@@ -3829,7 +3829,8 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2,
               [[atm, None], [dtm, None], [ltma, ltmd]]
 
     incrb : 0, 1, or 2; optional
-        Specifies how to handle rigid-body responses:
+        An input to the :func:`fs.fsolve` method, it specifies how to
+        handle rigid-body responses:
 
         ======  ==============================================
         incrb   description

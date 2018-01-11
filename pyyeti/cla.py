@@ -2918,8 +2918,8 @@ class DR_Results(OrderedDict):
                         res.srs.ext[q] = np.fmax(res.srs.ext[q],
                                                  srs_cur)
 
-    def solvepsd(self, nas, case, DR, m, b, k, forcepsd, t_frc, freq,
-                 rfmodes=None, verbose=False):
+    def solvepsd(self, nas, case, DR, fs, forcepsd, t_frc, freq,
+                 incrb=2, verbose=False):
         """
         Solve equations of motion in frequency domain with PSD forces
 
@@ -2943,9 +2943,9 @@ class DR_Results(OrderedDict):
             ``DR = cla.DR_Event()``). It is an event specific version
             of all combined :class:`DR_Def` objects with all ULVS
             matrices applied.
-        m, b, k : 2d array_like
-            The mass, damping, stiffness matrices suitable for use in
-            :class:`pyyeti.ode.SolveUnc`.
+        fs : class
+            An instance of :class:`SolveUnc` or :class:`FreqDirect`
+            (or similar ... must have `.fsolve` method)
         forcepsd : 2d array_like
             Matrix of force psds; each row is a force
         t_frc : 2d array_like
@@ -2954,9 +2954,18 @@ class DR_Results(OrderedDict):
             ``t_frc.shape[0] == forcepsd.shape[0]``
         freq : 1d array_like
             Frequency vector at which solution will be computed
-        rfmodes : 1d array_like or None; optional
-            Specifies where the res-flex modes are; if None, no
-            resflex
+        incrb : 0, 1, or 2; optional
+            An input to the :func:`fs.fsolve` method, it specifies how
+            to handle rigid-body responses:
+
+            ======  ==============================================
+            incrb   description
+            ======  ==============================================
+               0    no rigid-body is included
+               1    acceleration and velocity rigid-body only
+               2    all of rigid-body is included (see note below)
+            ======  ==============================================
+
         verbose : bool; optional
             If True, print status messages and timer results.
 
@@ -2989,7 +2998,6 @@ class DR_Results(OrderedDict):
         freq = np.atleast_1d(freq)
 
         # decompose system equations for uncoupled solver:
-        fs = ode.SolveUnc(m, b, k, rf=rfmodes)
         rpsd = forcepsd.shape[0]
         unitforce = np.ones(freq.shape)
 
@@ -3019,7 +3027,7 @@ class DR_Results(OrderedDict):
             # solve for unit FRF for i'th force:
             genforce = t_frc[i][:, None] * unitforce
             t1 = time.time()
-            sol = fs.fsolve(genforce, freq)
+            sol = fs.fsolve(genforce, freq, incrb)
             sol.pg = unitforce
             timers[0] += time.time() - t1
 
@@ -3856,7 +3864,7 @@ class DR_Results(OrderedDict):
         ----------
         refres : dictionary
             Dictionary of reference results to compare to. Keys are
-            the event names and values are either:
+            the category names and values are either:
 
               1. A 2-column array_like of ``[max, min]``, or
               2. A SimpleNamespace with the ``.ext`` (``[max, min]``)
@@ -3866,11 +3874,12 @@ class DR_Results(OrderedDict):
 
             Notes:
 
-              1. If the keys are different than those in
-                 ``self[event]`` (eg, 'SC_ifa', 'SC_atm', etc), then
-                 the input `keyconv` is necessary.
-              2. If a key in ``self[event]`` is not found in `refres`,
-                 a message is printed and that item is skipped.
+              1. If the keys are different than those in ``self`` (eg,
+                 'SC_ifa', 'SC_atm', etc), then the input `keyconv` is
+                 necessary.
+
+              2. If a key in ``self`` is not found in `refres`, a
+                 message is printed and that item is skipped.
 
         names : list/tuple; optional
             2-element list or tuple identifying the two sets of
@@ -3878,7 +3887,7 @@ class DR_Results(OrderedDict):
             and the second is for `refres`.
         event : string or None; optional
             String identifying the event; if None, event is taken from
-            each ``self[name].event``
+            each ``self[category].event``. Used for titling.
         drms : list of data recovery categories or None; optional
             Data recovery categories to compare. If None, compare all
             available.
@@ -4765,7 +4774,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         values above.
     mxmn2 : 2d array_like or SimpleNamespace
         The reference set of max/min data. Format is the same as
-        `mxmn2`.
+        `mxmn1`.
     filename : string, file handle or 1
         If a string, it is a filename that gets created. `filename`
         can also be a file handle or 1 to write to standard output
