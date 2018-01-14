@@ -331,10 +331,7 @@ def get_drfunc(drinfo, get_psd=False):
         spec.loader.exec_module(drmod)
         func = getattr(drmod, drinfo.drfunc)
         if get_psd:
-            try:
-                psdfunc = getattr(drmod, drinfo.drfunc + '_psd')
-            except AttributeError:
-                psdfunc = None
+            psdfunc = getattr(drmod, drinfo.drfunc + '_psd', None)
             return func, psdfunc
         return func
 
@@ -654,17 +651,20 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         _put_time(curext, mm, j, 1, 1)
 
 
-def _merge_uf_reds(new, old, method='replace'):
+def _merge_uf_reds(old, new, method='replace'):
     if method == 'replace':
-        merged = (i if i is not None else j
-                  for i, j in zip(new, old))
+        merged = (n if n is not None else o
+                  for o, n in zip(old, new))
     elif method == 'multiply':
-        merged = (j * i if i is not None else j
-                  for i, j in zip(new, old))
+        merged = (o * n if n is not None else o
+                  for o, n in zip(old, new))
+    elif callable(method):
+        merged = (method(o, n) if n is not None else o
+                  for o, n in zip(old, new))
     else:
         raise ValueError(
-            '`method` value must be either "replace" or'
-            ' "multiply"')
+            '`method` value must be either "replace", '
+            '"multiply", or a function (a callable)')
     return tuple(merged)
 
 
@@ -816,13 +816,14 @@ class DR_Def(OrderedDict):
         self._drfilemap = {}
         return
 
-    def __repr__(self):
-        return object.__repr__(self)
+    # def __repr__(self):
+    #     return object.__repr__(self)
 
-    def __str__(self):
+    def __repr__(self):
         cats = ', '.join("'{}'".format(name) for name in self)
-        return ('{} with {} categories: [{}]'
-                .format(type(self).__name__, len(self), cats))
+        return ('{} ({}) with {} categories: [{}]'
+                .format(type(self).__name__, hex(id(self)),
+                        len(self) - 1, cats))
 
     # add drms and nondrms to self:
     def _add_vars(self, name, drms, nondrms):
@@ -940,7 +941,7 @@ class DR_Def(OrderedDict):
             self._check_for_drfunc(ns.drfile, ns.drfunc)
 
         # ensure uf_reds has no None values:
-        ns.uf_reds = _merge_uf_reds(ns.uf_reds, (1, 1, 1, 1))
+        ns.uf_reds = _merge_uf_reds((1, 1, 1, 1), ns.uf_reds)
 
         # next, the default actions:
         if ns.desc is None:
@@ -1460,7 +1461,7 @@ class DR_Def(OrderedDict):
             for key, value in kwargs.items():
                 if key == 'uf_reds':
                     cat.__dict__[key] = _merge_uf_reds(
-                        value, self[name].uf_reds)
+                        self[name].uf_reds, value)
                 else:
                     cat.__dict__[key] = value
 
@@ -1676,6 +1677,12 @@ class DR_Event(object):
     come from either the `.drms` or `.nondrms` entry.
     """
 
+    def __repr__(self):
+        cats = ', '.join("'{}'".format(name) for name in self.Info)
+        return ('{} ({}) with {} categories: [{}]'
+                .format(type(self).__name__, hex(id(self)),
+                        len(self.Info), cats))
+
     def __init__(self):
         """
         Initializes the attributes `Info`, `UF_reds`, and `Vars` to
@@ -1727,7 +1734,7 @@ class DR_Event(object):
                 uf_reds=(1.05, 1.05, None, None)
                 DR.add(nas, drdefs, uf_reds, method='multiply')
 
-        method : string; optional
+        method : string or function (callable); optional
             Specifies how to update the "uf_reds" settings:
 
               ============  ========================================
@@ -1737,13 +1744,38 @@ class DR_Event(object):
                             replace old values.
               'multiply'    Values in `uf_reds` (that are not None)
                             multiply the old values.
+               callable     Values are computed by function (or any
+                            callable). The function is only called
+                            for entries where `uf_reds` is not None.
+                            The call is:
+                            ``method(old_value, new_value)``. See
+                            examples below.
               ============  ========================================
 
         Notes
         -----
         Typically called once for each superelement where data
         recovery is requested. The attributes `Info`, `UF_reds` and
-        `Vars` are all updated on each call.
+        `Vars` are all updated on each call to this routine.
+
+        Following are some examples of providing a function for the
+        `method` parameter. Note that the function is only called when
+        the `uf_reds` value is not None.
+
+        These two calls are equivalent::
+
+            DR.add(nas, drdefs, uf_reds, 'replace')
+            DR.add(nas, drdefs, uf_reds, lambda old, new: new)
+
+        These are also equivalent:
+
+            DR.add(nas, drdefs, uf_reds, 'multiply')
+            DR.add(nas, drdefs, uf_reds, lambda old, new: old*new)
+
+        As a final example, if you wanted to add values onto the
+        previous settings instead of multiply, you could do this:
+
+            DR.add(nas, drdefs, uf_reds, lambda old, new: old+new)
         """
         if drdefs is None:
             return
@@ -1760,7 +1792,8 @@ class DR_Event(object):
             # reset uf_reds if input:
             if uf_reds is not None:
                 self.Info[name].uf_reds = _merge_uf_reds(
-                    uf_reds, self.Info[name].uf_reds,
+                    self.Info[name].uf_reds,
+                    uf_reds,
                     method=method)
 
             # collect all sets of uncertainty factors together for the
@@ -2297,13 +2330,14 @@ class DR_Results(OrderedDict):
             .time   : float32 ndarray 10001 elems: (10001,)
     """
 
-    def __repr__(self):
-        return object.__repr__(self)
+    # def __repr__(self):
+    #     return object.__repr__(self)
 
-    def __str__(self):
+    def __repr__(self):
         cats = ', '.join("'{}'".format(name) for name in self)
-        return ('{} with {} categories: [{}]'
-                .format(type(self).__name__, len(self), cats))
+        return ('{} ({}) with {} keys: [{}]'
+                .format(type(self).__name__, hex(id(self)),
+                        len(self), cats))
 
     def init(self, Info, mission, event, cats=None):
         """
@@ -3017,7 +3051,7 @@ class DR_Results(OrderedDict):
                 res.frf[j] = resp[dr.histpv]
 
             if dr.srspv is not None and dosrs:
-                self._compute_srs(res, dr, resp, 'hist',
+                self._compute_srs(res, dr, resp, 'frf',
                                   j, first)
 
     def solvepsd(self, nas, case, DR, fs, forcepsd, t_frc, freq,
@@ -3367,16 +3401,16 @@ class DR_Results(OrderedDict):
         Show the base events:
 
         >>> for name, base in res.all_base_events():
-        ...     print(name, ':', base)
-        Base1 : DR_Results with 2 categories: ['SC_atm', 'SC_ltm']
-        Base2 : DR_Results with 2 categories: ['SC_atm', 'SC_ltm']
+        ...     print(name, ':', base)   # doctest: +ELLIPSIS
+        Base1 : DR_Results (...) with 2 keys: ['SC_atm', 'SC_ltm']
+        Base2 : DR_Results (...) with 2 keys: ['SC_atm', 'SC_ltm']
 
         Show the non-base events:
 
         >>> for name, nonbase in res.all_nonbase_events():
-        ...     print(name, ':', nonbase)
-        Top Level : DR_Results with 2 categories: ['NonBase', 'Base2']
-        NonBase : DR_Results with 1 categories: ['Base1']
+        ...     print(name, ':', nonbase)   # doctest: +ELLIPSIS
+        Top Level : DR_Results (...) with 2 keys: ['NonBase', 'Base2']
+        NonBase : DR_Results (...) with 1 keys: ['Base1']
 
         Show all the data recovery categories:
 

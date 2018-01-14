@@ -20,7 +20,7 @@ mpl.interactive(0)
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from pyyeti import cla, cb, ode, stats
-from pyyeti import nastran
+from pyyeti import nastran, srs
 from pyyeti.nastran import op2, n2p, op4
 
 
@@ -270,9 +270,10 @@ def test_form_extreme():
         lbls[1] = lbl_keep
 
     results.form_extreme()
-    assert repr(results).startswith('<pyyeti.cla.DR_Results object')
-    assert str(results) == ('DR_Results with 4 categories: '
-                            "['FDLC', 'VLC', 'VLC2', 'extreme']")
+    assert repr(results).startswith('DR_Results ')
+    assert str(results).endswith(
+        'with 4 keys: '
+        "['FDLC', 'VLC', 'VLC2', 'extreme']")
     try:
         # results['extreme'].rpttab(direc='./temp_tab', excel='results')
         results['extreme'].rpttab(direc='./temp_tab', excel=True)
@@ -855,6 +856,8 @@ def check_split():
             LC = len(mg)
             mg.form_extreme()
 
+            assert_raises(TypeError, mg.split)
+
             if do_stats:
                 mg['extreme'].form_stat_ext(
                     stats.ksingle(0.99, 0.90, LC))
@@ -1126,6 +1129,9 @@ def test_addcat():
         drms = {'drm': drm}
         drdefs.add(**locals())
 
+    repr_str = repr(drdefs)
+    assert 'with 1 categories' in repr_str
+
     assert drdefs['ATM'].se == 0
     assert np.allclose(drdefs['ATM'].uf_reds, (1, 1, 1, 1))
 
@@ -1149,6 +1155,18 @@ def test_addcat():
     assert 0 == the_warning.find('"drm" already')
 
     assert drdefs['LTM'].drfile == drdefs['ATM'].drfile
+
+    def _():
+        name = 'ATM45'
+        labels = 12
+        drfile = 'no such file'
+        drdefs.add(**locals())
+
+    with assert_warns(RuntimeWarning) as cm:
+        cla.DR_Def.addcat(_)
+    the_warning = str(cm.warning)
+    for s in ('ATM45', 'import of', 'failed.'):
+        assert s in the_warning
 
     def _():
         name = 'DTM'
@@ -1375,7 +1393,7 @@ def test_event_add():
     uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
     nas = {
         'ulvs': {10: np.ones((1, 1), float)},
-        'uset': {10: uset.iloc[:1]},
+        'uset': {10: uset[:1]},
     }
 
     @cla.DR_Def.addcat
@@ -1433,53 +1451,147 @@ def test_event_add():
     DR.add(None, None)
     assert len(DR.Info) == 0
 
-    tup = (2, 2, 2, 2)
-    DR.add(nas, drdefs, uf_reds=tup)
+    DR.add(nas, drdefs, uf_reds=(2, 2, 2, 2))
     assert_raises(ValueError, DR.add, nas, drdefs2)
     assert_raises(ValueError, DR.add, nas, drdefs3)
     assert_raises(ValueError, DR.add, nas, drdefs4)
 
-    for _ in range(2):
-        # for testing apply_uf:
-        sol = SimpleNamespace()
-        sol.a = np.ones((1, 10), float)
-        sol.v = sol.a + 1.0
-        sol.d = sol.a + 2.0
-        sol.pg = np.array([45])
-        SOL1 = DR.apply_uf(
-            sol, None, np.ones(1, float),
-            np.ones(1, float) + 1.0, 0, None)
-        SOL2 = DR.apply_uf(
-            sol, np.ones(1, float), np.ones((1, 1), float),
-            np.ones((1, 1), float) + 1.0, 0, None)
-        SOL3 = DR.apply_uf(sol, np.ones((1, 1), float),
-                           np.ones((1, 1), float),
-                           np.ones((1, 1), float) + 1.0, 0, None)
+    # for testing apply_uf:
+    sol = SimpleNamespace()
+    sol.a = np.ones((1, 10), float)
+    sol.v = sol.a + 1.0
+    sol.d = sol.a + 2.0
+    sol.pg = np.array([45])
+    SOL1 = DR.apply_uf(sol, None, np.ones(1, float),
+                       np.ones(1, float) + 1.0, 0, None)
+    SOL2 = DR.apply_uf(sol, np.ones(1, float), np.ones((1, 1), float),
+                       np.ones((1, 1), float) + 1.0, 0, None)
+    SOL3 = DR.apply_uf(sol, np.ones((1, 1), float),
+                       np.ones((1, 1), float),
+                       np.ones((1, 1), float) + 1.0, 0, None)
 
-        for k, d1 in SOL1.items():   # loop over uf_reds
-            d2 = SOL2[k]
-            d3 = SOL3[k]
-            # loop over a, v, d, ...
-            for k, v1 in d1.__dict__.items():
-                v2 = getattr(d2, k)
-                v3 = getattr(d3, k)
-                assert np.all(v2 == v1)
-                assert np.all(v3 == v1)
+    for k, d1 in SOL1.items():   # loop over uf_reds
+        d2 = SOL2[k]
+        d3 = SOL3[k]
+        for k, v1 in d1.__dict__.items():  # loop over a, v, d, ...
+            v2 = getattr(d2, k)
+            v3 = getattr(d3, k)
+            assert np.all(v2 == v1)
+            assert np.all(v3 == v1)
 
-        assert np.allclose(SOL1[tup].pg, 90)
+    assert SOL1[(2, 2, 2, 2)].pg == 90
 
-        SOL = DR.frf_apply_uf(sol, 0)
+    SOL = DR.frf_apply_uf(sol, 0)
 
-        assert np.allclose(SOL[tup].a, 4 * sol.a)
-        assert np.allclose(SOL[tup].v, 4 * sol.v)
-        assert np.allclose(SOL[tup].d, 4 * sol.d)
-        assert np.allclose(SOL[tup].pg, 2 * sol.pg)
+    assert np.all(SOL[(2, 2, 2, 2)].a == 4 * sol.a)
+    assert np.all(SOL[(2, 2, 2, 2)].v == 4 * sol.v)
+    assert np.all(SOL[(2, 2, 2, 2)].d == 4 * sol.d)
+    assert np.all(SOL[(2, 2, 2, 2)].pg == 2 * sol.pg)
 
-        # for second loop, use "multiply" method of uf_reds updating:
-        DR = cla.DR_Event()
-        DR.add(nas, drdefs, uf_reds=(2, 2, 2 / 1.2, 2),
-               method='multiply')
-        tup = DR.UF_reds[0]
+
+def test_event_add_uf_reds_update():
+    _get_labels = _get_labels0
+    rows = {'ATM': 34}
+
+    # defaults for data recovery
+    defaults = dict(
+        se=10,
+        uf_reds=(2, 2, 2, 2),
+        drfile='.',
+    )
+
+    drdefs = cla.DR_Def(defaults)
+
+    uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+    nas = {
+        'ulvs': {10: np.ones((1, 1), float)},
+        'uset': {10: uset.iloc[:1]},
+    }
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM'
+        desc = 'S/C Internal Accelerations'
+        units = 'm/sec^2, rad/sec^2'
+        labels = _get_labels(rows, name)
+        drms = {'atm': np.ones((4, 1), float)}
+        nondrms = {'var': 'any value'}
+        drdefs.add(**locals())
+
+    DR = cla.DR_Event()
+    DR.add(nas, drdefs, uf_reds=(3, None, 4, None))
+
+    # In [8]: PP(DR);
+    # <class 'pyyeti.cla.DR_Event'>[n=3]
+    #     .Info   : <class 'dict'>[n=1]
+    #     .UF_reds: [n=1]: [[n=4]: (3, 2, 4, 2)]
+    #     .Vars   : <class 'dict'>[n=1]
+
+    assert DR.UF_reds[0] == (3, 2, 4, 2)
+
+    DR = cla.DR_Event()
+    DR.add(nas, drdefs, uf_reds=(3, 4, None, 6), method='multiply')
+    assert DR.UF_reds[0] == (6, 8, 2, 12)
+
+    DR = cla.DR_Event()
+    DR.add(nas, drdefs, uf_reds=(None, 1, 4, 7),
+           method=lambda o, n: o + n)
+    assert DR.UF_reds[0] == (2, 3, 6, 9)
+
+    DR = cla.DR_Event()
+    assert_raises(ValueError, DR.add, nas, drdefs,
+                  uf_reds=(None, 1, 4, 7),
+                  method='bad method string')
+
+
+def test_DR_Results_init():
+    _get_labels = _get_labels0
+    rows = {'ATM': 34}
+
+    # defaults for data recovery
+    defaults = dict(
+        se=10,
+    )
+
+    drdefs = cla.DR_Def(defaults)
+
+    uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+    nas = {
+        'ulvs': {10: np.ones((1, 1), float)},
+        'uset': {10: uset.iloc[:1]},
+    }
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM'
+        desc = 'S/C Internal Accelerations'
+        units = 'm/sec^2, rad/sec^2'
+        labels = _get_labels(rows, name)
+        drms = {'atm': np.ones((4, 1), float)}
+        nondrms = {'var': 'any value'}
+        drdefs.add(**locals())
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'ATM2'
+        labels = _get_labels(rows, 'ATM')
+        drfunc = '1'
+        drdefs.add(**locals())
+
+    DR = cla.DR_Event()
+    DR.add(nas, drdefs)
+
+    results = cla.DR_Results()
+    results.init(DR.Info, 'Mission', 'Event')
+
+    assert 'ATM' in results
+    assert 'ATM2' in results
+
+    results = cla.DR_Results()
+    results.init(DR.Info, 'Mission', 'Event', cats=('ATM2',))
+
+    assert 'ATM' not in results
+    assert 'ATM2' in results
 
 
 def test_merge():
@@ -1493,10 +1605,11 @@ def test_merge():
                    'PostVLC': 'VLC2'})
 
     results.form_extreme()
-    assert repr(results).startswith('<pyyeti.cla.DR_Results object')
-    assert str(results) == ('DR_Results with 4 categories: '
-                            "['FDLC', 'VLC', "
-                            "'Liftoff, Transonics, MECO', 'extreme']")
+    assert repr(results).startswith('DR_Results ')
+    assert str(results).endswith(
+        'with 4 keys: '
+        "['FDLC', 'VLC', "
+        "'Liftoff, Transonics, MECO', 'extreme']")
 
     results['newentry'] = 'should cause type error'
     results.strip_hists()
@@ -1505,11 +1618,6 @@ def test_merge():
     results = cla.DR_Results()
     r1 = {'FLAC': 'this is a bad entry'}
     assert_raises(TypeError, results.merge, (r1, r2))
-
-
-# def kc_forces(sol, nas, Vars, se):
-#     return np.vstack((Vars[se]['springdrm'] @ sol.d,
-#                       Vars[se]['damperdrm'] @ sol.v))
 
 
 def mass_spring_system():
@@ -2554,3 +2662,91 @@ def test_rptpct1_2():
         '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.6667, 0.5774]',
         '']
     _comp_rpt(s, sbe)
+
+
+def test_frf_data_recovery():
+    (mass, damp, stiff,
+     drms1, uf_reds, defaults, DR) = mass_spring_system()
+
+    # define forces:
+    frq = np.arange(10, 25, 0.1)
+    f = np.zeros((3, len(frq)))
+    f[0] = 1.0
+
+    # setup solver:
+    fs = ode.SolveUnc(mass, damp, stiff, pre_eig=True)
+    sol = fs.fsolve(f, frq)
+
+    elforces = np.vstack((drms1['springdrm'] @ sol.d,
+                          drms1['damperdrm'] @ sol.v))
+
+    accels = sol.a
+    Q = 20
+    fsh = srs.srs_frf(elforces.T, frq, frq, Q)
+    ash = srs.srs_frf(accels.T, frq, frq, Q) / Q
+
+    # now, solve with DR tools:
+    # define some defaults for data recovery:
+    # - accept default (1, 1, 1, 1) for uf_reds
+    defaults = dict(
+        se=0,
+        srsfrq=frq,
+        srsQs=(Q, 50),
+    )
+    drdefs = cla.DR_Def(defaults)
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'kc_forces'
+        desc = 'Spring & Damper Forces'
+        units = 'N'
+        labels = ['{} {}'.format(j, i + 1)
+                  for j in ('Spring', 'Damper')
+                  for i in range(3)]
+        # force will be positive for tension
+        drms = drms1
+        drfunc = """np.vstack((Vars[se]['springdrm'] @ sol.d,
+                               Vars[se]['damperdrm'] @ sol.v))"""
+        histpv = 'all'
+        srspv = 'all'
+        drdefs.add(**locals())
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'accels'
+        desc = 'Accelerations'
+        units = 'N'
+        labels = [f'Accel {i}' for i in range(3)]
+        drfunc = """sol.a"""
+        histpv = 'all'
+        srspv = 'all'
+        srsopts = dict(eqsine=1)
+        drdefs.add(**locals())
+
+    # prepare spacecraft data recovery matrices
+    DR = cla.DR_Event()
+    DR.add(None, drdefs)
+    assert 'with 2 categories' in repr(DR)
+
+    # initialize results (ext, mnc, mxc for all drms)
+    event = 'Case 1'
+    results = DR.prepare_results('Spring & Damper', event)
+
+    sol = {uf_reds: sol}
+
+    # perform data recovery:
+    results.frf_data_recovery(sol, None, event, DR, 1, 0)
+
+    assert np.allclose(elforces, results['kc_forces'].frf[0])
+    assert np.allclose(fsh.T, results['kc_forces'].srs.srs[20][0])
+    assert np.allclose(accels, results['accels'].frf[0])
+    assert np.allclose(ash.T, results['accels'].srs.srs[20][0])
+
+    # to exercise some code (not checking anything other than that it
+    # runs), write tab, plots:
+    try:
+        direc = 'temp_frf'
+        results.rptext(direc=direc)
+        results.resp_plots(direc=direc)
+    finally:
+        shutil.rmtree('./temp_frf', ignore_errors=True)

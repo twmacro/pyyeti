@@ -91,7 +91,7 @@
 ~24. Add ability to write more matrices in wt_extseout (like mug1).
 ~     - added in version v0.92.3
 
-~25. DR_Results.add should have ability to multiply a new factor on top of
+~25. DR_Event.add should have ability to multiply a new factor on top of
 ~    current setting … right now, all it can do is replace
 ~     - added in version v0.92.3
 
@@ -99,3 +99,10 @@
 ~  changed input to class instance "fs" in v0.92.3
 
 27. Implement a Newmark-Beta ode solver
+
+~28. Add frf_data_recovery and add tests for it
+~    - added method in v0.92.3b
+
+~29. Enhance DR_Event.add "method" option (for uf_reds update) to accept
+~    function
+~    - implemented in v0.92.3b
