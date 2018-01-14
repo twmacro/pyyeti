@@ -864,12 +864,12 @@ def check_split():
                 assert np.all(mg['extreme'][cat].ext == res[cat].ext)
                 assert np.all(mg['extreme'][cat].mx == res[cat].mx)
                 assert np.all(mg['extreme'][cat].mn == res[cat].mn)
-                assert np.all(mg['extreme'][cat].exttime ==
-                              res[cat].exttime)
-                assert np.all(mg['extreme'][cat].maxtime ==
-                              res[cat].maxtime)
-                assert np.all(mg['extreme'][cat].mintime ==
-                              res[cat].mintime)
+                assert np.all(mg['extreme'][cat].ext_x ==
+                              res[cat].ext_x)
+                assert np.all(mg['extreme'][cat].mx_x ==
+                              res[cat].mx_x)
+                assert np.all(mg['extreme'][cat].mn_x ==
+                              res[cat].mn_x)
                 assert mg['extreme'][cat].maxcase == res[cat].maxcase
                 assert mg['extreme'][cat].mincase == res[cat].mincase
 
@@ -992,21 +992,21 @@ def test_extrema_1():
     assert_raises(ValueError, cla.extrema, [], mm, 'test')
 
     rows = 5
-    curext = SimpleNamespace(ext=None, exttime=None,
+    curext = SimpleNamespace(ext=None, ext_x=None,
                              maxcase=None, mincase=None,
                              mx=np.empty((rows, 2)),
                              mn=np.empty((rows, 2)),
-                             maxtime=np.empty((rows, 2)),
-                             mintime=np.empty((rows, 2)))
+                             mx_x=np.empty((rows, 2)),
+                             mn_x=np.empty((rows, 2)))
     mm = SimpleNamespace(ext=np.ones((rows, 1)),
-                         exttime=np.zeros((rows, 1)))
+                         ext_x=np.zeros((rows, 1)))
     maxcase = 'Case 1'
     mincase = None
     casenum = 0
     cla.extrema(curext, mm, maxcase, mincase, casenum)
 
     mm = SimpleNamespace(ext=np.arange(rows)[:, None],
-                         exttime=np.ones((rows, 1)))
+                         ext_x=np.ones((rows, 1)))
     maxcase = 'Case 2'
     mincase = None
     casenum = 1
@@ -1018,11 +1018,11 @@ def test_extrema_1():
                                           [3.,  1.],
                                           [4.,  1.]]))
 
-    assert np.all(curext.exttime == np.array([[0.,  1.],
-                                              [0.,  0.],
-                                              [1.,  0.],
-                                              [1.,  0.],
-                                              [1.,  0.]]))
+    assert np.all(curext.ext_x == np.array([[0.,  1.],
+                                            [0.,  0.],
+                                            [1.,  0.],
+                                            [1.,  0.],
+                                            [1.,  0.]]))
     assert curext.maxcase == ['Case 1', 'Case 1',
                               'Case 2', 'Case 2', 'Case 2']
     assert curext.mincase == ['Case 2', 'Case 1',
@@ -1040,36 +1040,36 @@ def test_extrema_1():
                                          [1.,  3.],
                                          [1.,  4.]]))
 
-    assert np.all(curext.maxtime == np.array([[0.,  1.],
-                                              [0.,  1.],
-                                              [0.,  1.],
-                                              [0.,  1.],
-                                              [0.,  1.]]))
+    assert np.all(curext.mx_x == np.array([[0.,  1.],
+                                           [0.,  1.],
+                                           [0.,  1.],
+                                           [0.,  1.],
+                                           [0.,  1.]]))
 
-    assert np.all(curext.mintime == np.array([[0.,  1.],
-                                              [0.,  1.],
-                                              [0.,  1.],
-                                              [0.,  1.],
-                                              [0.,  1.]]))
+    assert np.all(curext.mn_x == np.array([[0.,  1.],
+                                           [0.,  1.],
+                                           [0.,  1.],
+                                           [0.,  1.],
+                                           [0.,  1.]]))
 
 
 def test_extrema_2():
     rows = 5
-    curext = SimpleNamespace(ext=None, exttime=None,
+    curext = SimpleNamespace(ext=None, ext_x=None,
                              maxcase=None, mincase=None,
                              mx=np.empty((rows, 2)),
                              mn=np.empty((rows, 2)),
-                             maxtime=np.empty((rows, 2)),
-                             mintime=np.empty((rows, 2)))
+                             mx_x=np.empty((rows, 2)),
+                             mn_x=np.empty((rows, 2)))
     mm = SimpleNamespace(ext=np.ones((rows, 1)),
-                         exttime=None)
+                         ext_x=None)
     maxcase = 'Case 1'
     mincase = None
     casenum = 0
     cla.extrema(curext, mm, maxcase, mincase, casenum)
 
     mm = SimpleNamespace(ext=np.arange(rows)[:, None],
-                         exttime=None)
+                         ext_x=None)
     maxcase = 'Case 2'
     mincase = None
     casenum = 1
@@ -1081,7 +1081,7 @@ def test_extrema_2():
                                           [3.,  1.],
                                           [4.,  1.]]))
 
-    assert curext.exttime is None
+    assert curext.ext_x is None
     assert curext.maxcase == ['Case 1', 'Case 1',
                               'Case 2', 'Case 2', 'Case 2']
     assert curext.mincase == ['Case 2', 'Case 1',
@@ -1098,8 +1098,8 @@ def test_extrema_2():
                                          [1.,  2.],
                                          [1.,  3.],
                                          [1.,  4.]]))
-    assert np.isnan(curext.maxtime).sum() == 10
-    assert np.isnan(curext.mintime).sum() == 10
+    assert np.isnan(curext.mx_x).sum() == 10
+    assert np.isnan(curext.mn_x).sum() == 10
 
 
 def test_addcat():
@@ -1789,7 +1789,7 @@ def test_rptext1():
     _comp_rpt(s, sbe)
 
     results['kc_forces'].ext = results['kc_forces'].ext[:, :1]
-    results['kc_forces'].exttime = results['kc_forces'].exttime[:, :1]
+    results['kc_forces'].ext_x = results['kc_forces'].ext_x[:, :1]
     with StringIO() as f:
         cla.rptext1(results['kc_forces'], f)
         s = f.getvalue().split('\n')
@@ -1813,7 +1813,7 @@ def test_rptext1():
     _comp_rpt(s, sbe)
 
     results['kc_forces'].ext = results['kc_forces'].ext[:, 0]
-    results['kc_forces'].exttime = results['kc_forces'].exttime[:, 0]
+    results['kc_forces'].ext_x = results['kc_forces'].ext_x[:, 0]
     with StringIO() as f:
         cla.rptext1(results['kc_forces'], f)
         s = f.getvalue().split('\n')

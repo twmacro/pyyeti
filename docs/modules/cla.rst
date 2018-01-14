@@ -40,6 +40,7 @@ Class for storing and working with CLA results
     DR_Results.delete_extreme
     DR_Results.form_extreme
     DR_Results.form_stat_ext
+    DR_Results.frf_data_recovery
     DR_Results.init
     DR_Results.init_extreme_cat
     DR_Results.merge

@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 import xlsxwriter
-from pyyeti import ytools, locate, srs, writer, ode
+from pyyeti import ytools, locate, srs, writer
 from pyyeti.nastran import n2p
 from pyyeti.ytools import save, load
 
@@ -367,7 +367,7 @@ def _is_eqsine(opts):
     return False
 
 
-def maxmin(response, time):
+def maxmin(response, x):
     """
     Compute max & min of a response matrix.
 
@@ -375,18 +375,19 @@ def maxmin(response, time):
     ----------
     response : 2d ndarray
         Matrix where each row is a response signal.
-    time: 1d ndarray
-        Time vector; ``len(time) = response.shape[1]``
+    x: 1d ndarray
+        X-axis vector (eg, time or frequency);
+        ``len(x) = response.shape[1]``
 
     Returns
     -------
     mxmn : 2d ndarray
-        Four column matrix: ``[max, time, min, time]``
+        Four column matrix: ``[max, x_of_max, min, x_of_min]``
     """
     r, c = np.shape(response)
-    if c != len(time):
+    if c != len(x):
         raise ValueError('# of cols in `response` is not compatible '
-                         'with time.')
+                         'with `x`.')
     jx = np.nanargmax(response, axis=1)
     jn = np.nanargmin(response, axis=1)
     ind = np.arange(r)
@@ -394,11 +395,7 @@ def maxmin(response, time):
     mn = response[ind, jn]
     return SimpleNamespace(
         ext=np.column_stack((mx, mn)),
-        exttime=np.column_stack((time[jx], time[jn])))
-    # mxmn = np.vstack((mx, time[jx], mn, time[jn])).T
-    #    cols = ['max', 'maxtime', 'min', 'mintime']
-    #    return pd.DataFrame(mxmn, columns=cols)
-    # return mxmn
+        ext_x=np.column_stack((x[jx], x[jn])))
 
 
 def nan_argmax(v1, v2):
@@ -514,7 +511,7 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         Has extrema information (members may be None on first call)::
 
             .ext     = 1 or 2 columns: [max, min]
-            .exttime = None or 1 or 2 columns: [max_time, min_time]
+            .ext_x   = None or 1 or 2 columns: [x_of_max, x_of_min]
             .maxcase = list of strings identifying maximum case
             .mincase = list of strings identifying minimum case
 
@@ -522,16 +519,16 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
 
             .mx      = [case1_max, case2_max, ...]
             .mn      = [case1_min, case2_min, ...]
-            .maxtime = [case1_max_time, case2_max_time, ...]
-            .mintime = [case1_min_time, case2_min_time, ...]
+            .mx_x    = [case1_x_of_max, case2_x_of_max, ...]
+            .mn_x    = [case1_x_of_min, case2_x_of_min, ...]
 
-        The `maxtime` and `mintime` will have ``np.nan`` values if
-        `exttime` is None.
+        The `mx_x` and `mn_x` will have ``np.nan`` values if
+        `ext_x` is None.
     mm : SimpleNamespace
         Has min/max information for a case (or over cases)::
 
             .ext     = 1 or 2 columns: [max, min]
-            .exttime = None or 1 or 2 columns: [max_time, min_time]
+            .ext_x   = None or 1 or 2 columns: [x_of_max, x_of_min]
 
     maxcase : string or list of strings
         String or list of strings identifying the load case(s) for the
@@ -543,10 +540,10 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         None, it is a copy of the `maxcase` values.
     casenum : integer or None; optional
         If integer, it is case number (starting at 0); `curext` will
-        have the `.mx`, `.mn`, `.maxtime`, `.mintime` members and the
+        have the `.mx`, `.mn`, `.mx_x`, `.mn_x` members and the
         `casenum` column of each of these will be set to the data from
-        `mm`. Zeros will be used for time if `mm` is 1 or 2 columns.
-        If None, `.mx`, `.mn`, `.maxtime`, `.mintime` are not updated
+        `mm`. Zeros will be used for "x" if `mm` is 1 or 2 columns.
+        If None, `.mx`, `.mn`, `.mx_x`, `.mn_x` are not updated
         (and need not be present).
 
     Returns
@@ -557,17 +554,18 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
     -----
     This routine updates the `curext` variable. This routine is
     typically called indirectly via
-    :func:`DR_Results.time_data_recovery` and
+    :func:`DR_Results.time_data_recovery`,
+    :func:`DR_Results.frf_data_recovery`, and
     :func:`DR_Results.psd_data_recovery`.
     """
     def _put_time(curext, mm, j, col_lhs, col_rhs):
-        if mm.exttime is not None:
-            if curext.exttime is None:
-                curext.exttime = copy.copy(mm.exttime)
+        if mm.ext_x is not None:
+            if curext.ext_x is None:
+                curext.ext_x = copy.copy(mm.ext_x)
             else:
-                curext.exttime[j, col_lhs] = mm.exttime[j, col_rhs]
-        elif curext.exttime is not None:          # pragma: no cover
-            curext.exttime[j, col_lhs] = np.nan
+                curext.ext_x[j, col_lhs] = mm.ext_x[j, col_rhs]
+        elif curext.ext_x is not None:          # pragma: no cover
+            curext.ext_x[j, col_lhs] = np.nan
 
     r, c = mm.ext.shape
     if c not in [1, 2]:
@@ -584,22 +582,19 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         if casenum is not None:  # record current results
             curext.mx[:, casenum] = mm.ext[:, 0]
             curext.mn[:, casenum] = mm.ext[:, 0]
-            # curext.maxtime = copy.copy(mm.exttime)  # okay if None
-            # curext.mintime = copy.copy(mm.exttime)
-            if mm.exttime is not None:
-                curext.maxtime[:, casenum] = mm.exttime[:, 0]
-                curext.mintime[:, casenum] = mm.exttime[:, 0]
+            if mm.ext_x is not None:
+                curext.mx_x[:, casenum] = mm.ext_x[:, 0]
+                curext.mn_x[:, casenum] = mm.ext_x[:, 0]
             else:
-                curext.maxtime[:, casenum] = np.nan
-                curext.mintime[:, casenum] = np.nan
+                curext.mx_x[:, casenum] = np.nan
+                curext.mn_x[:, casenum] = np.nan
 
         if curext.ext is None:
             curext.ext = mm.ext @ [[1, 1]]
-            # curext.exttime = copy.copy(mm.exttime)
-            if mm.exttime is not None:
-                curext.exttime = mm.exttime @ [[1, 1]]
+            if mm.ext_x is not None:
+                curext.ext_x = mm.ext_x @ [[1, 1]]
             else:
-                curext.exttime = None
+                curext.ext_x = None
             curext.maxcase = maxcase
             curext.mincase = maxcase[:]
             return
@@ -630,16 +625,16 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
     if casenum is not None:  # record current results
         curext.mx[:, casenum] = mm.ext[:, 0]
         curext.mn[:, casenum] = mm.ext[:, 1]
-        if mm.exttime is not None:
-            curext.maxtime[:, casenum] = mm.exttime[:, 0]
-            curext.mintime[:, casenum] = mm.exttime[:, 1]
+        if mm.ext_x is not None:
+            curext.mx_x[:, casenum] = mm.ext_x[:, 0]
+            curext.mn_x[:, casenum] = mm.ext_x[:, 1]
         else:
-            curext.maxtime[:, casenum] = np.nan
-            curext.mintime[:, casenum] = np.nan
+            curext.mx_x[:, casenum] = np.nan
+            curext.mn_x[:, casenum] = np.nan
 
     if curext.ext is None:
         curext.ext = mm.ext.copy()
-        curext.exttime = copy.copy(mm.exttime)
+        curext.ext_x = copy.copy(mm.ext_x)
         curext.maxcase = maxcase
         curext.mincase = mincase
         return
@@ -2223,12 +2218,12 @@ class DR_Results(OrderedDict):
                 .units     : 'G, rad/sec^2'
             .event  : 'MaxQ Buffet'
             .ext    : float64 ndarray 24 elems: (12, 2)
-            .exttime: float64 ndarray 24 elems: (12, 2)
+            .ext_x  : float64 ndarray 24 elems: (12, 2)
             .freq   : float64 ndarray 2332 elems: (2332,)
             .maxcase: [n=12]: ['MaxQ', 'MaxQ', 'MaxQ' ...'MaxQ']
-            .maxtime: float64 ndarray 12 elems: (12, 1)
+            .mx_x   : float64 ndarray 12 elems: (12, 1)
             .mincase: [n=12]: ['MaxQ', 'MaxQ', 'MaxQ' ...'MaxQ']
-            .mintime: float64 ndarray 12 elems: (12, 1)
+            .mn_x   : float64 ndarray 12 elems: (12, 1)
             .mission: 'Rocket / Spacecraft VLC'
             .mn     : float64 ndarray 12 elems: (12, 1)
             .mx     : float64 ndarray 12 elems: (12, 1)
@@ -2280,12 +2275,12 @@ class DR_Results(OrderedDict):
                 .units     : 'G, rad/sec^2'
             .event  : 'SECO2'
             .ext    : float64 ndarray 24 elems: (12, 2)
-            .exttime: None
+            .ext_x: None
             .hist   : float64 ndarray 2520252 elems: (21, 12, 10001)
             .maxcase: None
-            .maxtime: float64 ndarray 252 elems: (12, 21)
+            .mx_x   : float64 ndarray 252 elems: (12, 21)
             .mincase: None
-            .mintime: float64 ndarray 252 elems: (12, 21)
+            .mn_x   : float64 ndarray 252 elems: (12, 21)
             .mission: 'Rocket / Spacecraft VLC'
             .mn     : float64 ndarray 252 elems: (12, 21)
             .mx     : float64 ndarray 252 elems: (12, 21)
@@ -2479,12 +2474,12 @@ class DR_Results(OrderedDict):
                 .drminfo: <class 'types.SimpleNamespace'>[n=20]
                 .event  : 'Stage 1 / Stage 2 Separation'
                 .ext    : float64 ndarray: (12, 2)
-                .exttime: None
+                .ext_x  : None
                 .hist   : float64 ndarray: (3, 12, 10001)
                 .maxcase: None
-                .maxtime: float64 ndarray: (12, 3)
+                .mx_x   : float64 ndarray: (12, 3)
                 .mincase: None
-                .mintime: float64 ndarray: (12, 3)
+                .mn_x   : float64 ndarray: (12, 3)
                 .mission: 'Rocket / Spacecraft VLC'
                 .mn     : float64 ndarray: (12, 3)
                 .mx     : float64 ndarray: (12, 3)
@@ -2523,12 +2518,12 @@ class DR_Results(OrderedDict):
                 .drminfo: <class 'types.SimpleNamespace'>[n=20]
                 .event  : 'Sep 2'
                 .ext    : float64 ndarray: (12, 2)
-                .exttime: None
+                .ext_x  : None
                 .hist   : float64 ndarray: (1, 12, 10001)
                 .maxcase: None
-                .maxtime: float64 ndarray: (12, 1)
+                .mx_x   : float64 ndarray: (12, 1)
                 .mincase: None
-                .mintime: float64 ndarray: (12, 1)
+                .mn_x   : float64 ndarray: (12, 1)
                 .mission: 'Rocket / Spacecraft VLC'
                 .mn     : float64 ndarray: (12, 1)
                 .mx     : float64 ndarray: (12, 1)
@@ -2609,10 +2604,10 @@ class DR_Results(OrderedDict):
                 newsns.mx[:, 0] = sns.mx[:, j]
                 newsns.mn[:, 0] = sns.mn[:, j]
                 newsns.ext = np.column_stack((newsns.mx, newsns.mn))
-                newsns.maxtime[:, 0] = sns.maxtime[:, j]
-                newsns.mintime[:, 0] = sns.mintime[:, j]
-                newsns.exttime = np.column_stack((newsns.maxtime,
-                                                  newsns.mintime))
+                newsns.mx_x[:, 0] = sns.mx_x[:, j]
+                newsns.mn_x[:, 0] = sns.mn_x[:, j]
+                newsns.ext_x = np.column_stack((newsns.mx_x,
+                                                newsns.mn_x))
 
                 # check for hist, time, psd, freq
                 for item in ('hist', 'time', 'psd', 'freq'):
@@ -2661,7 +2656,7 @@ class DR_Results(OrderedDict):
             Analogous to `maxcase` for the minimum values or None. If
             None, it is a copy of the `maxcase` values.
         mxmn_xvalue : 2d array_like or None; optional
-            2 column matrix of [max_xvalue, min_xvalue]. Use None to
+            2 column matrix of [mx_xvalue, mn_xvalue]. Use None to
             not set the x-values (typically times or frequencies) of
             max/min values.
         domain : string or None; optional
@@ -2778,7 +2773,7 @@ class DR_Results(OrderedDict):
         self[cat].ext = np.atleast_2d(mxmn)
         if mxmn_xvalue is not None:
             mxmn_xvalue = np.atleast_2d(mxmn_xvalue)
-        self[cat].exttime = mxmn_xvalue
+        self[cat].ext_x = mxmn_xvalue
         self[cat].domain = domain
 
         # process maxcase, mincase:
@@ -2804,9 +2799,9 @@ class DR_Results(OrderedDict):
             raise ValueError("case '{}' already defined!"
                              .format(case))
         res.mx[:, j] = mm.ext[:, 0]
-        res.maxtime[:, j] = mm.exttime[:, 0]
+        res.mx_x[:, j] = mm.ext_x[:, 0]
         res.mn[:, j] = mm.ext[:, 1]
-        res.mintime[:, j] = mm.exttime[:, 1]
+        res.mn_x[:, j] = mm.ext_x[:, 1]
         res.cases[j] = case
 
     def _check_labels_len(self, name, res, m=None):
@@ -2824,10 +2819,69 @@ class DR_Results(OrderedDict):
         res.domain = domain
         res.mx = np.zeros((m, n))
         res.mn = np.zeros((m, n))
-        res.maxtime = np.zeros((m, n))
-        res.mintime = np.zeros((m, n))
+        res.mx_x = np.zeros((m, n))
+        res.mn_x = np.zeros((m, n))
         res.cases = n * [[]]
         return m
+
+    def _init_results_cat(self, name, res, dr, resp, respname,
+                          x, xname, mm, n, dosrs):
+        m = self._init_mxmn(name, res, xname, mm, n)
+        if dr.histpv is not None:
+            m = len(resp[dr.histpv, 0])
+            setattr(res, xname, x)
+            setattr(res, respname, np.zeros((n, m, len(x)),
+                                            resp.dtype))
+        if dr.srspv is not None and dosrs:
+            res.srs = SimpleNamespace(frq=dr.srsfrq,
+                                      units=dr.srsunits,
+                                      srs={}, ext={})
+            m = len(resp[dr.srspv, 0])
+            sh = (n, m, (len(res.srs.frq)))
+            for q in dr.srsQs:
+                res.srs.srs[q] = np.zeros(sh)
+
+    def _compute_srs(self, res, dr, resp, respname,
+                     j, first, sr=None, pf=None):
+        if _is_eqsine(dr.srsopts):
+            res.srs.type = 'eqsine'
+            eqsine = True
+        else:
+            res.srs.type = 'srs'
+            eqsine = False
+
+        if respname in('hist', 'frf'):
+            rr = resp[dr.srspv].T
+
+        for q in dr.srsQs:
+            fact = dr.srsconv
+
+            # compute the srs:
+            if respname == 'hist':
+                srs_cur = fact * srs.srs(
+                    rr, sr, dr.srsfrq, q, **dr.srsopts).T
+            elif respname == 'frf':
+                if eqsine:
+                    fact /= q
+                srs_cur = fact * srs.srs_frf(
+                    rr, res.freq, dr.srsfrq, q).T
+            elif respname == 'psd':
+                fact *= pf
+                if eqsine:
+                    fact /= q
+                srs_cur = fact * srs.vrs(
+                    resp, res.freq, q, Fn=dr.srsfrq, linear=True).T
+            else:    # pragma: no cover
+                raise ValueError('`respname` must be one of: '
+                                 '"hist", "frf", or "psd"')
+
+            # store results and keep track of extreme srs:
+            res.srs.srs[q][j] = srs_cur
+            if first:
+                res.srs.ext[q] = srs_cur
+            else:
+                res.srs.ext[q] = np.fmax(res.srs.ext[q],
+                                         srs_cur)
 
     def time_data_recovery(self, sol, nas, case, DR, n, j,
                            dosrs=True):
@@ -2884,19 +2938,9 @@ class DR_Results(OrderedDict):
             extrema(res, mm, case)
 
             if first:
-                m = self._init_mxmn(name, res, 'time', mm, n)
-                if dr.histpv is not None:
-                    res.time = SOL.t
-                    m = len(resp[dr.histpv, 0])
-                    res.hist = np.zeros((n, m, len(res.time)))
-                if dr.srspv is not None and dosrs:
-                    res.srs = SimpleNamespace(frq=dr.srsfrq,
-                                              units=dr.srsunits,
-                                              srs={}, ext={})
-                    m = len(resp[dr.srspv, 0])
-                    sh = (n, m, (len(res.srs.frq)))
-                    for q in dr.srsQs:
-                        res.srs.srs[q] = np.zeros(sh)
+                self._init_results_cat(
+                    name, res, dr, resp, 'hist', SOL.t, 'time',
+                    mm, n, dosrs)
 
             self._store_maxmin(res, mm, j, case)
 
@@ -2904,19 +2948,77 @@ class DR_Results(OrderedDict):
                 res.hist[j] = resp[dr.histpv]
 
             if dr.srspv is not None and dosrs:
-                res.srs.type = ('eqsine' if _is_eqsine(dr.srsopts)
-                                else 'srs')
-                rr = resp[dr.srspv]
                 sr = 1 / SOL.h if SOL.h else None
-                for q in dr.srsQs:
-                    srs_cur = dr.srsconv * srs.srs(
-                        rr.T, sr, dr.srsfrq, q, **dr.srsopts).T
-                    res.srs.srs[q][j] = srs_cur
-                    if first:
-                        res.srs.ext[q] = srs_cur
-                    else:
-                        res.srs.ext[q] = np.fmax(res.srs.ext[q],
-                                                 srs_cur)
+                self._compute_srs(res, dr, resp, 'hist',
+                                  j, first, sr=sr)
+
+    def frf_data_recovery(self, sol, nas, case, DR, n, j,
+                          dosrs=True):
+        """
+        Frequency response data recovery function
+
+        Parameters
+        ----------
+        sol : dict
+            SimpleNamespace containing the modal solution as output
+            from :func:`DR_Event.apply_uf`.
+        nas : dictionary
+            Typically, this is the nas2cam dictionary:
+            ``nas = pyyeti.nastran.op2.rdnas2cam()``.
+            Can be None if not needed: it is not used in this routine;
+            it is only passed to the data recovery routines (the
+            `drfunc` setting in :func:`DR_Def.add`).
+        case : string
+            Unique string identifying the case; stored in, for
+            example, the ``self['SC_atm'].cases`` and the `.mincase`
+            and `.maxcase` lists
+        DR : instance of :class:`DR_Event`
+            Defines data recovery for an event simulation (and is
+            created in the simulation script via
+            ``DR = cla.DR_Event()``). It is an event specific version
+            of all combined :class:`DR_Def` objects with all ULVS
+            matrices applied.
+        n : integer
+            Total number of load cases
+        j : integer
+            Current load case number starting at zero
+        dosrs : bool; optional
+            If False, do not calculate SRSs; default is to calculate
+            them.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        The `self` results dictionary is updated (see
+        :class:`DR_Results` for an example).
+        """
+        for name, res in self.items():
+            first = res.ext is None
+            dr = DR.Info[name]  # record with: .desc, .labels, ...
+            uf_reds = dr.uf_reds
+            SOL = sol[uf_reds]
+            drfunc = get_drfunc(dr)
+            resp = drfunc(SOL, nas, DR.Vars, dr.se)
+
+            mm = maxmin(abs(resp), SOL.f)
+            extrema(res, mm, case)
+
+            if first:
+                self._init_results_cat(
+                    name, res, dr, resp, 'frf', SOL.f, 'freq',
+                    mm, n, dosrs)
+
+            self._store_maxmin(res, mm, j, case)
+
+            if dr.histpv is not None:
+                res.frf[j] = resp[dr.histpv]
+
+            if dr.srspv is not None and dosrs:
+                self._compute_srs(res, dr, resp, 'hist',
+                                  j, first)
 
     def solvepsd(self, nas, case, DR, fs, forcepsd, t_frc, freq,
                  incrb=2, verbose=False):
@@ -3109,9 +3211,9 @@ class DR_Results(OrderedDict):
         The `self` results dictionary is updated (see
         :class:`DR_Results` for an example).
 
-        Note that the "time" entries (eg, `maxtime`, `exttime`) are
-        really the "apparent frequency" values, an estimate for the
-        number of positive slope zero crossings per second [#rand1]_.
+        Note: the x-value entries (eg, `mx_x`, `ext_x`) are really
+        the "apparent frequency" values, an estimate for the number of
+        positive slope zero crossings per second [#rand1]_.
 
         References
         ----------
@@ -3143,24 +3245,15 @@ class DR_Results(OrderedDict):
             pk_freq = vrms / rms
             mm = SimpleNamespace(
                 ext=np.column_stack((pk, -pk)),
-                exttime=np.column_stack((pk_freq, pk_freq)))
+                ext_x=np.column_stack((pk_freq, pk_freq)))
 
             extrema(res, mm, case)
 
             if first:
-                m = self._init_mxmn(name, res, 'freq', mm, n)
-                res.rms = np.zeros((m, n))
-                if dr.histpv is not None:
-                    m = len(psd[dr.histpv, 0])
-                    res.psd = np.zeros((n, m, len(res.freq)))
-                if dr.srspv is not None and dosrs:
-                    res.srs = SimpleNamespace(frq=dr.srsfrq,
-                                              units=dr.srsunits,
-                                              srs={}, ext={})
-                    m = len(psd[dr.srspv, 0])
-                    sh = (n, m, (len(res.srs.frq)))
-                    for q in dr.srsQs:
-                        res.srs.srs[q] = np.zeros(sh)
+                self._init_results_cat(
+                    name, res, dr, psd, 'psd', res.freq, 'freq',
+                    mm, n, dosrs)
+                res.rms = np.zeros((rms.shape[0], n))
 
             self._store_maxmin(res, mm, j, case)
             res.rms[:, j] = rms
@@ -3170,32 +3263,14 @@ class DR_Results(OrderedDict):
 
             # srs:
             if dr.srspv is not None and dosrs:
-                if _is_eqsine(dr.srsopts):
-                    res.srs.type = 'eqsine'
-                    eqsine = True
-                else:
-                    res.srs.type = 'srs'
-                    eqsine = False
-
                 if resp_time is not None:
                     pf = np.sqrt(2 * np.log(resp_time * dr.srsfrq))
                 else:
                     pf = peak_factor
                 spec = (freq, psd[dr.srspv].T)
-                for q in dr.srsQs:
-                    fact = pf * dr.srsconv
-                    if eqsine:
-                        fact /= q
-                    srs_cur = fact * srs.vrs(
-                        spec, freq, q, Fn=dr.srsfrq, linear=True).T
-                    # srs_cur = fact * srs.vrs(spec, dr.srsfrq, q,
-                    #                          linear=True).T
-                    res.srs.srs[q][j] = srs_cur
-                    if first:
-                        res.srs.ext[q] = srs_cur
-                    else:
-                        res.srs.ext[q] = np.fmax(res.srs.ext[q],
-                                                 srs_cur)
+                self._compute_srs(res, dr, spec, 'psd',
+                                  j, first, pf=pf)
+
         if j == n - 1:
             del res._psd
 
@@ -3222,7 +3297,7 @@ class DR_Results(OrderedDict):
         cases x rows x freq.
 
         The `.maxcase` and `.mincase` members are set to 'Statistical'
-        and the `.exttime` member is set to None.
+        and the `.ext_x` member is set to None.
 
         To compute k-factors, see :func:`pyyeti.stats.ksingle` and
         :func:`pyyeti.stats.kdouble`.
@@ -3232,7 +3307,7 @@ class DR_Results(OrderedDict):
             mn = res.mn.mean(axis=1) - k * res.mn.std(ddof=1, axis=1)
             res.ext = np.column_stack((mx, mn))
             res.maxcase = res.mincase = ['Statistical'] * mx.shape[0]
-            res.exttime = None
+            res.ext_x = None
 
             # handle SRS if it is there:
             if 'srs' in res.__dict__:
@@ -3448,10 +3523,10 @@ class DR_Results(OrderedDict):
 
             `.mission` is a reference to the one in `oldcat`.
 
-            The `.ext`, `.exttime`, `.maxcase`, `.mincase` attributes
+            The `.ext`, `.ext_x`, `.maxcase`, `.mincase` attributes
             are all set to None.
 
-            The `.mx`, `.mn`, `.maxtime`, `.mintime`. `.srs.srs` (if
+            The `.mx`, `.mn`, `.mx_x`, `.mn_x`. `.srs.srs` (if
             present) are all filled with ``np.nan``.
 
             The `.srs.ext` dictionary is a deep copy of the one in
@@ -3494,19 +3569,19 @@ class DR_Results(OrderedDict):
         nrows = oldcat.ext.shape[0]
         mx = np.empty((nrows, ncases))
         mn = np.empty((nrows, ncases))
-        maxtime = np.empty((nrows, ncases))
-        mintime = np.empty((nrows, ncases))
+        mx_x = np.empty((nrows, ncases))
+        mn_x = np.empty((nrows, ncases))
         mx[:] = np.nan
         mn[:] = np.nan
-        maxtime[:] = np.nan
-        mintime[:] = np.nan
+        mx_x[:] = np.nan
+        mn_x[:] = np.nan
         drminfo = copy.copy(oldcat.drminfo)
 
         ret = SimpleNamespace(
             cases=cases, drminfo=drminfo, mission=oldcat.mission,
-            event=ext_name, ext=None, exttime=None, maxcase=None,
-            mincase=None, mx=mx, mn=mn, maxtime=maxtime,
-            mintime=mintime, domain=domain)
+            event=ext_name, ext=None, ext_x=None, maxcase=None,
+            mincase=None, mx=mx, mn=mn, mx_x=mx_x,
+            mn_x=mn_x, domain=domain)
 
         # handle SRS if present:
         osrs = getattr(oldcat, 'srs', None)
@@ -3616,15 +3691,14 @@ class DR_Results(OrderedDict):
 
         def _expand(ext_old, labels, pv):
             # Expand:
-            #   ext, exttime, maxcase, mincase,
-            #   mx, mn, maxtime, mintime
+            #   ext, ext_x, maxcase, mincase,
+            #   mx, mn, mx_x, mn_x
             # Note: this function only called when expansion is needed
             n = len(labels)
             ext_new = copy.copy(ext_old)
             ext_new.drminfo = copy.copy(ext_old.drminfo)
             ext_new.drminfo.labels = labels
-            for name in ['ext', 'exttime', 'mx', 'mn',
-                         'maxtime', 'mintime']:
+            for name in ['ext', 'ext_x', 'mx', 'mn', 'mx_x', 'mn_x']:
                 old = ext_old.__dict__[name]
                 if old is not None:
                     new = np.empty((n, old.shape[1]))
@@ -3657,8 +3731,7 @@ class DR_Results(OrderedDict):
                                    ext2.event))
                     raise ValueError(msg)
             # for both ext1 and ext2, expand:
-            #   [ext, exttime, maxcase, mincase,
-            #    mx, mn, maxtime, mintime]
+            #   [ext, ext_x, maxcase, mincase, mx, mn, mx_x, mn_x]
             l3, pv1, pv2 = locate.merge_lists(l1, l2)
             return (_expand(ext1, l3, pv1),
                     _expand(ext2, l3, pv2))
@@ -4383,14 +4456,15 @@ def rptext1(res, filename,
         frm = '{{:{:d}}}'.format(w)
         _add_column('Description', frm, labels, w, 2, 'l')
 
-    # max, time, case, min, time, case
+    # max, mx_x, case, min, mn_x, case
     domain = getattr(res, 'domain', None)
     if domain:
         domain = domain.capitalize()
     else:
         domain = 'X-Value'
     if res.maxcase is not None:
-        casewidth = max(4, len(max(res.maxcase, key=len)),
+        casewidth = max(4,
+                        len(max(res.maxcase, key=len)),
                         len(max(res.mincase, key=len)))
         casefrm = '{{:{:d}}}'.format(casewidth)
 
@@ -4406,9 +4480,9 @@ def rptext1(res, filename,
             mx = res.ext if one_col else res.ext[:, col]
         _add_column(hdr, numform, mx, w, 4, 'c')
 
-        # time
-        if res.exttime is not None:
-            t = res.exttime if one_col else res.exttime[:, col]
+        # x
+        if res.ext_x is not None:
+            t = res.ext_x if one_col else res.ext_x[:, col]
             _add_column(domain, '{:8.3f}', t, 8, 2, 'c')
 
         # case
@@ -5865,7 +5939,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     ylab = 'PSD'
                 elif 'frf' in res[name].__dict__:
                     x = res[name].freq
-                    y = abs(res[name].FRF)
+                    y = abs(res[name].frf)
                     xlab = 'Frequency (Hz)'
                     ylab = 'FRF'
                 else:
