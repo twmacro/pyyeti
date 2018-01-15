@@ -869,6 +869,11 @@ class _BaseODE(object):
     """
     Base class for time and frequency domain equations of motion
     solvers.
+
+    This class is abstract-like, but not a subclass of abc.ABC because
+    I don't want to require that all subclasses implement all the
+    "abstract" methods. Raising NotImplementedError seems appropriate
+    here.
     """
 
     def tsolve(self):
@@ -1278,11 +1283,12 @@ class _BaseODE(object):
                              .format(F0.shape[0], self.n))
         if self.pre_eig:
             raise NotImplementedError(
-                ':class:`SolveUnc` generator not yet implemented '
-                'using the `pre_eig` option')
+                '{} generator not yet implemented '
+                'using the `pre_eig` option'
+                .format(type(self).__name__))
 
         d, v, a = self._alloc_dva(nt, istime)
-        f = np.copy(a)   # not a.copy because of order default
+        f = np.copy(a)   # not a.copy because of `order` default
         f[:, 0] = F0
         self._init_dv(d, v, d0, v0, F0, static_ic)
         if self.rfsize:
@@ -1652,7 +1658,7 @@ class SolveExp2(_BaseODE):
             self.pc = True
         else:
             self.pc = False
-        self._mk_slices(False)
+        self._mk_slices(dorbel=False)
 
     def tsolve(self, force, d0=None, v0=None, static_ic=False):
         """
@@ -2395,7 +2401,7 @@ class SolveUnc(_BaseODE):
                 self.pc = self._get_su_eig(h is not None)
         else:
             self.pc = None
-        self._mk_slices(True)
+        self._mk_slices(dorbel=True)
         self.order = order
 
     def tsolve(self, force, d0=None, v0=None, static_ic=False):
@@ -3592,6 +3598,329 @@ class SolveUnc(_BaseODE):
             d[kdof] = pc.ur_d @ (w / H)
             a[kdof] = d[kdof] * -(freqw2)
             v[kdof] = d[kdof] * (1j * freqw)
+
+
+class NewmarkBeta(_BaseODE):
+    r"""
+    2nd order ODE time domain "Newmark-Beta" solver
+
+    This class is for solving:
+
+    .. math::
+        M \ddot{q} + B \dot{q} + K q = F
+
+    This routine uses a fixed time step Newmark-Beta method.
+    Beta is set to 1/3, which is unconditionally stable for most
+    problems. The algorithm is based on the Nastran theoretical
+    manual, section 11.3, with a small modification on the
+    acceleration computation at the first two time steps and
+    possibly at the last time step.
+
+    In general, the mass, damping and stiffness can be fully populated
+    (coupled).
+
+    Unlike :class:`SolveUnc` and :class:`SolveExp2`, this solver can
+    handle a singular mass matrix. For most (all?) other cases, the
+    other two solvers are preferred since they are exact assuming
+    piece-wise linear forces (if `order` is 1) or piece-wise constant
+    forces (if `order` is 0). :class:`SolveUnc` is also very likely
+    significantly faster for most problems.
+
+    The equations are: TODO
+
+    .. note::
+
+        The above equations are for the non-residual-flexibility
+        modes. The 'rf' modes are solved statically and any initial
+        conditions are ignored for them.
+
+    For a static solution:
+
+        - rigid-body displacements = zeros
+        - elastic displacments = inv(k[elastic]) * F[elastic]
+        - velocity = zeros
+        - rigid-body accelerations = inv(m[rigid]) * F[rigid]
+        - elastic accelerations = zeros
+
+    See also
+    --------
+    :class:`SolveUnc`, :class:`SolveExp2`.
+
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        >>> from pyyeti import ode
+        >>> import numpy as np
+        >>> m = np.array([10., 30., 30., 30.])    # diag mass
+        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
+        >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
+        >>> h = 0.001                             # time step
+        >>> t = np.arange(0, .3001, h)            # time vector
+        >>> c = 2*np.pi
+        >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
+        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
+        >>> f *= 1.e4
+        >>> ts = ode.NewmarkBeta(m, b, k, h)
+        >>> sol = ts.tsolve(f, static_ic=1)
+
+        Solve with scipy.signal.lsim for comparison:
+
+        >>> A = ode.make_A(m, b, k)
+        >>> n = len(m)
+        >>> Z = np.zeros((n, n), float)
+        >>> B = np.vstack((np.eye(n), Z))
+        >>> C = np.vstack((A, np.hstack((Z, np.eye(n)))))
+        >>> D = np.vstack((B, Z))
+        >>> ic = np.hstack((sol.v[:, 0], sol.d[:, 0]))
+        >>> import scipy.signal
+        >>> f2 = (1./m).reshape(-1, 1) * f
+        >>> tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T, t,
+        ...                                X0=ic)
+        >>>
+        >>> print('acce cmp:', np.allclose(yl[:, :n], sol.a.T))
+        acce cmp: True
+        >>> print('velo cmp:', np.allclose(yl[:, n:2*n], sol.v.T))
+        velo cmp: True
+        >>> print('disp cmp:', np.allclose(yl[:, 2*n:], sol.d.T))
+        disp cmp: True
+
+        Plot the four accelerations:
+
+        >>> import matplotlib.pyplot as plt
+        >>> fig = plt.figure('SolveUnc vs. lsim', figsize=[8, 8])
+        >>> labels = ['Rigid-body', 'Underdamped',
+        ...           'Critically Damped', 'Overdamped']
+        >>> for j, name in zip(range(4), labels):
+        ...     _ = plt.subplot(4, 1, j+1)
+        ...     _ = plt.plot(t, sol.a[j], label='SolveUnc')
+        ...     _ = plt.plot(tl, yl[:, j], label='scipy lsim')
+        ...     _ = plt.title(name)
+        ...     _ = plt.ylabel('Acceleration')
+        ...     _ = plt.xlabel('Time (s)')
+        ...     if j == 0:
+        ...         _ = plt.legend(loc='best')
+        >>> plt.tight_layout()
+    """
+
+    def __init__(self, m, b, k, h=None, rf=None):
+        """
+        Instantiates a :class:`NewmarkBeta` solver.
+
+        Parameters
+        ----------
+        m : 1d or 2d ndarray or None
+            Mass; vector (of diagonal), or full; if None, mass is
+            assumed identity
+        b : 1d or 2d ndarray
+            Damping; vector (of diagonal), or full
+        k : 1d or 2d ndarray
+            Stiffness; vector (of diagonal), or full
+        h : scalar or None; optional
+            Time step; can be None if only want to solve a static
+            problem or if only solving frequency domain problems
+        rf : 1d array or None; optional
+            Index partition vector for res-flex modes; these will be
+            solved statically
+
+        Notes
+        -----
+        The instance is populated with some or all of the following
+        members.
+
+        =========  ===================================================
+        Member     Description
+        =========  ===================================================
+        m          mass for the non-rf DOF
+        b          damping for the non-rf DOF
+        k          stiffness for the non-rf DOF
+        h          time step
+        rb         np.array([])
+        el         index vector or slice for the non-rf DOF
+        rf         index vector or slice for the rf DOF
+        nonrf      index vector or slice for the non-rf DOF
+        kdof       index vector or slice for the non-rf DOF
+        n          number of total DOF
+        rbsize     0
+        elsize     number of non-rf DOF
+        rfsize     number of rf DOF
+        nonrfsz    number of non-rf DOF
+        ksize      number of non-rf DOF
+        krf        stiffness for the rf DOF
+        ikrf       inverse of stiffness for the rf DOF
+        unc        True if there are no off-diagonal terms in any
+                   matrix; False otherwise
+        systype    float or complex; determined by `m` `b` `k`
+        Ad         decomposed version of matrix `A` (see equations)
+        A0         decomposed version of matrix `A0` (see equations)
+        A1         decomposed version of matrix `A1` (see equations)
+        =========  ===================================================
+        """
+        self._common_precalcs(m, b, k, h, rb=[], rf=rf)
+        self._newmark_precalcs()
+        self._mk_slices(dorbel=False)
+
+    def tsolve(self, force, d0=None, v0=None, a0=None,
+               static_ic=False):
+        """
+        Solve time-domain 2nd order ODE equations
+
+        Parameters
+        ----------
+        force : 2d ndarray
+            The force matrix; ndof x time
+        d0 : 1d ndarray; optional
+            Displacement initial conditions; if None, zero ic's are
+            used.
+        v0 : 1d ndarray; optional
+            Velocity initial conditions; if None, zero ic's are used.
+        a0 : 1d ndarray; optional
+            Acceleration initial conditions; if None, zero ic's are
+            used.
+        static_ic : bool; optional
+            If True and `d0` is None, then `d0` is calculated such
+            that static (steady-state) initial conditions are
+            used. Uses the pseudo-inverse in case there are rigid-body
+            modes. `static_ic` is ignored if `d0` is not None.
+
+        Returns
+        -------
+        A record (SimpleNamespace class) with the members:
+
+        d : 2d ndarray
+            Displacement; ndof x time
+        v : 2d ndarray
+            Velocity; ndof x time
+        a : 2d ndarray
+            Acceleration; ndof x time
+        h : scalar
+            Time-step
+        t : 1d ndarray
+            Time vector: np.arange(d.shape[1])*h
+        """
+        force = np.atleast_2d(force)
+        ~~~
+        d, v, a, force = self._init_dva(force, d0, v0,
+                                        static_ic)
+        if self.nonrfsz:
+            if self.unc and self.systype is float:
+                # for uncoupled, m, b, k have rb+el (all nonrf)
+                self._solve_real_unc(d, v, force)
+            else:
+                # for coupled, m, b, k are only el only
+                self._solve_complex_unc(d, v, a, force)
+        self._calc_acce_kdof(d, v, a, force)
+        return self._solution(d, v, a)
+
+    def _newmark_precalcs(self):
+        # setup matrices for newmark - beta solution beta = 1/3
+        # A u_(n + 2) = 1 / 3 * (F_(n + 2) + F_(n + 1) + F_(n)) +
+        #               NonLin_(n + 1) + A1 u_(n + 1) + A0 u_(n)
+        #
+        # where:
+        #  A = 1 / h ^ 2 M + 1 / (2 h) B + 1 / 3 K
+        #  A1 = 2 / h ^ 2 M - 1 / 3 K
+        #  A0 = -1 / h ^ 2 M + 1 / (2 h) B - 1 / 3 K
+        h = self.h
+        sqh = h * h
+        h2 = 2 * h
+        A = self.m / sqh + self.b / h2 + self.k / 3
+        A1 = (2 / sqh) * self.m - self.k / 3
+        A0 = -self.m / sqh + self.b / h2 - self.k / 3
+        if self.unc:
+            # have diagonals:
+            self.Ad = A
+
+            # define new A1, A0:
+            self.A0 = A0 / A
+            self.A1 = A1 / A
+            # F = F/A[:, None]
+            # F1 = F1/A
+            # Fk2 = Fk2/A
+        else:
+            # have square matrices:
+            self.Ad = la.lu_factor(
+                A, overwrite_a=True, check_finite=False)
+
+            # define new A1, A0, and F:
+            self.A0 = la.lu_solve(
+                self.Ad, A0, overwrite_b=True, check_finite=False)
+            self.A1 = la.lu_solve(
+                self.Ad, A1, overwrite_b=True, check_finite=False)
+            # F = la.lu_solve(
+            #     self.Ad, F, overwrite_b=True, check_finite=False)
+            # F1 = la.lu_solve(
+            #     self.Ad, F1, overwrite_b=True, check_finite=False)
+            # Fk2 = la.lu_solve(
+            #     self.Ad, Fk2, overwrite_b=True, check_finite=False)
+
+    def _init_dva(self, force, d0, v0, a0, static_ic):
+        if force.shape[0] != self.n:
+            raise ValueError('Force matrix has {} rows; {} rows are '
+                             'expected'
+                             .format(force.shape[0], self.n))
+
+        if static_ic:
+            raise NotImplementedError(
+                'Static initial conditions not yet implemented for '
+                'the Newmark-Beta solver.')
+
+        d, v, a = self._alloc_dva(force.shape[1], True)
+
+        # solve resflex part:
+        if self.rfsize:
+            if self.unc:
+                d[self.rf] = self.ikrf * force[self.rf]
+            else:
+                d[self.rf] = la.lu_solve(self.ikrf, force[self.rf],
+                                         check_finite=False)
+            force = force[self.nonrf]
+
+        if self.ksize == 0:
+            return d, v, a, force
+
+        # initial conditions:
+        def _set_ic(xs, x0s, n, nonrf):
+            y0 = []
+            for x, x0 in zip(xs, x0s):
+                if x0 is not None:
+                    x0 = x0[nonrf]
+                    x[nonrf, 0] = x0
+                else:
+                    x0 = np.zeros(n)
+                y0.append(x0)
+            return y0
+
+        d0, v0, a0 = _set_ic((d, v, a), (d0, v0, a0),
+                             self.ksize, self.nonrf)
+
+        # to get the algorithm going and stable (see Nastran
+        # theoretical manual, section 11.3):
+        force /= 3.0
+        F1 = force[:, 0].copy()
+        uk2 = d0 - (v0 - h / 2 * a0) * h
+        if self.unc:
+            force[:, 0] = (self.k * d0 + self.b * v0 +
+                           self.m * a0) / 3.0
+            Fk2 = (self.k * uk2 + self.b * (v0 - h * a0) +
+                   self.m * a0) / 3.0
+        else:
+            force[:, 0] = (self.k @ d0 + self.b @ v0 +
+                           self.m @ a0) / 3.0
+            Fk2 = (self.k @ uk2 + self.b @ (v0 - h * a0) +
+                   self.m @ a0) / 3.0
+            force = la.lu_solve(
+                self.Ad, force, overwrite_b=True, check_finite=False)
+            F1 = la.lu_solve(
+                self.Ad, F1, overwrite_b=True, check_finite=False)
+            Fk2 = la.lu_solve(
+                self.Ad, Fk2, overwrite_b=True, check_finite=False)
+
+        return d, v, a, force
 
 
 class FreqDirect(_BaseODE):
