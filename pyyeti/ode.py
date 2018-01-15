@@ -3803,17 +3803,58 @@ class NewmarkBeta(_BaseODE):
             Time vector: np.arange(d.shape[1])*h
         """
         force = np.atleast_2d(force)
-        ~~~
-        d, v, a, force = self._init_dva(force, d0, v0,
-                                        static_ic)
-        if self.nonrfsz:
-            if self.unc and self.systype is float:
-                # for uncoupled, m, b, k have rb+el (all nonrf)
-                self._solve_real_unc(d, v, force)
+        d, v, a, F, F1 = self._init_dva(force, d0, v0, a0, static_ic)
+        if self.ksize:
+            D = d[self.kdof]
+            V = v[self.kdof]
+            A = a[self.kdof]
+            nt = D.shape[1]
+            h = self.h
+            h2 = 2 * h
+            sqh = h * h
+            A1 = self.A1
+            A0 = self.A0
+            if self.unc:
+                for j in range(2, nt):
+                    D[:, j] = (F[:, j] + F[:, j - 1] + F[:, j - 2] +
+                               A1 * D[:, j - 1] + A0 * D[:, j - 2])
+
+                # run solution backwards to get 1st and 2nd
+                # displacement:
+                D2 = (F[:, 1] + F[:, 2] + F[:, 3] +
+                      A1 * D[:, 2] + A0 * D[:, 3])
+                D1 = (F1 + F[:, 1] + F[:, 2] +
+                      A1 * D2 + A0 * D[:, 2])
             else:
-                # for coupled, m, b, k are only el only
-                self._solve_complex_unc(d, v, a, force)
-        self._calc_acce_kdof(d, v, a, force)
+                for j in range(2, nt):
+                    D[:, j] = (F[:, j] + F[:, j - 1] + F[:, j - 2] +
+                               A1 @ D[:, j - 1] + A0 @ D[:, j - 2])
+
+                # run solution backwards to get 1st and 2nd
+                # displacement:
+                D2 = (F[:, 1] + F[:, 2] + F[:, 3] +
+                      A1 @ D[:, 2] + A0 @ D[:, 3])
+                D1 = (F1 + F[:, 1] + F[:, 2] +
+                      A1 @ D2 + A0 @ D[:, 2])
+
+            # calculate velocity and acceleration
+            V[:, 1:-1] = 1 / h2 * (D[:, 2:] - D[:, :-2])
+            # error = O(h^3):
+            V[:, -1] = 3 * V[:, -2] - 3 * V[:, -3] + V[:, -4]
+
+            A[:, 2:-1] = (1 / sqh * (D[:, 3:] - 2 * D[:, 2:-1] +
+                                     D[:, 1:-2]))
+            A[:, 1] = 1 / sqh * (D[:, 2] - 2 * D2 + D1)
+            V2 = 1 / h2 * (D[:, 2] - D1)
+            V1 = 1 / h2 * (4 * D2 - D[:, 2] - 3 * D1)
+            A[:, 0] = 1 / h2 * (4 * V2 - V[:, 2] - 3 * V1)
+            A[:, -1] = 3 * A[:, -2] - 3 * A[:, -3] + A[:, -4]
+
+            if not self.slices:
+                d[self.kdof] = D
+                v[self.kdof] = V
+                a[self.kdof] = A
+
         return self._solution(d, v, a)
 
     def _newmark_precalcs(self):
@@ -3857,6 +3898,7 @@ class NewmarkBeta(_BaseODE):
             #     self.Ad, F1, overwrite_b=True, check_finite=False)
             # Fk2 = la.lu_solve(
             #     self.Ad, Fk2, overwrite_b=True, check_finite=False)
+        self.pc = True  # to make _alloc_dva happy
 
     def _init_dva(self, force, d0, v0, a0, static_ic):
         if force.shape[0] != self.n:
@@ -3867,7 +3909,7 @@ class NewmarkBeta(_BaseODE):
         if static_ic:
             raise NotImplementedError(
                 'Static initial conditions not yet implemented for '
-                'the Newmark-Beta solver.')
+                'the {} solver.'.format(type(self).__name__))
 
         d, v, a = self._alloc_dva(force.shape[1], True)
 
@@ -3881,7 +3923,7 @@ class NewmarkBeta(_BaseODE):
             force = force[self.nonrf]
 
         if self.ksize == 0:
-            return d, v, a, force
+            return d, v, a, force, 0
 
         # initial conditions:
         def _set_ic(xs, x0s, n, nonrf):
@@ -3902,12 +3944,17 @@ class NewmarkBeta(_BaseODE):
         # theoretical manual, section 11.3):
         force /= 3.0
         F1 = force[:, 0].copy()
+        h = self.h
         uk2 = d0 - (v0 - h / 2 * a0) * h
         if self.unc:
             force[:, 0] = (self.k * d0 + self.b * v0 +
                            self.m * a0) / 3.0
             Fk2 = (self.k * uk2 + self.b * (v0 - h * a0) +
                    self.m * a0) / 3.0
+            # because of the - 1 subscript, do first step outside of
+            # the loop:
+            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + Fk2 +
+                                self.A1 * d0 + self.A0 * uk2)
         else:
             force[:, 0] = (self.k @ d0 + self.b @ v0 +
                            self.m @ a0) / 3.0
@@ -3919,8 +3966,12 @@ class NewmarkBeta(_BaseODE):
                 self.Ad, F1, overwrite_b=True, check_finite=False)
             Fk2 = la.lu_solve(
                 self.Ad, Fk2, overwrite_b=True, check_finite=False)
+            # because of the - 1 subscript, do first step outside of
+            # the loop:
+            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + Fk2 +
+                                self.A1 @ d0 + self.A0 @ uk2)
 
-        return d, v, a, force
+        return d, v, a, force, F1
 
 
 class FreqDirect(_BaseODE):
