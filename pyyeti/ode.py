@@ -3942,7 +3942,7 @@ class NewmarkBeta(_BaseODE):
 
         # to get the algorithm going and stable (see Nastran
         # theoretical manual, section 11.3):
-        force /= 3.0
+        force = force / 3.0
         F1 = force[:, 0].copy()
         h = self.h
         uk2 = d0 - (v0 - h / 2 * a0) * h
