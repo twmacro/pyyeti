@@ -3038,6 +3038,8 @@ class DR_Results(OrderedDict):
             resp = drfunc(SOL, nas, DR.Vars, dr.se)
 
             mm = maxmin(abs(resp), SOL.f)
+            mm.ext[:, 1] = -mm.ext[:, 0]
+            mm.ext_x[:, 1] = mm.ext_x[:, 0]
             extrema(res, mm, case)
 
             if first:
