@@ -3665,7 +3665,7 @@ class NewmarkBeta(_BaseODE):
         ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
         ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
         >>> f *= 1.e4
-        >>> ts = ode.NewmarkBeta(m, b, k, h)
+        >>> ts = ode.SolveUnc(m, b, k, h)
         >>> sol = ts.tsolve(f, static_ic=1)
 
         Solve with scipy.signal.lsim for comparison:

@@ -106,3 +106,7 @@
 ~29. Enhance DR_Event.add "method" option (for uf_reds update) to accept
 ~    function
 ~    - implemented in v0.92.3b
+
+30. add rf modes handling to FreqDirect
+
+31. frf_apply_duf – see if needed and consider renaming (psd_apply_duf?)

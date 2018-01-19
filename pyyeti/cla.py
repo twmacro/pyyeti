@@ -1878,7 +1878,7 @@ class DR_Event(object):
 
     def apply_uf(self, sol, m, b, k, nrb, rfmodes):
         """
-        Applies the uncertainty factors to the solution
+        Applies the uncertainty factors to the modal ODE solution
 
         Parameters
         ----------
@@ -2002,8 +2002,8 @@ class DR_Event(object):
         for item in self.UF_reds:
             ruf, euf, duf, suf = item
             SOL = solout[item]
-            SOL.d_static = np.empty(SOL.a.shape)
-            SOL.d_dynamic = np.empty(SOL.a.shape)
+            SOL.d_static = np.empty_like(SOL.a)
+            SOL.d_dynamic = np.empty_like(SOL.a)
 
             # apply ufs:
             if nrb > 0:
@@ -2013,11 +2013,13 @@ class DR_Event(object):
                 SOL.d_dynamic[:nrb] = 0.0
 
             if rfmodes is not None:
-                SOL.a[rfmodes] = 0
-                SOL.v[rfmodes] = 0
+                SOL.a[rfmodes] = 0.0
+                SOL.v[rfmodes] = 0.0
 
-            if 'pg' in SOL.__dict__:
+            try:
                 SOL.pg *= suf
+            except AttributeError:
+                pass
 
             if nrb < n:
                 SOL.a[nrb:] *= (euf * duf)
@@ -2044,7 +2046,7 @@ class DR_Event(object):
                 # in case there is mass coupling between rfmodes and
                 # other modes
                 if rfmodes is not None:
-                    avterm[rfmodes - nrb] = 0
+                    avterm[rfmodes - nrb] = 0.0
 
                 gf = (euf * suf) * genforce[nrb:]
                 if k.ndim == 1:

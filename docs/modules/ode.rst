@@ -35,6 +35,14 @@ Time and frequency domain equation of motion solvers
     SolveExp2.finalize
     SolveExp2.get_f2x
 
+2nd Order ODE Solver `NewmarkBeta`
+----------------------------------
+.. autosummary::
+    :toctree: generated/
+
+    NewmarkBeta
+    NewmarkBeta.tsolve
+
 2nd Order ODE Frequency Domain Solver `FreqDirect`
 --------------------------------------------------
 .. autosummary::
