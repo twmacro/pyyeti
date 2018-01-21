@@ -3600,21 +3600,18 @@ class SolveUnc(_BaseODE):
             v[kdof] = d[kdof] * (1j * freqw)
 
 
-class NewmarkBeta(_BaseODE):
+class SolveNewmark(_BaseODE):
     r"""
     2nd order ODE time domain "Newmark-Beta" solver
 
     This class is for solving:
 
     .. math::
-        M \ddot{q} + B \dot{q} + K q = F
+        M \ddot{u} + B \dot{u} + K u = F
 
-    This routine uses a fixed time step Newmark-Beta method.
-    Beta is set to 1/3, which is unconditionally stable for most
-    problems. The algorithm is based on the Nastran theoretical
-    manual, section 11.3, with a small modification on the
-    acceleration computation at the first two time steps and
-    possibly at the last time step.
+    This routine uses a fixed time step Newmark-Beta method based on
+    the Nastran theoretical manual, section 11.3. The algorithm is
+    unconditionally stable for most problems.
 
     In general, the mass, damping and stiffness can be fully populated
     (coupled).
@@ -3626,21 +3623,62 @@ class NewmarkBeta(_BaseODE):
     forces (if `order` is 0). :class:`SolveUnc` is also very likely
     significantly faster for most problems.
 
-    The equations are: TODO
+    The equations for the non-residual equations are:
+
+    .. math::
+        \left [ \frac{M}{h^2} + \frac{B}{2 h} + \frac{K}{3} \right ]
+        u_{n+2} = \frac{1}{3}
+        \left ( F_{n+2} + F_{n+1} + F_{n} \right ) +
+        A_1 u_{n+1} + A_0 u_{n}
+
+    where:
+
+    .. math::
+        \begin{aligned}
+        A_1 &= \left [ \frac{2 M}{h^2} - \frac{K}{3} \right ] \\
+        A_0 &= \left [ \frac{-M}{h^2} + \frac{B}{2 h} -
+                       \frac{K}{3} \right ]
+        \end{aligned}
+
+    To get the algorithm started, :math:`u_{-1}` and :math:`F_{-1}`
+    are needed. They are computed from:
+
+    .. math::
+        \begin{aligned}
+        u_{-1} &= u_0 - \dot{u}_0 h \\
+
+        F_{-1} &= K u_{-1} + B \dot{u}_0
+        \end{aligned}
+
+    After the displacements have been calculated from the above
+    equations, the velocities and accelerations are computed from:
+
+    .. math::
+        \begin{aligned}
+        \dot{u}_n &= \frac{1}{2 h} \left (
+            u_{n+1} - u_{n-1} \right ) \\
+
+        \ddot{u}_n &= \frac{1}{h^2} \left (
+            u_{n+1} - 2 u_n + u_{n-1} \right )
+        \end{aligned}
+
+    The velocities and accelerations for the final time step
+    (:math:`N`) are computed from:
+
+    .. math::
+        \begin{aligned}
+        \dot{u}_N &= 3 \dot{u}_{N-1} - 3 \dot{u}_{N-2} +
+            \dot{u}_{N-3} \\
+
+        \ddot{u}_N &= 3 \ddot{u}_{N-1} - 3 \ddot{u}_{N-2} +
+            \ddot{u}_{N-3}
+        \end{aligned}
 
     .. note::
 
         The above equations are for the non-residual-flexibility
         modes. The 'rf' modes are solved statically and any initial
         conditions are ignored for them.
-
-    For a static solution:
-
-        - rigid-body displacements = zeros
-        - elastic displacments = inv(k[elastic]) * F[elastic]
-        - velocity = zeros
-        - rigid-body accelerations = inv(m[rigid]) * F[rigid]
-        - elastic accelerations = zeros
 
     See also
     --------
@@ -3708,8 +3746,8 @@ class NewmarkBeta(_BaseODE):
     """
 
     def __init__(self, m, b, k, h=None, rf=None):
-        """
-        Instantiates a :class:`NewmarkBeta` solver.
+        r"""
+        Instantiates a :class:`SolveNewmark` solver.
 
         Parameters
         ----------
@@ -3755,17 +3793,17 @@ class NewmarkBeta(_BaseODE):
         unc        True if there are no off-diagonal terms in any
                    matrix; False otherwise
         systype    float or complex; determined by `m` `b` `k`
-        Ad         decomposed version of matrix `A` (see equations)
-        A0         decomposed version of matrix `A0` (see equations)
-        A1         decomposed version of matrix `A1` (see equations)
+        Ad         decomposed version of matrix :math:`A` (see
+                   :class:`SolveNewmark`)
+        A0         decomposed version of matrix :math:`A_0`
+        A1         decomposed version of matrix :math:`A_1`
         =========  ===================================================
         """
         self._common_precalcs(m, b, k, h, rb=[], rf=rf)
         self._newmark_precalcs()
         self._mk_slices(dorbel=False)
 
-    def tsolve(self, force, d0=None, v0=None, a0=None,
-               static_ic=False):
+    def tsolve(self, force, d0=None, v0=None):
         """
         Solve time-domain 2nd order ODE equations
 
@@ -3778,14 +3816,6 @@ class NewmarkBeta(_BaseODE):
             used.
         v0 : 1d ndarray; optional
             Velocity initial conditions; if None, zero ic's are used.
-        a0 : 1d ndarray; optional
-            Acceleration initial conditions; if None, zero ic's are
-            used.
-        static_ic : bool; optional
-            If True and `d0` is None, then `d0` is calculated such
-            that static (steady-state) initial conditions are
-            used. Uses the pseudo-inverse in case there are rigid-body
-            modes. `static_ic` is ignored if `d0` is not None.
 
         Returns
         -------
@@ -3803,7 +3833,7 @@ class NewmarkBeta(_BaseODE):
             Time vector: np.arange(d.shape[1])*h
         """
         force = np.atleast_2d(force)
-        d, v, a, F, F1 = self._init_dva(force, d0, v0, a0, static_ic)
+        d, v, a, F = self._init_dva(force, d0, v0)
         if self.ksize:
             D = d[self.kdof]
             V = v[self.kdof]
@@ -3818,36 +3848,17 @@ class NewmarkBeta(_BaseODE):
                 for j in range(2, nt):
                     D[:, j] = (F[:, j] + F[:, j - 1] + F[:, j - 2] +
                                A1 * D[:, j - 1] + A0 * D[:, j - 2])
-
-                # run solution backwards to get 1st and 2nd
-                # displacement:
-                D2 = (F[:, 1] + F[:, 2] + F[:, 3] +
-                      A1 * D[:, 2] + A0 * D[:, 3])
-                D1 = (F1 + F[:, 1] + F[:, 2] +
-                      A1 * D2 + A0 * D[:, 2])
             else:
                 for j in range(2, nt):
                     D[:, j] = (F[:, j] + F[:, j - 1] + F[:, j - 2] +
                                A1 @ D[:, j - 1] + A0 @ D[:, j - 2])
 
-                # run solution backwards to get 1st and 2nd
-                # displacement:
-                D2 = (F[:, 1] + F[:, 2] + F[:, 3] +
-                      A1 @ D[:, 2] + A0 @ D[:, 3])
-                D1 = (F1 + F[:, 1] + F[:, 2] +
-                      A1 @ D2 + A0 @ D[:, 2])
-
             # calculate velocity and acceleration
             V[:, 1:-1] = 1 / h2 * (D[:, 2:] - D[:, :-2])
-            # error = O(h^3):
             V[:, -1] = 3 * V[:, -2] - 3 * V[:, -3] + V[:, -4]
 
-            A[:, 2:-1] = (1 / sqh * (D[:, 3:] - 2 * D[:, 2:-1] +
-                                     D[:, 1:-2]))
-            A[:, 1] = 1 / sqh * (D[:, 2] - 2 * D2 + D1)
-            V2 = 1 / h2 * (D[:, 2] - D1)
-            V1 = 1 / h2 * (4 * D2 - D[:, 2] - 3 * D1)
-            A[:, 0] = 1 / h2 * (4 * V2 - V[:, 2] - 3 * V1)
+            A[:, 1:-1] = (1 / sqh * (D[:, 2:] - 2 * D[:, 1:-1] +
+                                     D[:, :-2]))
             A[:, -1] = 3 * A[:, -2] - 3 * A[:, -3] + A[:, -4]
 
             if not self.slices:
@@ -3879,9 +3890,6 @@ class NewmarkBeta(_BaseODE):
             # define new A1, A0:
             self.A0 = A0 / A
             self.A1 = A1 / A
-            # F = F/A[:, None]
-            # F1 = F1/A
-            # Fk2 = Fk2/A
         else:
             # have square matrices:
             self.Ad = la.lu_factor(
@@ -3892,24 +3900,13 @@ class NewmarkBeta(_BaseODE):
                 self.Ad, A0, overwrite_b=True, check_finite=False)
             self.A1 = la.lu_solve(
                 self.Ad, A1, overwrite_b=True, check_finite=False)
-            # F = la.lu_solve(
-            #     self.Ad, F, overwrite_b=True, check_finite=False)
-            # F1 = la.lu_solve(
-            #     self.Ad, F1, overwrite_b=True, check_finite=False)
-            # Fk2 = la.lu_solve(
-            #     self.Ad, Fk2, overwrite_b=True, check_finite=False)
         self.pc = True  # to make _alloc_dva happy
 
-    def _init_dva(self, force, d0, v0, a0, static_ic):
+    def _init_dva(self, force, d0, v0):
         if force.shape[0] != self.n:
             raise ValueError('Force matrix has {} rows; {} rows are '
                              'expected'
                              .format(force.shape[0], self.n))
-
-        if static_ic:
-            raise NotImplementedError(
-                'Static initial conditions not yet implemented for '
-                'the {} solver.'.format(type(self).__name__))
 
         d, v, a = self._alloc_dva(force.shape[1], True)
 
@@ -3923,7 +3920,7 @@ class NewmarkBeta(_BaseODE):
             force = force[self.nonrf]
 
         if self.ksize == 0:
-            return d, v, a, force, 0
+            return d, v, a, force
 
         # initial conditions:
         def _set_ic(xs, x0s, n, nonrf):
@@ -3937,41 +3934,33 @@ class NewmarkBeta(_BaseODE):
                 y0.append(x0)
             return y0
 
-        d0, v0, a0 = _set_ic((d, v, a), (d0, v0, a0),
-                             self.ksize, self.nonrf)
+        d0, v0 = _set_ic((d, v), (d0, v0),
+                         self.ksize, self.nonrf)
 
         # to get the algorithm going and stable (see Nastran
         # theoretical manual, section 11.3):
         force = force / 3.0
-        F1 = force[:, 0].copy()
         h = self.h
-        uk2 = d0 - (v0 - h / 2 * a0) * h
+        u_1 = d0 - v0 * h
         if self.unc:
-            force[:, 0] = (self.k * d0 + self.b * v0 +
-                           self.m * a0) / 3.0
-            Fk2 = (self.k * uk2 + self.b * (v0 - h * a0) +
-                   self.m * a0) / 3.0
+            force[:, 0] = (self.k * d0 + self.b * v0) / 3.0
+            F_1 = (self.k * u_1 + self.b * v0) / 3
+
             # because of the - 1 subscript, do first step outside of
             # the loop:
-            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + Fk2 +
-                                self.A1 * d0 + self.A0 * uk2)
+            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 +
+                                self.A1 * d0 + self.A0 * u_1)
         else:
-            force[:, 0] = (self.k @ d0 + self.b @ v0 +
-                           self.m @ a0) / 3.0
-            Fk2 = (self.k @ uk2 + self.b @ (v0 - h * a0) +
-                   self.m @ a0) / 3.0
+            force[:, 0] = (self.k @ d0 + self.b @ v0) / 3.0
+            F_1 = (self.k @ u_1 + self.b @ v0) / 3
             force = la.lu_solve(
                 self.Ad, force, overwrite_b=True, check_finite=False)
-            F1 = la.lu_solve(
-                self.Ad, F1, overwrite_b=True, check_finite=False)
-            Fk2 = la.lu_solve(
-                self.Ad, Fk2, overwrite_b=True, check_finite=False)
             # because of the - 1 subscript, do first step outside of
             # the loop:
-            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + Fk2 +
-                                self.A1 @ d0 + self.A0 @ uk2)
+            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 +
+                                self.A1 @ d0 + self.A0 @ u_1)
 
-        return d, v, a, force, F1
+        return d, v, a, force
 
 
 class FreqDirect(_BaseODE):
