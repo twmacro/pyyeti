@@ -3610,8 +3610,12 @@ class SolveNewmark(_BaseODE):
         M \ddot{u} + B \dot{u} + K u = F
 
     This routine uses a fixed time step Newmark-Beta method based on
-    the Nastran theoretical manual, section 11.3. The algorithm is
-    unconditionally stable for most problems.
+    the Nastran Theoretical Manual, section 11.4 [#newmark]_. The
+    algorithm is unconditionally stable but the size of the time step
+    is still a concern for accurate results. According to Bathe
+    [#bathe]_, a time step that ensures accurate results for
+    algorithms like this one is :math:`1/(80 f_high)`, where
+    :math:`f_high` is the highest frequency (Hz) you care about.
 
     In general, the mass, damping and stiffness can be fully populated
     (coupled).
@@ -3650,6 +3654,16 @@ class SolveNewmark(_BaseODE):
         F_{-1} &= K u_{-1} + B \dot{u}_0
         \end{aligned}
 
+    Also, :math:`F_0` is replaced by:
+
+    .. math::
+        F_{0} &= K u_{0} + B \dot{u}_0
+
+    According to [#newmark]_, that is done to avoid ringing of massless
+    degrees of freedom that are subjected to step loads. A side-effect
+    of this is that :math:`a_0` is zero. So, static initial conditions
+    are not supported by this solver.
+
     After the displacements have been calculated from the above
     equations, the velocities and accelerations are computed from:
 
@@ -3663,7 +3677,8 @@ class SolveNewmark(_BaseODE):
         \end{aligned}
 
     The velocities and accelerations for the final time step
-    (:math:`N`) are computed from:
+    (:math:`N`) are computed by second order extrapolation from the
+    previous three points:
 
     .. math::
         \begin{aligned}
@@ -3679,6 +3694,14 @@ class SolveNewmark(_BaseODE):
         The above equations are for the non-residual-flexibility
         modes. The 'rf' modes are solved statically and any initial
         conditions are ignored for them.
+
+    References
+    ----------
+    .. [#newmark] 'The NASTRAN Theoretical Manual', Section 11.4,
+           NASA-SP-221(06), Jan 01, 1981.
+           https://ntrs.nasa.gov/search.jsp?R=19840010609
+
+    .. [#bathe] 'need to fill this in'
 
     See also
     --------
@@ -3703,40 +3726,37 @@ class SolveNewmark(_BaseODE):
         ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
         ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
         >>> f *= 1.e4
-        >>> ts = ode.SolveUnc(m, b, k, h)
-        >>> sol = ts.tsolve(f, static_ic=1)
+        >>> nb = ode.SolveNewmark(m, b, k, h)
+        >>> sol = nb.tsolve(f)
 
-        Solve with scipy.signal.lsim for comparison:
+        Solve with SolveUnc for comparison:
 
-        >>> A = ode.make_A(m, b, k)
-        >>> n = len(m)
-        >>> Z = np.zeros((n, n), float)
-        >>> B = np.vstack((np.eye(n), Z))
-        >>> C = np.vstack((A, np.hstack((Z, np.eye(n)))))
-        >>> D = np.vstack((B, Z))
-        >>> ic = np.hstack((sol.v[:, 0], sol.d[:, 0]))
-        >>> import scipy.signal
-        >>> f2 = (1./m).reshape(-1, 1) * f
-        >>> tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T, t,
-        ...                                X0=ic)
-        >>>
-        >>> print('acce cmp:', np.allclose(yl[:, :n], sol.a.T))
-        acce cmp: True
-        >>> print('velo cmp:', np.allclose(yl[:, n:2*n], sol.v.T))
-        velo cmp: True
-        >>> print('disp cmp:', np.allclose(yl[:, 2*n:], sol.d.T))
-        disp cmp: True
+        >>> su = ode.SolveNewmark(m, b, k, h)
+        >>> solu = nb.tsolve(f)
+
+        Check accuracy:
+
+        >>> for r in 'dva':
+        ...     unc = getattr(sol, r)
+        ...     new = getattr(solu, r)
+        ...     atol = 0.01 * abs(unc).max()
+        ...     print(r + ' comp:',
+        ...           np.allclose(new, unc, atol=atol, rtol=1e-5))
+        d comp: True
+        v comp: True
+        a comp: True
 
         Plot the four accelerations:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure('SolveUnc vs. lsim', figsize=[8, 8])
+        >>> fig = plt.figure('SolveNewmark vs. SolveUnc',
+        ... figsize=[8, 8])
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
         ...     _ = plt.subplot(4, 1, j+1)
-        ...     _ = plt.plot(t, sol.a[j], label='SolveUnc')
-        ...     _ = plt.plot(tl, yl[:, j], label='scipy lsim')
+        ...     _ = plt.plot(t, solu.a[j], label='SolveUnc')
+        ...     _ = plt.plot(t, sol.a[j], '--', label='SolveNewmark')
         ...     _ = plt.title(name)
         ...     _ = plt.ylabel('Acceleration')
         ...     _ = plt.xlabel('Time (s)')
@@ -3944,7 +3964,8 @@ class SolveNewmark(_BaseODE):
         u_1 = d0 - v0 * h
         if self.unc:
             force[:, 0] = (self.k * d0 + self.b * v0) / 3.0
-            F_1 = (self.k * u_1 + self.b * v0) / 3
+            force /= self.Ad[:, None]
+            F_1 = (self.k * u_1 + self.b * v0) / (3 * self.Ad)
 
             # because of the - 1 subscript, do first step outside of
             # the loop:
@@ -3952,9 +3973,12 @@ class SolveNewmark(_BaseODE):
                                 self.A1 * d0 + self.A0 * u_1)
         else:
             force[:, 0] = (self.k @ d0 + self.b @ v0) / 3.0
-            F_1 = (self.k @ u_1 + self.b @ v0) / 3
             force = la.lu_solve(
                 self.Ad, force, overwrite_b=True, check_finite=False)
+            F_1 = la.lu_solve(
+                self.Ad, (self.k @ u_1 + self.b @ v0) / 3,
+                overwrite_b=True, check_finite=False)
+
             # because of the - 1 subscript, do first step outside of
             # the loop:
             d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 +
