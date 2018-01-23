@@ -248,6 +248,9 @@ def test_newmark_diag():
     nb = ode.SolveNewmark(m, b, k, h, rf=3)
     soln = nb.tsolve(f, d0=d0, v0=v0)
 
+    se = ode.SolveExp2(m, b, k, h, rf=3)
+    sole = se.tsolve(f, d0=d0, v0=v0)
+
     assert np.all(getpdiff(soln.d, solu.d, 0) < 5.0)
     assert np.all(getpdiff(soln.v[:3], solu.v[:3], 5) < 5.0)
     assert np.all(getpdiff(soln.a[:3], solu.a[:3], 10) < 5.0)
@@ -263,9 +266,12 @@ def test_newmark_diag():
     assert np.allclose(soln.d[3], f[3] / k[3])
 
     assert np.all(solu.a[3] == 0.0)
-    print(solu.v[3])
     assert np.all(solu.v[3] == 0.0)
     assert np.allclose(solu.d[3], f[3] / k[3])
+
+    assert np.allclose(sole.d, solu.d)
+    assert np.allclose(sole.v, solu.v)
+    assert np.allclose(sole.a, solu.a)
 
 
 def test_rbdamped_modes_coupled():

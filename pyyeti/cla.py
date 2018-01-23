@@ -2860,10 +2860,12 @@ class DR_Results(OrderedDict):
         res.cases = n * [[]]
         return m
 
-    def _init_results_cat(self, name, res, dr, resp, respname,
-                          x, xname, mm, n, dosrs):
+    def _init_results_cat(self, name, dr, resp, respname,
+                          x, xname, mm, n, dohist, dosrs):
+        # dohist is here for 3rd party use cases
+        res = self[name]
         m = self._init_mxmn(name, res, xname, mm, n)
-        if dr.histpv is not None:
+        if dr.histpv is not None and dohist:
             m = len(resp[dr.histpv, 0])
             setattr(res, xname, x)
             setattr(res, respname, np.zeros((n, m, len(x)),
@@ -2975,8 +2977,8 @@ class DR_Results(OrderedDict):
 
             if first:
                 self._init_results_cat(
-                    name, res, dr, resp, 'hist', SOL.t, 'time',
-                    mm, n, dosrs)
+                    name, dr, resp, 'hist', SOL.t, 'time',
+                    mm, n, dohist=True, dosrs=dosrs)
 
             self._store_maxmin(res, mm, j, case)
 
@@ -3046,8 +3048,8 @@ class DR_Results(OrderedDict):
 
             if first:
                 self._init_results_cat(
-                    name, res, dr, resp, 'frf', SOL.f, 'freq',
-                    mm, n, dosrs)
+                    name, dr, resp, 'frf', SOL.f, 'freq',
+                    mm, n, dohist=True, dosrs=dosrs)
 
             self._store_maxmin(res, mm, j, case)
 
@@ -3289,8 +3291,8 @@ class DR_Results(OrderedDict):
 
             if first:
                 self._init_results_cat(
-                    name, res, dr, psd, 'psd', res.freq, 'freq',
-                    mm, n, dosrs)
+                    name, dr, psd, 'psd', res.freq, 'freq',
+                    mm, n, dohist=True, dosrs=dosrs)
                 res.rms = np.zeros((rms.shape[0], n))
 
             self._store_maxmin(res, mm, j, case)
