@@ -111,7 +111,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     # - displacements have a different cutoff. the denominator
     #   is: 1/(b**3*h) < 10**10
     #     or:  b > (1e-10/h)**(1/3)
-    #     adjusted to: b > 10*(1e-10/h)**(1/3) be trial and error
+    #     adjusted to: b > 10*(1e-10/h)**(1/3) by trial and error
     pvrb_damped = (abs(C) > 1e-5 / np.sqrt(h)) & pvrb
 
     # setup partition vectors for underdamped, critically damped,
@@ -3614,8 +3614,9 @@ class SolveNewmark(_BaseODE):
     algorithm is unconditionally stable but the size of the time step
     is still a concern for accurate results. According to Bathe
     [#bathe]_, a time step that ensures accurate results for
-    algorithms like this one is :math:`1/(80 f_high)`, where
-    :math:`f_high` is the highest frequency (Hz) you care about.
+    algorithms like this one is :math:`1/(80 f_{high})`, where
+    :math:`f_{high}` is the highest frequency (Hz) in your forcing
+    functions.
 
     In general, the mass, damping and stiffness can be fully populated
     (coupled).
@@ -3659,10 +3660,11 @@ class SolveNewmark(_BaseODE):
     .. math::
         F_{0} &= K u_{0} + B \dot{u}_0
 
-    According to [#newmark]_, that is done to avoid ringing of massless
-    degrees of freedom that are subjected to step loads. A side-effect
-    of this is that :math:`a_0` is zero. So, static initial conditions
-    are not supported by this solver.
+    According to [#newmark]_, that is done to avoid ringing of
+    massless degrees of freedom that are subjected to step loads. A
+    side-effect of this is that :math:`\ddot{u}_0` is zero. In cases
+    when that is incorrect, the acceleration values should be
+    approximately correct by the third time step.
 
     After the displacements have been calculated from the above
     equations, the velocities and accelerations are computed from:
@@ -3701,7 +3703,9 @@ class SolveNewmark(_BaseODE):
            NASA-SP-221(06), Jan 01, 1981.
            https://ntrs.nasa.gov/search.jsp?R=19840010609
 
-    .. [#bathe] 'need to fill this in'
+    .. [#bathe] Klaus-Jurgen Bathe, 'Finite Element Procedures',
+           Second Edition, Watertown, MA: Klaus-Jürgen Bathe, 2014.
+           http://web.mit.edu/kjb/www/Books/FEP_2nd_Edition_5th_Release.pdf
 
     See also
     --------
@@ -3722,17 +3726,18 @@ class SolveNewmark(_BaseODE):
         >>> t = np.arange(0, .3001, h)            # time vector
         >>> c = 2*np.pi
         >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
-        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
-        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
-        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
+        ...                4.5*(1 - np.cos(np.sqrt(k[1]/m[1])*t)),
+        ...                4.5*(1 - np.cos(np.sqrt(k[2]/m[2])*t)),
+        ...                4.5*(1 - np.cos(np.sqrt(k[3]/m[3])*t))))
         >>> f *= 1.e4
+        >>> f[1:, t > 0.09] = 0.0
         >>> nb = ode.SolveNewmark(m, b, k, h)
         >>> sol = nb.tsolve(f)
 
-        Solve with SolveUnc for comparison:
+        Solve with :class:`SolveUnc` for comparison:
 
-        >>> su = ode.SolveNewmark(m, b, k, h)
-        >>> solu = nb.tsolve(f)
+        >>> su = ode.SolveUnc(m, b, k, h)
+        >>> solu = su.tsolve(f)
 
         Check accuracy:
 
@@ -3741,7 +3746,7 @@ class SolveNewmark(_BaseODE):
         ...     new = getattr(solu, r)
         ...     atol = 0.01 * abs(unc).max()
         ...     print(r + ' comp:',
-        ...           np.allclose(new, unc, atol=atol, rtol=1e-5))
+        ...           np.allclose(new, unc, atol=atol))
         d comp: True
         v comp: True
         a comp: True
@@ -3964,6 +3969,8 @@ class SolveNewmark(_BaseODE):
         u_1 = d0 - v0 * h
         if self.unc:
             force[:, 0] = (self.k * d0 + self.b * v0) / 3.0
+            # force[:, 0] = (3 * force[:, 0] + self.k * d0 +
+            #                self.b * v0) / 6.0
             force /= self.Ad[:, None]
             F_1 = (self.k * u_1 + self.b * v0) / (3 * self.Ad)
 
@@ -3973,6 +3980,8 @@ class SolveNewmark(_BaseODE):
                                 self.A1 * d0 + self.A0 * u_1)
         else:
             force[:, 0] = (self.k @ d0 + self.b @ v0) / 3.0
+            # force[:, 0] = (3 * force[:, 0] + self.k @ d0 +
+            #                self.b @ v0) / 6.0
             force = la.lu_solve(
                 self.Ad, force, overwrite_b=True, check_finite=False)
             F_1 = la.lu_solve(

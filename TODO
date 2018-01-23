@@ -99,6 +99,9 @@
 ~  changed input to class instance "fs" in v0.92.3
 
 27. Implement a Newmark-Beta ode solver
+  - add tests
+~  - think about static ic
+~  - bathe reference ?
 
 ~28. Add frf_data_recovery and add tests for it
 ~    - added method in v0.92.3b

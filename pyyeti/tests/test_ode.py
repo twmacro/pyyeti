@@ -201,6 +201,73 @@ def test_ode_ic():
     #              sole.t, getattr(solu, r).T, '--')
 
 
+def getpdiff(x, y, j):
+    return 100 * (abs(x[:, j:] - y[:, j:]).max(axis=1) /
+                  abs(y[:, j:]).max(axis=1))
+
+
+def test_newmark_diag():
+    m = np.array([10., 30., 30., 30.])    # diag mass
+    k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+    zeta = np.array([0., .05, 1., 2.])    # % damping
+    b = 2. * zeta * np.sqrt(k / m) * m    # diag damping
+    h = 0.0005                            # time step
+    t = np.arange(0, .2, h)               # time vector
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),   # ffn
+                   4.5 * (1 - np.cos(np.sqrt(k[1] / m[1]) * t)),
+                   4.5 * (1 - np.cos(np.sqrt(k[2] / m[2]) * t)),
+                   4.5 * (1 - np.cos(np.sqrt(k[3] / m[3]) * t))))
+    f *= 1.e4
+    t2 = 2 / (np.sqrt(k[1] / m[1]) / 2 / np.pi)
+    f[1:, t > t2] = 0.0
+
+    d0 = np.array([1, 2, 3, 4]) / 100
+    v0 = np.array([2, 1, 4, 5]) / 10
+
+    su = ode.SolveUnc(m, b, k, h)
+    solu = su.tsolve(f, d0=d0, v0=v0)
+
+    nb = ode.SolveNewmark(m, b, k, h)
+    soln = nb.tsolve(f, d0=d0, v0=v0)
+
+    assert np.all(getpdiff(soln.d, solu.d, 0) < 5.0)
+    assert np.all(getpdiff(soln.v, solu.v, 5) < 5.0)
+    assert np.all(getpdiff(soln.a, solu.a, 10) < 5.0)
+
+    assert np.all(soln.d[:, 0] == d0)
+    assert np.all(soln.v[:, 0] == v0)
+
+    assert np.all(solu.d[:, 0] == d0)
+    assert np.all(solu.v[:, 0] == v0)
+
+    # with rf modes:
+    su = ode.SolveUnc(m, b, k, h, rf=3)
+    solu = su.tsolve(f, d0=d0, v0=v0)
+
+    nb = ode.SolveNewmark(m, b, k, h, rf=3)
+    soln = nb.tsolve(f, d0=d0, v0=v0)
+
+    assert np.all(getpdiff(soln.d, solu.d, 0) < 5.0)
+    assert np.all(getpdiff(soln.v[:3], solu.v[:3], 5) < 5.0)
+    assert np.all(getpdiff(soln.a[:3], solu.a[:3], 10) < 5.0)
+
+    assert np.all(soln.d[:3, 0] == d0[:3])
+    assert np.all(soln.v[:3, 0] == v0[:3])
+
+    assert np.all(solu.d[:3, 0] == d0[:3])
+    assert np.all(solu.v[:3, 0] == v0[:3])
+
+    assert np.all(soln.a[3] == 0.0)
+    assert np.all(soln.v[3] == 0.0)
+    assert np.allclose(soln.d[3], f[3] / k[3])
+
+    assert np.all(solu.a[3] == 0.0)
+    print(solu.v[3])
+    assert np.all(solu.v[3] == 0.0)
+    assert np.allclose(solu.d[3], f[3] / k[3])
+
+
 def test_rbdamped_modes_coupled():
     N = 10
     win = 100
@@ -245,6 +312,38 @@ def test_rbdamped_modes_coupled():
                 'formulation are poorly conditioned') > -1:
             found = True
     assert found
+
+
+def test_newmark_rbdamp_coupled():
+    N = 10
+    win = 100
+    m = np.random.randn(N, N)
+    m = m.T @ m
+    k = np.zeros(N)
+    h = 0.0005
+    t = np.arange(int(1 / h)) * h
+    f = np.zeros((N, len(t)))
+    f[:, :win] = np.ones((N, 1)) * np.hanning(win) * 20
+
+    d0 = None
+    v0 = np.random.randn(N)
+
+    for b in (np.zeros(N), 10 * np.ones(N)):
+        su = ode.SolveUnc(m, b, k, h)
+        solu = su.tsolve(f, d0=d0, v0=v0)
+
+        nb = ode.SolveNewmark(m, b, k, h)
+        soln = nb.tsolve(f, d0=d0, v0=v0)
+
+        assert np.all(getpdiff(soln.d, solu.d, 0) < 5.0)
+        assert np.all(getpdiff(soln.v, solu.v, 5) < 5.0)
+        assert np.all(getpdiff(soln.a, solu.a, 10) < 5.0)
+
+        assert np.all(soln.d[:, 0] == 0.0)
+        assert np.all(soln.v[:, 0] == v0)
+
+        assert np.all(solu.d[:, 0] == 0.0)
+        assert np.all(solu.v[:, 0] == v0)
 
 
 def get_rfsol(k, rf, f):
