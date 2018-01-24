@@ -1263,7 +1263,7 @@ class _BaseODE(object):
 
     def _init_dv(self, d, v, d0, v0, F0, static_ic):
         if d0 is not None:
-            d[:, 0] = d0
+            d[self.nonrf, 0] = d0[self.nonrf]
         elif static_ic and self.elsize:
             if self.unc:
                 d0 = la.lstsq(np.diag(self.k[self._el]),
@@ -1273,7 +1273,7 @@ class _BaseODE(object):
                 d0 = la.lstsq(self.k, F0[self.kdof])
                 d[self.kdof, 0] = d0[0]
         if v0 is not None:
-            v[:, 0] = v0
+            v[self.nonrf, 0] = v0[self.nonrf]
 
     def _init_dva_part(self, nt, F0, d0, v0, static_ic,
                        istime=True):
@@ -3934,6 +3934,9 @@ class SolveNewmark(_BaseODE):
         self.pc = True  # to make _alloc_dva happy
 
     def _init_dva(self, force, d0, v0):
+        """
+        Newmark Beta version of _init_dva
+        """
         if force.shape[0] != self.n:
             raise ValueError('Force matrix has {} rows; {} rows are '
                              'expected'
@@ -3953,21 +3956,10 @@ class SolveNewmark(_BaseODE):
         if self.ksize == 0:
             return d, v, a, force
 
-        # initial conditions:
-        def _set_ic(xs, x0s, n, nonrf):
-            y0 = []
-            for x, x0 in zip(xs, x0s):
-                if x0 is not None:
-                    x0 = x0[nonrf]
-                    x[nonrf, 0] = x0
-                else:
-                    x0 = np.zeros(n)
-                y0.append(x0)
-            return y0
-
-        d0, v0 = _set_ic((d, v), (d0, v0),
-                         self.ksize, self.nonrf)
-
+        self._init_dv(d, v, d0, v0, F0=None, static_ic=False)
+        d0 = np.zeros(self.ksize) if d0 is None else d0[self.nonrf]
+        v0 = np.zeros(self.ksize) if v0 is None else v0[self.nonrf]
+        
         # to get the algorithm going and stable (see Nastran
         # theoretical manual, section 11.3):
         force = force / 3.0
