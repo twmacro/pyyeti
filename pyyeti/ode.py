@@ -1555,7 +1555,9 @@ class SolveExp2(_BaseODE):
 
         rf : 1d array or None; optional
             Index partition vector for res-flex modes; these will be
-            solved statically
+            solved statically. As for the `rb` option, the `rf` option
+            only applies to modal space equations (possibly after the
+            `pre_eig` operation).
         order : integer; optional
             Specify which solver to use:
 
@@ -2313,7 +2315,9 @@ class SolveUnc(_BaseODE):
 
         rf : 1d array or None; optional
             Index partition vector for res-flex modes; these will be
-            solved statically
+            solved statically. As for the `rb` option, the `rf` option
+            only applies to modal space equations (possibly after the
+            `pre_eig` operation).
         order : integer; optional
             Specify which solver to use:
 
@@ -3722,15 +3726,16 @@ class SolveNewmark(_BaseODE):
         >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
         >>> zeta = np.array([0., .05, 1., 2.])    # % damping
         >>> b = 2.*zeta*np.sqrt(k/m)*m            # diag damping
-        >>> h = 0.001                             # time step
-        >>> t = np.arange(0, .3001, h)            # time vector
+        >>> h = 0.0005                            # time step
+        >>> t = np.arange(0, 0.2, h)              # time vector
         >>> c = 2*np.pi
         >>> f = np.vstack((3*(1-np.cos(c*2*t)),   # ffn
         ...                4.5*(1 - np.cos(np.sqrt(k[1]/m[1])*t)),
         ...                4.5*(1 - np.cos(np.sqrt(k[2]/m[2])*t)),
         ...                4.5*(1 - np.cos(np.sqrt(k[3]/m[3])*t))))
         >>> f *= 1.e4
-        >>> f[1:, t > 0.09] = 0.0
+        >>> t2 = 2 / (np.sqrt(k[1] / m[1]) / 2 / np.pi)
+        >>> f[1:, t > t2] = 0.0
         >>> nb = ode.SolveNewmark(m, b, k, h)
         >>> sol = nb.tsolve(f)
 
@@ -3746,7 +3751,7 @@ class SolveNewmark(_BaseODE):
         ...     new = getattr(solu, r)
         ...     atol = 0.01 * abs(unc).max()
         ...     print(r + ' comp:',
-        ...           np.allclose(new, unc, atol=atol))
+        ...           np.allclose(new, unc, atol=atol, rtol=0.001))
         d comp: True
         v comp: True
         a comp: True
@@ -3788,7 +3793,8 @@ class SolveNewmark(_BaseODE):
             problem or if only solving frequency domain problems
         rf : 1d array or None; optional
             Index partition vector for res-flex modes; these will be
-            solved statically
+            solved statically. The `rf` option only applies to modal
+            space equations.
 
         Notes
         -----
@@ -4012,10 +4018,13 @@ class FreqDirect(_BaseODE):
     matrices are diagonal.
 
     Unlike :class:`SolveUnc`, since this routine makes no special
-    provisions for rigid-body modes, including 0.0 in `freq` can cause
-    a divide-by-zero. It is thereforce recommended to ensure that all
-    values in `freq` > 0.0, at least when rigid-body modes are
-    present.
+    provisions for rigid-body modes when computing the response;
+    therefore, including 0.0 in `freq` can cause a divide-by-zero. It
+    is thereforce recommended to ensure that all values in `freq` >
+    0.0, at least when rigid-body modes are present. After the
+    solution is computed, for equations that are in modal space, the
+    rigid-body part of the response maybe zeroed out according to the
+    `incrb` parameter in :func:`fsolve`.
 
     See also
     --------
@@ -4067,7 +4076,7 @@ class FreqDirect(_BaseODE):
         >>> plt.tight_layout()
     """
 
-    def __init__(self, m, b, k, rb=None):
+    def __init__(self, m, b, k, rb=None, rf=None):
         """
         Instantiates a :class:`FreqDirect` solver.
 
@@ -4081,14 +4090,18 @@ class FreqDirect(_BaseODE):
         k : 1d or 2d ndarray
             Stiffness; vector (of diagonal), or full
         rb : 1d array or None; optional
-            Index partition vector for rigid-body modes. If None, the
-            rigid-body modes will be automatically detected by this
-            logic::
+            An option for equations in modal space. Index partition
+            vector for rigid-body modes. If None, the rigid-body modes
+            will be automatically detected by this logic::
 
                rb = np.nonzero(abs(k) < 0.005)[0]  # for diagonal k
                rb = np.nonzero(abs(k).max(0) < 0.005)[0]  # for full k
 
             Set to [] to specify no rigid-body modes.
+        rf : 1d array or None; optional
+            Index partition vector for res-flex modes; these will be
+            solved statically. As for the `rb` option, the `rf` option
+            only applies to modal space equations.
 
         Notes
         -----
@@ -4110,11 +4123,11 @@ class FreqDirect(_BaseODE):
          _el       index vector or slice for the el modes relative to
                    the non-rf modes
          nonrf     index vector or slice for the non-rf modes
-         kdof      index vector or slice for the non-rf/elastic modes
+         kdof      index vector or slice for the non-rf modes
          n         number of total DOF
          rfsize    number of rf modes
          nonrfsz   number of non-rf modes
-         ksize     number of non-rf/elastic modes
+         ksize     number of non-rf modes
          krf       stiffness for the rf modes
          ikrf      inverse of stiffness for the rf modes
          unc       True if there are no off-diagonal terms in any
@@ -4126,7 +4139,8 @@ class FreqDirect(_BaseODE):
         routine currently does not accept the `rf` input (if there are
         any, they are treated like all other elastic modes).
         """
-        self._common_precalcs(m, b, k, h=None, rb=rb, rf=None)
+        self._common_precalcs(m, b, k, h=None, rb=rb, rf=rf)
+        self._mk_slices(dorbel=False)
 
     def fsolve(self, force, freq, incrb=2):
         """
@@ -4164,11 +4178,17 @@ class FreqDirect(_BaseODE):
             Frequency vector (same as the input `freq`)
         """
         force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(force, None, None, False,
-                                        istime=False)
+        d, v, a, force = self._init_dva(
+            force, d0=None, v0=None, static_ic=False, istime=False)
         freq = np.atleast_1d(freq)
+
+        if self.ksize == 0:
+            return self._solution_freq(d, v, a, freq)
+
         self._force_freq_compat_chk(force, freq)
         m, b, k = self.m, self.b, self.k
+        kdof = self.kdof
+        force = force[kdof]
         if self.unc:
             # equations are uncoupled, solve everything in one step:
             Omega = 2 * np.pi * freq[None, :]
@@ -4178,17 +4198,18 @@ class FreqDirect(_BaseODE):
             else:
                 H = ((1j * b)[:, None] @ Omega +
                      k[:, None] - m[:, None] @ Omega**2)
-            d[:] = force / H
+            d[kdof] = force / H
         else:
             # equations are coupled, use a loop:
             Omega = 2 * np.pi * freq
             if m is None:
-                m = np.eye(self.n)
+                m = np.eye(self.ksize)
             for i, O in enumerate(Omega):
                 Hi = 1j * b * O + k - m * O**2
-                d[:, i] = la.solve(Hi, force[:, i])
-        a[:] = -Omega**2 * d
-        v[:] = 1j * Omega * d
+                d[kdof, i] = la.solve(Hi, force[:, i])
+        a[kdof] = -Omega**2 * d[kdof]
+        v[kdof] = 1j * Omega * d[kdof]
+
         if incrb < 2:
             d[self.rb] = 0
             if incrb == 0:

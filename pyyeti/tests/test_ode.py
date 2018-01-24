@@ -274,7 +274,7 @@ def test_rbdamped_modes_coupled():
     m = np.random.randn(N, N)
     m = m.T @ m
     k = np.zeros(N)
-    h = 0.001
+    h = 0.0005
     t = np.arange(int(1 / h)) * h
     f = np.zeros((N, len(t)))
     f[:, :win] = np.ones((N, 1)) * np.hanning(win) * 20
@@ -337,7 +337,7 @@ def test_newmark_rbdamp_coupled():
 
         assert np.all(getpdiff(soln.d, solu.d, 0) < 5.0)
         assert np.all(getpdiff(soln.v, solu.v, 5) < 5.0)
-        assert np.all(getpdiff(soln.a, solu.a, 10) < 5.0)
+        assert np.all(getpdiff(soln.a, solu.a, 10) < 10.0)
 
         assert np.all(soln.d[:, 0] == 0.0)
         assert np.all(soln.v[:, 0] == v0)
@@ -1668,8 +1668,10 @@ def test_ode_uncoupled_freq():
     H[rb, 0] = 1.
     for rf in (None, [3], [2], np.array([1, 2, 3])):
         tsu = ode.SolveUnc(m, b, k, rf=rf)
+        tfd = ode.FreqDirect(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
+            sold = tfd.fsolve(f[:, 1:], freq[1:], incrb=incrb)
             d = f / H
             d[rb, 0] = 0
             v = 1j * freqw * d
@@ -1688,6 +1690,10 @@ def test_ode_uncoupled_freq():
             assert np.allclose(v, sol.v)
             assert np.allclose(d, sol.d)
             assert np.all(freq == sol.f)
+
+            assert np.allclose(sol.a[:, 1:], sold.a)
+            assert np.allclose(sol.v[:, 1:], sold.v)
+            assert np.allclose(sol.d[:, 1:], sold.d)
 
 
 def test_ode_uncoupled_freq_rblast():
@@ -1709,8 +1715,10 @@ def test_ode_uncoupled_freq_rblast():
     H[rb, 0] = 1.
     for rf in (None, [2], [1], np.array([0, 1, 2])):
         tsu = ode.SolveUnc(m, b, k, rf=rf)
+        tfd = ode.FreqDirect(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
+            sold = tfd.fsolve(f[:, 1:], freq[1:], incrb=incrb)
             d = f / H
             d[rb, 0] = 0
             v = 1j * freqw * d
@@ -1729,6 +1737,10 @@ def test_ode_uncoupled_freq_rblast():
             assert np.allclose(v, sol.v)
             assert np.allclose(d, sol.d)
             assert np.all(freq == sol.f)
+
+            assert np.allclose(sol.a[:, 1:], sold.a)
+            assert np.allclose(sol.v[:, 1:], sold.v)
+            assert np.allclose(sol.d[:, 1:], sold.d)
 
 
 def test_ode_uncoupled_freq_mNone():
@@ -1750,8 +1762,10 @@ def test_ode_uncoupled_freq_mNone():
     H[rb, 0] = 1.
     for rf in (None, [3], [2], np.array([1, 2, 3])):
         tsu = ode.SolveUnc(m, b, k, rf=rf)
+        tfd = ode.FreqDirect(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
+            sold = tfd.fsolve(f[:, 1:], freq[1:], incrb=incrb)
             d = f / H
             d[rb, 0] = 0
             v = 1j * freqw * d
@@ -1770,6 +1784,10 @@ def test_ode_uncoupled_freq_mNone():
             assert np.allclose(v, sol.v)
             assert np.allclose(d, sol.d)
             assert np.all(freq == sol.f)
+
+            assert np.allclose(sol.a[:, 1:], sold.a)
+            assert np.allclose(sol.v[:, 1:], sold.v)
+            assert np.allclose(sol.d[:, 1:], sold.d)
 
 
 def test_ode_coupled_freq():
@@ -1795,8 +1813,10 @@ def test_ode_coupled_freq():
     freqw = 2 * np.pi * freq
     for rf in (None, [3], [2], np.array([1, 2, 3])):
         tsu = ode.SolveUnc(m, b, k, rf=rf)
+        tfd = ode.FreqDirect(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
+            sold = tfd.fsolve(f[:, 1:], freq[1:], incrb=incrb)
 
             m2, b2, k2 = decouple_rf((m, b, k), rf)
             d = np.zeros((4, freqw.size), complex)
@@ -1825,6 +1845,10 @@ def test_ode_coupled_freq():
             assert np.allclose(d, sol.d)
             assert np.all(freq == sol.f)
 
+            assert np.allclose(sol.a[:, 1:], sold.a)
+            assert np.allclose(sol.v[:, 1:], sold.v)
+            assert np.allclose(sol.d[:, 1:], sold.d)
+
 
 def test_ode_coupled_freq_mNone():
     # uncoupled equations
@@ -1846,8 +1870,10 @@ def test_ode_coupled_freq_mNone():
     freqw = 2 * np.pi * freq
     for rf in (None, [3], [2], np.array([1, 2, 3])):
         tsu = ode.SolveUnc(m, b, k, rf=rf)
+        tfd = ode.FreqDirect(m, b, k, rf=rf)
         for incrb in [0, 1, 2]:
             sol = tsu.fsolve(f, freq, incrb=incrb)
+            sold = tfd.fsolve(f[:, 1:], freq[1:], incrb=incrb)
 
             b2, k2 = decouple_rf((b, k), rf)
             d = np.zeros((4, freqw.size), complex)
@@ -1875,6 +1901,10 @@ def test_ode_coupled_freq_mNone():
             assert np.allclose(v, sol.v)
             assert np.allclose(d, sol.d)
             assert np.all(freq == sol.f)
+
+            assert np.allclose(sol.a[:, 1:], sold.a)
+            assert np.allclose(sol.v[:, 1:], sold.v)
+            assert np.allclose(sol.d[:, 1:], sold.d)
 
 
 def test_ode_fsd_1():
@@ -2033,7 +2063,6 @@ def test_ode_fsd_uncoupled_complex_1():
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -2057,7 +2086,6 @@ def test_ode_fsd_uncoupled_complex_2():
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -2089,7 +2117,6 @@ def test_ode_fsd_coupled_complex_1():
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
@@ -2119,7 +2146,6 @@ def test_ode_fsd_coupled_complex_2():
     freq = np.arange(.5, 35, 2.5)
     f = np.ones((4, freq.size))
 
-    freqw = 2 * np.pi * freq
     tsu = ode.SolveUnc(m, b, k)
     solu = tsu.fsolve(f, freq)
     tsd = ode.FreqDirect(m, b, k)
