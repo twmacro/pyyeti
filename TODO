@@ -98,8 +98,8 @@
 ~ 26. The DR_Results.solve_psd routine does ode.SolveUnc everytime ????
 ~  changed input to class instance "fs" in v0.92.3
 
-27. Implement a Newmark-Beta ode solver
-  - add tests
+~27. Implement a Newmark-Beta ode solver
+~  - add tests
 ~  - think about static ic
 ~  - bathe reference ?
 
@@ -110,6 +110,7 @@
 ~    function
 ~    - implemented in v0.92.3b
 
-30. add rf modes handling to FreqDirect
+~30. add rf modes handling to FreqDirect
+~    - add tests
 
 31. frf_apply_duf – see if needed and consider renaming (psd_apply_duf?)

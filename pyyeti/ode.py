@@ -3908,6 +3908,9 @@ class SolveNewmark(_BaseODE):
         #  A = 1 / h ^ 2 M + 1 / (2 h) B + 1 / 3 K
         #  A1 = 2 / h ^ 2 M - 1 / 3 K
         #  A0 = -1 / h ^ 2 M + 1 / (2 h) B - 1 / 3 K
+        self.pc = True  # to make _alloc_dva happy
+        if self.ksize == 0:
+            return
         h = self.h
         sqh = h * h
         h2 = 2 * h
@@ -3931,7 +3934,6 @@ class SolveNewmark(_BaseODE):
                 self.Ad, A0, overwrite_b=True, check_finite=False)
             self.A1 = la.lu_solve(
                 self.Ad, A1, overwrite_b=True, check_finite=False)
-        self.pc = True  # to make _alloc_dva happy
 
     def _init_dva(self, force, d0, v0):
         """
@@ -3959,7 +3961,7 @@ class SolveNewmark(_BaseODE):
         self._init_dv(d, v, d0, v0, F0=None, static_ic=False)
         d0 = np.zeros(self.ksize) if d0 is None else d0[self.nonrf]
         v0 = np.zeros(self.ksize) if v0 is None else v0[self.nonrf]
-        
+
         # to get the algorithm going and stable (see Nastran
         # theoretical manual, section 11.3):
         force = force / 3.0

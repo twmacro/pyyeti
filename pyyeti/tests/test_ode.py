@@ -4,7 +4,7 @@ import numpy as np
 from types import SimpleNamespace
 from nose.tools import *
 from scipy import integrate
-from pyyeti import ode
+from pyyeti import ode, dsp
 from pyyeti.ssmodel import SSModel
 from pyyeti import expmint
 
@@ -202,8 +202,9 @@ def test_ode_ic():
 
 
 def getpdiff(x, y, j):
-    return 100 * (abs(x[:, j:] - y[:, j:]).max(axis=1) /
-                  abs(y[:, j:]).max(axis=1))
+    den = abs(y[:, j:]).max(axis=1)
+    den[den == 0.0] = 1.0
+    return 100 * abs(x[:, j:] - y[:, j:]).max(axis=1) / den
 
 
 def test_newmark_diag():
@@ -273,10 +274,13 @@ def test_newmark_diag():
     assert np.allclose(sole.v, solu.v)
     assert np.allclose(sole.a, solu.a)
 
+    assert_raises(ValueError, nb.tsolve, np.zeros((m.shape[0] + 1, 1)))
+
 
 def test_rbdamped_modes_coupled():
     N = 10
     win = 100
+    np.random.seed(1)
     m = np.random.randn(N, N)
     m = m.T @ m
     k = np.zeros(N)
@@ -323,6 +327,7 @@ def test_rbdamped_modes_coupled():
 def test_newmark_rbdamp_coupled():
     N = 10
     win = 100
+    np.random.seed(1)
     m = np.random.randn(N, N)
     m = m.T @ m
     k = np.zeros(N)
@@ -331,25 +336,27 @@ def test_newmark_rbdamp_coupled():
     f = np.zeros((N, len(t)))
     f[:, :win] = np.ones((N, 1)) * np.hanning(win) * 20
 
-    d0 = None
-    v0 = np.random.randn(N)
+    for d0, v0 in ((None, np.random.randn(N)),
+                   (np.random.randn(N), None)):
 
-    for b in (np.zeros(N), 10 * np.ones(N)):
-        su = ode.SolveUnc(m, b, k, h)
-        solu = su.tsolve(f, d0=d0, v0=v0)
+        for b in (np.zeros(N), 10 * np.ones(N)):
+            su = ode.SolveUnc(m, b, k, h)
+            solu = su.tsolve(f, d0=d0, v0=v0)
 
-        nb = ode.SolveNewmark(m, b, k, h)
-        soln = nb.tsolve(f, d0=d0, v0=v0)
+            nb = ode.SolveNewmark(m, b, k, h)
+            soln = nb.tsolve(f, d0=d0, v0=v0)
 
-        assert np.all(getpdiff(soln.d, solu.d, 0) < 5.0)
-        assert np.all(getpdiff(soln.v, solu.v, 5) < 5.0)
-        assert np.all(getpdiff(soln.a, solu.a, 10) < 10.0)
+            assert np.all(getpdiff(soln.d, solu.d, 0) < 5.0)
+            assert np.all(getpdiff(soln.v, solu.v, 0) < 5.0)
+            assert np.all(getpdiff(soln.a, solu.a, 10) < 5.0)
 
-        assert np.all(soln.d[:, 0] == 0.0)
-        assert np.all(soln.v[:, 0] == v0)
+            d0_ = 0.0 if d0 is None else d0
+            v0_ = 0.0 if v0 is None else v0
 
-        assert np.all(solu.d[:, 0] == 0.0)
-        assert np.all(solu.v[:, 0] == v0)
+            assert np.all(soln.d[:, 0] == d0_)
+            assert np.all(soln.v[:, 0] == v0_)
+            assert np.all(solu.d[:, 0] == d0_)
+            assert np.all(solu.v[:, 0] == v0_)
 
 
 def get_rfsol(k, rf, f):
@@ -772,6 +779,47 @@ def test_ode_coupled_2():
                 assert np.allclose(solu0.a, solu.a[:, :1])
                 assert np.allclose(solu0.v, solu.v[:, :1])
                 assert np.allclose(solu0.d, solu.d[:, :1])
+
+
+def test_ode_newmark_coupled():
+    # coupled equations
+    m = np.array([10., 30., 30., 30.])     # diagonal of mass
+    k_ = np.array([3.e5, 6.e5, 6.e5, 6.e5])  # diagonal of stiffness
+    zeta = np.array([0.1, .05, 1., 2.])     # percent damping
+    b_ = 2. * zeta * np.sqrt(k_ / m) * m  # diagonal of damping
+    m = np.diag(m)
+    k_ = np.diag(k_)
+    b_ = np.diag(b_)
+
+    m += np.random.randn(4, 4)
+    k_ += np.random.randn(4, 4) * 1000
+    b_ += np.random.randn(4, 4)
+
+    h = .0005                               # time step
+    t = np.arange(0, .3001, h)             # time vector
+    c = 2 * np.pi
+    f = np.vstack((3 * (1 - np.cos(c * 2 * t)),    # forcing function
+                   4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                   6 * (np.cos(np.sqrt(6e5 / 30) * t)))) * 1.e4
+
+    pv = t < 0.15
+    f[:, pv] = dsp.windowends(f[:, pv], 0.1, 'both')
+    pv = t >= 0.15
+    f[:, pv] = 0.0
+
+    for rf in (None, 2, 3, np.array([0, 1, 2, 3])):
+        k = k_
+        b = b_
+        tsu = ode.SolveUnc(m, b, k, h, rf=rf)
+        solu = tsu.tsolve(f)
+
+        tsn = ode.SolveNewmark(m, b, k, h, rf=rf)
+        soln = tsn.tsolve(f)
+
+        assert np.all(getpdiff(soln.d, solu.d, 0) < 5.0)
+        assert np.all(getpdiff(soln.v, solu.v, 0) < 5.0)
+        assert np.all(getpdiff(soln.a, solu.a, 0) < 5.0)
 
 
 def test_ode_uncoupled_mNone():
@@ -1700,6 +1748,17 @@ def test_ode_uncoupled_freq():
             assert np.allclose(sol.a[:, 1:], sold.a)
             assert np.allclose(sol.v[:, 1:], sold.v)
             assert np.allclose(sol.d[:, 1:], sold.d)
+
+    rf = np.array([0, 1, 2, 3])
+    k[0] = k[1]
+    tsu = ode.SolveUnc(m, b, k, rf=rf)
+    tfd = ode.FreqDirect(m, b, k, rf=rf)
+    sol = tsu.fsolve(f, freq)
+    sold = tfd.fsolve(f[:, 1:], freq[1:])
+
+    assert np.allclose(sol.a[:, 1:], sold.a)
+    assert np.allclose(sol.v[:, 1:], sold.v)
+    assert np.allclose(sol.d[:, 1:], sold.d)
 
 
 def test_ode_uncoupled_freq_rblast():
