@@ -1920,8 +1920,8 @@ def _solve_eig(fout, k, m, mtype, ktype, types):
     Utility for cbcheck to solve free-free eigen problem.
     """
     # chop out zero rows/cols ... assume symmetry:
-    n = k.shape[0]
-    nz = k.any(axis=0)
+    n = m.shape[0]
+    nz = m.any(axis=0)
     z = ~nz
     if z.any():
         # there are zero cols

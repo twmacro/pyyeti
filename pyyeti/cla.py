@@ -2880,7 +2880,7 @@ class DR_Results(OrderedDict):
                 res.srs.srs[q] = np.zeros(sh)
 
     def _compute_srs(self, res, dr, resp, respname,
-                     j, first, sr=None, pf=None):
+                     x, j, first, sr=None, pf=None):
         if _is_eqsine(dr.srsopts):
             res.srs.type = 'eqsine'
             eqsine = True
@@ -2888,9 +2888,7 @@ class DR_Results(OrderedDict):
             res.srs.type = 'srs'
             eqsine = False
 
-        if respname in('hist', 'frf'):
-            rr = resp[dr.srspv].T
-
+        rr = resp[dr.srspv].T
         for q in dr.srsQs:
             fact = dr.srsconv
 
@@ -2902,13 +2900,13 @@ class DR_Results(OrderedDict):
                 if eqsine:
                     fact /= q
                 srs_cur = fact * srs.srs_frf(
-                    rr, res.freq, dr.srsfrq, q).T
+                    rr, x, dr.srsfrq, q).T
             elif respname == 'psd':
                 fact *= pf
                 if eqsine:
                     fact /= q
                 srs_cur = fact * srs.vrs(
-                    resp, res.freq, q, Fn=dr.srsfrq, linear=True).T
+                    (x, rr), x, q, Fn=dr.srsfrq, linear=True).T
             else:    # pragma: no cover
                 raise ValueError('`respname` must be one of: '
                                  '"hist", "frf", or "psd"')
@@ -2988,7 +2986,7 @@ class DR_Results(OrderedDict):
             if dr.srspv is not None and dosrs:
                 sr = 1 / SOL.h if SOL.h else None
                 self._compute_srs(res, dr, resp, 'hist',
-                                  j, first, sr=sr)
+                                  SOL.t, j, first, sr=sr)
 
     def frf_data_recovery(self, sol, nas, case, DR, n, j,
                           dosrs=True):
@@ -3058,7 +3056,7 @@ class DR_Results(OrderedDict):
 
             if dr.srspv is not None and dosrs:
                 self._compute_srs(res, dr, resp, 'frf',
-                                  j, first)
+                                  SOL.f, j, first)
 
     def solvepsd(self, nas, case, DR, fs, forcepsd, t_frc, freq,
                  incrb=2, verbose=False):
@@ -3307,9 +3305,9 @@ class DR_Results(OrderedDict):
                     pf = np.sqrt(2 * np.log(resp_time * dr.srsfrq))
                 else:
                     pf = peak_factor
-                spec = (freq, psd[dr.srspv].T)
-                self._compute_srs(res, dr, spec, 'psd',
-                                  j, first, pf=pf)
+                # spec = (freq, psd[dr.srspv].T)
+                self._compute_srs(res, dr, psd, 'psd',
+                                  freq, j, first, pf=pf)
 
         if j == n - 1:
             del res._psd
