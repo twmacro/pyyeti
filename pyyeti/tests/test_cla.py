@@ -2723,10 +2723,21 @@ def test_frf_data_recovery():
         srsopts = dict(eqsine=1)
         drdefs.add(**locals())
 
+    @cla.DR_Def.addcat
+    def _():
+        name = 'accels2'
+        desc = 'Accelerations'
+        units = 'N'
+        labels = [f'Accel {i}' for i in range(3)]
+        drfunc = """sol.a"""
+        srspv = 2
+        srsopts = dict(eqsine=1)
+        drdefs.add(**locals())
+
     # prepare spacecraft data recovery matrices
     DR = cla.DR_Event()
     DR.add(None, drdefs)
-    assert 'with 2 categories' in repr(DR)
+    assert 'with 3 categories' in repr(DR)
 
     # initialize results (ext, mnc, mxc for all drms)
     event = 'Case 1'
@@ -2741,6 +2752,9 @@ def test_frf_data_recovery():
     assert np.allclose(fsh.T, results['kc_forces'].srs.srs[20][0])
     assert np.allclose(accels, results['accels'].frf[0])
     assert np.allclose(ash.T, results['accels'].srs.srs[20][0])
+
+    assert np.allclose(results['accels'].srs.srs[20][0, 2],
+                       results['accels2'].srs.srs[20][0, 0])
 
     # to exercise some code (not checking anything other than that it
     # runs), write tab, plots:

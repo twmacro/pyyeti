@@ -2348,7 +2348,10 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         also be a handle to an open file or just 1 to write to the
         standard output (normally, the screen).
     Mcb : 2d ndarray
-        Craig-Bampton mass.
+        Craig-Bampton mass. In order to solve the free-free eigenvalue
+        problem, this routine first finds any null columns in `Mcb`
+        and partitions out those columns and rows (symmetrically) of
+        `Mcb` and `Kcb`.
     Kcb : 2d ndarray
         Craig-Bampton stiffness.
     bseto : 1d ndarray
