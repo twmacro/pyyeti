@@ -9,6 +9,7 @@ distinctions between the rigid-body modes and the elastic modes).
 
 from types import SimpleNamespace
 import warnings
+from collections import abc
 import scipy.linalg as la
 import numpy as np
 from pyyeti import expmint, ytools
@@ -894,7 +895,7 @@ class _BaseODE(object):
 
     def get_f2x(self):
         """
-        'Abstract' method to get the force to displacement tranform
+        'Abstract' method to get the force to displacement transform
         used in Henkel-Mar simulations.
         """
         raise NotImplementedError
@@ -3635,19 +3636,23 @@ class SolveNewmark(_BaseODE):
     The equations for the non-residual equations are:
 
     .. math::
-        \left [ \frac{M}{h^2} + \frac{B}{2 h} + \frac{K}{3} \right ]
-        u_{n+2} = \frac{1}{3}
-        \left ( F_{n+2} + F_{n+1} + F_{n} \right ) +
+        A u_{n+2} = \frac{1}{3}
+        \left ( F_{n+2} + F_{n+1} + F_{n} \right ) + N_{n+1} +
         A_1 u_{n+1} + A_0 u_{n}
 
     where:
 
     .. math::
         \begin{aligned}
+        A &= \left [ \frac{M}{h^2} + \frac{B}{2 h} +
+                     \frac{K}{3} \right ] \\
         A_1 &= \left [ \frac{2 M}{h^2} - \frac{K}{3} \right ] \\
         A_0 &= \left [ \frac{-M}{h^2} + \frac{B}{2 h} -
                        \frac{K}{3} \right ]
         \end{aligned}
+
+    :math:`N_{n+1}` is a non-linear force term which is optional; see
+    :func:`set_nonlin`.
 
     To get the algorithm started, :math:`u_{-1}` and :math:`F_{-1}`
     are needed. They are computed from:
@@ -3666,9 +3671,12 @@ class SolveNewmark(_BaseODE):
 
     According to [#newmark]_, that is done to avoid ringing of
     massless degrees of freedom that are subjected to step loads. A
-    side-effect of this is that :math:`\ddot{u}_0` is zero. In cases
-    when that is incorrect, the acceleration values should be
-    approximately correct by the third time step.
+    side-effect of this is that :math:`\ddot{u}_0` would be zero from
+    the equation of motion. However, since the acceleration is
+    computed from a central finite difference formula (see below), the
+    resulting initial acceleration will not be zero in general. The
+    acceleration values should be approximately correct by the third
+    time step.
 
     After the displacements have been calculated from the above
     equations, the velocities and accelerations are computed from:
@@ -3682,18 +3690,9 @@ class SolveNewmark(_BaseODE):
             u_{n+1} - 2 u_n + u_{n-1} \right )
         \end{aligned}
 
-    The velocities and accelerations for the final time step
-    (:math:`N`) are computed by second order extrapolation from the
-    previous three points:
-
-    .. math::
-        \begin{aligned}
-        \dot{u}_N &= 3 \dot{u}_{N-1} - 3 \dot{u}_{N-2} +
-            \dot{u}_{N-3} \\
-
-        \ddot{u}_N &= 3 \ddot{u}_{N-1} - 3 \ddot{u}_{N-2} +
-            \ddot{u}_{N-3}
-        \end{aligned}
+    To compute the velocities and accelerations for the final time
+    step, one extra integration step is performed by linearly
+    extrapolating the force.
 
     .. note::
 
@@ -3801,34 +3800,36 @@ class SolveNewmark(_BaseODE):
         The instance is populated with some or all of the following
         members.
 
-        =========  ===================================================
-        Member     Description
-        =========  ===================================================
-        m          mass for the non-rf DOF
-        b          damping for the non-rf DOF
-        k          stiffness for the non-rf DOF
-        h          time step
-        rb         np.array([])
-        el         index vector or slice for the non-rf DOF
-        rf         index vector or slice for the rf DOF
-        nonrf      index vector or slice for the non-rf DOF
-        kdof       index vector or slice for the non-rf DOF
-        n          number of total DOF
-        rbsize     0
-        elsize     number of non-rf DOF
-        rfsize     number of rf DOF
-        nonrfsz    number of non-rf DOF
-        ksize      number of non-rf DOF
-        krf        stiffness for the rf DOF
-        ikrf       inverse of stiffness for the rf DOF
-        unc        True if there are no off-diagonal terms in any
-                   matrix; False otherwise
-        systype    float or complex; determined by `m` `b` `k`
-        Ad         decomposed version of matrix :math:`A` (see
-                   :class:`SolveNewmark`)
-        A0         decomposed version of matrix :math:`A_0`
-        A1         decomposed version of matrix :math:`A_1`
-        =========  ===================================================
+        =========     ================================================
+        Member        Description
+        =========     ================================================
+        m             mass for the non-rf DOF
+        b             damping for the non-rf DOF
+        k             stiffness for the non-rf DOF
+        h             time step
+        rb            np.array([])
+        el            index vector or slice for the non-rf DOF
+        rf            index vector or slice for the rf DOF
+        nonrf         index vector or slice for the non-rf DOF
+        kdof          index vector or slice for the non-rf DOF
+        n             number of total DOF
+        rbsize        0
+        elsize        number of non-rf DOF
+        rfsize        number of rf DOF
+        nonrfsz       number of non-rf DOF
+        ksize         number of non-rf DOF
+        krf           stiffness for the rf DOF
+        ikrf          inverse of stiffness for the rf DOF
+        unc           True if there are no off-diagonal terms in any
+                      matrix; False otherwise
+        systype       float or complex; determined by `m` `b` `k`
+        Ad            decomposed version of matrix :math:`A` (see
+                      :class:`SolveNewmark`)
+        A0            decomposed version of matrix :math:`A_0`
+        A1            decomposed version of matrix :math:`A_1`
+        nonlin_terms  number of non-linear force terms defined by
+                      :func:`set_nonlin` (initially set to 0)
+        ============  ================================================
         """
         self._common_precalcs(m, b, k, h, rb=[], rf=rf)
         self._newmark_precalcs()
@@ -3862,6 +3863,10 @@ class SolveNewmark(_BaseODE):
             Time-step
         t : 1d ndarray
             Time vector: np.arange(d.shape[1])*h
+        z : list of 2d ndarrays
+            Only present if there are non-linear force terms. ``z[0]``
+            contains the output of the first user-defined function,
+            ``z[1]`` the second and so on.
         """
         force = np.atleast_2d(force)
         d, v, a, F = self._init_dva(force, d0, v0)
@@ -3875,29 +3880,162 @@ class SolveNewmark(_BaseODE):
             sqh = h * h
             A1 = self.A1
             A0 = self.A0
-            if self.unc:
-                for j in range(2, nt):
-                    D[:, j] = (F[:, j] + F[:, j - 1] + F[:, j - 2] +
-                               A1 * D[:, j - 1] + A0 * D[:, j - 2])
+            # For the last velocity and acceleration, extrapolate
+            # force to run 1 more step (so we can calculate the final
+            # v and a): Fe = 2*F[:, -1] - F[:, -2] ... when added to
+            # other 2 force terms (F[:, -1] + F[:, -2]), we get 3 *
+            # F[:, -1].
+            if self.nonlin_terms == 0:
+                if self.unc:
+                    for j in range(2, nt):
+                        D[:, j] = (F[:, j] + F[:, j - 1] +
+                                   F[:, j - 2] + A1 * D[:, j - 1] +
+                                   A0 * D[:, j - 2])
+                    De = 3 * F[:, -1] + A1 * D[:, -1] + A0 * D[:, -2]
+                else:
+                    for j in range(2, nt):
+                        D[:, j] = (F[:, j] + F[:, j - 1] +
+                                   F[:, j - 2] + A1 @ D[:, j - 1]
+                                   + A0 @ D[:, j - 2])
+                    De = 3 * F[:, -1] + A1 @ D[:, -1] + A0 @ D[:, -2]
             else:
-                for j in range(2, nt):
-                    D[:, j] = (F[:, j] + F[:, j - 1] + F[:, j - 2] +
-                               A1 @ D[:, j - 1] + A0 @ D[:, j - 2])
+                def _get_nonlin(j):
+                    N = 0.0
+                    for z, func, T, args in zip(
+                            self.z, self.funcs, self.to_force,
+                            self.optargs):
+                        z[:, j] = func(D, j, h, **args)
+                        N += T @ z[:, j]
+                    return N
+
+                if self.unc:
+                    for j in range(2, nt):
+                        D[:, j] = (F[:, j] + F[:, j - 1] +
+                                   F[:, j - 2] + _get_nonlin(j - 1) +
+                                   A1 * D[:, j - 1] + A0 * D[:, j - 2])
+                    De = (3 * F[:, -1] + _get_nonlin(nt - 1) +
+                          A1 * D[:, -1] + A0 * D[:, -2])
+                else:
+                    for j in range(2, nt):
+                        D[:, j] = (F[:, j] + F[:, j - 1] +
+                                   F[:, j - 2] + _get_nonlin(j - 1) +
+                                   A1 @ D[:, j - 1] + A0 @ D[:, j - 2])
+                    De = (3 * F[:, -1] + _get_nonlin(nt - 1) +
+                          A1 @ D[:, -1] + A0 @ D[:, -2])
 
             # calculate velocity and acceleration
-            V[:, 1:-1] = 1 / h2 * (D[:, 2:] - D[:, :-2])
-            V[:, -1] = 3 * V[:, -2] - 3 * V[:, -3] + V[:, -4]
-
-            A[:, 1:-1] = (1 / sqh * (D[:, 2:] - 2 * D[:, 1:-1] +
-                                     D[:, :-2]))
-            A[:, -1] = 3 * A[:, -2] - 3 * A[:, -3] + A[:, -4]
+            V[:, 1:-1] = (D[:, 2:] - D[:, :-2]) / h2
+            V[:, -1] = (De - D[:, -2]) / h2
+            A[:, 1:-1] = (D[:, 2:] - 2 * D[:, 1:-1] + D[:, :-2]) / sqh
+            A[:, -1] = (De - 2 * D[:, -1] + D[:, -2]) / sqh
 
             if not self.slices:
                 d[self.kdof] = D
                 v[self.kdof] = V
                 a[self.kdof] = A
 
-        return self._solution(d, v, a)
+        sol = self._solution(d, v, a)
+        if self.nonlin_terms:
+            sol.z = self.z
+        return sol
+
+    def set_nonlin(self, funcs, to_force, optargs=None):
+        r"""
+        Define non-linear force terms
+
+        Parameters
+        ----------
+        funcs: callable or iterable of callables
+
+            In conjuction with the `to_force` input, defines functions
+            that calculate the non-linear forces. The function must
+            accept at least 3 arguments: the current solution
+            displacement matrix (`d`), the current step index (`j`),
+            and the time step (`h`). It can accept other arguments
+            which are specified via `optargs`::
+
+                def func(d, j, h [, ...]):
+
+            The function must return a 1d ndarray. It will be
+            multiplied by the corresponding transform in `to_force`
+            and added to the force.
+
+            .. note::
+                Nastran estimates velocity by:
+                :math:`v_j = (d_j - d_{j-1})/h`. In your function, you
+                can use: ``vj = (d[:, j] - d[:, j-1])/h``. That will
+                work even for the first call, when `j` is 0, because
+                "-1" displacements are stored in the last column of
+                `d` for just this purpose.
+
+        to_force : 2d ndarray or iterable of 2d ndarrays
+            Each matrix transforms the corresponding function output
+            to a force. If your function outputs the final force
+            already, just use identity for this transform. The reason
+            this input is here, instead of relying on the
+            user-supplied function (in `funcs`) to apply the transform
+            internally, is for efficiency: the relatively expensive
+            operation of:
+
+            .. math::
+                 A^{-1} Transform
+
+            is now, outside the integration loop. The matrix :math:`A`
+            is defined in :class:`SolveNewmark`.
+        optargs : dict or iterable of dicts or None
+            These are dictionaries of arbitrary arguments for the
+            functions. If None, a list of empty dictionaries is
+            created internally.
+
+        Notes
+        -----
+        The forces are computed by::
+
+            N = to_force[0] @ funcs[0](d, j, h, **optargs[0]) +
+                to_force[1] @ funcs[1](d, j, h, **optargs[1]) +
+                ...
+
+        The `j`'th `N` vector is used to compute the ``j+1``'th
+        displacement; see equation in :class:`SolveNewmark`.
+
+        The solution namespace returned by :func:`tsolve` will contain
+        the outputs of each user defined function in `z`.
+
+        .. note::
+
+            The non-linear forces are computed in the integration loop
+            for the non-residual flexibility equations
+            only. Therefore, it is recommended to not use the `rf`
+            option with non-linear force terms.
+        """
+        if callable(funcs):
+            funcs = [funcs]
+        if isinstance(to_force, np.ndarray):
+            to_force = [to_force]
+
+        nonlin_terms = len(funcs)
+
+        if optargs is None:
+            optargs = [{}] * nonlin_terms
+        elif isinstance(optargs, abc.Mapping):
+            optargs = [optargs]
+
+        if not len(funcs) == len(to_force) == len(optargs):
+            raise ValueError(
+                'lengths of inputs must match. Lengths of `funcs`, '
+                f'`to_force` and `optargs` are: {len(funcs)}, '
+                f'{len(to_force)} and {len(optargs)}')
+
+        # apply inv(A):
+        Ai_T = []
+        for T in to_force:
+            Ai_T.append(la.lu_solve(self.Ad, T))
+
+        # if here, everything must be okay:
+        self.nonlin_terms = nonlin_terms
+        self.funcs = funcs
+        self.to_force = Ai_T
+        self.optargs = optargs
 
     def _newmark_precalcs(self):
         # setup matrices for newmark - beta solution beta = 1/3
@@ -3909,6 +4047,7 @@ class SolveNewmark(_BaseODE):
         #  A1 = 2 / h ^ 2 M - 1 / 3 K
         #  A0 = -1 / h ^ 2 M + 1 / (2 h) B - 1 / 3 K
         self.pc = True  # to make _alloc_dva happy
+        self.nonlin_terms = 0
         if self.ksize == 0:
             return
         h = self.h
@@ -3926,14 +4065,11 @@ class SolveNewmark(_BaseODE):
             self.A1 = A1 / A
         else:
             # have square matrices:
-            self.Ad = la.lu_factor(
-                A, overwrite_a=True, check_finite=False)
+            self.Ad = la.lu_factor(A, overwrite_a=True)
 
-            # define new A1, A0, and F:
-            self.A0 = la.lu_solve(
-                self.Ad, A0, overwrite_b=True, check_finite=False)
-            self.A1 = la.lu_solve(
-                self.Ad, A1, overwrite_b=True, check_finite=False)
+            # define new A1, A0:
+            self.A0 = la.lu_solve(self.Ad, A0, overwrite_b=True)
+            self.A1 = la.lu_solve(self.Ad, A1, overwrite_b=True)
 
     def _init_dva(self, force, d0, v0):
         """
@@ -3944,15 +4080,15 @@ class SolveNewmark(_BaseODE):
                              'expected'
                              .format(force.shape[0], self.n))
 
-        d, v, a = self._alloc_dva(force.shape[1], True)
+        nt = force.shape[1]
+        d, v, a = self._alloc_dva(nt, True)
 
         # solve resflex part:
         if self.rfsize:
             if self.unc:
                 d[self.rf] = self.ikrf * force[self.rf]
             else:
-                d[self.rf] = la.lu_solve(self.ikrf, force[self.rf],
-                                         check_finite=False)
+                d[self.rf] = la.lu_solve(self.ikrf, force[self.rf])
             force = force[self.nonrf]
 
         if self.ksize == 0:
@@ -3963,12 +4099,27 @@ class SolveNewmark(_BaseODE):
         v0 = np.zeros(self.ksize) if v0 is None else v0[self.nonrf]
 
         # to get the algorithm going and stable (see Nastran
-        # theoretical manual, section 11.3):
+        # theoretical manual, section 11.4):
         force = force / 3.0
         h = self.h
         u_1 = d0 - v0 * h
+
+        # compute non-linear force terms:
+        N = 0.0
+        if self.nonlin_terms:
+            d[self.nonrf, -1] = u_1
+            self.z = []
+            for func, T, optargs in zip(self.funcs, self.to_force,
+                                        self.optargs):
+                z0 = func(d, 0, h, **optargs)
+                z = np.empty((z0.shape[0], nt))
+                z[:, 0] = z0
+                self.z.append(z)
+                N += T @ z0
+
         if self.unc:
             force[:, 0] = (self.k * d0 + self.b * v0) / 3.0
+            # method 2 from theory manual:
             # force[:, 0] = (3 * force[:, 0] + self.k * d0 +
             #                self.b * v0) / 6.0
             force /= self.Ad[:, None]
@@ -3976,23 +4127,23 @@ class SolveNewmark(_BaseODE):
 
             # because of the - 1 subscript, do first step outside of
             # the loop:
-            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 +
+            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 + N +
                                 self.A1 * d0 + self.A0 * u_1)
         else:
             force[:, 0] = (self.k @ d0 + self.b @ v0) / 3.0
             # force[:, 0] = (3 * force[:, 0] + self.k @ d0 +
             #                self.b @ v0) / 6.0
-            force = la.lu_solve(
-                self.Ad, force, overwrite_b=True, check_finite=False)
+            force = la.lu_solve(self.Ad, force, overwrite_b=True)
             F_1 = la.lu_solve(
                 self.Ad, (self.k @ u_1 + self.b @ v0) / 3,
-                overwrite_b=True, check_finite=False)
+                overwrite_b=True)
 
             # because of the - 1 subscript, do first step outside of
             # the loop:
-            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 +
+            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 + N +
                                 self.A1 @ d0 + self.A0 @ u_1)
 
+        a[self.nonrf, 0] = (d[self.nonrf, 1] - 2 * d0 + u_1) / (h * h)
         return d, v, a, force
 
 
