@@ -1,7 +1,8 @@
+from types import SimpleNamespace
+import numpy as np
 import scipy.linalg as la
 import scipy.signal
-import numpy as np
-from types import SimpleNamespace
+from scipy.interpolate import interp1d
 from nose.tools import *
 from scipy import integrate
 from pyyeti import ode, dsp
@@ -4128,3 +4129,266 @@ def test_henkel_mar():
                 assert abs(dp[0, ~pv] - full.x[0, ~pv]).max() > 0.1
                 assert abs(db[0, pv] - full.x[0, pv]).max() < 1e-5
                 assert abs(db[0, ~pv] - full.x[0, ~pv]).max() > 1.0
+
+
+def test_newmark_nonlinear():
+    """
+    Model a two-mass system with one linear spring and one nonlinear
+    spring. The nonlinear spring is only active when compressed. There is
+    a gap of 0.01 units before the spring starts being compressed.
+
+          |--> x1        |--> x2
+        |----|    50   |----|
+        | 10 |--\/\/\--| 12 |   F(t)
+        |    |         |    | =====>
+        |----| |-/\/-| |----|
+             Kcompression
+
+        F(t) = 5000 * np.cos(2 * np.pi * t + 270 / 180 * np.pi)
+
+    The nonlinear spring force is linearly interpolated according to the
+    "lookup" table below. Linear extrapolation is used for displacements
+    out of range of the table.
+    """
+
+    h = 0.005
+    t = np.arange(0, 4 + h / 2, h)
+    f = np.zeros((2, t.size))
+    f[1] = 5000 * np.cos(2 * np.pi * t + 270 / 180 * np.pi)
+
+    # define interpolation table for force (the lookup value is x1 - x2):
+    lookup = np.array([[-10,     0.],
+                       [0.01,    0.],
+                       [5,     200.],
+                       [6,    1000.],
+                       [10,   1500.],
+                       ])
+
+    # force transforming lookup value to forces on the masses:
+    Tfrc = np.array([[-1.], [1.]])
+
+    # turn interpolation table into a function for speed
+    interp_func = interp1d(*lookup.T, fill_value='extrapolate')
+
+    def nonlin(d, j, h, interp_func):
+        return interp_func(d[[0], j] - d[[1], j])
+
+    # mass and stiffness:
+    m = np.diag([10., 12.])
+    for k in (np.array([[50., -50.],
+                        [-50.,  50.]]),
+              np.array([50., 50.])):
+        for c_factor in (0., 0.1):
+            c = c_factor * k
+
+            ts = ode.SolveNewmark(m, c, k, h)
+            ts.set_nonlin(nonlin, Tfrc, dict(interp_func=interp_func))
+            sol = ts.tsolve(f)
+
+            # run in SolveExp2 via the generator feature:
+            ts2 = ode.SolveExp2(m, c, k, h)
+            gen, d, v = ts2.generator(len(t), f[:, 0])
+
+            for i in range(1, len(t)):
+                if i == 1:
+                    dx = d[0, i - 1] - d[1, i - 1]
+                else:
+                    dx = (2 * d[0, i - 1] - d[0, i - 2] +
+                          d[1, i - 2] - 2 * d[1, i - 1])
+                f_nl = (Tfrc @ interp_func([dx]))
+                gen.send((i, f[:, i] + f_nl))
+
+            sol2 = ts2.finalize()
+
+            diffs = (abs(sol.d - sol2.d).max(),
+                     abs(sol.v - sol2.v).max(),
+                     abs(sol.a - sol2.a).max())
+            assert np.all(diffs < (0.1, 0.1, 5.0))
+
+
+# nastran data for next test:
+def get_nas2():
+    """
+    TABLED1 20
+            -10.    340.0   .01     55.0    10.     500.    ENDT
+    """
+    return {'A': {2: np.array([
+        -4.661479,   -2.443206,    2.512486,   10.88762,   23.10986,
+        38.49422,   55.35503,   71.37072,   84.11267,   91.60832,
+        92.80007,   87.78738,   77.79242,   64.85818,   51.35362,
+        39.40809,   30.41431,   24.72234,   21.59903,   19.46215,
+        16.32969,   10.37197,    0.428369,  -30.37465, -109.0221,
+        -186.2092, -243.2773, -263.7413, -237.6241, -164.4552,
+        -54.13656,   13.22423,   41.3247,   66.89066,   87.63401,
+        102.1712,  110.2735,  112.8402,  111.6054,  108.6502,
+        105.8443,  104.3557,  104.3498,  104.9534,  104.4927,
+        100.9445,   92.48921,   78.02777,   57.53166,   32.13886,
+        3.969033]),
+        12: np.array([70.84612,  186.2409,  320.6714,  372.3601,
+                      326.4095,  192.2124,    1.177288, -200.998,
+                      -365.5927, -452.8844, -441.9509, -335.83,
+                      -160.7594,   40.31347,  218.3474,  330.3221,
+                      349.8557,  273.6989,  122.4999,  -64.34845,
+                      -238.5024, -354.6795, -381.9147, -297.1463,
+                      -92.12619,  157.2241,  389.587,  545.4805,
+                      582.1889,  484.7785,  270.4245,   36.75019,
+                      -175.6288, -351.0514, -449.5287, -449.8634,
+                      -354.816, -190.3519,    0.8427056,  169.9694,
+                      274.2271,  287.4238,  206.4662,   52.12039,
+                      -136.1432, -309.9461, -424.0145, -447.4351,
+                      -371.3693, -211.3144,   -3.351435])},
+        'D': {2: np.array([0.00000000e+00,  -2.98334600e-02,  -7.53034500e-02,
+                           -1.04693500e-01,  -6.44028500e-02,   1.23790900e-01,
+                           5.58347600e-01,   1.34717700e+00,   2.59277800e+00,
+                           4.37670100e+00,   6.74691700e+00,   9.71105300e+00,
+                           1.32370300e+01,   1.72608800e+01,   2.16998200e+01,
+                           2.64674200e+01,   3.14872300e+01,   3.67017000e+01,
+                           4.20743900e+01,   4.75853100e+01,   5.32207900e+01,
+                           5.89607800e+01,   6.47671500e+01,   7.05762600e+01,
+                           7.61909800e+01,   8.11079500e+01,   8.48331800e+01,
+                           8.70014500e+01,   8.74817600e+01,   8.64412800e+01,
+                           8.43482900e+01,   8.19088300e+01,   7.95539900e+01,
+                           7.74636500e+01,   7.58013900e+01,   7.47000000e+01,
+                           7.42525000e+01,   7.45107500e+01,   7.54911800e+01,
+                           7.71858800e+01,   7.95759500e+01,   8.26434200e+01,
+                           8.63787700e+01,   9.07819500e+01,   9.58568300e+01,
+                           1.01600500e+02,   1.07990200e+02,   1.14971800e+02,
+                           1.22452800e+02,   1.30302000e+02,   1.38356800e+02]),
+              12: np.array([0.,    0.4534151,    2.098772,    5.796426,
+                            11.87718,   20.04696,   29.4469,   38.85437,
+                            46.97546,   52.75676,   55.63959,   55.69393,
+                            53.59897,   50.47514,   47.60932,   46.14093,
+                            46.78659,   49.67133,   54.30775,   59.72816,
+                            64.73674,   68.21891,   69.43113,   68.19909,
+                            65.06532,   61.34194,   58.62479,   58.401,
+                            61.66829,   68.66158,   78.75746,   90.58406,
+                            102.6459,  113.5836,  122.2747,  128.0887,
+                            131.0237,  131.6878,  131.1336,  130.5849,
+                            131.1239,  133.418,  137.5517,  143.0067,
+                            148.7953,  153.7125,  156.6461,  156.866,
+                            154.2224,  149.2019,  142.8291])},
+        'N': {122: np.array([
+            -55.28471,   -69.04354,  -117.184,  -223.2986,  -395.28,
+            -622.5279,  -877.786, -1123.172, -1318.927, -1432.739,
+            -1447.334, -1364.488, -1204.451, -1000.946,  -792.968,
+            -615.4196,  -490.8809,  -424.55,  -403.5872,  -401.0102,
+            -383.1614,  -318.8778,  -188.0752,  -160.4447,  -550.142,
+            -935.0226, -1221.995, -1328.548, -1204.404,  -846.5431,
+            -303.5955,  -302.2818,  -712.7452, -1083.676, -1378.45,
+            -1575.344, -1671.646, -1683.202, -1639.51, -1575.636,
+            -1522.935, -1500.916, -1512.255, -1542.203, -1562.522,
+            -1538.994, -1440.594, -1248.078,  -959.8135,  -593.3954,
+            -182.6158])},
+        'V': {2: np.array([0.00000000e+00,  -4.70646600e-01,  -4.67875400e-01,
+                           6.81287300e-02,   1.42802800e+00,   3.89219100e+00,
+                           7.64616100e+00,   1.27151900e+01,   1.89345300e+01,
+                           2.59633700e+01,   3.33397000e+01,   4.05632000e+01,
+                           4.71863900e+01,   5.28924200e+01,   5.75408900e+01,
+                           6.11713600e+01,   6.39642500e+01,   6.61697200e+01,
+                           6.80225800e+01,   6.96650200e+01,   7.10966900e+01,
+                           7.21647600e+01,   7.25967700e+01,   7.13989300e+01,
+                           6.58230500e+01,   5.40138000e+01,   3.68343400e+01,
+                           1.65536000e+01,  -3.50101600e+00,  -1.95841800e+01,
+                           -2.83278500e+01,  -2.99643500e+01,  -2.77823900e+01,
+                           -2.34537800e+01,  -1.72727900e+01,  -9.68058000e+00,
+                           -1.18279100e+00,   7.74175800e+00,   1.67195900e+01,
+                           2.55298100e+01,   3.41095900e+01,   4.25176000e+01,
+                           5.08658100e+01,   5.92379400e+01,   6.76157800e+01,
+                           7.58332700e+01,   8.35706200e+01,   9.03913000e+01,
+                           9.58136700e+01,   9.94005000e+01,   1.00844800e+02]),
+              12: np.array([0.00000000e+00,   1.31173200e+01,   3.33938200e+01,
+                            6.11150800e+01,   8.90658600e+01,   1.09810700e+02,
+                            1.17546300e+02,   1.09553500e+02,   8.68898700e+01,
+                            5.41507800e+01,   1.83573700e+01,  -1.27538700e+01,
+                            -3.26174400e+01,  -3.74352800e+01,  -2.70888500e+01,
+                            -5.14207100e+00,   2.20650300e+01,   4.70072100e+01,
+                            6.28551600e+01,   6.51812200e+01,   5.30671800e+01,
+                            2.93399100e+01,  -1.23861700e-01,  -2.72863000e+01,
+                            -4.28572000e+01,  -4.02532800e+01,  -1.83808400e+01,
+                            1.90218600e+01,   6.41286400e+01,   1.06807300e+02,
+                            1.37015500e+02,   1.49302400e+02,   1.43747300e+02,
+                            1.22680100e+02,   9.06568900e+01,   5.46812000e+01,
+                            2.24940200e+01,   6.87308500e-01,  -6.89305800e+00,
+                            -6.05730600e-02,   1.77072900e+01,   4.01733200e+01,
+                            5.99289200e+01,   7.02723900e+01,   6.69114800e+01,
+                            4.90679100e+01,   1.97094800e+01,  -1.51485000e+01,
+                            -4.79006800e+01,  -7.12080300e+01,  -7.97946600e+01])}}
+
+
+def test_newmark_nonlinear2():
+    # mass and stiffness:
+    m = np.diag([10.1321, 12, 0])
+    k = np.array([[50, -50, 0],
+                  [-50,  50, 0],
+                  [-1, 1, 1]])
+
+    h = .08
+    t = np.arange(0, 4 + h / 2, h)
+    f = np.zeros((3, t.size))
+    f[1] = 5000 * np.cos(2 * np.pi * t + 270 / 180 * np.pi)
+
+    # epoint 22 (dof 3) is the dof to be quantized:
+    Tquant = np.array([[0, 0, 1]])
+
+    # output of quantization is turned into a pos force on 2, neg force on
+    # 12:
+    Tfrc = np.array([[1], [-1], [0]])
+
+    # get lookup table for disp-to-force:
+    nas = get_nas2()
+    lookup = np.array([[-10,  -340.],
+                       [0.01,  -55.],
+                       [10,   -500.]])
+
+    # test pyyeti's version:
+    interp_func = interp1d(*lookup.T, fill_value='extrapolate')
+
+    def nonlin(d, j, h, interp_func):
+        return interp_func(d[[2], j])
+
+    ts = ode.SolveNewmark(m, 0 * m, k, h)
+    ts.set_nonlin(nonlin, Tfrc, dict(interp_func=interp_func))
+    sol = ts.tsolve(f)
+
+    # compare to nastran:
+    def _get_max_err(dct, x):
+        return abs(np.row_stack((dct[2], dct[12])) - x[:2]).max()
+
+    for x in 'dva':
+        assert _get_max_err(nas[x.upper()], getattr(sol, x)) < 0.001
+
+    assert abs(nas['N'][122] - sol.z[0]).max() < 0.001
+
+    # test iterable inputs:
+    ts = ode.SolveNewmark(m, 0 * m, k, h)
+    ts.set_nonlin([nonlin], (Tfrc,),
+                  [dict(interp_func=interp_func)])
+    sol = ts.tsolve(f)
+
+    # compare to nastran:
+    def _get_max_err(dct, x):
+        return abs(np.row_stack((dct[2], dct[12])) - x[:2]).max()
+
+    for x in 'dva':
+        assert _get_max_err(nas[x.upper()], getattr(sol, x)) < 0.001
+
+    assert abs(nas['N'][122] - sol.z[0]).max() < 0.001
+
+    # test no optargs:
+    def nonlin2(d, j, h):
+        return interp_func(d[[2], j])
+    ts = ode.SolveNewmark(m, 0 * m, k, h)
+    ts.set_nonlin(nonlin2, Tfrc)
+    sol = ts.tsolve(f)
+
+    # compare to nastran:
+    def _get_max_err(dct, x):
+        return abs(np.row_stack((dct[2], dct[12])) - x[:2]).max()
+
+    for x in 'dva':
+        assert _get_max_err(nas[x.upper()], getattr(sol, x)) < 0.001
+
+    assert abs(nas['N'][122] - sol.z[0]).max() < 0.001
+
+    assert_raises(ValueError, ts.set_nonlin, (nonlin, nonlin),
+                  Tfrc, dict(interp_func=interp_func))

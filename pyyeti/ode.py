@@ -67,7 +67,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     Manual [#nast1]_. For the case where ``k = 0`` but ``b != 0``
     (rigid-body with damping ... which is probably unusual), the
     coefficients were computed by hand and confirmed in Python using
-    the ``sympy`` package.
+    the "sympy" package.
 
     References
     ----------
@@ -256,14 +256,14 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
             Bp[pvover] = t0 * (-ex * (beta * sn + w * cs) + w)
 
     if rfmodes is not None:
-        F[rfmodes] = 0
-        G[rfmodes] = 0
-        A[rfmodes] = 0
-        B[rfmodes] = 1 / k[rfmodes]    # from k q = force
-        Fp[rfmodes] = 0
-        Gp[rfmodes] = 0
-        Ap[rfmodes] = 0
-        Bp[rfmodes] = 0
+        F[rfmodes] = 0.
+        G[rfmodes] = 0.
+        A[rfmodes] = 0.
+        B[rfmodes] = 1. / k[rfmodes]    # from k q = force
+        Fp[rfmodes] = 0.
+        Gp[rfmodes] = 0.
+        Ap[rfmodes] = 0.
+        Bp[rfmodes] = 0.
 
     return SimpleNamespace(F=F, G=G, A=A, B=B,
                            Fp=Fp, Gp=Gp, Ap=Ap, Bp=Bp,
@@ -3651,7 +3651,7 @@ class SolveNewmark(_BaseODE):
                        \frac{K}{3} \right ]
         \end{aligned}
 
-    :math:`N_{n+1}` is a non-linear force term which is optional; see
+    :math:`N_{n+1}` is a nonlinear force term which is optional; see
     :func:`set_nonlin`.
 
     To get the algorithm started, :math:`u_{-1}` and :math:`F_{-1}`
@@ -3800,9 +3800,9 @@ class SolveNewmark(_BaseODE):
         The instance is populated with some or all of the following
         members.
 
-        =========     ================================================
+        ============  ================================================
         Member        Description
-        =========     ================================================
+        ============  ================================================
         m             mass for the non-rf DOF
         b             damping for the non-rf DOF
         k             stiffness for the non-rf DOF
@@ -3827,7 +3827,7 @@ class SolveNewmark(_BaseODE):
                       :class:`SolveNewmark`)
         A0            decomposed version of matrix :math:`A_0`
         A1            decomposed version of matrix :math:`A_1`
-        nonlin_terms  number of non-linear force terms defined by
+        nonlin_terms  number of nonlinear force terms defined by
                       :func:`set_nonlin` (initially set to 0)
         ============  ================================================
         """
@@ -3864,7 +3864,7 @@ class SolveNewmark(_BaseODE):
         t : 1d ndarray
             Time vector: np.arange(d.shape[1])*h
         z : list of 2d ndarrays
-            Only present if there are non-linear force terms. ``z[0]``
+            Only present if there are nonlinear force terms. ``z[0]``
             contains the output of the first user-defined function,
             ``z[1]`` the second and so on.
         """
@@ -3941,14 +3941,14 @@ class SolveNewmark(_BaseODE):
 
     def set_nonlin(self, funcs, to_force, optargs=None):
         r"""
-        Define non-linear force terms
+        Define nonlinear force terms
 
         Parameters
         ----------
         funcs: callable or iterable of callables
 
             In conjuction with the `to_force` input, defines functions
-            that calculate the non-linear forces. The function must
+            that calculate the nonlinear forces. The function must
             accept at least 3 arguments: the current solution
             displacement matrix (`d`), the current step index (`j`),
             and the time step (`h`). It can accept other arguments
@@ -3980,8 +3980,8 @@ class SolveNewmark(_BaseODE):
             .. math::
                  A^{-1} Transform
 
-            is now, outside the integration loop. The matrix :math:`A`
-            is defined in :class:`SolveNewmark`.
+            is done now, outside the integration loop. The matrix
+            :math:`A` is defined in :class:`SolveNewmark`.
         optargs : dict or iterable of dicts or None
             These are dictionaries of arbitrary arguments for the
             functions. If None, a list of empty dictionaries is
@@ -4003,10 +4003,129 @@ class SolveNewmark(_BaseODE):
 
         .. note::
 
-            The non-linear forces are computed in the integration loop
+            The nonlinear forces are computed in the integration loop
             for the non-residual flexibility equations
             only. Therefore, it is recommended to not use the `rf`
-            option with non-linear force terms.
+            option with nonlinear force terms.
+
+        Examples
+        --------
+        Model a two-mass system with one linear spring and one
+        nonlinear spring. The nonlinear spring is only active when
+        compressed. There is a gap of 0.01 units before the spring
+        starts being compressed.
+
+        Model::
+
+              |--> x1        |--> x2
+            |----|    50   |----|
+            | 10 |--\/\/\--| 12 |   F(t)
+            |    |         |    | =====>
+            |----| |-/\/-| |----|
+                 K_nonlinear
+
+            F(t) = 5000 * np.cos(2 * np.pi * t + 270 / 180 * np.pi)
+
+        The nonlinear spring force is linearly interpolated according
+        to the "lookup" table below. Linear extrapolation is used for
+        displacements out of range of the table.
+
+        .. plot::
+            :context: close-figs
+
+            >>> import numpy as np
+            >>> from scipy.interpolate import interp1d
+            >>> import matplotlib.pyplot as plt
+            >>> from pyyeti import ode
+            >>>
+            >>> # mass and stiffness:
+            >>> m = np.diag([10., 12.])
+            >>> k = np.array([[50., -50.],
+            ...               [-50.,  50.]])
+            >>> c = 0. * k  # no damping
+            >>>
+            >>> # define time steps and force:
+            >>> h = 0.005
+            >>> t = np.arange(0, 4 + h / 2, h)
+            >>> f = np.zeros((2, t.size))
+            >>> f[1] = 5000 * np.cos(2 * np.pi * t + 3 / 2 * np.pi)
+            >>>
+            >>> # define interpolation table for force (the lookup
+            >>> # value is x1 - x2):
+            >>> lookup = np.array([[-10,     0.],
+            ...                    [0.01,    0.],
+            ...                    [5,     200.],
+            ...                    [6,    1000.],
+            ...                    [10,   1500.]])
+            >>>
+            >>> # force transforming lookup value to forces on the
+            >>> # masses:
+            >>> Tfrc = np.array([[-1.], [1.]])
+            >>>
+            >>> # turn interpolation table into a function for speed
+            >>> interp_func = interp1d(*lookup.T,
+            ...                        fill_value='extrapolate')
+            >>>
+            >>> # function needed for ode.SolveNewmark.set_nonlin:
+            >>> def nonlin(d, j, h, interp_func):
+            ...     return interp_func(d[[0], j] - d[[1], j])
+            >>>
+            >>> # Solve:
+            >>> ts = ode.SolveNewmark(m, c, k, h)
+            >>> ts.set_nonlin(nonlin, Tfrc,
+            ...               dict(interp_func=interp_func))
+            >>> sol = ts.tsolve(f)
+            >>>
+            >>> # for comparison, run in SolveExp2 using the generator
+            >>> # feature:
+            >>> ts2 = ode.SolveExp2(m, c, k, h)
+            >>> gen, d, v = ts2.generator(len(t), f[:, 0])
+            >>>
+            >>> for i in range(1, len(t)):
+            ...     if i == 1:
+            ...         dx = d[0, i - 1] - d[1, i - 1]
+            ...     else:
+            ...         # for improved convergence, use linear
+            ...         # interpolation to estimate displacements at
+            ...         # current time:
+            ...         dx = (2 * d[0, i - 1] - d[0, i - 2] +
+            ...               d[1, i - 2] - 2 * d[1, i - 1])
+            ...     f_nl = (Tfrc @ interp_func([dx]))
+            ...     gen.send((i, f[:, i] + f_nl))
+            >>>
+            >>> sol2 = ts2.finalize()
+            >>>
+            >>> # plot results:
+            >>> _ = plt.figure(figsize=(8, 8))
+            >>> plt.clf()
+            >>>
+            >>> _ = plt.subplot(311)
+            >>> _ = plt.plot(t, sol.d.T)
+            >>> _ = plt.plot(t, d.T, '--')
+            >>> _ = plt.title('x1 and x2 displacments')
+            >>> _ = plt.ylabel('Displacement')
+            >>> _ = plt.legend(('SolveNewmark x1',
+            ...                 'SolveNewmark x2',
+            ...                 'SolveExp2 x1',
+            ...                 'SolveExp2 x2'))
+            >>>
+            >>> _ = plt.subplot(312)
+            >>> _ = plt.plot(t, sol.d[0] - sol.d[1],
+            ...              label='SolveNewmark')
+            >>> _ = plt.plot(t, d[0] - d[1], '--', label='SolveExp2')
+            >>> _ = plt.title('Relative displacement: x1 - x2')
+            >>> _ = plt.ylabel('Displacement')
+            >>> _ = plt.legend()
+            >>>
+            >>> _ = plt.subplot(313)
+            >>> _ = plt.plot(t, sol.z[0][0], label='SolveNewmark')
+            >>> _ = plt.plot(t, interp_func(d[0, :] - d[1, :]), '--',
+            ...              label='SolveExp2')
+            >>> _ = plt.title('Force in nonlinear spring')
+            >>> _ = plt.xlabel('Time (s)')
+            >>> _ = plt.ylabel('Force in nonlinear spring')
+            >>> _ = plt.legend()
+            >>> _ = plt.tight_layout()
         """
         if callable(funcs):
             funcs = [funcs]
@@ -4028,8 +4147,12 @@ class SolveNewmark(_BaseODE):
 
         # apply inv(A):
         Ai_T = []
-        for T in to_force:
-            Ai_T.append(la.lu_solve(self.Ad, T))
+        if self.unc:
+            for T in to_force:
+                Ai_T.append(T / self.Ad[:, None])
+        else:
+            for T in to_force:
+                Ai_T.append(la.lu_solve(self.Ad, T))
 
         # if here, everything must be okay:
         self.nonlin_terms = nonlin_terms
@@ -4104,7 +4227,7 @@ class SolveNewmark(_BaseODE):
         h = self.h
         u_1 = d0 - v0 * h
 
-        # compute non-linear force terms:
+        # compute nonlinear force terms:
         N = 0.0
         if self.nonlin_terms:
             d[self.nonrf, -1] = u_1
