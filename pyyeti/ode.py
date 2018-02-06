@@ -3901,11 +3901,10 @@ class SolveNewmark(_BaseODE):
             else:
                 def _get_nonlin(j):
                     N = 0.0
-                    for z, func, T, args in zip(
-                            self.z, self.funcs, self.to_force,
-                            self.optargs):
-                        z[:, j] = func(D, j, h, **args)
-                        N += T @ z[:, j]
+                    for key, (func, T, args) in self.nl_dct.items():
+                        z = func(D, j, h, **args)
+                        self.z[key][:, j] = z
+                        N += T @ z
                     return N
 
                 if self.unc:
@@ -3939,67 +3938,87 @@ class SolveNewmark(_BaseODE):
             sol.z = self.z
         return sol
 
-    def set_nonlin(self, funcs, to_force, optargs=None):
+    def define_nonlinear_forces(self, dct):
         r"""
         Define nonlinear force terms
 
         Parameters
         ----------
-        funcs: callable or iterable of callables
+        dct : dictionary
 
-            In conjuction with the `to_force` input, defines functions
-            that calculate the nonlinear forces. The function must
-            accept at least 3 arguments: the current solution
-            displacement matrix (`d`), the current step index (`j`),
-            and the time step (`h`). It can accept other arguments
-            which are specified via `optargs`::
+            Dictionary where each entry defines a nonlinear force
+            term. You can define any number of terms. Each value is a
+            sequence of 2 or 3 items: a function (or other callable),
+            a 2d ndarray, and optionally a dictionary of arguments for
+            the function::
 
-                def func(d, j, h [, ...]):
+               {
+                   key_0: (func_0, T_0 [, optargs_0]),
+                   key_1: (func_1, T_1 [, optargs_1]),
+                   ...
+               }
+
+            The dictionary keys are arbitrary but will be used as keys
+            in the `z` return value in the output of :func:`tsolve`.
+
+            *func_i*
+
+            Each function must accept at least 3 arguments: the current
+            solution displacement matrix (`d`), the current step index
+            (`j`), and the time step (`h`). It can accept other
+            arguments which are specified via `optargs`::
+
+                def func_i(d, j, h [, ...]):
 
             The function must return a 1d ndarray. It will be
-            multiplied by the corresponding transform in `to_force`
-            and added to the force.
+            multiplied by the corresponding transform `T` and added to
+            the other force terms (this is the :math:`N_{n+1}` term
+            shown in :class:`SolveNewmark`).
 
             .. note::
-                Nastran estimates velocity by:
-                :math:`v_j = (d_j - d_{j-1})/h`. In your function, you
-                can use: ``vj = (d[:, j] - d[:, j-1])/h``. That will
-                work even for the first call, when `j` is 0, because
-                "-1" displacements are stored in the last column of
-                `d` for just this purpose.
 
-        to_force : 2d ndarray or iterable of 2d ndarrays
-            Each matrix transforms the corresponding function output
-            to a force. If your function outputs the final force
-            already, just use identity for this transform. The reason
-            this input is here, instead of relying on the
-            user-supplied function (in `funcs`) to apply the transform
+                Nastran estimates velocity by: :math:`v_j = (d_j -
+                d_{j-1})/h`. In your function, you can use something
+                like: ``vj = (d[:, j] - d[:, j-1])/h``. That will work
+                even for the first call, when `j` is 0, because "-1"
+                displacements are stored in the last column of `d` for
+                just this purpose.
+
+            *T_i*
+
+            Each `T_i` matrix transforms the corresponding function
+            output to a force. If your function outputs the final
+            force already, just use identity for this transform. The
+            reason this input is here, instead of relying on the
+            user-supplied function `func_i` to apply the transform
             internally, is for efficiency: the relatively expensive
             operation of:
 
             .. math::
-                 A^{-1} Transform
+                 A^{-1} T_i
 
             is done now, outside the integration loop. The matrix
             :math:`A` is defined in :class:`SolveNewmark`.
-        optargs : dict or iterable of dicts or None
-            These are dictionaries of arbitrary arguments for the
-            functions. If None, a list of empty dictionaries is
-            created internally.
+
+            *optargs_i*
+
+            If included, each `optargs_i` is a dictionary of arbitrary
+            arguments for `func_i`.
 
         Notes
         -----
-        The forces are computed by::
+        The the `j`'th nonlinear force term is computed by::
 
-            N = to_force[0] @ funcs[0](d, j, h, **optargs[0]) +
-                to_force[1] @ funcs[1](d, j, h, **optargs[1]) +
-                ...
+            N_j = (T_0 @ func_0(d, j, h, **optargs_0) +
+                   T_1 @ func_1(d, j, h, **optargs_1) +
+                   ...)
 
-        The `j`'th `N` vector is used to compute the ``j+1``'th
-        displacement; see equation in :class:`SolveNewmark`.
+        That term is used to compute the ``j+1``'th displacement; see
+        equation in :class:`SolveNewmark`.
 
         The solution namespace returned by :func:`tsolve` will contain
-        the outputs of each user defined function in `z`.
+        the outputs of each user defined function in the dictionary
+        `z`.
 
         .. note::
 
@@ -4072,8 +4091,9 @@ class SolveNewmark(_BaseODE):
             >>>
             >>> # Solve:
             >>> ts = ode.SolveNewmark(m, c, k, h)
-            >>> ts.set_nonlin(nonlin, Tfrc,
-            ...               dict(interp_func=interp_func))
+            >>> ts.define_nonlinear_forces(
+            ...     {'kcomp': (nonlin, Tfrc,
+            ...               dict(interp_func=interp_func))})
             >>> sol = ts.tsolve(f)
             >>>
             >>> # for comparison, run in SolveExp2 using the generator
@@ -4118,7 +4138,8 @@ class SolveNewmark(_BaseODE):
             >>> _ = plt.legend()
             >>>
             >>> _ = plt.subplot(313)
-            >>> _ = plt.plot(t, sol.z[0][0], label='SolveNewmark')
+            >>> _ = plt.plot(t, sol.z['kcomp'][0],
+            ...              label='SolveNewmark')
             >>> _ = plt.plot(t, interp_func(d[0, :] - d[1, :]), '--',
             ...              label='SolveExp2')
             >>> _ = plt.title('Force in nonlinear spring')
@@ -4127,38 +4148,24 @@ class SolveNewmark(_BaseODE):
             >>> _ = plt.legend()
             >>> _ = plt.tight_layout()
         """
-        if callable(funcs):
-            funcs = [funcs]
-        if isinstance(to_force, np.ndarray):
-            to_force = [to_force]
+        # apply inv(A) to the transforms while making new dict:
+        nl_dct = {}
+        for k, v in dct.items():
+            if len(v) == 2:
+                args = {}
+            else:
+                args = v[2]
 
-        nonlin_terms = len(funcs)
+            if self.unc:
+                T = v[1] / self.Ad[:, None]
+            else:
+                T = la.lu_solve(self.Ad, v[1])
 
-        if optargs is None:
-            optargs = [{}] * nonlin_terms
-        elif isinstance(optargs, abc.Mapping):
-            optargs = [optargs]
-
-        if not len(funcs) == len(to_force) == len(optargs):
-            raise ValueError(
-                'lengths of inputs must match. Lengths of `funcs`, '
-                f'`to_force` and `optargs` are: {len(funcs)}, '
-                f'{len(to_force)} and {len(optargs)}')
-
-        # apply inv(A):
-        Ai_T = []
-        if self.unc:
-            for T in to_force:
-                Ai_T.append(T / self.Ad[:, None])
-        else:
-            for T in to_force:
-                Ai_T.append(la.lu_solve(self.Ad, T))
+            nl_dct[k] = (v[0], T, args)
 
         # if here, everything must be okay:
-        self.nonlin_terms = nonlin_terms
-        self.funcs = funcs
-        self.to_force = Ai_T
-        self.optargs = optargs
+        self.nonlin_terms = len(nl_dct)
+        self.nl_dct = nl_dct
 
     def _newmark_precalcs(self):
         # setup matrices for newmark - beta solution beta = 1/3
@@ -4231,13 +4238,12 @@ class SolveNewmark(_BaseODE):
         N = 0.0
         if self.nonlin_terms:
             d[self.nonrf, -1] = u_1
-            self.z = []
-            for func, T, optargs in zip(self.funcs, self.to_force,
-                                        self.optargs):
-                z0 = func(d, 0, h, **optargs)
+            self.z = {}
+            for key, (func, T, args) in self.nl_dct.items():
+                z0 = func(d, 0, h, **args)
                 z = np.empty((z0.shape[0], nt))
                 z[:, 0] = z0
-                self.z.append(z)
+                self.z[key] = z
                 N += T @ z0
 
         if self.unc:
