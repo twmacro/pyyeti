@@ -4183,7 +4183,7 @@ def test_newmark_nonlinear():
 
             ts = ode.SolveNewmark(m, c, k, h)
             dct = {'disp': (nonlin, Tfrc, dict(ifunc=ifunc))}
-            ts.define_nonlinear_forces(dct)
+            ts.def_nonlin(dct)
             sol = ts.tsolve(f)
 
             # run in SolveExp2 via the generator feature:
@@ -4349,7 +4349,7 @@ def test_newmark_nonlinear2():
 
     ts = ode.SolveNewmark(m, 0 * m, k, h)
     dct = {'disp': (nonlin, Tfrc, dict(ifunc=ifunc))}
-    ts.define_nonlinear_forces(dct)
+    ts.def_nonlin(dct)
     sol = ts.tsolve(f)
 
     # compare to nastran:
@@ -4365,7 +4365,7 @@ def test_newmark_nonlinear2():
     def nonlin2(d, j, h):
         return ifunc(d[[2], j])
     ts = ode.SolveNewmark(m, 0 * m, k, h)
-    ts.define_nonlinear_forces({'disp': (nonlin2, Tfrc)})
+    ts.def_nonlin({'disp': (nonlin2, Tfrc)})
     sol = ts.tsolve(f)
 
     # compare to nastran:
@@ -4510,10 +4510,10 @@ def test_newmark_nonlinear2():
         'Disp': (dnonlin, Tfrc, dict(ifunc=dfunc)),
         'Velo': (vnonlin, Tfrc, dict(ifunc=vfunc)),
     }
-    ts.define_nonlinear_forces(nl_dct)
+    ts.def_nonlin(nl_dct)
     sol = ts.tsolve(f,
-                    d0=np.array([10., -10., 20.]),
-                    v0=np.array([50., -50., 100.]))
+                    d0=[10., -10., 20.],
+                    v0=[50., -50., 100.])
 
     # compare to nastran:
     nas = get_nas2()

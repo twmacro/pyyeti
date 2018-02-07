@@ -42,7 +42,7 @@ Time and frequency domain equation of motion solvers
 
     SolveNewmark
     SolveNewmark.tsolve
-    SolveNewmark.set_nonlin
+    SolveNewmark.def_nonlin
 
 2nd Order ODE Frequency Domain Solver `FreqDirect`
 --------------------------------------------------

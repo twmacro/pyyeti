@@ -1276,6 +1276,11 @@ class _BaseODE(object):
         if v0 is not None:
             v[self.nonrf, 0] = v0[self.nonrf]
 
+    def _set_initial_cond(self, d0, v0):
+        d0 = None if d0 is None else np.atleast_1d(d0)
+        v0 = None if v0 is None else np.atleast_1d(v0)
+        return d0, v0
+
     def _init_dva_part(self, nt, F0, d0, v0, static_ic,
                        istime=True):
         if F0.shape[0] != self.n:
@@ -1288,6 +1293,7 @@ class _BaseODE(object):
                 'using the `pre_eig` option'
                 .format(type(self).__name__))
 
+        d0, v0 = self._set_initial_cond(d0, v0)
         d, v, a = self._alloc_dva(nt, istime)
         f = np.copy(a)   # not a.copy because of `order` default
         f[:, 0] = F0
@@ -1306,6 +1312,7 @@ class _BaseODE(object):
                              'expected'
                              .format(force.shape[0], self.n))
 
+        d0, v0 = self._set_initial_cond(d0, v0)
         d, v, a = self._alloc_dva(force.shape[1], istime)
 
         if self.pre_eig:
@@ -3652,7 +3659,7 @@ class SolveNewmark(_BaseODE):
         \end{aligned}
 
     :math:`N_{n+1}` is a nonlinear force term which is optional; see
-    :func:`set_nonlin`.
+    :func:`def_nonlin`.
 
     To get the algorithm started, :math:`u_{-1}` and :math:`F_{-1}`
     are needed. They are computed from:
@@ -3828,7 +3835,7 @@ class SolveNewmark(_BaseODE):
         A0            decomposed version of matrix :math:`A_0`
         A1            decomposed version of matrix :math:`A_1`
         nonlin_terms  number of nonlinear force terms defined by
-                      :func:`set_nonlin` (initially set to 0)
+                      :func:`def_nonlin` (initially set to 0)
         ============  ================================================
         """
         self._common_precalcs(m, b, k, h, rb=[], rf=rf)
@@ -3863,10 +3870,12 @@ class SolveNewmark(_BaseODE):
             Time-step
         t : 1d ndarray
             Time vector: np.arange(d.shape[1])*h
-        z : list of 2d ndarrays
-            Only present if there are nonlinear force terms. ``z[0]``
-            contains the output of the first user-defined function,
-            ``z[1]`` the second and so on.
+        z : dictionary of 2d ndarrays; optional
+            Only present if there are nonlinear force terms. The
+            dictionary keys correspond to the keys used to define the
+            nonlinear force terms in :func:`def_nonlin`. The values
+            are the output of the functions that defined these force
+            terms (see :func:`def_nonlin`).
         """
         force = np.atleast_2d(force)
         d, v, a, F = self._init_dva(force, d0, v0)
@@ -3938,7 +3947,7 @@ class SolveNewmark(_BaseODE):
             sol.z = self.z
         return sol
 
-    def define_nonlinear_forces(self, dct):
+    def def_nonlin(self, dct):
         r"""
         Define nonlinear force terms
 
@@ -3950,7 +3959,9 @@ class SolveNewmark(_BaseODE):
             term. You can define any number of terms. Each value is a
             sequence of 2 or 3 items: a function (or other callable),
             a 2d ndarray, and optionally a dictionary of arguments for
-            the function::
+            the function. The dictionary keys are arbitrary but will
+            be used as keys in the `z` return value in the output of
+            :func:`tsolve`. The form of the dictionary is::
 
                {
                    key_0: (func_0, T_0 [, optargs_0]),
@@ -3958,52 +3969,39 @@ class SolveNewmark(_BaseODE):
                    ...
                }
 
-            The dictionary keys are arbitrary but will be used as keys
-            in the `z` return value in the output of :func:`tsolve`.
+            =========  ===============================================
+            Item       Description
+            =========  ===============================================
+            func_i     Each function must accept at least 3 arguments:
+                       the current solution displacement matrix (`d`),
+                       the current step index (`j`), and the time step
+                       (`h`). It can accept other arguments which are
+                       specified via `optargs`::
 
-            *func_i*
+                           def func_i(d, j, h [, ...]):
 
-            Each function must accept at least 3 arguments: the current
-            solution displacement matrix (`d`), the current step index
-            (`j`), and the time step (`h`). It can accept other
-            arguments which are specified via `optargs`::
+                       The function must return a 1d ndarray. It will
+                       be multiplied by the corresponding transform
+                       `T` and added to the other force terms (this is
+                       the :math:`N_{n+1}` term shown in
+                       :class:`SolveNewmark`). See note below if
+                       velocity dependent terms are needed.
 
-                def func_i(d, j, h [, ...]):
+            T_i        Each `T_i` matrix transforms the corresponding
+                       function output to a force. If your function
+                       outputs the final force already, just use
+                       identity for this transform. The reason this
+                       input is here, instead of relying on the
+                       user-supplied function `func_i` to apply the
+                       transform internally, is for efficiency: the
+                       relatively expensive operation of:
+                       :math:`A^{-1} T_i` is done now, outside the
+                       integration loop. The matrix :math:`A` is
+                       defined in :class:`SolveNewmark`.
 
-            The function must return a 1d ndarray. It will be
-            multiplied by the corresponding transform `T` and added to
-            the other force terms (this is the :math:`N_{n+1}` term
-            shown in :class:`SolveNewmark`).
-
-            .. note::
-
-                Nastran estimates velocity by: :math:`v_j = (d_j -
-                d_{j-1})/h`. In your function, you can use something
-                like: ``vj = (d[:, j] - d[:, j-1])/h``. That will work
-                even for the first call, when `j` is 0, because "-1"
-                displacements are stored in the last column of `d` for
-                just this purpose.
-
-            *T_i*
-
-            Each `T_i` matrix transforms the corresponding function
-            output to a force. If your function outputs the final
-            force already, just use identity for this transform. The
-            reason this input is here, instead of relying on the
-            user-supplied function `func_i` to apply the transform
-            internally, is for efficiency: the relatively expensive
-            operation of:
-
-            .. math::
-                 A^{-1} T_i
-
-            is done now, outside the integration loop. The matrix
-            :math:`A` is defined in :class:`SolveNewmark`.
-
-            *optargs_i*
-
-            If included, each `optargs_i` is a dictionary of arbitrary
-            arguments for `func_i`.
+            optargs_i  If included, each `optargs_i` is a dictionary
+                       of arbitrary arguments for `func_i`.
+            =========  ===============================================
 
         Notes
         -----
@@ -4014,7 +4012,9 @@ class SolveNewmark(_BaseODE):
                    ...)
 
         That term is used to compute the ``j+1``'th displacement; see
-        equation in :class:`SolveNewmark`.
+        equation in :class:`SolveNewmark`. That is appropriate because
+        of the nature of the central finite difference formulae used
+        in the Newmark-Beta formation.
 
         The solution namespace returned by :func:`tsolve` will contain
         the outputs of each user defined function in the dictionary
@@ -4022,10 +4022,19 @@ class SolveNewmark(_BaseODE):
 
         .. note::
 
+            Nastran estimates velocity by: :math:`v_j = (d_j -
+            d_{j-1})/h`. In your function, you can use something like:
+            ``vj = (d[:, j] - d[:, j-1])/h``. That will work even for
+            the first call, when `j` is 0, because "-1" displacements
+            are stored in the last column of `d` for just this
+            purpose.
+
+        .. note::
+
             The nonlinear forces are computed in the integration loop
-            for the non-residual flexibility equations
-            only. Therefore, it is recommended to not use the `rf`
-            option with nonlinear force terms.
+            for the non-residual flexibility equations only.
+            Therefore, it is recommended to not use the `rf` option
+            with nonlinear force terms.
 
         Examples
         --------
@@ -4085,13 +4094,13 @@ class SolveNewmark(_BaseODE):
             >>> interp_func = interp1d(*lookup.T,
             ...                        fill_value='extrapolate')
             >>>
-            >>> # function needed for ode.SolveNewmark.set_nonlin:
+            >>> # function needed for ode.SolveNewmark.def_nonlin:
             >>> def nonlin(d, j, h, interp_func):
             ...     return interp_func(d[[0], j] - d[[1], j])
             >>>
             >>> # Solve:
             >>> ts = ode.SolveNewmark(m, c, k, h)
-            >>> ts.define_nonlinear_forces(
+            >>> ts.def_nonlin(
             ...     {'kcomp': (nonlin, Tfrc,
             ...               dict(interp_func=interp_func))})
             >>> sol = ts.tsolve(f)
@@ -4144,7 +4153,7 @@ class SolveNewmark(_BaseODE):
             ...              label='SolveExp2')
             >>> _ = plt.title('Force in nonlinear spring')
             >>> _ = plt.xlabel('Time (s)')
-            >>> _ = plt.ylabel('Force in nonlinear spring')
+            >>> _ = plt.ylabel('Force')
             >>> _ = plt.legend()
             >>> _ = plt.tight_layout()
         """
@@ -4210,6 +4219,7 @@ class SolveNewmark(_BaseODE):
                              'expected'
                              .format(force.shape[0], self.n))
 
+        d0, v0 = self._set_initial_cond(d0, v0)
         nt = force.shape[1]
         d, v, a = self._alloc_dva(nt, True)
 
