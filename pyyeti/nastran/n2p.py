@@ -2055,8 +2055,9 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
     Examples
     --------
-    >>> from pyyeti import nastran
     >>> import numpy as np
+    >>> import pandas as pd
+    >>> from pyyeti import nastran
     >>> # node 100 in basic is @ [5, 10, 15]
     >>> # node 200 in cylindrical coordinate system is @
     >>> # [r, th, z] = [32, 90, 10]
