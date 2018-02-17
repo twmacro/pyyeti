@@ -4956,7 +4956,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
     modes = []    # list to store modes
     primary = []  # flag to help delete plot objects logically
 
-    def _addpoint(axes, x, y, n, i, ln):
+    def _addpoint(x, y, n, i, axes, ln):
         if ln not in h:
             print('invalid curve ... ignoring')
             return
@@ -5000,13 +5000,14 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
             primary.append(i == 0)
         fig.canvas.draw()
 
-    def _deletepoint(axes, x, y, n, i):
+    def _deletepoint(x, y, n, i, ax, line):
         while len(primary) > 0:
             m = modes.pop()
             p = primary.pop()
             print("\tMode {}, {:.4f} Hz erased".format(m, mfreq[m]))
             if p:
                 break
+
     try:
         DC.off()
         DC.addpt_func(_addpoint)
@@ -5017,7 +5018,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
         DC.delpt_func(None)
         DC.off()
 
-    modes = sorted(list(set(modes)))
+    modes = sorted(set(modes))
     freqs = mfreq[modes]
     return modes, freqs
 

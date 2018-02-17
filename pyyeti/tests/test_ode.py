@@ -2901,7 +2901,7 @@ def test_getmodepart():
         # self.on(ax, callbacks=False)
         self.on()
         x, y, n, ind, lineh = self._snap(ax, 7.0, 0.8)
-        self._add_point(ax, x, y, n, ind, lineh)
+        self._add_point(x, y, n, ind, ax, lineh)
         self.off()
         return 1
 

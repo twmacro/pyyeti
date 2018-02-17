@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-This small class was inspired by code posted by HappyLeapSecond which
-was derived from code posted by Joe Kington. See:
+A class for interactively annotating 2D matplotlib plots.
+
+This class was inspired by code posted by HappyLeapSecond which was
+derived from code posted by Joe Kington. See:
 
 http://stackoverflow.com/questions/13306519/\
 get-data-from-plot-with-matplotlib
@@ -12,12 +14,12 @@ import matplotlib.pyplot as plt
 import matplotlib.offsetbox as offsetbox
 
 
-def form1(x, y, n, ind):
+def form1(x, y, n, ind, ax, line):
     """Default annotation for plots with 1 line"""
     return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
 
 
-def form2(x, y, n, ind):
+def form2(x, y, n, ind, ax, line):
     """Default annotation for plots with more than 1 line"""
     return 'x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.format(x=x, y=y, n=n)
 
@@ -54,7 +56,7 @@ class DataCursor(object):
         line number starting at 0 and `ind` is the index into the data
         vectors. `form1` defaults to::
 
-          def form1(x, y, n, ind):
+          def form1(x, y, n, ind, ax, line):
               return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
 
     form2 : function
@@ -62,7 +64,7 @@ class DataCursor(object):
         called for axes that have more than one line. Same signature
         as `form1`. Defaults to::
 
-          def form2(x, y, n, ind):
+          def form2(x, y, n, ind, ax, line):
               return ('x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.
                      format(x=x, y=y, n=n))
 
@@ -184,17 +186,15 @@ class DataCursor(object):
 
     Settings can be changed after instantiation. Here is an example of
     defining a new format for the annotation (for both `form1` and
-    `form2`). 3 decimals are used for the x-coordinate and the index
-    is included. It also changes the permanent dot to a gray
-    pentagon::
+    `form2`). Only the line label is included in the annotation. The
+    example also changes the permanent dot to a gray pentagon::
 
         import matplotlib.pyplot as plt
         import numpy as np
         from pyyeti.datacursor import DC
 
-        def formnew(x, y, n, ind):
-            return ('x: {x:0.3f}\ny: {y:0.2f}\nindex: {ind:}'
-                    .format(x=x, y=y, ind=ind))
+        def formnew(x, y, n, ind, ax, line):
+            return ('{}'.format(line.get_label()))
 
         DC.form1 = DC.form2 = formnew
         DC.permdot = dict(s=130, color='black', alpha=0.4,
@@ -214,10 +214,10 @@ class DataCursor(object):
         import numpy as np
         from pyyeti.datacursor import DC
 
-        def addpt(ax, x, y, n, ind, lineh):
+        def addpt(x, y, n, ind, ax, line):
             print('You selected ({}, {})'.format(x, y))
 
-        def delpt(ax, x, y, n, ind):
+        def delpt(x, y, n, ind, ax, line):
             print('You deleted ({}, {})'.format(x, y))
 
         DC.addpt_func(addpt)
@@ -436,14 +436,12 @@ class DataCursor(object):
         """
         Function to call on a left-click.
 
-        Call signature is: ``func(ax, x, y, n, ind, lineh)``
+        Call signature is: ``func(x, y, n, ind, ax, line)``
 
         The parameters for the function are described below.
 
         Parameters
         ----------
-        ax : axes object
-            Axes handle
         x, y : scalars
             The selected ``(x, y)`` data point
         n : integer
@@ -451,7 +449,9 @@ class DataCursor(object):
         ind : integer
             The index of the data point within the plotted data
             vectors
-        lineh : line object
+        ax : axes object
+            Axes handle
+        line : line object
             Line handle
         """
         self.addptfunc = func
@@ -460,14 +460,12 @@ class DataCursor(object):
         """
         Function to call on a right-click.
 
-        Call signature is: ``func(ax, x, y, n, ind)``
+        Call signature is: ``func(x, y, n, ind, ax, line)``
 
         The parameters for the function are described below.
 
         Parameters
         ----------
-        ax : axes object
-            Axes handle
         x, y : scalars
             The selected ``(x, y)`` data point
         n : integer
@@ -475,13 +473,17 @@ class DataCursor(object):
         ind : integer
             The index of the data point within the plotted data
             vectors
+        ax : axes object
+            Axes handle
+        line : line object
+            Line handle or None; None if the line was deleted
         """
         self.delptfunc = func
 
-    def _add_point(self, ax, x, y, n, ind, lineh):
+    def _add_point(self, x, y, n, ind, ax, line):
         self.xypoints.append([x, y])
         self.inds.append(ind)
-        self.lines.append(lineh)
+        self.lines.append(line)
         self.linenums.append(n)
         # if 3d, set visible to False (i don't know how to get proper
         # coordinates for the dot):
@@ -495,7 +497,7 @@ class DataCursor(object):
         if self._in_loop and len(self.xypoints) == self._max_points:
             self.off()
         if self.addptfunc:
-            self.addptfunc(ax, x, y, n, ind, lineh)
+            self.addptfunc(x, y, n, ind, ax, line)
 
     def _del_point(self, ax=None, delete_line=False):
         """Deletes last saved point, if any."""
@@ -510,13 +512,15 @@ class DataCursor(object):
                 h.remove()
             except ValueError:
                 pass
+            else:
+                h = None
         n = self.linenums.pop()
         pt = self.pts.pop()
         pt.remove()
         na = self.notes.pop()
         na.remove()
         if self.delptfunc:
-            self.delptfunc(ax, x, y, n, ind)
+            self.delptfunc(x, y, n, ind, ax, h)
 
     def _get_ax(self, event):
         """
@@ -571,22 +575,22 @@ class DataCursor(object):
         if not ax:
             return
         x, y = event.xdata, event.ydata
-        x, y, n, ind, lineh = self._snap(ax, x, y)
+        x, y, n, ind, line = self._snap(ax, x, y)
         if x is None:
             return
         annotation = self._annotation[ax]
         dot = self._dot[ax]
         annotation.xy = x, y
         if len(ax.lines) > 1:
-            annotation.set_text(self.form2(x, y, n, ind))
+            annotation.set_text(self.form2(x, y, n, ind, ax, line))
         else:
-            annotation.set_text(self.form1(x, y, n, ind))
+            annotation.set_text(self.form1(x, y, n, ind, ax, line))
         dot.set_offsets((x, y))
         if event.name == 'button_press_event':
             if event.button == 1:
                 # dot.set_visible(True)
                 annotation.set_visible(True)
-                self._add_point(ax, x, y, n, ind, lineh)
+                self._add_point(x, y, n, ind, ax, line)
             elif event.button == 3 and len(self.xypoints) > 0:
                 self._del_point(ax=ax)
         elif self.hover:
@@ -627,8 +631,8 @@ class DataCursor(object):
         for n, ln in enumerate(ax.lines):
             xdata = ln.get_xdata()
             ydata = ln.get_ydata()
-            dx = (xdata-x) / np.diff(ax.get_xlim())
-            dy = (ydata-y) / np.diff(ax.get_ylim())
+            dx = (xdata - x) / np.diff(ax.get_xlim())
+            dy = (ydata - y) / np.diff(ax.get_ylim())
             # dx = (xdata-x)
             # dy = (ydata-y)
             d = np.sqrt(dx**2. + dy**2.)
