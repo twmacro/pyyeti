@@ -200,7 +200,8 @@ class DataCursor(object):
         DC.permdot = dict(s=130, color='black', alpha=0.4,
                           marker='p')
 
-        plt.plot(np.random.randn(50))
+        plt.plot(np.random.randn(50), label='Gaussian')
+        plt.plot(np.random.rand(50), label='Uniform')
         DC.on()
 
     For increased versatility, there are two optional functions the

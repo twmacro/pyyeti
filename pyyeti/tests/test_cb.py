@@ -1154,3 +1154,108 @@ def test_cglf_moment_signs():
         np.zeros((4, n))
     ))
     assert np.allclose(cgdrm, nets[0].cglfa)
+
+
+def test_find_xyz_triples1():
+    rb = np.array([
+        [1.,   0.,   0.,   0.,  15., -10.],
+        [0.,   1.,   0., -15.,   0.,   5.],
+        [0.,   0.,   1.,  10.,  -5.,   0.],
+        [0.,   0.,   0.,   1.,   0.,   0.],
+        [0.,   0.,   0.,   0.,   1.,   0.],
+        [0.,   0.,   0.,   0.,   0.,   1.],
+        [1.,   0.,   0.,   0.,  15., -10.],
+        [0.,   1.,   0., -15.,   0.,   5.],
+        [0.,   0.,   1.,  10.,  -5.,   0.],
+    ])
+    c = 1 / np.sqrt(2)
+    T = np.array([[1., 0., 0.],
+                  [0., c, c],
+                  [0., -c, c]])
+    rb[-3:] = 10 * T @ rb[-3:]
+
+    rb_2 = rb.copy()
+
+    sbe = np.array([[1.,  0.,  0.,  0., 15., -10.],
+                    [0.,  1.,  0., -15.,  0.,  5.],
+                    [0.,  0.,  1., 10., -5.,  0.],
+                    [0.,  0.,  0.,  1.,  0.,  0.],
+                    [0.,  0.,  0.,  0.,  1.,  0.],
+                    [0.,  0.,  0.,  0.,  0.,  1.],
+                    [10.,  0.,  0.,  0., 150., -100.],
+                    [0.,  7.07,  7.07, -35.36, -35.36, 35.36],
+                    [0., -7.07,  7.07, 176.78, -35.36, -35.36]])
+    assert abs(rb - sbe).max() < 0.01
+
+    mats = {'rb': rb}
+    trips = cb.find_xyz_triples(rb, get_trans=True, mats=mats)
+    assert trips.outmats is not mats
+
+    assert np.all(trips.pv == np.array(
+        [True, True, True, False, False, False, True,
+         True, True]))
+
+    sbe = np.array([[5., 10., 15.],
+                    [5., 10., 15.],
+                    [5., 10., 15.],
+                    [np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan],
+                    [5., 10., 15.],
+                    [5., 10., 15.],
+                    [5., 10., 15.]])
+    assert np.allclose(trips.coords, sbe, equal_nan=True)
+
+    sbe = np.array([1.,  1.,  1., np.nan, np.nan, np.nan,
+                    10., 10., 10.])
+    assert np.allclose(trips.scales, sbe, equal_nan=True)
+    assert len(trips.Ts) == 2
+
+    assert np.allclose(trips.Ts[0], np.array([[1., 0., 0.],
+                                              [0., 1., 0.],
+                                              [0., 0., 1.]]))
+    assert abs(trips.Ts[1] -
+               np.array([[0.1, 0.,   0.],
+                         [0., 0.0707, -0.0707],
+                         [0., 0.0707, 0.0707]])).max() < 0.0001
+
+    assert np.allclose(trips.outmats['rb'],
+                       np.array([[1., 0., 0., 0., 15., -10.],
+                                 [0., 1., 0., -15., 0., 5.],
+                                 [0., 0., 1., 10., -5., 0.],
+                                 [0., 0., 0., 1., 0., 0.],
+                                 [0., 0., 0., 0., 1., 0.],
+                                 [0., 0., 0., 0., 0., 1.],
+                                 [1., 0., 0., 0., 15., -10.],
+                                 [0., 1., 0., -15., 0., 5.],
+                                 [0., 0., 1., 10., -5., 0.]]))
+
+    pv = trips.pv.nonzero()[0]
+    for j, Tcurr in enumerate(trips.Ts):
+        pvcurr = pv[j * 3:j * 3 + 3]
+        rb[pvcurr] = Tcurr @ rb[pvcurr]
+
+    assert np.allclose(rb, np.array([[1., 0., 0., 0., 15., -10.],
+                                     [0., 1., 0., -15., 0., 5.],
+                                     [0., 0., 1., 10., -5., 0.],
+                                     [0., 0., 0., 1., 0., 0.],
+                                     [0., 0., 0., 0., 1., 0.],
+                                     [0., 0., 0., 0., 0., 1.],
+                                     [1., 0., 0., 0., 15., -10.],
+                                     [0., 1., 0., -15., 0., 5.],
+                                     [0., 0., 1., 10., -5., 0.]]))
+
+    # test in "inplace" option:
+    mats = {'rb': rb_2}
+    trips2 = cb.find_xyz_triples(rb_2, get_trans=True, mats=mats,
+                                 inplace=True)
+    assert trips2.outmats is mats
+    assert rb_2 is mats['rb']
+    assert np.allclose(rb, rb_2)
+    assert len(trips2.Ts) == 2
+    for t1, t2 in zip(trips.Ts, trips2.Ts):
+        assert np.allclose(t1, t2)
+    for name in ('pv', 'coords', 'scales'):
+        assert np.allclose(getattr(trips, name),
+                           getattr(trips2, name),
+                           equal_nan=True)

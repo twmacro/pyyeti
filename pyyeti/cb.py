@@ -8,6 +8,7 @@ from collections import abc
 import numbers
 from types import SimpleNamespace
 from warnings import warn
+import copy
 import numpy as np
 import scipy.linalg as linalg
 import scipy.sparse.linalg as sp_la
@@ -46,7 +47,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
     Returns
     -------
-    A record (SimpleNamespace class) with the members:
+    A SimpleNamespace with the members:
 
     frc : complex 2d ndarray
         B-set force that was required to accelerate according to input
@@ -827,7 +828,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
     Returns
     -------
-    A record (SimpleNamespace class) with these members:
+    A SimpleNamespace with these members:
 
     ifltma_sc, ifltma_lv : 2d ndarrays
         The acceleration-dependent portion of the net interface force
@@ -1161,7 +1162,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     return s
 
 
-def find_xyz_triples(drmrb, get_trans=False):
+def find_xyz_triples(drmrb, get_trans=False, mats=None,
+                     inplace=False):
     """
     Find x, y, z triples in rigid-body motion matrix.
 
@@ -1173,9 +1175,21 @@ def find_xyz_triples(drmrb, get_trans=False):
         If True, return list of 3x3 transforms that converts each
         triplet of xyz rows to the coordinate system of the reference
         node for the rigid-body modes.
+    mats : dictionary or None; optional
+        Dictionary of matrices (2d ndarrays) that will have rows that
+        correspond to the triplet rows in `drmrb` transformed by the
+        3x3 transforms derived from `drmrb`. These transforms are
+        optionally returned in `Ts`. `mats` is ignored if None, though
+        you can still transform matrices afterwards by setting
+        `get_trans` to True and using the return value `Ts`.
+    inplace : bool; optional
+        If True, the `mats` dictionary and matrices will be changed in
+        place.
 
     Returns
     -------
+    A SimpleNamespace with the members:
+
     pv : 1d ndarray
         Bool array with True values indicating the rows in `drmrb`
         where xyz triples were found, if any.
@@ -1194,15 +1208,11 @@ def find_xyz_triples(drmrb, get_trans=False):
         system of the reference node for the rigid-body modes. Unlike
         other outputs, `Ts` does not contain any information for non
         xyz triplet rows.
-
-    Notes
-    -----
-
-    Can handle any coordinate system(s).
+    outmats : dictionary; optional
+        The transformed version of `mats`.
 
     Examples
     --------
-
     A rigid-body mode shape matrix with two identical nodes is
     defined. Then, the second node will be transformed into a
     different coordinate system and scaled up by 10.0. Also, the 3
@@ -1226,15 +1236,31 @@ def find_xyz_triples(drmrb, get_trans=False):
     ...               [0., c, c],
     ...               [0., -c, c]])
     >>> rb[-3:] = 10 * T @ rb[-3:]
-    >>> pv, coords, scales, Ts = cb.find_xyz_triples(rb, True)
+    >>> np.set_printoptions(linewidth=60, precision=2, suppress=True)
+    >>> rb
+    array([[   1.  ,    0.  ,    0.  ,    0.  ,   15.  ,  -10.  ],
+           [   0.  ,    1.  ,    0.  ,  -15.  ,    0.  ,    5.  ],
+           [   0.  ,    0.  ,    1.  ,   10.  ,   -5.  ,    0.  ],
+           [   0.  ,    0.  ,    0.  ,    1.  ,    0.  ,    0.  ],
+           [   0.  ,    0.  ,    0.  ,    0.  ,    1.  ,    0.  ],
+           [   0.  ,    0.  ,    0.  ,    0.  ,    0.  ,    1.  ],
+           [  10.  ,    0.  ,    0.  ,    0.  ,  150.  , -100.  ],
+           [   0.  ,    7.07,    7.07,  -35.36,  -35.36,   35.36],
+           [   0.  ,   -7.07,    7.07,  176.78,  -35.36,  -35.36]])
+
+    Transform `rb` internally (it will also be transformed "by-hand"
+    below):
+
+    >>> mats = {'rb': rb}
+    >>> trips = cb.find_xyz_triples(rb, get_trans=True, mats=mats)
 
     Check results:
 
     >>> np.set_printoptions(linewidth=60, precision=4, suppress=True)
-    >>> pv
+    >>> trips.pv
     array([ True,  True,  True, False, False, False,  True,
             True,  True], dtype=bool)
-    >>> coords
+    >>> trips.coords
     array([[  5.,  10.,  15.],
            [  5.,  10.,  15.],
            [  5.,  10.,  15.],
@@ -1244,24 +1270,34 @@ def find_xyz_triples(drmrb, get_trans=False):
            [  5.,  10.,  15.],
            [  5.,  10.,  15.],
            [  5.,  10.,  15.]])
-    >>> scales
+    >>> trips.scales
     array([  1.,   1.,   1.,  nan,  nan,  nan,  10.,  10.,  10.])
-    >>> len(Ts)
+    >>> len(trips.Ts)
     2
-    >>> Ts[0]
+    >>> trips.Ts[0]
     array([[ 1.,  0., -0.],
            [ 0.,  1., -0.],
            [ 0.,  0.,  1.]])
-    >>> Ts[1]
+    >>> trips.Ts[1]
     array([[ 0.1   , -0.    , -0.    ],
            [ 0.    ,  0.0707, -0.0707],
            [ 0.    ,  0.0707,  0.0707]])
+    >>> trips.outmats['rb']
+    array([[  1.,   0.,   0.,   0.,  15., -10.],
+           [  0.,   1.,   0., -15.,   0.,   5.],
+           [  0.,   0.,   1.,  10.,  -5.,   0.],
+           [  0.,   0.,   0.,   1.,   0.,   0.],
+           [  0.,   0.,   0.,   0.,   1.,   0.],
+           [  0.,   0.,   0.,   0.,   0.,   1.],
+           [  1.,   0.,   0.,   0.,  15., -10.],
+           [  0.,   1.,   0., -15.,   0.,   5.],
+           [  0.,   0.,   1.,  10.,  -5.,   0.]])
 
-    Transform "rb" back into basic coordinates by using pv & Ts
-    together:
+    Transform "rb" back into basic coordinates and to unity scale by
+    using pv & Ts together:
 
-    >>> pv = pv.nonzero()[0]
-    >>> for j, Tcurr in enumerate(Ts):
+    >>> pv = trips.pv.nonzero()[0]
+    >>> for j, Tcurr in enumerate(trips.Ts):
     ...     pvcurr = pv[j * 3:j * 3 + 3]
     ...     rb[pvcurr] = Tcurr @ rb[pvcurr]
     >>> rb
@@ -1274,7 +1310,6 @@ def find_xyz_triples(drmrb, get_trans=False):
            [  1.,   0.,   0.,   0.,  15., -10.],
            [  0.,   1.,   0., -15.,   0.,   5.],
            [  0.,   0.,   1.,  10.,  -5.,   0.]])
-
     """
     # attempt to find xyz triples:
     drmrb = np.atleast_2d(drmrb)
@@ -1286,6 +1321,14 @@ def find_xyz_triples(drmrb, get_trans=False):
 
     if get_trans:
         Ts = []
+
+    if mats:
+        if inplace:
+            outmats = mats
+        else:
+            outmats = copy.deepcopy(mats)
+    else:
+        outmats = None
 
     j = 0
     while j + 2 < n:
@@ -1320,15 +1363,23 @@ def find_xyz_triples(drmrb, get_trans=False):
                 scales[pv] = np.sqrt(csqr)
                 if get_trans:
                     Ts.append(T2)
+                if outmats:
+                    for val in outmats.values():
+                        val[pv] = T2 @ val[pv]
                 j += 3
             else:
                 j += 1
         else:
             j += 1
     pv = ~np.isnan(coords[:, 0])
+    s = SimpleNamespace(pv=pv,
+                        coords=coords,
+                        scales=scales)
     if get_trans:
-        return pv, coords, scales, Ts
-    return pv, coords, scales
+        s.Ts = Ts
+    if outmats:
+        s.outmats = outmats
+    return s
 
 
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
@@ -1352,11 +1403,11 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
 
     # get rb scale:
     if 0:
-        pv, coords, scales = find_xyz_triples(rb)
-        if not pv.any():
+        trips = find_xyz_triples(rb)
+        if not trips.pv.any():
             raise ValueError('failed to get scale of rb modes ...'
                              ' check `rb`')
-        rbscale = scales[pv][0]
+        rbscale = trips.scales[trips.pv][0]
     else:
         xrss = np.sqrt(rb[:-2, 0]**2 + rb[1:-1, 0]**2 + rb[2:, 0]**2)
         rbscale = abs(xrss).max()
@@ -1365,8 +1416,8 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
                              ' check `rb`')
 
     # attempt to find xyz triples:
-    pv, coords, scales = find_xyz_triples(drmrb)
-    scales[pv] /= rbscale
+    trips = find_xyz_triples(drmrb)
+    trips.scales[trips.pv] /= rbscale
 
     fout.write('\nExtreme Coordinates from {}\n'.format(name))
     headers = ['X', 'Y', 'Z']
@@ -1377,11 +1428,11 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     hu = ''.join([' ' * 11 + i + '\n'
                   for i in hu.rstrip().split('\n')])
     fout.write(hu)
-    if np.all(np.isnan(coords[:, 0])):
+    if np.all(np.isnan(trips.coords[:, 0])):
         fout.write('             -- no coordinates detected --\n')
     else:
-        mn = np.nanmin(coords, axis=0).reshape((1, 3))
-        mx = np.nanmax(coords, axis=0).reshape((1, 3))
+        mn = np.nanmin(trips.coords, axis=0).reshape((1, 3))
+        mx = np.nanmax(trips.coords, axis=0).reshape((1, 3))
         writer.vecwrite(fout, '  Minimums:' + f, mn)
         writer.vecwrite(fout, '  Maximums:' + f, mx)
 
@@ -1428,15 +1479,15 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
                               sep=sep, just=0)
     fout.write(hu)
     if prtnullrows or np.all(nonnr):
-        writer.vecwrite(fout, f, r, labels, coords, scales, drmrb,
-                        postfunc=_pf)
+        writer.vecwrite(fout, f, r, labels, trips.coords,
+                        trips.scales, drmrb, postfunc=_pf)
     else:
         if np.all(nr):
             fout.write('All rows in {} are NULL.\n'.format(name))
         else:
             lbls = np.array(labels)
             writer.vecwrite(fout, f, r[nonnr], lbls[nonnr],
-                            coords[nonnr], scales[nonnr],
+                            trips.coords[nonnr], trips.scales[nonnr],
                             drmrb[nonnr], postfunc=_pf)
 
     fout.write('\nAbsolute Maximums from {} * RB results:\n'.
@@ -1452,9 +1503,10 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     fout.write(hu)
     for k in range(6):
         jk = j[k]
-        writer.vecwrite(fout, f, r[jk], labels[jk],
-                        coords[jk:jk + 1], scales[jk:jk + 1],
-                        drmrb[jk:jk + 1], postfunc=_pf)
+        writer.vecwrite(
+            fout, f, r[jk], labels[jk],
+            trips.coords[jk:jk + 1], trips.scales[jk:jk + 1],
+            drmrb[jk:jk + 1], postfunc=_pf)
 
     # null row check:
     nr = np.nonzero(nr)[0]
@@ -2521,7 +2573,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
 
     Returns
     -------
-    A record (SimpleNamespace class) with the members:
+    A SimpleNamespace with the members:
 
     m : 2d ndarray
         Reordered and converted version of Mcb. Will equal Mcb if
