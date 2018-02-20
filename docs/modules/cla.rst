@@ -72,6 +72,7 @@ Utility routines
     nan_argmin
     PrintCLAInfo
     PSD_consistent_rss
+    reldisp_dtm
     rdext
     rptext1
     rptpct1

@@ -22,16 +22,19 @@ import math
 import sys
 import warnings
 import itertools
+import copy
+from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 import scipy.linalg as linalg
 from pyyeti import locate
 
-__all__ = ['addgrid', 'addulvs', 'build_coords', 'coordcardinfo',
-           'expanddof', 'formdrm', 'formrbe3', 'formtran', 'formulvs',
-           'get_coordinfo', 'getcoords', 'make_uset', 'mkdofpv',
-           'mksetpv', 'mkusetmask', 'rbcoords', 'rbgeom',
-           'rbgeom_uset', 'rbmove', 'upasetpv', 'upqsetpv', 'usetprt']
+__all__ = ['addgrid', 'addulvs', 'build_coords', 'mkcordcardinfo',
+           'expanddof', 'find_xyz_triples', 'formdrm', 'formrbe3',
+           'formtran', 'formulvs', 'getcoordinates', 'make_uset',
+           'mkdofpv', 'mksetpv', 'mkusetcoordinfo', 'mkusetmask',
+           'rbcoords', 'rbgeom', 'rbgeom_uset', 'rbmove', 'upasetpv',
+           'upqsetpv', 'usetprt']
 
 
 def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
@@ -331,6 +334,10 @@ def rbcoords(rb, verbose=2):
     ValueError
         When `rb` is not 6*n x 6.
 
+    See also
+    --------
+    :func:`find_xyz_triples`
+
     Examples
     --------
     >>> from pyyeti import nastran
@@ -428,6 +435,226 @@ def rbcoords(rb, verbose=2):
               "{:.3g} units".format(maxdev))
         print("Maximum % error: {:.3g}%.".format(maxerr))
     return coords, maxdev, maxerr
+
+
+def find_xyz_triples(drmrb, get_trans=False, mats=None,
+                     inplace=False):
+    """
+    Find x, y, z triples in rigid-body motion matrix.
+
+    Parameters
+    ----------
+    drmrb : 2d array_like
+        Rigid-body modes or, for example, ``drmrb = ATM @ rb``.
+    get_trans : bool; optional
+        If True, return list of 3x3 transforms that converts each
+        triplet of xyz rows to the coordinate system of the reference
+        node for the rigid-body modes.
+    mats : dictionary or None; optional
+        Dictionary of matrices (2d ndarrays) that will have rows that
+        correspond to the triplet rows in `drmrb` transformed by the
+        3x3 transforms derived from `drmrb`. These transforms are
+        optionally returned in `Ts`. `mats` is ignored if None, though
+        you can still transform matrices afterwards by setting
+        `get_trans` to True and using the return value `Ts`.
+    inplace : bool; optional
+        If True, the `mats` dictionary and matrices will be changed in
+        place.
+
+    Returns
+    -------
+    A SimpleNamespace with the members:
+
+    pv : 1d ndarray
+        Bool array with True values indicating the rows in `drmrb`
+        where xyz triples were found, if any.
+    coords : 2d ndarray
+        Contains coordinates of each xyz triplet. Size is n x 3 where
+        n is the number of rows in `drmrb`. The coordinates of each
+        triplet is repeated 3 times; other, non-triplet rows are
+        filled with ``np.nan``.
+    scales : 1d ndarray
+        Length n array containing the scale of each
+        triplet. Non-triplet rows are filled with ``np.nan``. `scales`
+        is used to handle different output units.
+    Ts : list of 2d ndarrays; optional
+        Only returned if `get_trans` is True. List of 3x3 transforms
+        that converts each triplet of xyz rows to the coordinate
+        system of the reference node for the rigid-body modes. Unlike
+        other outputs, `Ts` does not contain any information for non
+        xyz triplet rows.
+    outmats : dictionary; optional
+        The transformed version of `mats`.
+
+    Examples
+    --------
+    A rigid-body mode shape matrix with two identical nodes is
+    defined. Then, the second node will be transformed into a
+    different coordinate system and scaled up by 10.0. Also, the 3
+    rotation rows for the second grid are not included.
+
+    >>> import numpy as np
+    >>> from pyyeti.nastran import n2p
+    >>> rb = np.array([
+    ...     [1.,   0.,   0.,   0.,  15., -10.],
+    ...     [0.,   1.,   0., -15.,   0.,   5.],
+    ...     [0.,   0.,   1.,  10.,  -5.,   0.],
+    ...     [0.,   0.,   0.,   1.,   0.,   0.],
+    ...     [0.,   0.,   0.,   0.,   1.,   0.],
+    ...     [0.,   0.,   0.,   0.,   0.,   1.],
+    ...     [1.,   0.,   0.,   0.,  15., -10.],
+    ...     [0.,   1.,   0., -15.,   0.,   5.],
+    ...     [0.,   0.,   1.,  10.,  -5.,   0.],
+    ... ])
+    >>> c = 1 / np.sqrt(2)
+    >>> T = np.array([[1., 0., 0.],
+    ...               [0., c, c],
+    ...               [0., -c, c]])
+    >>> rb[-3:] = 10 * T @ rb[-3:]
+    >>> np.set_printoptions(linewidth=60, precision=2, suppress=True)
+    >>> rb
+    array([[   1.  ,    0.  ,    0.  ,    0.  ,   15.  ,  -10.  ],
+           [   0.  ,    1.  ,    0.  ,  -15.  ,    0.  ,    5.  ],
+           [   0.  ,    0.  ,    1.  ,   10.  ,   -5.  ,    0.  ],
+           [   0.  ,    0.  ,    0.  ,    1.  ,    0.  ,    0.  ],
+           [   0.  ,    0.  ,    0.  ,    0.  ,    1.  ,    0.  ],
+           [   0.  ,    0.  ,    0.  ,    0.  ,    0.  ,    1.  ],
+           [  10.  ,    0.  ,    0.  ,    0.  ,  150.  , -100.  ],
+           [   0.  ,    7.07,    7.07,  -35.36,  -35.36,   35.36],
+           [   0.  ,   -7.07,    7.07,  176.78,  -35.36,  -35.36]])
+
+    Transform `rb` internally (it will also be transformed "by-hand"
+    below):
+
+    >>> mats = {'rb': rb}
+    >>> trips = n2p.find_xyz_triples(rb, get_trans=True, mats=mats)
+
+    Check results:
+
+    >>> np.set_printoptions(linewidth=60, precision=4, suppress=True)
+    >>> trips.pv
+    array([ True,  True,  True, False, False, False,  True,
+            True,  True], dtype=bool)
+    >>> trips.coords
+    array([[  5.,  10.,  15.],
+           [  5.,  10.,  15.],
+           [  5.,  10.,  15.],
+           [ nan,  nan,  nan],
+           [ nan,  nan,  nan],
+           [ nan,  nan,  nan],
+           [  5.,  10.,  15.],
+           [  5.,  10.,  15.],
+           [  5.,  10.,  15.]])
+    >>> trips.scales
+    array([  1.,   1.,   1.,  nan,  nan,  nan,  10.,  10.,  10.])
+    >>> len(trips.Ts)
+    2
+    >>> trips.Ts[0]
+    array([[ 1.,  0., -0.],
+           [ 0.,  1., -0.],
+           [ 0.,  0.,  1.]])
+    >>> trips.Ts[1]
+    array([[ 0.1   , -0.    , -0.    ],
+           [ 0.    ,  0.0707, -0.0707],
+           [ 0.    ,  0.0707,  0.0707]])
+    >>> trips.outmats['rb']
+    array([[  1.,   0.,   0.,   0.,  15., -10.],
+           [  0.,   1.,   0., -15.,   0.,   5.],
+           [  0.,   0.,   1.,  10.,  -5.,   0.],
+           [  0.,   0.,   0.,   1.,   0.,   0.],
+           [  0.,   0.,   0.,   0.,   1.,   0.],
+           [  0.,   0.,   0.,   0.,   0.,   1.],
+           [  1.,   0.,   0.,   0.,  15., -10.],
+           [  0.,   1.,   0., -15.,   0.,   5.],
+           [  0.,   0.,   1.,  10.,  -5.,   0.]])
+
+    Transform "rb" back into basic coordinates and to unity scale by
+    using pv & Ts together:
+
+    >>> pv = trips.pv.nonzero()[0]
+    >>> for j, Tcurr in enumerate(trips.Ts):
+    ...     pvcurr = pv[j * 3:j * 3 + 3]
+    ...     rb[pvcurr] = Tcurr @ rb[pvcurr]
+    >>> rb
+    array([[  1.,   0.,   0.,   0.,  15., -10.],
+           [  0.,   1.,   0., -15.,   0.,   5.],
+           [  0.,   0.,   1.,  10.,  -5.,   0.],
+           [  0.,   0.,   0.,   1.,   0.,   0.],
+           [  0.,   0.,   0.,   0.,   1.,   0.],
+           [  0.,   0.,   0.,   0.,   0.,   1.],
+           [  1.,   0.,   0.,   0.,  15., -10.],
+           [  0.,   1.,   0., -15.,   0.,   5.],
+           [  0.,   0.,   1.,  10.,  -5.,   0.]])
+    """
+    # attempt to find xyz triples:
+    drmrb = np.atleast_2d(drmrb)
+    n = drmrb.shape[0]
+    coords = np.empty((n, 3))
+    coords[:] = np.nan
+    scales = np.empty(n)
+    scales[:] = np.nan
+
+    if get_trans:
+        Ts = []
+
+    if mats:
+        if inplace:
+            outmats = mats
+        else:
+            outmats = copy.deepcopy(mats)
+    else:
+        outmats = None
+
+    j = 0
+    while j + 2 < n:
+        pv = slice(j, j + 3)
+        T1 = drmrb[pv, :3]
+        # check for a scalar multiplier (like .00259, for example)
+        T1tT1 = T1.T @ T1
+        csqr = T1tT1[0, 0]
+        try:
+            T2 = linalg.inv(T1)
+        except linalg.LinAlgError:
+            good = False
+        else:
+            mx = abs(T1).max()
+            good = np.allclose(
+                csqr * T2, T1.T,
+                rtol=0.001, atol=max(0.001 * mx, 1.e-5))
+        if good:
+            rbrot = T2 @ drmrb[pv, 3:]
+            x = rbrot[1, 2]
+            y = rbrot[2, 0]
+            z = rbrot[0, 1]
+            rbrot_ideal = np.array([[0, z, -y],
+                                    [-z, 0, x],
+                                    [y, -x, 0]])
+            mx = abs(rbrot_ideal).max()
+            if np.allclose(rbrot, rbrot_ideal,
+                           rtol=0.001, atol=max(0.001 * mx, 1.e-5)):
+                coords[pv, 0] = x
+                coords[pv, 1] = y
+                coords[pv, 2] = z
+                scales[pv] = np.sqrt(csqr)
+                if get_trans:
+                    Ts.append(T2)
+                if outmats:
+                    for val in outmats.values():
+                        val[pv] = T2 @ val[pv]
+                j += 3
+            else:
+                j += 1
+        else:
+            j += 1
+    pv = ~np.isnan(coords[:, 0])
+    s = SimpleNamespace(pv=pv,
+                        coords=coords,
+                        scales=scales)
+    if get_trans:
+        s.Ts = Ts
+    if outmats:
+        s.outmats = outmats
+    return s
 
 
 def expanddof(dof):
@@ -1049,7 +1276,7 @@ def mkdofpv(uset, nasset, dof):
     return pv, outdof
 
 
-def coordcardinfo(uset, cid=None):
+def mkcordcardinfo(uset, cid=None):
     """
     Returns 'coordinate card' data from information in USET table
 
@@ -1092,7 +1319,7 @@ def coordcardinfo(uset, cid=None):
     The only way to get the basic system (cid = 0) is to request it
     specifically (and `uset` could be anything in this case)::
 
-        c0 = coordcardinfo(uset, 0)
+        c0 = mkcordcardinfo(uset, 0)
 
     The return dictionary will be empty if `cid` is None and there are
     no coordinate systems other than 0 in the `uset` table.
@@ -1111,17 +1338,17 @@ def coordcardinfo(uset, cid=None):
     >>> uset = nastran.addgrid(None, 1001, 'b', sccoord, [0, 0, 0],
     ...                        sccoord)
     >>> np.set_printoptions(precision=4, suppress=True)
-    >>> nastran.coordcardinfo(uset)
+    >>> nastran.mkcordcardinfo(uset)
     {501: ['CORD2R', array([[  501.   ,     1.   ,     0.   ],
            [ 2345.766,     0.   ,     0.   ],
            [ 2345.766,     1.   ,     0.   ],
            [ 2346.766,     0.   ,     0.   ]])]}
-    >>> nastran.coordcardinfo(uset, 0)
+    >>> nastran.mkcordcardinfo(uset, 0)
     ['CORD2R', array([[ 0.,  1.,  0.],
            [ 0.,  0.,  0.],
            [ 0.,  0.,  1.],
            [ 1.,  0.,  0.]])]
-    >>> nastran.coordcardinfo(uset, 501)
+    >>> nastran.mkcordcardinfo(uset, 501)
     ['CORD2R', array([[  501.   ,     1.   ,     0.   ],
            [ 2345.766,     0.   ,     0.   ],
            [ 2345.766,     1.   ,     0.   ],
@@ -1135,8 +1362,8 @@ def coordcardinfo(uset, cid=None):
     ...                        cylcoord)
     >>> uset = nastran.addgrid(
     ...     uset, 1003, 'b', sphcoord, [12, 40, 45], sphcoord)
-    >>> cyl601 = nastran.coordcardinfo(uset, 601)
-    >>> sph701 = nastran.coordcardinfo(uset, 701)
+    >>> cyl601 = nastran.mkcordcardinfo(uset, 601)
+    >>> sph701 = nastran.mkcordcardinfo(uset, 701)
     >>> uset = nastran.addgrid(uset, 2002, 'b', cyl601[1], [2, 90, 5],
     ...                        cyl601[1])
     >>> uset = nastran.addgrid(
@@ -1197,7 +1424,7 @@ def coordcardinfo(uset, cid=None):
     return CI
 
 
-def _get_coordinfo_byid(refid, uset):
+def _mkusetcoordinfo_byid(refid, uset):
     """
     Returns 5x3 coordinate system information for the reference
     coordinate system.
@@ -1215,7 +1442,7 @@ def _get_coordinfo_byid(refid, uset):
     cordinfo : 2d ndarray
         5x3 coordinate system information for `refid`.
 
-    See :func:`get_coordinfo` for more information.
+    See :func:`mkusetcoordinfo` for more information.
     """
     if refid == 0:
         return np.vstack((np.array([[0, 1, 0], [0., 0., 0.]]),
@@ -1232,7 +1459,7 @@ def _get_coordinfo_byid(refid, uset):
                      'found in `uset`.'.format(refid))
 
 
-def get_coordinfo(cord, uset, coordref):
+def mkusetcoordinfo(cord, uset, coordref):
     """
     Function for getting coordinfo as needed by the USET table.
     Called by addgrid.
@@ -1272,7 +1499,7 @@ def get_coordinfo(cord, uset, coordref):
             [xo  yo  zo]  # origin of coord. system
             [    T     ]  # 3x3 transformation to basic
             Note that T is for the coordinate system, not a grid
-            (unless type = 0 which means rectangular)
+            (unless type = 1 which means rectangular)
 
     Notes
     -----
@@ -1282,13 +1509,26 @@ def get_coordinfo(cord, uset, coordref):
     See also
     --------
     :func:`addgrid`, :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
+
+    Examples
+    --------
+    >>> from pyyeti.nastran import n2p
+    >>> n2p.mkusetcoordinfo([[1, 1, 0],
+    ...                      [10, 0, 0],
+    ...                      [11, 0, 0],
+    ...                      [10, 0, 1]], None, {})
+    array([[  1.,   1.,   0.],
+           [ 10.,   0.,   0.],
+           [  0.,   0.,   1.],
+           [  0.,  -1.,   0.],
+           [  1.,   0.,   0.]])
     """
     if np.size(cord) == 1:
         cid = int(cord)
         try:
             return coordref[cid]
         except KeyError:
-            ci = _get_coordinfo_byid(cid, uset)
+            ci = _mkusetcoordinfo_byid(cid, uset)
             coordref[cord] = ci
             return ci
     cord = np.atleast_2d(cord)
@@ -1300,7 +1540,7 @@ def get_coordinfo(cord, uset, coordref):
         return coordref[cid]
     except KeyError:
         try:
-            ci = _get_coordinfo_byid(cid, uset)
+            ci = _mkusetcoordinfo_byid(cid, uset)
         except ValueError:
             # id not already processed ... go through calcs below
             pass
@@ -1311,7 +1551,7 @@ def get_coordinfo(cord, uset, coordref):
     try:
         refinfo = coordref[cord[0, 2]]
     except KeyError:
-        refinfo = _get_coordinfo_byid(cord[0, 2], uset)
+        refinfo = _mkusetcoordinfo_byid(cord[0, 2], uset)
         coordref[cord[0, 2]] = refinfo
     a = cord[1]
     b = cord[2]
@@ -1384,7 +1624,7 @@ def build_coords(cords):
             [xo   yo  zo]  # origin of coord. system
             [     T     ]  # 3x3 transformation to basic
             Note that T is for the coordinate system, not a grid
-            (unless type = 0 which means rectangular)
+            (unless type = 1 which means rectangular)
 
     Notes
     -----
@@ -1441,7 +1681,7 @@ def build_coords(cords):
     return coordref
 
 
-def getcoords(uset, gid, csys, coordref=None):
+def getcoordinates(uset, gid, csys, coordref=None):
     r"""
     Get coordinates of a grid or location in a specified coordinate
     system.
@@ -1618,7 +1858,7 @@ def getcoords(uset, gid, csys, coordref=None):
     See also
     --------
     :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
-    :func:`pyyeti.nastran.bulk.bulk2uset`, :func:`coordcardinfo`,
+    :func:`pyyeti.nastran.bulk.bulk2uset`, :func:`mkcordcardinfo`,
     :func:`pyyeti.nastran.wtcoordcards`, :func:`rbgeom_uset`.
 
     Examples
@@ -1640,16 +1880,16 @@ def getcoords(uset, gid, csys, coordref=None):
     ...                        [50, 90, 90], sphcoord)
     >>> np.set_printoptions(precision=2, suppress=True)
     >>> # get coordinates of node 200 in basic:
-    >>> nastran.getcoords(uset, 200, 0)
+    >>> nastran.getcoordinates(uset, 200, 0)
     array([ 10.,   0.,  32.])
     >>> # get coordinates of node 200 in cylindrical (cid 1):
-    >>> nastran.getcoords(uset, 200, 1)
+    >>> nastran.getcoordinates(uset, 200, 1)
     array([ 32.,  90.,  10.])
     >>> # get coordinates of node 200 in spherical (cid 2):
     >>> r = np.hypot(10., 32.)
     >>> th = 90.
     >>> phi = math.atan2(10., 32.)*180/math.pi
-    >>> nastran.getcoords(uset, 200, 2) - np.array([r, th, phi])
+    >>> nastran.getcoordinates(uset, 200, 2) - np.array([r, th, phi])
     array([ 0.,  0.,  0.])
     """
     if np.size(gid) == 1:
@@ -1661,7 +1901,7 @@ def getcoords(uset, gid, csys, coordref=None):
     # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
     if coordref is None:
         coordref = {}
-    coordinfo = get_coordinfo(csys, uset, coordref)
+    coordinfo = mkusetcoordinfo(csys, uset, coordref)
     xyz_coord = coordinfo[1]
     T = coordinfo[2:]   # transform to basic for coordinate system
     g = T.T @ (xyz_basic - xyz_coord)
@@ -1908,7 +2148,7 @@ def _addgrid_proc_ci(coord, uset, coordref):
     else:
         # is iterable ... but is it just one coord matrix?
         try:
-            ci = get_coordinfo(coord, uset, coordref)
+            ci = mkusetcoordinfo(coord, uset, coordref)
         except (TypeError, ValueError, IndexError):
             # assume it's a good iterable already
             pass
@@ -1979,7 +2219,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
              [xo   yo  zo]  # origin of coord. system
              [     T     ]  # 3x3 transformation to basic
              Note that T is for the coordinate system, not a grid
-             (unless type = 0 which means rectangular)
+             (unless type = 1 which means rectangular)
 
         For example, to create a `coordref` with coordinate system
         104, you can do this::
@@ -2128,11 +2368,11 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         _uset = _addgrid_get_uset(u, mask, smap)
 
         # get location of point in basic:
-        _cin = get_coordinfo(_cin, uset, coordref)
+        _cin = mkusetcoordinfo(_cin, uset, coordref)
         loc = _get_loc_a_basic(_cin, _xyz)
 
         # form x, y, z columns of dataframe:
-        _cout = get_coordinfo(_cout, uset, coordref)
+        _cout = mkusetcoordinfo(_cout, uset, coordref)
         _xyz = np.vstack((loc, _cout))
 
         # put in dataframe:
@@ -2462,7 +2702,7 @@ def _findse(nas, se):
     Parameters
     ----------
     nas : dictionary
-        This is the nas2cam dictionary:  ``nas = op2.rdnas2cam()``
+        This is the nas2cam dictionary: ``nas = op2.rdnas2cam()``
     se : integer
         The id of the superelement.
 
@@ -2998,7 +3238,7 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
     Parameters
     ----------
     nas : dictionary
-        This is the nas2cam dictionary:  ``nas = op2.rdnas2cam()``
+        This is the nas2cam dictionary: ``nas = op2.rdnas2cam()``
     seup : integer
         The id of the upstream superelement.
     sedn : integer; optional
@@ -3092,7 +3332,7 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
     Parameters
     ----------
     nas : dictionary
-        This is the nas2cam dictionary:  ``nas = op2.rdnas2cam()``
+        This is the nas2cam dictionary: ``nas = op2.rdnas2cam()``
     seup : integer
         The id of the upstream superelement.
     dof : 1d or 2d integer array

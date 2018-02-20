@@ -8,7 +8,6 @@ from collections import abc
 import numbers
 from types import SimpleNamespace
 from warnings import warn
-import copy
 import numpy as np
 import scipy.linalg as linalg
 import scipy.sparse.linalg as sp_la
@@ -1162,226 +1161,6 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     return s
 
 
-def find_xyz_triples(drmrb, get_trans=False, mats=None,
-                     inplace=False):
-    """
-    Find x, y, z triples in rigid-body motion matrix.
-
-    Parameters
-    ----------
-    drmrb : 2d array_like
-        Rigid-body modes or, for example, ``drmrb = ATM @ rb``.
-    get_trans : bool; optional
-        If True, return list of 3x3 transforms that converts each
-        triplet of xyz rows to the coordinate system of the reference
-        node for the rigid-body modes.
-    mats : dictionary or None; optional
-        Dictionary of matrices (2d ndarrays) that will have rows that
-        correspond to the triplet rows in `drmrb` transformed by the
-        3x3 transforms derived from `drmrb`. These transforms are
-        optionally returned in `Ts`. `mats` is ignored if None, though
-        you can still transform matrices afterwards by setting
-        `get_trans` to True and using the return value `Ts`.
-    inplace : bool; optional
-        If True, the `mats` dictionary and matrices will be changed in
-        place.
-
-    Returns
-    -------
-    A SimpleNamespace with the members:
-
-    pv : 1d ndarray
-        Bool array with True values indicating the rows in `drmrb`
-        where xyz triples were found, if any.
-    coords : 2d ndarray
-        Contains coordinates of each xyz triplet. Size is n x 3 where
-        n is the number of rows in `drmrb`. The coordinates of each
-        triplet is repeated 3 times; other, non-triplet rows are
-        filled with ``np.nan``.
-    scales : 1d ndarray
-        Length n array containing the scale of each
-        triplet. Non-triplet rows are filled with ``np.nan``. `scales`
-        is used to handle different output units.
-    Ts : list of 2d ndarrays; optional
-        Only returned if `get_trans` is True. List of 3x3 transforms
-        that converts each triplet of xyz rows to the coordinate
-        system of the reference node for the rigid-body modes. Unlike
-        other outputs, `Ts` does not contain any information for non
-        xyz triplet rows.
-    outmats : dictionary; optional
-        The transformed version of `mats`.
-
-    Examples
-    --------
-    A rigid-body mode shape matrix with two identical nodes is
-    defined. Then, the second node will be transformed into a
-    different coordinate system and scaled up by 10.0. Also, the 3
-    rotation rows for the second grid are not included.
-
-    >>> import numpy as np
-    >>> from pyyeti import cb
-    >>> rb = np.array([
-    ...     [1.,   0.,   0.,   0.,  15., -10.],
-    ...     [0.,   1.,   0., -15.,   0.,   5.],
-    ...     [0.,   0.,   1.,  10.,  -5.,   0.],
-    ...     [0.,   0.,   0.,   1.,   0.,   0.],
-    ...     [0.,   0.,   0.,   0.,   1.,   0.],
-    ...     [0.,   0.,   0.,   0.,   0.,   1.],
-    ...     [1.,   0.,   0.,   0.,  15., -10.],
-    ...     [0.,   1.,   0., -15.,   0.,   5.],
-    ...     [0.,   0.,   1.,  10.,  -5.,   0.],
-    ... ])
-    >>> c = 1 / np.sqrt(2)
-    >>> T = np.array([[1., 0., 0.],
-    ...               [0., c, c],
-    ...               [0., -c, c]])
-    >>> rb[-3:] = 10 * T @ rb[-3:]
-    >>> np.set_printoptions(linewidth=60, precision=2, suppress=True)
-    >>> rb
-    array([[   1.  ,    0.  ,    0.  ,    0.  ,   15.  ,  -10.  ],
-           [   0.  ,    1.  ,    0.  ,  -15.  ,    0.  ,    5.  ],
-           [   0.  ,    0.  ,    1.  ,   10.  ,   -5.  ,    0.  ],
-           [   0.  ,    0.  ,    0.  ,    1.  ,    0.  ,    0.  ],
-           [   0.  ,    0.  ,    0.  ,    0.  ,    1.  ,    0.  ],
-           [   0.  ,    0.  ,    0.  ,    0.  ,    0.  ,    1.  ],
-           [  10.  ,    0.  ,    0.  ,    0.  ,  150.  , -100.  ],
-           [   0.  ,    7.07,    7.07,  -35.36,  -35.36,   35.36],
-           [   0.  ,   -7.07,    7.07,  176.78,  -35.36,  -35.36]])
-
-    Transform `rb` internally (it will also be transformed "by-hand"
-    below):
-
-    >>> mats = {'rb': rb}
-    >>> trips = cb.find_xyz_triples(rb, get_trans=True, mats=mats)
-
-    Check results:
-
-    >>> np.set_printoptions(linewidth=60, precision=4, suppress=True)
-    >>> trips.pv
-    array([ True,  True,  True, False, False, False,  True,
-            True,  True], dtype=bool)
-    >>> trips.coords
-    array([[  5.,  10.,  15.],
-           [  5.,  10.,  15.],
-           [  5.,  10.,  15.],
-           [ nan,  nan,  nan],
-           [ nan,  nan,  nan],
-           [ nan,  nan,  nan],
-           [  5.,  10.,  15.],
-           [  5.,  10.,  15.],
-           [  5.,  10.,  15.]])
-    >>> trips.scales
-    array([  1.,   1.,   1.,  nan,  nan,  nan,  10.,  10.,  10.])
-    >>> len(trips.Ts)
-    2
-    >>> trips.Ts[0]
-    array([[ 1.,  0., -0.],
-           [ 0.,  1., -0.],
-           [ 0.,  0.,  1.]])
-    >>> trips.Ts[1]
-    array([[ 0.1   , -0.    , -0.    ],
-           [ 0.    ,  0.0707, -0.0707],
-           [ 0.    ,  0.0707,  0.0707]])
-    >>> trips.outmats['rb']
-    array([[  1.,   0.,   0.,   0.,  15., -10.],
-           [  0.,   1.,   0., -15.,   0.,   5.],
-           [  0.,   0.,   1.,  10.,  -5.,   0.],
-           [  0.,   0.,   0.,   1.,   0.,   0.],
-           [  0.,   0.,   0.,   0.,   1.,   0.],
-           [  0.,   0.,   0.,   0.,   0.,   1.],
-           [  1.,   0.,   0.,   0.,  15., -10.],
-           [  0.,   1.,   0., -15.,   0.,   5.],
-           [  0.,   0.,   1.,  10.,  -5.,   0.]])
-
-    Transform "rb" back into basic coordinates and to unity scale by
-    using pv & Ts together:
-
-    >>> pv = trips.pv.nonzero()[0]
-    >>> for j, Tcurr in enumerate(trips.Ts):
-    ...     pvcurr = pv[j * 3:j * 3 + 3]
-    ...     rb[pvcurr] = Tcurr @ rb[pvcurr]
-    >>> rb
-    array([[  1.,   0.,   0.,   0.,  15., -10.],
-           [  0.,   1.,   0., -15.,   0.,   5.],
-           [  0.,   0.,   1.,  10.,  -5.,   0.],
-           [  0.,   0.,   0.,   1.,   0.,   0.],
-           [  0.,   0.,   0.,   0.,   1.,   0.],
-           [  0.,   0.,   0.,   0.,   0.,   1.],
-           [  1.,   0.,   0.,   0.,  15., -10.],
-           [  0.,   1.,   0., -15.,   0.,   5.],
-           [  0.,   0.,   1.,  10.,  -5.,   0.]])
-    """
-    # attempt to find xyz triples:
-    drmrb = np.atleast_2d(drmrb)
-    n = drmrb.shape[0]
-    coords = np.empty((n, 3))
-    coords[:] = np.nan
-    scales = np.empty(n)
-    scales[:] = np.nan
-
-    if get_trans:
-        Ts = []
-
-    if mats:
-        if inplace:
-            outmats = mats
-        else:
-            outmats = copy.deepcopy(mats)
-    else:
-        outmats = None
-
-    j = 0
-    while j + 2 < n:
-        pv = slice(j, j + 3)
-        T1 = drmrb[pv, :3]
-        # check for a scalar multiplier (like .00259, for example)
-        T1tT1 = T1.T @ T1
-        csqr = T1tT1[0, 0]
-        try:
-            T2 = linalg.inv(T1)
-        except linalg.LinAlgError:
-            good = False
-        else:
-            mx = abs(T1).max()
-            good = np.allclose(
-                csqr * T2, T1.T,
-                rtol=0.001, atol=max(0.001 * mx, 1.e-5))
-        if good:
-            rbrot = T2 @ drmrb[pv, 3:]
-            x = rbrot[1, 2]
-            y = rbrot[2, 0]
-            z = rbrot[0, 1]
-            rbrot_ideal = np.array([[0, z, -y],
-                                    [-z, 0, x],
-                                    [y, -x, 0]])
-            mx = abs(rbrot_ideal).max()
-            if np.allclose(rbrot, rbrot_ideal,
-                           rtol=0.001, atol=max(0.001 * mx, 1.e-5)):
-                coords[pv, 0] = x
-                coords[pv, 1] = y
-                coords[pv, 2] = z
-                scales[pv] = np.sqrt(csqr)
-                if get_trans:
-                    Ts.append(T2)
-                if outmats:
-                    for val in outmats.values():
-                        val[pv] = T2 @ val[pv]
-                j += 3
-            else:
-                j += 1
-        else:
-            j += 1
-    pv = ~np.isnan(coords[:, 0])
-    s = SimpleNamespace(pv=pv,
-                        coords=coords,
-                        scales=scales)
-    if get_trans:
-        s.Ts = Ts
-    if outmats:
-        s.outmats = outmats
-    return s
-
-
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     """
     Routine used by :func:`rbmultchk`. See documentation for
@@ -1403,7 +1182,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
 
     # get rb scale:
     if 0:
-        trips = find_xyz_triples(rb)
+        trips = n2p.find_xyz_triples(rb)
         if not trips.pv.any():
             raise ValueError('failed to get scale of rb modes ...'
                              ' check `rb`')
@@ -1416,7 +1195,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
                              ' check `rb`')
 
     # attempt to find xyz triples:
-    trips = find_xyz_triples(drmrb)
+    trips = n2p.find_xyz_triples(drmrb)
     trips.scales[trips.pv] /= rbscale
 
     fout.write('\nExtreme Coordinates from {}\n'.format(name))

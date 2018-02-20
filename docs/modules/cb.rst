@@ -12,7 +12,6 @@ Hurty-Craig-Bampton model checking
     cbreorder
     cbtf
     cgmass
-    find_xyz_triples
     mk_net_drms
     rbdispchk
     rbmultchk

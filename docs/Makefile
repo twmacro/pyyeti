@@ -18,6 +18,7 @@ help:
 clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf modules/generated/*
+	rm -fr modules/nastran/generated/*
 	rm -rf tutorials/*.rst
 	rm -rf tutorials/temp_*
 	rm -rf tutorials/.ipynb_checkpoints

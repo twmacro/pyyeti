@@ -1131,7 +1131,7 @@ def bulk2uset(*args):
             [xo  yo  zo]  # origin of coord. system
             [    T     ]  # 3x3 transformation to basic
             Note that T is for the coordinate system, not a grid
-            (unless type = 0 which means rectangular)
+            (unless type = 1 which means rectangular)
 
     Notes
     -----
@@ -2573,7 +2573,7 @@ def wtcoordcards(f, ci):
         opened for file selection.
     ci : dictionary or None
         Dictionary of coordinate card info as returned by
-        :func:`pyyeti.nastran.n2p.coordcardinfo`. If None or if dict
+        :func:`pyyeti.nastran.n2p.mkcordcardinfo`. If None or if dict
         is empty, this routine quietly does nothing.
 
     Returns
@@ -2750,7 +2750,7 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
     op4.write(name + '.op4', namelist, varlist)
 
     # Get some data from the uset table:
-    ci = n2p.coordcardinfo(uset)
+    ci = n2p.mkcordcardinfo(uset)
     grids = uset.index.get_level_values('id')
     dof = uset.index.get_level_values('dof')
     pv = dof == 1

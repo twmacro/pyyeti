@@ -1,7 +1,4 @@
 import os
-from subprocess import run
-
-import sys
 import itertools
 import shutil
 import inspect
@@ -12,12 +9,11 @@ from glob import glob
 from io import StringIO
 import numpy as np
 from scipy.io import matlab
-from scipy import linalg
 import scipy.interpolate as interp
 from nose.tools import *
-import matplotlib as mpl
-mpl.interactive(0)
-mpl.use('Agg')
+# import matplotlib as mpl
+# mpl.interactive(0)
+# mpl.use('Agg')
 import matplotlib.pyplot as plt
 from pyyeti import cla, cb, ode, stats
 from pyyeti import nastran, srs
@@ -2764,3 +2760,126 @@ def test_frf_data_recovery():
         results.resp_plots(direc=direc)
     finally:
         shutil.rmtree('./temp_frf', ignore_errors=True)
+
+
+def test_reldisp_dtm():
+    INBOARD = 0
+    OUTBOARD = 101
+
+    event = 'TOES'
+    pth = 'pyyeti/tests/cla_test_data/'
+
+    # load nastran data:
+    nas = op2.rdnas2cam(pth + 'nas2cam')
+
+    # form ulvs for some SEs:
+    SC = 101
+    n2p.addulvs(nas, SC)
+
+    # read in more data for OUTBOARD:
+    if 'tug1' not in nas:
+        nas['tug1'] = {}
+    nas['tug1'][OUTBOARD] = nastran.rddtipch(pth + 'outboard.pch')
+
+    if 'extse' not in nas:
+        nas['extse'] = {}
+    nas['extse'][OUTBOARD] = nastran.op4.read(pth + 'outboard.op4')
+
+    nodepairs = [
+        [OUTBOARD, 3, OUTBOARD, 10],
+        [INBOARD, 11, OUTBOARD, 18],
+    ]
+
+    reldtm, L, rellabels = cla.reldisp_dtm(nas, nodepairs)
+    assert np.allclose(L, 300.0 * np.sqrt(2))
+    assert rellabels == ['SE101,10 - SE101,3',
+                         'SE101,18 - SE0,11']
+
+    assert_raises(ValueError, cla.reldisp_dtm, nas, [[SC, 11, 0, 11]])
+
+    # notes:
+    # - element 66 runs between 3 & 10
+    # - element 72 runs between 11 & 18
+    # form axial force recovery for 66 & 72:
+    tef1 = nastran.rddtipch(pth + 'outboard.pch', 'tef1')
+    pv = n2p.mkdofpv(tef1, 'p', [[66, 7], [72, 7]])[0]
+    ltm = nas['extse'][OUTBOARD]['mef1'][pv] @ nas['ulvs'][OUTBOARD]
+
+    # convert the axial load ltm to a delta-x ltm:
+    # - axial load is positive for tension (grid b moves away)
+    E = 6.894e+7
+    A = 12.566
+    ltm *= L[:, None] / (E * A)
+
+    # add the above items to the data recovery:
+    drdefs = cla.DR_Def({'se': 0})
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'reldisp1'
+        desc = 'Relative Displacements'
+        units = 'mm'
+        labels = rellabels
+        drms = {name: reldtm}
+        drfunc = f"Vars[se]['{name}'] @ sol.d"
+        histpv = 'all'
+        drdefs.add(**locals())
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'reldisp2'
+        desc = 'Relative Displacements'
+        units = 'mm'
+        labels = ['LTM: OB 3 - OB 10',
+                  'LTM: IN 10 - OB 18']
+        drms = {name: ltm}
+        drfunc = f"Vars[se]['{name}'] @ sol.d"
+        histpv = 'all'
+        drdefs.add(**locals())
+
+    # prepare spacecraft data recovery matrices
+    DR = cla.DR_Event()
+    DR.add(nas, drdefs)
+
+    # initialize results (ext, mnc, mxc for all drms)
+    results = DR.prepare_results('micro space station', event)
+
+    # set rfmodes:
+    rfmodes = nas['rfmodes'][0]
+
+    # setup modal mass, damping and stiffness
+    m = None   # None means identity
+    k = nas['lambda'][0]
+    k[: nas['nrb']] = 0.0
+    b = 2 * 0.02 * np.sqrt(k)
+    mbk = (m, b, k)
+
+    # load in forcing functions:
+    mat = pth + 'toes/toes_ffns.mat'
+    toes = matlab.loadmat(mat, squeeze_me=True,
+                          struct_as_record=False)
+    toes['ffns'] = toes['ffns'][:1, ::2]
+    toes['sr'] = toes['sr'] / 2
+    toes['t'] = toes['t'][::2]
+
+    # form force transform:
+    T = n2p.formdrm(nas, 0, [[8, 12], [24, 13]])[0].T
+
+    # do pre-calcs and loop over all cases:
+    ts = ode.SolveUnc(*mbk, 1 / toes['sr'], rf=rfmodes)
+    LC = toes['ffns'].shape[0]
+    t = toes['t']
+    for j, force in enumerate(toes['ffns']):
+        # print('Running {} case {}'.format(event, j + 1))
+        genforce = T @ ([[1], [0.1], [1], [0.1]] * force[None, :])
+        # solve equations of motion
+        sol = ts.tsolve(genforce, static_ic=1)
+        sol.t = t
+        sol = DR.apply_uf(sol, *mbk, nas['nrb'], rfmodes)
+        caseid = '{} {:2d}'.format(event, j + 1)
+        results.time_data_recovery(sol, nas['nrb'],
+                                   caseid, DR, LC, j)
+
+    h1 = results['reldisp1'].hist
+    h2 = results['reldisp2'].hist
+    assert np.allclose(h1, h2)

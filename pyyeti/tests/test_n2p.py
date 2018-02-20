@@ -608,10 +608,10 @@ def test_addgrid():
 
     # get coordinates of node 200 in basic:
     assert np.allclose(np.array([10., 0, 32.]),
-                       n2p.getcoords(uset, 200, 0))
+                       n2p.getcoordinates(uset, 200, 0))
     # reverse:
     assert np.allclose([32, 90, 10],
-                       n2p.getcoords(uset, [10., 0, 32.], 1))
+                       n2p.getcoordinates(uset, [10., 0, 32.], 1))
     assert_raises(ValueError, n2p.addgrid, None, 555, 'b',
                   555, [0, 0, 0], 555)
     assert_raises(ValueError, n2p.addgrid, uset, uset.index[0][0],
@@ -625,7 +625,7 @@ def test_addgrid():
     assert np.all(uset['nasset'] == np.array(sets))
 
 
-def test_getcoords():
+def test_getcoordinates():
     # node 100 in basic is @ [5, 10, 15]
     # node 200 in cylindrical coordinate system is @
     # [r, th, z] = [32, 90, 10]
@@ -638,41 +638,49 @@ def test_getcoords():
     np.set_printoptions(precision=2, suppress=True)
 
     # check coordinates of node 100:
-    assert np.allclose(np.array([5., 10., 15.]), n2p.getcoords(uset, 100, 0))
+    assert np.allclose(np.array([5., 10., 15.]),
+                       n2p.getcoordinates(uset, 100, 0))
     rctcoord = np.array([[10, 1, 0], [-2, -8, 9], [-2, -8, 10], [0, -8, 9]])
     assert np.allclose(np.array([5. + 2., 10. + 8., 15. - 9.]),
-                       n2p.getcoords(uset, 100, rctcoord))
+                       n2p.getcoordinates(uset, 100, rctcoord))
     r = np.hypot(10., 15.)
     th = math.atan2(15., 10.) * 180. / math.pi
     z = 5.
-    gc = n2p.getcoords(uset, 100, 1)
+    gc = n2p.getcoordinates(uset, 100, 1)
     assert np.allclose([r, th, z], gc)
     r = np.linalg.norm([5., 10., 15.])
     th = math.atan2(np.hypot(15., 5.), 10.) * 180. / math.pi
     phi = math.atan2(5., 15.) * 180. / math.pi
-    assert np.allclose(np.array([r, th, phi]), n2p.getcoords(uset, 100, 2))
+    assert np.allclose(np.array([r, th, phi]),
+                       n2p.getcoordinates(uset, 100, 2))
 
     # check coordinates of node 200:
-    assert np.allclose(np.array([10., 0., 32.]), n2p.getcoords(uset, 200, 0))
-    assert np.allclose(np.array([32., 90., 10.]), n2p.getcoords(uset, 200, 1))
+    assert np.allclose(np.array([10., 0., 32.]),
+                       n2p.getcoordinates(uset, 200, 0))
     assert np.allclose(np.array([32., 90., 10.]),
-                       n2p.getcoords(uset, 200, cylcoord))
+                       n2p.getcoordinates(uset, 200, 1))
+    assert np.allclose(np.array([32., 90., 10.]),
+                       n2p.getcoordinates(uset, 200, cylcoord))
     r = np.hypot(10., 32.)
     th = 90.
     phi = math.atan2(10., 32.) * 180 / math.pi
-    assert np.allclose(np.array([r, th, phi]), n2p.getcoords(uset, 200, 2))
     assert np.allclose(np.array([r, th, phi]),
-                       n2p.getcoords(uset, 200, sphcoord))
+                       n2p.getcoordinates(uset, 200, 2))
+    assert np.allclose(np.array([r, th, phi]),
+                       n2p.getcoordinates(uset, 200, sphcoord))
 
     # check coordinates of node 300:
     xb = 50. / math.sqrt(2)
     yb = 0.
     zb = xb
-    assert np.allclose(np.array([xb, yb, zb]), n2p.getcoords(uset, 300, 0))
-    assert np.allclose(np.array([zb, 90., xb]), n2p.getcoords(uset, 300, 1))
-    assert np.allclose(np.array([50., 90., 45.]), n2p.getcoords(uset, 300, 2))
+    assert np.allclose(np.array([xb, yb, zb]),
+                       n2p.getcoordinates(uset, 300, 0))
+    assert np.allclose(np.array([zb, 90., xb]),
+                       n2p.getcoordinates(uset, 300, 1))
     assert np.allclose(np.array([50., 90., 45.]),
-                       n2p.getcoords(uset, 300, sphcoord))
+                       n2p.getcoordinates(uset, 300, 2))
+    assert np.allclose(np.array([50., 90., 45.]),
+                       n2p.getcoordinates(uset, 300, sphcoord))
 
     # one more test to fill gap:
     sphcoord = np.array([[1, 3, 0], [0, 0, 0], [0, 0, 1],
@@ -686,7 +694,8 @@ def test_getcoords():
     phi = math.atan2(10, 5) * 180 / math.pi
     xy_rad = np.linalg.norm([5, 10])
     th = 90. - math.acos(xy_rad / R) * 180 / math.pi
-    assert np.allclose(n2p.getcoords(uset, 100, 1), [R, th, phi])
+    assert np.allclose(n2p.getcoordinates(uset, 100, 1),
+                       [R, th, phi])
 
 
 def test_rbcoords():
@@ -730,14 +739,14 @@ def test_mksetpv_mkdofpv():
                   [[100, 3], [200, 5], [300, 1], [300, 4], [400, 123]])
 
 
-def test_coordcardinfo():
+def test_mkcordcardinfo():
     uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
-    ci = n2p.coordcardinfo(uset)
+    ci = n2p.mkcordcardinfo(uset)
     assert ci == {}
-    assert_raises(ValueError, n2p.coordcardinfo, uset, 5)
+    assert_raises(ValueError, n2p.mkcordcardinfo, uset, 5)
 
     uset = gettestuset()
-    assert_raises(ValueError, n2p.coordcardinfo, uset, 5)
+    assert_raises(ValueError, n2p.mkcordcardinfo, uset, 5)
 
 # Testing formrbe3() is tough to do fully.  The docstring has a couple
 # simple tests verified by results from an older code.  To be more
@@ -1640,3 +1649,108 @@ def test_sph_zero_theta():
                     [0., 0., 0., 1., 0., 0.],
                     [0., 0., 0., 0., 1., 0.]])
     assert np.allclose(rb, rb2)
+
+
+def test_find_xyz_triples1():
+    rb = np.array([
+        [1.,   0.,   0.,   0.,  15., -10.],
+        [0.,   1.,   0., -15.,   0.,   5.],
+        [0.,   0.,   1.,  10.,  -5.,   0.],
+        [0.,   0.,   0.,   1.,   0.,   0.],
+        [0.,   0.,   0.,   0.,   1.,   0.],
+        [0.,   0.,   0.,   0.,   0.,   1.],
+        [1.,   0.,   0.,   0.,  15., -10.],
+        [0.,   1.,   0., -15.,   0.,   5.],
+        [0.,   0.,   1.,  10.,  -5.,   0.],
+    ])
+    c = 1 / np.sqrt(2)
+    T = np.array([[1., 0., 0.],
+                  [0., c, c],
+                  [0., -c, c]])
+    rb[-3:] = 10 * T @ rb[-3:]
+
+    rb_2 = rb.copy()
+
+    sbe = np.array([[1.,  0.,  0.,  0., 15., -10.],
+                    [0.,  1.,  0., -15.,  0.,  5.],
+                    [0.,  0.,  1., 10., -5.,  0.],
+                    [0.,  0.,  0.,  1.,  0.,  0.],
+                    [0.,  0.,  0.,  0.,  1.,  0.],
+                    [0.,  0.,  0.,  0.,  0.,  1.],
+                    [10.,  0.,  0.,  0., 150., -100.],
+                    [0.,  7.07,  7.07, -35.36, -35.36, 35.36],
+                    [0., -7.07,  7.07, 176.78, -35.36, -35.36]])
+    assert abs(rb - sbe).max() < 0.01
+
+    mats = {'rb': rb}
+    trips = n2p.find_xyz_triples(rb, get_trans=True, mats=mats)
+    assert trips.outmats is not mats
+
+    assert np.all(trips.pv == np.array(
+        [True, True, True, False, False, False, True,
+         True, True]))
+
+    sbe = np.array([[5., 10., 15.],
+                    [5., 10., 15.],
+                    [5., 10., 15.],
+                    [np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan],
+                    [5., 10., 15.],
+                    [5., 10., 15.],
+                    [5., 10., 15.]])
+    assert np.allclose(trips.coords, sbe, equal_nan=True)
+
+    sbe = np.array([1.,  1.,  1., np.nan, np.nan, np.nan,
+                    10., 10., 10.])
+    assert np.allclose(trips.scales, sbe, equal_nan=True)
+    assert len(trips.Ts) == 2
+
+    assert np.allclose(trips.Ts[0], np.array([[1., 0., 0.],
+                                              [0., 1., 0.],
+                                              [0., 0., 1.]]))
+    assert abs(trips.Ts[1] -
+               np.array([[0.1, 0.,   0.],
+                         [0., 0.0707, -0.0707],
+                         [0., 0.0707, 0.0707]])).max() < 0.0001
+
+    assert np.allclose(trips.outmats['rb'],
+                       np.array([[1., 0., 0., 0., 15., -10.],
+                                 [0., 1., 0., -15., 0., 5.],
+                                 [0., 0., 1., 10., -5., 0.],
+                                 [0., 0., 0., 1., 0., 0.],
+                                 [0., 0., 0., 0., 1., 0.],
+                                 [0., 0., 0., 0., 0., 1.],
+                                 [1., 0., 0., 0., 15., -10.],
+                                 [0., 1., 0., -15., 0., 5.],
+                                 [0., 0., 1., 10., -5., 0.]]))
+
+    pv = trips.pv.nonzero()[0]
+    for j, Tcurr in enumerate(trips.Ts):
+        pvcurr = pv[j * 3:j * 3 + 3]
+        rb[pvcurr] = Tcurr @ rb[pvcurr]
+
+    assert np.allclose(rb, np.array([[1., 0., 0., 0., 15., -10.],
+                                     [0., 1., 0., -15., 0., 5.],
+                                     [0., 0., 1., 10., -5., 0.],
+                                     [0., 0., 0., 1., 0., 0.],
+                                     [0., 0., 0., 0., 1., 0.],
+                                     [0., 0., 0., 0., 0., 1.],
+                                     [1., 0., 0., 0., 15., -10.],
+                                     [0., 1., 0., -15., 0., 5.],
+                                     [0., 0., 1., 10., -5., 0.]]))
+
+    # test in "inplace" option:
+    mats = {'rb': rb_2}
+    trips2 = n2p.find_xyz_triples(rb_2, get_trans=True, mats=mats,
+                                  inplace=True)
+    assert trips2.outmats is mats
+    assert rb_2 is mats['rb']
+    assert np.allclose(rb, rb_2)
+    assert len(trips2.Ts) == 2
+    for t1, t2 in zip(trips.Ts, trips2.Ts):
+        assert np.allclose(t1, t2)
+    for name in ('pv', 'coords', 'scales'):
+        assert np.allclose(getattr(trips, name),
+                           getattr(trips2, name),
+                           equal_nan=True)

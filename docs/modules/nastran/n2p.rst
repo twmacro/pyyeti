@@ -9,17 +9,18 @@ Nastran-to-Python tools
     addgrid
     addulvs
     build_coords
-    coordcardinfo
     expanddof
+    find_xyz_triples
     formdrm
     formrbe3
     formtran
     formulvs
-    get_coordinfo
-    getcoords
+    getcoordinates
     make_uset
+    mkcordcardinfo
     mkdofpv
     mksetpv
+    mkusetcoordinfo
     mkusetmask
     rbcoords
     rbgeom
