@@ -1029,13 +1029,13 @@ class DR_Def(OrderedDict):
             if not isinstance(dct[lbl], (list, type(None))):
                 dct[lbl] = list(dct[lbl])
 
-    def add(self, *, name, labels, drms=None, drfunc=None,
-            drfile=None, se=None, desc=None, units='Not specified',
-            uf_reds=None, filterval=1.e-6, histlabels=None,
-            histpv=None, histunits=None, misc=None, ignorepv=None,
-            nondrms=None, srsQs=None, srsfrq=None, srsconv=None,
-            srslabels=None, srsopts=None, srspv=None, srsunits=None,
-            **kwargs):
+    def add(self, *, name, labels, active=True, drms=None,
+            drfunc=None, drfile=None, se=None, desc=None,
+            units='Not specified', uf_reds=None, filterval=1.e-6,
+            histlabels=None, histpv=None, histunits=None, misc=None,
+            ignorepv=None, nondrms=None, srsQs=None, srsfrq=None,
+            srsconv=None, srslabels=None, srsopts=None, srspv=None,
+            srsunits=None, **kwargs):
         """
         Adds a data recovery category.
 
@@ -1069,12 +1069,22 @@ class DR_Def(OrderedDict):
             ``['Row 1', 'Row 2', ...]``. This input is used to
             determine number of rows being recovered. If not a list,
             it is converted to a list via :func:`list`.
-        drms : dict or None
+        active : bool; optional
+            If True, this category will be included when the
+            :func:`DR_Event.add` function is called to add categories
+            for the event simulation. Otherwise, this category will be
+            ignored during the simulation.
+        drms : dict or None; optional
             Dictionary of data recovery matrices for this category;
             keys are matrix names and must match what is used in the
-            data recovery function in `drfile`. For example: ``drms =
-            {'scatm': scatm}``. If `se` is greater than 0, each matrix
-            will be multiplied by the appropriate "ULVS" matrix (see
+            data recovery function in `drfile`. In the data recovery
+            function, these variables are accessed through
+            ``Vars[se]``. For example: ``drms = {'scatm': scatm}``
+            means that ``Vars[se]['scatm']`` would be used in the
+            function (see also `drfunc`). If `se` is greater than 0,
+            each matrix, before being stored in ``Vars[se]`` in
+            :func:`DR_Event.add`, will be multiplied by the
+            appropriate "ULVS" matrix (see
             :func:`pyyeti.nastran.op2.rdnas2cam`) during event
             simulation. If `se` is 0, it is used as is and is likely
             added during event simulation since system modes are often
@@ -1166,70 +1176,75 @@ class DR_Def(OrderedDict):
             during comparison to another set of results. If 1d
             array_like, length must be ``len(labels)`` allowing for a
             unique filter value for each row.
-        histlabels : list_like or None
+        histlabels : list_like or None; optional
             Analogous to `labels` but just for the `histpv` rows.
 
             DA: derive from `labels` according to `histpv` if
             needed; otherwise, leave it None.
-        histpv : 1d array_like or 'all' or slice or None
+        histpv : 1d array_like or 'all' or slice or None; optional
             Specifies which rows to save the response histories of.
             See note below about inputting partition vectors.
-        histunits : string or None
+        histunits : string or None; optional
             Units string for the `histpv`.
 
             DA: set to `units`.
-        ignorepv : 1d array_like or 'all' or slice or None
+        ignorepv : 1d array_like or 'all' or slice or None; optional
             Typically, this is left as None (default) so that all rows
             are compared. `ignorepv` specifies rows that need to be
             ignored during comparisons against a reference data set.
             If set to 'all', all rows will ignored ... meaning no
             comparisons will be done for this category. See note below
             about inputting partition vectors.
-        misc : any object
+        misc : any object; optional
             Available for storing miscellaneous information for the
-            category. It is not used within this module.
-        nondrms : dict or None
+            category. It is not used within this module. This option
+            is similar to `nondrms` in functionality; the differences
+            are that the `misc` input will be stored with the results,
+            and that the `nondrms` contents will be put in ``Vars[se]``
+            (making those values available in the the data recovery
+            function).
+        nondrms : dict or None; optional
             With one important exception, this input is used
             identically to `drms`. The exception is that the values in
             `nondrms` are not multiplied by ULVS. Therefore, `nondrms`
             can contain any variables you need for data recovery. An
             alternative option is to include data you need in
             `drfile` with the data recovery functions.
-        srsQs : scalar or 1d array_like or None
+        srsQs : scalar or 1d array_like or None; optional
             Q values for SRS calculation or None.
 
             DA: set to `self.defaults` if any other `srs*` option is
             not None; otherwise, leave it None.
-        srsfrq : 1d array_like or None
+        srsfrq : 1d array_like or None; optional
             Frequency vector for SRS.
 
             DA: get value from `self.defaults` if `srsQs` is not None;
             otherwise, leave it None.
-        srsconv : scalar or 1d array_like or None
+        srsconv : scalar or 1d array_like or None; optional
             Conversion factor scalar or vector same length as
             `srspv`. If None, it is internally reset to 1.0.
-        srslabels : list_like or None
+        srslabels : list_like or None; optional
             Analogous to `labels` but just for the `srspv` rows.
 
             DA: derive from `labels` according to `srspv` if needed;
             otherwise, leave it None.
-        srsopts : dict or None
+        srsopts : dict or None; optional
             Dictionary of options for SRS; eg:
             ``dict(eqsine=True, ic='steady')``
 
             DA: set to ``{}`` if `srspv` is not None; otherwise, leave
             it None.
-        srspv : 1d array_like or 'all' or slice or None
+        srspv : 1d array_like or 'all' or slice or None; optional
             Specifies which rows to compute SRS for. See note below
             about inputting partition vectors.
 
             DA: if `srsQs` is not None, internally set to
             ``slice(len(labels))``; otherwise, leave it None.
-        srsunits : string or None
+        srsunits : string or None; optional
             Units string for the `srspv`.
 
             DA: set to `units`.
-        **kwargs : dict
+        **kwargs : dict; optional
             All other inputs are quietly ignored.
 
         Returns
@@ -1779,9 +1794,19 @@ class DR_Event(object):
         """
         if drdefs is None:
             return
-        for name in drdefs:
+
+        for name, drminfo in drdefs.items():
             if name == '_vars':
                 continue
+
+            try:
+                active = drminfo.active
+            except AttributeError:
+                active = True
+
+            if not active:
+                continue
+
             if name in self.Info:
                 raise ValueError('"{}" data recovery category already'
                                  ' defined'.format(name))
@@ -2120,6 +2145,21 @@ class DR_Event(object):
             if 'pg' in SOL.__dict__:
                 SOL.pg *= suf
         return solout
+
+    def get_Qs(self):
+        """
+        Get list of all unique Q's used for SRS in all categories
+
+        Returns
+        -------
+        Qs : list
+            list of all unique Q's used for SRS in all categories
+        """
+        Qs = set()
+        for v in self.Info.values():
+            if v.srsQs is not None:
+                Qs |= set(v.srsQs)  # or: Qs = Qs.union(v.srsQs)
+        return sorted(Qs)
 
 
 class DR_Results(OrderedDict):
@@ -2769,6 +2809,7 @@ class DR_Results(OrderedDict):
         >>> pd.set_option('display.max_colwidth', 25)
         >>> drdefs.excel_summary(None)   # doctest: +ELLIPSIS
                                          ATM                       LTM
+        active                          True                         -
         desc        S/C Internal Accelera...        S/C Internal Loads
         drfile      ...
         drfunc                       no func                         -
@@ -6134,7 +6175,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                    else 'portrait')
 
     if drms is None:
-        alldrms = sorted(list(res))
+        alldrms = sorted(res)
     else:
         alldrms = copy.copy(drms)
         if inc0rb:

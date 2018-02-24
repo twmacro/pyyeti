@@ -11,9 +11,9 @@ import numpy as np
 from scipy.io import matlab
 import scipy.interpolate as interp
 from nose.tools import *
-# import matplotlib as mpl
-# mpl.interactive(0)
-# mpl.use('Agg')
+import matplotlib as mpl
+mpl.interactive(0)
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from pyyeti import cla, cb, ode, stats
 from pyyeti import nastran, srs
@@ -2711,7 +2711,7 @@ def test_frf_data_recovery():
     def _():
         name = 'accels'
         desc = 'Accelerations'
-        units = 'N'
+        units = 'm/sec^2'
         labels = [f'Accel {i}' for i in range(3)]
         drfunc = """sol.a"""
         histpv = 'all'
@@ -2723,9 +2723,21 @@ def test_frf_data_recovery():
     def _():
         name = 'accels2'
         desc = 'Accelerations'
-        units = 'N'
+        units = 'm/sec^2'
         labels = [f'Accel {i}' for i in range(3)]
         drfunc = """sol.a"""
+        srspv = 2
+        srsopts = dict(eqsine=1)
+        drdefs.add(**locals())
+
+    @cla.DR_Def.addcat
+    def _():
+        name = 'noaccels'
+        desc = 'No Accelerations'
+        units = 'm/sec^2'
+        labels = [f'Accel {i}' for i in range(3)]
+        drfunc = """sol.a"""
+        active = False
         srspv = 2
         srsopts = dict(eqsine=1)
         drdefs.add(**locals())

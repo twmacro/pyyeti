@@ -202,7 +202,7 @@ class MultiColumnListbox(object):                 # pragma: no cover
         dct = guitools.MultiColumnListbox(
                  'Select person', headers, [list1, list2, list3]
               ).sel_dict
-        key = sorted(list(dct.keys()))[0]
+        key = sorted(dct)[0]
         vals = dct[key]
         print('First Person is {} {} {}'
               .format(vals['First'], vals['Middle'], vals['Last']))
@@ -237,14 +237,14 @@ class MultiColumnListbox(object):                 # pragma: no cover
         self.topstring = topstring
         self.sel_dict = {}
         self.sel_index = []
-        self.detached_items = [0]*len(lists[0])
+        self.detached_items = [0] * len(lists[0])
         self._setup_widgets()
         self._build_tree()
         self.root.mainloop()
 
     def _setup_widgets(self):
         msg = tk.Text(wrap='word', height=2, font='TkDefaultFont')
-        msg.insert('1.0', self.topstring) # line 1, column 0
+        msg.insert('1.0', self.topstring)  # line 1, column 0
         msg.configure(bg=self.root.cget('bg'), relief='flat',
                       state='disabled')
         msg.pack(fill='x')
@@ -297,8 +297,8 @@ class MultiColumnListbox(object):                 # pragma: no cover
             filter_entry.bind('<Key-Return>', self._apply_filters)
             # filter_entry.pack(side='left', padx=10, expand=True)
             ttk.Label(container, text=header).grid(
-                row=0, column=i+1, sticky='w')
-            filter_entry.grid(row=1, column=i+1, sticky='w')
+                row=0, column=i + 1, sticky='w')
+            filter_entry.grid(row=1, column=i + 1, sticky='w')
             # container.grid_columnconfigure(i+1, weight=1)
             self.filter_var.append(filter_var)
 
@@ -311,10 +311,12 @@ class MultiColumnListbox(object):                 # pragma: no cover
         # reattach those where all filters pass:
         if self.casesen.get():
             filtervars = [v.get() for v in self.filter_var]
+
             def _do_find(value, sub):
                 return value.find(sub) > -1
         else:
             filtervars = [v.get().lower() for v in self.filter_var]
+
             def _do_find(value, sub):
                 return value.lower().find(sub) > -1
 
@@ -359,7 +361,7 @@ class MultiColumnListbox(object):                 # pragma: no cover
             # adjust the column's width to the header string
             # - add 15 pixels for a little buffer
             self.tree.column(
-                col, width=tkFont.Font().measure(col.title())+15)
+                col, width=tkFont.Font().measure(col.title()) + 15)
 
         for item in zip(*self.lists):
             self.tree.insert('', 'end', values=item)
@@ -375,6 +377,7 @@ class MultiColumnListbox(object):                 # pragma: no cover
             if width < col_w:
                 self.tree.column(col, width=col_w)
         self.tree.bind("<Double-1>", self._double_click)
+
 
 def _sortby(tree, col, descending):          # pragma: no cover
     """sort tree contents when a column header is clicked on"""
