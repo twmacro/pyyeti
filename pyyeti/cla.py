@@ -1029,7 +1029,7 @@ class DR_Def(OrderedDict):
             if not isinstance(dct[lbl], (list, type(None))):
                 dct[lbl] = list(dct[lbl])
 
-    def add(self, *, name, labels, active=True, drms=None,
+    def add(self, *, name, labels, active='yes', drms=None,
             drfunc=None, drfile=None, se=None, desc=None,
             units='Not specified', uf_reds=None, filterval=1.e-6,
             histlabels=None, histpv=None, histunits=None, misc=None,
@@ -1069,11 +1069,20 @@ class DR_Def(OrderedDict):
             ``['Row 1', 'Row 2', ...]``. This input is used to
             determine number of rows being recovered. If not a list,
             it is converted to a list via :func:`list`.
-        active : bool; optional
-            If True, this category will be included when the
+        active : string; optional
+            If 'yes', this category will be included when the
             :func:`DR_Event.add` function is called to add categories
             for the event simulation. Otherwise, this category will be
-            ignored during the simulation.
+            ignored during the simulation by default. These tools only
+            check for 'yes', but user written tools can make use of
+            other settings, perhaps by monkey-patching the
+            :class:`DR_Event` class to replace or augment the
+            :func:`DR_Event.add` method. As an example, for a category
+            that calculates the fairing-to-spacecraft
+            loss-of-clearance, you might set `active` to 'no' to
+            unconditionally ignore this category but use 'loc' to
+            include this category if a fairing is present but ignore
+            it if not.
         drms : dict or None; optional
             Dictionary of data recovery matrices for this category;
             keys are matrix names and must match what is used in the
@@ -1082,14 +1091,14 @@ class DR_Def(OrderedDict):
             ``Vars[se]``. For example: ``drms = {'scatm': scatm}``
             means that ``Vars[se]['scatm']`` would be used in the
             function (see also `drfunc`). If `se` is greater than 0,
-            each matrix, before being stored in ``Vars[se]`` in
+            each matrix, before being stored in ``Vars[se]`` via
             :func:`DR_Event.add`, will be multiplied by the
             appropriate "ULVS" matrix (see
             :func:`pyyeti.nastran.op2.rdnas2cam`) during event
             simulation. If `se` is 0, it is used as is and is likely
             added during event simulation since system modes are often
-            needed. (Also, when `se` is 0, using `drms` is equivalent
-            to using `nondrms`.)
+            needed. Note that when `se` is 0, using `drms` is equivalent
+            to using `nondrms`.
         drfunc : string or None; optional
             A string that either defines the data recovery
             calculations directly (a "Type 1" `drfunc`) or, if it is a
@@ -1802,9 +1811,9 @@ class DR_Event(object):
             try:
                 active = drminfo.active
             except AttributeError:
-                active = True
+                active = 'yes'
 
-            if not active:
+            if active != 'yes':
                 continue
 
             if name in self.Info:
@@ -2809,7 +2818,7 @@ class DR_Results(OrderedDict):
         >>> pd.set_option('display.max_colwidth', 25)
         >>> drdefs.excel_summary(None)   # doctest: +ELLIPSIS
                                          ATM                       LTM
-        active                          True                         -
+        active                           yes                         -
         desc        S/C Internal Accelera...        S/C Internal Loads
         drfile      ...
         drfunc                       no func                         -

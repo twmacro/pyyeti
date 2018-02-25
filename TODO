@@ -8,7 +8,7 @@
    - i think all of these should probably just be in "nastran" ...
      or under it: nastran.op4.read()
      - but all load when "from pyyeti import nastran"
-4. Convert uset to dataframe i think
+~4. Convert uset to dataframe i think
 5. Convert ext, mx, mn in DR_Results to dataframe
 6. rddmig needs profiling / updating for very large DMIGs
 7. add wtdmig

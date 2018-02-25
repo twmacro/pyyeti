@@ -2737,7 +2737,7 @@ def test_frf_data_recovery():
         units = 'm/sec^2'
         labels = [f'Accel {i}' for i in range(3)]
         drfunc = """sol.a"""
-        active = False
+        active = 'no'
         srspv = 2
         srsopts = dict(eqsine=1)
         drdefs.add(**locals())
