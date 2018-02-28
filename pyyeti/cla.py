@@ -4512,10 +4512,10 @@ def reldisp_dtm(nas, nodepairs):
 
       2. Multiplies `DTMG` by the g-set residual rigid-body modes. The
          resulting 6-column matrix is passed to
-         :func:`pyyeti.cb.find_xyz_triples` which calculates the
-         location of each node and applies coordinated transforms to
-         `DTMQ` such that it recovers in the basic coordinate system
-         for all nodes.
+         :func:`pyyeti.nastran.n2p.find_xyz_triples` which calculates
+         the location of each node and applies coordinated transforms
+         to `DTMQ` such that it recovers in the basic coordinate
+         system for all nodes.
 
       3. For each pair of nodes in `nodepairs`:
 
