@@ -2492,7 +2492,7 @@ def fdscale(y, sr, scale):
 
 def nextpow2(x):
     """
-    Return next power of two that is >= `x`
+    Return next power of two that is >= integer `x`
 
     Examples
     --------

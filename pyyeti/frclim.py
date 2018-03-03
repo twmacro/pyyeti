@@ -114,7 +114,8 @@ def ntfl(Source, Load, As, freq):
         Free acceleration of the source (interface acceleration
         without the Load attached).
     freq : 1d array_like
-        Frequency vector in Hz where solution is requested
+        Frequency vector in Hz for `Source`, `Load`, `As` and all
+        return values.
 
     Returns
     -------
@@ -177,11 +178,14 @@ def ntfl(Source, Load, As, freq):
 
     Notional example::
 
-        from pyyeti import frclim, op2, n2p, op4
+        from pyyeti import frclim
+        from pyyeti.nastran op2, n2p, op4
         import pickle
 
         # Load free acceleration of LV
-        As = pickle.load('ifresults_free.p')
+        dct = pickle.load('ifresults_free.p')
+        As = dct['As']
+        freq = dct['freq']
 
         # Load source free-free model, with residual vectors included
         nas = op2.rdnas2cam('nas2cam')
@@ -201,7 +205,6 @@ def ntfl(Source, Load, As, freq):
         kgen[:6, :6] = 0.
         zeta = 0.01
         bgen = np.diag(2*zeta*np.sqrt(np.diag(kgen)))
-        freq = np.arange(.1, 40, .1)
 
         # Norton Thevenin force limit function:
         r = frclim.ntfl([m1, b1, k1, T], [mgen, bgen, kgen,
@@ -396,6 +399,13 @@ def ntfl(Source, Load, As, freq):
     else:
         LAM = Load
 
+    As = np.atleast_2d(As)
+    if not len(freq) == As.shape[1] == SAM.shape[1] == LAM.shape[1]:
+        raise ValueError(
+            'incompatible sizes: ensure that `Source`, '
+            '`Load`, and `As` all use the same frequency '
+            'vector `freq`')
+
     TAM = SAM + LAM
 
     # Application of Norton-Thevenin equations
@@ -406,7 +416,7 @@ def ntfl(Source, Load, As, freq):
     for j in range(c):
         Ms = SAM[:, j, :]
         Ml = LAM[:, j, :]
-        Mr = la.solve(Ms+Ml, Ms)
+        Mr = la.solve(Ms + Ml, Ms)
         R[:, j] = np.diag(Mr)
         A[:, j] = Mr @ As[:, j]
         F[:, j] = Ml @ A[:, j]
@@ -467,7 +477,7 @@ def sefl(c, f, f0):
     """
     if f <= f0:
         return c
-    return f0*c/f
+    return f0 * c / f
 
 
 def stdfs(mr, Q):
@@ -558,38 +568,38 @@ def stdfs(mr, Q):
     w2 = 1.
     Q = np.atleast_1d(Q)
     if len(Q) == 1:
-        zeta1 = zeta2 = 1/2/Q[0]
+        zeta1 = zeta2 = 1 / 2 / Q[0]
     else:
-        zeta1 = 1/2/Q[0]
-        zeta2 = 1/2/Q[1]
-    m1 = m2/mr
-    c1 = 2*zeta1*w1*m1
-    c2 = 2*zeta2*w2*m2
-    k1 = w1**2*m1
-    k2 = w2**2*m2
+        zeta1 = 1 / 2 / Q[0]
+        zeta2 = 1 / 2 / Q[1]
+    m1 = m2 / mr
+    c1 = 2 * zeta1 * w1 * m1
+    c2 = 2 * zeta2 * w2 * m2
+    k1 = w1**2 * m1
+    k2 = w2**2 * m2
 
     # setup system equations of motion:
     mass = np.array([[M, 0, 0], [0, m1, 0], [0, 0, m2]])
-    damp = np.array([[c1, -c1, 0], [-c1, c1+c2, -c2], [0, -c2, c2]])
-    stif = np.array([[k1, -k1, 0], [-k1, k1+k2, -k2], [0, -k2, k2]])
+    damp = np.array([[c1, -c1, 0], [-c1, c1 + c2, -c2], [0, -c2, c2]])
+    stif = np.array([[k1, -k1, 0], [-k1, k1 + k2, -k2], [0, -k2, k2]])
     w = la.eigh(stif, mass, eigvals_only=True)
 
     # lam = np.sqrt(abs(w))/w2
     # freq = w2*np.arange(.2, 5, 0.001)/2/np.pi
     # F = np.zeros((3, len(freq)))
     lam = np.sqrt(abs(w))
-    freq = lam[1]/2/np.pi
+    freq = lam[1] / 2 / np.pi
     F = np.zeros((3, 1))
     F[0] = 1e6
     fs = ode.FreqDirect(mass, damp, stif)
     sol = fs.fsolve(F, freq)
 
     spec_level = np.max(abs(sol.a[1]))
-    ifforce = np.max(abs(m2*sol.a[2]))
-    return ifforce/spec_level/m2
+    ifforce = np.max(abs(m2 * sol.a[2]))
+    return ifforce / spec_level / m2
 
 
-def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
+def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     r"""
     Compute the normalized force limit for complex 2-DOF system.
 
@@ -709,22 +719,22 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
     w1 = 1.
     Q = np.atleast_1d(Q)
     if len(Q) == 1:
-        zeta1 = zeta2 = 1/2/Q[0]
+        zeta1 = zeta2 = 1 / 2 / Q[0]
     else:
-        zeta1 = 1/2/Q[0]
-        zeta2 = 1/2/Q[1]
+        zeta1 = 1 / 2 / Q[0]
+        zeta2 = 1 / 2 / Q[1]
 
-    M2 = M1*rmr
-    m1 = M1*mmr1
-    m2 = M2*mmr2
+    M2 = M1 * rmr
+    m1 = M1 * mmr1
+    m2 = M2 * mmr2
 
     if m2 == 0:
         return 1, 1
     if m1 == 0:
         m1 = 1e-5
 
-    c1 = 2*zeta1*w1*m1
-    k1 = w1**2*m1
+    c1 = 2 * zeta1 * w1 * m1
+    k1 = w1**2 * m1
     fl = wr[0]  # low bound
     fh = wr[1]  # high bound
 
@@ -738,25 +748,25 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
     F = np.zeros((3, 2))
     F[0] = 1.
 
-    mass = np.array([[m1, 0, 0], [0, M1+M2, 0], [0, 0, m2]])
+    mass = np.array([[m1, 0, 0], [0, M1 + M2, 0], [0, 0, m2]])
     while True:
         J += 1
         pknfl = np.zeros_like(wrange)
-        for j, w2 in enumerate(wrange*w1):  # tuning loop
-            c2 = 2*zeta2*w2*m2
-            k2 = w2**2*m2
+        for j, w2 in enumerate(wrange * w1):  # tuning loop
+            c2 = 2 * zeta2 * w2 * m2
+            k2 = w2**2 * m2
 
             # solve equations of motion at eigenvalues
             damp = np.array([[c1, -c1, 0],
-                             [-c1, c1+c2, -c2],
+                             [-c1, c1 + c2, -c2],
                              [0, -c2, c2]])
             stif = np.array([[k1, -k1, 0],
-                             [-k1, k1+k2, -k2],
+                             [-k1, k1 + k2, -k2],
                              [0, -k2, k2]])
             w = la.eigh(stif, mass, eigvals_only=True)
             lam = np.sqrt(abs(w))
-            fq2 = lam[1]/2/np.pi
-            fq3 = lam[2]/2/np.pi
+            fq2 = lam[1] / 2 / np.pi
+            fq3 = lam[2] / 2 / np.pi
             freq = np.array([fq2, fq3])
 
             # method 1: solve system only at natural frequencies
@@ -767,26 +777,26 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
             a2 = sol.a[1]
             v2 = sol.v[1]
             v4 = sol.v[2]
-            ifforce = abs(k2*(d4-d2) - M2*a2 + c2*(v4-v2))
+            ifforce = abs(k2 * (d4 - d2) - M2 * a2 + c2 * (v4 - v2))
             ifaccel = abs(a2)
-            pknfl[j] = max(ifforce)/max(ifaccel)/M2
+            pknfl[j] = max(ifforce) / max(ifaccel) / M2
 
         i = np.argmax(pknfl)
         nfl = pknfl[i]
         if J > 1 and step < maxstep:
-            err = abs(last/nfl - 1)
+            err = abs(last / nfl - 1)
             if err < tol:
                 nw2 = wrange[i]
                 break
         last = nfl
-        fl_new = fl if i == 0 else wrange[i-1]
-        fh_new = fh if i == len(wrange)-1 else wrange[i+1]
+        fl_new = fl if i == 0 else wrange[i - 1]
+        fh_new = fh if i == len(wrange) - 1 else wrange[i + 1]
         wrange = np.logspace(np.log10(fl_new), np.log10(fh_new), 30)
         step = wrange[-1] - wrange[-2]
     return nfl, nw2
 
 
-def ctdfs(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
+def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     r"""
     Compute the normalized force limit for complex 2-DOF system.
 
@@ -909,43 +919,43 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
     w1 = 1.
     Q = np.atleast_1d(Q)
     if len(Q) == 1:
-        zeta1 = zeta2 = 1/2/Q[0]
+        zeta1 = zeta2 = 1 / 2 / Q[0]
     else:
-        zeta1 = 1/2/Q[0]
-        zeta2 = 1/2/Q[1]
+        zeta1 = 1 / 2 / Q[0]
+        zeta2 = 1 / 2 / Q[1]
 
-    M2 = M1*rmr
-    m1 = M1*mmr1
-    m2 = M2*mmr2
+    M2 = M1 * rmr
+    m1 = M1 * mmr1
+    m2 = M2 * mmr2
 
     if m2 == 0:
         return 1, 1
     if m1 == 0:
         m1 = 1e-5
 
-    c1 = 2*zeta1*w1*m1
-    k1 = w1**2*m1
+    c1 = 2 * zeta1 * w1 * m1
+    k1 = w1**2 * m1
 
     def get_neg_pknfl(nw2):
         """
         Computes the negative (for minimization) of peak normalized
         force limit
         """
-        w2 = nw2*w1
-        c2 = 2*zeta2*w2*m2
-        k2 = w2**2*m2
+        w2 = nw2 * w1
+        c2 = 2 * zeta2 * w2 * m2
+        k2 = w2**2 * m2
 
         # solve equations of motion at eigenvalues
         damp = np.array([[c1, -c1, 0],
-                         [-c1, c1+c2, -c2],
+                         [-c1, c1 + c2, -c2],
                          [0, -c2, c2]])
         stif = np.array([[k1, -k1, 0],
-                         [-k1, k1+k2, -k2],
+                         [-k1, k1 + k2, -k2],
                          [0, -k2, k2]])
         w = la.eigh(stif, mass, eigvals_only=True)
         lam = np.sqrt(abs(w))
-        fq2 = lam[1]/2/np.pi
-        fq3 = lam[2]/2/np.pi
+        fq2 = lam[1] / 2 / np.pi
+        fq3 = lam[2] / 2 / np.pi
         freq = np.array([fq2, fq3])
 
         # method 1: solve system only at natural frequencies
@@ -956,13 +966,13 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1/np.sqrt(2), np.sqrt(2))):
         a2 = sol.a[1]
         v2 = sol.v[1]
         v4 = sol.v[2]
-        ifforce = abs(k2*(d4-d2) - M2*a2 + c2*(v4-v2))
+        ifforce = abs(k2 * (d4 - d2) - M2 * a2 + c2 * (v4 - v2))
         ifaccel = abs(a2)
-        return -max(ifforce)/max(ifaccel)/M2
+        return -max(ifforce) / max(ifaccel) / M2
 
     F = np.zeros((3, 2))
     F[0] = 1.
-    mass = np.array([[m1, 0, 0], [0, M1+M2, 0], [0, 0, m2]])
+    mass = np.array([[m1, 0, 0], [0, M1 + M2, 0], [0, 0, m2]])
     res = minimize_scalar(get_neg_pknfl, bracket=wr)
     if 'message' in res:
         raise RuntimeError('routine '

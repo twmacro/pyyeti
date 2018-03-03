@@ -29,3 +29,4 @@ Utility routines
     :toctree: generated/
 
     get_turning_pts
+    nextpow2
