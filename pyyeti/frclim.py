@@ -119,7 +119,7 @@ def ntfl(Source, Load, As, freq):
 
     Returns
     -------
-    A record (SimpleNamespace class) with the members:
+    A SimpleNamespace with the members:
 
     R : 2d ndarray
         Norton Thevenin normalized response ratio; complex,
