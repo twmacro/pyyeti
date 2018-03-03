@@ -1620,6 +1620,8 @@ class DR_Def(OrderedDict):
                 msg = ('The partition vector variables (*pv) '
                        'use 0-offset (or are slices)')
                 worksheet.write(df.shape[0] + 4, 1, tab + msg)
+                # freeze row 0 and column 0:
+                worksheet.freeze_panes(1, 1)
         return df
 
 
