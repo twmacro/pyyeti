@@ -259,7 +259,9 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
     n : scalar or array_like; integer
         Sample size
     r : scalar or ndarray; integer
-        Largest-value order statistic. Note: number of failures = R-1.
+        Largest-value order statistic. Note::
+
+            number of failures = r - 1
 
     Returns
     -------
