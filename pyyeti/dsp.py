@@ -15,6 +15,13 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     """
     Change sample rate of data by a rational factor using Lanczos

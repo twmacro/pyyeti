@@ -15,6 +15,13 @@ import numpy as np
 from pyyeti import expmint, ytools
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     """
     Get uncoupled equations of motion integration coefficients.

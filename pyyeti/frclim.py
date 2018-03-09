@@ -10,6 +10,13 @@ from scipy.optimize import minimize_scalar
 from pyyeti import cb, ode
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 def calcAM(S, freq):
     """
     Calculate apparent mass

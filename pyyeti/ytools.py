@@ -13,6 +13,13 @@ import scipy.linalg as linalg
 from pyyeti import guitools
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 def histogram(data, binsize):
     """
     Calculate a histogram

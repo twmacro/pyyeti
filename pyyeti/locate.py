@@ -5,6 +5,13 @@ Tools for locating data or subarrays inside other arrays.
 import numpy as np
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 def find_vals(m, v):
     """
     Get partition vector for all occurrences of all values in `v` in
@@ -437,7 +444,7 @@ def merge_lists(list1, list2):
             # elements that weren't (these get inserted in
             # order, just in front of the common element e)
             for j, x in enumerate(elements):
-                merged.insert(i+j, x)
+                merged.insert(i + j, x)
             del elements[:]
     merged.extend(elements)
     # form pv1, knowing that list1 elements are in order:

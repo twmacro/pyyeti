@@ -29,6 +29,14 @@ import pandas as pd
 import scipy.linalg as linalg
 from pyyeti import locate
 
+
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 __all__ = ['addgrid', 'addulvs', 'build_coords', 'mkcordcardinfo',
            'expanddof', 'find_xyz_triples', 'formdrm', 'formrbe3',
            'formtran', 'formulvs', 'getcoordinates', 'make_uset',

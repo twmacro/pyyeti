@@ -10,6 +10,13 @@ from scipy.interpolate import interp1d
 from pyyeti import dsp
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 def _set_frange(frange, low, high):
     s = frange[0] if frange[0] > 0. else low
     e = frange[1] if frange[1] <= high else high

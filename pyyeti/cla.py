@@ -27,6 +27,13 @@ from pyyeti.nastran import n2p
 from pyyeti.ytools import save, load
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
     """
     Plot percent differences in two sets of values vs magnitude.
@@ -231,10 +238,12 @@ def freq3_augment(freq1, lam, tol=1.e-5):
 
     Examples
     --------
+    >>> import numpy as np
     >>> from pyyeti import cla
     >>> freq1 = np.arange(5., 11.)
     >>> sysHz = np.array([3.3, 6.7, 8.9, 9.00001, 12.4])
     >>> lam = (2*np.pi*sysHz)**2
+    >>> np.set_printoptions(linewidth=80)
     >>> cla.freq3_augment(freq1, lam)
     array([  5. ,   6. ,   6.7,   7. ,   8. ,   8.9,   9. ,  10. ])
     """

@@ -14,6 +14,14 @@ import scipy.signal as signal
 import scipy.interpolate as interp
 from pyyeti import dsp, psd
 
+
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 #   SRS types:
 #    - absolute acceleration
 #    - relative acceleration

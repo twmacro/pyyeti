@@ -9,6 +9,13 @@ import scipy.sparse.linalg.matfuncs as mf
 import scipy.linalg as la
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
     def __init__(self, A, structure=None, use_exact_onenorm=False):
         """
@@ -47,25 +54,25 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
 
     def pade3_i(self, h):
         b = (120., 60., 12., 1.)
-        U = b[3]*self.A3 + b[1]*self.A
-        V = b[2]*self.A2 + b[0]*self.ident
+        U = b[3] * self.A3 + b[1] * self.A
+        V = b[2] * self.A2 + b[0] * self.ident
         p = (840., 60., 20., 1.)
         q = (840., -360., 60., -4.)
-        P = h*(p[3]*self.A3 + p[2]*self.A2 +
-               p[1]*self.A + p[0]*self.ident)
-        Q = q[3]*self.A3 + q[2]*self.A2 + q[1]*self.A + q[0]*self.ident
+        P = h * (p[3] * self.A3 + p[2] * self.A2 +
+                 p[1] * self.A + p[0] * self.ident)
+        Q = q[3] * self.A3 + q[2] * self.A2 + q[1] * self.A + q[0] * self.ident
         return U, V, P, Q
 
     def pade5_i(self, h):
         b = (30240., 15120., 3360., 420., 30., 1.)
-        U = b[5]*self.A5 + b[3]*self.A3 + b[1]*self.A
-        V = b[4]*self.A4 + b[2]*self.A2 + b[0]*self.ident
+        U = b[5] * self.A5 + b[3] * self.A3 + b[1] * self.A
+        V = b[4] * self.A4 + b[2] * self.A2 + b[0] * self.ident
         p = (332640., 15120., 10080., 420., 42., 1.)
         q = (332640., -151200., 30240., -3360., 210., -6.)
-        P = h*(p[5]*self.A5 + p[4]*self.A4 + p[3]*self.A3 +
-               p[2]*self.A2 + p[1]*self.A + p[0]*self.ident)
-        Q = (q[5]*self.A5 + q[4]*self.A4 + q[3]*self.A3 + q[2]*self.A2 +
-             q[1]*self.A + q[0]*self.ident)
+        P = h * (p[5] * self.A5 + p[4] * self.A4 + p[3] * self.A3 +
+                 p[2] * self.A2 + p[1] * self.A + p[0] * self.ident)
+        Q = (q[5] * self.A5 + q[4] * self.A4 + q[3] * self.A3 + q[2] * self.A2 +
+             q[1] * self.A + q[0] * self.ident)
         return U, V, P, Q
 
     def pade7_i(self, h):
@@ -74,28 +81,28 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
              72., 1.)
         q = (259459200., -121080960., 25945920., -3326400., 277200.,
              -15120., 504., -8.)
-        P = h*(mf._smart_matrix_product(
+        P = h * (mf._smart_matrix_product(
             self.A,
-            p[7]*self.A6 +
-            p[5]*self.A4 +
-            p[3]*self.A2 +
-            p[1]*self.ident,
+            p[7] * self.A6 +
+            p[5] * self.A4 +
+            p[3] * self.A2 +
+            p[1] * self.ident,
             structure=self.structure) +
-               p[6]*self.A6 +
-               p[4]*self.A4 +
-               p[2]*self.A2 +
-               p[0]*self.ident)
+            p[6] * self.A6 +
+            p[4] * self.A4 +
+            p[2] * self.A2 +
+            p[0] * self.ident)
         Q = (mf._smart_matrix_product(
             self.A,
-            q[7]*self.A6 +
-            q[5]*self.A4 +
-            q[3]*self.A2 +
-            q[1]*self.ident,
+            q[7] * self.A6 +
+            q[5] * self.A4 +
+            q[3] * self.A2 +
+            q[1] * self.ident,
             structure=self.structure) +
-             q[6]*self.A6 +
-             q[4]*self.A4 +
-             q[2]*self.A2 +
-             q[0]*self.ident)
+            q[6] * self.A6 +
+            q[4] * self.A4 +
+            q[2] * self.A2 +
+            q[0] * self.ident)
         return U, V, P, Q
 
     def pade9_i(self, h):
@@ -105,32 +112,32 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
         q = (335221286400., -158789030400., 35286451200.,
              -4843238400., 454053600., -30270240., 1441440.,
              -47520., 990., -10.)
-        P = h*(mf._smart_matrix_product(
+        P = h * (mf._smart_matrix_product(
             self.A,
-            p[9]*self.A8 +
-            p[7]*self.A6 +
-            p[5]*self.A4 +
-            p[3]*self.A2 +
-            p[1]*self.ident,
+            p[9] * self.A8 +
+            p[7] * self.A6 +
+            p[5] * self.A4 +
+            p[3] * self.A2 +
+            p[1] * self.ident,
             structure=self.structure) +
-               p[8]*self.A8 +
-               p[6]*self.A6 +
-               p[4]*self.A4 +
-               p[2]*self.A2 +
-               p[0]*self.ident)
+            p[8] * self.A8 +
+            p[6] * self.A6 +
+            p[4] * self.A4 +
+            p[2] * self.A2 +
+            p[0] * self.ident)
         Q = (mf._smart_matrix_product(
             self.A,
-            q[9]*self.A8 +
-            q[7]*self.A6 +
-            q[5]*self.A4 +
-            q[3]*self.A2 +
-            q[1]*self.ident,
+            q[9] * self.A8 +
+            q[7] * self.A6 +
+            q[5] * self.A4 +
+            q[3] * self.A2 +
+            q[1] * self.ident,
             structure=self.structure) +
-             q[8]*self.A8 +
-             q[6]*self.A6 +
-             q[4]*self.A4 +
-             q[2]*self.A2 +
-             q[0]*self.ident)
+            q[8] * self.A8 +
+            q[6] * self.A6 +
+            q[4] * self.A4 +
+            q[2] * self.A2 +
+            q[0] * self.ident)
         return U, V, P, Q
 
     def pade13_scaled_i(self, s, h):
@@ -140,23 +147,23 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
              960960., 16380., 182., 1.)
         B = self.A * 2**-s
         h = h * 2**-s
-        B2 = self.A2 * 2**(-2*s)
-        B4 = self.A4 * 2**(-4*s)
-        B6 = self.A6 * 2**(-6*s)
+        B2 = self.A2 * 2**(-2 * s)
+        B4 = self.A4 * 2**(-4 * s)
+        B6 = self.A6 * 2**(-6 * s)
         U2 = mf._smart_matrix_product(
             B6,
-            b[13]*B6 + b[11]*B4 + b[9]*B2,
+            b[13] * B6 + b[11] * B4 + b[9] * B2,
             structure=self.structure)
         U = mf._smart_matrix_product(
             B,
-            (U2 + b[7]*B6 + b[5]*B4 +
-             b[3]*B2 + b[1]*self.ident),
+            (U2 + b[7] * B6 + b[5] * B4 +
+             b[3] * B2 + b[1] * self.ident),
             structure=self.structure)
         V2 = mf._smart_matrix_product(
             B6,
-            b[12]*B6 + b[10]*B4 + b[8]*B2,
+            b[12] * B6 + b[10] * B4 + b[8] * B2,
             structure=self.structure)
-        V = V2 + b[6]*B6 + b[4]*B4 + b[2]*B2 + b[0]*self.ident
+        V = V2 + b[6] * B6 + b[4] * B4 + b[2] * B2 + b[0] * self.ident
         p = (1748648318376960000., 32382376266240000.,
              64764752532480000., 1187353796428800., 593676898214400.,
              10559470521600., 2011327718400., 33522128640.,
@@ -168,44 +175,45 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
              -262080., 2730., -14.)
         _P2 = mf._smart_matrix_product(
             B6,
-            p[13]*B6 +
-            p[11]*B4 +
-            p[9]*B2,
+            p[13] * B6 +
+            p[11] * B4 +
+            p[9] * B2,
             structure=self.structure)
         P2 = mf._smart_matrix_product(
             B, _P2 +
-            p[7]*B6 +
-            p[5]*B4 +
-            p[3]*B2 +
-            p[1]*self.ident,
+            p[7] * B6 +
+            p[5] * B4 +
+            p[3] * B2 +
+            p[1] * self.ident,
             structure=self.structure)
         P1 = mf._smart_matrix_product(
             B6,
-            p[12]*B6 +
-            p[10]*B4 +
-            p[8]*B2,
+            p[12] * B6 +
+            p[10] * B4 +
+            p[8] * B2,
             structure=self.structure)
-        P = h*(P2 + P1 + p[6]*B6 + p[4]*B4 + p[2]*B2 + p[0]*self.ident)
+        P = h * (P2 + P1 + p[6] * B6 + p[4] * B4 +
+                 p[2] * B2 + p[0] * self.ident)
         _Q2 = mf._smart_matrix_product(
             B6,
-            q[13]*B6 +
-            q[11]*B4 +
-            q[9]*B2,
+            q[13] * B6 +
+            q[11] * B4 +
+            q[9] * B2,
             structure=self.structure)
         Q2 = mf._smart_matrix_product(
             B, _Q2 +
-            q[7]*B6 +
-            q[5]*B4 +
-            q[3]*B2 +
-            q[1]*self.ident,
+            q[7] * B6 +
+            q[5] * B4 +
+            q[3] * B2 +
+            q[1] * self.ident,
             structure=self.structure)
         Q1 = mf._smart_matrix_product(
             B6,
-            q[12]*B6 +
-            q[10]*B4 +
-            q[8]*B2,
+            q[12] * B6 +
+            q[10] * B4 +
+            q[8] * B2,
             structure=self.structure)
-        Q = Q2 + Q1 + q[6]*B6 + q[4]*B4 + q[2]*B2 + q[0]*self.ident
+        Q = Q2 + Q1 + q[6] * B6 + q[4] * B4 + q[2] * B2 + q[0] * self.ident
         return U, V, P, Q
 
 
@@ -321,7 +329,7 @@ def expmint(A, h, geti2=False):
 
     # Track functions of A to help compute the matrix exponential.
     H = _ExpmIntPadeHelper(
-        A*h, structure=structure,
+        A * h, structure=structure,
         use_exact_onenorm=use_exact_onenorm)
 
     def Return(U, V, P, Q, geti2, pade):
@@ -378,10 +386,10 @@ def _geti2(H, E, I, h, pade):
     if pade <= 3:
         p = (450240., 104860., 15480., 1001.)
         q = (900480., -390600., 66240., -4540.)
-        P = (h*h)*(p[3]*H.A3 + p[2]*H.A2 +
-                   p[1]*H.A + p[0]*H.ident)
-        Q = (q[3]*H.A3 + q[2]*H.A2 +
-             q[1]*H.A + q[0]*H.ident)
+        P = (h * h) * (p[3] * H.A3 + p[2] * H.A2 +
+                       p[1] * H.A + p[0] * H.ident)
+        Q = (q[3] * H.A3 + q[2] * H.A2 +
+             q[1] * H.A + q[0] * H.ident)
         return _solve_P_Q_2(P, Q, H.structure)
 
     if pade <= 5:
@@ -389,24 +397,24 @@ def _geti2(H, E, I, h, pade):
              14154000., 398959.)
         q = (138726846720., -63346298400., 12740716800., -1425725280.,
              89937120., -2602278.)
-        P = (h*h)*(mf._smart_matrix_product(
+        P = (h * h) * (mf._smart_matrix_product(
             H.A,
-            p[5]*H.A4 +
-            p[3]*H.A2 +
-            p[1]*H.ident,
+            p[5] * H.A4 +
+            p[3] * H.A2 +
+            p[1] * H.ident,
             structure=H.structure) +
-                   p[4]*H.A4 +
-                   p[2]*H.A2 +
-                   p[0]*H.ident)
+            p[4] * H.A4 +
+            p[2] * H.A2 +
+            p[0] * H.ident)
         Q = (mf._smart_matrix_product(
             H.A,
-            q[5]*H.A4 +
-            q[3]*H.A2 +
-            q[1]*H.ident,
+            q[5] * H.A4 +
+            q[3] * H.A2 +
+            q[1] * H.ident,
             structure=H.structure) +
-             q[4]*H.A4 +
-             q[2]*H.A2 +
-             q[0]*H.ident)
+            q[4] * H.A4 +
+            q[2] * H.A2 +
+            q[0] * H.ident)
         return _solve_P_Q_2(P, Q, H.structure)
 
     if pade <= 7:
@@ -416,28 +424,28 @@ def _geti2(H, E, I, h, pade):
         q = (83680955540582400., -39144431255529600.,
              8411304436254720., -1081869058670400., 90503101180800.,
              -4959510549840., 166265789760., -2658297528.)
-        P = (h*h)*(mf._smart_matrix_product(
+        P = (h * h) * (mf._smart_matrix_product(
             H.A,
-            p[7]*H.A6 +
-            p[5]*H.A4 +
-            p[3]*H.A2 +
-            p[1]*H.ident,
+            p[7] * H.A6 +
+            p[5] * H.A4 +
+            p[3] * H.A2 +
+            p[1] * H.ident,
             structure=H.structure) +
-                   p[6]*H.A6 +
-                   p[4]*H.A4 +
-                   p[2]*H.A2 +
-                   p[0]*H.ident)
+            p[6] * H.A6 +
+            p[4] * H.A4 +
+            p[2] * H.A2 +
+            p[0] * H.ident)
         Q = (mf._smart_matrix_product(
             H.A,
-            q[7]*H.A6 +
-            q[5]*H.A4 +
-            q[3]*H.A2 +
-            q[1]*H.ident,
+            q[7] * H.A6 +
+            q[5] * H.A4 +
+            q[3] * H.A2 +
+            q[1] * H.ident,
             structure=H.structure) +
-             q[6]*H.A6 +
-             q[4]*H.A4 +
-             q[2]*H.A2 +
-             q[0]*H.ident)
+            q[6] * H.A6 +
+            q[4] * H.A4 +
+            q[2] * H.A2 +
+            q[0] * H.ident)
         return _solve_P_Q_2(P, Q, H.structure)
 
     if pade <= 9:
@@ -451,32 +459,32 @@ def _geti2(H, E, I, h, pade):
              189583633133409715200., -12669377873982429600.,
              604988181888330240., -20009929231749600.,
              418494695659920., -4247085597370.)
-        P = (h*h)*(mf._smart_matrix_product(
+        P = (h * h) * (mf._smart_matrix_product(
             H.A,
-            p[9]*H.A8 +
-            p[7]*H.A6 +
-            p[5]*H.A4 +
-            p[3]*H.A2 +
-            p[1]*H.ident,
+            p[9] * H.A8 +
+            p[7] * H.A6 +
+            p[5] * H.A4 +
+            p[3] * H.A2 +
+            p[1] * H.ident,
             structure=H.structure) +
-                   p[8]*H.A8 +
-                   p[6]*H.A6 +
-                   p[4]*H.A4 +
-                   p[2]*H.A2 +
-                   p[0]*H.ident)
+            p[8] * H.A8 +
+            p[6] * H.A6 +
+            p[4] * H.A4 +
+            p[2] * H.A2 +
+            p[0] * H.ident)
         Q = (mf._smart_matrix_product(
             H.A,
-            q[9]*H.A8 +
-            q[7]*H.A6 +
-            q[5]*H.A4 +
-            q[3]*H.A2 +
-            q[1]*H.ident,
+            q[9] * H.A8 +
+            q[7] * H.A6 +
+            q[5] * H.A4 +
+            q[3] * H.A2 +
+            q[1] * H.ident,
             structure=H.structure) +
-             q[8]*H.A8 +
-             q[6]*H.A6 +
-             q[4]*H.A4 +
-             q[2]*H.A2 +
-             q[0]*H.ident)
+            q[8] * H.A8 +
+            q[6] * H.A6 +
+            q[4] * H.A4 +
+            q[2] * H.A2 +
+            q[0] * H.ident)
         return _solve_P_Q_2(P, Q, H.structure)
 
     # second, try direct solution:
@@ -487,10 +495,10 @@ def _geti2(H, E, I, h, pade):
             lup = la.lu_factor(H.A)
             # decomp maybe worked ... check it:
             # I = A\(expm(A*h) - Ident)
-            I_test = la.lu_solve(lup, h*(E-np.eye(n)))
+            I_test = la.lu_solve(lup, h * (E - np.eye(n)))
             if np.allclose(I_test, I):
                 # I2 = A\(expm(A*h)*h - A\(expm(A*h) - Ident))
-                return la.lu_solve(lup, h*(E*h-I_test))
+                return la.lu_solve(lup, h * (E * h - I_test))
         except RuntimeWarning:
             pass
 
@@ -498,19 +506,19 @@ def _geti2(H, E, I, h, pade):
     msg = ('Using power series expansion directly for `I2` (see'
            ' `expmint`).\nRecommendation: use a finer time step.')
     warnings.warn(msg, RuntimeWarning)
-    I2 = np.eye(n)/2
+    I2 = np.eye(n) / 2
     term = H.A
     j = 1.
     tol = 1e-15
     maxloops = 200
-    while abs(term).max() > tol*abs(E).max() and j < maxloops:
+    while abs(term).max() > tol * abs(E).max() and j < maxloops:
         j += 1.
-        I2 += term/(j+1)
-        term = term.dot(H.A)/j
+        I2 += term / (j + 1)
+        term = term.dot(H.A) / j
     if j >= maxloops:
         raise RuntimeError('maximum loops ({}) exceeded for power '
                            'series expansion'.format(maxloops))
-    return (h*h)*I2
+    return (h * h) * I2
 
 
 def _solve_P_Q_2(P, Q, structure=None):
@@ -601,24 +609,24 @@ def expmint_pow(A, h):
            [ 0.0004,  0.0005,  0.0018]])
 
     """
-    Ah = A*h
+    Ah = A * h
     E = np.eye(A.shape[0])
     Int1 = E.copy()
-    Int2 = E/2
+    Int2 = E / 2
     term = Ah
     j = 1.
     tol = 1e-15
     maxloops = 200
-    while abs(term).max() > tol*abs(E).max() and j < maxloops:
+    while abs(term).max() > tol * abs(E).max() and j < maxloops:
         j += 1.
         E += term
-        Int1 += term/j
-        Int2 += term/(j+1.)
-        term = term.dot(Ah)/j
+        Int1 += term / j
+        Int2 += term / (j + 1.)
+        term = term.dot(Ah) / j
     if j >= maxloops:
         raise RuntimeError('maximum loops ({}) exceeded for power '
                            'series expansion'.format(maxloops))
-    return E, h*Int1, h*h*Int2
+    return E, h * Int1, h * h * Int2
 
 
 def _procBhalf(E, P, Q, order, B, half):
@@ -735,7 +743,7 @@ def getEPQ1(A, h, order=1, B=None, half=False):
     """
     if order == 1:
         E, I, I2 = expmint(A, h, 1)
-        P = I2/h
+        P = I2 / h
         Q = I - P
     else:
         E, P = expmint(A, h)
@@ -839,7 +847,7 @@ def getEPQ_pow(A, h, order=1, B=None, half=False):
     """
     E, I, I2 = expmint_pow(A, h)
     if order == 1:
-        P = I2/h
+        P = I2 / h
         Q = I - P
     else:
         P = I
@@ -886,9 +894,9 @@ class _ExpmPadeHelper_SS(mf._ExpmPadeHelper):
             else:
                 i = (self.A.shape[1] - n) // 2
                 self._A2 = np.zeros(self.shape, float)
-                self._A2[:, :n+i] = np.dot(self.ssA,
-                                           self.A[:n, :n+i])
-                self._A2[:, n+i:] = self.A[:n, n:n+i]
+                self._A2[:, :n + i] = np.dot(self.ssA,
+                                             self.A[:n, :n + i])
+                self._A2[:, n + i:] = self.A[:n, n:n + i]
         return self._A2
 
     @property
@@ -922,41 +930,41 @@ class _ExpmPadeHelper_SS(mf._ExpmPadeHelper):
     def pade3(self):
         b = (120., 60., 12., 1.)
         n = self.nss
-        U = b[1]*self.A
-        V = b[0]*self.ident
-        U[:n] += np.dot(self.ssA, b[3]*self.A2)
-        V[:n] += b[2]*self.A2
+        U = b[1] * self.A
+        V = b[0] * self.ident
+        U[:n] += np.dot(self.ssA, b[3] * self.A2)
+        V[:n] += b[2] * self.A2
         return U, V
 
     def pade5(self):
         b = (30240., 15120., 3360., 420., 30., 1.)
         n = self.nss
-        U = b[1]*self.A
-        V = b[0]*self.ident
-        U[:n] += np.dot(self.ssA, b[5]*self.A4 + b[3]*self.A2)
-        V[:n] += b[4]*self.A4 + b[2]*self.A2
+        U = b[1] * self.A
+        V = b[0] * self.ident
+        U[:n] += np.dot(self.ssA, b[5] * self.A4 + b[3] * self.A2)
+        V[:n] += b[4] * self.A4 + b[2] * self.A2
         return U, V
 
     def pade7(self):
         b = (17297280., 8648640., 1995840., 277200., 25200., 1512., 56., 1.)
         n = self.nss
-        U = b[1]*self.A
-        V = b[0]*self.ident
-        U[:n] += np.dot(self.ssA, (b[7]*self.A6 + b[5]*self.A4 +
-                                   b[3]*self.A2))
-        V[:n] += b[6]*self.A6 + b[4]*self.A4 + b[2]*self.A2
+        U = b[1] * self.A
+        V = b[0] * self.ident
+        U[:n] += np.dot(self.ssA, (b[7] * self.A6 + b[5] * self.A4 +
+                                   b[3] * self.A2))
+        V[:n] += b[6] * self.A6 + b[4] * self.A4 + b[2] * self.A2
         return U, V
 
     def pade9(self):
         b = (17643225600., 8821612800., 2075673600., 302702400., 30270240.,
              2162160., 110880., 3960., 90., 1.)
         n = self.nss
-        U = b[1]*self.A
-        V = b[0]*self.ident
-        U[:n] += np.dot(self.ssA, (b[9]*self.A8 + b[7]*self.A6 +
-                                   b[5]*self.A4 + b[3]*self.A2))
-        V[:n] += (b[8]*self.A8 + b[6]*self.A6 +
-                  b[4]*self.A4 + b[2]*self.A2)
+        U = b[1] * self.A
+        V = b[0] * self.ident
+        U[:n] += np.dot(self.ssA, (b[9] * self.A8 + b[7] * self.A6 +
+                                   b[5] * self.A4 + b[3] * self.A2))
+        V[:n] += (b[8] * self.A8 + b[6] * self.A6 +
+                  b[4] * self.A4 + b[2] * self.A2)
         return U, V
 
     def pade13_scaled(self, s):
@@ -965,16 +973,16 @@ class _ExpmPadeHelper_SS(mf._ExpmPadeHelper):
              670442572800., 33522128640., 1323241920., 40840800., 960960.,
              16380., 182., 1.)
         B = self.A * 2**-s
-        B2 = self.A2 * 2**(-2*s)
-        B4 = self.A4 * 2**(-4*s)
-        B6 = self.A6 * 2**(-6*s)
+        B2 = self.A2 * 2**(-2 * s)
+        B4 = self.A4 * 2**(-4 * s)
+        B6 = self.A6 * 2**(-6 * s)
         n = self.nss
-        U = b[1]*B
-        V = b[0]*self.ident
-        U2 = np.dot(B6[:, :n], b[13]*B6 + b[11]*B4 + b[9]*B2)
-        V2 = np.dot(B6[:, :n], b[12]*B6 + b[10]*B4 + b[8]*B2)
-        U[:n] += np.dot(B[:n, :n], U2 + b[7]*B6 + b[5]*B4 + b[3]*B2)
-        V[:n] += V2 + b[6]*B6 + b[4]*B4 + b[2]*B2
+        U = b[1] * B
+        V = b[0] * self.ident
+        U2 = np.dot(B6[:, :n], b[13] * B6 + b[11] * B4 + b[9] * B2)
+        V2 = np.dot(B6[:, :n], b[12] * B6 + b[10] * B4 + b[8] * B2)
+        U[:n] += np.dot(B[:n, :n], U2 + b[7] * B6 + b[5] * B4 + b[3] * B2)
+        V[:n] += V2 + b[6] * B6 + b[4] * B4 + b[2] * B2
         return U, V
 
 
@@ -1152,14 +1160,14 @@ def getEPQ2(A, h, order=1, B=None, half=False):
             i = n
         B = np.eye(i)
     r = B.shape[0]
-    Ah = A*h
-    Bh = B*h
+    Ah = A * h
+    Bh = B * h
     if order == 1:
-        N = n + 2*i
+        N = n + 2 * i
         M = np.zeros((N, N), float)
         M[:n, :n] = Ah
-        M[:r, n:n+i] = Bh
-        M[n:n+i, n+i:] = np.eye(i)
+        M[:r, n:n + i] = Bh
+        M[n:n + i, n + i:] = np.eye(i)
         # start = time.time()
         # EM1 = la.expm(M, order)
         # print('1 la.expm et = ', time.time()-start)
@@ -1169,10 +1177,10 @@ def getEPQ2(A, h, order=1, B=None, half=False):
         # print('1 expm_SS et = ', time.time()-start)
         # print('error :', abs(EM-EM1).max())
         E = EM[:n, :n]
-        Q = EM[:n, n+i:]
-        P = EM[:n, n:n+i] - Q
+        Q = EM[:n, n + i:]
+        P = EM[:n, n:n + i] - Q
     elif order == 0:
-        M = np.zeros((n+i, n+i), float)
+        M = np.zeros((n + i, n + i), float)
         M[:n, :n] = Ah
         M[:r, n:] = Bh
         # start = time.time()
@@ -1283,7 +1291,7 @@ def getEPQ(A, h, order=1, B=None, half=False):
     >>> Q
     0.0
     """
-    norm1 = h*np.linalg.norm(A, 1)
+    norm1 = h * np.linalg.norm(A, 1)
     if norm1 <= 2.097847961257068:
         return getEPQ1(A, h, order, B, half)
     return getEPQ2(A, h, order, B, half)

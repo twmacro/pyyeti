@@ -7,10 +7,18 @@ import numpy as np
 import h5py
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 class PP(object):
     """
     A simple class for pretty printing data structures.
     """
+
     def __init__(self, var=None, depth=1, tab=4,
                  keylen=40, strlen=80, show_hidden=False):
         """
@@ -123,12 +131,12 @@ class PP(object):
         self._functions = {
             np.ndarray: self._array_string,
             h5py._hl.dataset.Dataset: self._h5data_string,
-            }
+        }
         if var is not None:
             self.pp(var)
 
     def _lead_string(self, level):
-        return ' '*self._tab*level
+        return ' ' * self._tab * level
 
     def _key_string(self, val, isns):
         if isinstance(val, str):
@@ -139,7 +147,7 @@ class PP(object):
         else:
             s = str(val)
         if len(s) > self._keylen:
-            s = s[:self._keylen-4] + ' ...'
+            s = s[:self._keylen - 4] + ' ...'
         return s
 
     def _lst_tup_string(self, lst, list_level):
@@ -192,9 +200,9 @@ class PP(object):
 
     def _getarrstr(self, arr):
         s = ' ' + str(arr).replace('\n', '')
-        if len(s) > 4*(self._strlen//5):
-            n = self._strlen//3
-            s = s[:n-3] + ' <...> ' + s[-(n+3):]
+        if len(s) > 4 * (self._strlen // 5):
+            n = self._strlen // 3
+            s = s[:n - 3] + ' <...> ' + s[-(n + 3):]
         return [s]
 
     def _array_string(self, arr, level):
@@ -269,6 +277,6 @@ class PP(object):
         s = self._print_var(var, 0)
         self.s = s
         self.output = ''.join(s)
-        #print(self.output)
+        # print(self.output)
         for line in self.output.split('\n'):
             print(repr(line)[1:-1])

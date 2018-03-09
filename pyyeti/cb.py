@@ -15,6 +15,13 @@ from pyyeti import locate, ytools, writer, ode
 from pyyeti.nastran import n2p
 
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
 def cbtf(m, b, k, a, freq, bset, save=None):
     r"""
     Compute frequency domain responses given i/f accel for a CB model.
@@ -200,9 +207,11 @@ def cbtf(m, b, k, a, freq, bset, save=None):
     lt = m.shape[0]
     qset = locate.flippv(bset, lt)
 
+    pvnz = Omega != 0.0
     if qset.size == 0:
         accel = a.copy()
-        displ = (-1 / Omega**2) * accel
+        displ = np.zeros(a.shape, dtype=complex)
+        displ[:, pvnz] = -accel[:, pvnz] / Omega[pvnz]**2
         veloc = 1j * (Omega * displ)
         frc = m @ accel + b @ veloc + k @ displ
     else:
@@ -220,13 +229,14 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
         bb = np.ix_(bset, bset)
         qb = np.ix_(qset, bset)
-        v = 1j * a / Omega
+        v = np.zeros(a.shape, dtype=complex)
+        v[:, pvnz] = 1j * a[:, pvnz] / Omega[pvnz]
         f = b[qb] @ v - m[qb] @ a
         sol = tf.fsolve(f, freq)
 
         displ = np.zeros((lt, lenf), dtype=complex)
         accel = displ.copy()
-        displ[bset] = (-1 / Omega**2) * a
+        displ[np.ix_(bset, pvnz)] = -a[:, pvnz] / Omega[pvnz]**2
         displ[qset] = sol.d
         veloc = 1j * (Omega * displ)
         accel[bset] = a

@@ -16,6 +16,12 @@ except ImportError:
                   RuntimeWarning)
     import pyyeti.rainflow.py_rain as rain
 
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
 
 def rainflow(peaks, getoffsets=False):
     """
@@ -255,7 +261,7 @@ def getbins(bins, mx, mn, right=True):
         raise ValueError('`mx` and `mn` must not be equal')
     if bins.size == 1:
         bins = int(bins)
-        bb = np.linspace(mn, mx, bins+1)
+        bb = np.linspace(mn, mx, bins + 1)
         p = 0.001 * (mx - mn)
         if right:
             bb[0] -= p
@@ -364,9 +370,9 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
                    rf['amp'].min(), right)
     aveb = getbins(meanbins, rf['mean'].max(),
                    rf['mean'].min(), right)
-    table = np.zeros((len(aveb)-1, len(ampb)-1))
-    f = '{:.'+str(precision)+'f}'
-    f = f+', '+f
+    table = np.zeros((len(aveb) - 1, len(ampb) - 1))
+    f = '{:.' + str(precision) + 'f}'
+    f = f + ', ' + f
     if right:
         def _inbin(v, low, upp):
             return np.logical_and(v > low, v <= upp)
@@ -375,12 +381,12 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
         def _inbin(v, low, upp):
             return np.logical_and(v >= low, v < upp)
         form = '[' + f + ')'
-    for i in range(len(aveb)-1):
-        rows = _inbin(rf['mean'], aveb[i], aveb[i+1])
+    for i in range(len(aveb) - 1):
+        rows = _inbin(rf['mean'], aveb[i], aveb[i + 1])
         if np.any(rows):
             rfrows = rf[rows]
-            for j in range(len(ampb)-1):
-                pv = _inbin(rfrows['amp'], ampb[j], ampb[j+1])
+            for j in range(len(ampb) - 1):
+                pv = _inbin(rfrows['amp'], ampb[j], ampb[j + 1])
                 if np.any(pv):
                     table[i, j] = np.sum(rfrows['count'][pv])
 
