@@ -871,6 +871,37 @@ def test_cbcoordchk():
     assert_raises(ValueError, cb.cbcoordchk, k, b2, b)
 
 
+def test_cbcoordchk2():
+    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    se = 101
+    maa = nas['maa'][se]
+    kaa = nas['kaa'][se]
+    pv = np.any(maa, axis=0)
+    pv = np.ix_(pv, pv)
+    kaa = kaa[pv]
+
+    uset = nas['uset'][se]
+    b = n2p.mksetpv(uset, 'a', 'b')
+    b = np.nonzero(b)[0]
+
+    coords0, rbmodes0, maxerr0 = cb.cbcoordchk(
+        kaa, b, b[-6:], verbose=False)
+    rbmodes0 = rbmodes0[b]
+
+    kaa = cb.cbreorder(kaa, b, last=True)
+    b += kaa.shape[0] - len(b)
+    bref = b[-6:]
+
+    coords1, rbmodes1, maxerr1 = cb.cbcoordchk(
+        kaa, b, bref, verbose=False)
+    rbmodes1 = rbmodes1[b]
+
+    assert np.allclose(coords1, coords0)
+    assert np.allclose(rbmodes1, rbmodes0)
+    assert np.allclose(maxerr1, maxerr0)
+    assert abs(maxerr0).max() < 1e-5
+
+
 def compare_nets(net, net2):
     for name in net.__dict__:
         if isinstance(net.__dict__[name], list):

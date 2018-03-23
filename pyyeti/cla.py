@@ -4475,7 +4475,7 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         del drmres.tmp
 
 
-def reldisp_dtm(nas, nodepairs):
+def reldisp_dtm(nas, node_pairs):
     """
     Form relative displacements data recovery matrix
 
@@ -4492,7 +4492,7 @@ def reldisp_dtm(nas, nodepairs):
             tug1 --> nas['tug1'][se]
             mug1 --> nas['extse'][se]['mug1']
 
-    nodepairs : 2d array_like
+    node_pairs : 2d array_like
         Four column matrix where each row contains the superelement ID
         and node ID for two non-coincident nodes: ``[SE1, Node1, SE2,
         Node2]``. The relative displacement between each node pair is
@@ -4504,12 +4504,12 @@ def reldisp_dtm(nas, nodepairs):
     reldtm : 2d ndarray
         This is the displacement-dependent relative displacement
         recovery matrix. There is one row per node pair and the order
-        given in `nodepairs` is preserved.
+        given in `node_pairs` is preserved.
     dist : 1d ndarray
         Vector of distances between node pairs.
     labels : list
         List of labels briefly describing each row in `reldtm`. For
-        example, if one row in `nodepairs` is: ``[101, 3, 102, 30]``,
+        example, if one row in `node_pairs` is: ``[101, 3, 102, 30]``,
         the label for that row would be: 'SE101,3 - SE102,30'.
 
     Notes
@@ -4517,7 +4517,7 @@ def reldisp_dtm(nas, nodepairs):
     The algorithm works as follows:
 
       1. Forms two data recovery matrices for the X, Y and Z DOF of
-         each node listed in `nodepairs`. One (`DTMG`) recovers from
+         each node listed in `node_pairs`. One (`DTMG`) recovers from
          residual g-set DOF and the other (`DTMQ`) recovers from the
          residual q-set.
 
@@ -4528,7 +4528,7 @@ def reldisp_dtm(nas, nodepairs):
          to `DTMQ` such that it recovers in the basic coordinate
          system for all nodes.
 
-      3. For each pair of nodes in `nodepairs`:
+      3. For each pair of nodes in `node_pairs`:
 
          a. Form a new rectangular coordinate system based at Node1
             with the z-axis pointing to Node2.
@@ -4563,12 +4563,12 @@ def reldisp_dtm(nas, nodepairs):
             nas['extse'] = {}
         nas['extse'][SC] = nastran.op4.read('outboard.op4')
 
-        nodepairs = [
+        node_pairs = [
             [SC,  3,   SC, 10],
             [ 0, 11,   SC, 18],
         ]
 
-        reldtm, dist, lbls = reldisp_dtm(nas, nodepairs)
+        reldtm, dist, lbls = reldisp_dtm(nas, node_pairs)
 
         # add the above items to the data recovery:
         drdefs = cla.DR_Def({'se': 0})
@@ -4611,14 +4611,14 @@ def reldisp_dtm(nas, nodepairs):
     rbg = n2p.rbgeom_uset(nas['uset'][0])
 
     # call formdrm only once per superelement:
-    nodepairs = np.atleast_2d(nodepairs)
-    nrel = nodepairs.shape[0]
+    node_pairs = np.atleast_2d(node_pairs)
+    nrel = node_pairs.shape[0]
     dtmq = np.empty((nrel * 6,
                      nas['lambda'][0].shape[0]))
     dtmg = np.empty((nrel * 6, 6))
 
-    senodes = np.vstack((nodepairs[:, :2],
-                         nodepairs[:, 2:]))
+    senodes = np.vstack((node_pairs[:, :2],
+                         node_pairs[:, 2:]))
     senodesdof = np.array([[se, n, i]
                            for se, n in senodes
                            for i in range(1, 4)])
@@ -4656,7 +4656,7 @@ def reldisp_dtm(nas, nodepairs):
         if la.norm((b - a) / ext_coords) < 1e-5:
             raise ValueError(
                 'coincident nodes detected at index {} of '
-                '`nodepairs`: {}'.format(i, nodepairs[i]))
+                '`node_pairs`: {}'.format(i, node_pairs[i]))
 
         c = a + (b - a)[[1, 2, 0]]
         C = np.array([[1, 1, 0], a, b, c])
@@ -4669,7 +4669,7 @@ def reldisp_dtm(nas, nodepairs):
         dist[i] = la.norm(b - a)
 
     labels = ['SE{},{} - SE{},{}'.format(se2, n2, se1, n1)
-              for se1, n1, se2, n2 in nodepairs]
+              for se1, n1, se2, n2 in node_pairs]
     return reldtm, dist, labels
 
 

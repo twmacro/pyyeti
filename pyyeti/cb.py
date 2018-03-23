@@ -1689,6 +1689,9 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
     if len(refpoint) != 6:
         raise ValueError('reference point must have length of 6.')
 
+    # make refpoint be relative to b-set:
+    refpoint = refpoint - np.min(bset)
+
     kbb = K[np.ix_(bset, bset)]
     o = locate.flippv(refpoint, lb)
     rbmodes = np.zeros((lb, 6))

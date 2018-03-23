@@ -114,3 +114,32 @@
 ~    - add tests
 
 31. frf_apply_duf – see if needed and consider renaming (psd_apply_duf?)
+
+32. cla:
+    - Maybe should have capability to create null (zeros) category
+      (with srs’s) … or just make sure zero case is accounted for in
+      combination … hmm.
+
+    - Form_extreme
+       - Skip some events? (Like static and random, but include total)
+
+    ~- Reldisp dtm: nodepairs -> node_pairs
+
+    ~- bug: cbcheck -> cbcoordchk : bug if bset is last and we are not
+      reordering (bref is relative to b+q size, but kbb is b size)
+
+    ~- Nastran.mknast Stoponfatal should be bool
+
+    XX - Change size(m, 1) to m.shape[1] (not just in cla.py)
+
+~33. bulk: rddtipch example has bad example (imports! & mkdofpv is
+    probably better)
+
+34. cb: Teach cbtf to handle 0 frequency case like solveunc.fsolve
+    does.
+
+~35. windowends in srsmap is bad reference
+
+36. cbreorder could take tuple of matrices ...
+
+37. cbcoordchk should be silence-able

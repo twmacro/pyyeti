@@ -1466,9 +1466,9 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         Dynamic amplification factor :math:`Q = 1/(2\zeta)` where
         :math:`\zeta` is the fraction of critical damping.
     wep : scalar
-        Argument for the :func:`windowends`; specifies the window-ends
-        portion. Each time slice is passed through :func:`windowends`
-        if wep > 0.
+        Argument for the :func:`pyyeti.dsp.windowends`; specifies the
+        window-ends portion. Each time slice is passed through
+        :func:`pyyeti.dsp.windowends` if wep > 0.
     **srsargs : miscellaneous options for :func:`srs`
         Allows the setting of `ic`, `stype`, `peak`, `eqsine`, etc
         options for :func:`srs`.  See :func:`srs` for more

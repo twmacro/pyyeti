@@ -2825,7 +2825,7 @@ def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
 
 
 def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
-           ext='out', stoponfatal='no', shell='/bin/sh', files=None,
+           ext='out', stoponfatal=False, shell='/bin/sh', files=None,
            before='', after='', top='', bottom=''):
     """
     Create shell script to run chain of nastran (or other) runs.
@@ -2845,8 +2845,8 @@ def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
         Options for nastran command
     ext : string; optional
         The extension on the f06 file; usually 'f06' or 'out'
-    stoponfatal : string; optional
-        'yes' or 'no'; 'yes' if you want script to exit on first fatal
+    stoponfatal : bool; optional
+        Set to True if you want the script to exit on first fatal
     shell : string; optional
         Shell program to write at top of script, eg: #!`shell`
     files : string or None; optional
@@ -2927,7 +2927,7 @@ def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
             f.write("  {:s} '{:s}' '{:s}'\n".
                     format(nascom, nasopt, filename))
 
-            if stoponfatal == 'yes':
+            if stoponfatal:
                 p = filename.rfind('.')
                 if p > -1:
                     f06file = filename[:p + 1] + ext
@@ -2979,8 +2979,8 @@ def rddtipch(f, name='TUG1'):
     Example usage::
 
         # read mug1 and tug1 (created from EXTSEOUT):
-        from pyyeti import op4
         from pyyeti import nastran
+        from pyyeti.nastran import op4
         mug1 = op4.read('data.op4', 'mug1')['mug1']
         tug1 = nastran.rddtipch('data.pch')
 
