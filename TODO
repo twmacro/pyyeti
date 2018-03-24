@@ -131,6 +131,8 @@
     ~- Nastran.mknast Stoponfatal should be bool
 
     XX - Change size(m, 1) to m.shape[1] (not just in cla.py)
+     - changed my mind: it's not broke, and np.size(m, 1) is not the
+       same as m.shape[1]
 
 ~33. bulk: rddtipch example has bad example (imports! & mkdofpv is
     probably better)
@@ -142,4 +144,5 @@
 
 36. cbreorder could take tuple of matrices ...
 
-37. cbcoordchk should be silence-able
+~37. cbcoordchk should be silence-able
+    ~- and return a simplenamespace

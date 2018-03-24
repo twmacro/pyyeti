@@ -884,22 +884,29 @@ def test_cbcoordchk2():
     b = n2p.mksetpv(uset, 'a', 'b')
     b = np.nonzero(b)[0]
 
-    coords0, rbmodes0, maxerr0 = cb.cbcoordchk(
+    chk0 = cb.cbcoordchk(
         kaa, b, b[-6:], verbose=False)
-    rbmodes0 = rbmodes0[b]
+    rbmodes0 = chk0.rbmodes[b]
 
+    # maa = cb.cbreorder(maa, b, last=True)
     kaa = cb.cbreorder(kaa, b, last=True)
     b += kaa.shape[0] - len(b)
     bref = b[-6:]
 
-    coords1, rbmodes1, maxerr1 = cb.cbcoordchk(
+    chk1 = cb.cbcoordchk(
         kaa, b, bref, verbose=False)
-    rbmodes1 = rbmodes1[b]
+    rbmodes1 = chk1.rbmodes[b]
 
-    assert np.allclose(coords1, coords0)
+    assert np.allclose(chk1.coords, chk0.coords)
     assert np.allclose(rbmodes1, rbmodes0)
-    assert np.allclose(maxerr1, maxerr0)
-    assert abs(maxerr0).max() < 1e-5
+    assert np.allclose(chk1.maxerr, chk0.maxerr)
+    assert chk0.refpoint_chk == chk1.refpoint_chk == 'pass'
+    assert abs(chk0.maxerr).max() < 1e-5
+
+    # a case where the refpoint_chk should be 'fail':
+    chk2 = cb.cbcoordchk(
+        kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
+    assert chk2.refpoint_chk == 'fail'
 
 
 def compare_nets(net, net2):

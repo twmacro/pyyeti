@@ -1574,7 +1574,7 @@ def rbdispchk(f, rbdisp, grids=None,
         String to use for title of coordinates listing, or None for no
         title.
     verbose : bool; optional
-        If true, print table of coordinates or any warnings about not
+        If True, print table of coordinates or any warnings about not
         matching the pattern
     tol : float; optional
         Sets the error tolerance level. If `verbose` is true, a
@@ -1696,6 +1696,8 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
     o = locate.flippv(refpoint, lb)
     rbmodes = np.zeros((lb, 6))
     rbmodes[refpoint] = np.eye(6)
+    refpoint_chk = 'pass'
+
     if o.size > 0:
         kor = kbb[np.ix_(o, refpoint)]
         koo = kbb[np.ix_(o, o)]
@@ -1709,38 +1711,42 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
         #   krr - kro @ inv(koo) @ kor
         krr = kbb[np.ix_(refpoint, refpoint)]
         rhs = -kor.T @ rbmodes[o]
+        if not np.allclose(krr, rhs, atol=abs(krr).max() * 1e-8):
+            refpoint_chk = 'fail'
 
-        fout.write(
-            '\nChecking to see if reference DOF '
-            'properly restrain rigid-body motion.\n'
-            'Splitting "kbb" into the "r" (reference) and '
-            '"o" (other) sets, this should be zero:\n\n')
-        fout.write('\tkrr - kro @ inv(koo) @ kor\n\n')
-        fout.write('Check: ')
-        if np.allclose(krr, rhs, atol=abs(krr).max() * 1e-10):
+        if verbose:
             fout.write(
-                'PASS. Values printed below for reference.\n\n')
-        else:
-            fout.write(
-                'FAIL. Assess values below before running CLA.\n\n')
+                '\nChecking to see if reference DOF '
+                'properly restrain rigid-body motion.\n'
+                'Splitting "kbb" into the "r" (reference) and '
+                '"o" (other) sets, this should be zero:\n\n')
+            fout.write('\tkrr - kro @ inv(koo) @ kor\n\n')
+            fout.write('Check: ')
+            if refpoint_chk == 'pass':
+                fout.write(
+                    'PASS. Values printed below for reference.\n\n')
+            else:
+                fout.write(
+                    'FAIL. Assess values below before running '
+                    'CLA.\n\n')
 
-        def _write_matrix(mat):
-            fout.write('\t' + str(mat).replace('\n ', '\n\t ') +
-                       '\n\n')
+            def _write_matrix(mat):
+                fout.write('\t' + str(mat).replace('\n ', '\n\t ') +
+                           '\n\n')
 
-        with ytools.np_printoptions(precision=2, suppress=0,
-                                    linewidth=140):
-            fout.write('"krr" is:\n\n')
-            _write_matrix(krr)
-            fout.write('"kro @ inv(koo) @ kor" is:\n\n')
-            _write_matrix(rhs)
-            fout.write('and the difference is:\n\n')
-            _write_matrix(krr - rhs)
+            with ytools.np_printoptions(precision=2, suppress=0,
+                                        linewidth=140):
+                fout.write('"krr" is:\n\n')
+                _write_matrix(krr)
+                fout.write('"kro @ inv(koo) @ kor" is:\n\n')
+                _write_matrix(rhs)
+                fout.write('and the difference is:\n\n')
+                _write_matrix(krr - rhs)
 
-        with ytools.np_printoptions(precision=2, suppress=1,
-                                    linewidth=140):
-            fout.write('The percent difference is:\n\n')
-            _write_matrix((rhs - krr) / krr * 100)
+            with ytools.np_printoptions(precision=2, suppress=1,
+                                        linewidth=140):
+                fout.write('The percent difference is:\n\n')
+                _write_matrix((rhs - krr) / krr * 100)
 
     if rb_normalizer is not None:
         rbmodes = rbmodes @ rb_normalizer
@@ -1752,7 +1758,11 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
         rbmodes1 = rbmodes
         rbmodes = np.zeros((lt, 6))
         rbmodes[bset] = rbmodes1
-    return coords, rbmodes, maxerr
+    return SimpleNamespace(
+        coords=coords,
+        rbmodes=rbmodes,
+        maxerr=maxerr,
+        refpoint_chk=refpoint_chk)
 
 
 def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
@@ -1769,10 +1779,16 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         6.
     refpoint : 1d array
         6-element subset of `bset` representing a statically-
-        determinate set capable of restraining all rigid-body
-        modes (similar to a SUPORT card in Nastran). Typically, this
-        is just all DOF of a single node; however, if this is not
-        possible, you'll also want to define `rb_normalizer`.
+        determinate set capable of restraining all rigid-body modes
+        (similar to a SUPORT card in Nastran). Typically, this is just
+        all DOF of a single node; however, if this is not possible for
+        a multi-node interface, you'll also want to define
+        `rb_normalizer`. If `verbose` is True, this routine will print
+        a detailed check showing whether or not these DOF properly
+        restrain rigid-body motion. Additionally, the output
+        `refpoint_chk` will be set to 'pass' or 'fail'. A return of
+        'fail' is not absolute; a human should evaluate the results
+        with `verbose` set to True.
     grids : 1d array or None; optional
         Length N array of node IDs or None. If array, used only in
         diagnostic message printing.
@@ -1780,8 +1796,9 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         String to use for title of coordinates listing, or None for no
         title.
     verbose : bool; optional
-        If true, print table of coordinates and warnings from
-        :func:`rbdispchk`.
+        If True, print check results and table of coordinates and
+        warnings from :func:`rbdispchk`. See also `refpoint` and
+        `outfile`.
     outfile : string or file handle or 1; optional
         If string, name of file to write to. If file handle, write to
         that file. Use 1 to write to the screen.
@@ -1809,6 +1826,8 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
 
     Returns
     -------
+    A SimpleNamespace with the members:
+
     coords : ndarray
         A 3-column matrix of [x, y, z] locations of each node. If
         `rb_normalizer` is None, the locations are relative to
@@ -1822,6 +1841,10 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     maxerr : float
         Maximum absolute error of any deviation from the expected
         pattern (see :func:`rbdispchk`).
+    refpoint_chk : string
+        Either 'pass' or 'fail'. See description of `refpoint`
+        above. Note that `refpoint_chk` is always True for a single
+        node interface.
 
     Notes
     -----
@@ -2081,10 +2104,11 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
                'the reference node.)\n'.format(bref[0] + 1))
 
     # coordinates of boundary points according to stiffness:
-    coords, rbs, _ = cbcoordchk(
+    c_chk = cbcoordchk(
         k, bset, bref,
         uset.index.get_level_values('id')[::6],
         ttl, True, fout, rb_normalizer)
+    rbs = c_chk.rbmodes
 
     # calculate free-free modes:
     w, v = _solve_eig(fout, k, m, mtype, ktype, types)
