@@ -146,3 +146,7 @@
 
 ~37. cbcoordchk should be silence-able
     ~- and return a simplenamespace
+
+38. test_ntfl_rbdamping: figure this out:
+    pre_eig = True doesn't work ... not sure why at the
+    moment (maybe conflict with rb modes setting)

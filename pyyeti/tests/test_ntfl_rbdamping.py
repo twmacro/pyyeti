@@ -297,7 +297,7 @@ class FEM_2D:
 
 
 def test_ntfl_rbdamp():
-    PLOT_DIFF = True
+    # PLOT_DIFF = True
     # PLOT_DIFF = False
 
     INC_RB_DAMPING = True
@@ -306,8 +306,8 @@ def test_ntfl_rbdamp():
     TRY_SU_SOLVER = True   # only used if INC_RB_DAMPING is True
     # TRY_SU_SOLVER = False   # only used if INC_RB_DAMPING is True
 
-    # USE_PRE_EIG = False  # only used if SolveUnc is used
-    USE_PRE_EIG = True  # only used if SolveUnc is used
+    USE_PRE_EIG = False  # only used if SolveUnc is used
+    # USE_PRE_EIG = True  # only used if SolveUnc is used
 
     if not INC_RB_DAMPING:
         Solver = ode.SolveUnc
@@ -339,6 +339,8 @@ def test_ntfl_rbdamp():
         if TRY_SU_SOLVER:
             Solver = ode.SolveUnc
             if USE_PRE_EIG:
+                # pre_eig = True doesn't work ... not sure why at the
+                # moment (maybe conflict with rb modes setting)
                 FrcLim = frclim
                 opts = dict(pre_eig=True)
             else:
