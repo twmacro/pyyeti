@@ -70,6 +70,9 @@ def test_area():
     assert np.allclose(areas, areas2)
     assert np.allclose(areas, areas3)
 
+    s1 = spec[:, :2]
+    assert np.all(psd.area(s1) == psd.area((*s1.T,)))
+
 
 def test_interp():
     spec = np.array([[20, 0.5],

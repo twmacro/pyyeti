@@ -339,6 +339,8 @@ def area(spec):
     array([ 18.43...])
     """
     Freq, PSD, _ = proc_psd_spec(spec)
+    if PSD.ndim == 1:
+        PSD = PSD[:, None]
     _area = np.zeros(PSD.shape[1])
 
     # accumulate the areas of all segments for each curve:

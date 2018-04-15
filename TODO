@@ -150,3 +150,8 @@
 38. test_ntfl_rbdamping: figure this out:
     pre_eig = True doesn't work ... not sure why at the
     moment (maybe conflict with rb modes setting)
+
+39. DR.add – should check for drms and nondrms … ?
+    -  What about an easier way to just proceed without nas
+       (if None, more actively make do without it … with
+       warning maybe?)
