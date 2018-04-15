@@ -9,7 +9,6 @@ distinctions between the rigid-body modes and the elastic modes).
 
 from types import SimpleNamespace
 import warnings
-from collections import abc
 import scipy.linalg as la
 import numpy as np
 from pyyeti import expmint, ytools
@@ -1777,10 +1776,9 @@ class SolveExp2(_BaseODE):
         gen : generator function
             Generator function for solving equations one step at a
             time
-        d, v, a : 2d ndarrays
-            The displacement, velocity and acceleration arrays. Only
-            the first column of `d` and `v` are set; other values are
-            all zero.
+        d, v : 2d ndarrays
+            The displacement and velocity arrays. Only the first
+            column of `d` and `v` are set; other values are all zero.
 
         Notes
         -----
@@ -2497,10 +2495,9 @@ class SolveUnc(_BaseODE):
         gen : generator function
             Generator function for solving equations one step at a
             time
-        d, v, a : 2d ndarrays
-            The displacement, velocity and acceleration arrays. Only
-            the first column of `d` and `v` are set; other values are
-            all zero.
+        d, v : 2d ndarrays
+            The displacement and velocity arrays. Only the first
+            column of `d` and `v` are set; other values are all zero.
 
         Notes
         -----
