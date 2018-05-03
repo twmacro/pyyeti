@@ -1163,9 +1163,15 @@ class OP2(object):
 
         The x, y, z values are the grid location in basic.
         """
-        nbytes = self._ibytes + 12
-        dtype = np.dtype([('ints', (self._intstr, 1)),
+        # nbytes = self._ibytes + 12
+        # dtype = np.dtype([('ints', (self._intstr, 1)),
+        #                   ('xyz', (self._endian + 'f4', 3))])
+
+        # 4 byte integers/floats always for this datablock
+        nbytes = 16
+        dtype = np.dtype([('ints', (self._endian + 'i4', 1)),
                           ('xyz', (self._endian + 'f4', 3))])
+
         data = self.rdop2record('bytes')
         n = len(data) // nbytes
         if n * nbytes != len(data):
@@ -1174,7 +1180,7 @@ class OP2(object):
         data = np.fromstring(data, dtype=dtype)
         return data
 
-    def _rdop2cstm(self):
+    def _rdop2cstm(self, data_rec1=None):
         """
         Read Nastran output2 CSTM data block.
 
@@ -1191,7 +1197,8 @@ class OP2(object):
 
         See :func:`rdn2cop2`.
         """
-        cstm_rec1 = self.rdop2record()
+        cstm_rec1 = (self.rdop2record()
+                     if data_rec1 is None else data_rec1)
         cstm_rec2 = self.rdop2record('double')
         self.rdop2eot()
 
@@ -1207,29 +1214,30 @@ class OP2(object):
             cstm[i, 2:] = cstm_rec2[j + pv - 1]  # -1 for 0 offset
         return cstm
 
-#     def _rdop2cstm68(self):
-#         """
-#         Read record 1 of Nastran output2 CSTM68 data block.
-#
-#         Returns vector of the CSTM data or [] if no data
-#         found. Vector is 14 * number of coordinate systems in
-#         length. For each coordinate system::
-#
-#           [ id type xo yo zo T(1,1:3) T(2,1:3) T(3,1:3) ]
-#
-#         T is transformation from local to basic for the coordinate
-#         system.
-#         """
-#         nbytes = 2*self._ibytes + 4*12
-#         dtype = np.dtype([('idtype', (self._intstr, 2)),
-#                           ('xyzT', (self._endian + 'f4', 12))])
-#         data = self.rdop2record('bytes')
-#         n = len(data) // nbytes
-#         if n*nbytes != len(data):
-#             raise ValueError("incorrect record length for"
-#                              " _rdop2cstm68")
-#         data = np.fromstring(data, dtype=dtype)
-#         return data
+    def _rdop2cstm68(self):
+        """
+        Read record 1 of Nastran output2 CSTM68 data block.
+
+        Returns vector of the CSTM data or [] if no data
+        found. Vector is 14 * number of coordinate systems in
+        length. For each coordinate system::
+
+          [ id type xo yo zo T(1,1:3) T(2,1:3) T(3,1:3) ]
+
+        T is transformation from local to basic for the coordinate
+        system.
+        """
+        nbytes = 2*self._ibytes + 12*self._fbytes
+        dtype = np.dtype([('idtype', (self._intstr, 2)),
+                          ('xyzT', (self._rfrm, 12))])
+        data = self.rdop2record('bytes')
+        n = len(data) // nbytes
+        if n*nbytes != len(data):
+            return self._rdop2cstm(np.fromstring(data, np.int32))
+            # raise ValueError("incorrect record length for"
+            #                  " _rdop2cstm68")
+        data = np.fromstring(data, dtype=dtype)  # .reshape((-1, 14))
+        return np.hstack((data['idtype'], data['xyzT']))
 
     def _rdop2geom1cord2(self):
         e = self._endian
@@ -1240,19 +1248,23 @@ class OP2(object):
         header_Str = struct.Struct(e + i * 3)
         cord2_Str = struct.Struct(e + '4' + i + '9' + f)
         sebulk_Str = struct.Struct(e + '4' + i + f + '3' + i)
+        seload_Str = struct.Struct(e + '3' + i)
         hbytes = 3 * ib
         cbytes = 4 * ib + 9 * fb
         bbytes = 7 * ib + fb
+        lbytes = 3 * ib
 
         CORD2R = (2101, 21, 8)
         CORD2C = (2001, 20, 9)
         CORD2S = (2201, 22, 10)
         SEBULK = (1427, 14, 465)
         SECONCT = (427, 4, 453)
+        SELOAD = (1127, 11, 461)
 
         cord2 = np.zeros((0, 13))
         sebulk = np.zeros((1, 8))
-        selist = np.array([[0, 0]], int)
+        selist = np.array([[0, 0]], np.int64)
+        seload = np.array([[0, 0, 0]], np.int64)
         key = self._getkey()
         eot = 0
         # data = np.zeros(0, dtype=self._intstr)
@@ -1292,6 +1304,12 @@ class OP2(object):
                     selist = np.vstack(
                         (seconct[pv], seconct[pv + 1])).T
                     selist = np.vstack((selist, [0, 0]))
+                elif head == SELOAD:
+                    n = (key - 3) // 3
+                    seload = np.empty((n, 3), dtype=np.int64)
+                    for i in range(n):
+                        seload[i] = seload_Str.unpack(
+                            self._fileh.read(lbytes))
                 else:
                     self._fileh.seek((key - 3) * ib, 1)
                 self._fileh.read(4)  # endrec
@@ -1299,7 +1317,7 @@ class OP2(object):
             self._skipkey(2)
             eot, key = self.rdop2eot()
         cord2 = np.delete(cord2, 2, axis=1)
-        return n2p.build_coords(cord2), sebulk, selist
+        return n2p.build_coords(cord2), sebulk, selist, seload
 
     def _rdop2selist(self):
         """
@@ -1445,13 +1463,18 @@ class OP2(object):
         uset = n2p.make_uset(np.column_stack((idlist, doflist)),
                              uset, coordinfo)
 
+        # make sure cstm2 has everything:
+        cstm3 = {}
+        for row in cstm:
+            m = np.zeros((5, 3))
+            m[0, :2] = row[:2]
+            m[1:, :] = row[2:].reshape((4, 3))
+            cstm3[int(row[0])] = m
+
         if cstm2 is None:
-            cstm2 = {}
-            for row in cstm:
-                m = np.zeros((5, 3))
-                m[0, :2] = row[:2]
-                m[1:, :] = row[2:].reshape((4, 3))
-                cstm2[int(row[0])] = m
+            cstm2 = cstm3
+        else:
+            cstm2 = {**cstm2, **cstm3}
         return uset, cstm, cstm2
 
     def _rdop2maps(self):
@@ -2825,7 +2848,7 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
     op2file = guitools.get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
         mats = {}
-        selist = uset = cstm2 = sebulk = None
+        selist = uset = cstm2 = sebulk = seload = None
         se = 0
         o2._fileh.seek(o2._postheaderpos)
 
@@ -2852,17 +2875,22 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
                     o2.skipop2table()
                     continue
 
-                # if name.find('CSTM') == 0:
-                #     if verbose:
-                #         print("Reading table {}...".format(name))
-                #     cstm = o2._rdop2cstm68().reshape((-1, 14))
-                #     cstm = np.vstack((bc, cstm))
-                #     continue
+                if name.find('CSTM') == 0:
+                    if verbose:
+                        print("Reading table {}...".format(name))
+                    cstm = o2._rdop2cstm68()
+                    bc = np.array([[+0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
+                                     0, 0, 0, 1],
+                                   [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                     0, 0, 0, 0]])
+                    cstm = np.vstack((bc, cstm))
+                    continue
 
                 if name.find('GEOM1') == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
-                    cords, sebulk, selist = o2._rdop2geom1cord2()
+                    (cords, sebulk,
+                     selist, seload) = o2._rdop2geom1cord2()
                     if 0 not in cords:
                         cords[0] = np.array([[0., 1., 0.],
                                              [0., 0., 0.],
@@ -2936,11 +2964,12 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
              doftype, nid, upids) = o2._proc_bgpdt(
                  eqexin1, eqexin, True, bgpdt_rec1)
             Uset, cstm, cstm2 = o2._buildUset(
-                se, dof, doftype, nid, uset, xyz, cid, None, cstm2)
+                se, dof, doftype, nid, uset, xyz, cid, cstm, cstm2)
 
     return {'uset': Uset,
             'cstm': cstm,
             'cstm2': cstm2,
             'mats': mats,
             'selist': selist,
-            'sebulk': sebulk}
+            'sebulk': sebulk,
+            'seload': seload}

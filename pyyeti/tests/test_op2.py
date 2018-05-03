@@ -408,7 +408,8 @@ def test_rdpostop2_assemble():
 
         o2._fileh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
-        cords, sebulk, selist = o2._rdop2geom1cord2()
+        (cords, sebulk,
+         selist, seload) = o2._rdop2geom1cord2()
 
     assert np.all(post['selist'] == selist)
     assert np.all(post['sebulk'] == sebulk)
