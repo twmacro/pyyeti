@@ -1177,6 +1177,7 @@ class OP2(object):
         if n * nbytes != len(data):
             raise ValueError("incorrect record length for"
                              " _rdop2bgpdt68")
+        self.skipop2table()
         data = np.fromstring(data, dtype=dtype)
         return data
 
@@ -1236,6 +1237,7 @@ class OP2(object):
             return self._rdop2cstm(np.fromstring(data, np.int32))
             # raise ValueError("incorrect record length for"
             #                  " _rdop2cstm68")
+        self.rdop2eot()
         data = np.fromstring(data, dtype=dtype)  # .reshape((-1, 14))
         return np.hstack((data['idtype'], data['xyzT']))
 
@@ -2872,7 +2874,7 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
                     if verbose:
                         print("Reading table {}...".format(name))
                     bgpdt_rec1 = o2._rdop2bgpdt68()
-                    o2.skipop2table()
+                    # o2.skipop2table()
                     continue
 
                 if name.find('CSTM') == 0:
