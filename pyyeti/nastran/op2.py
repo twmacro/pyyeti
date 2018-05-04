@@ -1163,15 +1163,9 @@ class OP2(object):
 
         The x, y, z values are the grid location in basic.
         """
-        # nbytes = self._ibytes + 12
-        # dtype = np.dtype([('ints', (self._intstr, 1)),
-        #                   ('xyz', (self._endian + 'f4', 3))])
-
-        # 4 byte integers/floats always for this datablock
-        nbytes = 16
-        dtype = np.dtype([('ints', (self._endian + 'i4', 1)),
-                          ('xyz', (self._endian + 'f4', 3))])
-
+        nbytes = self._ibytes + 3*self._fbytes
+        dtype = np.dtype([('ints', (self._intstr, 1)),
+                          ('xyz', (self._rfrm, 3))])
         data = self.rdop2record('bytes')
         n = len(data) // nbytes
         if n * nbytes != len(data):
@@ -1234,7 +1228,8 @@ class OP2(object):
         data = self.rdop2record('bytes')
         n = len(data) // nbytes
         if n*nbytes != len(data):
-            return self._rdop2cstm(np.fromstring(data, np.int32))
+            return self._rdop2cstm(
+                np.fromstring(data, np.dtype(self._intstr)))
             # raise ValueError("incorrect record length for"
             #                  " _rdop2cstm68")
         self.rdop2eot()
@@ -1346,7 +1341,7 @@ class OP2(object):
         # clear the 2nd bit for all S-set:
         sset = (uset & n2p.mkusetmask("s")) != 0
         if any(sset):
-            uset[sset] = uset[sset] & ~2
+            uset[sset] = uset[sset] & ~np.array(2, uset.dtype)
         self.rdop2eot()
         return uset
 
