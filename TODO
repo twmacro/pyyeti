@@ -161,3 +161,7 @@
     - dsp has a couple different 'makeplot' args ... make them all
       the same and consistent
 41. Move find_center ?
+42. Rbmultchk – needs improving … what about b-set at the end?
+    The assumptions about truncating won’t work right (right?)
+43. Bref – what about a model with mechanisms?
+    - let bref not be a mult of 6?
