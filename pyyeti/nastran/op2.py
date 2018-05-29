@@ -236,7 +236,9 @@ class OP2(object):
             as dbnames, but in a list of ordered and formatted
             strings.
         dbstarts : integer 1d ndarray
-            Ordered list of datablock starting positions in file.
+            Ordered list of datablock starting byte positions in file.
+        dbstops : integer 1d ndarray
+            Ordered list of datablock stopping byte positions in file.
         _Str4 : struct.Struct object
             Precompiled for reading 4 byte integers (corresponds to
             `int32str`).
@@ -251,6 +253,7 @@ class OP2(object):
         self.dbnames = []
         self.dblist = []
         self.dbstarts = None
+        self.dbstop2 = None
         reclen = struct.unpack('i', self._fileh.read(4))[0]
         self._fileh.seek(0)
 
@@ -568,7 +571,10 @@ class OP2(object):
             in formatted and sorted (in file position order) strings.
 
         dbstarts : integer 1d ndarray
-            Ordered list of datablock starting positions in file.
+            Ordered list of datablock starting byte positions in file.
+
+        dbstops : integer 1d ndarray
+            Ordered list of datablock stopping byte positions in file.
 
         Notes
         -----
@@ -591,10 +597,12 @@ class OP2(object):
         if len(self.dbnames) > 0 and not redo:
             if verbose:
                 self.prtdir()
-            return self.dbnames, self.dblist, self.dbstarts
+            return (self.dbnames, self.dblist,
+                    self.dbstarts, self.dbstops)
         dbnames = {}
         dblist = []
         dbstarts = []
+        dbstops = []
         self._fileh.seek(self._postheaderpos)
         pos = self._postheaderpos
         while 1:
@@ -620,13 +628,15 @@ class OP2(object):
             dbnames[name].append([[pos, cur], cur - pos - 1, size])
             dblist.append(s)
             dbstarts.append(pos)
+            dbstops.append(cur)
             pos = cur
         self.dbnames = dbnames
         self.dblist = dblist
         self.dbstarts = np.array(dbstarts)
+        self.dbstops = np.array(dbstops)
         if verbose:
             self.prtdir()
-        return dbnames, dblist, self.dbstarts
+        return dbnames, dblist, self.dbstarts, self.dbstops
 
     def rdop2dynamics(self):
         """
@@ -957,6 +967,15 @@ class OP2(object):
         else:
             self._fileh.seek(self.dbstarts[i])
 
+    def near_db_end(self):
+        """
+        True if "near" end of datablock (there are no more records).
+        """
+        pos = self._fileh.tell()
+        i = np.searchsorted(self.dbstops, pos)
+        bytes_to_go = self.dbstops[i] - pos
+        return bytes_to_go <= (8 + self._ibytes)
+
     def _rdop2ougv1(self, name):
         """
         Read op2 OUGV1 mode shape data block.
@@ -1226,8 +1245,8 @@ class OP2(object):
         dtype = np.dtype([('idtype', (self._intstr, 2)),
                           ('xyzT', (self._rfrm, 12))])
         data = self.rdop2record('bytes')
-        n = len(data) // nbytes
-        if n*nbytes != len(data):
+        # n = len(data) // nbytes
+        if not self.near_db_end():  # n*nbytes != len(data):
             return self._rdop2cstm(
                 np.fromstring(data, np.dtype(self._intstr)))
             # raise ValueError("incorrect record length for"

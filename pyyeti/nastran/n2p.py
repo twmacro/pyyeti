@@ -2069,9 +2069,11 @@ def make_uset(dof, nasset=0, xyz=None):
                 'each GRID must have all DOF 1-6 specified')
     ind = pd.MultiIndex.from_arrays([edof[:, 0], edof[:, 1]],
                                     names=['id', 'dof'])
-    usetdf = pd.DataFrame(dict(uset=0, x=np.nan, y=np.nan, z=np.nan),
-                          index=ind,
-                          columns=['nasset', *'xyz'])
+    usetdf = (pd.DataFrame(dict(nasset=0, x=np.nan,
+                                y=np.nan, z=np.nan),
+                           index=ind,
+                           columns=['nasset', *'xyz'])
+              .astype({c: float for c in 'xyz'}))
 
     def _ensure_2cols(dof):
         # ensure dof has two # commentlumns

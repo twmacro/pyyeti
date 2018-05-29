@@ -2826,12 +2826,12 @@ class DR_Results(OrderedDict):
         >>> # for checking, make a pandas DataFrame to summarize data
         >>> # recovery definitions (but skip the excel file for this
         >>> # demo)
-        >>> pd.set_option('display.max_colwidth', 25)
-        >>> drdefs.excel_summary(None)   # doctest: +ELLIPSIS
+        >>> pd.options.display.max_colwidth = 25
+        >>> drdefs.excel_summary(None)
                                          ATM                       LTM
         active                           yes                         -
         desc        S/C Internal Accelera...        S/C Internal Loads
-        drfile      ...
+        drfile                          None                         -
         drfunc                       no func                         -
         filterval                      1e-06                         -
         histlabels                      None                         -
