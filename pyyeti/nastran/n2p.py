@@ -370,7 +370,7 @@ def rbcoords(rb, verbose=2):
     >>> not_rb = np.dot(np.arange(12).reshape(12, 1),
     ...                 np.arange(6).reshape(1, 6))
     >>> np.set_printoptions(precision=4, suppress=True)
-    >>> nastran.rbcoords(not_rb)
+    >>> nastran.rbcoords(not_rb)              # doctest: +ELLIPSIS
     Warning:  deviation from standard pattern, node #1 starting at index 0:
       Max deviation = 2.6 units.
       Max % error   = 217%.
@@ -390,7 +390,7 @@ def rbcoords(rb, verbose=2):
     Maximum absolute coordinate location error: 2.6 units
     Maximum % error: 217%.
     (array([[ 1. ,  1.2,  0. ],
-           [ 1. ,  1.2,  0. ]]), 2.6000000000000005, 216.66666666666674)
+           [ 1. ,  1.2,  0. ]]), 2.600..., 216.666...)
     """
     r, c = np.shape(rb)
     if c != 6:
@@ -565,16 +565,17 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None,
     array([[ 0.1   , -0.    , -0.    ],
            [ 0.    ,  0.0707, -0.0707],
            [ 0.    ,  0.0707,  0.0707]])
-    >>> trips.outmats['rb']
-    array([[  1.,   0.,   0.,   0.,  15., -10.],
-           [  0.,   1.,   0., -15.,   0.,   5.],
-           [  0.,   0.,   1.,  10.,  -5.,   0.],
-           [  0.,   0.,   0.,   1.,   0.,   0.],
-           [  0.,   0.,   0.,   0.,   1.,   0.],
-           [  0.,   0.,   0.,   0.,   0.,   1.],
-           [  1.,   0.,   0.,   0.,  15., -10.],
-           [  0.,   1.,   0., -15.,   0.,   5.],
-           [  0.,   0.,   1.,  10.,  -5.,   0.]])
+    >>> np.allclose(trips.outmats['rb'],
+    ...             [[  1.,   0.,   0.,   0.,  15., -10.],
+    ...              [  0.,   1.,   0., -15.,   0.,   5.],
+    ...              [  0.,   0.,   1.,  10.,  -5.,   0.],
+    ...              [  0.,   0.,   0.,   1.,   0.,   0.],
+    ...              [  0.,   0.,   0.,   0.,   1.,   0.],
+    ...              [  0.,   0.,   0.,   0.,   0.,   1.],
+    ...              [  1.,   0.,   0.,   0.,  15., -10.],
+    ...              [  0.,   1.,   0., -15.,   0.,   5.],
+    ...              [  0.,   0.,   1.,  10.,  -5.,   0.]])
+    True
 
     Transform "rb" back into basic coordinates and to unity scale by
     using pv & Ts together:
@@ -583,16 +584,17 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None,
     >>> for j, Tcurr in enumerate(trips.Ts):
     ...     pvcurr = pv[j * 3:j * 3 + 3]
     ...     rb[pvcurr] = Tcurr @ rb[pvcurr]
-    >>> rb
-    array([[  1.,   0.,   0.,   0.,  15., -10.],
-           [  0.,   1.,   0., -15.,   0.,   5.],
-           [  0.,   0.,   1.,  10.,  -5.,   0.],
-           [  0.,   0.,   0.,   1.,   0.,   0.],
-           [  0.,   0.,   0.,   0.,   1.,   0.],
-           [  0.,   0.,   0.,   0.,   0.,   1.],
-           [  1.,   0.,   0.,   0.,  15., -10.],
-           [  0.,   1.,   0., -15.,   0.,   5.],
-           [  0.,   0.,   1.,  10.,  -5.,   0.]])
+    >>> np.allclose(rb,
+    ...             [[  1.,   0.,   0.,   0.,  15., -10.],
+    ...              [  0.,   1.,   0., -15.,   0.,   5.],
+    ...              [  0.,   0.,   1.,  10.,  -5.,   0.],
+    ...              [  0.,   0.,   0.,   1.,   0.,   0.],
+    ...              [  0.,   0.,   0.,   0.,   1.,   0.],
+    ...              [  0.,   0.,   0.,   0.,   0.,   1.],
+    ...              [  1.,   0.,   0.,   0.,  15., -10.],
+    ...              [  0.,   1.,   0., -15.,   0.,   5.],
+    ...              [  0.,   0.,   1.,  10.,  -5.,   0.]])
+    True
     """
     # attempt to find xyz triples:
     drmrb = np.atleast_2d(drmrb)
