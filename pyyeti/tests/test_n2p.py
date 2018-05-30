@@ -1581,17 +1581,24 @@ def test_badrbe3_error():
     uset = n2p.addgrid(None, np.arange(1, n + 1), 'b', 0,
                        np.column_stack((x, y, y)), 0)
 
-    # uset = np.zeros((6 * len(x), 6), float)
-    # for i in range(len(x)):
-    #     j = i * 6
-    #     uset[j:j + 6, :] = n2p.addgrid(None, i + 1, 'b',
-    #                                    0, [x[i], 0, 0], 0)
-    uset = n2p.addgrid(uset, 100, 'b', 0, [5, 5, 5], 0)
+    uset = n2p.addgrid(uset, 100, 'b', 0, [5, 0, 0], 0)
+
+    # the following is documented elsewhere in this file:
+    import sys
+    for v in list(sys.modules.values()):
+        if getattr(v, '__warningregistry__', None):
+            v.__warningregistry__ = {}
+
     with assert_warns(RuntimeWarning) as cm:
         assert_raises(la.LinAlgError, n2p.formrbe3, uset, 100, 123456,
                       [123, [1, 2, 3, 4, 5]])
-    the_warning = str(cm.warning)
-    assert 0 == the_warning.find("matrix is poorly conditioned")
+    found = False
+    for warning in cm.warnings:
+        msg = str(warning.message)
+        if msg.find("matrix is poorly conditioned") == 0:
+            found = True
+            break
+    assert found
 
 
 def test_badrbe3_warn():
