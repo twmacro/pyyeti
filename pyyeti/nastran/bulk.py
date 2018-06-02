@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-from pyyeti import locate, writer, ytools, guitools
+from pyyeti import locate, writer, ytools, guitools, dsp
 from pyyeti.nastran import n2p, op4, op2
 
 __all__ = [
@@ -2026,7 +2026,7 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
     return ytools.wtfile(f, _wtrspline, rid, ids, nper, DoL)
 
 
-def findcenter(x, y, doplot=False):
+def findcenter(x, y, makeplot='no'):
     """
     Find radius and center point of x-y data points
 
@@ -2035,9 +2035,17 @@ def findcenter(x, y, doplot=False):
     x, y : 1d array_like
         Vectors x, y data points (in cartesian coordinates) that are
         on a circle: [x, y]
-    doplot : bool; optional
-        If True, a figure named 'findcenter' will be opened to show
-        the fit.
+    makeplot : string; optional
+        Specifies if and how to plot data showing the fit.
+
+        ==========   ============================
+        `makeplot`   Description
+        ==========   ============================
+            'no'     do not plot
+         'clear'     plot after clearing figure
+           'add'     plot without clearing figure
+           'new'     plot in new figure
+        ==========   ============================
 
     Returns
     -------
@@ -2063,9 +2071,12 @@ def findcenter(x, y, doplot=False):
         >>> th = np.linspace(0., np.pi/2, 10)
         >>> x = xc + R*np.cos(th)
         >>> y = yc + R*np.sin(th)
-        >>> findcenter(x, y, doplot=1)
+        >>> findcenter(x, y, makeplot='new')
         array([  1.,  15.,  35.])
     """
+    makeplot = dsp._check_makeplot(
+        makeplot, ('no', 'new', 'clear', 'add'))
+
     x, y = np.atleast_1d(x, y)
     clx, cly = x.mean(), y.mean()
     R0 = (x.max() - clx + y.max() - cly) / 2
@@ -2096,9 +2107,7 @@ def findcenter(x, y, doplot=False):
                'square of residuals = {}'.format(ssq))
         warnings.warn(msg, RuntimeWarning)
 
-    if doplot:
-        plt.figure('findcenter')
-        plt.clf()
+    if makeplot:
         plt.scatter(x, y, c='r', marker='o', s=60,
                     label='Input Points')
         th = np.arange(0, 361) * np.pi / 180.
@@ -2195,11 +2204,13 @@ def intersect(circA, circB, xyA, draw=False):
 
 
 def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
-                     rbe2_id0, doplot, nper, DoL, independent):
+                     rbe2_id0, makeplot, nper, DoL, independent):
     """
     Routine used by :func:`wtrspline`. See documentation for
     :func:`wtrspline`.
     """
+    makeplot = dsp._check_makeplot(
+        makeplot, ('no', 'new', 'clear'))
     # rgrids = np.atleast_2d(r1grids, r2grids)
     IDs = []
     xyz = []
@@ -2238,19 +2249,19 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
             if abs(circ[i]) < 1e-9 * circ[2]:
                 circ[i] = 0.0
 
-    if doplot:
-        fig = plt.figure('rspline check 1', figsize=(8, 8))
-        plt.clf()
-        plt.scatter(xyz[0][:, lat[0]], xyz[0][:, lat[1]],
-                    c='b', marker='+', s=60, label='R1 nodes')
-        plt.scatter(xyz[1][:, lat[0]], xyz[1][:, lat[1]],
-                    c='g', marker='x', s=60, label='R2 nodes')
-        plt.axis('equal')
-        plt.title('Old ring nodes and new ring 1 nodes -- should '
-                  'see circles')
-        plt.xlabel('XYZ'[lat[0]])
-        plt.ylabel('XYZ'[lat[1]])
-        fig.subplots_adjust(bottom=.3)
+    if makeplot:
+        fig = plt.gcf()
+        axes = fig.subplots(2, 1, sharex=True, sharey=True)
+        axes[0].scatter(xyz[0][:, lat[0]], xyz[0][:, lat[1]],
+                        c='b', marker='+', s=60, label='R1 nodes')
+        axes[0].scatter(xyz[1][:, lat[0]], xyz[1][:, lat[1]],
+                        c='g', marker='x', s=60, label='R2 nodes')
+        axes[0].axis('square')
+        axes[0].set_title(
+            'Old ring nodes and new ring 1 nodes')
+        axes[0].set_xlabel('XYZ'[lat[0]])
+        axes[0].set_ylabel('XYZ'[lat[1]])
+        fig.subplots_adjust(right=0.6)
 
     newpts = np.zeros((n1, 3))
     newpts[:, ax] = xyz[1][0, ax]
@@ -2258,14 +2269,11 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         newpts[j, lat] = intersect(center[0], center[1],
                                    xyz[0][j, lat])
 
-    if doplot:
+    if makeplot:
         th = np.arange(0, np.pi * 2 + .005, .01)
         x = center[1][2] * np.cos(th) + center[1][0]
         y = center[1][2] * np.sin(th) + center[1][1]
-        plt.plot(x, y, 'g-', label='R2 best-fit circle')
-        plt.scatter(newpts[:, lat[0]], newpts[:, lat[1]], c='r',
-                    marker='o', s=40,
-                    label='New R1 nodes - should be on R2 circle')
+
         segments_x = np.empty(3 * newpts.shape[0])
         segments_y = np.empty_like(segments_x)
         segments_x[::3] = newpts[:, lat[0]]
@@ -2274,9 +2282,15 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         segments_y[1::3] = xyz[0][:, lat[1]]
         segments_x[2::3] = np.nan
         segments_y[2::3] = np.nan
-        plt.plot(segments_x, segments_y, 'r-',
-                 label='RBE2s - should be R1 radial')
-        plt.legend(loc='upper center', bbox_to_anchor=(.5, -.1))
+
+        axes[0].plot(x, y, 'g-', label='R2 best-fit circle')
+        axes[0].scatter(newpts[:, lat[0]], newpts[:, lat[1]], c='r',
+                        marker='o', s=40,
+                        label=('New R1 nodes\n'
+                               ' - should be on R2 circle'))
+        axes[0].plot(segments_x, segments_y, 'r-',
+                     label='RBE2s - should be R1 radial')
+        axes[0].legend(loc='upper left', bbox_to_anchor=(1.02, 1.0))
 
     # write new grids
     f.write('$\n$ Grids to RBE2 to Ring 1 grids. These grids line '
@@ -2322,23 +2336,22 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     ids = np.vstack((ids[i:], ids[:i], ids[i]))
     wtrspline(f, rspline_id0, ids, nper=nper, DoL=DoL)
 
-    if doplot:
+    if makeplot:
         # plot the rspline:
-        plt.figure('rspline check 2')
-        plt.clf()
         ids_with_coords = np.hstack((newids, IDs[1]))
         pv = locate.mat_intersect(ids_with_coords, ids[:, 0], 2)
         xy = np.vstack((newpts[:, lat], xyz[1][:, lat]))[pv[0]]
-        plt.plot(xy[:, 0], xy[:, 1])
-        plt.axis('equal')
-        plt.title('Final RSPLINE - should be no sharp direction '
-                  'changes')
-        plt.xlabel('XYZ'[lat[0]])
-        plt.ylabel('XYZ'[lat[1]])
+
+        axes[1].plot(xy[:, 0], xy[:, 1])
+        axes[1].axis('square')
+        axes[1].set_title(
+            'Final RSPLINE - should be no sharp direction changes')
+        axes[1].set_xlabel('XYZ'[lat[0]])
+        axes[1].set_ylabel('XYZ'[lat[1]])
 
 
 def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
-                    rbe2_id0=None, doplot=1, nper=1, DoL='0.1',
+                    rbe2_id0=None, makeplot='new', nper=1, DoL='0.1',
                     independent='ring1'):
     """
     Creates a smooth RSPLINE to connect two rings of grids.
@@ -2369,14 +2382,21 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     rbe2_id0 : integer or None; optional
         1st id of RBE2 elements that will connect old ring 1 nodes to
         new ones. If None, ``rbe2_id0 = node_id0``.
-    doplot : bool; optional
-        If True, 2 figures will be created for visual error checking:
+    makeplot : string; optional
+        Specifies if and how to plot data for visual error checking:
 
-          - figure 'rspline check 1' plots node locations and RBE2s
-            for inspection; read title & legend for a couple hints of
-            what to look for
-          - figure 'rspline check 2' plots the final RSPLINE -- should
-            be smooth
+        ==========   ============================
+        `makeplot`   Description
+        ==========   ============================
+            'no'     do not plot
+         'clear'     plot after clearing figure
+           'new'     plot in new figure
+        ==========   ============================
+
+        If plotting, 2 axes will be created:
+          - top axes plots node locations and RBE2s for inspection;
+            read title & legend for a couple hints of what to look for
+          - bottom axes plots the final RSPLINE -- should be smooth
 
     nper : integer; optional
         Number of grids to write per RSPLINE before starting to look
@@ -2485,7 +2505,7 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     if rbe2_id0 is None:
         rbe2_id0 = node_id0
     return ytools.wtfile(f, _wtrspline_rings, r1grids, r2grids,
-                         node_id0, rspline_id0, rbe2_id0, doplot,
+                         node_id0, rspline_id0, rbe2_id0, makeplot,
                          nper, DoL, independent)
 
 

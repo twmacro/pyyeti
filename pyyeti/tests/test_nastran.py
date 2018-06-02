@@ -441,11 +441,13 @@ def test_wtrspline_rings():
                         'b', 0, ring2[:, 1:], 0)
 
     with StringIO() as f:
-        nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001, doplot=0)
+        nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001,
+                                makeplot='no')
         s1 = f.getvalue()
 
     with StringIO() as f:
-        nastran.wtrspline_rings(f, uset1, uset2, 1001, 2001, doplot=0)
+        nastran.wtrspline_rings(f, uset1, uset2, 1001, 2001,
+                                makeplot='no')
         s2 = f.getvalue()
     assert s1 == s2
     sbe = """$
@@ -485,7 +487,7 @@ RSPLINE     2005     0.1    1005     107  123456    1001
 
     with StringIO() as f:
         nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001,
-                                independent='ring2', doplot=0)
+                                independent='ring2', makeplot='no')
         s = f.getvalue()
 
     sbe = """$
@@ -524,17 +526,17 @@ RSPLINE     2005     0.1     107    1001  123456     101
     assert s == sbe
 
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1, uset2,
-                  1001, 2001, doplot=0, independent='badoption')
+                  1001, 2001, makeplot='no', independent='badoption')
 
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1[:-1],
-                  uset2, 1001, 2001, doplot=0)
+                  uset2, 1001, 2001, makeplot='no')
 
     uset2 = None
     for row in ring2:
         uset2 = n2p.addgrid(uset2, int(row[0]), 'b', 0,
                             [row[3], row[1], row[2]], 0)
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1,
-                  uset2, 1001, 2001, doplot=0)
+                  uset2, 1001, 2001, makeplot='no')
 
 
 def test_wtcoordcards():

@@ -2244,6 +2244,19 @@ def get_turning_pts(y, x=None, getindex=True, tol=1e-6, atol=None):
     return y[pv]
 
 
+def _check_makeplot(makeplot, valid):
+    if makeplot not in valid:
+        raise ValueError('invalid `makeplot` setting; must be in {}'
+                         .format(valid))
+    if makeplot != 'no':
+        if makeplot == 'new':
+            plt.figure()
+        elif makeplot == 'clear':
+            plt.clf()
+        return True
+    return False
+
+
 def calcenv(x, y, p=5, n=2000, method='max', base=0.,
             makeplot='clear', polycolor=(1, .7, .7), label='data'):
     """
@@ -2279,20 +2292,21 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
     makeplot : string; optional
         Specifies if and how to plot envelope in current figure:
 
-        ==========   =============================================
+        ==========   ============================
         `makeplot`   Description
-        ==========   =============================================
-            'no'      do not plot envelope
-         'clear'      plot envelope after clearing figure
-           'add'      plot envelope without clearing figure
-        ==========   =============================================
+        ==========   ============================
+            'no'     do not plot
+         'clear'     plot after clearing figure
+           'add'     plot without clearing figure
+           'new'     plot in new figure
+        ==========   ============================
 
     polycolor : color specification; optional
         any valid matplotlib color specification for the color of the
         enveloping curve
     label : string; optional
         label for the x-y data on plot (only used if `makeplot` is
-        True)
+        not 'no')
 
     Returns
     -------
@@ -2346,9 +2360,6 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         >>> ax.legend().set_visible(False)
         >>> fig.subplots_adjust(right=0.7)
     """
-    # Original Yeti version: Tim Widrick
-    # Converted from Yeti to Python: Jason Sloan, 10-6-2015
-    # Added 'method' and 'base' options: Tim Widrick, 10-14-2015
     x, y = np.atleast_1d(x, y)
     if np.any(np.diff(x) <= 0):
         raise ValueError("x must be monotonically ascending")
@@ -2359,6 +2370,10 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
     if method not in ['max', 'min', 'both']:
         raise ValueError("`method` must be one of 'max', 'min',"
                          " or 'both")
+
+    makeplot = _check_makeplot(
+        makeplot, ('no', 'new', 'clear', 'add'))
+
     if base is None:
         method = 'both'
     up = 1 + p / 100
@@ -2388,10 +2403,8 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         ye_max, xe_max = get_turning_pts(ye_max, xe, getindex=0)
         ye_min, xe_min = get_turning_pts(ye_min, xe, getindex=0)
 
-    if makeplot != 'no':
+    if makeplot:
         envlabel = r'$\pm${}% envelope'.format(p)
-        if makeplot == 'clear':      # pragma: no cover
-            plt.clf()
         ln = plt.plot(x, y, label=label)[0]
         p = mpatches.Patch(color=polycolor, label=envlabel)
         if base is None:
@@ -2511,6 +2524,66 @@ def nextpow2(x):
     return 1 << (x - 1).bit_length()
 
 
+def _get_ramp(df, bw, on):
+    # form gaussian ramp from 1.0 to near zero:
+    #      exp(-freq ** 2 / den)
+    # - to determine 'den', need number of points and how
+    #   close to zero to get
+    # - number of points:
+    npts = int(bw / df) + 1
+    # - how close to zero:
+    #     nearzero = exp(-(df*(npts-1)) ** 2 / den)
+    #     -log(nearzero) = (df*(npts-1)) ** 2 / den
+    #     den = (df*(npts-1)) ** 2 / (-log(nearzero))
+    nearzero = 1 / npts / 4
+    den = -(df * (npts - 1)) ** 2 / np.log(nearzero)
+    ramp = np.exp(-(np.arange(npts + 1) * df) ** 2 / den)
+    ramp[-1] = 0.0
+    if not on:
+        ramp = ramp[::-1]
+    return ramp
+
+
+def _make_h(freq, w, bw, pass_zero, mag, nyq):
+    df = freq[1] - freq[0]
+    if bw is None:
+        bw = 0.01 * nyq
+    bw = np.atleast_1d(bw)
+    if bw.shape[0] != w.shape[0]:
+        if bw.shape[0] != 1:
+            raise ValueError(
+                '`bw` must be either a scalar or'
+                ' compatibly sized with `w`')
+        _bw = np.empty(w.shape[0])
+        _bw[:] = bw
+        bw = _bw
+
+    H = np.empty(freq.shape[0])
+    on = pass_zero
+    # position ramps; try to have "mag" point closest to each value
+    # in w:
+    I = 0
+    for (_w, _bw) in zip(w, bw):
+        j = np.argmin(abs(freq - _w))
+        ramp = _get_ramp(df, _bw, on)
+        n = ramp.shape[0]
+        i = np.argmin(abs(ramp - mag))
+        if i > j or j - i < I or j - i + n > freq.shape[0]:
+            # if ramp doesn't fit in range or if it conflicts with
+            # previous, error out:
+            raise ValueError(
+                'filter function could not be formed to satisfy '
+                'requirements as defined; stopped on w={}. Using '
+                'a narrower bandwidth might help (currently using'
+                ' bw={})'.format(_w, _bw))
+        H[I:j - i] = ramp[0]
+        I = j - i + n
+        H[j - i:I] = ramp
+        on = not on
+    H[I:] = ramp[-1]
+    return H
+
+
 def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
             makeplot='no'):
     """
@@ -2544,14 +2617,14 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
     makeplot : string; optional
         Specifies if and how to plot filter function:
 
-        ==========   =============================================
+        ==========   ============================
         `makeplot`   Description
-        ==========   =============================================
-            'no'      do not plot filter function
-         'clear'      plot after clearing figure
-           'add'      plot without clearing figure
-           'new'      plot in new figure
-        ==========   =============================================
+        ==========   ============================
+            'no'     do not plot
+         'clear'     plot after clearing figure
+           'add'     plot without clearing figure
+           'new'     plot in new figure
+        ==========   ============================
 
     Returns
     -------
@@ -2610,65 +2683,9 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         >>> _ = plt.figure('compare')
         >>> _ = plt.tight_layout()
     """
-    def _make_h(freq, w, bw, pass_zero, mag):
-        def _get_ramp(df, bw, on):
-            # form gaussian ramp from 1.0 to near zero:
-            #      exp(-freq ** 2 / den)
-            # - to determine 'den', need number of points and how
-            #   close to zero to get
-            # - number of points:
-            npts = int(bw / df) + 1
-            # - how close to zero:
-            #     nearzero = exp(-(df*(npts-1)) ** 2 / den)
-            #     -log(nearzero) = (df*(npts-1)) ** 2 / den
-            #     den = (df*(npts-1)) ** 2 / (-log(nearzero))
-            nearzero = 1 / npts / 4
-            den = -(df * (npts - 1)) ** 2 / np.log(nearzero)
-            ramp = np.exp(-(np.arange(npts + 1) * df) ** 2 / den)
-            ramp[-1] = 0.0
-            if not on:
-                ramp = ramp[::-1]
-            return ramp
-
-        df = freq[1] - freq[0]
-        if bw is None:
-            bw = 0.01 * nyq
-        bw = np.atleast_1d(bw)
-        if bw.shape[0] != w.shape[0]:
-            if bw.shape[0] != 1:
-                raise ValueError(
-                    '`bw` must be either a scalar or'
-                    ' compatibly sized with `w`')
-            _bw = np.empty(w.shape[0])
-            _bw[:] = bw
-            bw = _bw
-
-        H = np.empty(freq.shape[0])
-        on = pass_zero
-        # position ramps; try to have "mag" point closest to each value
-        # in w:
-        I = 0
-        for (_w, _bw) in zip(w, bw):
-            j = np.argmin(abs(freq - _w))
-            ramp = _get_ramp(df, _bw, on)
-            n = ramp.shape[0]
-            i = np.argmin(abs(ramp - mag))
-            if i > j or j - i < I or j - i + n > freq.shape[0]:
-                # if ramp doesn't fit in range or if it conflicts with
-                # previous, error out:
-                raise ValueError(
-                    'filter function could not be formed to satisfy '
-                    'requirements as defined; stopped on w={}. Using '
-                    'a narrower bandwidth might help (currently using'
-                    ' bw={})'.format(_w, _bw))
-            H[I:j - i] = ramp[0]
-            I = j - i + n
-            H[j - i:I] = ramp
-            on = not on
-        H[I:] = ramp[-1]
-        return H
-
     # main routine:
+    makeplot = _check_makeplot(
+        makeplot, ('no', 'new', 'clear', 'add'))
     sig, w = np.atleast_1d(sig, w)
     if pass_zero is None:
         pass_zero = True if len(w) != 2 else False
@@ -2684,7 +2701,7 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
     n = sig.shape[0]
     n2 = nextpow2(n)
     freq = np.fft.rfftfreq(n2, 0.5 / nyq)
-    h = _make_h(freq, w, bw, pass_zero, mag)
+    h = _make_h(freq, w, bw, pass_zero, mag, nyq)
     t = np.arange(n)
     ylines = interp.interp1d(t[[0, -1]],
                              sig[[0, -1], :],
@@ -2697,12 +2714,7 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         y_h += ylines
     if is1d:
         y_h = y_h.ravel()
-    if makeplot != 'no':
-        if makeplot == 'new':
-            plt.figure()
-            makeplot = 'add'
-        if makeplot == 'clear':
-            plt.clf()
+    if makeplot:
         plt.plot(freq, h)
         style = dict(color='k', lw=2, ls='--')
         for x in w:

@@ -156,10 +156,12 @@
        (if None, more actively make do without it … with
        warning maybe?)
 
-40. In wrtrspline_rings, should have plot window more controllable …
+~ 40. In wrtrspline_rings, should have plot window more controllable …
     can’t check two rsplines in the same run.
     - dsp has a couple different 'makeplot' args ... make them all
       the same and consistent
+      ~ version 0.93.5
+
 41. Move find_center ?
 42. Rbmultchk – needs improving … what about b-set at the end?
     The assumptions about truncating won’t work right (right?)
