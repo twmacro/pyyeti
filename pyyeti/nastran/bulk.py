@@ -485,7 +485,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         Dictionary of pandas DataFrames containing the DMIG
         entries. The column and row indices are pandas MultiIndex
         objects with node ID in level 0 and DOF in level 1. The
-        exception is for type "9" matrices: the column index in that
+        exception is for form "9" matrices: the column index in that
         case is just the column number (as specified by Nastran).
 
     Notes
@@ -868,10 +868,11 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     grids : 1d array_like
         Vector of grid ids; N = len(grids).
     cp : integer scalar or vector
@@ -1047,10 +1048,11 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     tid : integer
         ID for TABLED1 card
     t : 1d array_like
@@ -1339,10 +1341,11 @@ def wtnasints(f, start, ints):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     start : integer
         Beginning field for the integers; card name is in field 1, so
         start should be >= 2.
@@ -1498,10 +1501,11 @@ def wtcsuper(f, superid, grids):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     superid : integer
         Superelement ID
     grids : 1d array_like
@@ -1532,10 +1536,11 @@ def wtspc1(f, eid, dof, grids, name='SPC1'):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     eid : integer
         Element ID
     dof : integer
@@ -1577,10 +1582,11 @@ def wtxset1(f, dof, grids, name="BSET1"):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     dof : integer
         An integer concatenation of the DOF (ex: 123456)
     grids : 1d array_like
@@ -1618,10 +1624,11 @@ def wtqcset(f, startgrid, nq):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     startgrid : integer
         The start ID for the modal grids that need to be assigned to
         the Q-set and C-set. Any extra DOF are assigned to the C-set.
@@ -1680,10 +1687,11 @@ def wtrbe2(f, eid, indep, dof, dep):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     eid : integer
         Element ID
     indep : integer
@@ -1719,10 +1727,11 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     eid : integer
         Element ID
     GRID_dep : integer
@@ -1843,10 +1852,11 @@ def wtseset(f, superid, grids):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     superid: integer
         Superelement ID
     grids : 1d array_like
@@ -1887,10 +1897,11 @@ def wtset(f, setid, ids):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     setid: integer
         Set ID
     ids : 1d array_like
@@ -1969,10 +1980,11 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     rid : integer
         ID for 1st RSPLINE; gets incremented by 1 for each RSPLINE
     ids : 2d array_like
@@ -2359,10 +2371,11 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     r1grids : 2d array_like or dataframe
         Contains the locations of the ring 1 grids. If 2d array_like,
         it has 4 columns describing the ring 1 grids::
@@ -2516,10 +2529,11 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     baa : 2d array_like
         Craig-Bampton damping matrix
     kaa : 2d array_like
@@ -2587,10 +2601,11 @@ def wtcoordcards(f, ci):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     ci : dictionary or None
         Dictionary of coordinate card info as returned by
         :func:`pyyeti.nastran.n2p.mkcordcardinfo`. If None or if dict
@@ -2644,10 +2659,11 @@ def wtextrn(f, ids, dof):
     Parameters
     ----------
     f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     ids : 1d array_like
         Vector of node ids
     dof : 1d array_like

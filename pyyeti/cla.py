@@ -4703,10 +4703,12 @@ def rptext1(res, filename,
     res : SimpleNamespace
         Results data structure with attributes `.ext`, `.cases`, etc
         (see example in :class:`DR_Results`)
-    filename : string, file handle or 1
-        If a string, it is a filename that gets created. `filename`
-        can also be a file handle or 1 to write to standard output
-        (normally, the screen).
+    filename : string or file handle or 1 or None
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     title : string; optional
         Title for report
     doabsmax : bool; optional
@@ -4844,11 +4846,16 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
     res : SimpleNamespace
         Results data structure with attributes `.ext`, `.cases`,
         `.drminfo`, etc (see example in :class:`DR_Results`)
-    filename : string, file handle or 1
-        If a string, it is a filename that gets created. `filename`
-        can also be a file handle or 1 to write to standard output
-        (normally, the screen). If the filename ends with '.xlsx', a
-        Microsoft Excel file is written.
+    filename : string or file handle or 1 or None
+        If a string that ends with '.xlsx', a Microsoft Excel file is
+        written.
+
+        Otherwise, `filename` is an input for
+        :func:`pyyeti.ytools.wtfile`. It is either a name of a file or
+        a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     title : string
         Title for report
     count_filter : scalar; optional
@@ -5146,10 +5153,12 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     mxmn2 : 2d array_like or SimpleNamespace
         The reference set of max/min data. Format is the same as
         `mxmn1`.
-    filename : string, file handle or 1
-        If a string, it is a filename that gets created. `filename`
-        can also be a file handle or 1 to write to standard output
-        (normally, the screen).
+    filename : string or file handle or 1 or None
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     title : string; must be named; optional
         Title for the report
     names : list/tuple; must be named; optional

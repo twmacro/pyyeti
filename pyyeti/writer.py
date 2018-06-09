@@ -77,12 +77,12 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
 
     Parameters
     ----------
-    f : string or file handle or 1
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Set to 1 to write to stdout (or use sys.stdout).
-        To write to a string, ``import io`` and set ``f =
-        io.StringIO()``; afterwards, retrieve string by
-        ``f.getvalue()``.
+    f : string or file handle or 1 or None
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     string : string
         The formatting string for the write, Python 3 format as in:
         `string`.format(a,b)
@@ -160,11 +160,13 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
     ...                 pfargs=['0 ', '  '])
      5, ======short string======= :     1.1     1.2     1.30
      5, ===a bit longer string=== :    10.1    10.2    10.30
-
     """
     def _get_scalar(a, i): return [a]
+
     def _get_scalar1(a, i): return [a[0]]
+
     def _get_itemi(a, i): return [a[i]]
+
     def _get_matrow(a, i): return a[i]
     length = 1
     fncs = []
@@ -185,12 +187,12 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
                         if range(curlen)[so] != range(length)[so]:
                             msg = ('length mismatch with slice object:'
                                    ' arg # {} is incompatible with '
-                                   'previous args'.format(i+1))
+                                   'previous args'.format(i + 1))
                             raise ValueError(msg)
                     elif curlen != length:
                         msg = ('length mismatch:  arg # {} has '
                                'length {}; expected {} or 1.'.
-                               format(i+1, curlen, length))
+                               format(i + 1, curlen, length))
                         raise ValueError(msg)
                 length = curlen
         else:
@@ -326,20 +328,20 @@ def formheader(headers, widths, formats,
         else:
             csep = sep[j]
         if isinstance(csep, int):
-            csep = ' '*csep
+            csep = ' ' * csep
         w = max(widths[j], mxlengths[j])
         if nheaders > 0:
             for k in range(nheaders):
                 h[k] += csep + strexp(headers[k][j], w, just=cj)
         else:
             h += csep + strexp(headers[j], w, just=cj)
-        u += csep + ulchar*w
+        u += csep + ulchar * w
         f += csep + formats[j]
 
     if nheaders > 0:
-        h = [hj.rstrip()+'\n' for hj in h]
+        h = [hj.rstrip() + '\n' for hj in h]
     else:
         h = h.rstrip() + '\n'
     u = u.rstrip() + '\n'
     f = f.rstrip() + '\n'
-    return ''.join(h)+u, f
+    return ''.join(h) + u, f

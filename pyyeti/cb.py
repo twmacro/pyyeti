@@ -1350,9 +1350,12 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
 
     Parameters
     ----------
-    f : string or file handle or 1
-        If string, name of file to write to. If file handle, write to
-        that file. Use 1 to write to the screen.
+    f : string or file handle or 1 or None
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     drm : 2d ndarray
         Data recovery matrix (DRM).
     name : string
@@ -1560,9 +1563,12 @@ def rbdispchk(f, rbdisp, grids=None,
 
     Parameters
     ----------
-    f : string or file handle or 1
-        If string, name of file to write to. If file handle, write to
-        that file. Use 1 to write to the screen.
+    f : string or file handle or 1 or None
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     rbdisp : 2d ndarray
         Rigid-body displacements; size is 3*N x 6 where N is the
         number of nodes. Rows correspond to X, Y, Z triples for each
@@ -1799,9 +1805,12 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         If True, print check results and table of coordinates and
         warnings from :func:`rbdispchk`. See also `refpoint` and
         `outfile`.
-    outfile : string or file handle or 1; optional
-        If string, name of file to write to. If file handle, write to
-        that file. Use 1 to write to the screen.
+    outfile : string or file handle or 1 or None; optional
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     rb_normalizer : 2d array_like or None
         If not None, the `rbmodes` output will be normalized via::
 
@@ -2314,10 +2323,12 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
 
     Parameters
     ----------
-    f : string, file handle, or 1
-        If a string, it is a filename that gets created. `f` can
-        also be a handle to an open file or just 1 to write to the
-        standard output (normally, the screen).
+    f : string or file handle or 1 or None
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file or a file handle as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     Mcb : 2d ndarray
         Craig-Bampton mass. In order to solve the free-free eigenvalue
         problem, this routine first finds any null columns in `Mcb`

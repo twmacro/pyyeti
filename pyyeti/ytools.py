@@ -834,9 +834,12 @@ def wtfile(f, wtfunc, *args, **kwargs):
     ----------
     f : string or file handle or 1 or None
         Either a name of a file or a file handle as returned by
-        :func:`open` or :func:`StringIO`. Input as integer 1 to write
-        to stdout. Can also be the name of a directory or None; in
-        these cases, a GUI is opened for file selection.
+        :func:`open` or :func:`io.StringIO`. Input as integer 1 to
+        write to stdout (or use ``sys.stdout``). Can also be the name
+        of a directory or None; in these cases, a GUI is opened for
+        file selection. To write to a string, ``import io`` and set
+        ``f = io.StringIO()``; afterwards, retrieve string by
+        ``f.getvalue()``.
     wtfunc : function
         Function that writes output; first argument is the output
         file handle.
