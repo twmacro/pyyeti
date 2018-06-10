@@ -1072,7 +1072,7 @@ class DR_Def(OrderedDict):
             in `drfile` that is called to do data recovery; in that
             case, it must be a valid Python variable name.
         labels : list_like or integer
-            List-like of strings describing each row. Can also be an
+            List_like of strings describing each row. Can also be an
             integer specifying number of rows being recovered; in this
             case, the list is formed internally as:
             ``['Row 1', 'Row 2', ...]``. This input is used to

@@ -4525,7 +4525,7 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2,
     freq : 1d array_like
         Frequency vector at which solution will be computed;
         ``len(freq) = cols(forcepsd)``
-    drmlist : list-like
+    drmlist : list_like
         List of lists (or similar) of any number of pairs of data
         recovery matrices: [[atm1, dtm1], [atm2, dtm2], ...]. To not
         use a particular drm, set it to None. For example, to perform

@@ -785,12 +785,12 @@ def rdfile(f, rdfunc, *args, **kwargs):
     Parameters
     ----------
     f : string or file_like or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Can also be the name of a directory or None; in
-        these cases, a GUI is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     rdfunc : function
         Function that reads data from file; first argument is the
-        input file handle.
+        input file_like object.
     *args, **kwargs : arguments
         Arguments to pass to :func:`rdfunc`.
 
@@ -832,9 +832,9 @@ def wtfile(f, wtfunc, *args, **kwargs):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
-        Either a name of a file or a file handle as returned by
-        :func:`open` or :func:`io.StringIO`. Input as integer 1 to
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`io.StringIO`. Input as integer 1 to
         write to stdout (or use ``sys.stdout``). Can also be the name
         of a directory or None; in these cases, a GUI is opened for
         file selection. To write to a string, ``import io`` and set
@@ -842,7 +842,7 @@ def wtfile(f, wtfunc, *args, **kwargs):
         ``f.getvalue()``.
     wtfunc : function
         Function that writes output; first argument is the output
-        file handle.
+        file_like object.
     *args, **kwargs : arguments
         Arguments to pass to :func:`wtfunc`.
 

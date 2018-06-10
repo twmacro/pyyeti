@@ -101,7 +101,7 @@ def fsearch(f, s):
     Parameters
     ----------
     f : file_like
-        File handle to search in.
+        File_like object to search in.
     s : string
         String to search for.
 
@@ -175,12 +175,13 @@ def rdgpwg(f, search_strings=None):
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
-    search_strings : None, string, or list-like of strings
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
+    search_strings : None, string, or list_like of strings
         If a string, this routine will scan the file until the string
         is found before reading the GPWG table. If multiple strings in
         a list or tuple, the routine will scan for each string, in the
@@ -393,11 +394,12 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
     name : string
         Usually the card name, but is really just the initial part of
         the string to look for. This means that `name` can span more
@@ -460,12 +462,13 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a punch or output2 file or a file handle as
-        returned by :func:`open`. If handle, punch format is assumed
-        and file is rewound first. Can also be the name of a directory
-        or None; in these cases, a GUI is opened for file selection.
-    dmig_names : None, string, or list-like of strings
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        punch or output2 file, or is a file_like object as returned by
+        :func:`open`. If handle, punch format is assumed and file is
+        rewound first. Can also be the name of a directory or None; in
+        these cases, a GUI is opened for file selection.
+    dmig_names : None, string, or list_like of strings
         If not None, it is the name or names of DMIG entry(s) to
         read. If None, all DMIG entries will be returned.
     expanded : bool; optional; must be named
@@ -817,11 +820,12 @@ def rdgrids(f):
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
 
     Returns
     -------
@@ -867,9 +871,9 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -947,11 +951,12 @@ def rdtabled1(f, name='tabled1'):
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
     name : string; optional
         Name of cards to read.
 
@@ -1047,9 +1052,9 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1192,16 +1197,19 @@ def rdwtbulk(fin, fout):
 
     Parameters
     ----------
-    fin : string or file handle
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
-    fout : string or file handle or 1
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to stdout. Can also be the name
-        of a directory or None; in these cases, a GUI is
-        opened for file selection.
+    fin : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
+    fout : string or file_like or 1 or None
+
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
 
     Returns
     -------
@@ -1251,11 +1259,12 @@ def rdeigen(f, use_pandas=True):
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
     use_pandas : bool; optional
         If True, the values with be pandas objects
 
@@ -1340,9 +1349,9 @@ def wtnasints(f, start, ints):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1390,11 +1399,12 @@ def rdcsupers(f):
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
 
     Returns
     -------
@@ -1430,11 +1440,12 @@ def rdextrn(f, expand=True):
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
     expand : bool; optional
         If True, expand rows like this::
 
@@ -1500,9 +1511,9 @@ def wtcsuper(f, superid, grids):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1535,9 +1546,9 @@ def wtspc1(f, eid, dof, grids, name='SPC1'):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1581,9 +1592,9 @@ def wtxset1(f, dof, grids, name="BSET1"):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1623,9 +1634,9 @@ def wtqcset(f, startgrid, nq):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1686,9 +1697,9 @@ def wtrbe2(f, eid, indep, dof, dep):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1726,9 +1737,9 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1851,9 +1862,9 @@ def wtseset(f, superid, grids):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1896,9 +1907,9 @@ def wtset(f, setid, ids):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1979,9 +1990,9 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -2370,9 +2381,9 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -2528,9 +2539,9 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -2600,9 +2611,9 @@ def wtcoordcards(f, ci):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -2658,9 +2669,9 @@ def wtextrn(f, ids, dof):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -2991,11 +3002,12 @@ def rddtipch(f, name='TUG1'):
 
     Parameters
     ----------
-    f : string or file handle or None
-        Either a name of a file or a file handle as returned by
-        :func:`open`. If handle, file is rewound first. Can also be
-        the name of a directory or None; in these cases, a GUI is
-        opened for file selection.
+    f : string or file_like or None
+        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open`. If
+        handle, file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
     name : string
         Name of DTI table to read from the .pch file
 

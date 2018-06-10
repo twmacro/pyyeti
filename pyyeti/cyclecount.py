@@ -29,7 +29,7 @@ def rainflow(peaks, getoffsets=False):
 
     Parameters
     ----------
-    peaks : 1d array-like
+    peaks : 1d array_like
         Vector of alternating peaks (as returned by
         :func:`pyyeti.findap`, for example)
     getoffsets : bool; optional

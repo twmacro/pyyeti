@@ -509,9 +509,9 @@ class OP4(object):
             is read in.
         listonly : bool
             True if only reading name.
-        sparse : bool or None or two-tuple-like; optional
+        sparse : bool or None or two-tuple_like; optional
             Specifies whether output matrices will be regular numpy
-            arrays or sparse arrays. If not tuple-like:
+            arrays or sparse arrays. If not tuple_like:
 
             ========   ===============================================
             `sparse`   Action
@@ -523,7 +523,7 @@ class OP4(object):
                        numpy arrays
             ========   ===============================================
 
-            If `sparse` is two-tuple-like, the first element is either
+            If `sparse` is two-tuple_like, the first element is either
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
@@ -757,9 +757,9 @@ class OP4(object):
             is read in.
         listonly : bool
             True if only reading name.
-        sparse : bool or None or two-tuple-like; optional
+        sparse : bool or None or two-tuple_like; optional
             Specifies whether output matrices will be regular numpy
-            arrays or sparse arrays. If not two-tuple-like:
+            arrays or sparse arrays. If not two-tuple_like:
 
             ========   ===============================================
             `sparse`   Action
@@ -771,7 +771,7 @@ class OP4(object):
                        numpy arrays
             ========   ===============================================
 
-            If `sparse` is two-tuple-like, the first element is either
+            If `sparse` is two-tuple_like, the first element is either
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
@@ -1499,9 +1499,9 @@ class OP4(object):
         justmatrix : bool; optional
             If True, only the matrix is stored in the dictionary. If
             False, a tuple of ``(matrix, form, mtype)`` is stored.
-        sparse : bool or None or two-tuple-like; optional
+        sparse : bool or None or two-tuple_like; optional
             Specifies whether output matrices will be regular numpy
-            arrays or sparse arrays. If not two-tuple-like:
+            arrays or sparse arrays. If not two-tuple_like:
 
             ========   ===============================================
             `sparse`   Action
@@ -1513,7 +1513,7 @@ class OP4(object):
                        numpy arrays
             ========   ===============================================
 
-            If `sparse` is two-tuple-like, the first element is either
+            If `sparse` is two-tuple_like, the first element is either
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
@@ -1579,9 +1579,9 @@ class OP4(object):
             List of variable names to read in, or string with name of
             the single variable to read in, or None. If None, all
             matrices are read in.
-        sparse : bool or None or two-tuple-like; optional
+        sparse : bool or None or two-tuple_like; optional
             Specifies whether output matrices will be regular numpy
-            arrays or sparse arrays. If not two-tuple-like:
+            arrays or sparse arrays. If not two-tuple_like:
 
             ========   ===============================================
             `sparse`   Action
@@ -1593,7 +1593,7 @@ class OP4(object):
                        numpy arrays
             ========   ===============================================
 
-            If `sparse` is two-tuple-like, the first element is either
+            If `sparse` is two-tuple_like, the first element is either
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
@@ -1675,9 +1675,9 @@ class OP4(object):
             If True, only the matrix is stored in the dictionary. If
             False, a tuple of ``(matrix, form, mtype)`` is stored.
             This option is ignored if ``into == 'list'``.
-        sparse : bool or None or two-tuple-like; optional
+        sparse : bool or None or two-tuple_like; optional
             Specifies whether output matrices will be regular numpy
-            arrays or sparse arrays. If not two-tuple-like:
+            arrays or sparse arrays. If not two-tuple_like:
 
             ========   ===============================================
             `sparse`   Action
@@ -1689,7 +1689,7 @@ class OP4(object):
                        numpy arrays
             ========   ===============================================
 
-            If `sparse` is two-tuple-like, the first element is either
+            If `sparse` is two-tuple_like, the first element is either
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
@@ -2001,9 +2001,9 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False,
         If True, only the matrix is stored in the dictionary. If
         False, a tuple of ``(matrix, form, mtype)`` is stored.
         This option is ignored if ``into == 'list'``.
-    sparse : bool or None or two-tuple-like; optional
+    sparse : bool or None or two-tuple_like; optional
         Specifies whether output matrices will be regular numpy arrays
-        or sparse arrays. If not two-tuple-like:
+        or sparse arrays. If not two-tuple_like:
 
         ========   ===============================================
         `sparse`   Action
@@ -2015,7 +2015,7 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False,
                    numpy arrays
         ========   ===============================================
 
-        If `sparse` is two-tuple-like, the first element is either
+        If `sparse` is two-tuple_like, the first element is either
         None, True, or False (see table above) and the second element
         is a callable, as in: ``X = callable(X)``. A common usage of
         the callable would be to convert from "COO" sparse form (see
@@ -2121,9 +2121,9 @@ def read(filename=None, namelist=None, into='dct', justmatrix=True,
         If True, only the matrix is stored in the dictionary. If
         False, a tuple of ``(matrix, form, mtype)`` is stored.
         This option is ignored if ``into == 'list'``.
-    sparse : bool or None or two-tuple-like; optional
+    sparse : bool or None or two-tuple_like; optional
         Specifies whether output matrices will be regular numpy arrays
-        or sparse arrays. If not two-tuple-like:
+        or sparse arrays. If not two-tuple_like:
 
         ========   ===============================================
         `sparse`   Action
@@ -2135,7 +2135,7 @@ def read(filename=None, namelist=None, into='dct', justmatrix=True,
                    numpy arrays
         ========   ===============================================
 
-        If `sparse` is two-tuple-like, the first element is either
+        If `sparse` is two-tuple_like, the first element is either
         None, True, or False (see table above) and the second element
         is a callable, as in: ``X = callable(X)``. A common usage of
         the callable would be to convert from "COO" sparse form (see
