@@ -1350,9 +1350,9 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1563,9 +1563,9 @@ def rbdispchk(f, rbdisp, grids=None,
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -1805,9 +1805,9 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         If True, print check results and table of coordinates and
         warnings from :func:`rbdispchk`. See also `refpoint` and
         `outfile`.
-    outfile : string or file handle or 1 or None; optional
+    outfile : string or file_like or 1 or None; optional
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -2323,9 +2323,9 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.

@@ -178,8 +178,8 @@ def rdgpwg(f, search_strings=None):
     f : string or file_like or None
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
     search_strings : None, string, or list_like of strings
         If a string, this routine will scan the file until the string
@@ -395,11 +395,13 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     Parameters
     ----------
     f : string or file_like or None
+
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
+
     name : string
         Usually the card name, but is really just the initial part of
         the string to look for. This means that `name` can span more
@@ -823,8 +825,8 @@ def rdgrids(f):
     f : string or file_like or None
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
 
     Returns
@@ -954,8 +956,8 @@ def rdtabled1(f, name='tabled1'):
     f : string or file_like or None
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
     name : string; optional
         Name of cards to read.
@@ -1200,11 +1202,10 @@ def rdwtbulk(fin, fout):
     fin : string or file_like or None
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
     fout : string or file_like or 1 or None
-
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
@@ -1262,8 +1263,8 @@ def rdeigen(f, use_pandas=True):
     f : string or file_like or None
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
     use_pandas : bool; optional
         If True, the values with be pandas objects
@@ -1402,8 +1403,8 @@ def rdcsupers(f):
     f : string or file_like or None
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
 
     Returns
@@ -1443,8 +1444,8 @@ def rdextrn(f, expand=True):
     f : string or file_like or None
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
     expand : bool; optional
         If True, expand rows like this::
@@ -3005,8 +3006,8 @@ def rddtipch(f, name='TUG1'):
     f : string or file_like or None
         Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
         file, or is a file_like object as returned by :func:`open`. If
-        handle, file is rewound first. Can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
+        file_like object, it is rewound first. Can also be the name of
+        a directory or None; in these cases, a GUI is opened for file
         selection.
     name : string
         Name of DTI table to read from the .pch file

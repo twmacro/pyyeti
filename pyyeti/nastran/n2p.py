@@ -841,10 +841,10 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
 
     Parameters
     ----------
-    file : string or file handle
-        Either a name of a file or a file handle as returned by
-        :func:`open`. Use 1 to write to the screen, 0 to write nothing
-        -- just get output.
+    file : string or file_like or 1 or 0
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. Use 1 to write to the screen, 0 to write
+        nothing -- just get output.
     uset : pandas DataFrame
         A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`

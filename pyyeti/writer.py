@@ -77,9 +77,9 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
 
     Parameters
     ----------
-    f : string or file handle or 1 or None
+    f : string or file_like or 1 or None
         Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file or a file handle as returned by :func:`open` or
+        file, or is a file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
