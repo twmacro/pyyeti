@@ -73,21 +73,21 @@ def histogram(data, binsize):
     # if it has data:
     def _get_next_bin(data, binsize):
         data = np.atleast_1d(data)
-        data = data[np.isfinite(data)]
+        data = np.sort(data[np.isfinite(data)])
         if data.size == 0:
             yield [0, 0]
             return
-        mn = data.min()
-        mx = data.max()
-        a = int(np.floor(mn / binsize))
-        b = int(np.ceil(mx / binsize))
-        for i in range(a, b + 1):
-            lft = (i - 1 / 2) * binsize
-            rgt = (i + 1 / 2) * binsize
-            count = np.count_nonzero((lft <= data) &
-                                     (data < rgt))
+        a = int(np.floor(data[0] / binsize))
+        while data.size > 0:
+            rgt = (a + 1 / 2) * binsize
+            count = np.searchsorted(data, rgt)
             if count > 0:
-                yield [i * binsize, count]
+                yield [a * binsize, count]
+                data = data[count:]
+                if data.size > 0:
+                    a = int(np.floor(data[0] / binsize))
+            else:
+                a += 1
 
     bins = []
     for b in _get_next_bin(data, binsize):

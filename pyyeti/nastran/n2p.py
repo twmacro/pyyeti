@@ -1171,7 +1171,7 @@ def mksetpv(uset, major, minor):
     return pv
 
 
-def mkdofpv(uset, nasset, dof):
+def mkdofpv(uset, nasset, dof, strict=True):
     """
     Make a DOF partition vector for a particular set from a Nastran
     USET table.
@@ -1202,6 +1202,10 @@ def mkdofpv(uset, nasset, dof):
             An error is generated if any DOF are missing. See
             examples.
 
+    strict : bool; optional
+        If True, raise a ValueError if any DOF in `dof` are not in
+        `uset`.
+
     Returns
     -------
     pv : vector
@@ -1213,7 +1217,8 @@ def mkdofpv(uset, nasset, dof):
     Raises
     ------
     ValueError
-        When requested `dof` are not found in the `nasset`.
+        When requested `dof` are not found in the `nasset` and
+        `strict` is True.
 
     Examples
     --------
@@ -1272,14 +1277,19 @@ def mkdofpv(uset, nasset, dof):
     pvi[pvi == i.size] -= 1
     pv = i[pvi]
     chk = uset_set[pv] != dof
-    if np.any(chk):
-        ids = (dof[chk] // 10)
-        dof = dof[chk] - 10 * ids
-        missing_dof = np.column_stack((ids, dof))
-        msg = ("set '{}' does not contain all of the dof in `dof`."
-               " These are missing:\n{!s}"
-               .format(nasset, missing_dof))
-        raise ValueError(msg)
+    if chk.any():
+        if strict:
+            ids = (dof[chk] // 10)
+            dof = dof[chk] - 10 * ids
+            missing_dof = np.column_stack((ids, dof))
+            msg = ("set '{}' does not contain all of the dof in "
+                   "`dof`. These are missing:\n{!s}"
+                   .format(nasset, missing_dof))
+            raise ValueError(msg)
+        else:
+            chk = ~chk
+            pv = pv[chk]
+            dof = dof[chk]
     ids = dof // 10
     dof = dof - 10 * ids
     outdof = np.column_stack((ids, dof))

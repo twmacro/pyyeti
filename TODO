@@ -2,17 +2,17 @@
     - base this off of scipy.linalg.block_diag ... or is there
       something there already?
 1. Update duf explanation in cla.apply_uf
-~2. Get rid of ytools.diagmat ... use scipy.linalg.block_diag
-~3. Rearrange code: op2, op4, n2p, nastran overlap ... ?
-   - primarly rdnas2cam ... seems like this should be in n2p
-   - i think all of these should probably just be in "nastran" ...
-     or under it: nastran.op4.read()
-     - but all load when "from pyyeti import nastran"
-~4. Convert uset to dataframe i think
+
 5. Convert ext, mx, mn in DR_Results to dataframe
+
 6. rddmig needs profiling / updating for very large DMIGs
+
 7. add wtdmig
+   - add tests
+   - beta in 0.93.6
+
 12. op4: add some c?
+
 15. cla.py:
     DR_Results() … should this be able to init? I think so:
                    DR_Results(drdefs, mission, event)
@@ -58,7 +58,6 @@
 ~16. op2 updates:
   - some functions should be "public", like _rdop2nt()
 19. Add windowends to srs ?
-~20. Change output of fdepsd to DataFrames
 
 
 21. In cb or cla:
@@ -76,42 +75,12 @@
             §  Would need defaults and maybe other inputs
             §  Could have it call mk_net_drms internally
 
-~22.
-~    -        Incorporate upqsetpv & update help & add tests
-~    -        Update upasetpv help
-~    -        Formulvs help says it returns 1 … should say 1.0
-~    -        Rdop2n2c dnids: fix wording here (“pair” would be better I think):
-~    These ids are internally generated and should match with ‘dnids’.
 
 23. ? Add option to change time step during simulation
     o   Save parameters in dictionary for each time step?
     o   Or, are the params cheap to recompute?
     Hmm ... would have to decide how to save results (even time steps?)
 
-~24. Add ability to write more matrices in wt_extseout (like mug1).
-~     - added in version v0.92.3
-
-~25. DR_Event.add should have ability to multiply a new factor on top of
-~    current setting … right now, all it can do is replace
-~     - added in version v0.92.3
-
-~ 26. The DR_Results.solve_psd routine does ode.SolveUnc everytime ????
-~  changed input to class instance "fs" in v0.92.3
-
-~27. Implement a Newmark-Beta ode solver
-~  - add tests
-~  - think about static ic
-~  - bathe reference ?
-
-~28. Add frf_data_recovery and add tests for it
-~    - added method in v0.92.3b
-
-~29. Enhance DR_Event.add "method" option (for uf_reds update) to accept
-~    function
-~    - implemented in v0.92.3b
-
-~30. add rf modes handling to FreqDirect
-~    - add tests
 
 31. frf_apply_duf – see if needed and consider renaming (psd_apply_duf?)
 
@@ -134,18 +103,10 @@
      - changed my mind: it's not broke, and np.size(m, 1) is not the
        same as m.shape[1]
 
-~33. bulk: rddtipch example has bad example (imports! & mkdofpv is
-    probably better)
-
 34. cb: Teach cbtf to handle 0 frequency case like solveunc.fsolve
     does.
 
-~35. windowends in srsmap is bad reference
-
 36. cbreorder could take tuple of matrices ...
-
-~37. cbcoordchk should be silence-able
-    ~- and return a simplenamespace
 
 38. test_ntfl_rbdamping: figure this out:
     pre_eig = True doesn't work ... not sure why at the
@@ -156,14 +117,28 @@
        (if None, more actively make do without it … with
        warning maybe?)
 
-~ 40. In wrtrspline_rings, should have plot window more controllable …
-    can’t check two rsplines in the same run.
-    - dsp has a couple different 'makeplot' args ... make them all
-      the same and consistent
-      ~ version 0.93.5
-
 41. Move find_center ?
+
 42. Rbmultchk – needs improving … what about b-set at the end?
     The assumptions about truncating won’t work right (right?)
+
 43. Bref – what about a model with mechanisms?
     - let bref not be a mult of 6?
+
+` 44. ? Update n2p.mkdofpv to be able to make a best effort (no raise on
+    dofs not found … just trim output accordingly)
+      - "strict" is the new argument
+      - add tests
+      - beta in version 0.93.6
+
+` 45. Update op2.rdpostop2 to return the seconct card too
+      - add tests
+      - update help
+      - beta in version 0.93.6
+
+~ 46. Update the histogram routine in ytools: only check bins with data
+      - version 0.93.6
+
+47. PP should print DataFrames better
+
+48. add sparse Newmark solver

@@ -25,6 +25,7 @@ Limited set of read/write routines for Nastran bulk data
     wt_extseout
     wtcoordcards
     wtcsuper
+    wtdmig
     wtextrn
     wtgrids
     wtnasints

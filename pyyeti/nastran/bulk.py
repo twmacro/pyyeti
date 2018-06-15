@@ -23,7 +23,7 @@ from pyyeti import locate, writer, ytools, guitools, dsp
 from pyyeti.nastran import n2p, op4, op2
 
 __all__ = [
-    'nas_sscanf', 'fsearch', 'rdgpwg', 'rdcards', 'rddmig',
+    'nas_sscanf', 'fsearch', 'rdgpwg', 'rdcards', 'rddmig', 'wtdmig',
     'rdgrids', 'wtgrids', 'rdtabled1', 'wttabled1', 'bulk2uset',
     'rdwtbulk', 'rdeigen', 'wtnasints', 'rdcsupers', 'rdextrn',
     'wtcsuper', 'wtspc1', 'wtxset1', 'wtqcset', 'wtrbe2', 'wtrbe3',
@@ -814,6 +814,182 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         del o2
         dct = _recs_to_df(o2dct)
     return dct
+
+
+def _wtdmig(f, dct):
+    """
+    Routine used by :func:`wtdmig`. See documentation for
+    :func:`wtdmig`.
+    """
+    for name, value in dct.items():
+        name = name.upper()
+        rowids = value.index
+        colids = value.columns
+        # row index must be 2-level MultiIndex:
+        if rowids.nlevels != 2:
+            raise ValueError(
+                '"{}" must have a 2-level row index but has {} levels'
+                .format(name, rowids.nlevels))
+
+        if colids.nlevels > 2:
+            raise ValueError(
+                '"{}" must have a 1 or 2-level column index but has '
+                '{} levels'.format(name, colids.nlevels))
+
+        m = value.values
+        ncol = value.shape[1]
+
+        # determine form of matrix:
+        if colids.nlevels == 1:
+            form = 9
+            ncol = colids.max()
+        elif value.shape[0] != value.shape[1]:
+            form = 2
+        else:
+            if np.allclose(m.transpose(), m):
+                form = 6
+            else:
+                form = 1
+
+        # determine type of matrix:
+        if np.iscomplexobj(m):
+            mtype = 4 if m.dtype.itemsize > 8 else 3
+        else:
+            mtype = 2 if m.dtype.itemsize > 4 else 1
+
+        # write header card:
+        polar = 0
+        tout = 0
+
+        #        DMIG  NAME  0    IFO  TIN  TOUT POLAR     NCOL
+        f.write('{:<8s}{:<8s}{:8d}{:8d}{:8d}{:8d}{:8d}{:8s}{:8d}\n'
+                .format('DMIG', name, 0, form, mtype,
+                        tout, polar, '', ncol))
+
+        # write a column at a time:
+        for col in range(m.shape[1]):
+            if m[:, col].any():
+                start_row = col if form == 6 else 0
+                if colids.nlevels == 2:
+                    gj, cj = colids[col]
+                else:
+                    gj = colids[col]
+                    cj = 0
+                f.write('{:<8s}{:<16s}{:16d}{:16d}\n'
+                        .format('DMIG*', name, gj, cj))
+                for row in range(start_row, m.shape[0]):
+                    num = m[row, col]
+                    if num != 0.0:
+                        gi, ci = rowids[row]
+                        if mtype < 3:   # real
+                            num_str = '{:16.9E}'.format(num)
+                        else:           # complex
+                            num_str = ('{:16.9E}{:16.9E}'
+                                       .format(num.real, num.imag))
+                        if mtype & 1 == 0:   # if even
+                            num_str = num_str.replace('E', 'D')
+                        f.write('{:<8s}{:16d}{:16d}{:s}\n'
+                                .format('*', gi, ci, num_str))
+
+
+def wtdmig(f, dct):
+    """
+    Writes Nastran DMIG cards to a file.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+    dct : dictionary
+        Dictionary of pandas DataFrames. The keys will be used as the
+        names of the DMIG entries. With one exception, the column and
+        row indices of each DataFrame are pandas MultiIndex objects
+        with node ID in level 0 and DOF in level 1. The exception is
+        for form "9" matrices: the column index in that case is just
+        the column number (starting at one for Nastran). Use an
+        OrderedDict from the standard Python "collections" module to
+        write the entries in a specific order.
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    If a DataFrame has a single level 'columns' attribute, the form
+    for that matrix is 9. In that case, the 'NCOL' DMIG header card
+    value is determined by maximum value in the 'columns' attribute.
+
+    Otherwise, if a DataFrame has a 2-level 'columns' attribute, the
+    form is determined by checking the matrix shape and, if square,
+    whether the matrix is symmetric or not. 'NCOL' is set to the
+    number of columns in the matrix (but is ignored by Nastran).
+
+    The type is determined by the numpy 'dtype' attribute.
+
+    Currently, both 'POLAR' and 'TOUT' header card values are set to
+    0. That means that complex numbers are written in real/imaginary
+    parts and the resulting precision in Nastran is automatically
+    set.
+
+    Raises
+    ------
+    ValueError
+        When a DataFrame row index is not 2 levels, or when a column
+        index is not 1 or 2 levels.
+
+    Examples
+    --------
+    Create a symmetric matrix and write DMIG to screen:
+
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> from pyyeti import nastran
+    >>> a = np.array([[3.5, -1.2, -2.4],
+    ...               [-1.2, 8.8, 6.5],
+    ...               [-2.4, 6.5, 9.9]])
+    >>> ind = pd.MultiIndex.from_product([[100], [1, 2, 6]])
+    >>> k = pd.DataFrame(a, index=ind, columns=ind)
+    >>> k              # doctest: +ELLIPSIS
+           100...
+             1    2    6
+    100 1  3.5 -1.2 -2.4
+        2 -1.2  8.8  6.5
+        6 -2.4  6.5  9.9
+    >>> nastran.wtdmig(1, {'k': k})
+    DMIG    K              0       6       2       0       0               3
+    DMIG*   K                            100               1
+    *                    100               1 3.500000000D+00
+    *                    100               2-1.200000000D+00
+    *                    100               6-2.400000000D+00
+    DMIG*   K                            100               2
+    *                    100               2 8.800000000D+00
+    *                    100               6 6.500000000D+00
+    DMIG*   K                            100               6
+    *                    100               6 9.900000000D+00
+
+    As another demo, write to a string and use :func:`rddmig` to read
+    back in:
+
+    >>> import io
+    >>> with io.StringIO() as sio:
+    ...     nastran.wtdmig(sio, {'k': k})
+    ...     k2 = nastran.rddmig(sio)['k']
+    >>> k2              # doctest: +ELLIPSIS
+    ID       100...
+    DOF        1    2    6
+    ID  DOF...
+    100 1    3.5 -1.2 -2.4
+        2   -1.2  8.8  6.5
+        6   -2.4  6.5  9.9
+    >>> np.all(k2 == k)
+    True
+    """
+    return ytools.wtfile(f, _wtdmig, dct)
 
 
 def rdgrids(f):

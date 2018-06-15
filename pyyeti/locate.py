@@ -22,7 +22,7 @@ def find_vals(m, v):
     m : array_like
         Array to be searched.
     v : array_like
-        Array of values to find in m.
+        Array of values to find in `m`.
 
     Returns
     -------
@@ -80,10 +80,10 @@ def find_subseq(seq, subseq):
         Vector of indices:
 
             - length will be equal to the number of occurrences of
-              subseq
-            - the indices are to the start of each subseq in seq
+              `subseq`
+            - the indices are to the start of each `subseq` in `seq`
 
-        Will be empty if subseq is not found in seq.
+        Will be empty if `subseq` is not found in `seq`.
 
     Examples
     --------
@@ -120,8 +120,8 @@ def find_rows(matrix, row):
     Returns
     -------
     pv : array
-        A 1d numpy array of row indices.  Will be empty if row is not
-        found or if length(row) != cols(matrix).
+        A 1d numpy array of row indices. Will be empty if row is not
+        found or if ``length(row) != cols(matrix)``.
 
     Examples
     --------
@@ -159,17 +159,17 @@ def mat_intersect(D1, D2, keep=0):
     keep : integer
         0, 1 or 2:
 
-           - if 0, loop over smaller matrix, finding where the rows
-             occur in the larger
-           - if 1, loop over D1, finding where the rows occur in D2
-           - if 2, loop over D2, finding where the rows occur in D1
+          - if 0, loop over smaller matrix, finding where the rows
+            occur in the larger
+          - if 1, loop over `D1`, finding where the rows occur in `D2`
+          - if 2, loop over `D2`, finding where the rows occur in `D1`
 
     Returns
     -------
     pv1 : 1d ndarray
-        Row index vector into D1.
+        Row index vector into `D1`.
     pv2 : 1d ndarray
-        Row index vector into D2.
+        Row index vector into `D2`.
 
     Notes
     -----
@@ -178,8 +178,8 @@ def mat_intersect(D1, D2, keep=0):
         D1[pv1] == D2[pv2]
         (Note for matrices:  M[i] == M[i, :])
 
-    For matrices, the number of columns in D1 and D2 must be equal to
-    get non-empty results.
+    For matrices, the number of columns in `D1` and `D2` must be equal
+    to get non-empty results.
 
     Examples
     --------
@@ -290,7 +290,7 @@ def flippv(pv, n):
     Returns
     -------
     notpv : ndarray
-        Index vector; the complement of pv.
+        Index vector; the complement of `pv`.
 
     Examples
     --------
@@ -315,7 +315,7 @@ def find_unique(y, tol=1e-6):
         y-axis data vector
     tol : scalar; optional
         A value is considered the same as the previous if the
-        difference is less than tol*max(abs(all differences)).
+        difference is less than ``tol*max(abs(all differences))``.
 
     Returns
     -------
@@ -351,9 +351,9 @@ def list_intersect(L1, L2):
     Returns
     -------
     pv1 : 1d ndarray
-        Index vector into L1.
+        Index vector into `L1`.
     pv2 : 1d ndarray
-        Index vector into L2.
+        Index vector into `L2`.
 
     Notes
     -----

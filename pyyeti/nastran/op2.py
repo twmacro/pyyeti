@@ -1182,7 +1182,7 @@ class OP2(object):
 
         The x, y, z values are the grid location in basic.
         """
-        nbytes = self._ibytes + 3*self._fbytes
+        nbytes = self._ibytes + 3 * self._fbytes
         dtype = np.dtype([('ints', (self._intstr, 1)),
                           ('xyz', (self._rfrm, 3))])
         data = self.rdop2record('bytes')
@@ -1241,7 +1241,7 @@ class OP2(object):
         T is transformation from local to basic for the coordinate
         system.
         """
-        nbytes = 2*self._ibytes + 12*self._fbytes
+        nbytes = 2 * self._ibytes + 12 * self._fbytes
         dtype = np.dtype([('idtype', (self._intstr, 2)),
                           ('xyzT', (self._rfrm, 12))])
         data = self.rdop2record('bytes')
@@ -1281,6 +1281,8 @@ class OP2(object):
         sebulk = np.zeros((1, 8))
         selist = np.array([[0, 0]], np.int64)
         seload = np.array([[0, 0, 0]], np.int64)
+        seconct = np.array([], np.int64)
+
         key = self._getkey()
         eot = 0
         # data = np.zeros(0, dtype=self._intstr)
@@ -1333,7 +1335,8 @@ class OP2(object):
             self._skipkey(2)
             eot, key = self.rdop2eot()
         cord2 = np.delete(cord2, 2, axis=1)
-        return n2p.build_coords(cord2), sebulk, selist, seload
+        return (n2p.build_coords(cord2), sebulk, selist,
+                seload, seconct)
 
     def _rdop2selist(self):
         """
@@ -1682,7 +1685,7 @@ class OP2(object):
 
         Returns
         -------
-        nasop2 : dictionary
+        dictionary
 
         'selist' : array
             2-columns matrix: [ seid, dnseid ] where, for each row,
@@ -2839,8 +2842,8 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
 
     Returns
     -------
-    pop2 : dictionary
-        With following members.
+    dictionary
+
     'uset' : pandas DataFrame
         A DataFrame as output by :func:`OP2.rdn2cop2`
     'cstm' : array
@@ -2859,12 +2862,19 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
         contain lists of 'OUGV1', 'EOF1*', and 'EOS1*' matrices if
         the respective `get*` flag is set and those entries are
         present.
+    'selist' : 2d ndarray
+        2-columns matrix: [ seid, dnseid ] where, for each row, dnseid
+        is the downstream superelement for seid. (dnseid = 0 if seid =
+        0).
+    'sebulk' : experimental output from GEOM1
+    'seload' : experimental output from GEOM1
+    'seconct' : experimental output from GEOM1
     """
     # read op2 file:
     op2file = guitools.get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
         mats = {}
-        selist = uset = cstm2 = sebulk = seload = None
+        selist = uset = cstm2 = sebulk = seload = seconct = None
         se = 0
         o2._fileh.seek(o2._postheaderpos)
 
@@ -2896,17 +2906,17 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
                         print("Reading table {}...".format(name))
                     cstm = o2._rdop2cstm68()
                     bc = np.array([[+0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
-                                     0, 0, 0, 1],
+                                    0, 0, 0, 1],
                                    [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0]])
+                                    0, 0, 0, 0]])
                     cstm = np.vstack((bc, cstm))
                     continue
 
                 if name.find('GEOM1') == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
-                    (cords, sebulk,
-                     selist, seload) = o2._rdop2geom1cord2()
+                    (cords, sebulk, selist,
+                     seload, seconct) = o2._rdop2geom1cord2()
                     if 0 not in cords:
                         cords[0] = np.array([[0., 1., 0.],
                                              [0., 0., 0.],
@@ -2988,4 +2998,5 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
             'mats': mats,
             'selist': selist,
             'sebulk': sebulk,
-            'seload': seload}
+            'seload': seload,
+            'seconct': seconct}
