@@ -529,10 +529,10 @@ class OP4(object):
             common usage of the callable would be to convert from
             "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
             a more desirable form. For example, to ensure *all*
-            matrices are returned in CSR form (see
-            :func:`scipy.sparse.csr_matrix`) use::
+            matrices are returned in CSC form (see
+            :func:`scipy.sparse.csc_matrix`) use::
 
-                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+                sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
             The callable is ignored for non-sparse matrices.
 
@@ -777,10 +777,10 @@ class OP4(object):
             common usage of the callable would be to convert from
             "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
             a more desirable form. For example, to ensure *all*
-            matrices are returned in CSR form (see
-            :func:`scipy.sparse.csr_matrix`) use::
+            matrices are returned in CSC form (see
+            :func:`scipy.sparse.csc_matrix`) use::
 
-                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+                sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
             The callable is ignored for non-sparse matrices.
 
@@ -1519,10 +1519,10 @@ class OP4(object):
             common usage of the callable would be to convert from
             "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
             a more desirable form. For example, to ensure *all*
-            matrices are returned in CSR form (see
-            :func:`scipy.sparse.csr_matrix`) use::
+            matrices are returned in CSC form (see
+            :func:`scipy.sparse.csc_matrix`) use::
 
-                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+                sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
             The callable is ignored for non-sparse matrices.
 
@@ -1599,10 +1599,10 @@ class OP4(object):
             common usage of the callable would be to convert from
             "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
             a more desirable form. For example, to ensure *all*
-            matrices are returned in CSR form (see
-            :func:`scipy.sparse.csr_matrix`) use::
+            matrices are returned in CSC form (see
+            :func:`scipy.sparse.csc_matrix`) use::
 
-                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+                sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
             The callable is ignored for non-sparse matrices.
 
@@ -1695,10 +1695,10 @@ class OP4(object):
             common usage of the callable would be to convert from
             "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
             a more desirable form. For example, to ensure *all*
-            matrices are returned in CSR form (see
-            :func:`scipy.sparse.csr_matrix`) use::
+            matrices are returned in CSC form (see
+            :func:`scipy.sparse.csc_matrix`) use::
 
-                sparse=(True, scipy.sparse.coo_matrix.tocsr)
+                sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
             The callable is ignored for non-sparse matrices.
 
@@ -2020,10 +2020,10 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False,
         is a callable, as in: ``X = callable(X)``. A common usage of
         the callable would be to convert from "COO" sparse form (see
         :func:`scipy.sparse.coo_matrix`) to a more desirable form. For
-        example, to ensure *all* matrices are returned in CSR form
-        (see :func:`scipy.sparse.csr_matrix`) use::
+        example, to ensure *all* matrices are returned in CSC form
+        (see :func:`scipy.sparse.csc_matrix`) use::
 
-            sparse=(True, scipy.sparse.coo_matrix.tocsr)
+            sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
         The callable is ignored for non-sparse matrices.
 
@@ -2140,10 +2140,10 @@ def read(filename=None, namelist=None, into='dct', justmatrix=True,
         is a callable, as in: ``X = callable(X)``. A common usage of
         the callable would be to convert from "COO" sparse form (see
         :func:`scipy.sparse.coo_matrix`) to a more desirable form. For
-        example, to ensure *all* matrices are returned in CSR form
-        (see :func:`scipy.sparse.csr_matrix`) use::
+        example, to ensure *all* matrices are returned in CSC form
+        (see :func:`scipy.sparse.csc_matrix`) use::
 
-            sparse=(True, scipy.sparse.coo_matrix.tocsr)
+            sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
         The callable is ignored for non-sparse matrices.
 

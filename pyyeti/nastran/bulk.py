@@ -1512,7 +1512,7 @@ def rdeigen(f, use_pandas=True):
             table = _rd_eigen_table(f)
             if use_pandas:
                 i = table[:, 0].astype(int)
-                c = ['Mode #', 'ext #', 'eigenvalue', 'radians',
+                c = ['mode #', 'ext #', 'eigenvalue', 'radians',
                      'cycles', 'genmass', 'genstif']
                 table = pd.DataFrame(table, index=i, columns=c)
             dct[se] = table

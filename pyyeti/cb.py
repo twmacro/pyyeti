@@ -2047,6 +2047,7 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     error_flag += _prt_chk_str(
         fout, ('\tMaximum value of diag(MQQ)-1.0    = {:11g}'
                '  (should be zero)'), mxmqqerr, mattol)
+    mxmqqerr = abs(mqq - np.diag(np.diag(mqq))).max()
     error_flag += _prt_chk_str(
         fout, ('\tMaximum off-diagonal value of MQQ = {:11g}'
                '  (should be zero)'), mxmqqerr, mattol)
@@ -2066,6 +2067,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     error_flag += _prt_chk_str(
         fout, ('\tMaximum off-diagonal value of KQQ = {:11g}'
                '  (should be zero)'), mxkqqerr, mattol)
+
+    # print warning on frequencies less then 1/(2 pi):
     error_flag += _prt_chk_str(
         fout, ('\tMinimum diagonal value of KQQ     = {:11g}'
                '  (should be > zero)'), 1.0, mnkqq, switch=True)
@@ -2090,8 +2093,8 @@ def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
     #   2. Geometry based
     #   3. From eigensolution
     #
-    #  These will aid in geometry checking, mass properties checks,
-    #  and stiffness grounding checks.
+    # These will aid in geometry checking, mass properties checks,
+    # and stiffness grounding checks.
 
     # use geometry to generate a set of rb-modes:
     rbg = n2p.rbgeom_uset(uset, uref)

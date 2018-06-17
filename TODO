@@ -1,6 +1,7 @@
 0. Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
     - base this off of scipy.linalg.block_diag ... or is there
       something there already?
+
 1. Update duf explanation in cla.apply_uf
 
 5. Convert ext, mx, mn in DR_Results to dataframe
@@ -139,6 +140,30 @@
 ~ 46. Update the histogram routine in ytools: only check bins with data
       - version 0.93.6
 
-47. PP should print DataFrames better
+~ 47. PP should print DataFrames better
+      - version 0.93.7
 
 48. add sparse Newmark solver
+
+~49. Add LAMA to post op2 reader:
+
+    # get system eigenvalues:
+    with op2.OP2(sys_op2 + '.op2') as o2:
+        fpos = o2.dbnames['LAMA'][0][0][0]
+        o2._fileh.seek(fpos)
+        nm, tr, tp = o2.rdop2nt()
+        rec1 = o2.rdop2record(form='bytes')
+        # rec2 = o2.rdop2record(form='bytes')
+        # lama = np.frombuffer(rec2, np.float32)
+        lama = o2.rdop2record(form='single').reshape(-1, 7)
+    nas['lambda'][0] = lama[:, 2]
+
+   - added in v0.93.7
+
+~ 50. bug:
+  from _cbcheck in cb.py:
+    mxmqqerr is the diag-1 as calculated above, not the off-diag max?
+  Should be something like this?:
+    mxqqODerr=np.max(np.abs(mqq - np.diag(np.diag(mqq))))
+  - Reported by David Hall
+  - Fixed in v0.93.7

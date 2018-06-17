@@ -5,6 +5,7 @@ A pretty printer.
 import collections
 import numpy as np
 import h5py
+import pandas as pd
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -57,6 +58,7 @@ class PP(object):
         Examples
         --------
         >>> import numpy as np
+        >>> import pandas as pd
         >>> from types import SimpleNamespace
         >>> from pyyeti.pp import PP
         >>> r = np.arange(4, dtype=np.int16)
@@ -65,6 +67,8 @@ class PP(object):
         >>> d = {'asdf': 4,
         ...      '34': 'value',
         ...      'r': r,
+        ...      'dataframe': pd.DataFrame(np.ones((3, 3))),
+        ...      'series': pd.Series(np.ones(8)),
         ...      'longer name': {1: 2,
         ...                      2: 3,
         ...                      3: s,
@@ -75,17 +79,20 @@ class PP(object):
         ...      }
         ... }
         >>> PP(d)       # doctest: +ELLIPSIS
-        <class 'dict'>[n=4]
+        <class 'dict'>[n=6]
             '34'         : 'value'
             'asdf'       : 4
+            'dataframe'  : pandas DataFrame: (3, 3)
             'longer name': <class 'dict'>[n=4]
             'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
+            'series'     : pandas Series: (8,)
         <BLANKLINE>
         <...>
         >>> PP(d, 5)    # doctest: +ELLIPSIS
-        <class 'dict'>[n=4]
+        <class 'dict'>[n=6]
             '34'         : 'value'
             'asdf'       : 4
+            'dataframe'  : pandas DataFrame: (3, 3)
             'longer name': <class 'dict'>[n=4]
                 1: 2
                 2: 3
@@ -96,6 +103,7 @@ class PP(object):
                     .t  : [n=1]: (float64 ndarray: (4, 4, 4),)
                     .var: 'string'
             'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
+            'series'     : pandas Series: (8,)
         <BLANKLINE>
         <...>
 
@@ -249,6 +257,11 @@ class PP(object):
                 s.extend(self._print_var(dct[k], level))
         return s
 
+    def _pandas_string(self, var, level, typename):
+        s = ['pandas ' + var.__class__.__name__ + ': ' +
+             str(var.shape) + '\n']
+        return s
+
     def _print_var(self, var, level):
         try:
             s = self._functions[type(var)](var, level)
@@ -260,6 +273,8 @@ class PP(object):
                 typename = str(cls)
             if isinstance(var, collections.Mapping):
                 s = self._dict_string(var, level, typename=typename)
+            elif isinstance(var, pd.core.base.PandasObject):
+                s = self._pandas_string(var, level, typename=typename)
             elif (hasattr(var, '__dict__') and
                   not hasattr(var, 'keys')):
                 s = self._dict_string(var.__dict__, level,

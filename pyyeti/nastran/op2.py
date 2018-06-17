@@ -1351,6 +1351,23 @@ class OP2(object):
         self.rdop2eot()
         return np.vstack((slist[::7], slist[4::7])).T
 
+    def _rdop2lama(self):
+        """
+        Read LAMA frequency data block.
+
+        Has 7 columns::
+
+            [mode #, ext #, eigenvalue, radians, cycles,
+                                               genmass, genstiff]
+        """
+        self.skipop2record()
+        data = self.rdop2record(form='bytes')
+        self.rdop2eot()
+        dtype = np.dtype([('ints', (self._intstr, 2)),
+                          ('reals', (self._rfrm, 5))])
+        data = np.fromstring(data, dtype=dtype)
+        return np.hstack((data['ints'], data['reals']))
+
     def _rdop2uset(self):
         """
         Read the USET data block.
@@ -2978,6 +2995,16 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
                     except KeyError:
                         mo = mats['oes1'] = []
                     mo += [o2._rdop2drm(name)]
+                    continue
+
+                if name.find('LAMA') == 0:
+                    if verbose:
+                        print("Reading table {}...".format(name))
+                    try:
+                        mo = mats['lama']
+                    except KeyError:
+                        mo = mats['lama'] = []
+                    mo += [o2._rdop2lama()]
                     continue
 
                 if verbose:
