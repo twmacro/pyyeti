@@ -167,3 +167,23 @@
     mxqqODerr=np.max(np.abs(mqq - np.diag(np.diag(mqq))))
   - Reported by David Hall
   - Fixed in v0.93.7
+
+51. Copyright 2015-2017, Tim Widrick. Created using Sphinx 1.7.5.
+
+52.
+   - In rdpostop2, matrix names should probably be lower case.
+   - Add the “tf” class somewhere.
+       o   After add “pade” …
+   - Enhance the ‘seconct’ output (include ‘up’, ‘down’? … this is only down (I think)):
+
+   p = op2.rdpostop2(sys_op2 + '.op2')
+   seconct = {}
+   j = 0
+   for ind in (p['seconct'] == -1).nonzero()[0][::2]:
+       seconct[p['seconct'][j]] = p['seconct'][j+8:ind][::2]
+       j = ind + 2
+
+   {101: array([     91,      92,      93, ..., 5907498, 5907499, 5907500], dtype=int32),
+   102: array([1290001, 1290002, 1290003, ..., 1710100, 1710101, 1710102], dtype=int32),
+   201: array([2000004, 2005283, 2005319, ..., 5924498, 5924499, 5924500], dtype=int32),
+   609: array([7999031, 7999032, 7999033, ..., 9004098, 9004099, 9004100], dtype=int32)}
