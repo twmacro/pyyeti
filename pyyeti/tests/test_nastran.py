@@ -641,11 +641,12 @@ def test_rddmig():
         val2 = dct2['M' + key.upper()]
         assert np.allclose(val, val2)
 
-    assert np.all(dct['ident'] == np.eye(dct['ident'].shape[0]))
+    assert np.all(
+        (dct['ident'] == np.eye(dct['ident'].shape[0])).values)
     pattern_mat = np.empty(dct['patrn'].shape)
     for i in range(dct['patrn'].shape[1]):
         pattern_mat[:, i] = i + 1
-    assert np.all(pattern_mat == dct['patrn'])
+    assert np.all((pattern_mat == dct['patrn']).values)
 
     assert sorted(dct.keys()) == ['cmplx', 'ident', 'patrn', 'randm']
 

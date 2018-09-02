@@ -604,7 +604,7 @@ def test_addgrid():
                          [32, 90, 10],
                          [50, 90, 90]],
                         [0, cylcoord, sphcoord])
-    assert np.all(uset == uset2)
+    assert np.all((uset == uset2).values)
 
     # get coordinates of node 200 in basic:
     assert np.allclose(np.array([10., 0, 32.]),

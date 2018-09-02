@@ -14,8 +14,8 @@ def test_rainflow_1():
 
     # should all be half cycles, amp = .5, 1.5, ...,
     # means = [.5, -.5, .5, -.5 ...]
-    amp = np.arange(len(a)-1, dtype=float) + .5
-    means = .5*np.ones(len(a)-1)
+    amp = np.arange(len(a) - 1, dtype=float) + .5
+    means = .5 * np.ones(len(a) - 1)
     means[1::2] *= -1.0
     assert np.allclose(amp, rf[:, 0])
     assert np.allclose(means, rf[:, 1])
@@ -23,7 +23,7 @@ def test_rainflow_1():
 
     # offset starts = 0, 1, 2, ... len(a)-1
     # offset ends   = 1, 2, 3, ... len(a)
-    assert np.all(np.arange(len(a)-1) == os[:, 0])
+    assert np.all(np.arange(len(a) - 1) == os[:, 0])
     assert np.all(np.arange(1, len(a)) == os[:, 1])
 
 
@@ -39,8 +39,8 @@ def test_rainflow_2():
     # reverse of:
     #   should all be half cycles, amp = .5, 1.5, ...,
     #   means = [.5, -.5, .5, -.5 ...]
-    amp = np.arange(len(a)-1, dtype=float) + .5
-    means = .5*np.ones(len(a)-1)
+    amp = np.arange(len(a) - 1, dtype=float) + .5
+    means = .5 * np.ones(len(a) - 1)
     means[1::2] *= -1.0
     assert np.allclose(amp[::-1], rf[:, 0])
     assert np.allclose(means[::-1], rf[:, 1])
@@ -48,7 +48,7 @@ def test_rainflow_2():
 
     # offset starts = 0, 1, 2, ... len(a)-1
     # offset ends   = 1, 2, 3, ... len(a)
-    assert np.all(np.arange(len(a)-1) == os[:, 0])
+    assert np.all(np.arange(len(a) - 1) == os[:, 0])
     assert np.all(np.arange(1, len(a)) == os[:, 1])
 
 
@@ -67,7 +67,7 @@ def test_rainflow_3():
 
     # offset starts = 0, 1, 2, ... len(a)-1
     # offset ends   = 1, 2, 3, ... len(a)
-    assert np.all(np.arange(len(a)-1) == os[:, 0])
+    assert np.all(np.arange(len(a) - 1) == os[:, 0])
     assert np.all(np.arange(1, len(a)) == os[:, 1])
 
 
@@ -81,11 +81,11 @@ def test_rainflow_4():
     assert np.all(os2 == os)
 
     # should almost all full cycles, amp = 1, means = 0
-    rf_shouldbe = [[ 1. ,  0. ,  1. ],
-                   [ 1. ,  0. ,  1. ],
-                   [ 1. ,  0. ,  1. ],
-                   [ 1. ,  0. ,  1. ],
-                   [ 1.5, -0.5,  0.5]] # range: -2 to +1 = 3
+    rf_shouldbe = [[1.,  0.,  1.],
+                   [1.,  0.,  1.],
+                   [1.,  0.,  1.],
+                   [1.,  0.,  1.],
+                   [1.5, -0.5,  0.5]]  # range: -2 to +1 = 3
     os_shouldbe = [[1, 2],
                    [3, 4],
                    [5, 6],
@@ -119,9 +119,9 @@ def test_getbins_2():
     mx = 100
     mn = 0
     bb = cyclecount.getbins(1, mx, mn)
-    assert np.allclose(bb, [mn-.001*(mx-mn), mx])
+    assert np.allclose(bb, [mn - .001 * (mx - mn), mx])
     bb = cyclecount.getbins(1, mx, mn, right=False)
-    assert np.allclose(bb, [mn, mx+.001*(mx-mn)])
+    assert np.allclose(bb, [mn, mx + .001 * (mx - mn)])
 
 
 def test_getbins_3():
@@ -144,7 +144,7 @@ def test_sigcount_1():
     # (-0.501, 0.000]             12.5              12.0
     # (0.000, 0.500]              12.5              12.5
     table2, ampb, aveb = cyclecount.sigcount(sig, 2, 2, retbins=True)
-    assert np.all(table2 == table)
+    assert np.all((table2 == table).values)
     assert np.all(table.index == ['(-0.501, 0.000]',
                                   '(0.000, 0.500]'])
     assert np.all(table.columns == ['(0.402, 49.500]',
@@ -166,7 +166,7 @@ def test_sigcount_2():
     # [0.000, 0.501)              12.5              12.5
     table2, ampb, aveb = cyclecount.sigcount(sig, 2, 2, right=0,
                                              retbins=True)
-    assert np.all(table2 == table)
+    assert np.all((table2 == table).values)
     assert np.all(table.index == ['[-0.500, 0.000)',
                                   '[0.000, 0.501)'])
     assert np.all(table.columns == ['[0.500, 49.500)',

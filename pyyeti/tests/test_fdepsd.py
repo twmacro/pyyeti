@@ -44,7 +44,7 @@ def test_fdepsd_absacce():
 
     fde_none = fdepsd(sig, sr, freq, q, rolloff=None)
     fde_pre = fdepsd(sig, sr, freq, q, rolloff='prefilter')
-    assert np.all(fde_none.psd <= fde_pre.psd)
+    assert np.all((fde_none.psd <= fde_pre.psd).values)
 
     T0 = 120
     fde_T0 = fdepsd(sig, sr, freq, q, T0=T0)
@@ -52,7 +52,8 @@ def test_fdepsd_absacce():
     assert np.allclose(
         fde_T0.psd.iloc[:, :2],
         fde_auto.psd.iloc[:, :2].multiply(factor, axis=0))
-    assert np.all(fde_T0.psd.iloc[:, 2:] < fde_auto.psd.iloc[:, 2:])
+    assert np.all(
+        (fde_T0.psd.iloc[:, 2:] < fde_auto.psd.iloc[:, 2:]).values)
 
 
 def test_fdepsd_pvelo():
@@ -82,7 +83,7 @@ def test_fdepsd_pvelo():
     fde_none = fdepsd(sig, sr, freq, q, resp='pvelo', rolloff=None)
     fde_pre = fdepsd(sig, sr, freq, q, resp='pvelo',
                      rolloff='prefilter')
-    assert np.all(fde_none.psd <= fde_pre.psd)
+    assert np.all((fde_none.psd <= fde_pre.psd).values)
 
     T0 = 120
     fde_T0 = fdepsd(sig, sr, freq, q, T0=T0, resp='pvelo')
@@ -90,7 +91,8 @@ def test_fdepsd_pvelo():
     assert np.allclose(
         fde_T0.psd.iloc[:, :2],
         fde_auto.psd.iloc[:, :2].multiply(factor, axis=0))
-    assert np.all(fde_T0.psd.iloc[:, 2:] < fde_auto.psd.iloc[:, 2:])
+    assert np.all(
+        (fde_T0.psd.iloc[:, 2:] < fde_auto.psd.iloc[:, 2:]).values)
 
 
 def test_fdepsd_winends():
@@ -107,8 +109,10 @@ def test_fdepsd_winends():
     fde2 = fdepsd(sig, sr, freq, q, hpfilter=None, winends=None)
     fde3 = fdepsd(sig, sr, freq, q, hpfilter=None,
                   winends=dict(portion=20))
-    assert np.all(fde2.psd.iloc[:, 0] > 4 * fde.psd.iloc[:, 0])
-    assert np.all(fde2.psd.iloc[:, 0] > 4 * fde3.psd.iloc[:, 0])
+    assert np.all(
+        (fde2.psd.iloc[:, 0] > 4 * fde.psd.iloc[:, 0]).values)
+    assert np.all(
+        (fde2.psd.iloc[:, 0] > 4 * fde3.psd.iloc[:, 0]).values)
 
 
 def test_fdepsd_error():

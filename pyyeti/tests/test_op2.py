@@ -448,11 +448,13 @@ def test_prtdir():
         o2.directory(verbose=1, redo=1)
 
 
-def compdict(d1, d2):
+def compdict(d1, d2, is_dataframe=False):
     assert sorted(d1.keys()) == sorted(d2.keys())
     for k in d1:
         if isinstance(d1[k], dict):
-            compdict(d1[k], d2[k])
+            compdict(d1[k], d2[k], k == 'uset')
+        elif is_dataframe:
+            assert np.all((d1[k] == d2[k]).values)
         else:
             assert np.all(d1[k] == d2[k])
 

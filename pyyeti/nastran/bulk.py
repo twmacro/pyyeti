@@ -986,7 +986,7 @@ def wtdmig(f, dct):
     100 1    3.5 -1.2 -2.4
         2   -1.2  8.8  6.5
         6   -2.4  6.5  9.9
-    >>> np.all(k2 == k)
+    >>> np.all((k2 == k).values)
     True
     """
     return ytools.wtfile(f, _wtdmig, dct)
