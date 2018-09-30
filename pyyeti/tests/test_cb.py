@@ -652,11 +652,31 @@ def test_rbmultchk():
     assert sfile == s
 
     # add q-set rows to rb:
-    rb2 = np.vstack((rb, np.zeros((len(q), 6))))
+    nq = np.count_nonzero(q)
+    rb2 = np.vstack((rb, np.zeros((nq, 6))))
     with StringIO() as f:
         cb.rbmultchk(f, drm101, 'DRM101', rb2)
         s2 = f.getvalue()
     assert s2 == s
+
+    # check results when b-set are last:
+    drm101_last = np.hstack((drm101[:, q], drm101[:, b]))
+    with StringIO() as f:
+        cb.rbmultchk(f, drm101_last, 'DRM101', rb, bset='last')
+        s2 = f.getvalue()
+    assert s2 == s
+
+    # check results when b-set are last ... using pv:
+    with StringIO() as f:
+        bsetpv = np.zeros((len(b) + nq), bool)
+        bsetpv[-len(b):] = True
+        cb.rbmultchk(f, drm101_last, 'DRM101', rb, bset=bsetpv)
+        s2 = f.getvalue()
+    assert s2 == s
+
+    with StringIO() as f:
+        assert_raises(ValueError, cb.rbmultchk, f, drm101, 'asdf', rb,
+                      bset='bad string')
 
     # trim q-set columns out of drm:
     labels = [str(i[0]) + '  ' + str(i[1]) for i in dof101]
@@ -665,6 +685,7 @@ def test_rbmultchk():
                      drm2=drm101[:, b], prtnullrows=True,
                      labels=labels)
         s2 = f.getvalue()
+
     # row 16 is now all zeros ... not comparable
     drm2 = drm101.copy()
     drm2[15] = 0

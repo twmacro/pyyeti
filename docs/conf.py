@@ -80,9 +80,9 @@ napoleon_use_rtype = False
 plot_include_source = True
 # plot_formats = [("png", 90)]
 # plot_rcparams = {'figure.figsize':[8, 6]}
-plot_formats = [('png', 100), # pngs for html building
-                ('pdf', 100), # pdfs for latex building
-               ]
+plot_formats = [('png', 100),  # pngs for html building
+                ('pdf', 100),  # pdfs for latex building
+                ]
 plot_html_show_formats = False
 plot_html_show_source_link = False
 
@@ -102,7 +102,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pyYeti'
-copyright = '2015-2017, Tim Widrick'
+copyright = '2015-2018, Tim Widrick'
 author = 'Tim Widrick'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -125,6 +125,7 @@ except pkg_resources.DistributionNotFound:
 del pkg_resources
 version = '.'.join(release.split('.')[:2])
 
+
 class cd():
     def __init__(self, newdir):
         self.olddir = os.getcwd()
@@ -135,6 +136,7 @@ class cd():
 
     def __exit__(self, *args):
         os.chdir(self.olddir)
+
 
 with cd('tutorials'):
     sys.path.append('tools')
@@ -231,6 +233,7 @@ html_theme = 'nature'
 
 html_static_path = ['_static']
 
+
 def setup(app):
     app.add_javascript('copybutton.js')
 
@@ -294,32 +297,33 @@ def setup(app):
 # implements a search results scorer. If empty, the default will be used.
 #html_search_scorer = 'scorer.js'
 
+
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'pyyetidoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-'preamble': '\\usepackage{enumitem}\n\\setlistdepth{999}',
+    # Additional stuff for the LaTeX preamble.
+    'preamble': '\\usepackage{enumitem}\n\\setlistdepth{999}',
 
-# Latex figure (float) alignment
-#'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    #'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'pyyeti-{}.tex'.format(release),
-   'pyYeti Documentation',
-   'Tim Widrick', 'manual'),
+    (master_doc, 'pyyeti-{}.tex'.format(release),
+     'pyYeti Documentation',
+     'Tim Widrick', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -362,9 +366,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'pyYeti', 'pyYeti Documentation',
-   author, 'pyYeti', 'A structural dynamics toolbox.',
-   'Miscellaneous'),
+    (master_doc, 'pyYeti', 'pyYeti Documentation',
+     author, 'pyYeti', 'A structural dynamics toolbox.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.

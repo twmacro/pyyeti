@@ -120,8 +120,9 @@
 
 41. Move find_center ?
 
-42. Rbmultchk – needs improving … what about b-set at the end?
+~ 42. Rbmultchk – needs improving … what about b-set at the end?
     The assumptions about truncating won’t work right (right?)
+    - fixed in version 0.93.8
 
 43. Bref – what about a model with mechanisms?
     - let bref not be a mult of 6?
@@ -168,7 +169,7 @@
   - Reported by David Hall
   - Fixed in v0.93.7
 
-51. Copyright 2015-2017, Tim Widrick. Created using Sphinx 1.7.5.
+~ 51. Copyright 2015-2017, Tim Widrick. Created using Sphinx 1.7.5.
 
 52.
    - In rdpostop2, matrix names should probably be lower case.
@@ -189,3 +190,11 @@
    609: array([7999031, 7999032, 7999033, ..., 9004098, 9004099, 9004100], dtype=int32)}
 
 53. Implement the Chapman integrator
+
+~ 54. cla.py uses subplots_adjust to account for legend ... I think
+    tight_layout handles legends now.
+    - fixed in version 0.93.8
+    - replaced `sub_right` with `tight_layout_args`
+
+55. need option for 1 plot figure in doing cla comparison (and maybe
+    in other places)

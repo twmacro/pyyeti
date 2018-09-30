@@ -1171,7 +1171,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     return s
 
 
-def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
+def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     """
     Routine used by :func:`rbmultchk`. See documentation for
     :func:`rbmultchk`.
@@ -1183,12 +1183,25 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
     n = np.size(drm, 0)
     rbr = np.size(rb, 0)
     cdrm = np.size(drm, 1)
-    if cdrm == rbr:
-        drmrb = drm @ rb
-    elif cdrm < rbr:
-        drmrb = drm @ rb[:cdrm]
+
+    if cdrm > rbr:
+        # assume rigid-body modes have only b-set DOF, so we need to
+        # trim down the drm:
+        if isinstance(bset, str):
+            if bset == 'first':
+                drm1 = drm[:, :rbr]
+            elif bset == 'last':
+                drm1 = drm[:, -rbr:]
+            else:
+                raise ValueError(
+                    'invalid `bset` string: must be either "first" '
+                    'or "last" but is "{}"'.format(bset))
+        else:
+            drm1 = drm[:, bset]
     else:
-        drmrb = drm[:, :rbr] @ rb
+        drm1 = drm
+
+    drmrb = drm1 @ rb
 
     # get rb scale:
     if 0:
@@ -1230,8 +1243,8 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
                          '    ,           ,                         ')
 
     r = np.arange(1, n + 1)
-    nonnr = np.any(drm, axis=1)
-    nr = ~nonnr
+    nonnr = np.any(drm, axis=1)   # non null rows
+    nr = ~nonnr                   # null rows
     snonnr = np.sum(nonnr)
     snr = np.sum(nr)
     fout.write('\n{} has {} ({:.1f}%) non-NULL rows and {} ({:.1f}%) '
@@ -1344,7 +1357,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows):
 
 
 def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
-              prtnullrows=False):
+              prtnullrows=False, bset='first'):
     """
     Rigid-body multiply check on a data recovery matrix.
 
@@ -1376,11 +1389,19 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
         If True, print the null rows in the DRM * rb section;
         otherwise only print the non-null rows. (Note that the null
         rows are still listed below that table.)
+    bset : string or 1d ndarray
+        Set either to 'first' or 'last' depending on whether the b-set
+        DOF are first or last. Or, `bset` can be set to a partition
+        vector to the b-set DOF. `bset` is only referenced if number
+        of rows in `rb` is less than the number of columns in
+        `drm`. In that case, it is assumed that `rb` only has the
+        b-set DOF and that `drm` must be partitioned down to have only
+        the b-set columns.
 
     Returns
     -------
     drmrb : 2d ndarray
-        Matrix = `drm` * `rb`.
+        Matrix = ``drm @ rb``
 
     Notes
     -----
@@ -1418,6 +1439,9 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     ------
     ValueError
         If `rb` does not have 6 columns.
+    ValueError
+        If `bset` is needed and is a string other than 'first' or
+        'last'.
 
     See also
     --------
@@ -1480,7 +1504,7 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     if c != 6:
         raise ValueError('`rb` does not have 6 columns')
     return ytools.wtfile(f, _rbmultchk, drm, name, rb, labels, drm2,
-                         prtnullrows)
+                         prtnullrows, bset)
 
 
 def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):

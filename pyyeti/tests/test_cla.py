@@ -754,7 +754,9 @@ def summarize(pth):
 
         # plot the two groups:
         Grouped_Results['extreme'].srs_plots(
-            direc='grouped_srs', Q=10, showall=True)
+            direc='grouped_srs', Q=10, showall=True,
+            tight_layout_args=dict(rect=(0.1, 0.1, 0.9, 0.9),
+                                   pad=3.0, w_pad=2.0, h_pad=2.0))
 
         # plot just time domain srs:
         Grouped_Results['Time Domain']['extreme'].srs_plots(

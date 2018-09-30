@@ -4112,7 +4112,8 @@ class DR_Results(OrderedDict):
     def srs_plots(self, event=None, Q='auto', drms=None,
                   inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
                   figsize=(11, 8.5), showall=None, showboth=False,
-                  direc='srs_plots', sub_right=None, plot=plt.plot):
+                  direc='srs_plots', tight_layout_args=None,
+                  plot=plt.plot):
         """
         Make SRS plots with optional printing to .pdf or .png files.
 
@@ -4182,11 +4183,18 @@ class DR_Results(OrderedDict):
         direc : string; optional
             Directory name to put all output plot files; will be
             created if it doesn't exist.
-        sub_right : scalar or None; optional
-            Used in: ``plt.subplots_adjust(right=sub_right)`` when
-            a legend is placed outside the plots. If None, this
-            routine tries to make an educated guess from the longest
-            label.
+        tight_layout_args : dict or None; optional
+            Arguments for :func:`plt.tight_layout`. If None, defaults
+            to::
+
+                {'pad': 3.0,
+                 'w_pad': 2.0,
+                 'h_pad': 2.0,
+                 'rect': (0.3 / figsize[0],
+                          0.3 / figsize[1],
+                          1.0 - 0.3 / figsize[0],
+                          1.0 - 0.3 / figsize[1])}
+
         plot : function; optional
             The function that will draw each curve. Defaults to
             :func:`matplotlib.pyplot.plot`. As an example, for a plot
@@ -4219,13 +4227,14 @@ class DR_Results(OrderedDict):
                         inc0rb=inc0rb, fmt=fmt, onepdf=onepdf,
                         layout=layout, figsize=figsize,
                         showall=showall, showboth=showboth,
-                        direc=direc, sub_right=sub_right,
+                        direc=direc,
+                        tight_layout_args=tight_layout_args,
                         cases=None, plot=plot)
 
     def resp_plots(self, event=None, drms=None, inc0rb=True,
                    fmt='pdf', onepdf=True, layout=(2, 3),
                    figsize=(11, 8.5), cases=None, direc='resp_plots',
-                   sub_right=None, plot=plt.plot):
+                   tight_layout_args=None, plot=plt.plot):
         """
         Make time or frequency domain responses plots.
 
@@ -4286,11 +4295,18 @@ class DR_Results(OrderedDict):
         direc : string; optional
             Directory name to put all output plot files; will be
             created if it doesn't exist.
-        sub_right : scalar or None; optional
-            Used in: ``plt.subplots_adjust(right=sub_right)`` when
-            a legend is placed outside the plots. If None, this
-            routine tries to make an educated guess from the longest
-            label.
+        tight_layout_args : dict or None; optional
+            Arguments for :func:`plt.tight_layout`. If None, defaults
+            to::
+
+                {'pad': 3.0,
+                 'w_pad': 2.0,
+                 'h_pad': 2.0,
+                 'rect': (0.3 / figsize[0],
+                          0.3 / figsize[1],
+                          1.0 - 0.3 / figsize[0],
+                          1.0 - 0.3 / figsize[1])}
+
         plot : function; optional
             The function that will draw each curve. Defaults to
             :func:`matplotlib.pyplot.plot`. As an example, for a plot
@@ -4324,8 +4340,9 @@ class DR_Results(OrderedDict):
                         inc0rb=inc0rb, fmt=fmt, onepdf=onepdf,
                         layout=layout, figsize=figsize,
                         cases=cases, direc=direc,
-                        sub_right=sub_right, Q='auto',
-                        showall=None, showboth=False, plot=plot)
+                        tight_layout_args=tight_layout_args,
+                        Q='auto', showall=None, showboth=False,
+                        plot=plot)
 
 
 def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
@@ -5124,7 +5141,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             domagpct=True, doabsmax=False, shortabsmax=False,
             roundvals=-1, rowhdr='Row', deschdr='Description',
             maxhdr='Maximum', minhdr='Minimum', absmhdr='Abs-Max',
-            perpage=-1):
+            perpage=-1, tight_layout_args=None):
     """
     Write a percent difference report between 2 sets of max/min data.
 
@@ -5269,6 +5286,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     perpage : integer; must be named; optional
         The number of lines to write perpage. If < 1, there is no
         limit (one page).
+    tight_layout_args : dict or None; optional
+        Arguments for :func:`plt.tight_layout`. If None, defaults to
+        ``{'pad': 3.0}``.
 
     Returns
     -------
@@ -5653,7 +5673,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                 plt.xlabel(xl)
                 plt.ylabel(yl)
             plt.grid(True)
-        plt.tight_layout(pad=3)
+        plt.tight_layout(**tight_layout_args)
         if isinstance(filename, str):
             plt.savefig(filename + '.magpct.png')
 
@@ -5692,11 +5712,13 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                 if x < 5:
                     plt.xlim(-5, 5)
             plt.grid(True)
-        plt.tight_layout(pad=3)
+        plt.tight_layout(**tight_layout_args)
         if isinstance(filename, str):
             plt.savefig(filename + '.histogram.png')
 
     # main routine
+    if tight_layout_args is None:
+        tight_layout_args = {'pad': 3.0}
     infovars = ('desc', 'filterval', 'labels',
                 'units', 'ignorepv', 'uf_reds')
     dct = locals()
@@ -5871,7 +5893,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
              inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
              figsize=(11, 8.5), showall=None, showboth=False,
-             cases=None, direc='srs_plots', sub_right=None,
+             cases=None, direc='srs_plots', tight_layout_args=None,
              plot=plt.plot):
     """
     Make SRS or response history plots
@@ -5950,11 +5972,17 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     cases : tuple/list of case names to plot or None; optional
         If None, all cases are plotted. This option is ignored if
         plotting SRS curves and `showall` is True.
-    sub_right : scalar or None; optional
-        Used in: ``plt.subplots_adjust(right=sub_right)`` when
-        a legend is placed outside the plots. If None, this
-        routine tries to make an educated guess from the longest
-        label.
+    tight_layout_args : dict or None; optional
+        Arguments for :func:`plt.tight_layout`. If None, defaults to::
+
+                {'pad': 3.0,
+                 'w_pad': 2.0,
+                 'h_pad': 2.0,
+                 'rect': (0.3 / figsize[0],
+                          0.3 / figsize[1],
+                          1.0 - 0.3 / figsize[0],
+                          1.0 - 0.3 / figsize[1])}
+
     plot : function; optional
         The function that will draw each curve. Defaults to
         :func:`matplotlib.pyplot.plot`. As an example, for a plot with
@@ -6104,7 +6132,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
 
     def _plot_all(curres, q, frq, hist, showboth, cases, sub,
                   cols, maxcol, name, label, maxlen,
-                  sname, rowpv, j, adjust4legend):
+                  sname, rowpv, j):
         # legspace = matplotlib.rcParams['legend.labelspacing']
         if issrs:
             srsall = curres.srs.srs[q]
@@ -6131,9 +6159,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             for n, case in enumerate(cases):
                 h += plot(x, hist[n, j], linestyle='-', label=case)
         if sub == maxcol:
-            lbls = [_.get_label() for _ in h]
-            lbllen = len(max(lbls, key=len))
-            leg = plt.legend(h, lbls)
             plt.legend(loc='upper left',
                        bbox_to_anchor=(1.02, 1.),
                        borderaxespad=0.,
@@ -6141,9 +6166,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                        framealpha=0.5,
                        # labelspacing=legspace*.9,
                        )
-            if sub == cols:
-                adjust4legend.append(leg)
-                adjust4legend.append(lbllen)
         _add_title(name, label, maxlen, sname,
                    rowpv[j] + 1, cols, q)
 
@@ -6191,6 +6213,16 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         return uj
 
     # main routine
+    if tight_layout_args is None:
+        tight_layout_args = {
+            'pad': 3.0,
+            'w_pad': 2.0,
+            'h_pad': 2.0,
+            'rect': (0.3 / figsize[0],
+                     0.3 / figsize[1],
+                     1.0 - 0.3 / figsize[0],
+                     1.0 - 0.3 / figsize[1])}
+
     if showboth and showall is None:
         showall = True
 
@@ -6274,7 +6306,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             maxcol = cols if nplots > cols else nplots
             sub = perpage
             prefix = None
-            adjust4legend = []
             for j in range(nplots):
                 sub, filenum, prefix = _prep_subplot(
                     rows, cols, sub, perpage, filenum, nplots,
@@ -6286,8 +6317,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                             _plot_all(res[name], q, x, y,
                                       showboth, _cases, sub, cols,
                                       maxcol, name, label,
-                                      maxlen, sname, rowpv, j,
-                                      adjust4legend)
+                                      maxlen, sname, rowpv, j)
                         else:
                             _plot_ext(res[name], q, x, sub, cols,
                                       maxcol, name, label,
@@ -6296,30 +6326,11 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     _plot_all(res[name], None, x, y, showboth,
                               _cases, sub, cols, maxcol,
                               name, label, maxlen, sname,
-                              rowpv, j, adjust4legend)
+                              rowpv, j)
                 _add_xy_labels(uj, xlab, ylab, srstype)
 
                 if j + 1 == nplots or (j + 1) % perpage == 0:
-                    plt.tight_layout(pad=3, w_pad=2.0, h_pad=2.0)
-                    if len(adjust4legend) > 0:
-                        if sub_right is None:
-                            # try every 4 chars = 0.05
-                            # - that is based on trial and error with
-                            #   11 inch width
-                            # - scale up for thinner paper (words take
-                            #   up bigger percentage)
-                            w = 0.05 * 11.0 / figsize[0]
-                            n4s = adjust4legend[1] // 4 + 1
-                            # get top right plot
-                            ax = plt.gcf().get_axes()[cols - 1]
-                            pos = ax.get_position()
-                            _sub_right = pos.xmax - w * n4s
-                            if _sub_right < 0.5:
-                                _sub_right = 0.8
-                        else:
-                            _sub_right = sub_right
-                        plt.subplots_adjust(right=_sub_right)
-                        adjust4legend = []
+                    plt.tight_layout(**tight_layout_args)
                     if fmt == 'pdf' and onepdf:
                         pdffile.savefig()
                         # orientation=orientation,
