@@ -12,8 +12,8 @@ from scipy.io import matlab
 import scipy.interpolate as interp
 from nose.tools import *
 import matplotlib as mpl
-mpl.interactive(0)
-mpl.use('Agg')
+# mpl.interactive(0)
+# mpl.use('Agg')
 import matplotlib.pyplot as plt
 from pyyeti import cla, cb, ode, stats
 from pyyeti import nastran, srs

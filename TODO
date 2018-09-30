@@ -196,5 +196,6 @@
     - fixed in version 0.93.8
     - replaced `sub_right` with `tight_layout_args`
 
-55. need option for 1 plot figure in doing cla comparison (and maybe
+~55. need option for 1 plot figure in doing cla comparison (and maybe
     in other places)
+    - version 0.93.8

@@ -4113,7 +4113,7 @@ class DR_Results(OrderedDict):
                   inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
                   figsize=(11, 8.5), showall=None, showboth=False,
                   direc='srs_plots', tight_layout_args=None,
-                  plot=plt.plot):
+                  plot=plt.plot, show_figures=False):
         """
         Make SRS plots with optional printing to .pdf or .png files.
 
@@ -4203,6 +4203,9 @@ class DR_Results(OrderedDict):
             custom function of your own devising, but it is expected
             to accept the same arguments as
             :func:`matplotlib.pyplot.plot`.
+        show_figures : bool; optional
+            If True, plot figures will be displayed on the screen for
+            interactive viewing. Warning: there may be many figures.
 
         Returns
         -------
@@ -4229,12 +4232,14 @@ class DR_Results(OrderedDict):
                         showall=showall, showboth=showboth,
                         direc=direc,
                         tight_layout_args=tight_layout_args,
-                        cases=None, plot=plot)
+                        cases=None, plot=plot,
+                        show_figures=show_figures)
 
     def resp_plots(self, event=None, drms=None, inc0rb=True,
                    fmt='pdf', onepdf=True, layout=(2, 3),
                    figsize=(11, 8.5), cases=None, direc='resp_plots',
-                   tight_layout_args=None, plot=plt.plot):
+                   tight_layout_args=None, plot=plt.plot,
+                   show_figures=False):
         """
         Make time or frequency domain responses plots.
 
@@ -4315,6 +4320,9 @@ class DR_Results(OrderedDict):
             custom function of your own devising, but it is expected
             to accept the same arguments as
             :func:`matplotlib.pyplot.plot`.
+        show_figures : bool; optional
+            If True, plot figures will be displayed on the screen for
+            interactive viewing. Warning: there may be many figures.
 
         Returns
         -------
@@ -4342,7 +4350,7 @@ class DR_Results(OrderedDict):
                         cases=cases, direc=direc,
                         tight_layout_args=tight_layout_args,
                         Q='auto', showall=None, showboth=False,
-                        plot=plot)
+                        plot=plot, show_figures=show_figures)
 
 
 def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
@@ -5141,7 +5149,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             domagpct=True, doabsmax=False, shortabsmax=False,
             roundvals=-1, rowhdr='Row', deschdr='Description',
             maxhdr='Maximum', minhdr='Minimum', absmhdr='Abs-Max',
-            perpage=-1, tight_layout_args=None):
+            perpage=-1, tight_layout_args=None, show_figures=False):
     """
     Write a percent difference report between 2 sets of max/min data.
 
@@ -5289,6 +5297,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     tight_layout_args : dict or None; optional
         Arguments for :func:`plt.tight_layout`. If None, defaults to
         ``{'pad': 3.0}``.
+    show_figures : bool; optional
+        If True, plot figures will be displayed on the screen for
+        interactive viewing. Warning: there may be many figures.
 
     Returns
     -------
@@ -5650,71 +5661,83 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         return dict(pct=pct_ret, spct=spct, hsto=hsto,
                     prtpv=prtpv, mag=mag)
 
+    def _figure_on(name, doabsmax):
+        figsize = [8.5, 11.0]
+        if doabsmax:
+            figsize[1] /= 3.0
+        if show_figures:
+            plt.figure(name, figsize=figsize)
+            plt.clf()
+        else:
+            plt.figure(figsize=figsize)
+
+    def _figure_off():
+        if not show_figures:
+            plt.close()
+
     def _plot_magpct(pctinfo, names, desc, doabsmax, filename):
         ptitle = '{} - {{}} Comparison vs Magnitude'.format(desc)
         xl = '{} Magnitude'.format(names[1])
         yl = '% Diff of {} vs {}'.format(*names)
-        figsize = [8.5, 11.0]
-        if doabsmax:
-            figsize[1] /= 3.0
-        plt.figure('Magpct - ' + desc, figsize=figsize)
-        plt.clf()
-        for lbl, hdr, sp, ismax in (('mx', maxhdr, 311, True),
-                                    ('mn', minhdr, 312, False),
-                                    ('amx', absmhdr, 313, True)):
-            if 'mx' in pctinfo:
-                plt.subplot(sp)
-            if lbl in pctinfo:
-                magpct(pctinfo[lbl]['mag'][0],
-                       pctinfo[lbl]['mag'][1],
-                       pctinfo['amx']['mag'][1],
-                       ismax=ismax)
-                plt.title(ptitle.format(hdr))
-                plt.xlabel(xl)
-                plt.ylabel(yl)
-            plt.grid(True)
-        plt.tight_layout(**tight_layout_args)
-        if isinstance(filename, str):
-            plt.savefig(filename + '.magpct.png')
+        _figure_on('Magpct - ' + desc, doabsmax)
+        try:
+            for lbl, hdr, sp, ismax in (('mx', maxhdr, 311, True),
+                                        ('mn', minhdr, 312, False),
+                                        ('amx', absmhdr, 313, True)):
+                if 'mx' in pctinfo:
+                    plt.subplot(sp)
+                if lbl in pctinfo:
+                    magpct(pctinfo[lbl]['mag'][0],
+                           pctinfo[lbl]['mag'][1],
+                           pctinfo['amx']['mag'][1],
+                           ismax=ismax)
+                    plt.title(ptitle.format(hdr))
+                    plt.xlabel(xl)
+                    plt.ylabel(yl)
+                plt.grid(True)
+            plt.tight_layout(**tight_layout_args)
+            if isinstance(filename, str):
+                plt.savefig(filename + '.magpct.png')
+        finally:
+            _figure_off()
 
     def _plot_histogram(pctinfo, names, desc, doabsmax, filename):
         ptitle = '{} - {{}} Comparison Histogram'.format(desc)
         xl = '% Diff of {} vs {}'.format(*names)
         yl = 'Percent Occurrence (%)'
-        figsize = [8.5, 11.0]
-        if doabsmax:
-            figsize[1] /= 3.0
-        plt.figure('Histogram - ' + desc, figsize=figsize)
-        plt.clf()
-        for lbl, hdr, sp in (('mx', maxhdr, 311),
-                             ('mn', minhdr, 312),
-                             ('amx', absmhdr, 313)):
-            if 'mx' in pctinfo:
-                plt.subplot(sp)
-            if lbl in pctinfo:
-                width = histogram_inc
-                x = pctinfo[lbl]['hsto'][:, 0]
-                y = pctinfo[lbl]['hsto'][:, 2]
-                colors = ['b'] * len(x)
-                ax = abs(x)
-                pv1 = ((ax > 5) & (ax <= 10)).nonzero()[0]
-                pv2 = (ax > 10).nonzero()[0]
-                for pv, c in ((pv1, 'm'),
-                              (pv2, 'r')):
-                    for i in pv:
-                        colors[i] = c
-                plt.bar(x, y, width=width, color=colors,
-                        align='center')
-                plt.title(ptitle.format(hdr))
-                plt.xlabel(xl)
-                plt.ylabel(yl)
-                x = abs(max(plt.xlim(), key=abs))
-                if x < 5:
-                    plt.xlim(-5, 5)
-            plt.grid(True)
-        plt.tight_layout(**tight_layout_args)
-        if isinstance(filename, str):
-            plt.savefig(filename + '.histogram.png')
+        _figure_on('Histogram - ' + desc, doabsmax)
+        try:
+            for lbl, hdr, sp in (('mx', maxhdr, 311),
+                                 ('mn', minhdr, 312),
+                                 ('amx', absmhdr, 313)):
+                if 'mx' in pctinfo:
+                    plt.subplot(sp)
+                if lbl in pctinfo:
+                    width = histogram_inc
+                    x = pctinfo[lbl]['hsto'][:, 0]
+                    y = pctinfo[lbl]['hsto'][:, 2]
+                    colors = ['b'] * len(x)
+                    ax = abs(x)
+                    pv1 = ((ax > 5) & (ax <= 10)).nonzero()[0]
+                    pv2 = (ax > 10).nonzero()[0]
+                    for pv, c in ((pv1, 'm'),
+                                  (pv2, 'r')):
+                        for i in pv:
+                            colors[i] = c
+                    plt.bar(x, y, width=width, color=colors,
+                            align='center')
+                    plt.title(ptitle.format(hdr))
+                    plt.xlabel(xl)
+                    plt.ylabel(yl)
+                    x = abs(max(plt.xlim(), key=abs))
+                    if x < 5:
+                        plt.xlim(-5, 5)
+                plt.grid(True)
+            plt.tight_layout(**tight_layout_args)
+            if isinstance(filename, str):
+                plt.savefig(filename + '.histogram.png')
+        finally:
+            _figure_off()
 
     # main routine
     if tight_layout_args is None:
@@ -5851,11 +5874,15 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                                units=units, misc=misc) +
               '\n')
 
-    if domagpct:
-        _plot_magpct(pctinfo, names, desc, doabsmax, filename)
-
-    if dohistogram:
-        _plot_histogram(pctinfo, names, desc, doabsmax, filename)
+    imode = plt.isinteractive()
+    plt.interactive(show_figures)
+    try:
+        if domagpct:
+            _plot_magpct(pctinfo, names, desc, doabsmax, filename)
+        if dohistogram:
+            _plot_histogram(pctinfo, names, desc, doabsmax, filename)
+    finally:
+        plt.interactive(imode)
 
     # write results
     def _wtcmp(f, header, hu, frm, printargs, perpage,
@@ -5878,7 +5905,6 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             e = b + perpage
             writer.vecwrite(f, frm, *printargs, so=slice(b, e))
         f.write(pager)
-        # f.write(header)
         for lbl, hdr in zip(('mx', 'mn', 'amx'),
                             (maxhdr, minhdr, absmhdr)):
             if lbl in pctinfo:
@@ -5894,7 +5920,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
              inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
              figsize=(11, 8.5), showall=None, showboth=False,
              cases=None, direc='srs_plots', tight_layout_args=None,
-             plot=plt.plot):
+             plot=plt.plot, show_figures=False):
     """
     Make SRS or response history plots
 
@@ -5990,6 +6016,9 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         :func:`matplotlib.pyplot.semilogy`. You can also use a custom
         function of your own devising, but it is expected to accept
         the same arguments as :func:`matplotlib.pyplot.plot`.
+    show_figures : bool; optional
+        If True, plot figures will be displayed on the screen for
+        interactive viewing. Warning: there may be many figures.
 
     Notes
     -----
@@ -6089,8 +6118,12 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             filenum += 1
             prefix, figname = _get_figname(
                 nplots, perpage, fmt, onepdf, name, lbl, sname)
-            plt.figure(figname, figsize=figsize)
-            plt.clf()
+            if show_figures:
+                plt.figure(figname, figsize=figsize)
+                plt.clf()
+            else:
+                nonlocal cur_fig
+                cur_fig = plt.figure(figsize=figsize)
         ax = plt.subplot(rows, cols, sub)
         ax.ticklabel_format(useOffset=False,
                             style='sci', scilimits=(-3, 4))
@@ -6245,6 +6278,10 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     alldrms.append(name + '_0rb')
 
     pdffile = None
+    imode = plt.isinteractive()
+    plt.interactive(show_figures)
+    cur_fig = None
+
     try:
         for name in alldrms:
             if name not in res:
@@ -6345,6 +6382,12 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                         else:
                             kwargs = {}
                         plt.savefig(fname, format=fmt, **kwargs)
+                    if not show_figures:
+                        plt.close(cur_fig)
+                        cur_fig = None
     finally:
+        plt.interactive(imode)
         if pdffile:
             pdffile.close()
+        if cur_fig:
+            plt.close(cur_fig)
