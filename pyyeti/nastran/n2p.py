@@ -1624,7 +1624,7 @@ def build_coords(cords):
     Parameters
     ----------
     cords : 2d array_like
-        2d array, n x 12:
+        2d array, n x 12. Each row has::
 
         .. code-block:: none
 
@@ -1685,7 +1685,7 @@ def build_coords(cords):
         selected = np.zeros(n, dtype=np.int64)
         loop = 1
         while np.any(selected == 0):
-            pv = locate.find_vals(cords[:, 2], ref_ids)
+            pv = locate.find_vals(cords[:, 2], ref_ids).nonzero()[0]
             if pv.size == 0:
                 msg = ('Could not resolve coordinate systems. Need '
                        'these coordinate cards:\n{!s}'
@@ -2796,6 +2796,7 @@ def upasetpv(nas, seup):
     if len(pv) < len(dnids):
         # must be an external se, but non-csuper type (the extseout,
         # seconct, etc, type)
+        # - see additional comments in upqsetpv
         upids = nas['upids'][sedn]
         pv = locate.find_vals(upids, dnids)
         ids = _get_node_ids(usetdn)

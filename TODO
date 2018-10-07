@@ -1,4 +1,4 @@
-0. Add generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
+d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
     - base this off of scipy.linalg.block_diag ... or is there
       something there already?
 
@@ -199,3 +199,25 @@
 ~55. need option for 1 plot figure in doing cla comparison (and maybe
     in other places)
     - version 0.93.8
+
+~ 56. rdtabled1 stores in dict with float ?
+    - version 0.93.9
+
+~ 57. Update locate.find_vals (and others?) to output bool
+    o   Either instead or as an option
+    - instead; version 0.93.9
+
+58. Order of recovery should be maintained from definition order
+     o   I think the only change (besides documenting that order is
+         used) is to change this from:
+            self.Info = {}
+     o   To:
+            self.Info = OrderedDict()
+     o   In DR_Event.__init__
+
+    But, for this to be really useful, we probably need to enhance
+    calls to the drfuncs … would want access to other categories.
+    Need some good ideas for this.
+     o   Pass in the parent DR_Results … ?
+
+~ 59. In reldisp_dtm, I have the labels documented backwards!

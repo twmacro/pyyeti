@@ -23,6 +23,7 @@ Class for getting data recovery ready for running a specific event
 
     DR_Event
     DR_Event.add
+    DR_Event.set_dr_order
     DR_Event.prepare_results
     DR_Event.apply_uf
     DR_Event.frf_apply_uf

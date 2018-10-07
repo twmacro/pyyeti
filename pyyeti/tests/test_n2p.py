@@ -1153,6 +1153,32 @@ def test_upasetpv():
     assert np.all(pv == shouldbe)
 
 
+def test_upasetpv_2():
+    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_extseout/nas2cam')
+    pv = n2p.upasetpv(nas, 102)
+    # se 102 seconct is:
+    #    SECONCT      102       0              NO
+    #                   3       3      11      11
+    #                  19      19      27      27
+    #             2995001 2995001 2995002 2995002
+    #             2995003 2995003 2995004 2995004
+    #             2995005 2995005 2995006 2995006
+    #             2995007 2995007 2995008 2995008
+    #
+    # se 0 uset is:
+    # id    dof
+    # 70   1-6
+    # 1995001-1995022   7-28
+    #  3   29-34
+    # 11   35-40
+    # 19   41-46
+    # 27   47-52
+    # 2995001-2995008   53-60
+    # Therefore, pv better match this:
+    shouldbe = np.arange(29, 61) - 1
+    assert np.all(pv == shouldbe)
+
+
 def test_upqsetpv():
     nas_extseout = nastran.rdnas2cam(
         'pyyeti/tests/nas2cam_extseout/nas2cam')

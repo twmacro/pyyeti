@@ -14,8 +14,7 @@ except TypeError:
 
 def find_vals(m, v):
     """
-    Get partition vector for all occurrences of all values in `v` in
-    `m`.
+    Find all occurrences of all values in `v` in `m`
 
     Parameters
     ----------
@@ -26,9 +25,10 @@ def find_vals(m, v):
 
     Returns
     -------
-    pv : 1d ndarray
-        Values are indexes into `m` of any value in `v`.  Will be
-        empty if `m` has none of the values in `v`.
+    ndarray
+        True/False vector with True indicating position of any value
+        in `v` within `m`. Will be all False if no values in `v` are
+        in `m`.
 
     Notes
     -----
@@ -45,12 +45,12 @@ def find_vals(m, v):
     >>> import numpy as np
     >>> from pyyeti import locate
     >>> m = np.array([[10, 20], [30, 20]])
-    >>> locate.find_vals(m, 20)  # doctest: +ELLIPSIS
-    array([2, 3]...)
-    >>> locate.find_vals(m, 30)  # doctest: +ELLIPSIS
-    array([1]...)
+    >>> locate.find_vals(m, 20)
+    array([False, False,  True,  True], dtype=bool)
+    >>> locate.find_vals(m, 30)
+    array([False,  True, False, False], dtype=bool)
     >>> locate.find_vals(m, 100)
-    array([], dtype=int64)
+    array([False, False, False, False], dtype=bool)
     """
     m = np.atleast_1d(m)
     v = np.atleast_1d(v)
@@ -59,7 +59,7 @@ def find_vals(m, v):
     pv = np.zeros(len(m), dtype=bool)
     for i in v:
         pv |= m == i
-    return pv.nonzero()[0]
+    return pv
 
 
 def find_subseq(seq, subseq):
@@ -108,7 +108,7 @@ def find_subseq(seq, subseq):
 
 def find_rows(matrix, row):
     """
-    Returns indices of where row occurs in matrix.
+    Get True/False vector indicating where `row` occurs in `matrix`
 
     Parameters
     ----------
@@ -119,9 +119,10 @@ def find_rows(matrix, row):
 
     Returns
     -------
-    pv : array
-        A 1d numpy array of row indices. Will be empty if row is not
-        found or if ``length(row) != cols(matrix)``.
+    1d ndarray
+        True/False vector with True indicating where `row` occurs in
+        `matrix`. Will be all False if `row` does not occur in
+        `matrix` or if ``len(row) != cols(matrix)``.
 
     Examples
     --------
@@ -130,10 +131,10 @@ def find_rows(matrix, row):
     >>> mat = np.array([[7, 3], [6, 8], [4, 0],
     ...                 [9, 2], [1, 5], [6, 8]])
     >>> locate.find_rows(mat,np.array([1, 2]))
-    array([], dtype=int64)
+    array([False, False, False, False, False, False], dtype=bool)
     >>> pv = locate.find_rows(mat,np.array([6, 8]))
-    >>> pv          # doctest: +ELLIPSIS
-    array([1, 5]...)
+    >>> pv
+    array([False,  True, False, False, False,  True], dtype=bool)
     >>> mat[pv, :]
     array([[6, 8],
            [6, 8]])
@@ -142,7 +143,8 @@ def find_rows(matrix, row):
     c2 = len(row)
     if c1 != c2:
         return np.array([], dtype=int)
-    return np.nonzero(abs(matrix - row).sum(axis=1) == 0)[0]
+    # return np.nonzero(abs(matrix - row).sum(axis=1) == 0)[0]
+    return abs(matrix - row).sum(axis=1) == 0
 
 
 def mat_intersect(D1, D2, keep=0):
@@ -236,10 +238,10 @@ def mat_intersect(D1, D2, keep=0):
     pv2 = np.zeros(r, dtype=np.int64)
     j = 0
     for i in range(r):
-        l = find_rows(d2, d1[i])
-        if l.size > 0:
+        rows = find_rows(d2, d1[i]).nonzero()[0]
+        if rows.size > 0:
             pv1[j] = i
-            pv2[j] = l[0]
+            pv2[j] = rows[0]
             j += 1
     if j == 0:
         return np.array([], dtype=int), np.array([], dtype=int)
@@ -250,12 +252,6 @@ def mat_intersect(D1, D2, keep=0):
     else:
         pv1 = pv1[:j]
         pv2 = pv2[:j]
-#    if switch and keep == 1:
-#        si = pv1.argsort()
-#        return pv1.take(si), pv2.take(si)
-#    elif not switch and keep == 2:
-#        si = pv2.argsort()
-#        return pv1.take(si), pv2.take(si)
     return pv1, pv2
 
 

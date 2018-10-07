@@ -371,9 +371,10 @@ def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
         else:
             cur = len(vals)
             mxlen = max(mxlen, cur)
+            key = vals[0]  # before it gets turned into dtype
             vals = np.array(vals).astype(dtype)
             if todict:
-                Vals[vals[0]] = vals
+                Vals[key] = vals
             else:
                 Vals.append(vals)
     if len(Vals) > 0:

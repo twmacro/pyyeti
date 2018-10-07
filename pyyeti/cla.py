@@ -681,11 +681,17 @@ class DR_Def(OrderedDict):
     """
     Data recovery definitions.
 
-    This is an OrderedDict that defines how data recovery will be
-    done. The entries are created through repeated calls to member
-    function :func:`add` (typically from a "prepare_4_cla.py"
-    script). See the notes section below for an example showing what
-    is in this dict.
+    This class inherits from OrderedDict and defines how data recovery
+    will be done. The entries are created through repeated calls to
+    member function :func:`add` (typically from a "prepare_4_cla.py"
+    script). Within a single instance of this class, the order that
+    items are added also defines the data recovery order (as done in
+    :func:`DR_Results.time_data_recovery`, for example). When using
+    multiple instances, the data recovery order of the instances is
+    determined by the order they are added to an instance of
+    :class:`DR_Event` via :func:`DR_Event.add`.
+    :func:`DR_Event.set_dr_order` can be used to modify the final
+    order.
 
     Attributes
     ----------
@@ -1271,10 +1277,18 @@ class DR_Def(OrderedDict):
 
         Notes
         -----
+        See :class:`DR_Def` for a discussion about how the order of
+        data recovery is determined. In summary: :func:`DR_Event.add`
+        determines the order of :class:`DR_Def` instances, and
+        :func:`DR_Def.add` determines the order of data recovery
+        categories within each :class:`DR_Def` instance.
+        :func:`DR_Event.set_dr_order` can be used to modify the final
+        order.
+
         **Entering partition vectors.** The `histpv`, `srspv` and
-        `ignorepv` inputs are handled similarly. Can be input as
-        either an index or boolean style partition vector. If input as
-        'all', they are reset internally to ``slice(len(labels))``.
+        `ignorepv` inputs are all handled similarly. They can be input
+        as either an index or boolean style partition vector. If input
+        as 'all', they are reset internally to ``slice(len(labels))``.
         They can also be entered as a slice directly. The stored
         versions are either a slice or an index vector (uses 0-offset
         for standard Python indexing).
@@ -1395,7 +1409,7 @@ class DR_Def(OrderedDict):
 
         # check for overlapping keys in drms and nondrms:
         overlapping_names = set(nondrms) & set(drms)
-        if len(overlapping_names) > 0:
+        if overlapping_names:
             raise ValueError('`drms` and `nondrms` have overlapping '
                              'names: {}'.format(overlapping_names))
 
@@ -1552,12 +1566,12 @@ class DR_Def(OrderedDict):
         drinfo : pandas DataFrame
             Summary table of data recovery information. The index
             values are those set via :func:`add` (name, desc, etc).
-            The columns are the categores (eg: 'SC_atm', 'SC_ltm',
+            The columns are the categories (eg: 'SC_atm', 'SC_ltm',
             etc).
         """
         cats = sorted([i for i in self
                        if not i.startswith('_')])
-        if len(cats) == 0:
+        if cats == 0:
             raise RuntimeError('add data recovery categories first')
         vals = sorted(self[cats[0]].__dict__)
         df = pd.DataFrame(index=vals, columns=cats)
@@ -1634,13 +1648,13 @@ class DR_Def(OrderedDict):
         return df
 
 
-class DR_Event(object):
+class DR_Event:
     """
     Setup data recovery for a specific event or set of modes.
 
     Attributes
     ----------
-    Info : dict
+    Info : OrderedDict
         Contains data recovery information for each category. The
         category names are the keys. This is a copy of information in
         one or more `DR_Def` instances created during data recovery
@@ -1725,7 +1739,7 @@ class DR_Event(object):
 
         The attributes are filled by calls to :func:`add`.
         """
-        self.Info = {}
+        self.Info = OrderedDict()
         self.UF_reds = []
         self.Vars = {}
 
@@ -1793,6 +1807,14 @@ class DR_Event(object):
         recovery is requested. The attributes `Info`, `UF_reds` and
         `Vars` are all updated on each call to this routine.
 
+        See :class:`DR_Def` for a discussion about how the order of
+        data recovery is determined. In summary: :func:`DR_Event.add`
+        determines the order of :class:`DR_Def` instances, and
+        :func:`DR_Def.add` determines the order of data recovery
+        categories within each :class:`DR_Def` instance.
+        :func:`DR_Event.set_dr_order` can be used to modify the final
+        order.
+
         Following are some examples of providing a function for the
         `method` parameter. Note that the function is only called when
         the `uf_reds` value is not None.
@@ -1854,7 +1876,7 @@ class DR_Event(object):
                 continue
             if se not in self.Vars:
                 self.Vars[se] = {}
-            if se != 0 and se != se_last:
+            if se not in (0, se_last):
                 ulvs = nas['ulvs'][se]
                 uset = nas['uset'][se]
                 # Want bset partition from aset. But note that in the
@@ -1893,6 +1915,66 @@ class DR_Event(object):
                     raise ValueError('"{}" is already in Vars[{}]'
                                      .format(name, se))
                 self.Vars[se][name] = mat
+
+    def set_dr_order(self, cats, where='first'):
+        """
+        Set a new data recovery order
+
+        Parameters
+        ----------
+        cats : iterable
+            Iterable of category names in the ordered desired for data
+            recovery. Not all categories need to be included, just
+            those where a new order is desired. For example, if
+            "scltm" must be done before "scltm2", then ``cats =
+            ('scltm', 'scltm2')`` is sufficient.
+        where : string; optional
+            Either 'first' or 'last'. Specifies where to put the
+            categories in the updated order.
+
+        Notes
+        -----
+         Updates the `Info` attribute to reflect the new order. Call
+         this routine before calling :func:`prepare_results`.
+
+        Raises
+        ------
+        ValueError
+            If an item in `cats` is not currently in `self.Info`
+        ValueError
+            If `where` is not 'first' or 'last'
+        """
+        def reorder_keys(all_keys, keys, where):
+            all_keys = list(all_keys)
+            keys = list(keys)
+
+            # ensure all keys are in all_keys:
+            for k in keys:
+                if k not in all_keys:
+                    raise ValueError(
+                        'Category "{}" not found. Order unchanged.'
+                        .format(k))
+
+            if where == 'first':
+                new_keys = list(keys)
+                new_keys.extend(k for k in all_keys
+                                if k not in keys)
+            elif where == 'last':
+                new_keys = [k for k in all_keys
+                            if k not in keys]
+                new_keys.extend(keys)
+            else:
+                raise ValueError(
+                    "`where` must be 'first' or 'last', not {!r}"
+                    .format(where))
+
+            return new_keys
+
+        new_info = OrderedDict(
+            (k, self.Info[k])
+            for k in reorder_keys(self.Info, cats, where)
+        )
+        self.Info = new_info
 
     def prepare_results(self, mission, event):
         """
@@ -2407,7 +2489,7 @@ class DR_Results(OrderedDict):
 
         Parameters
         ----------
-        Info : dict or :class:`DR_Def` instance
+        Info : OrderedDict or :class:`DR_Def` instance
             Contains data recovery information for each category. The
             category names are the keys. Either the `Info` attribute
             of :class:`DR_Event` or a :class:`DR_Def` instance.
@@ -3884,9 +3966,8 @@ class DR_Results(OrderedDict):
                 if isinstance(value, SimpleNamespace):
                     # one level too deep ... just return quietly
                     return
-                else:
-                    # use ext_name, case_order only at the top level
-                    _add_extreme(value, name, None, doappend)
+                # use ext_name, case_order only at the top level
+                _add_extreme(value, name, None, doappend)
             dct['extreme'] = _calc_extreme(
                 dct, ext_name, case_order, doappend)
 
@@ -4535,7 +4616,7 @@ def reldisp_dtm(nas, node_pairs):
     labels : list
         List of labels briefly describing each row in `reldtm`. For
         example, if one row in `node_pairs` is: ``[101, 3, 102, 30]``,
-        the label for that row would be: 'SE101,3 - SE102,30'.
+        the label for that row would be: 'SE102,30 - SE101,3'.
 
     Notes
     -----
