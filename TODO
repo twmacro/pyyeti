@@ -207,7 +207,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
     o   Either instead or as an option
     - instead; version 0.93.9
 
-58. Order of recovery should be maintained from definition order
+~ 58. Order of recovery should be maintained from definition order
      o   I think the only change (besides documenting that order is
          used) is to change this from:
             self.Info = {}
@@ -221,3 +221,16 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
      o   Pass in the parent DR_Results … ?
 
 ~ 59. In reldisp_dtm, I have the labels documented backwards!
+
+60. Update drfunc arg list to enhance functionality:
+    - now: drfunc(sol, nas, Vars, se)
+    - new: drfunc(sol, se_vars, dr_data, userarg) ... or something
+      - dr_data is a dict with potentially:
+         - parent DR_Results
+         - name
+         - se
+         - drmres SimpleNamespace
+         - number of cases
+         - current case
+         - ? freq for psd functions?
+         - nas

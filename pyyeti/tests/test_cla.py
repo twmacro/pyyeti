@@ -12,8 +12,6 @@ from scipy.io import matlab
 import scipy.interpolate as interp
 from nose.tools import *
 import matplotlib as mpl
-# mpl.interactive(0)
-# mpl.use('Agg')
 import matplotlib.pyplot as plt
 from pyyeti import cla, cb, ode, stats
 from pyyeti import nastran, srs
@@ -2897,3 +2895,59 @@ def test_reldisp_dtm():
     h1 = results['reldisp1'].hist
     h2 = results['reldisp2'].hist
     assert np.allclose(h1, h2)
+
+
+def test_set_dr_order():
+    drdefs0 = cla.DR_Def()
+    for name, nrows in (('atm0', 12),
+                        ('ltm0', 30),
+                        ('dtm0', 9)):
+        drdefs0.add(name=name, labels=nrows, drfunc='no func')
+
+    drdefs1 = cla.DR_Def()
+    for name, nrows in (('atm1', 12),
+                        ('ltm1', 30),
+                        ('dtm1', 9)):
+        drdefs1.add(name=name, labels=nrows, drfunc='no func')
+
+    DR = cla.DR_Event()
+    DR.add(None, drdefs0)
+    DR.add(None, drdefs1)
+
+    # order must be as defined:
+    r = repr(DR)
+    assert "['atm0', 'ltm0', 'dtm0', 'atm1', 'ltm1', 'dtm1']" in r
+
+    # ensure that ltm1, dtm0, atm1 are recovered in that order, the
+    # others are okay in current order:
+
+    # case 1: put ltm1, dtm0, atm1 first:
+    DR.set_dr_order(('ltm1', 'dtm0', 'atm1'), where='first')
+    r = repr(DR)
+    assert "['ltm1', 'dtm0', 'atm1', 'atm0', 'ltm0', 'dtm1']" in r
+
+    # case 2: put ltm1, dtm0, atm1 last:
+    DR.set_dr_order(('ltm1', 'dtm0', 'atm1'), where='last')
+    r = repr(DR)
+    assert "['atm0', 'ltm0', 'dtm1', 'ltm1', 'dtm0', 'atm1']" in r
+
+    # check for proper errors:
+    assert_raises(ValueError, DR.set_dr_order, ('scatm',), 'first')
+    assert_raises(ValueError, DR.set_dr_order, ('atm0',), 'bad where')
+
+    # check a couple corner cases:
+    DR.set_dr_order([], where='first')
+    r = repr(DR)
+    assert "['atm0', 'ltm0', 'dtm1', 'ltm1', 'dtm0', 'atm1']" in r
+
+    DR.set_dr_order([], where='last')
+    r = repr(DR)
+    assert "['atm0', 'ltm0', 'dtm1', 'ltm1', 'dtm0', 'atm1']" in r
+
+    DR.set_dr_order(['ltm0'], where='last')
+    r = repr(DR)
+    assert "['atm0', 'dtm1', 'ltm1', 'dtm0', 'atm1', 'ltm0']" in r
+
+    DR.set_dr_order(['atm1'], where='first')
+    r = repr(DR)
+    assert "['atm1', 'atm0', 'dtm1', 'ltm1', 'dtm0', 'ltm0']" in r

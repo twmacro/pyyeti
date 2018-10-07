@@ -826,13 +826,10 @@ class DR_Def(OrderedDict):
         defaults : dict or None; optional
             Sets the `defaults` attribute; see :class:`DR_Def`.
         """
+        super().__init__()
         self.defaults = {} if defaults is None else defaults
         self['_vars'] = SimpleNamespace(drms={}, nondrms={})
         self._drfilemap = {}
-        return
-
-    # def __repr__(self):
-    #     return object.__repr__(self)
 
     def __repr__(self):
         cats = ', '.join("'{}'".format(name) for name in self)
@@ -1118,7 +1115,9 @@ class DR_Def(OrderedDict):
             A string that either defines the data recovery
             calculations directly (a "Type 1" `drfunc`) or, if it is a
             valid Python identifier, it is the name of the data
-            recovery function in `drfile` (a "Type 2" `drfunc`).
+            recovery function in `drfile` (a "Type 2" `drfunc`). If it
+            is Type 2, as a check, this routine will attempt to import
+            the function; if not found, a warning is printed.
 
             Assume that `drfile` is specified properly and the file it
             indicates has::
@@ -1571,7 +1570,7 @@ class DR_Def(OrderedDict):
         """
         cats = sorted([i for i in self
                        if not i.startswith('_')])
-        if cats == 0:
+        if not cats:
             raise RuntimeError('add data recovery categories first')
         vals = sorted(self[cats[0]].__dict__)
         df = pd.DataFrame(index=vals, columns=cats)
@@ -1916,7 +1915,7 @@ class DR_Event:
                                      .format(name, se))
                 self.Vars[se][name] = mat
 
-    def set_dr_order(self, cats, where='first'):
+    def set_dr_order(self, cats, where):
         """
         Set a new data recovery order
 
@@ -1928,14 +1927,21 @@ class DR_Event:
             those where a new order is desired. For example, if
             "scltm" must be done before "scltm2", then ``cats =
             ('scltm', 'scltm2')`` is sufficient.
-        where : string; optional
+        where : string
             Either 'first' or 'last'. Specifies where to put the
-            categories in the updated order.
+            reordered categories in the final order.
 
         Notes
         -----
-         Updates the `Info` attribute to reflect the new order. Call
-         this routine before calling :func:`prepare_results`.
+        Updates the `Info` attribute to reflect the new order. Call
+        this routine before calling :func:`prepare_results`.
+
+        See :class:`DR_Def` for a discussion about how the order of
+        data recovery is determined. In summary: :func:`DR_Event.add`
+        determines the order of :class:`DR_Def` instances, and
+        :func:`DR_Def.add` determines the order of data recovery
+        categories within each :class:`DR_Def` instance.  This routine
+        can be used to modify the final order.
 
         Raises
         ------
@@ -1943,6 +1949,61 @@ class DR_Event:
             If an item in `cats` is not currently in `self.Info`
         ValueError
             If `where` is not 'first' or 'last'
+
+        Examples
+        --------
+        Build a minimal instance of :class:`DR_Event` incorporating
+        two :class:`DR_Def` instances so that
+        :func:`DR_Event.set_dr_order` can be fully demonstrated. This
+        also demonstrates the use of :func:`DR_Def.add` without using
+        the :func:`DR_Def.addcat` decorator.
+
+        >>> from pyyeti import cla
+        >>>
+        >>> drdefs0 = cla.DR_Def()
+        >>> for name, nrows in (('atm0', 12),
+        ...                     ('ltm0', 30),
+        ...                     ('dtm0', 9)):
+        ...     drdefs0.add(name=name, labels=nrows, drfunc='no func')
+        >>>
+        >>> drdefs1 = cla.DR_Def()
+        >>> for name, nrows in (('atm1', 12),
+        ...                     ('ltm1', 30),
+        ...                     ('dtm1', 9)):
+        ...     drdefs1.add(name=name, labels=nrows, drfunc='no func')
+        >>>
+        >>> DR = cla.DR_Event()
+        >>> DR.add(None, drdefs1)
+        >>> DR.add(None, drdefs0)
+
+        Show that original order is as defined (`drdefs1` is first):
+
+        >>> print(repr(DR))    # doctest: +ELLIPSIS
+        DR_Event ... ['atm1', 'ltm1', 'dtm1', 'atm0', 'ltm0', 'dtm0']
+
+        For demonstration, put the two :class:`DR_Def` instances in a
+        different order:
+
+        >>> DR = cla.DR_Event()
+        >>> DR.add(None, drdefs0)
+        >>> DR.add(None, drdefs1)
+        >>> print(repr(DR))    # doctest: +ELLIPSIS
+        DR_Event ... ['atm0', 'ltm0', 'dtm0', 'atm1', 'ltm1', 'dtm1']
+
+        Ensure that 'ltm1', 'dtm0', 'atm1' are recovered in that
+        order, and assume the others are okay in current order:
+
+        Case 1: put 'ltm1', 'dtm0', 'atm1' first:
+
+        >>> DR.set_dr_order(('ltm1', 'dtm0', 'atm1'), where='first')
+        >>> print(repr(DR))    # doctest: +ELLIPSIS
+        DR_Event ... ['ltm1', 'dtm0', 'atm1', 'atm0', 'ltm0', 'dtm1']
+
+        Case 2: put 'ltm1', 'dtm0', 'atm1' last:
+
+        >>> DR.set_dr_order(('ltm1', 'dtm0', 'atm1'), where='last')
+        >>> print(repr(DR))    # doctest: +ELLIPSIS
+        DR_Event ... ['atm0', 'ltm0', 'dtm1', 'ltm1', 'dtm0', 'atm1']
         """
         def reorder_keys(all_keys, keys, where):
             all_keys = list(all_keys)
@@ -2473,9 +2534,6 @@ class DR_Results(OrderedDict):
                 .units: 'G, rad/sec^2'
             .time   : float32 ndarray 10001 elems: (10001,)
     """
-
-    # def __repr__(self):
-    #     return object.__repr__(self)
 
     def __repr__(self):
         cats = ', '.join("'{}'".format(name) for name in self)
