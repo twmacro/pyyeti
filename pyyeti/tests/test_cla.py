@@ -820,10 +820,15 @@ def confirm():
                             [float(i)
                              for i in line[p + 4:-2].split(',')])
                         if direc == 'absmax_compare' and 'cglf' in n:
-                            mean = (18 - 7) / 14
-                            std = np.sqrt(((18 - mean)**2 + (-7 - mean)**2
+                            claval = 0.5284092590377919
+                            mnval = (claval / 0.57 - 1) * 100
+                            mxval = (claval / 0.449 - 1) * 100
+                            mean = (mnval + mxval) / 14
+                            std = np.sqrt(((mnval - mean)**2 +
+                                           (mxval - mean)**2
                                            + 12 * (0 - mean)**2) / 13)
-                            sbe = np.round([-7.0, 18.0, mean, std], 4)
+                            sbe = np.r_[np.round([mnval, mxval], 2),
+                                        np.round([mean, std], 4)]
                             assert np.allclose(stats, sbe)
                         else:
                             assert np.all(stats == 0.0)
@@ -2156,7 +2161,7 @@ def test_rptpct1():
         '    0.0% of values are within 1%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [4.00, 4.00, 4.0000, 0.0000]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [4.35, 4.35, 4.3478, 0.0000]',
         '',
         '',
         '    No description provided - Minimum Comparison Histogram',
@@ -2168,7 +2173,7 @@ def test_rptpct1():
         '    0.0% of values are within 1%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [3.00, 3.00, 3.0000, 0.0000]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.61, 2.61, 2.6087, 0.0000]',
         '',
         '',
         '    No description provided - Abs-Max Comparison Histogram',
@@ -2180,7 +2185,7 @@ def test_rptpct1():
         '    0.0% of values are within 1%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [4.00, 4.00, 4.0000, 0.0000]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [4.35, 4.35, 4.3478, 0.0000]',
         '']
     _comp_rpt(s, sbe)
 
@@ -2255,7 +2260,7 @@ def test_rptpct1_2():
         '    80.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [0.00, 3.00, 1.6000, 1.1402]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [0.16, 2.73, 1.5270, 1.1204]',
         '',
         '',
         '    Spring & Damper Forces - Minimum Comparison Histogram',
@@ -2270,7 +2275,7 @@ def test_rptpct1_2():
         '    20.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 4.00, 3.0000, 0.7071]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.31, 3.69, 2.9731, 0.5314]',
         '',
         '',
         '    Spring & Damper Forces - Abs-Max Comparison Histogram',
@@ -2284,7 +2289,7 @@ def test_rptpct1_2():
         '    60.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [1.99, 2.73, 2.3863, 0.3115]',
         '']
     _comp_rpt(s, sbe)
 
@@ -2339,7 +2344,7 @@ def test_rptpct1_2():
         '    80.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [1.00, 3.00, 1.8000, 0.8367]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [0.59, 2.73, 1.7012, 0.8927]',
         '',
         '',
         '    Spring & Damper Forces - Minimum Comparison Histogram',
@@ -2354,7 +2359,7 @@ def test_rptpct1_2():
         '    20.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 4.00, 3.0000, 0.7071]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.31, 3.72, 3.0128, 0.5494]',
         '',
         '',
         '    Spring & Damper Forces - Abs-Max Comparison Histogram',
@@ -2368,7 +2373,7 @@ def test_rptpct1_2():
         '    60.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [1.99, 2.73, 2.3863, 0.3115]',
         '']
     _comp_rpt(s, sbe)
 
@@ -2418,7 +2423,7 @@ def test_rptpct1_2():
         '    80.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [0.00, 3.00, 1.6000, 1.1402]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [0.16, 2.73, 1.5270, 1.1204]',
         '',
         '',
         '    Spring & Damper Forces - Minimum Comparison Histogram',
@@ -2433,7 +2438,7 @@ def test_rptpct1_2():
         '    20.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 4.00, 3.0000, 0.7071]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.31, 3.69, 2.9731, 0.5314]',
         '',
         '',
         '    Spring & Damper Forces - Abs-Max Comparison Histogram',
@@ -2447,7 +2452,7 @@ def test_rptpct1_2():
         '    60.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [1.99, 2.73, 2.3863, 0.3115]',
         '']
     _comp_rpt(s, sbe)
 
@@ -2529,7 +2534,7 @@ def test_rptpct1_2():
         '    60.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [1.99, 2.73, 2.3863, 0.3115]',
         '']
     _comp_rpt(s, sbe)
 
@@ -2575,7 +2580,7 @@ def test_rptpct1_2():
         '    60.0% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.4000, 0.5477]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [1.99, 2.73, 2.3863, 0.3115]',
         '']
     _comp_rpt(s, sbe)
 
@@ -2655,7 +2660,7 @@ def test_rptpct1_2():
         '    33.3% of values are within 2%',
         '    100.0% of values are within 5%',
         '',
-        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.00, 3.00, 2.6667, 0.5774]',
+        '    % Diff Statistics: [Min, Max, Mean, StdDev] = [2.28, 2.74, 2.5656, 0.2516]',
         '']
     _comp_rpt(s, sbe)
 

@@ -753,7 +753,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
                           option ignores `ppc` [#srs4]_.
            'linear'       Use linear interpolation to increase the
                           points per cycle (this is not recommended;
-                          method; it's only here as a test case).
+                          it's only here as a test case).
            'none'         Don't do anything to enforce the minimum
                           `ppc`. Note error bounds listed above.
             None          Same as 'none'.
@@ -1204,7 +1204,22 @@ def vrs(spec, freq, Q, linear, Fn=None,
 
     The response of each system is computed independently by
     integration across the entire frequency range as specified in
-    freq. See note 4 below.
+    `freq`.
+
+    The equation for the VRS is:
+
+    .. math::
+        Z_{vrs}(f_n) = \sqrt { \sum\limits_{i} {
+           \frac{1 + (p_i / Q)^2}
+                {(1 - p_i^2)^2 + (p_i / Q)^2}}
+           \cdot PSD(freq_i) \cdot \Delta freq_i}\;\;;\;
+           p_i = \frac{freq_i}{f_n}
+
+    The equation for Miles' equation is:
+
+    .. math::
+        Z_{miles}(f_n) = \sqrt{\frac{\pi}{2} \cdot f_n \cdot Q
+        \cdot PSD(f_n)}
 
     Important usage notes:
 
@@ -1213,15 +1228,21 @@ def vrs(spec, freq, Q, linear, Fn=None,
        integration. As a rule of thumb, accuracy can be expected an
        octave away from the end points.
 
-    2. The integration is not accurate until delta_f as computed from
-       `freq` is less than f/Q, i.e. the response at frequency f is
-       not accurate unless delta_f < f/Q, where Q=1/2/zeta. The
-       integration should be conservative if this condition is not met
-       and delta_f is not unreasonably large.
+    2. The integration is not accurate until ``delta_f`` as computed
+       from `freq` is less than ``f/Q``, i.e. the response at
+       frequency ``f`` is not accurate unless ``delta_f < f/Q``, where
+       ``Q=1/2/zeta``. The integration should be conservative if this
+       condition is not met and ``delta_f`` is not unreasonably large.
 
     3. Applying a flat PSD spectrum can be used to determine if the
-       delta_f is good since you can compare to the Miles' equation
-       results.
+       ``delta_f`` is good since you can compare to the Miles'
+       equation results.
+
+    To estimate a peak from the RMS, consider using
+    ``sqrt(2*log(f*T0))`` for the peak factor instead of the common 3
+    (for 3-rms or 3-sigma). This peak factor is explained under the
+    `resp_time` option in
+    :func:`pyyeti.cla.DR_Results.psd_data_recovery`.
 
     See also
     --------
@@ -1262,8 +1283,6 @@ def vrs(spec, freq, Q, linear, Fn=None,
     array([ 2.69,  4.04,  1.47])
     """
     Freq, PSD, npsds = psd.proc_psd_spec(spec)
-    # spec = np.atleast_2d(spec)
-    # cp = spec.shape[1]
     freq = np.atleast_1d(freq)
     rf = len(freq)
     if Q <= .5:

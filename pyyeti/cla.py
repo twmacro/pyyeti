@@ -5554,7 +5554,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         50.0% of values are within 2%
         100.0% of values are within 5%
     <BLANKLINE>
-        % Diff Statistics: [Min, Max, Mean, StdDev] = [-2.00, 4.00,...
+        % Diff Statistics: [Min, Max, Mean, StdDev] = [-1.60, 4.35,...
     <BLANKLINE>
     <BLANKLINE>
         No description provided - Minimum Comparison Histogram
@@ -5567,7 +5567,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         0.0% of values are within 1%
         100.0% of values are within 5%
     <BLANKLINE>
-        % Diff Statistics: [Min, Max, Mean, StdDev] = [-4.00, 3.00,...
+        % Diff Statistics: [Min, Max, Mean, StdDev] = [-4.00, 2.61,...
     <BLANKLINE>
     <BLANKLINE>
         No description provided - Abs-Max Comparison Histogram
@@ -5580,7 +5580,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         0.0% of values are within 1%
         100.0% of values are within 5%
     <BLANKLINE>
-        % Diff Statistics: [Min, Max, Mean, StdDev] = [-4.00, 4.00,...
+        % Diff Statistics: [Min, Max, Mean, StdDev] = [-4.00, 4.35,...
     """
     def _apply_pv(value, pv):
         try:
@@ -5709,7 +5709,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
         return pct, spct
 
-    def _get_histogram_str(desc, hdr, pctcount):
+    def _get_histogram_str(desc, hdr, pctinfo):
+        pctcount = pctinfo['hsto']
         s = [('\n\n    {} - {} Comparison Histogram\n\n'
               .format(desc, hdr)),
              ('      % Diff      Count    Percent\n'
@@ -5731,19 +5732,12 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                 break
             last = num
 
-        n = pctcount[:, 1].sum()
-        A = pctcount[:, 0] * pctcount[:, 1]
-        meanval = A.sum() / n
-        if n == 1:
-            stdval = 0
-        else:
-            a = pctcount[:, 1] * (pctcount[:, 0] - meanval)**2
-            stdval = np.sqrt(a.sum() / (n - 1))
+        pct = pctinfo['pct']
+        n = len(pct)
+        stddev = 0.0 if n <= 1 else pct.std(ddof=1)
         s.append('\n    % Diff Statistics: [Min, Max, Mean, StdDev]'
                  ' = [{:.2f}, {:.2f}, {:.4f}, {:.4f}]\n'
-                 .format(pctcount[:, 0].min(),
-                         pctcount[:, 0].max(),
-                         meanval, stdval))
+                 .format(pct.min(), pct.max(), pct.mean(), stddev))
         return ''.join(s)
 
     def _proc_pct(ext1, ext2, filterval, *, names, mxmn1,
@@ -6048,7 +6042,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                             (maxhdr, minhdr, absmhdr)):
             if lbl in pctinfo:
                 f.write(_get_histogram_str(
-                    desc, hdr, pctinfo[lbl]['hsto']))
+                    desc, hdr, pctinfo[lbl]))
 
     ytools.wtfile(filename, _wtcmp, header, hu, frm,
                   printargs, perpage, prtpv, pctinfo, desc)

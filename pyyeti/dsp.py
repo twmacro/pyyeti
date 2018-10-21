@@ -511,8 +511,8 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
         in [0, n), specifying the point to exclude. If string, it must
         be 'first', 'middle', or 'last' (which is the same as ``0``,
         ``n // 2``, and ``n-1``, respectively). If None, the point
-        will in the middle of the window and will not be excluded from
-        the statistics (this is not recommended).
+        will be in the middle of the window and will not be excluded
+        from the statistics (this is not recommended).
     **kwargs : other args are ignored
         This is here to accommodate :func:`fixtime`.
 

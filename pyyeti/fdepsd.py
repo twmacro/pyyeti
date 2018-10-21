@@ -287,14 +287,14 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
     If `resp` is 'pvelo', the similar equation is:
 
     .. math::
-        \sigma_{pvelo}(f) = \sqrt{\frac{Q \cdot  PSD(f)}{8 \pi f}}
+        \sigma_{pvelo}(f) = \sqrt{\frac{Q \cdot PSD(f)}{8 \pi f}}
 
     Those two equations assume a flat acceleration PSD. Therefore, it
     is recommended to compare SDOF responses from flight data (SRS) to
     SDOF VRS responses from the developed specification (see
     :func:`pyyeti.srs.vrs` to compute the VRS response in the
     absolute-acceleration case). This is to check for conservatism.
-    Instead of using 3 for peak factor (for 3-rms or 3-sigma) , use
+    Instead of using 3 for peak factor (for 3-rms or 3-sigma), use
     ``sqrt(2*log(f*T0))`` for the peak factor. (This peak factor is
     explained more under the `resp_time` option in
     :func:`pyyeti.cla.DR_Results.psd_data_recovery`.) Also, enveloping
