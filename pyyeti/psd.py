@@ -402,12 +402,19 @@ def interp(spec, freq, linear=False):
 
     Notes
     -----
+    For PSD data that is defined on a center-band frequency scale, use
+    :func:`rescale` instead.
+
     Zeros are used to fill in PSD values for frequencies outside the
     specification(s).
 
     Any NaNs in the specification frequency are deleted (along with
     the corresponding PSD values) before interpolation. This is done
     by the routine :func:`proc_psd_spec`.
+
+    See also
+    --------
+    :func:`rescale`
 
     Examples
     --------
@@ -460,7 +467,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
         Vector or matrix; PSD(s) to convert. Works columnwise if
         matrix.
     F : array_like
-        Vector; input frequency scale. If steps are not linear,
+        Vector; center frequencies for `P`. If steps are not linear,
         logarithmic spacing is assumed.
     n_oct : scalar; optional
         Specifies the desired octave scale. 1 means full octave, 3
@@ -507,6 +514,10 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
 
     Notes
     -----
+    The input PSD is assumed to be on a center-band frequency
+    scale. For PSD specifications that use constant dB/octave slopes,
+    use :func:`interp` instead.
+
     This algorithm works by interpolating on cummulative area such
     that original contributions to total mean-square per band is
     preserved.
@@ -519,6 +530,10 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
 
     See :func:`get_freq_oct` for more information on how the octave
     scales are calculated.
+
+    See also
+    --------
+    :func:`interp`
 
     Examples
     --------
@@ -768,7 +783,8 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
     return F, 10 * np.log10(v), 10 * np.log10(np.sum(v))
 
 
-def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
+def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False,
+             expand_method='interp'):
     """
     Generate a 'random' time domain signal given a PSD specification.
 
@@ -795,6 +811,13 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         including `signal`).
     gettime : bool; optional
         If True, a time vector is output.
+    expand_method : str; optional
+        Either 'interp' or 'rescale', referring to which function in
+        this module will be used to expand input `fp` to all needed
+        frequencies. Use 'interp' if `fp` is a specification with
+        constant dB/octave slopes. Use 'rescale' if `fp` provides the
+        PSD levels on a center-band scale. See :func:`interp` and
+        :func:`rescale` for more information.
 
     Returns
     -------
@@ -807,16 +830,14 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
         Time vector for the signal starting at zero with step of
         ``1/sr``: ``time = np.arange(len(sig))/sr``
 
-    Notes
-    -----
-    This routine uses :func:`interp` to expand `fp` to the desired
-    frequencies. That routine assumes a constant db/octave slope for
-    all segments and values outside of `fp` frequency range are set to
-    zero.
+    Raises
+    ------
+    ValueError
+        On invalid setting for `expand_method`.
 
     See also
     --------
-    :func:`interp`, :func:`pyyeti.dsp.windowends`
+    :func:`interp`, :func:`rescale`, :func:`pyyeti.dsp.windowends`
 
     Examples
     --------
@@ -883,7 +904,15 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False):
     freq = np.arange(fstart, fstop + df / 2, df)
 
     # generate amp(f) vector
-    speclevel = interp(fp, freq).ravel()
+    if expand_method == 'interp':
+        speclevel = interp(fp, freq).ravel()
+    elif expand_method == 'rescale':
+        speclevel, *_ = rescale(fp[:, 1], fp[:, 0], freq=freq)
+    else:
+        raise ValueError(
+            '`expand_method` must be either "interp" or "rescale", '
+            'not {!r}'.format(expand_method))
+
     amp = np.sqrt(2 * speclevel * df)
 
     m = (N + 1) // 2 if odd else N // 2 + 1

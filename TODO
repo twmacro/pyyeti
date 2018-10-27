@@ -234,3 +234,19 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
          - current case
          - ? freq for psd functions?
          - nas
+
+61. wtrspline_rings:  assumes rings are aligned with an axis!?
+
+62. findcenter: implement in 3d ... goes with 61.
+
+63. mk_net_drms: output coord system could be input ...
+    think of multiple ports
+
+    - Having this internal would help because cglf could be formed
+      in proper local coord system
+
+    - actually, cglf is junk anyway isn't it? It would be computing
+      based on the structure with the ports ... not the item attached
+      to the port
+
+    - but, ifatm and ifltm for the port would be nice ... probably

@@ -2190,7 +2190,7 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
 
         ``nper = 1`` ensures the smallest rsplines are written.
     DoL : string or real scalar
-        Specifies ratio of diameter of elastic tybe to the sum of the
+        Specifies ratio of diameter of elastic tube to the sum of the
         lengths of all segments. Written with: ``'{:<8}'.format(DoL)``
 
     Returns
@@ -2334,7 +2334,7 @@ def intersect(circA, circB, xyA, draw=False):
     xyA : 2-element array_like
         [x, y] point (probably on circle A)
     draw : bool; optional
-        If true, plot circles and points for visual inspection in
+        If True, plot circles and points for visual inspection in
         figure 'intersect'
 
     Returns

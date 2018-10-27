@@ -166,8 +166,24 @@ def test_psd2time():
     spec = np.array([[20,  .0768],
                      [50,  .48],
                      [100, .48]])
-    sig, sr = psd.psd2time(spec, ppc=10, fstart=35, fstop=70,
-                           df=.01, winends=dict(portion=.01))
+    sig, sr = psd.psd2time(
+        spec, ppc=10, fstart=35, fstop=70,
+        df=.01, winends=dict(portion=.01))
+
+    # ensure that expand_method works:
+    sig2, sr2 = psd.psd2time(
+        spec, ppc=10, fstart=35, fstop=70,
+        df=.01, winends=dict(portion=.01), expand_method='rescale')
+
+    f1, p1 = psd.psdmod(sig, sr, timeslice=f'{len(sig)}')
+    f2, p2 = psd.psdmod(sig2, sr2, timeslice=f'{len(sig)}')
+
+    assert np.trapz(p1, f1) < np.trapz(p2, f2)
+    assert_raises(ValueError, psd.psd2time,
+                  spec, ppc=10, fstart=35, fstop=70,
+                  df=.01, winends=dict(portion=.01),
+                  expand_method='bad expand method')
+
     assert np.allclose(700., sr)  # 70*10
     assert sig.size == 700 * 100
     f, p = signal.welch(sig, sr, nperseg=sr)

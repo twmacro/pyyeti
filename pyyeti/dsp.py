@@ -1964,7 +1964,7 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
               sliceargs=None, slicekwargs=None):
     """
     Compute a 'waterfall' map over time and frequency (typically) using
-    user-supplied function.
+    a user-supplied function.
 
     Parameters
     ----------
@@ -2031,7 +2031,9 @@ def waterfall(sig, sr, timeslice, tsoverlap, func, which, freq,
         If provided, these are passed to `slicefunc`. Must be None or
         `{}` if `slicefunc` is None.
     units : tuple_like; optional
-    Contains two strings to specify units of `timeslice` and `tsoverlap`.
+        Contains two strings to specify units of `timeslice` and
+        `tsoverlap`.
+
     Returns
     -------
     mp : 2d ndarray
