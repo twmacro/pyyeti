@@ -93,17 +93,6 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
     - Form_extreme
        - Skip some events? (Like static and random, but include total)
 
-    ~- Reldisp dtm: nodepairs -> node_pairs
-
-    ~- bug: cbcheck -> cbcoordchk : bug if bset is last and we are not
-      reordering (bref is relative to b+q size, but kbb is b size)
-
-    ~- Nastran.mknast Stoponfatal should be bool
-
-    XX - Change size(m, 1) to m.shape[1] (not just in cla.py)
-     - changed my mind: it's not broke, and np.size(m, 1) is not the
-       same as m.shape[1]
-
 34. cb: Teach cbtf to handle 0 frequency case like solveunc.fsolve
     does.
 
@@ -120,10 +109,6 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 41. Move find_center ?
 
-~ 42. Rbmultchk – needs improving … what about b-set at the end?
-    The assumptions about truncating won’t work right (right?)
-    - fixed in version 0.93.8
-
 43. Bref – what about a model with mechanisms?
     - let bref not be a mult of 6?
 
@@ -138,38 +123,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
       - update help
       - beta in version 0.93.6
 
-~ 46. Update the histogram routine in ytools: only check bins with data
-      - version 0.93.6
-
-~ 47. PP should print DataFrames better
-      - version 0.93.7
-
 48. add sparse Newmark solver
-
-~49. Add LAMA to post op2 reader:
-
-    # get system eigenvalues:
-    with op2.OP2(sys_op2 + '.op2') as o2:
-        fpos = o2.dbnames['LAMA'][0][0][0]
-        o2._fileh.seek(fpos)
-        nm, tr, tp = o2.rdop2nt()
-        rec1 = o2.rdop2record(form='bytes')
-        # rec2 = o2.rdop2record(form='bytes')
-        # lama = np.frombuffer(rec2, np.float32)
-        lama = o2.rdop2record(form='single').reshape(-1, 7)
-    nas['lambda'][0] = lama[:, 2]
-
-   - added in v0.93.7
-
-~ 50. bug:
-  from _cbcheck in cb.py:
-    mxmqqerr is the diag-1 as calculated above, not the off-diag max?
-  Should be something like this?:
-    mxqqODerr=np.max(np.abs(mqq - np.diag(np.diag(mqq))))
-  - Reported by David Hall
-  - Fixed in v0.93.7
-
-~ 51. Copyright 2015-2017, Tim Widrick. Created using Sphinx 1.7.5.
 
 52.
    - In rdpostop2, matrix names should probably be lower case.
@@ -191,22 +145,6 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 53. Implement the Chapman integrator
 
-~ 54. cla.py uses subplots_adjust to account for legend ... I think
-    tight_layout handles legends now.
-    - fixed in version 0.93.8
-    - replaced `sub_right` with `tight_layout_args`
-
-~55. need option for 1 plot figure in doing cla comparison (and maybe
-    in other places)
-    - version 0.93.8
-
-~ 56. rdtabled1 stores in dict with float ?
-    - version 0.93.9
-
-~ 57. Update locate.find_vals (and others?) to output bool
-    o   Either instead or as an option
-    - instead; version 0.93.9
-
 ~ 58. Order of recovery should be maintained from definition order
      o   I think the only change (besides documenting that order is
          used) is to change this from:
@@ -219,8 +157,6 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
     calls to the drfuncs … would want access to other categories.
     Need some good ideas for this.
      o   Pass in the parent DR_Results … ?
-
-~ 59. In reldisp_dtm, I have the labels documented backwards!
 
 60. Update drfunc arg list to enhance functionality:
     - now: drfunc(sol, nas, Vars, se)
