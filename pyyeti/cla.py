@@ -5479,9 +5479,6 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
     Examples
     --------
-    Compare some gaussian random data and show histogram and magpct
-    plots with minimal inputs:
-
     >>> import numpy as np
     >>> from pyyeti import cla
     >>> ext1 = [[120.0, -8.0],
@@ -5820,9 +5817,13 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                 if 'mx' in pctinfo:
                     plt.subplot(sp)
                 if lbl in pctinfo:
+                    if use_range:
+                        ref = pctinfo['amx']['mag'][1]
+                    else:
+                        ref = None
                     magpct(pctinfo[lbl]['mag'][0],
                            pctinfo[lbl]['mag'][1],
-                           pctinfo['amx']['mag'][1],
+                           Ref=ref,
                            ismax=ismax)
                     plt.title(ptitle.format(hdr))
                     plt.xlabel(xl)

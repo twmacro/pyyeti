@@ -160,8 +160,8 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 60. Update drfunc arg list to enhance functionality:
     - now: drfunc(sol, nas, Vars, se)
-    - new: drfunc(sol, se_vars, dr_data, userarg) ... or something
-      - dr_data is a dict with potentially:
+    - new: drfunc(sol, se_vars, event_data, user_arg) ... or something
+      - event_data is a dict with potentially:
          - parent DR_Results
          - name
          - se
@@ -186,3 +186,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
       to the port
 
     - but, ifatm and ifltm for the port would be nice ... probably
+
+64. Check magpct:
+    ~ - should it listen to use_range or not? -- yes, post v0.94.0
+    - should it listen to filter?
