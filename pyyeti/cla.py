@@ -20,6 +20,7 @@ import numpy as np
 import scipy.linalg as la
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.transforms as transforms
 import pandas as pd
 import xlsxwriter
 from pyyeti import ytools, locate, srs, writer
@@ -34,7 +35,77 @@ except TypeError:
     pass
 
 
-def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
+def get_marker_cycle():
+    """
+    Return an ``itertools.cycle`` of plot markers.
+
+    The list is taken from `matplotlib.markers`. Currently::
+
+        'o',          # circle
+        'v',          # triangle_down
+        '^',          # triangle_up
+        '<',          # triangle_left
+        '>',          # triangle_right
+        '1',          # tri_down
+        '2',          # tri_up
+        '3',          # tri_left
+        '4',          # tri_right
+        '8',          # octagon
+        's',          # square
+        'p',          # pentagon
+        'P',          # plus (filled)
+        '*',          # star
+        'h',          # hexagon1
+        'H',          # hexagon2
+        '+',          # plus
+        'x',          # x
+        'X',          # x (filled)
+        'D',          # diamond
+        'd',          # thin_diamond
+
+    """
+    return itertools.cycle([
+        'o',          # circle
+        'v',          # triangle_down
+        '^',          # triangle_up
+        '<',          # triangle_left
+        '>',          # triangle_right
+        '1',          # tri_down
+        '2',          # tri_up
+        '3',          # tri_left
+        '4',          # tri_right
+        '8',          # octagon
+        's',          # square
+        'p',          # pentagon
+        'P',          # plus (filled)
+        '*',          # star
+        'h',          # hexagon1
+        'H',          # hexagon2
+        '+',          # plus
+        'x',          # x
+        'X',          # x (filled)
+        'D',          # diamond
+        'd',          # thin_diamond
+    ])
+
+
+def _proc_filterval(filterval, nrows):
+    if filterval is None:
+        return None
+    filterval = np.atleast_1d(filterval)
+    if filterval.ndim > 1:
+        raise ValueError('`filterval` must be 1-D (is {}-D)'
+                         .format(filterval))
+    nfilt = len(filterval)
+    if nfilt > 1 and nfilt != nrows:
+        raise ValueError('`filterval` has incorrect length:'
+                         ' expected {} elements, but got {}'
+                         .format(nrows, nfilt))
+    return filterval
+
+
+def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
+           filterval=None, symlog=True):
     """
     Plot percent differences in two sets of values vs magnitude.
 
@@ -57,6 +128,28 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         the marker for each column. Values in `symbols` are reused if
         necessary. For example, ``symbols = 'ov^'``. If None,
         :func:`get_marker_cycle` is used to get the symbols.
+    filterval : scalar, 1d array_like, or None; optional
+        If None, no filtering is done and all percent differences are
+        shown on a linear y-axis scale. If not None, percent
+        differences for small numbers are handled in one of two ways
+        depending on the `symlog` option (described next).
+    symlog : bool; optional
+        If `filterval` is not None, this option determines how
+        `filterval` is used:
+
+          ========   =================================================
+          `symlog`   Description
+          ========   =================================================
+           True      Plot all percent differences, but use
+                     :func:`matplotlib.pyplot.yscale` with the
+                     "symlog" option. The "filtered region" is plotted
+                     on a linear y-axis while percent differences for
+                     the small values are potentially plotted outside
+                     that region on a log y-axis. This is so all data
+                     is shown, while emphasizing the important data.
+           False     Plot only values larger (in the absolute sense)
+                     than `filterval`.
+          ========   =================================================
 
     Returns
     -------
@@ -64,7 +157,8 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         List of 1d percent differences, one numpy array for each
         column in `M1` and `M2`. Each 1d array contains only the
         percent differences where ``M2 != 0.0``. If `M2` is all zero
-        for a column, the corresponding entry in `pds` is None.
+        for a column (or all filtered out and `symlog` is False), the
+        corresponding entry in `pds` is None.
 
     Notes
     -----
@@ -88,7 +182,6 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         >>> m1 = 5 + np.arange(n)[:, None]/5 + np.random.randn(n, 2)
         >>> m2 = m1 + np.random.randn(n, 2)
         >>> pds = cla.magpct(m1, m2, symbols='ox')
-
     """
     if Ref is None:
         M1, M2 = np.atleast_1d(M1, M2)
@@ -100,11 +193,17 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         raise ValueError('`M1`, `M2` and `Ref` must all have the'
                          ' same shape')
 
+    filterval = _proc_filterval(filterval, M1.shape[0])
+
     def _get_next_pds(M1, M2, Ref, ismax):
         def _getpds(m1, m2, ref, ismax):
-            pv = ref != 0
+            if not symlog and filterval is not None:
+                pv = ((ref != 0) & (abs(m1) > filterval) &
+                      (abs(m2) > filterval))
+            else:
+                pv = ref != 0.0
             if not np.any(pv):
-                return None, None
+                return None, None, None
             a = m1[pv]
             b = m2[pv]
             pdiff = (a - b) / ref[pv] * 100.0
@@ -112,7 +211,20 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
                 pdiff = abs(pdiff)
                 neg = a < b if ismax else a > b
                 pdiff[neg] *= -1.0
-            return pdiff, ref[pv]
+            if symlog and filterval is not None:
+                if len(filterval) > len(a):
+                    filt = filterval[pv]
+                else:
+                    filt = filterval
+                pvf = ((abs(a) > filt) &
+                       (abs(b) > filt))
+                if pvf.any():
+                    max_linear_pdiff = abs(pdiff[pvf]).max()
+                else:
+                    max_linear_pdiff = None
+            else:
+                max_linear_pdiff = None
+            return pdiff, ref[pv], max_linear_pdiff
 
         if M1.ndim == 1:
             yield _getpds(M1, M2, Ref, ismax)
@@ -124,8 +236,11 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
         marker = itertools.cycle(symbols)
     else:
         marker = get_marker_cycle()
+
     pds = []
-    for curpd, ref in _get_next_pds(M1, M2, Ref, ismax):
+    linthreshy, logthreshy = 0.0, 0.0
+    apd = None
+    for curpd, ref, mlp in _get_next_pds(M1, M2, Ref, ismax):
         pds.append(curpd)
         if curpd is not None:
             apd = abs(curpd)
@@ -134,8 +249,30 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None):
                           ((apd > 5) & (apd <= 10), 'm'),
                           (apd > 10, 'r')]:
                 plt.plot(ref[pv], curpd[pv], c + _marker)
-    plt.xlabel('Reference Magnitude')
-    plt.ylabel('% Difference')
+        if mlp is not None:
+            logthreshy = max(logthreshy, abs(curpd).max())
+            linthreshy = max(linthreshy, mlp)
+
+    if linthreshy > 0.0 and logthreshy > 2 * linthreshy:
+        lty = linthreshy
+        # linthreshy = np.ceil(linthreshy)
+        # linthreshy = 10 * np.ceil(linthreshy / 10)
+        plt.yscale('symlog', linthreshy=linthreshy, linscaley=3,
+                   subsy=[2, 3, 4, 5, 6, 7, 8, 9])
+        ax = plt.gca()
+        ax.set_facecolor('lightgray')
+        if len(filterval) == 1:
+            ax.axvline(filterval, color='gray', linestyle='--',
+                       linewidth=2.0, zorder=-1)
+        plt.axhspan(-lty, lty, facecolor='white', zorder=-2)
+        trans = transforms.blended_transform_factory(
+            ax.transAxes, ax.transData)
+        ax.text(0.98, 0.98 * lty, 'Filtered region', va='top',
+                ha='right', transform=trans, fontstyle='italic')
+
+    if apd is not None:
+        plt.xlabel('Reference Magnitude')
+        plt.ylabel('% Difference')
     return pds
 
 
@@ -255,54 +392,6 @@ def freq3_augment(freq1, lam, tol=1.e-5):
     freq = np.sort(np.hstack((freq1, freq3)))
     uniq = locate.find_unique(freq, tol * (freq[-1] - freq[0]))
     return freq[uniq]
-
-
-def get_marker_cycle():
-    """
-    Return an ``itertools.cycle`` of plot markers.
-
-    The list is taken from `matplotlib.markers`. Currently::
-
-        'o',          # circle marker
-        'v',          # triangle_down marker
-        '^',          # triangle_up marker
-        '<',          # triangle_left marker
-        '>',          # triangle_right marker
-        '1',          # tri_down marker
-        '2',          # tri_up marker
-        '3',          # tri_left marker
-        '4',          # tri_right marker
-        's',          # square marker
-        'p',          # pentagon marker
-        '*',          # star marker
-        'h',          # hexagon1 marker
-        'H',          # hexagon2 marker
-        '+',          # plus marker
-        'x',          # x marker
-        'D',          # diamond marker
-        'd',          # thin_diamond marker
-
-    """
-    return itertools.cycle([
-        'o',          # circle marker
-        'v',          # triangle_down marker
-        '^',          # triangle_up marker
-        '<',          # triangle_left marker
-        '>',          # triangle_right marker
-        '1',          # tri_down marker
-        '2',          # tri_up marker
-        '3',          # tri_left marker
-        '4',          # tri_right marker
-        's',          # square marker
-        'p',          # pentagon marker
-        '*',          # star marker
-        'h',          # hexagon1 marker
-        'H',          # hexagon2 marker
-        '+',          # plus marker
-        'x',          # x marker
-        'D',          # diamond marker
-        'd',          # thin_diamond marker
-    ])
 
 
 def _is_valid_identifier(name):
@@ -4304,10 +4393,17 @@ class DR_Results(OrderedDict):
 
         onepdf : bool or string; optional
             If `onepdf` evaluates to True and `fmt` is 'pdf', all
-            plots are written to one file where the name is either:
-            `event` + ".pdf" if `onepdf` is a bool type, or `onepdf` +
-            ".pdf" if `onepdf` is a string. Otherwise, each figure is
-            saved to its own file named as described above.
+            plots are written to one PDF file where the name is:
+
+              ========   ========================================
+              `onepdf`   PDF file name
+              ========   ========================================
+               string    All plots saved in: `onepdf` + ".pdf"
+               True      All plots saved in: `event` + "_srs.pdf"
+              ========   ========================================
+
+            If False, each figure is saved to its own file named
+            as described above (see `fmt`).
         layout : 2-element tuple/list; optional
             Subplot layout, eg: (2, 3) for 2 rows by 3 columns
         figsize : 2-element tuple/list; optional
@@ -4426,10 +4522,19 @@ class DR_Results(OrderedDict):
 
         onepdf : bool or string; optional
             If `onepdf` evaluates to True and `fmt` is 'pdf', all
-            plots are written to one file where the name is either:
-            `event` + ".pdf" if `onepdf` is a bool type, or `onepdf` +
-            ".pdf" if `onepdf` is a string. Otherwise, each figure is
-            saved to its own file named as described above.
+            plots are written to one PDF file where the name is:
+
+              ========   =========================================
+              `onepdf`   PDF file name
+              ========   =========================================
+               string    All plots saved in: `onepdf` + ".pdf"
+               True      All plots saved in: `event` + "_??.pdf",
+                         where "??" is either 'hist', 'psd', or
+                         'frf' as appropriate.
+              ========   =========================================
+
+            If False, each figure is saved to its own file named
+            as described above (see `fmt`).
         layout : 2-element tuple/list; optional
             Subplot layout, eg: (2, 3) for 2 rows by 3 columns
         figsize : 2-element tuple/list; optional
@@ -5285,7 +5390,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             prtbad=None, prtbadh=None, prtbadl=None,
             flagbad=None, flagbadh=None, flagbadl=None,
             dohistogram=True, histogram_inc=1.0,
-            domagpct=True, doabsmax=False, shortabsmax=False,
+            domagpct=True, magpct_filterval='filterval',
+            magpct_symlog=True, doabsmax=False, shortabsmax=False,
             roundvals=-1, rowhdr='Row', deschdr='Description',
             maxhdr='Maximum', minhdr='Minimum', absmhdr='Abs-Max',
             perpage=-1, tight_layout_args=None, show_figures=False):
@@ -5331,11 +5437,12 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         A one line description of the table. Overrides
         `mxmn1.drminfo.desc`. If neither are input,
         'No description provided' is used.
-    filterval : scalar or 1d ndarray or None; must be named; optional
-        Numbers <= than `filterval` will get a 'n/a' % diff. If
-        vector, length must match number of rows in `mxmn1` and
-        `mxmn2` data. Overrides `mxmn1.drminfo.filterval`. If neither
-        are input, `filterval` is set to 1.e-6.
+    filterval : scalar, 1d array_like or None; must be named; optional
+        Numbers with absolute value <= than `filterval` will get a
+        'n/a' % diff. If vector, length must match number of rows in
+        `mxmn1` and `mxmn2` data. Overrides
+        `mxmn1.drminfo.filterval`. If neither are input, `filterval`
+        is set to 1.e-6.
     labels : list or None; must be named; optional
         A list of strings briefly describing each row. Overrides
         `mxmn1.drminfo.labels`. If neither are input,
@@ -5352,7 +5459,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         Uncertainty factors: [rigid, elastic, dynamic, static].
         Overrides `mxmn1.drminfo.uf_reds`. If neither is input,
         'Not specified' is used.
-    use_range : bool
+    use_range : bool; must be named, optional
         If True, the denominator of the % diff calc for both the max
         & min for each row is the absolute maximum of the reference
         max & min for that row. If False, the denominator is the
@@ -5409,9 +5516,25 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     histogram_inc : scalar; must be named; optional
         The histogram increment; defaults to 1.0 (for 1%).
     domagpct : bool; must be named; optional
-        If True, plot the % diffs versus magnitude via :func:`magpct`.
-        Plots will be written to "`filename`.magpct.png". No filters
-        are applied but `ignorepv` is used.
+        If True, plot the percent differences versus magnitude via
+        :func:`magpct`. Plots will be written to
+        "`filename`.magpct.png". Filtering for the "magpct" plot is
+        controlled by the `magpct_filterval` and `magpct_symlog`
+        options. By default, all percent differences are shown, but
+        the larger values (according to the `filterval` filter) are
+        emphasized by using a mixed linear/log y-axis. The percent
+        differences for the `ignorepv` rows are not plotted.
+    magpct_filterval : None, string, scalar, or 1d ndarray; optional
+        Unless `magpct_filterval` is a string, this is directly used
+        as the ``filterval`` input to :func:`magpct`. If it is
+        'filterval', `magpct_filterval` is first reset to the final
+        value of `filterval` (described above). In any case, if
+        `magpct_filterval` is not None, see also the `magpct_symlog`
+        option, which specifies how the filter is to be used in
+        :func:`magpct`.
+    magpct_symlog : bool; must be named; optional
+        Directly used as the ``symlog`` input to :func:`magpct`; see
+        that routine for a description.
     doabsmax : bool; must be named; optional
         If True, compare only absolute maximums.
     shortabsmax : bool; must be named; optional
@@ -5602,13 +5725,10 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         return mxmn1, mxmn2, row_number
 
     def _get_filtline(filterval):
-        if isinstance(filterval, np.ndarray):
-            if filterval.size == 1:
-                filterval = filterval.ravel()[0]
-        if isinstance(filterval, np.ndarray):
+        if len(filterval) > 1:
             filtline = 'Filter:      <defined row-by-row>\n'
         else:
-            filtline = 'Filter:      {}\n'.format(filterval)
+            filtline = 'Filter:      {}\n'.format(filterval[0])
         return filtline
 
     def _get_noteline(use_range, names, prtbads, flagbads):
@@ -5805,7 +5925,16 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         if not show_figures:
             plt.close()
 
-    def _plot_magpct(pctinfo, names, desc, doabsmax, filename):
+    def _prep_subplot(pctinfo, sp):
+        if 'mx' in pctinfo:
+            # if not just doing absmax
+            if sp > 311:
+                plt.subplot(sp, sharex=plt.gca())
+            else:
+                plt.subplot(sp)
+
+    def _plot_magpct(pctinfo, names, desc, doabsmax, filename,
+                     magpct_filterval, magpct_symlog):
         ptitle = '{} - {{}} Comparison vs Magnitude'.format(desc)
         xl = '{} Magnitude'.format(names[1])
         yl = '% Diff of {} vs {}'.format(*names)
@@ -5814,8 +5943,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             for lbl, hdr, sp, ismax in (('mx', maxhdr, 311, True),
                                         ('mn', minhdr, 312, False),
                                         ('amx', absmhdr, 313, True)):
-                if 'mx' in pctinfo:
-                    plt.subplot(sp)
+                _prep_subplot(pctinfo, sp)
                 if lbl in pctinfo:
                     if use_range:
                         ref = pctinfo['amx']['mag'][1]
@@ -5824,7 +5952,9 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                     magpct(pctinfo[lbl]['mag'][0],
                            pctinfo[lbl]['mag'][1],
                            Ref=ref,
-                           ismax=ismax)
+                           ismax=ismax,
+                           filterval=magpct_filterval,
+                           symlog=magpct_symlog)
                     plt.title(ptitle.format(hdr))
                     plt.xlabel(xl)
                     plt.ylabel(yl)
@@ -5844,8 +5974,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             for lbl, hdr, sp in (('mx', maxhdr, 311),
                                  ('mn', minhdr, 312),
                                  ('amx', absmhdr, 313)):
-                if 'mx' in pctinfo:
-                    plt.subplot(sp)
+                _prep_subplot(pctinfo, sp)
                 if lbl in pctinfo:
                     width = histogram_inc
                     x = pctinfo[lbl]['hsto'][:, 0]
@@ -5920,8 +6049,11 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                          ' number of rows (`desc` = {})'.format(desc))
     if desc is None:
         desc = 'No description provided'
+
     if filterval is None:
         filterval = 1.e-6
+    filterval = _proc_filterval(filterval, R)
+
     if labels is None:
         labels = ['Row {:6d}'.format(i + 1)
                   for i in range(R)]
@@ -6012,7 +6144,15 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     plt.interactive(show_figures)
     try:
         if domagpct:
-            _plot_magpct(pctinfo, names, desc, doabsmax, filename)
+            if isinstance(magpct_filterval, str):
+                if magpct_filterval != 'filterval':
+                    raise ValueError(
+                        '`magpct_filterval` is an invalid string: '
+                        '"{}" (can only be "filterval")'
+                        .format(magpct_filterval))
+                magpct_filterval = filterval
+            _plot_magpct(pctinfo, names, desc, doabsmax, filename,
+                         magpct_filterval, magpct_symlog)
         if dohistogram:
             _plot_histogram(pctinfo, names, desc, doabsmax, filename)
     finally:
@@ -6110,10 +6250,22 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
 
     onepdf : bool or string; optional
         If `onepdf` evaluates to True and `fmt` is 'pdf', all plots
-        are written to one file where the name is either: `event` +
-        ".pdf" if `onepdf` is a bool type, or `onepdf` + ".pdf" if
-        `onepdf` is a string. If False, each figure is saved to its
-        own file named as described above.
+        are written to one PDF file where the name is:
+
+          ========   =======================================
+          `onepdf`   PDF file name
+          ========   =======================================
+           string    All plots saved in: `onepdf` + ".pdf"
+           True      If `issrs`: all plots saved in:
+                     `event` + "_srs.pdf"
+           True      If not `issrs`: all plots saved in:
+                     `event` + "_??.pdf", where "??" is
+                     either 'hist', 'psd', or 'frf' as
+                     appropriate.
+          ========   =======================================
+
+        If False, each figure is saved to its own file named as
+        described above (see `fmt`).
     layout : 2-element tuple/list; optional
         Subplot layout, eg: (2, 3) for 2 rows by 3 columns. See also
         `figsize`.
@@ -6435,22 +6587,26 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                 y = None
                 xlab = 'Frequency (Hz)'
                 ylab = None
+                ptype = 'srs'
             else:
                 if 'hist' in res[name].__dict__:
                     x = res[name].time
                     y = res[name].hist
                     xlab = 'Time (s)'
                     ylab = 'Response'
+                    ptype = 'hist'
                 elif 'psd' in res[name].__dict__:
                     x = res[name].freq
                     y = res[name].psd
                     xlab = 'Frequency (Hz)'
                     ylab = 'PSD'
+                    ptype = 'psd'
                 elif 'frf' in res[name].__dict__:
                     x = res[name].freq
                     y = abs(res[name].frf)
                     xlab = 'Frequency (Hz)'
                     ylab = 'FRF'
+                    ptype = 'frf'
                 else:
                     if drms and name in drms:
                         warnings.warn('no response data for {}'.
@@ -6468,7 +6624,8 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                     if not fname.endswith('.pdf'):
                         fname = fname + '.pdf'
                 else:
-                    fname = os.path.join(direc, sname + '.pdf')
+                    fname = os.path.join(
+                        direc, '{}_{}.pdf'.format(sname, ptype))
                 pdffile = PdfPages(fname)
 
             filenum = 0

@@ -735,8 +735,22 @@ def test_mksetpv_mkdofpv():
                                       [300,   1],
                                       [300,   6],
                                       [300,   4]]))
+    bad_dof = [[100, 3],
+               [200, 5],
+               [300, 1],
+               [300, 4],
+               [400, 123]]  # 400 123 is not in f-set
     assert_raises(ValueError, n2p.mkdofpv, uset, 'f',
-                  [[100, 3], [200, 5], [300, 1], [300, 4], [400, 123]])
+                  bad_dof)
+
+    # but it better work with strict off:
+    pv, dof = n2p.mkdofpv(uset, 'f', bad_dof, strict=0)
+    uset_part = uset.loc[[(100, 3), (200, 5), (300, 1), (300, 4)]]
+    assert np.all(uset_part == uset.iloc[pv])
+    assert np.all(np.array([[100,   3],
+                            [200,   5],
+                            [300,   1],
+                            [300,   4]]) == dof)
 
 
 def test_mkcordcardinfo():

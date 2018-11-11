@@ -18,6 +18,26 @@ from pyyeti import nastran, srs
 from pyyeti.nastran import op2, n2p, op4
 
 
+def test_magpct():
+    assert_raises(ValueError, cla.magpct, [1, 2], [1, 2, 3])
+    pds = cla.magpct([1, 2], [1, 3], filterval=4)
+    assert len(pds) == 1
+    assert np.allclose(pds[0], [0, -33.3333333])
+
+    pds = cla.magpct([1, 2], [1, 3], filterval=4, symlog=False)
+    assert len(pds) == 1
+    assert pds[0] is None
+
+    pds = cla.magpct([1, 2], [0, 3], filterval=[2, 2])
+    assert np.allclose(pds[0], [-33.3333333])
+
+    pds = cla.magpct([[1, 1], [2, 2]],
+                     [[0, 0], [3, 3]], filterval=[2, 2])
+    assert len(pds) == 2
+    assert np.allclose(pds[0], [-33.3333333])
+    assert np.allclose(pds[1], [-33.3333333])
+
+
 def ATM():
     pass
 
@@ -520,6 +540,7 @@ def toes(pth):
         results.srs_plots()
         results.srs_plots(fmt='png')
         results.resp_plots()
+        assert os.path.exists('resp_plots/TOES_hist.pdf')
 
 
 def owlab(pth):
@@ -590,6 +611,9 @@ def owlab(pth):
         cla.save('results.pgz', results)
         results.srs_plots(Q=10, direc='srs_cases', showall=True,
                           plot=plt.semilogy)
+        results.resp_plots(direc='srs_cases')
+        assert os.path.exists('srs_cases/OWLab_srs.pdf')
+        assert os.path.exists('srs_cases/OWLab_psd.pdf')
 
         # for testing:
         results2 = DR.prepare_results(sc['mission'], event)
@@ -801,6 +825,82 @@ def compare(pth):
             drms=['alphajoint'],
             direc='absmax_compare_2', doabsmax=True)
 
+        # test magpct filterval options; when a filtered value %diff
+        # is large
+        # 1) magpct_filterval = 'filterval'
+        #    magpct_symlog = True
+        #      - filterval is None
+        #      - filterval is 10
+        #      - filterval is 1d array
+        # 2) magpct_filterval = 'filterval'
+        #    magpct_symlog = False
+        #      - filterval is None
+        #      - filterval is 10
+        #      - filterval is 1d array
+        # 3) magpct_filterval = None
+
+        # first, modify scatm results for testing:
+        lsp = results['extreme']
+        del lsp['scatm'].drminfo.filterval
+        lsp['scatm'].ext[4, :] = [2e-7, -2e-7]
+        lvc['scatm'].ext[4, :] = [1e-11, -1e-11]
+
+        lsp['scatm'].ext[5, :] = [1.12, -0.39]  # ~5% exceedances
+        lvc['scatm'].ext[5, :] = [1.074, -0.345]
+
+        for ms in (True, False):
+            for mf, fv in (
+                    ('filterval', None),
+                    ('filterval', 10.0),
+                    ('filterval', 10.0 + np.zeros(12)),
+                    (None, None)):
+                try:
+                    _fv = fv[0]
+                except (TypeError, IndexError):
+                    _fv = fv
+                    direc = ('scatm_msymlog_{}_mfilterval_{}_fv_{}s'
+                             .format(ms, mf, _fv))
+                else:
+                    direc = ('scatm_msymlog_{}_mfilterval_{}_fv_{}a'
+                             .format(ms, mf, _fv))
+                lsp.rptpct(
+                    lvc,
+                    names=('LSP', 'Contractor'),
+                    drms=['scatm'],
+                    direc=direc,
+                    magpct_filterval=mf,
+                    magpct_symlog=ms,
+                    filterval=fv,
+                )
+        # test for some exceptions:
+        assert_raises(ValueError, lsp.rptpct,
+                      lvc,
+                      names=('LSP', 'Contractor'),
+                      drms=['scatm'],
+                      direc='junk',
+                      magpct_filterval=mf,
+                      magpct_symlog=ms,
+                      filterval=[1, 1, 2, 3],
+        )
+        assert_raises(ValueError, lsp.rptpct,
+                      lvc,
+                      names=('LSP', 'Contractor'),
+                      drms=['scatm'],
+                      direc='junk',
+                      magpct_filterval=mf,
+                      magpct_symlog=ms,
+                      filterval=np.ones((3, 4)),
+        )
+        assert_raises(ValueError, lsp.rptpct,
+                      lvc,
+                      names=('LSP', 'Contractor'),
+                      drms=['scatm'],
+                      direc='junk',
+                      magpct_filterval='bad string',
+                      magpct_symlog=ms,
+                      filterval=1.,
+        )
+
 
 def confirm():
     for (direc, cnt) in (('compare', 3),
@@ -932,7 +1032,7 @@ def do_srs_plots():
             event='EXTREME',
             Q=10, showall=True, direc='srs2',
             drms=['cglf'], showboth=True)
-        assert os.path.exists('srs2/EXTREME.pdf')
+        assert os.path.exists('srs2/EXTREME_srs.pdf')
 
         results['extreme'].srs_plots(
             Q=10, showall=True, direc='srs3',
@@ -2775,7 +2875,9 @@ def test_frf_data_recovery():
         direc = 'temp_frf'
         results.rptext(direc=direc)
         results.resp_plots(direc=direc)
+        assert os.path.exists('temp_frf/Case 1_frf.pdf')
     finally:
+        # pass
         shutil.rmtree('./temp_frf', ignore_errors=True)
 
 

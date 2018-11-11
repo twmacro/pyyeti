@@ -112,10 +112,10 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 43. Bref – what about a model with mechanisms?
     - let bref not be a mult of 6?
 
-` 44. ? Update n2p.mkdofpv to be able to make a best effort (no raise on
+~ 44. ? Update n2p.mkdofpv to be able to make a best effort (no raise on
     dofs not found … just trim output accordingly)
       - "strict" is the new argument
-      - add tests
+      - add tests - v0.94.1
       - beta in version 0.93.6
 
 ` 45. Update op2.rdpostop2 to return the seconct card too
@@ -187,6 +187,13 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
     - but, ifatm and ifltm for the port would be nice ... probably
 
-64. Check magpct:
+~64. Check magpct:
     ~ - should it listen to use_range or not? -- yes, post v0.94.0
-    - should it listen to filter?
+    ~- should it listen to filter?
+    - v0.94.1 enhanced this option to the filter two ways:
+       - just use it
+       - use it with symlog
+
+~65. Enhance `onepdf` == True option for cla.mk_plots (and related).
+    Should have type of plot in name to avoid overwriting files.
+    - implemented in v0.94.1
