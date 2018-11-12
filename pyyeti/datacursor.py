@@ -21,7 +21,8 @@ def form1(x, y, n, ind, ax, line):
 
 def form2(x, y, n, ind, ax, line):
     """Default annotation for plots with more than 1 line"""
-    return 'x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.format(x=x, y=y, n=n)
+    return ('x: {x:0.2f}\ny: {y:0.2f}\n{label}'
+            .format(x=x, y=y, label=line.get_label()))
 
 
 def _ensure_iterable(a):
@@ -65,8 +66,8 @@ class DataCursor(object):
         as `form1`. Defaults to::
 
           def form2(x, y, n, ind, ax, line):
-              return ('x: {x:0.2f}\ny: {y:0.2f}\nline: {n:}'.
-                     format(x=x, y=y, n=n))
+              return ('x: {x:0.2f}\ny: {y:0.2f}\n{label}'
+                      .format(x=x, y=y, label=line.get_label()))
 
     offsets : tuple
         Two element tuple containing x and y offsets in points for the

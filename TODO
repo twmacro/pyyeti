@@ -47,7 +47,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 ~    1 resp_plots pdf filename -- this is the `onepdf` option i believe
     2 write complete test_cla.py
-    3 magpct needs to be able to chop off small numbers
+~    3 magpct needs to be able to chop off small numbers
 
     4 when flagging, but no flags, format is shortened by one char for that column
     5 maybe add option to use only one figure ... that should be default ?
