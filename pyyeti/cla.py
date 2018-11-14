@@ -105,7 +105,7 @@ def _proc_filterval(filterval, nrows):
 
 
 def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
-           filterval=None, symlog=True):
+           filterval=None, symlog=True, ax=None):
     """
     Plot percent differences in two sets of values vs magnitude.
 
@@ -150,6 +150,8 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
            False     Plot only values larger (in the absolute sense)
                      than `filterval`.
           ========   =================================================
+    ax : Axes object or None
+        The axes to plot on. If None, ``ax = plt.gca()``.
 
     Returns
     -------
@@ -177,11 +179,22 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
         :context: close-figs
 
         >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
         >>> from pyyeti import cla
         >>> n = 500
         >>> m1 = 5 + np.arange(n)[:, None]/5 + np.random.randn(n, 2)
         >>> m2 = m1 + np.random.randn(n, 2)
-        >>> pds = cla.magpct(m1, m2, symbols='ox')
+        >>> fig = plt.figure('magpct demo', figsize=(6.4, 8))
+        >>> ax = fig.subplots(3, 1, sharex=True)
+        >>> _ = ax[0].set_title('No Filter')
+        >>> pds = cla.magpct(m1, m2, symbols='ox', ax=ax[0])
+        >>> _ = ax[1].set_title('Filter = 45, symlog=True')
+        >>> pds = cla.magpct(m1, m2, symbols='ox',
+        ...                  filterval=45, ax=ax[1])
+        >>> _ = ax[2].set_title('Filter = 45, symlog=False')
+        >>> pds = cla.magpct(m1, m2, symbols='ox',
+        ...                  filterval=45, symlog=False, ax=ax[2])
+        >>> fig.tight_layout()
     """
     if Ref is None:
         M1, M2 = np.atleast_1d(M1, M2)
@@ -237,6 +250,9 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
     else:
         marker = get_marker_cycle()
 
+    if ax is None:
+        ax = plt.gca()
+
     pds = []
     linthreshy, logthreshy = 0.0, 0.0
     apd = None
@@ -248,7 +264,7 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
             for pv, c in [(apd <= 5, 'b'),
                           ((apd > 5) & (apd <= 10), 'm'),
                           (apd > 10, 'r')]:
-                plt.plot(ref[pv], curpd[pv], c + _marker)
+                ax.plot(ref[pv], curpd[pv], c + _marker)
         if mlp is not None:
             logthreshy = max(logthreshy, abs(curpd).max())
             linthreshy = max(linthreshy, mlp)
@@ -257,22 +273,21 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
         lty = linthreshy
         # linthreshy = np.ceil(linthreshy)
         # linthreshy = 10 * np.ceil(linthreshy / 10)
-        plt.yscale('symlog', linthreshy=linthreshy, linscaley=3,
-                   subsy=[2, 3, 4, 5, 6, 7, 8, 9])
-        ax = plt.gca()
+        ax.set_yscale('symlog', linthreshy=linthreshy, linscaley=3,
+                      subsy=[2, 3, 4, 5, 6, 7, 8, 9])
         ax.set_facecolor('lightgray')
         if len(filterval) == 1:
             ax.axvline(filterval, color='gray', linestyle='--',
                        linewidth=2.0, zorder=-1)
-        plt.axhspan(-lty, lty, facecolor='white', zorder=-2)
+        ax.axhspan(-lty, lty, facecolor='white', zorder=-2)
         trans = transforms.blended_transform_factory(
             ax.transAxes, ax.transData)
         ax.text(0.98, 0.98 * lty, 'Filtered region', va='top',
                 ha='right', transform=trans, fontstyle='italic')
 
     if apd is not None:
-        plt.xlabel('Reference Magnitude')
-        plt.ylabel('% Difference')
+        ax.set_xlabel('Reference Magnitude')
+        ax.set_ylabel('% Difference')
     return pds
 
 
@@ -5532,6 +5547,16 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         `magpct_filterval` is not None, see also the `magpct_symlog`
         option, which specifies how the filter is to be used in
         :func:`magpct`.
+
+        .. note::
+
+           The two filter value options (`filterval` and
+           `magpct_filterval`) have different defaults: None and
+           'filterval`, respectively. They also differ on how the
+           ``None`` setting is used: for `filterval`, None is replaced
+           by 1.e-6 while for `magpct_filterval`, None means that the
+           "magpct" plot will not have any filters applied at all.
+
     magpct_symlog : bool; must be named; optional
         Directly used as the ``symlog`` input to :func:`magpct`; see
         that routine for a description.

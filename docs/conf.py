@@ -13,6 +13,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import pkg_resources
 import sys
 import os
 import shlex
@@ -114,7 +115,6 @@ version = ''
 # The full version, including alpha/beta/rc tags.
 release = ''
 
-import pkg_resources
 try:
     release = pkg_resources.get_distribution('pyyeti').version
 except pkg_resources.DistributionNotFound:
@@ -308,13 +308,13 @@ latex_elements = {
     'papersize': 'letterpaper',
 
     # The font size ('10pt', '11pt' or '12pt').
-    #'pointsize': '10pt',
+    # 'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
     'preamble': '\\usepackage{enumitem}\n\\setlistdepth{999}',
 
     # Latex figure (float) alignment
-    #'figure_align': 'htbp',
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
