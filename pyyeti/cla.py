@@ -3778,12 +3778,6 @@ class DR_Results(OrderedDict):
         """
         A generator for looping over all data recovery categories
 
-        Parameters
-        ----------
-        top_level_name : str; optional
-            This is the name of the event at the top level of the
-            results structure
-
         Yields
         ------
         name : str
