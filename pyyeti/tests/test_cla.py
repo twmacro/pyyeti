@@ -10,6 +10,7 @@ from io import StringIO
 import numpy as np
 from scipy.io import matlab
 import scipy.interpolate as interp
+import scipy.linalg as la
 from nose.tools import *
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -881,7 +882,7 @@ def compare(pth):
                       magpct_filterval=mf,
                       magpct_symlog=ms,
                       filterval=[1, 1, 2, 3],
-        )
+                      )
         assert_raises(ValueError, lsp.rptpct,
                       lvc,
                       names=('LSP', 'Contractor'),
@@ -890,7 +891,7 @@ def compare(pth):
                       magpct_filterval=mf,
                       magpct_symlog=ms,
                       filterval=np.ones((3, 4)),
-        )
+                      )
         assert_raises(ValueError, lsp.rptpct,
                       lvc,
                       names=('LSP', 'Contractor'),
@@ -899,7 +900,7 @@ def compare(pth):
                       magpct_filterval='bad string',
                       magpct_symlog=ms,
                       filterval=1.,
-        )
+                      )
 
 
 def confirm():
@@ -1899,6 +1900,42 @@ def test_PSD_consistent():
     sbe[3] = 2.
     sbe[4:] = 1.0 + 0.5**2
     assert np.allclose(drmres._psd[case], sbe)
+
+
+def test_PSD_consistent2():
+    s = []
+    c = []
+    Varx = []
+    Vary = []
+    Covar = []
+    for varx in [1, 3, 5]:
+        for vary in [1, 3, 5]:
+            for covar in [0, 3, -3]:
+                A = np.array([[varx, covar],
+                              [covar, vary]])
+                lam, phi = la.eigh(A)
+                theta = np.arctan2(phi[1, 1], phi[0, 1])
+
+                s.append(np.sin(theta))
+                c.append(np.cos(theta))
+
+                Varx.append(varx)
+                Vary.append(vary)
+                Covar.append(covar)
+
+    s2, c2 = cla._calc_covariance_sine_cosine(
+        np.array(Varx),
+        np.array(Vary),
+        np.array(Covar))
+    s = np.array(s)
+    c = np.array(c)
+
+    # The total response is c * x + s * y, which is then squared and
+    # mulitplied by the PSD. So, signs can differ and, when x == y,
+    # it's arbitrary whether c = 1 or s = 1. So, to be equivalent, we
+    # can just check this (letting x = y = 1):
+
+    assert np.allclose(abs(s2 + c2), abs(s + c))
 
 
 def _comp_rpt(s, sbe):
