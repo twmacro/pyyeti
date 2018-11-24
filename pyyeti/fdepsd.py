@@ -372,7 +372,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         >>> _ = plt.plot(f, p, label='Welch PSD')
         >>> _ = plt.plot(f2, p2, label='PSDmod')
         >>>
-        >>> # For plot, rename columns in dataframe to include "Env":
+        >>> # For plot, rename columns in DataFrame to include "Env":
         >>> psd_ = (psd_
         ...         .rename(columns={i: i + ' Env'
         ...                          for i in psd_.columns}))

@@ -318,7 +318,7 @@ def _rdcomma(fiter, s, conchar, blank, tolist):
                 vals.append(v)
             else:
                 vals.append(blank)
-        s = _get_line(fiter, trim=0)
+        s = _get_line(fiter, trim=False)
         if s is None or len(s) == 0:
             break
         if conchar.find(s[0]) < 0:
@@ -355,7 +355,7 @@ def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
             s = _readline(it)
         if s is None:
             break
-        s = _get_line(it, s, trim=0)
+        s = _get_line(it, s, trim=False)
         p = s.find(',')
         if p > -1:
             vals, s = _rdcomma(it, s, ' +,', blank, tolist)
@@ -535,13 +535,13 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     >>> dct1['mat']
     ID          1
     DOF         1
-    ID DOF       
+    ID DOF
     1  3     12.0
     10 0    100.0
     >>> dct2['mat']
-    ID          1                         
+    ID          1
     DOF         1    2    3    4    5    6
-    ID DOF                                
+    ID DOF
     1  1      0.0  0.0  0.0  0.0  0.0  0.0
        2      0.0  0.0  0.0  0.0  0.0  0.0
        3     12.0  0.0  0.0  0.0  0.0  0.0
@@ -552,14 +552,14 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     >>> dct3['mat']
     ID         1         10
     DOF         1    3    0
-    ID DOF                 
+    ID DOF
     1  1      0.0  0.0  0.0
        3     12.0  0.0  0.0
     10 0    100.0  0.0  0.0
     >>> dct4['mat']
     ID         1                             10
     DOF         1    2    3    4    5    6    0
-    ID DOF                                     
+    ID DOF
     1  1      0.0  0.0  0.0  0.0  0.0  0.0  0.0
        2      0.0  0.0  0.0  0.0  0.0  0.0  0.0
        3     12.0  0.0  0.0  0.0  0.0  0.0  0.0
@@ -719,7 +719,6 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
             mtype = rec[7]
             ncol = rec[11] if form == 9 else None
 
-            ints_per_number = mtype
             if mtype > 2:
                 ints_per_number = 2 * (mtype - 2)
                 dtype = np.complex128 if mtype == 4 else np.complex64
@@ -2565,18 +2564,20 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
-    r1grids : 2d array_like or dataframe
-        Contains the locations of the ring 1 grids. If 2d array_like,
-        it has 4 columns describing the ring 1 grids::
+    r1grids : 2d array_like or DataFrame
+        Contains the locations of the ring 1 grids in basic
+        coordinates. If 2d array_like, it has 4 columns describing
+        the ring 1 grids::
 
              [id, x, y, z]  <-- basic coordinates
 
-        If dataframe, it is assumed to be the USET dataframe
-        containing just the ring 1 grids. The format is described in
+        If DataFrame, it is assumed to be the USET DataFrame
+        containing just the ring 1 grids. The format of this
+        DataFrame is described in
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
-    r2grids : 2d array_like or dataframe
-        Contains the locations of the ring 2 grids. See `r1grids` for
-        description of format.
+    r2grids : 2d array_like or DataFrame
+        Contains the locations of the ring 2 grids in basic
+        coordinates. See `r1grids` for description of format.
     node_id0 : integer
         1st id of new nodes created to 'move' ring 1 nodes
     rspline_id0 : integer
