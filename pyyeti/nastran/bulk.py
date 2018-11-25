@@ -2813,7 +2813,7 @@ def wtcoordcards(f, ci):
     --------
     >>> import numpy as np
     >>> from pyyeti import nastran
-    >>> ci = {10: ['CORD2R', np.array([[10, 0, 0],
+    >>> ci = {10: ['CORD2R', np.array([[10, 1, 0],
     ...                                [100., 0., 0.],
     ...                                [100., 0., 100.],
     ...                                [200., 0., 0.]])]}
