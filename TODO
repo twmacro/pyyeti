@@ -172,8 +172,11 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
          - nas
 
 61. wtrspline_rings:  assumes rings are aligned with an axis!?
+    - v0.94.3
 
 62. findcenter: implement in 3d ... goes with 61.
+    - think about whether input should be 3 x n (current) or n x 3
+    - v0.94.3
 
 63. mk_net_drms: output coord system could be input ...
     think of multiple ports
@@ -197,3 +200,40 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 ~65. Enhance `onepdf` == True option for cla.mk_plots (and related).
     Should have type of plot in name to avoid overwriting files.
     - implemented in v0.94.1
+
+66. Write a nastran coordinate system plotter
+
+67. Write a nastran node plotter
+
+68. Add extreme histories to cla.DR_Results.form_extreme
+
+69. Find or write a replacement for "mkruns"
+
+~70. Update 'makeplot' handling ... return axis object
+     - v0.94.3
+
+71. Implement compmat i think
+
+72. Write a nastran comment writer … using textwrap
+    - v0.94.3
+
+73. Check into subspace iteration logic
+    - Bathe K.J. The subspace iteration method – Revisited.
+      Comput Struct (2012),
+      http://dx.doi.org/10.1016/j.compstruc.2012.06.002
+
+    - https://www-users.cs.umn.edu/~saad/PDF/ys-2014-1.pdf
+
+74. Implement ERA algorithm
+
+75. Check out coverage for parallel processing
+    o   Also, those if’s without an else … ? “Branch” testing.
+
+76. Check manifest app
+
+77. Accommodate ulvs, mugf and nothing … via a tag?
+    - What about ‘drms’ and ‘nondrms’?
+
+~78. PP needs to be updated to NOT sort dictionaries … they are sorted
+     now I think
+     - v0.94.3

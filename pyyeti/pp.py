@@ -80,19 +80,21 @@ class PP(object):
         ... }
         >>> PP(d)       # doctest: +ELLIPSIS
         <class 'dict'>[n=6]
-            '34'         : 'value'
             'asdf'       : 4
-            'dataframe'  : pandas DataFrame: (3, 3)
-            'longer name': <class 'dict'>[n=4]
+            '34'         : 'value'
             'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
+            'dataframe'  : pandas DataFrame: (3, 3)
             'series'     : pandas Series: (8,)
+            'longer name': <class 'dict'>[n=4]
         <BLANKLINE>
         <...>
         >>> PP(d, 5)    # doctest: +ELLIPSIS
         <class 'dict'>[n=6]
-            '34'         : 'value'
             'asdf'       : 4
+            '34'         : 'value'
+            'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
             'dataframe'  : pandas DataFrame: (3, 3)
+            'series'     : pandas Series: (8,)
             'longer name': <class 'dict'>[n=4]
                 1: 2
                 2: 3
@@ -100,10 +102,8 @@ class PP(object):
                 4: <class 'types.SimpleNamespace'>[n=4]
                     .a  : 6
                     .b  : [n=2]: [1, 23]
-                    .t  : [n=1]: (float64 ndarray: (4, 4, 4),)
                     .var: 'string'
-            'r'          : int16 ndarray 4 elems: (4,) [0 1 2 3]
-            'series'     : pandas Series: (8,)
+                    .t  : [n=1]: (float64 ndarray: (4, 4, 4),)
         <BLANKLINE>
         <...>
 
@@ -119,15 +119,15 @@ class PP(object):
                 'variable': [n=3]: [1, 2, 3]
         <BLANKLINE>
         <...>
-        >>> PP(A, 2, show_hidden=1)       # doctest: +ELLIPSIS
+        >>> PP(A, 2, show_hidden=1)        # doctest: +SKIP
         <class 'A'>[n=6]
-            .__dict__   : <attribute '__dict__' of 'A' objects>
-            .__doc__    : None
             .__module__ : 'pyyeti.pp'
-            .__weakref__: <attribute '__weakref__' of 'A' objects>
             .a          : 9
             .b          : <class 'dict'>[n=1]
                 'variable': [n=3]: [1, 2, 3]
+            .__dict__   : <attribute '__dict__' of 'A' objects>
+            .__weakref__: <attribute '__weakref__' of 'A' objects>
+            .__doc__    : None
         <BLANKLINE>
         <...>
         """
@@ -240,11 +240,6 @@ class PP(object):
         s = ['{}[n={}]\n'.format(typename, len(dct))]
         if level < self._depth:
             keys = self._get_keys(dct, showhidden)
-            if not isinstance(dct, collections.OrderedDict):
-                try:
-                    keys = sorted(keys)
-                except TypeError:
-                    pass
             level += 1
             # get max key length for pretty printing:
             n = 0

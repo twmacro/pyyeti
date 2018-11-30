@@ -13,6 +13,7 @@ import scipy.signal as signal
 import scipy.interpolate as interp
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from mpl_toolkits.mplot3d import Axes3D
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -2246,17 +2247,38 @@ def get_turning_pts(y, x=None, getindex=True, tol=1e-6, atol=None):
     return y[pv]
 
 
-def _check_makeplot(makeplot, valid):
+def _check_3d(ax, need3d):
+    if need3d and not hasattr(ax, 'get_zlim'):
+        raise ValueError(
+            'the axes object does not have a 3d projection')
+    return ax
+
+
+def _check_makeplot(makeplot, valid, need3d=False):
     if makeplot not in valid:
-        raise ValueError('invalid `makeplot` setting; must be in {}'
-                         .format(valid))
+        if hasattr(makeplot, 'plot'):
+            return _check_3d(makeplot, need3d)
+        raise ValueError(
+            'invalid `makeplot` setting; must be in {} or be an '
+            'axes object'
+            .format(valid))
+
     if makeplot != 'no':
+        if makeplot == 'add':
+            ax = plt.gca()
+            return _check_3d(ax, need3d)
+
         if makeplot == 'new':
             plt.figure()
         elif makeplot == 'clear':
             plt.clf()
-        return True
-    return False
+
+        if need3d:
+            return plt.gca(projection='3d')
+
+        return plt.gca()
+
+    return None
 
 
 def calcenv(x, y, p=5, n=2000, method='max', base=0.,
@@ -2273,9 +2295,9 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
     y : array_like
         y-axis data vector; must be same length as x
     p : scalar; optional
-        percentage to shift the y data left and right
+        Percentage to shift the y data left and right
     n : integer; optional
-        number of points to use for enveloping curve
+        Number of points to use for enveloping curve
     method : string; optional
         Specifies how to envelop data:
 
@@ -2288,26 +2310,27 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         ========   =============================================
 
     base : scalar or None; optional
-        the base y-value (defines one side of the envelope); if None,
+        The base y-value (defines one side of the envelope); if None,
         no base y-value is used and `method` is automatically set to
         'both'
-    makeplot : string; optional
+    makeplot : string or axes object; optional
         Specifies if and how to plot envelope in current figure:
 
-        ==========   ============================
-        `makeplot`   Description
-        ==========   ============================
-            'no'     do not plot
-         'clear'     plot after clearing figure
-           'add'     plot without clearing figure
-           'new'     plot in new figure
-        ==========   ============================
+        ===========   ===============================
+        `makeplot`    Description
+        ===========   ===============================
+            'no'      do not plot
+         'clear'      plot after clearing figure
+           'add'      plot without clearing figure
+           'new'      plot in new figure
+        axes object   plot in given axes (like 'add')
+        ===========   ===============================
 
     polycolor : color specification; optional
-        any valid matplotlib color specification for the color of the
+        Any valid matplotlib color specification for the color of the
         enveloping curve
     label : string; optional
-        label for the x-y data on plot (only used if `makeplot` is
+        Label for the x-y data on plot (only used if `makeplot` is
         not 'no')
 
     Returns
@@ -2373,7 +2396,7 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         raise ValueError("`method` must be one of 'max', 'min',"
                          " or 'both")
 
-    makeplot = _check_makeplot(
+    ax = _check_makeplot(
         makeplot, ('no', 'new', 'clear', 'add'))
 
     if base is None:
@@ -2405,22 +2428,22 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         ye_max, xe_max = get_turning_pts(ye_max, xe, getindex=0)
         ye_min, xe_min = get_turning_pts(ye_min, xe, getindex=0)
 
-    if makeplot:
+    if ax:
         envlabel = r'$\pm${}% envelope'.format(p)
-        ln = plt.plot(x, y, label=label)[0]
+        ln = ax.plot(x, y, label=label)[0]
         p = mpatches.Patch(color=polycolor, label=envlabel)
         if base is None:
-            plt.fill_between(xe_max, ye_max, ye_min,
-                             facecolor=polycolor, lw=0)
+            ax.fill_between(xe_max, ye_max, ye_min,
+                            facecolor=polycolor, lw=0)
         else:
-            plt.fill_between(xe_max, ye_max, base,
-                             facecolor=polycolor, lw=0)
+            ax.fill_between(xe_max, ye_max, base,
+                            facecolor=polycolor, lw=0)
             if method == 'both':
-                plt.fill_between(xe_min, ye_min, base,
-                                 facecolor=polycolor, lw=0)
-        plt.grid(True)
+                ax.fill_between(xe_min, ye_min, base,
+                                facecolor=polycolor, lw=0)
+        ax.grid(True)
         h = [ln, p]
-        plt.legend(handles=h, loc='best')
+        ax.legend(handles=h, loc='best')
     else:
         h = None
     return xe_max, ye_max, xe_min, ye_min, h
@@ -2616,17 +2639,18 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         Specifies the Nyquist frequency: sample_rate/2.0
     mag : scalar; optional
         Specifies the target filter magnitude at each `w`
-    makeplot : string; optional
+    makeplot : string or axes object; optional
         Specifies if and how to plot filter function:
 
-        ==========   ============================
-        `makeplot`   Description
-        ==========   ============================
-            'no'     do not plot
-         'clear'     plot after clearing figure
-           'add'     plot without clearing figure
-           'new'     plot in new figure
-        ==========   ============================
+        ===========   ===============================
+        `makeplot`    Description
+        ===========   ===============================
+            'no'      do not plot
+         'clear'      plot after clearing figure
+           'add'      plot without clearing figure
+           'new'      plot in new figure
+        axes object   plot in given axes (like 'add')
+        ===========   ===============================
 
     Returns
     -------
@@ -2686,7 +2710,7 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         >>> _ = plt.tight_layout()
     """
     # main routine:
-    makeplot = _check_makeplot(
+    ax = _check_makeplot(
         makeplot, ('no', 'new', 'clear', 'add'))
     sig, w = np.atleast_1d(sig, w)
     if pass_zero is None:
@@ -2716,12 +2740,12 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         y_h += ylines
     if is1d:
         y_h = y_h.ravel()
-    if makeplot:
-        plt.plot(freq, h)
+    if ax:
+        ax.plot(freq, h)
         style = dict(color='k', lw=2, ls='--')
         for x in w:
-            plt.axvline(x, **style)
-        plt.axhline(mag, **style)
+            ax.axvline(x, **style)
+        ax.axhline(mag, **style)
     return y_h, freq, h
 
 

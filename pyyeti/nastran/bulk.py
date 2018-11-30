@@ -2235,17 +2235,18 @@ def findcenter(x, y, makeplot='no'):
     x, y : 1d array_like
         Vectors x, y data points (in cartesian coordinates) that are
         on a circle: [x, y]
-    makeplot : string; optional
+    makeplot : string or axes object; optional
         Specifies if and how to plot data showing the fit.
 
-        ==========   ============================
-        `makeplot`   Description
-        ==========   ============================
-            'no'     do not plot
-         'clear'     plot after clearing figure
-           'add'     plot without clearing figure
-           'new'     plot in new figure
-        ==========   ============================
+        ===========   ===============================
+        `makeplot`    Description
+        ===========   ===============================
+            'no'      do not plot
+         'clear'      plot after clearing figure
+           'add'      plot without clearing figure
+           'new'      plot in new figure
+        axes object   plot in given axes (like 'add')
+        ===========   ===============================
 
     Returns
     -------
@@ -2274,7 +2275,7 @@ def findcenter(x, y, makeplot='no'):
         >>> findcenter(x, y, makeplot='new')
         array([  1.,  15.,  35.])
     """
-    makeplot = dsp._check_makeplot(
+    ax = dsp._check_makeplot(
         makeplot, ('no', 'new', 'clear', 'add'))
 
     x, y = np.atleast_1d(x, y)
@@ -2307,14 +2308,14 @@ def findcenter(x, y, makeplot='no'):
                'square of residuals = {}'.format(ssq))
         warnings.warn(msg, RuntimeWarning)
 
-    if makeplot:
-        plt.scatter(x, y, c='r', marker='o', s=60,
-                    label='Input Points')
+    if ax:
+        ax.scatter(x, y, c='r', marker='o', s=60,
+                   label='Input Points')
         th = np.arange(0, 361) * np.pi / 180.
         (x, y, R) = sol
-        plt.plot(x + R * np.cos(th), y + R * np.sin(th), label='Fit')
-        plt.axis('equal')
-        plt.legend(loc='best', scatterpoints=1)
+        ax.plot(x + R * np.cos(th), y + R * np.sin(th), label='Fit')
+        ax.axis('equal')
+        ax.legend(loc='best', scatterpoints=1)
 
     return sol
 
