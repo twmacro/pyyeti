@@ -4,12 +4,15 @@ Miscellaneous tools from Yeti
 .. automodule:: pyyeti.ytools
 .. currentmodule:: pyyeti.ytools
 
-Math routines
--------------
+Math/utility routines
+---------------------
 .. autosummary::
     :toctree: generated/
 
+    axis_equal_3d
     eig_si
+    fit_circle_2d
+    fit_circle_3d
     gensweep
     histogram
     isdiag

@@ -11,9 +11,8 @@ from types import SimpleNamespace
 import numpy as np
 import scipy.signal as signal
 import scipy.interpolate as interp
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from mpl_toolkits.mplot3d import Axes3D
+from pyyeti.ytools import _check_makeplot
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -585,6 +584,7 @@ def despike(x, n, sigma=8.0, maxiter=-1, threshold_sigma=2.0,
     .. plot::
         :context: close-figs
 
+        >>> import matplotlib.pyplot as plt
         >>> np.set_printoptions(linewidth=65)
         >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
         >>> _ = plt.figure(figsize=(8, 11))
@@ -2247,40 +2247,6 @@ def get_turning_pts(y, x=None, getindex=True, tol=1e-6, atol=None):
     return y[pv]
 
 
-def _check_3d(ax, need3d):
-    if need3d and not hasattr(ax, 'get_zlim'):
-        raise ValueError(
-            'the axes object does not have a 3d projection')
-    return ax
-
-
-def _check_makeplot(makeplot, valid, need3d=False):
-    if makeplot not in valid:
-        if hasattr(makeplot, 'plot'):
-            return _check_3d(makeplot, need3d)
-        raise ValueError(
-            'invalid `makeplot` setting; must be in {} or be an '
-            'axes object'
-            .format(valid))
-
-    if makeplot != 'no':
-        if makeplot == 'add':
-            ax = plt.gca()
-            return _check_3d(ax, need3d)
-
-        if makeplot == 'new':
-            plt.figure()
-        elif makeplot == 'clear':
-            plt.clf()
-
-        if need3d:
-            return plt.gca(projection='3d')
-
-        return plt.gca()
-
-    return None
-
-
 def calcenv(x, y, p=5, n=2000, method='max', base=0.,
             makeplot='clear', polycolor=(1, .7, .7), label='data'):
     """
@@ -2396,8 +2362,7 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         raise ValueError("`method` must be one of 'max', 'min',"
                          " or 'both")
 
-    ax = _check_makeplot(
-        makeplot, ('no', 'new', 'clear', 'add'))
+    ax = _check_makeplot(makeplot)
 
     if base is None:
         method = 'both'
@@ -2710,8 +2675,7 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         >>> _ = plt.tight_layout()
     """
     # main routine:
-    ax = _check_makeplot(
-        makeplot, ('no', 'new', 'clear', 'add'))
+    ax = _check_makeplot(makeplot)
     sig, w = np.atleast_1d(sig, w)
     if pass_zero is None:
         pass_zero = True if len(w) != 2 else False

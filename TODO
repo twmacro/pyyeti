@@ -107,7 +107,8 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
        (if None, more actively make do without it … with
        warning maybe?)
 
-41. Move find_center ?
+~41. Move find_center ?
+    - moved and renamed to fit_circle_[2d|3d] in ytools
 
 43. Bref – what about a model with mechanisms?
     - let bref not be a mult of 6?
@@ -171,10 +172,10 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
          - ? freq for psd functions?
          - nas
 
-61. wtrspline_rings:  assumes rings are aligned with an axis!?
+~61. wtrspline_rings:  assumes rings are aligned with an axis!?
     - v0.94.3
 
-62. findcenter: implement in 3d ... goes with 61.
+~62. findcenter: implement in 3d ... goes with 61.
     - think about whether input should be 3 x n (current) or n x 3
     - v0.94.3
 
@@ -214,7 +215,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 71. Implement compmat i think
 
-72. Write a nastran comment writer … using textwrap
+~72. Write a nastran comment writer … using textwrap
     - v0.94.3
 
 73. Check into subspace iteration logic
@@ -226,8 +227,9 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 74. Implement ERA algorithm
 
-75. Check out coverage for parallel processing
+``75. Check out coverage for parallel processing
     o   Also, those if’s without an else … ? “Branch” testing.
+    - unsuccessful
 
 76. Check manifest app
 
@@ -237,3 +239,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 ~78. PP needs to be updated to NOT sort dictionaries … they are sorted
      now I think
      - v0.94.3
+
+79. Improve coverage of new wtrspline_rings routine
+
+80. Have fit_circle_2d use fit_circle_3d ... I think

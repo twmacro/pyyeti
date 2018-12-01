@@ -8,8 +8,13 @@ import gzip
 import bz2
 import sys
 import contextlib
+import warnings
+from types import SimpleNamespace
 import numpy as np
 import scipy.linalg as linalg
+from scipy.optimize import leastsq
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from pyyeti import guitools
 
 
@@ -18,6 +23,417 @@ try:
     np.set_printoptions(legacy='1.13')
 except TypeError:
     pass
+
+
+def _check_3d(ax, need3d):
+    if need3d and not hasattr(ax, 'get_zlim'):
+        raise ValueError(
+            'the axes object does not have a 3d projection')
+    return ax
+
+
+def _check_makeplot(makeplot, valid=('no', 'new', 'clear', 'add'),
+                    figsize=None, need3d=False):
+    if makeplot not in valid:
+        # makeplot must be an axes object if here ... check for 'plot'
+        # attribute:
+        if hasattr(makeplot, 'plot'):
+            return _check_3d(makeplot, need3d)
+        raise ValueError(
+            'invalid `makeplot` setting; must be in {} or be an '
+            'axes object'
+            .format(valid))
+
+    if makeplot != 'no':
+        if makeplot == 'new' or not plt.get_fignums():
+            plt.figure(figsize=figsize)
+
+        if makeplot == 'add':
+            fig = plt.gcf()
+            if not fig.get_axes() and need3d:
+                return plt.gca(projection='3d')
+            ax = plt.gca()
+            return _check_3d(ax, need3d)
+
+        if makeplot == 'clear':
+            plt.clf()
+
+        if need3d:
+            return plt.gca(projection='3d')
+
+        return plt.gca()
+
+    return None
+
+
+def fit_circle_2d(x, y, makeplot='no'):
+    """
+    Find radius and center point of x-y data points
+
+    Parameters
+    ----------
+    x, y : 1d array_like
+        Vectors x, y data points (in cartesian coordinates) that are
+        on a circle: [x, y]
+    makeplot : string or axes object; optional
+        Specifies if and how to plot data showing the fit.
+
+        ===========   ===============================
+        `makeplot`    Description
+        ===========   ===============================
+            'no'      do not plot
+         'clear'      plot after clearing figure
+           'add'      plot without clearing figure
+           'new'      plot in new figure
+        axes object   plot in given axes (like 'add')
+        ===========   ===============================
+
+    Returns
+    -------
+    p : 1d ndarray
+        Vector: [xc, yc, R]
+
+    Notes
+    -----
+    Uses :func:`scipy.optimize.leastsq` to find optimum circle
+    parameters.
+
+    Examples
+    --------
+    For a test, provide precise x, y coordinates, but only for a 1/4
+    circle:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> from pyyeti.ytools import fit_circle_2d
+        >>> xc, yc, R = 1., 15., 35.
+        >>> th = np.linspace(0., np.pi/2, 10)
+        >>> x = xc + R*np.cos(th)
+        >>> y = yc + R*np.sin(th)
+        >>> fit_circle_2d(x, y, makeplot='new')
+        array([  1.,  15.,  35.])
+    """
+    ax = _check_makeplot(makeplot)
+
+    x, y = np.atleast_1d(x, y)
+    clx, cly = x.mean(), y.mean()
+    R0 = (x.max() - clx + y.max() - cly) / 2
+
+    # The optimization routine leastsq needs a function that returns
+    # the residuals:
+    #       y - func(p, x)
+    # where "func" is the fit you're trying to match
+    def circle_residuals(p, d):
+        # p is [xc, yc, R]
+        # d is [x;y] coordinates
+        xc, yc, R = p
+        n = len(d) // 2
+        theta = np.arctan2(d[n:] - yc, d[:n] - xc)
+        return d - np.hstack((xc + R * np.cos(theta),
+                              yc + R * np.sin(theta)))
+
+    p0 = (clx, cly, R0)
+    d = np.hstack((x, y))
+    res = leastsq(circle_residuals, p0, args=(d,), full_output=1)
+    sol = res[0]
+    if res[-1] not in (1, 2, 3, 4):
+        raise ValueError(':func:`scipy.optimization.leastsq` failed: '
+                         '{}'.res[-2])
+    ssq = np.sum(res[2]['fvec']**2)
+    if ssq > .01:
+        msg = ('data points do not appear to form a good circle, sum '
+               'square of residuals = {}'.format(ssq))
+        warnings.warn(msg, RuntimeWarning)
+
+    if ax:
+        ax.scatter(x, y, c='r', marker='o', s=60,
+                   label='Input Points')
+        th = np.arange(0, 361) * np.pi / 180.
+        (x, y, R) = sol
+        ax.plot(x + R * np.cos(th), y + R * np.sin(th), label='Fit')
+        ax.axis('equal')
+        ax.legend(loc='best', scatterpoints=1)
+
+    return sol
+
+
+def _norm_vec(vec):
+    return vec / np.linalg.norm(vec)
+
+
+def axis_equal_3d(ax, buffer_space=10):
+    """
+    Set equal axes for 3d plot
+
+    Parameters
+    ----------
+    ax : axes object
+        An axes object with a 3d projection
+    buffer_space : scalar
+        Percent of maximum limit (x, y, or z) to use for buffer room.
+
+    Notes
+    -----
+    Since matplotlib doesn't have a 3d version of
+    ``ax.axis('equal')``, this routine simply checks the current
+    limits, and adjusts all axes to be equal. Therefore, for this to
+    work properly, you must call this routine after you've plotted all
+    your data.
+    """
+    extents = np.array([getattr(ax, 'get_{}lim'.format(dim))()
+                        for dim in 'xyz'])
+    max_dimension = max(abs(extents[:, 1] - extents[:, 0]))
+    centers = np.mean(extents, axis=1)
+    r = max_dimension/2 * (1+buffer_space/100)
+    for ctr, dim in zip(centers, 'xyz'):
+        getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
+
+
+def _circle_fit_residuals(p, basic2local, basic, circ_parms):
+    # p is [th, ph, xc, yc, zc]
+    # - th & ph are angles to change the local z-axis direction:
+    #   - th is angle to rotate local coords about x-axis
+    #   - ph is angle to rotate result of th rotation about new
+    #     local y-axis
+    # - xc, yc, zc is center of circle in basic
+    # d is [basic2local, basic]
+    # - basic2local is original transformation
+    # - basic is 3 x n: coordinates of all points in basic
+    th, ph, xc, yc, zc = p
+    c1, s1 = np.cos(th), np.sin(th)
+    c2, s2 = np.cos(ph), np.sin(ph)
+    # t1 = np.array([[1, 0, 0], [0, c1, s1], [0, -s1, c1]])
+    # t2 = np.array([[c2, 0, -s2], [0, 1, 0], [s2, 0, c2]])
+    # trans = t2 @ t1
+    # or, doing it by hand:
+    trans = np.array([[c2, s1*s2, -s2*c1],
+                      [0, c1, s1],
+                      [s2, -c2*s1, c1*c2]])
+    new_basic2local = trans @ basic2local
+    local = new_basic2local @ (basic - [[xc], [yc], [zc]])
+    radii = np.linalg.norm(local[:2], axis=0)
+    radius = radii.mean()
+    if circ_parms is not None:
+        circ_parms.basic2local = new_basic2local
+        circ_parms.local = local
+        circ_parms.radius = radius
+        circ_parms.center = np.array([xc, yc, zc])
+    return np.hstack((radii/radius - 1, local[2]))
+
+
+def fit_circle_3d(basic, makeplot='no'):
+    """
+    Fit a circle through data points in 3D space
+
+    Parameters
+    ----------
+    basic : 2d array_like, 3 x n
+        Coordinates of data points in the basic (rectangular)
+        coordinate system; rows `basic` are the x, y, and z
+        coordinates
+    makeplot : string or axes object; optional
+        Specifies if and how to plot data showing the fit.
+
+        ===========   ===============================
+        `makeplot`    Description
+        ===========   ===============================
+            'no'      do not plot
+         'clear'      plot after clearing figure
+           'add'      plot without clearing figure
+           'new'      plot in new figure
+        axes object   plot in given axes (like 'add')
+        ===========   ===============================
+
+        Note that if `makeplot` is 'add' or an axes object, it must be
+        3d; otherwise a ValueError exception is raised.
+
+    Returns
+    -------
+    A SimpleNamespace with the members:
+
+    local : 2d ndarray
+        The coordinates of all points in a local (rectangular)
+        coordinate system. The z-axis is perpendicular to the plane
+        of the circle so the z-coordinate is 0.0 for all points.
+    basic2local : 2d ndarray
+        3 x 3 transform from basic to local. The local system is defined
+        such that the z-axis is perpendicular to the plane of the
+        circle.
+    center : 1d ndarray
+        Coordinates of circle in basic system (3 elements: x, y, z)
+    radius : scalar
+        Radius of circle
+    ssqerr : scalar
+        Sum of the squares of the radius and z-axis errors for each
+        point. For a perfect fit, this will be zero.
+
+    Notes
+    -----
+    At a high level, this routine works by: one, forming a
+    (non-unique) transform to a local coordinate system (steps 1-5),
+    two, finding the center in basic coordinates from the chord
+    bisector approach (steps 6-9), three, finding the radius (step
+    10), and four, optimizing the fit (step 11).
+
+      1. Set ``n = basic.shape[1]``.
+      2. Create two vectors: ``v1`` is from point 1 to point ``n // 3``,
+         and ``v2`` is from point 1 to point ``2 * n // 3``.
+      3. Form unit vector from the cross product of ``v1`` and ``v2`` to
+         get a perpendicular axis to the circle. This is the local
+         z-axis and the 3rd row of the transformation matrix
+         `basic2local`.
+      4. The local x-axis is defined as the unit vector of
+         ``v1``. This is the 1st row of `basic2local`. Note that this
+         is just the initial orientation; the final local x-axis will
+         be oriented along the vector from the center of the circle to
+         the first node.
+      5. The local y-axis is the cross product of the local z-axis and
+         the local x-axis. This is the 2nd row of `basic2local`.
+      6. Noting that ``v1`` and ``v2`` are chords, the bisector of each
+         chord is found by crossing the z-axis unit vector with the
+         chord. Call these bisector vectors ``b1`` and ``b2``.
+      7. Compute the midpoint of each chord: ``mid1`` is center of
+         ``v1`` and ``mid2`` is center of ``v2``.
+      8. Let `center` denote the center of the circle. Since both
+         bisectors must pass through `center`::
+
+             mid1 + alpha * b1 = center
+             mid2 + beta * b2 = center
+
+         where ``alpha`` and ``beta`` are unknown scalars. Subtracting
+         the second equation from the first gives::
+
+             alpha * b1 - beta * b2 = mid2 - mid1
+
+         That equation is actually three equations with two of them
+         being independent. Therefore, we can solve for ``alpha`` and
+         ``beta`` using a least-squares approach (
+         :func:`np.linalg.lstsq`). Then, we can use either of the two
+         equations above to solve for `center`. Note the `center` is
+         in basic coordinates.
+      9. The coordinates of all points can now be calculated in the
+         local coordinate system (note that the local z-coordinate is
+         0.0 for all points)::
+
+            local = basic2local @ (basic - center)
+
+     10. The radius for each point in ``local`` is simply the root-sum-
+         square of each local x & y coordinate. This routine computes
+         the average radius and sum of the squares of the radius errors
+         for each point.
+     11. For cases where there are more than three data points, this
+         routine optimizes the fit by using
+         :func:`scipy.optimize.leastsq`. The five optimization
+         variables are the direction of local z-axis (two angles) and
+         the location of the center point.
+
+    Examples
+    --------
+    Fit a circle through the three points: [3, 0, 0], [0, 3, 0] and
+    [0, 0, 3]. The center should be at [1, 1, 1]:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> from pyyeti.ytools import fit_circle_3d
+        >>> params = fit_circle_3d(3*np.eye(3), makeplot='new')
+        >>> params.center
+        array([ 1.,  1.,  1.])
+    """
+    ax = _check_makeplot(makeplot, need3d=True)
+
+    basic = np.atleast_2d(basic)
+    n = basic.shape[1]                 # step 1
+    p1 = basic[:, 0]
+    p2 = basic[:, n // 3]
+    p3 = basic[:, 2 * n // 3]
+
+    v1 = p2 - p1                       # step 2
+    v2 = p3 - p1
+    z_l = _norm_vec(np.cross(v1, v2))  # step 3
+    x_l = _norm_vec(v1)                # step 4
+    y_l = np.cross(z_l, x_l)           # step 5
+    basic2local = np.vstack((x_l, y_l, z_l))
+
+    # compute center by using chord bisectors:
+    b1 = np.cross(z_l, v1)             # step 6
+    b2 = np.cross(z_l, v2)
+    mid1 = (p1 + p2) / 2               # step 7
+    mid2 = (p1 + p3) / 2
+    arr = np.column_stack((b1, -b2))
+    ab = np.linalg.lstsq(arr, mid2 - mid1, rcond=None)[0]  # step 8
+    center = mid1 + ab[0] * b1
+
+    # steps 9 and 10 are done in _circle_fit_residuals ... which is
+    # called during the optimization
+
+    # step 11: optimize solution:
+    # - optimization parameters: [th, ph, xc, yc, zc]
+    p0 = (0.0, 0.0, *center)
+    res = leastsq(_circle_fit_residuals, p0,
+                  args=(basic2local, basic, None),
+                  full_output=True)
+    sol = res[0]
+    if res[-1] not in (1, 2, 3, 4):
+        raise ValueError(':func:`scipy.optimization.leastsq` failed: '
+                         '{}'.res[-2])
+    ssqerr = np.sum(res[2]['fvec']**2)
+    if ssqerr > .01:
+        msg = ('data points do not appear to form a good circle, sum '
+               'square of residuals = {}'.format(ssqerr))
+        warnings.warn(msg, RuntimeWarning)
+
+    # create output SimpleNamespace:
+    circ_parms = SimpleNamespace(ssqerr=ssqerr)
+
+    # get optimized fit ... it will be updated below after updating
+    # angle of x axis to point to node 1, but we need the local
+    # coordinates of node 1 to get angle:
+    _circle_fit_residuals(sol, basic2local, basic, circ_parms)
+
+    # put in pre-optimized parameters in case they're of interest:
+    start_parms = SimpleNamespace()
+    _circle_fit_residuals(p0, basic2local, basic, start_parms)
+    circ_parms.start_parms = start_parms
+
+    # reset the local x-axis to point to 1st node:
+    th = np.arctan2(circ_parms.local[1, 0],
+                    circ_parms.local[0, 0])
+    s = np.sin(th)
+    c = np.cos(th)
+    trans = np.array([[c, s], [-s, c]])
+    basic2local[:2] = trans @ basic2local[:2]
+
+    # get final, optimized fit:
+    _circle_fit_residuals(sol, basic2local, basic, circ_parms)
+
+    if ax:
+        for item in 'xyz':
+            get_func = getattr(ax, 'get_{}label'.format(item))
+            if not get_func():
+                set_func = getattr(ax, 'set_{}label'.format(item))
+                set_func(item.upper())
+        ax.plot(*basic, 'o', label='Data')
+
+        # compute new points on circle in local coordinates:
+        th = np.deg2rad(np.arange(0.0, 360))
+        x = circ_parms.radius * np.cos(th)
+        y = circ_parms.radius * np.sin(th)
+        z = 0 * x
+
+        # transform to basic coordinates and plot:
+        circle_basic = (circ_parms.center +
+                        (np.column_stack((x, y, z)) @
+                         circ_parms.basic2local)).T
+        ax.plot(*circle_basic, label='Fit')
+        axis_equal_3d(ax)
+        ax.legend(loc='upper left', bbox_to_anchor=(1.0, 1.0))
+        ax.get_figure().tight_layout()
+
+    return circ_parms
 
 
 def histogram(data, binsize):

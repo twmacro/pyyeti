@@ -14,22 +14,22 @@ True
 
 import os
 import re
-import warnings
+import textwrap
 import numpy as np
 import pandas as pd
-from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-from pyyeti import locate, writer, ytools, guitools, dsp
+from pyyeti import locate, writer, ytools, guitools
 from pyyeti.nastran import n2p, op4, op2
 
+
 __all__ = [
-    'nas_sscanf', 'fsearch', 'rdgpwg', 'rdcards', 'rddmig', 'wtdmig',
-    'rdgrids', 'wtgrids', 'rdtabled1', 'wttabled1', 'bulk2uset',
-    'rdwtbulk', 'rdeigen', 'wtnasints', 'rdcsupers', 'rdextrn',
-    'wtcsuper', 'wtspc1', 'wtxset1', 'wtqcset', 'wtrbe2', 'wtrbe3',
-    'wtseset', 'wtset', 'wtrspline', 'findcenter', 'intersect',
+    'nas_sscanf', 'fsearch', 'rdgpwg', 'rdcards', 'rddmig',
+    'wtcomment', 'wtdmig', 'rdgrids', 'wtgrids', 'rdtabled1',
+    'wttabled1', 'bulk2uset', 'rdwtbulk', 'rdeigen', 'wtnasints',
+    'rdcsupers', 'rdextrn', 'wtcsuper', 'wtspc1', 'wtxset1',
+    'wtqcset', 'wtrbe2', 'wtrbe3', 'wtseset', 'wtset', 'wtrspline',
     'wtrspline_rings', 'wtvcomp', 'wtcoordcards', 'wtextrn',
-    'wt_extseout', 'mknast', 'rddtipch']
+    'wtextseout', 'mknast', 'rddtipch']
 
 
 def nas_sscanf(s, keep_string=False):
@@ -532,16 +532,16 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     ...     dct2 = nastran.rddmig(f, expanded=True)
     ...     dct3 = nastran.rddmig(f, square=True)
     ...     dct4 = nastran.rddmig(f, expanded=True, square=True)
-    >>> dct1['mat']
+    >>> dct1['mat']    # doctest: +ELLIPSIS
     ID          1
     DOF         1
-    ID DOF
+    ID DOF...
     1  3     12.0
     10 0    100.0
-    >>> dct2['mat']
-    ID          1
+    >>> dct2['mat']    # doctest: +ELLIPSIS
+    ID          1...
     DOF         1    2    3    4    5    6
-    ID DOF
+    ID DOF...
     1  1      0.0  0.0  0.0  0.0  0.0  0.0
        2      0.0  0.0  0.0  0.0  0.0  0.0
        3     12.0  0.0  0.0  0.0  0.0  0.0
@@ -549,17 +549,17 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
        5      0.0  0.0  0.0  0.0  0.0  0.0
        6      0.0  0.0  0.0  0.0  0.0  0.0
     10 0    100.0  0.0  0.0  0.0  0.0  0.0
-    >>> dct3['mat']
+    >>> dct3['mat']    # doctest: +ELLIPSIS
     ID         1         10
     DOF         1    3    0
-    ID DOF
+    ID DOF...
     1  1      0.0  0.0  0.0
        3     12.0  0.0  0.0
     10 0    100.0  0.0  0.0
-    >>> dct4['mat']
+    >>> dct4['mat']    # doctest: +ELLIPSIS
     ID         1                             10
     DOF         1    2    3    4    5    6    0
-    ID DOF
+    ID DOF...
     1  1      0.0  0.0  0.0  0.0  0.0  0.0  0.0
        2      0.0  0.0  0.0  0.0  0.0  0.0  0.0
        3     12.0  0.0  0.0  0.0  0.0  0.0  0.0
@@ -814,6 +814,57 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         del o2
         dct = _recs_to_df(o2dct)
     return dct
+
+
+def wtcomment(f, comment, width=72, start='$ '):
+    """
+    Writes a Nastran comment with wrapping to a file.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
+        file, or is a file_like object as returned by :func:`open` or
+        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+    comment : string
+        The string to write out, wrapping to `width` characters.
+    width : integer; optional
+        Specify maximum line length.
+    start : string; optional
+        String to start each line.
+
+    Notes
+    -----
+    Uses the Python function :func:`textwrap.fill` to format the
+    string.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> s = ('This is a long comment string to '
+    ...      'demonstrate the wrapping feature of '
+    ...      'this algorithm. It wraps to 72 '
+    ...      'characters by default, but that can '
+    ...      'changed by the user via the `width` '
+    ...      'option. The default start for each '
+    ...      'line is "$ ", but that can be changed '
+    ...      'as well.')
+    >>> nastran.wtcomment(1, s, width=55)
+    $ This is a long comment string to demonstrate the
+    $ wrapping feature of this algorithm. It wraps to 72
+    $ characters by default, but that can changed by the
+    $ user via the `width` option. The default start for
+    $ each line is "$ ", but that can be changed as well.
+    """
+    def _wtcomment(f, comment):
+        f.write(comment + '\n')
+
+    comment = textwrap.fill(
+        comment, width=width, initial_indent=start,
+        subsequent_indent=start)
+    return ytools.wtfile(f, _wtcomment, comment)
 
 
 def _wtdmig(f, dct):
@@ -2226,101 +2277,7 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
     return ytools.wtfile(f, _wtrspline, rid, ids, nper, DoL)
 
 
-def findcenter(x, y, makeplot='no'):
-    """
-    Find radius and center point of x-y data points
-
-    Parameters
-    ----------
-    x, y : 1d array_like
-        Vectors x, y data points (in cartesian coordinates) that are
-        on a circle: [x, y]
-    makeplot : string or axes object; optional
-        Specifies if and how to plot data showing the fit.
-
-        ===========   ===============================
-        `makeplot`    Description
-        ===========   ===============================
-            'no'      do not plot
-         'clear'      plot after clearing figure
-           'add'      plot without clearing figure
-           'new'      plot in new figure
-        axes object   plot in given axes (like 'add')
-        ===========   ===============================
-
-    Returns
-    -------
-    p : 1d ndarray
-        Vector: [xc, yc, R]
-
-    Notes
-    -----
-    Uses :func:`scipy.optimize.leastsq` to find optimum circle
-    parameters.
-
-    Examples
-    --------
-    For a test, provide precise x, y coordinates, but only for a 1/4
-    circle:
-
-    .. plot::
-        :context: close-figs
-
-        >>> import numpy as np
-        >>> from pyyeti.nastran import findcenter
-        >>> xc, yc, R = 1., 15., 35.
-        >>> th = np.linspace(0., np.pi/2, 10)
-        >>> x = xc + R*np.cos(th)
-        >>> y = yc + R*np.sin(th)
-        >>> findcenter(x, y, makeplot='new')
-        array([  1.,  15.,  35.])
-    """
-    ax = dsp._check_makeplot(
-        makeplot, ('no', 'new', 'clear', 'add'))
-
-    x, y = np.atleast_1d(x, y)
-    clx, cly = x.mean(), y.mean()
-    R0 = (x.max() - clx + y.max() - cly) / 2
-
-    # The optimization routine leastsq needs a function that returns
-    # the residuals:
-    #       y - func(p, x)
-    # where "func" is the fit you're trying to match
-    def circle(p, d):
-        # p is [xc, yc, R]
-        # d is [x;y] coordinates
-        xc, yc, R = p
-        n = len(d) // 2
-        theta = np.arctan2(d[n:] - yc, d[:n] - xc)
-        return d - np.hstack((xc + R * np.cos(theta),
-                              yc + R * np.sin(theta)))
-
-    p0 = (clx, cly, R0)
-    d = np.hstack((x, y))
-    res = leastsq(circle, p0, args=(d,), full_output=1)
-    sol = res[0]
-    if res[-1] not in (1, 2, 3, 4):
-        raise ValueError(':func:`scipy.optimization.leastsq` failed: '
-                         '{}'.res[-2])
-    ssq = np.sum(res[2]['fvec']**2)
-    if ssq > .01:
-        msg = ('data points do not appear to form a good circle, sum '
-               'square of residuals = {}'.format(ssq))
-        warnings.warn(msg, RuntimeWarning)
-
-    if ax:
-        ax.scatter(x, y, c='r', marker='o', s=60,
-                   label='Input Points')
-        th = np.arange(0, 361) * np.pi / 180.
-        (x, y, R) = sol
-        ax.plot(x + R * np.cos(th), y + R * np.sin(th), label='Fit')
-        ax.axis('equal')
-        ax.legend(loc='best', scatterpoints=1)
-
-    return sol
-
-
-def intersect(circA, circB, xyA, draw=False):
+def _intersect(circA, circB, xyA, draw=False):
     """
     Find where a line that passes through the center of circA and
     point xyA intersects circB.
@@ -2347,17 +2304,17 @@ def intersect(circA, circB, xyA, draw=False):
     .. plot::
         :context: close-figs
 
-        >>> from pyyeti.nastran import intersect
+        >>> from pyyeti.nastran.bulk import _intersect
         >>> circA = (0., 0., 10.)
         >>> circB = (0., 0., 15.)
         >>> xyA = (0., 5.)
-        >>> intersect(circA, circB, [0., 1.], draw=1)
+        >>> _intersect(circA, circB, [0., 1.], draw=1)
         array([  0.,  15.])
-        >>> intersect(circA, circB, [0., -1.])
+        >>> _intersect(circA, circB, [0., -1.])
         array([  0., -15.])
-        >>> intersect(circA, circB, [1., 0.])
+        >>> _intersect(circA, circB, [1., 0.])
         array([ 15.,   0.])
-        >>> intersect(circA, circB, [-1., 0.])
+        >>> _intersect(circA, circB, [-1., 0.])
         array([-15.,   0.])
     """
     (x1, y1, R1) = circA
@@ -2404,94 +2361,61 @@ def intersect(circA, circB, xyA, draw=False):
     return pt
 
 
-def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
-                     rbe2_id0, makeplot, nper, DoL, independent):
-    """
-    Routine used by :func:`wtrspline`. See documentation for
-    :func:`wtrspline`.
-    """
-    makeplot = dsp._check_makeplot(
-        makeplot, ('no', 'new', 'clear'))
-    # rgrids = np.atleast_2d(r1grids, r2grids)
-    IDs = []
-    xyz = []
-    for ring, name in ((r1grids, 'r1grids'),
-                       (r2grids, 'r2grids')):
-        if isinstance(ring, pd.DataFrame):
-            r = ring.shape[0]
-            if (r // 6) * 6 != r:
-                raise ValueError('number of rows `{}` is not '
-                                 'multiple of 6 for USET input'.
-                                 format(name))
-            IDs.append(ring.index.get_level_values('id')[::6])
-            xyz.append(ring.iloc[::6, 1:].values)
-        else:
-            ring = np.atleast_2d(ring)
-            IDs.append(ring[:, 0].astype(np.int64))
-            xyz.append(ring[:, 1:])
-
-    n1 = len(IDs[0])
-    n2 = len(IDs[1])
-    ax = np.argmin(np.max(abs(np.diff(xyz[0], axis=0)), axis=0))
-    ax2 = np.argmin(np.max(abs(np.diff(xyz[1], axis=0)), axis=0))
-    if ax != ax2:
+def _check_z_alignment(circ_parms, tol):
+    # Have two different transforms to a local system ... have to use
+    # same one to get proper node aligning to occur for RSPLINE. But,
+    # the z-axis for both better match up ... compute cosine of angle
+    # between the two z-axes ... should be very close to 1.0:
+    z1 = circ_parms[0].basic2local[2]
+    z2 = circ_parms[1].basic2local[2]
+    # these are unit vectors; no need to divide by magnitudes:
+    cosine = z1.dot(z2)
+    if abs(cosine) < tol:
         raise ValueError('perpendicular directions of `r1grids` and '
-                         '`r2grids` do not match: {} vs. {}'.
-                         format(ax, ax2))
+                         '`r2grids` do not match: {} vs. {}; the '
+                         'cosine of the angle between them is {}'.
+                         format(z1, z2, cosine))
 
-    lat = np.delete(np.arange(0, 3), ax)
-    center = [findcenter(*xyz[0][:, lat].T),
-              findcenter(*xyz[1][:, lat].T)]
 
-    # the center point will often be at (0.0, 0.0) but be numerically
-    # off ... check for this and adjust if that's the case:
-    for circ in center:
-        for i in (0, 1):
-            if abs(circ[i]) < 1e-9 * circ[2]:
-                circ[i] = 0.0
+def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0):
+    ref_cord_id = 0
+    dist = max(1.0, np.linalg.norm(center))
+    p = 10 ** np.floor(np.log10(dist))
+    dist = round(dist / p) * p
+    local_cord = {
+        cord_id: ['CORD2R', np.vstack((
+            [cord_id, 1, ref_cord_id],
+            center,
+            center + dist * basic2local[2],
+            center + dist * basic2local[0]
+        ))]
+    }
+    comment = textwrap.fill(
+        'Origin of local CORD2R {} is at center of ring 1; z is '
+        'perpendicular to plane of circle, and x is aligned with '
+        'node {} (and new node {}).'
+        .format(cord_id, node0, node_id0),
+        width=72, initial_indent='$ ', subsequent_indent='$ ')
+    f.write(comment + '\n')
+    wtcoordcards(f, local_cord)
 
-    if makeplot:
-        fig = plt.gcf()
-        axes = fig.subplots(2, 1, sharex=True, sharey=True)
-        axes[0].scatter(xyz[0][:, lat[0]], xyz[0][:, lat[1]],
-                        c='b', marker='+', s=60, label='R1 nodes')
-        axes[0].scatter(xyz[1][:, lat[0]], xyz[1][:, lat[1]],
-                        c='g', marker='x', s=60, label='R2 nodes')
-        axes[0].axis('square')
-        axes[0].set_title(
-            'Old ring nodes and new ring 1 nodes')
-        axes[0].set_xlabel('XYZ'[lat[0]])
-        axes[0].set_ylabel('XYZ'[lat[1]])
-        fig.subplots_adjust(right=0.6)
 
+def _wtgrids_rbe2s(f, circ_parms, center, basic2local, cord_id,
+                   node_id0, rbe2_id0, ring1_ids):
+    n1 = circ_parms[0].local.shape[1]
     newpts = np.zeros((n1, 3))
-    newpts[:, ax] = xyz[1][0, ax]
+
+    # define z location of newpts:
+    newpts[:, 2] = circ_parms[1].local[2].mean()
+
+    # compute center of circle 2 in local 1 coordinates:
+    center2 = basic2local @ (circ_parms[1].center - center)
+    radius = circ_parms[0].radius
     for j in range(n1):
-        newpts[j, lat] = intersect(center[0], center[1],
-                                   xyz[0][j, lat])
-
-    if makeplot:
-        th = np.arange(0, np.pi * 2 + .005, .01)
-        x = center[1][2] * np.cos(th) + center[1][0]
-        y = center[1][2] * np.sin(th) + center[1][1]
-
-        segments_x = np.empty(3 * newpts.shape[0])
-        segments_y = np.empty_like(segments_x)
-        segments_x[::3] = newpts[:, lat[0]]
-        segments_y[::3] = newpts[:, lat[1]]
-        segments_x[1::3] = xyz[0][:, lat[0]]
-        segments_y[1::3] = xyz[0][:, lat[1]]
-        segments_x[2::3] = np.nan
-        segments_y[2::3] = np.nan
-
-        axes[0].plot(x, y, 'g-', label='R2 best-fit circle')
-        axes[0].scatter(newpts[:, lat[0]], newpts[:, lat[1]], c='r',
-                        marker='o', s=40,
-                        label=('New R1 nodes\n'
-                               ' - should be on R2 circle'))
-        axes[0].plot(segments_x, segments_y, 'r-',
-                     label='RBE2s - should be R1 radial')
-        axes[0].legend(loc='upper left', bbox_to_anchor=(1.02, 1.0))
+        newpts[j, :2] = _intersect(
+            [0.0, 0.0, radius],
+            [center2[0], center2[1], circ_parms[1].radius],
+            circ_parms[0].local[:2, j])
 
     # write new grids
     f.write('$\n$ Grids to RBE2 to Ring 1 grids. These grids line '
@@ -2501,19 +2425,28 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     vec = np.arange(n1)
     newids = node_id0 + vec
     rbe2ids = rbe2_id0 + vec
-    wtgrids(f, newids, xyz=newpts)
+    wtgrids(f, newids, xyz=newpts, cp=cord_id)
     f.write('$\n$ RBE2 old Ring 1 nodes to new nodes created above '
             '(new nodes are\n$ independent):\n$\n')
     writer.vecwrite(f, 'RBE2,{},{},123456,{}\n',
-                    rbe2ids, newids, IDs[0])
+                    rbe2ids, newids, ring1_ids)
+    return newpts, newids
 
-    th_1 = np.arctan2(newpts[:, lat[1]], newpts[:, lat[0]])
-    th_2 = np.arctan2(xyz[1][:, lat[1]], xyz[1][:, lat[0]])
+
+def _sort_n_write(f, independent, circ_parms, newpts, newids,
+                  ring2_ids, rspline_id0, nper, DoL):
+    n1 = circ_parms[0].local.shape[1]
+    n2 = circ_parms[1].local.shape[1]
+
+    # - to do this in order, we need to compute their angles
+    th_1 = np.arctan2(newpts[:, 1], newpts[:, 0])
+    r2_local = circ_parms[1].local.T
+    th_2 = np.arctan2(r2_local[:, 1], r2_local[:, 0])
     th = np.hstack((th_1, th_2))
-    th[th < 0] += 2 * np.pi
+    th[th < -1e-8] += 2 * np.pi
 
     ids_1 = np.column_stack((newids, np.zeros(n1, np.int64)))
-    ids_2 = np.column_stack((IDs[1], np.zeros(n2, np.int64)))
+    ids_2 = np.column_stack((ring2_ids, np.zeros(n2, np.int64)))
 
     if independent == 'ring1':
         f.write(
@@ -2536,24 +2469,135 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         i += 1
     ids = np.vstack((ids[i:], ids[:i], ids[i]))
     wtrspline(f, rspline_id0, ids, nper=nper, DoL=DoL)
+    return ids
 
-    if makeplot:
-        # plot the rspline:
-        ids_with_coords = np.hstack((newids, IDs[1]))
-        pv = locate.mat_intersect(ids_with_coords, ids[:, 0], 2)
-        xy = np.vstack((newpts[:, lat], xyz[1][:, lat]))[pv[0]]
 
-        axes[1].plot(xy[:, 0], xy[:, 1])
-        axes[1].axis('square')
-        axes[1].set_title(
-            'Final RSPLINE - should be no sharp direction changes')
-        axes[1].set_xlabel('XYZ'[lat[0]])
-        axes[1].set_ylabel('XYZ'[lat[1]])
+def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
+                  center, rspline_nodes, ring2_ids):
+    for item in 'xyz':
+        get_func = getattr(ax, 'get_{}label'.format(item))
+        if not get_func():
+            set_func = getattr(ax, 'set_{}label'.format(item))
+            set_func(item.upper())
+
+    # draw the fit for circles:
+    th = np.deg2rad(np.arange(0.0, 361))
+    for parms, line, num in zip(circ_parms,
+                                ('b+', 'gx'),
+                                (1, 2)):
+        x = parms.radius * np.cos(th)
+        y = parms.radius * np.sin(th)
+        z = 0 * x
+        # transform to basic coordinates and plot:
+        circle_basic = (parms.center +
+                        (np.column_stack((x, y, z)) @
+                         parms.basic2local)).T
+        ax.plot(*xyz[num-1].T, line, markersize=8.0,
+                markeredgewidth=2.0,
+                label='R{} nodes'.format(num))
+        ax.plot(*circle_basic, line[:1],
+                label='R{} bset-fit circle'.format(num))
+
+    # get basic coordinates of newpts:
+    newpts_basic = newpts @ basic2local + center
+
+    segments = np.empty((3 * newpts.shape[0], 3))
+    segments[::3] = newpts_basic
+    segments[1::3] = xyz[0]
+    segments[2::3] = np.nan
+
+    ax.plot(*newpts_basic.T, 'ro', markersize=5.0,
+            markeredgewidth=2.0,
+            label=('New R1 nodes\n'
+                   ' - should be on R2 circle'))
+    ax.plot(*segments.T,
+            'r-', label='RBE2s - should be R1 radial')
+
+    # plot the rspline:
+    unsorted_rspline_nodes = np.hstack((newids, ring2_ids))
+    pv = locate.mat_intersect(
+        unsorted_rspline_nodes, rspline_nodes[:, 0], 2)
+
+    rspline_xyz = np.vstack((newpts_basic, xyz[1]))[pv[0]]
+    ax.plot(*rspline_xyz.T, '-', color='magenta', linewidth=2.0,
+            label='Final RSPLINE')
+
+    ytools.axis_equal_3d(ax)
+    ax.legend(loc='upper left', bbox_to_anchor=(1.0, 1.0))
+    ax.get_figure().tight_layout()
+
+
+def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
+                     rbe2_id0, cord_id, makeplot, nper, DoL,
+                     independent):
+    """
+    Routine used by :func:`wtrspline`. See documentation for
+    :func:`wtrspline`.
+    """
+    ax = ytools._check_makeplot(makeplot, figsize=[8, 6], need3d=True)
+
+    IDs = []
+    xyz = []
+    for ring, name in ((r1grids, 'r1grids'),
+                       (r2grids, 'r2grids')):
+        if isinstance(ring, pd.DataFrame):
+            r = ring.shape[0]
+            if (r // 6) * 6 != r:
+                raise ValueError('number of rows `{}` is not '
+                                 'multiple of 6 for USET input'.
+                                 format(name))
+            IDs.append(ring.index.get_level_values('id')[::6])
+            xyz.append(ring.iloc[::6, 1:].values)
+        else:
+            ring = np.atleast_2d(ring)
+            IDs.append(ring[:, 0].astype(np.int64))
+            xyz.append(ring[:, 1:])
+
+    # fit both circles:
+    circ_parms = [ytools.fit_circle_3d(xyz[i].T) for i in (0, 1)]
+
+    # z axes better be aligned:
+    _check_z_alignment(circ_parms, 0.99)
+
+    # use 1st basic2local transform on second set of data to get all
+    # coordinates in same local system:
+    basic2local = circ_parms[0].basic2local
+    center = circ_parms[0].center
+    circ_parms[1].local = basic2local @ (xyz[1] - center).T
+
+    # the center point will often have near-zeros but be numerically
+    # off ... check for this and adjust if that's the case:
+    radius = circ_parms[0].radius
+    for i, value in enumerate(center):
+        if abs(value) < 1e-9 * radius:
+            center[i] = 0.0
+
+    # write local coordinate system to file:
+    _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0],
+                      node_id0)
+
+    # create new nodes that will be RBE2'd to ring 1 nodes, but
+    # located on ring 2 circle
+    # - these nodes will be defined in the local system but output in
+    #   basic
+    newpts, newids = _wtgrids_rbe2s(
+        f, circ_parms, center, basic2local, cord_id,
+        node_id0, rbe2_id0, IDs[0])
+
+    # rspline will tie the 'newpts' and the ring 2 nodes together:
+    rspline_nodes = _sort_n_write(
+        f, independent, circ_parms, newpts, newids,
+        IDs[1], rspline_id0, nper, DoL)
+
+    if ax:
+        _plot_rspline(
+            ax, circ_parms, xyz, newpts, newids, basic2local, center,
+            rspline_nodes, IDs[1])
 
 
 def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
-                    rbe2_id0=None, makeplot='new', nper=1, DoL='0.1',
-                    independent='ring1'):
+                    rbe2_id0=None, cord_id=None, makeplot='new',
+                    nper=1, DoL='0.1', independent='ring1'):
     """
     Creates a smooth RSPLINE to connect two rings of grids.
 
@@ -2566,18 +2610,18 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
     r1grids : 2d array_like or DataFrame
-        Contains the locations of the ring 1 grids in basic
+        Contains the ids and locations of the ring 1 grids in basic
         coordinates. If 2d array_like, it has 4 columns describing
         the ring 1 grids::
 
-             [id, x, y, z]  <-- basic coordinates
+             [id, x, y, z] < -- basic coordinates
 
         If DataFrame, it is assumed to be the USET DataFrame
         containing just the ring 1 grids. The format of this
         DataFrame is described in
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
     r2grids : 2d array_like or DataFrame
-        Contains the locations of the ring 2 grids in basic
+        Contains the ids and locations of the ring 2 grids in basic
         coordinates. See `r1grids` for description of format.
     node_id0 : integer
         1st id of new nodes created to 'move' ring 1 nodes
@@ -2586,21 +2630,24 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     rbe2_id0 : integer or None; optional
         1st id of RBE2 elements that will connect old ring 1 nodes to
         new ones. If None, ``rbe2_id0 = node_id0``.
-    makeplot : string; optional
-        Specifies if and how to plot data for visual error checking:
+    cord_id : integer or None; optional
+        ID for the local coordinate system for the `r1grids`. If None,
+        it is set to ``node_id0 * 10``.
+    makeplot : string or axes object; optional
+        Specifies if and how to plot data showing the RSPLINE.
 
-        ==========   ============================
-        `makeplot`   Description
-        ==========   ============================
-            'no'     do not plot
-         'clear'     plot after clearing figure
-           'new'     plot in new figure
-        ==========   ============================
+        ===========   ===============================
+        `makeplot`    Description
+        ===========   ===============================
+            'no'      do not plot
+         'clear'      plot after clearing figure
+           'add'      plot without clearing figure
+           'new'      plot in new figure
+        axes object   plot in given axes (like 'add')
+        ===========   ===============================
 
-        If plotting, 2 axes will be created:
-          - top axes plots node locations and RBE2s for inspection;
-            read title & legend for a couple hints of what to look for
-          - bottom axes plots the final RSPLINE -- should be smooth
+        Note that if `makeplot` is 'add' or an axes object, it must be
+        3d; otherwise a ValueError exception is raised.
 
     nper : integer; optional
         Number of grids to write per RSPLINE before starting to look
@@ -2628,16 +2675,37 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
 
     The approach is as follows (N = number of ring 1 grids):
 
-      1. Create N new ring 1 grids at station and radius of ring 2
+      1. Fit a circle through both the ring 1 nodes and the ring 2
+         nodes. A new "ring 1" local coordinate system is defined (see
+         :func:`pyyeti.ytools.fit_circle_3d`) to simplify the creation
+         of the new RSPLINE. In the local system, z is perpendicular
+         to the plane of the circle and x is aligned with node 1 of
+         ring 1.
+      2. Create N new ring 1 grids at station and radius of ring 2
          grids, but at the same angular location as original N.
-      2. RBE2 these new grids to the N original grids ... new grids
+      3. RBE2 these new grids to the N original grids ... new grids
          are independent.
-      3. Write RSPLINE cards using :func:`wtrspline`. The first
+      4. Write RSPLINE cards using :func:`wtrspline`. The first
          RSPLINE starts at the independent grid (on ring 1 or ring 2
          according to `independent`) with the lowest angular
          location. The angular locations range from 0 to 360 degrees,
          counter-clockwise. The RSPLINEs proceed counter-clockwise and
          the last grid is also the first grid to complete the circle.
+
+    Raises
+    ------
+    ValueError
+
+        When the perpendicular directions of `r1grids` and `r2grids`
+        do not match within tolerance: absolute value of the cosine of
+        the angle between the two perpendicular directions must be >
+        0.99.
+
+        When a `r1grids` or `r2grids` DataFrame does not have a
+        multiple of 6 rows.
+
+        When the `makeplot` option tries to add to an axes object that
+        is not using a 3d projection.
 
     Examples
     --------
@@ -2670,21 +2738,33 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         ...                    sta2*np.ones(n2),        # x
         ...                    rad2*np.cos(theta2),     # y
         ...                    rad2*np.sin(theta2))).T  # z
-        >>> nastran.wtrspline_rings(1, ring1, ring2, 1001, 2001)
+        >>> fig = plt.figure('rspline demo', figsize=(8, 6))
+        >>> fig.clf()
+        >>> ax = fig.add_subplot(1, 1, 1, projection='3d')
+        >>> nastran.wtrspline_rings(
+        ...     1, ring1, ring2, 1001, 2001,
+        ...     makeplot=ax)   # doctest: +SKIP
+        $ Origin of local CORD2R 10010 is at center of ring 1; z is
+        $ perpendicular to plane of circle, and x is aligned with node 1 (and
+        $ new node 1001).
+        $ Coordinate 10010:
+        CORD2R*            10010               0  0.00000000e+00  0.00000000e+00*
+        *         0.00000000e+00  1.00000000e+00  0.00000000e+00  0.00000000e+00*
+        *         0.00000000e+00  1.00000000e+00  1.11022302e-16
         $
         $ Grids to RBE2 to Ring 1 grids. These grids line up with Ring 2 circle.
         $ These will be used in an RSPLINE (which will be smooth)
         $
-        GRID*               1001               0      1.00000000     45.00000000
-        *             0.00000000               0
-        GRID*               1002               0      1.00000000     13.90576475
-        *            42.79754323               0
-        GRID*               1003               0      1.00000000    -36.40576475
-        *            26.45033635               0
-        GRID*               1004               0      1.00000000    -36.40576475
-        *           -26.45033635               0
-        GRID*               1005               0      1.00000000     13.90576475
-        *           -42.79754323               0
+        GRID*               1001           10010     45.00000000     -0.00000000
+        *             1.00000000               0
+        GRID*               1002           10010     13.90576475     42.79754323
+        *             1.00000000               0
+        GRID*               1003           10010    -36.40576475     26.45033635
+        *             1.00000000               0
+        GRID*               1004           10010    -36.40576475    -26.45033635
+        *             1.00000000               0
+        GRID*               1005           10010     13.90576475    -42.79754323
+        *             1.00000000               0
         $
         $ RBE2 old Ring 1 nodes to new nodes created above (new nodes are
         $ independent):
@@ -2708,9 +2788,11 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         raise ValueError('invalid `independent` option')
     if rbe2_id0 is None:
         rbe2_id0 = node_id0
+    if cord_id is None:
+        cord_id = node_id0 * 10
     return ytools.wtfile(f, _wtrspline_rings, r1grids, r2grids,
-                         node_id0, rspline_id0, rbe2_id0, makeplot,
-                         nper, DoL, independent)
+                         node_id0, rspline_id0, rbe2_id0, cord_id,
+                         makeplot, nper, DoL, independent)
 
 
 def wtvcomp(f, baa, kaa, bset, spoint1):
@@ -2740,7 +2822,7 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
 
     Notes
     -----
-    Typically called by :func:`wt_extseout`.
+    Typically called by :func:`wtextseout`.
 
     Examples
     --------
@@ -2808,7 +2890,7 @@ def wtcoordcards(f, ci):
 
     Notes
     -----
-    Typically called by :func:`wt_extseout`.
+    Typically called by :func:`wtextseout`.
 
     Examples
     --------
@@ -2866,7 +2948,7 @@ def wtextrn(f, ids, dof):
 
     Notes
     -----
-    Typically called by :func:`wt_extseout`.
+    Typically called by :func:`wtextseout`.
 
     Examples
     --------
@@ -2886,8 +2968,8 @@ def wtextrn(f, ids, dof):
     return ytools.wtfile(f, _wtextrn, ids, dof)
 
 
-def wt_extseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
-                sedn=0, bh=False, **kwargs):
+def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
+               sedn=0, bh=False, **kwargs):
     """
     Write .op4, .asm, .pch and possibly the damping DMIG file for an
     external SE.

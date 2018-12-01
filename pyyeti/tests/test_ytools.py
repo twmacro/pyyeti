@@ -6,15 +6,38 @@ from nose.tools import *
 import scipy.linalg as linalg
 
 
+def test_fit_circle_2d():
+    x = np.arange(100)
+    y = np.arange(100)
+
+    import sys
+    for v in list(sys.modules.values()):
+        if getattr(v, '__warningregistry__', None):
+            v.__warningregistry__ = {}
+
+    assert_warns(RuntimeWarning, ytools.fit_circle_2d, x, y)
+
+
+def test_fit_circle_3d():
+    parms = ytools.fit_circle_3d(3*np.eye(3), makeplot='new')
+    center = np.array([1., 1., 1.])
+    radius = np.linalg.norm(np.array([3., 0, 0]) - center)
+    z_direction = ytools._norm_vec(center)
+
+    assert np.allclose(parms.center, center)
+    assert np.allclose(parms.radius, radius)
+    assert np.allclose(parms.basic2local[2], z_direction)
+
+
 def test_histogram():
     assert np.allclose(
         ytools.histogram([1, 1, 3, 3, 4], 1),
-        np.array([[  1.,   2.,  40.],
-                  [  3.,   2.,  40.],
-                  [  4.,   1.,  20.]]))
+        np.array([[1.,   2.,  40.],
+                  [3.,   2.,  40.],
+                  [4.,   1.,  20.]]))
     assert np.allclose(
         ytools.histogram([np.inf], 1),
-        np.array([[ 0.,  0.,  0.]]))
+        np.array([[0.,  0.,  0.]]))
 
 
 def test_sturm():

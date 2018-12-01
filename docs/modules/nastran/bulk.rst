@@ -7,9 +7,7 @@ Limited set of read/write routines for Nastran bulk data
     :toctree: generated/
 
     bulk2uset
-    findcenter
     fsearch
-    intersect
     mknast
     nas_sscanf
     rdcards
@@ -22,7 +20,8 @@ Limited set of read/write routines for Nastran bulk data
     rdgrids
     rdtabled1
     rdwtbulk
-    wt_extseout
+    wtextseout
+    wtcomment
     wtcoordcards
     wtcsuper
     wtdmig

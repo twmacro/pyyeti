@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from io import StringIO
+import matplotlib.pyplot as plt
 from pyyeti import nastran
 from pyyeti.nastran import op2, n2p, op4
 from nose.tools import *
@@ -152,7 +153,7 @@ def test_bulk2uset():
     assert np.allclose(coord[0], c[0])
 
 
-def test_wt_extseout():
+def test_wtextseout():
     nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
     se = 101
     maa = nas['maa'][se]
@@ -170,13 +171,13 @@ def test_wt_extseout():
     b = np.nonzero(b)[0]
     baa = np.zeros_like(maa)
     baa[q, q] = 2 * .05 * np.sqrt(kaa[q, q])
-    name = '_wt_extseout_test_'
+    name = '_wtextseout_test_'
     pre = 'pyyeti/tests/nas2cam_csuper/yeti_outputs/se101y'
     for bh, nm in zip((True, False), ('_bh', '')):
         try:
-            nastran.wt_extseout(name, se=101, maa=maa, kaa=kaa,
-                                baa=baa, bset=b, uset=usetb,
-                                spoint1=9900101, bh=bh)
+            nastran.wtextseout(name, se=101, maa=maa, kaa=kaa,
+                               baa=baa, bset=b, uset=usetb,
+                               spoint1=9900101, bh=bh)
             names, mats, f, t = op4.load(name + '.op4', into='list')
             namesy, matsy, fy, ty = op4.load(pre + nm + '.op4',
                                              into='list')
@@ -204,11 +205,11 @@ def test_wt_extseout():
     mug1 = np.arange(12).reshape(3, 4)
     mef1 = 10 * mug1
     try:
-        nastran.wt_extseout(name, se=101, maa=maa, kaa=kaa,
-                            baa=baa, bset=b, uset=usetb,
-                            spoint1=9900101,
-                            mug1=mug1,
-                            mef1=mef1)
+        nastran.wtextseout(name, se=101, maa=maa, kaa=kaa,
+                           baa=baa, bset=b, uset=usetb,
+                           spoint1=9900101,
+                           mug1=mug1,
+                           mef1=mef1)
         names, mats, f, t = op4.load(name + '.op4', into='list')
         namesy, matsy, fy, ty = op4.load(pre + '.op4',
                                          into='list')
@@ -405,18 +406,6 @@ def test_wtrspline():
     assert sbe == s
 
 
-def test_findcenter():
-    x = np.arange(100)
-    y = np.arange(100)
-
-    import sys
-    for v in list(sys.modules.values()):
-        if getattr(v, '__warningregistry__', None):
-            v.__warningregistry__ = {}
-
-    assert_warns(RuntimeWarning, nastran.findcenter, x, y)
-
-
 def test_wtrspline_rings():
     theta1 = np.arange(0, 359, 360 / 5) * np.pi / 180
     rad1 = 50.
@@ -440,90 +429,37 @@ def test_wtrspline_rings():
     uset2 = n2p.addgrid(None, ring2[:, 0].astype(int),
                         'b', 0, ring2[:, 1:], 0)
 
+    fig = plt.figure('rspline demo', figsize=(8, 6))
+    fig.clf()
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+
     with StringIO() as f:
         nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001,
-                                makeplot='no')
-        s1 = f.getvalue()
+                                makeplot=ax)
+        u, c = nastran.bulk2uset(f)
 
     with StringIO() as f:
         nastran.wtrspline_rings(f, uset1, uset2, 1001, 2001,
-                                makeplot='no')
-        s2 = f.getvalue()
-    assert s1 == s2
-    sbe = """$
-$ Grids to RBE2 to Ring 1 grids. These grids line up with Ring 2 circle.
-$ These will be used in an RSPLINE (which will be smooth)
-$
-GRID*               1001               0      1.00000000     45.00000000
-*             0.00000000               0
-GRID*               1002               0      1.00000000     13.90576475
-*            42.79754323               0
-GRID*               1003               0      1.00000000    -36.40576475
-*            26.45033635               0
-GRID*               1004               0      1.00000000    -36.40576475
-*           -26.45033635               0
-GRID*               1005               0      1.00000000     13.90576475
-*           -42.79754323               0
-$
-$ RBE2 old Ring 1 nodes to new nodes created above (new nodes are
-$ independent):
-$
-RBE2,1001,1001,123456,1
-RBE2,1002,1002,123456,2
-RBE2,1003,1003,123456,3
-RBE2,1004,1004,123456,4
-RBE2,1005,1005,123456,5
-$
-$ RSPLINE Ring 2 nodes to new nodes created above, with the new nodes
-$ being independent.
-$
-RSPLINE     2001     0.1    1001     101  123456     102  123456    1002
-RSPLINE     2002     0.1    1002     103  123456    1003
-RSPLINE     2003     0.1    1003     104  123456     105  123456    1004
-RSPLINE     2004     0.1    1004     106  123456    1005
-RSPLINE     2005     0.1    1005     107  123456    1001
-"""
-    assert s1 == sbe
+                                makeplot=ax)
+        u2, c2 = nastran.bulk2uset(f)
 
-    with StringIO() as f:
-        nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001,
-                                independent='ring2', makeplot='no')
-        s = f.getvalue()
+    assert np.allclose(u, u2)
+    for k, v in c2.items():
+        assert np.allclose(c[k], v)
 
-    sbe = """$
-$ Grids to RBE2 to Ring 1 grids. These grids line up with Ring 2 circle.
-$ These will be used in an RSPLINE (which will be smooth)
-$
-GRID*               1001               0      1.00000000     45.00000000
-*             0.00000000               0
-GRID*               1002               0      1.00000000     13.90576475
-*            42.79754323               0
-GRID*               1003               0      1.00000000    -36.40576475
-*            26.45033635               0
-GRID*               1004               0      1.00000000    -36.40576475
-*           -26.45033635               0
-GRID*               1005               0      1.00000000     13.90576475
-*           -42.79754323               0
-$
-$ RBE2 old Ring 1 nodes to new nodes created above (new nodes are
-$ independent):
-$
-RBE2,1001,1001,123456,1
-RBE2,1002,1002,123456,2
-RBE2,1003,1003,123456,3
-RBE2,1004,1004,123456,4
-RBE2,1005,1005,123456,5
-$
-$ RSPLINE Ring 2 nodes to new nodes created above, with the Ring 2 nodes
-$ being independent.
-$
-RSPLINE     2001     0.1     101     102            1002  123456     103
-RSPLINE     2002     0.1     103    1003  123456     104
-RSPLINE     2003     0.1     104     105            1004  123456     106
-RSPLINE     2004     0.1     106    1005  123456     107
-RSPLINE     2005     0.1     107    1001  123456     101
-"""
-    assert s == sbe
+    # x coord of new grids should be same as ring 2 ... 1.0:
+    assert np.allclose(1, u.loc[(slice(None), 1), 'x'])
+
+    # y, z coords should be like ring1, but with reduced radius to
+    # match ring 2:
+    assert np.allclose(ring1[:, 2:] * rad2 / rad1,
+                       u.loc[(slice(None), 1), 'y':'z'])
+
+    # the local coord:
+    #  z_local is x
+    #  x_local points through node 1 ... which is on y
+    to_local = [[0, 1., 0], [0, 0, 1], [1., 0, 0]]
+    assert np.allclose(c[10010][-3:].T, to_local)
 
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1, uset2,
                   1001, 2001, makeplot='no', independent='badoption')
