@@ -229,13 +229,18 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 ``75. Check out coverage for parallel processing
     o   Also, those if’s without an else … ? “Branch” testing.
-    - unsuccessful
+    - unsuccessful on first attempt ... worth it?
 
 76. Check manifest app
 
 77. Accommodate ulvs, mugf and nothing … via a tag?
     - What about ‘drms’ and ‘nondrms’?
-
+    - idea: instead of 'drms' and 'nondrms', use categories that
+      specify which transform is to be used:
+       - 'modes' (or 'phi' or 'ulvs' or ?)
+       - 'resflex' (or 'g' or 'rf' or 'mugf' or ?)
+       - 'none' (or 'other' or 'misc' or 'data' or ?)
+       
 ~78. PP needs to be updated to NOT sort dictionaries … they are sorted
      now I think
      - v0.94.3
@@ -243,3 +248,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 79. Improve coverage of new wtrspline_rings routine
 
 80. Have fit_circle_2d use fit_circle_3d ... I think
+    - or delete it?
+    - or update it?
+
+81. Use wtcomment more in bulk.py

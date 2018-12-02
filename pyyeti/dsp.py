@@ -2362,10 +2362,9 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         raise ValueError("`method` must be one of 'max', 'min',"
                          " or 'both")
 
-    ax = _check_makeplot(makeplot)
-
     if base is None:
         method = 'both'
+
     up = 1 + p / 100
     dn = 1 - p / 100
     xe = np.linspace(x[0], x[-1], n)
@@ -2393,6 +2392,7 @@ def calcenv(x, y, p=5, n=2000, method='max', base=0.,
         ye_max, xe_max = get_turning_pts(ye_max, xe, getindex=0)
         ye_min, xe_min = get_turning_pts(ye_min, xe, getindex=0)
 
+    ax = _check_makeplot(makeplot)
     if ax:
         envlabel = r'$\pm${}% envelope'.format(p)
         ln = ax.plot(x, y, label=label)[0]
@@ -2675,7 +2675,6 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         >>> _ = plt.tight_layout()
     """
     # main routine:
-    ax = _check_makeplot(makeplot)
     sig, w = np.atleast_1d(sig, w)
     if pass_zero is None:
         pass_zero = True if len(w) != 2 else False
@@ -2704,6 +2703,8 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5,
         y_h += ylines
     if is1d:
         y_h = y_h.ravel()
+
+    ax = _check_makeplot(makeplot)
     if ax:
         ax.plot(freq, h)
         style = dict(color='k', lw=2, ls='--')

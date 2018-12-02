@@ -66,6 +66,42 @@ def _check_makeplot(makeplot, valid=('no', 'new', 'clear', 'add'),
     return None
 
 
+def _norm_vec(vec):
+    return vec / np.linalg.norm(vec)
+
+
+def _initial_circle_fit(basic):
+    # See fit_circle_3d for description. Does steps 1-8.
+    # - basic is 2d ndarray, 3 x n
+    n = basic.shape[1]                 # step 1
+    if n < 3:
+        raise ValueError('need at least 3 data points to fit circle,'
+                         ' only have {}'.format(n))
+    p1 = basic[:, 0]
+    p2 = basic[:, n // 3]
+    p3 = basic[:, 2 * n // 3]
+
+    v1 = p2 - p1                       # step 2
+    v2 = p3 - p1
+    z_l = _norm_vec(np.cross(v1, v2))  # step 3
+    x_l = _norm_vec(v1)                # step 4
+    y_l = np.cross(z_l, x_l)           # step 5
+    basic2local = np.vstack((x_l, y_l, z_l))
+
+    # compute center by using chord bisectors:
+    b1 = np.cross(z_l, v1)             # step 6
+    b2 = np.cross(z_l, v2)
+    mid1 = (p1 + p2) / 2               # step 7
+    mid2 = (p1 + p3) / 2
+    arr = np.column_stack((b1, -b2))
+    ab = np.linalg.lstsq(arr, mid2 - mid1, rcond=None)[0]  # step 8
+    center = mid1 + ab[0] * b1
+
+    radius = np.linalg.norm(p1 - center)
+
+    return basic2local, center, radius
+
+
 def fit_circle_2d(x, y, makeplot='no'):
     """
     Find radius and center point of x-y data points
@@ -91,7 +127,8 @@ def fit_circle_2d(x, y, makeplot='no'):
     Returns
     -------
     p : 1d ndarray
-        Vector: [xc, yc, R]
+        Vector: [xc, yc, R] where ``(xc, yc)`` defines the center of
+        the circle and ``R`` is the radius.
 
     Notes
     -----
@@ -115,11 +152,10 @@ def fit_circle_2d(x, y, makeplot='no'):
         >>> fit_circle_2d(x, y, makeplot='new')
         array([  1.,  15.,  35.])
     """
-    ax = _check_makeplot(makeplot)
-
     x, y = np.atleast_1d(x, y)
-    clx, cly = x.mean(), y.mean()
-    R0 = (x.max() - clx + y.max() - cly) / 2
+    basic2local, center, radius = _initial_circle_fit(
+        np.vstack((x, y, 0*x)))
+    clx, cly = center[:2]
 
     # The optimization routine leastsq needs a function that returns
     # the residuals:
@@ -134,7 +170,7 @@ def fit_circle_2d(x, y, makeplot='no'):
         return d - np.hstack((xc + R * np.cos(theta),
                               yc + R * np.sin(theta)))
 
-    p0 = (clx, cly, R0)
+    p0 = (clx, cly, radius)
     d = np.hstack((x, y))
     res = leastsq(circle_residuals, p0, args=(d,), full_output=1)
     sol = res[0]
@@ -147,20 +183,18 @@ def fit_circle_2d(x, y, makeplot='no'):
                'square of residuals = {}'.format(ssq))
         warnings.warn(msg, RuntimeWarning)
 
+    ax = _check_makeplot(makeplot)
     if ax:
         ax.scatter(x, y, c='r', marker='o', s=60,
                    label='Input Points')
         th = np.arange(0, 361) * np.pi / 180.
-        (x, y, R) = sol
-        ax.plot(x + R * np.cos(th), y + R * np.sin(th), label='Fit')
+        (x, y, radius) = sol
+        ax.plot(x + radius * np.cos(th),
+                y + radius * np.sin(th), label='Fit')
         ax.axis('equal')
         ax.legend(loc='best', scatterpoints=1)
 
     return sol
-
-
-def _norm_vec(vec):
-    return vec / np.linalg.norm(vec)
 
 
 def axis_equal_3d(ax, buffer_space=10):
@@ -253,7 +287,7 @@ def fit_circle_3d(basic, makeplot='no'):
     -------
     A SimpleNamespace with the members:
 
-    local : 2d ndarray
+    local : 2d ndarray, 3 x n
         The coordinates of all points in a local (rectangular)
         coordinate system. The z-axis is perpendicular to the plane
         of the circle so the z-coordinate is 0.0 for all points.
@@ -343,29 +377,12 @@ def fit_circle_3d(basic, makeplot='no'):
         >>> params.center
         array([ 1.,  1.,  1.])
     """
-    ax = _check_makeplot(makeplot, need3d=True)
-
     basic = np.atleast_2d(basic)
-    n = basic.shape[1]                 # step 1
-    p1 = basic[:, 0]
-    p2 = basic[:, n // 3]
-    p3 = basic[:, 2 * n // 3]
+    if basic.shape[0] != 3:
+        raise ValueError('`basic` must have 3 rows (x, y, z), not {}'
+                         .format(basic.shape[0]))
 
-    v1 = p2 - p1                       # step 2
-    v2 = p3 - p1
-    z_l = _norm_vec(np.cross(v1, v2))  # step 3
-    x_l = _norm_vec(v1)                # step 4
-    y_l = np.cross(z_l, x_l)           # step 5
-    basic2local = np.vstack((x_l, y_l, z_l))
-
-    # compute center by using chord bisectors:
-    b1 = np.cross(z_l, v1)             # step 6
-    b2 = np.cross(z_l, v2)
-    mid1 = (p1 + p2) / 2               # step 7
-    mid2 = (p1 + p3) / 2
-    arr = np.column_stack((b1, -b2))
-    ab = np.linalg.lstsq(arr, mid2 - mid1, rcond=None)[0]  # step 8
-    center = mid1 + ab[0] * b1
+    basic2local, center, radius = _initial_circle_fit(basic)
 
     # steps 9 and 10 are done in _circle_fit_residuals ... which is
     # called during the optimization
@@ -410,6 +427,7 @@ def fit_circle_3d(basic, makeplot='no'):
     # get final, optimized fit:
     _circle_fit_residuals(sol, basic2local, basic, circ_parms)
 
+    ax = _check_makeplot(makeplot, need3d=True)
     if ax:
         for item in 'xyz':
             get_func = getattr(ax, 'get_{}label'.format(item))

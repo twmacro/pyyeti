@@ -2390,13 +2390,12 @@ def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0):
             center + dist * basic2local[0]
         ))]
     }
-    comment = textwrap.fill(
+    comment = (
         'Origin of local CORD2R {} is at center of ring 1; z is '
         'perpendicular to plane of circle, and x is aligned with '
         'node {} (and new node {}).'
-        .format(cord_id, node0, node_id0),
-        width=72, initial_indent='$ ', subsequent_indent='$ ')
-    f.write(comment + '\n')
+        .format(cord_id, node0, node_id0))
+    wtcomment(f, comment)
     wtcoordcards(f, local_cord)
 
 
@@ -2483,7 +2482,7 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
     # draw the fit for circles:
     th = np.deg2rad(np.arange(0.0, 361))
     for parms, line, num in zip(circ_parms,
-                                ('b+', 'gx'),
+                                ('+', 'x'),
                                 (1, 2)):
         x = parms.radius * np.cos(th)
         y = parms.radius * np.sin(th)
@@ -2492,10 +2491,10 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
         circle_basic = (parms.center +
                         (np.column_stack((x, y, z)) @
                          parms.basic2local)).T
-        ax.plot(*xyz[num-1].T, line, markersize=8.0,
-                markeredgewidth=2.0,
-                label='R{} nodes'.format(num))
-        ax.plot(*circle_basic, line[:1],
+        h = ax.plot(*xyz[num-1].T, line, markersize=8.0,
+                    markeredgewidth=2.0,
+                    label='R{} nodes'.format(num))[0]
+        ax.plot(*circle_basic, h.get_color(),
                 label='R{} bset-fit circle'.format(num))
 
     # get basic coordinates of newpts:
@@ -2506,12 +2505,13 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
     segments[1::3] = xyz[0]
     segments[2::3] = np.nan
 
-    ax.plot(*newpts_basic.T, 'ro', markersize=5.0,
-            markeredgewidth=2.0,
-            label=('New R1 nodes\n'
-                   ' - should be on R2 circle'))
+    h = ax.plot(*newpts_basic.T, 'o', markersize=5.0,
+                markeredgewidth=2.0,
+                label=('New R1 nodes\n'
+                       ' - should be on R2 circle'))[0]
     ax.plot(*segments.T,
-            'r-', label='RBE2s - should be R1 radial')
+            '-', color=h.get_color(),
+            label='RBE2s - should be R1 radial')
 
     # plot the rspline:
     unsorted_rspline_nodes = np.hstack((newids, ring2_ids))
@@ -2519,7 +2519,7 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
         unsorted_rspline_nodes, rspline_nodes[:, 0], 2)
 
     rspline_xyz = np.vstack((newpts_basic, xyz[1]))[pv[0]]
-    ax.plot(*rspline_xyz.T, '-', color='magenta', linewidth=2.0,
+    ax.plot(*rspline_xyz.T, '--', alpha=0.7, linewidth=3.0,
             label='Final RSPLINE')
 
     ytools.axis_equal_3d(ax)
@@ -2534,8 +2534,6 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     Routine used by :func:`wtrspline`. See documentation for
     :func:`wtrspline`.
     """
-    ax = ytools._check_makeplot(makeplot, figsize=[8, 6], need3d=True)
-
     IDs = []
     xyz = []
     for ring, name in ((r1grids, 'r1grids'),
@@ -2589,6 +2587,7 @@ def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         f, independent, circ_parms, newpts, newids,
         IDs[1], rspline_id0, nper, DoL)
 
+    ax = ytools._check_makeplot(makeplot, figsize=[8, 6], need3d=True)
     if ax:
         _plot_rspline(
             ax, circ_parms, xyz, newpts, newids, basic2local, center,

@@ -6,16 +6,16 @@ from nose.tools import *
 import scipy.linalg as linalg
 
 
-def test_fit_circle_2d():
-    x = np.arange(100)
-    y = np.arange(100)
-
-    import sys
-    for v in list(sys.modules.values()):
-        if getattr(v, '__warningregistry__', None):
-            v.__warningregistry__ = {}
-
-    assert_warns(RuntimeWarning, ytools.fit_circle_2d, x, y)
+# def test_fit_circle_2d():
+#     x = np.arange(100)
+#     y = np.arange(100)
+#
+#     import sys
+#     for v in list(sys.modules.values()):
+#         if getattr(v, '__warningregistry__', None):
+#             v.__warningregistry__ = {}
+#
+#     assert_warns(RuntimeWarning, ytools.fit_circle_2d, x, y)
 
 
 def test_fit_circle_3d():
