@@ -598,3 +598,66 @@ def test_rddmig():
         assert np.allclose(val, val2)
 
     assert sorted(dct.keys()) == ['patrn', 'randm']
+
+
+def test_rddmig2():
+    dct = nastran.rddmig(
+        'pyyeti/tests/nastran_dmig_data/matrix.op2',
+        'mrandm')
+
+    # chop out some DOF so we can test 'expanded':
+    slc = (slice(None), slice(3))
+    mrandm = dct['MRANDM'].loc[slc, slc]
+
+    with StringIO() as f:
+        nastran.wtdmig(f, dict(mrandm=mrandm))
+        default = nastran.rddmig(f)
+        expanded = nastran.rddmig(f, expanded=True)
+
+    assert np.allclose(expanded['mrandm'].sum().sum(),
+                       default['mrandm'].sum().sum())
+    assert default['mrandm'].shape == (12, 12)
+    assert expanded['mrandm'].shape == (21, 21)
+    assert np.allclose(mrandm, default['mrandm'])
+    assert np.allclose(mrandm, expanded['mrandm'].loc[slc, slc])
+    slc2 = (slice(None), slice(4, None))
+    assert np.all(expanded['mrandm'].loc[slc2, slc2] == 0.0)
+
+    # test symmetric writing/reading:
+    symm = np.arange(12)[:, None] * np.arange(12)
+    symm = symm.T @ symm
+    default['mrandm'].iloc[:, :] = symm
+
+    with StringIO() as f:
+        nastran.wtdmig(f, default)
+        dct = nastran.rddmig(f)
+        s = f.getvalue()
+
+    assert np.allclose(dct['mrandm'], default['mrandm'].iloc[1:, 1:])
+    assert s.startswith(
+        'DMIG    MRANDM         0       6       2       0       0'
+        '              12\n'
+        'DMIG*   MRANDM                         1               2\n'
+        '*                      1               2 5.060000000D+02\n'
+        '*                      1               3 1.012000000D+03\n'
+        '*                      2               1 1.518000000D+03\n'
+        '*                      2               2 2.024000000D+03\n'
+        '*                      2               3 2.530000000D+03\n'
+        '*                      3               1 3.036000000D+03\n'
+        '*                      3               2 3.542000000D+03\n'
+        '*                      3               3 4.048000000D+03\n'
+        '*                     10               0 4.554000000D+03\n'
+        '*                     11               0 5.060000000D+03\n'
+        '*                     12               0 5.566000000D+03\n'
+        'DMIG*   MRANDM                         1               3\n')
+
+    assert s.endswith(
+        'DMIG*   MRANDM                        10               0\n'
+        '*                     10               0 4.098600000D+04\n'
+        '*                     11               0 4.554000000D+04\n'
+        '*                     12               0 5.009400000D+04\n'
+        'DMIG*   MRANDM                        11               0\n'
+        '*                     11               0 5.060000000D+04\n'
+        '*                     12               0 5.566000000D+04\n'
+        'DMIG*   MRANDM                        12               0\n'
+        '*                     12               0 6.122600000D+04\n')

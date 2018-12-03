@@ -240,15 +240,21 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
        - 'modes' (or 'phi' or 'ulvs' or ?)
        - 'resflex' (or 'g' or 'rf' or 'mugf' or ?)
        - 'none' (or 'other' or 'misc' or 'data' or ?)
-       
+
 ~78. PP needs to be updated to NOT sort dictionaries … they are sorted
      now I think
      - v0.94.3
 
 79. Improve coverage of new wtrspline_rings routine
 
-80. Have fit_circle_2d use fit_circle_3d ... I think
+~80. Have fit_circle_2d use fit_circle_3d ... I think
     - or delete it?
     - or update it?
+    - v0.94.3
 
 81. Use wtcomment more in bulk.py
+
+82. Use decorator in bulk.py to handle file handle?
+    - it's cumbersome the way it is now
+
+83. rddmig reads upper case names for op2, lower for pch?
