@@ -336,7 +336,7 @@ def test_wtrbe3():
                   9900, 123456, [1, 2, 3])
 
 
-def test_gpwg():
+def test_rdgpwg():
     # get third table:
     s1 = 'W E I G H T'
     mass, cg, ref, Is = nastran.rdgpwg(

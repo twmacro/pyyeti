@@ -507,7 +507,7 @@ def stdfs(mr, Q):
 
         .. code-block:: none
 
-            force_limit / (m2 * max(a1))
+            nfl = force_limit / (m2 * max(a1))
 
     Notes
     -----
@@ -568,6 +568,23 @@ def stdfs(mr, Q):
     >>> spec = 1.75
     >>> frclim.stdfs(m2/m1, Q) * m2 * 1.75   # doctest: +ELLIPSIS
     6393.1622...
+
+    Generate some curves showing the normalized force limit vs the
+    mass ration for a few different damping values:
+
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
+        >>> from pyyeti import frclim
+        >>> mr = np.geomspace(0.00001, 100, 100)
+        >>> for Q in (10, 25, 50):
+        ...     nfl = [frclim.stdfs(i, Q) for i in mr]
+        ...     _ = plt.loglog(mr, nfl, label='Q={}'.format(Q))
+        >>> _ = plt.legend()
+        >>> _ = plt.xlabel('Mass ratio (Load/Source)')
+        >>> _ = plt.ylabel('Normalized Force Limit')
     """
     m2 = 0.1
     M = 1e6
