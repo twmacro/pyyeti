@@ -123,52 +123,7 @@ def fsearch(f, s):
     return None, None
 
 
-def _rdgpwg(f, search_strings):
-    """
-    Routine used by :func:`rdgpwg`. See documentation for
-    :func:`rdgpwg`.
-    """
-    f.seek(0, 0)
-    default = None, None, None, None
-    if search_strings is not None:
-        if isinstance(search_strings, str):
-            search_strings = (search_strings,)
-        for s in search_strings:
-            for line in f:
-                if line.find(s) > -1:
-                    break
-            else:
-                return default
-
-    line, p = fsearch(f, 'W E I G H T')
-    if line is None:
-        return default
-    line, p = fsearch(f, 'REFERENCE POINT =')
-    refpt = int(line[p + 17:])
-
-    f.readline()
-    mass = []
-    for _ in range(6):
-        line = f.readline().strip()
-        mass.append([float(item) for item in line[1:-1].split()])
-    mass = np.array(mass)
-    line, p = fsearch(f, 'MASS AXIS SYSTEM')
-
-    cg = []
-    for _ in range(3):
-        line = f.readline().strip()
-        cg.append([float(item) for item in line[1:].split()])
-    cg = np.array(cg)
-
-    f.readline()
-    Is = []
-    for _ in range(3):
-        line = f.readline().strip()
-        Is.append([float(item) for item in line[1:-1].split()])
-    Is = np.array(Is)
-    return mass, cg, refpt, Is
-
-
+@ytools.read_text_file
 def rdgpwg(f, search_strings=None):
     """
     Read a GPWG table from a Nastran F06 file.
@@ -176,11 +131,10 @@ def rdgpwg(f, search_strings=None):
     Parameters
     ----------
     f : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     search_strings : None, string, or list_like of strings
         If a string, this routine will scan the file until the string
         is found before reading the GPWG table. If multiple strings in
@@ -226,7 +180,45 @@ def rdgpwg(f, search_strings=None):
         str2 = '^^^F-SET MASS TABLE'
         mass, cg, ref, I = nastran.rdgpwg('modes.f06', (str1, str2))
     """
-    return ytools.rdfile(f, _rdgpwg, search_strings)
+    f.seek(0, 0)
+    default = None, None, None, None
+    if search_strings is not None:
+        if isinstance(search_strings, str):
+            search_strings = (search_strings,)
+        for s in search_strings:
+            for line in f:
+                if line.find(s) > -1:
+                    break
+            else:
+                return default
+
+    line, p = fsearch(f, 'W E I G H T')
+    if line is None:
+        return default
+    line, p = fsearch(f, 'REFERENCE POINT =')
+    refpt = int(line[p + 17:])
+
+    f.readline()
+    mass = []
+    for _ in range(6):
+        line = f.readline().strip()
+        mass.append([float(item) for item in line[1:-1].split()])
+    mass = np.array(mass)
+    line, p = fsearch(f, 'MASS AXIS SYSTEM')
+
+    cg = []
+    for _ in range(3):
+        line = f.readline().strip()
+        cg.append([float(item) for item in line[1:].split()])
+    cg = np.array(cg)
+
+    f.readline()
+    Is = []
+    for _ in range(3):
+        line = f.readline().strip()
+        Is.append([float(item) for item in line[1:-1].split()])
+    Is = np.array(Is)
+    return mass, cg, refpt, Is
 
 
 def _get_line(fiter, s=None, trim=True):
@@ -327,67 +319,7 @@ def _rdcomma(fiter, s, conchar, blank, tolist):
     return vals, s
 
 
-def _rdcards(fin, name, blank, todict, tolist, dtype, no_data_return):
-    """
-    Routine used by :func:`rdcards`. See documentation for
-    :func:`rdcards`.
-    """
-    name = name.lower()
-    if todict:
-        Vals = {}
-        tolist = False
-    else:
-        Vals = []
-    mxlen = 0
-    fin.seek(0, 0)
-
-    def _readline(it):
-        try:
-            s = next(it)
-        except StopIteration:
-            s = None
-        return s
-
-    it = iter(fin)
-    s = _readline(it)
-    while True:
-        while s is not None and s.lower().find(name) != 0:
-            s = _readline(it)
-        if s is None:
-            break
-        s = _get_line(it, s, trim=False)
-        p = s.find(',')
-        if p > -1:
-            vals, s = _rdcomma(it, s, ' +,', blank, tolist)
-        else:
-            s = s[:72].rstrip()
-            p = s[:8].find('*')
-            if p > -1:
-                vals, s = _rdfixed(it, s, 16, '*', blank, tolist)
-            else:
-                vals, s = _rdfixed(it, s, 8, ' +', blank, tolist)
-        if tolist:
-            Vals.append(vals)
-        else:
-            cur = len(vals)
-            mxlen = max(mxlen, cur)
-            key = vals[0]  # before it gets turned into dtype
-            vals = np.array(vals).astype(dtype)
-            if todict:
-                Vals[key] = vals
-            else:
-                Vals.append(vals)
-    if len(Vals) > 0:
-        if not (todict or tolist):
-            npVals = np.empty((len(Vals), mxlen), dtype=dtype)
-            npVals[:] = blank
-            for i, vals in enumerate(Vals):
-                npVals[i, :len(vals)] = vals
-            Vals = npVals
-        return Vals
-    return no_data_return
-
-
+@ytools.read_text_file
 def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
             no_data_return=None):
     """
@@ -396,13 +328,10 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     Parameters
     ----------
     f : string or file_like or None
-
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
-
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     name : string
         Usually the card name, but is really just the initial part of
         the string to look for. This means that `name` can span more
@@ -455,8 +384,60 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     [1, 0, 0, 0, 0, 0, 0, 0] since it knows the number of fields a
     GRID card has.
     """
-    return ytools.rdfile(f, _rdcards, name, blank, todict, tolist,
-                         dtype, no_data_return)
+    name = name.lower()
+    if todict:
+        Vals = {}
+        tolist = False
+    else:
+        Vals = []
+    mxlen = 0
+    f.seek(0, 0)
+
+    def _readline(it):
+        try:
+            s = next(it)
+        except StopIteration:
+            s = None
+        return s
+
+    it = iter(f)
+    s = _readline(it)
+    while True:
+        while s is not None and s.lower().find(name) != 0:
+            s = _readline(it)
+        if s is None:
+            break
+        s = _get_line(it, s, trim=False)
+        p = s.find(',')
+        if p > -1:
+            vals, s = _rdcomma(it, s, ' +,', blank, tolist)
+        else:
+            s = s[:72].rstrip()
+            p = s[:8].find('*')
+            if p > -1:
+                vals, s = _rdfixed(it, s, 16, '*', blank, tolist)
+            else:
+                vals, s = _rdfixed(it, s, 8, ' +', blank, tolist)
+        if tolist:
+            Vals.append(vals)
+        else:
+            cur = len(vals)
+            mxlen = max(mxlen, cur)
+            key = vals[0]  # before it gets turned into dtype
+            vals = np.array(vals).astype(dtype)
+            if todict:
+                Vals[key] = vals
+            else:
+                Vals.append(vals)
+    if len(Vals) > 0:
+        if not (todict or tolist):
+            npVals = np.empty((len(Vals), mxlen), dtype=dtype)
+            npVals[:] = blank
+            for i, vals in enumerate(Vals):
+                npVals[i, :len(vals)] = vals
+            Vals = npVals
+        return Vals
+    return no_data_return
 
 
 def rddmig(f, dmig_names=None, *, expanded=False, square=False):
@@ -466,11 +447,11 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     Parameters
     ----------
     f : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        punch or output2 file, or is a file_like object as returned by
-        :func:`open`. If handle, punch format is assumed and file is
-        rewound first. Can also be the name of a directory or None; in
-        these cases, a GUI is opened for file selection.
+        Either a name of a punch or output2 file, or is a file_like
+        object as returned by :func:`open`. If handle, punch format is
+        assumed and file is rewound first. Can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection.
     dmig_names : None, string, or list_like of strings
         If not None, it is the name or names of DMIG entry(s) to
         read. If None, all DMIG entries will be returned.
@@ -816,6 +797,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     return dct
 
 
+@ytools.write_text_file
 def wtcomment(f, comment, width=72, start='$ '):
     """
     Writes a Nastran comment with wrapping to a file.
@@ -823,11 +805,10 @@ def wtcomment(f, comment, width=72, start='$ '):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     comment : string
         The string to write out, wrapping to `width` characters.
     width : integer; optional
@@ -858,91 +839,13 @@ def wtcomment(f, comment, width=72, start='$ '):
     $ user via the `width` option. The default start for
     $ each line is "$ ", but that can be changed as well.
     """
-    def _wtcomment(f, comment):
-        f.write(comment + '\n')
-
     comment = textwrap.fill(
         comment, width=width, initial_indent=start,
         subsequent_indent=start)
-    return ytools.wtfile(f, _wtcomment, comment)
+    f.write(comment + '\n')
 
 
-def _wtdmig(f, dct):
-    """
-    Routine used by :func:`wtdmig`. See documentation for
-    :func:`wtdmig`.
-    """
-    for name, value in dct.items():
-        name = name.upper()
-        rowids = value.index
-        colids = value.columns
-        # row index must be 2-level MultiIndex:
-        if rowids.nlevels != 2:
-            raise ValueError(
-                '"{}" must have a 2-level row index but has {} levels'
-                .format(name, rowids.nlevels))
-
-        if colids.nlevels > 2:
-            raise ValueError(
-                '"{}" must have a 1 or 2-level column index but has '
-                '{} levels'.format(name, colids.nlevels))
-
-        m = value.values
-        ncol = value.shape[1]
-
-        # determine form of matrix:
-        if colids.nlevels == 1:
-            form = 9
-            ncol = colids.max()
-        elif value.shape[0] != value.shape[1]:
-            form = 2
-        else:
-            if np.allclose(m.transpose(), m):
-                form = 6
-            else:
-                form = 1
-
-        # determine type of matrix:
-        if np.iscomplexobj(m):
-            mtype = 4 if m.dtype.itemsize > 8 else 3
-        else:
-            mtype = 2 if m.dtype.itemsize > 4 else 1
-
-        # write header card:
-        polar = 0
-        tout = 0
-
-        #        DMIG  NAME  0    IFO  TIN  TOUT POLAR     NCOL
-        f.write('{:<8s}{:<8s}{:8d}{:8d}{:8d}{:8d}{:8d}{:8s}{:8d}\n'
-                .format('DMIG', name, 0, form, mtype,
-                        tout, polar, '', ncol))
-
-        # write a column at a time:
-        for col in range(m.shape[1]):
-            if m[:, col].any():
-                start_row = col if form == 6 else 0
-                if colids.nlevels == 2:
-                    gj, cj = colids[col]
-                else:
-                    gj = colids[col]
-                    cj = 0
-                f.write('{:<8s}{:<16s}{:16d}{:16d}\n'
-                        .format('DMIG*', name, gj, cj))
-                for row in range(start_row, m.shape[0]):
-                    num = m[row, col]
-                    if num != 0.0:
-                        gi, ci = rowids[row]
-                        if mtype < 3:   # real
-                            num_str = '{:16.9E}'.format(num)
-                        else:           # complex
-                            num_str = ('{:16.9E}{:16.9E}'
-                                       .format(num.real, num.imag))
-                        if mtype & 1 == 0:   # if even
-                            num_str = num_str.replace('E', 'D')
-                        f.write('{:<8s}{:16d}{:16d}{:s}\n'
-                                .format('*', gi, ci, num_str))
-
-
+@ytools.write_text_file
 def wtdmig(f, dct):
     """
     Writes Nastran DMIG cards to a file.
@@ -950,11 +853,10 @@ def wtdmig(f, dct):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     dct : dictionary
         Dictionary of pandas DataFrames. The keys will be used as the
         names of the DMIG entries. With one exception, the column and
@@ -1040,7 +942,75 @@ def wtdmig(f, dct):
     >>> np.all((k2 == k).values)
     True
     """
-    return ytools.wtfile(f, _wtdmig, dct)
+    for name, value in dct.items():
+        name = name.upper()
+        rowids = value.index
+        colids = value.columns
+        # row index must be 2-level MultiIndex:
+        if rowids.nlevels != 2:
+            raise ValueError(
+                '"{}" must have a 2-level row index but has {} levels'
+                .format(name, rowids.nlevels))
+
+        if colids.nlevels > 2:
+            raise ValueError(
+                '"{}" must have a 1 or 2-level column index but has '
+                '{} levels'.format(name, colids.nlevels))
+
+        m = value.values
+        ncol = value.shape[1]
+
+        # determine form of matrix:
+        if colids.nlevels == 1:
+            form = 9
+            ncol = colids.max()
+        elif value.shape[0] != value.shape[1]:
+            form = 2
+        else:
+            if np.allclose(m.transpose(), m):
+                form = 6
+            else:
+                form = 1
+
+        # determine type of matrix:
+        if np.iscomplexobj(m):
+            mtype = 4 if m.dtype.itemsize > 8 else 3
+        else:
+            mtype = 2 if m.dtype.itemsize > 4 else 1
+
+        # write header card:
+        polar = 0
+        tout = 0
+
+        #        DMIG  NAME  0    IFO  TIN  TOUT POLAR     NCOL
+        f.write('{:<8s}{:<8s}{:8d}{:8d}{:8d}{:8d}{:8d}{:8s}{:8d}\n'
+                .format('DMIG', name, 0, form, mtype,
+                        tout, polar, '', ncol))
+
+        # write a column at a time:
+        for col in range(m.shape[1]):
+            if m[:, col].any():
+                start_row = col if form == 6 else 0
+                if colids.nlevels == 2:
+                    gj, cj = colids[col]
+                else:
+                    gj = colids[col]
+                    cj = 0
+                f.write('{:<8s}{:<16s}{:16d}{:16d}\n'
+                        .format('DMIG*', name, gj, cj))
+                for row in range(start_row, m.shape[0]):
+                    num = m[row, col]
+                    if num != 0.0:
+                        gi, ci = rowids[row]
+                        if mtype < 3:   # real
+                            num_str = '{:16.9E}'.format(num)
+                        else:           # complex
+                            num_str = ('{:16.9E}{:16.9E}'
+                                       .format(num.real, num.imag))
+                        if mtype & 1 == 0:   # if even
+                            num_str = num_str.replace('E', 'D')
+                        f.write('{:<8s}{:16d}{:16d}{:s}\n'
+                                .format('*', gi, ci, num_str))
 
 
 def rdgrids(f):
@@ -1050,11 +1020,10 @@ def rdgrids(f):
     Parameters
     ----------
     f : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
 
     Returns
     -------
@@ -1101,11 +1070,10 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     grids : 1d array_like
         Vector of grid ids; N = len(grids).
     cp : integer scalar or vector
@@ -1181,11 +1149,10 @@ def rdtabled1(f, name='tabled1'):
     Parameters
     ----------
     f : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     name : string; optional
         Name of cards to read.
 
@@ -1231,49 +1198,7 @@ def rdtabled1(f, name='tabled1'):
     return d
 
 
-def _wttabled1(f, tid, t, d, title, form, tablestr):
-    """
-    Routine used by :func:`wttabled1`. See documentation for
-    :func:`wttabled1`.
-    """
-    t, d = np.atleast_1d(t, d)
-    t = t.ravel()
-    d = d.ravel()
-    npts = len(t)
-    if len(d) != npts:
-        raise ValueError('len(d) is {} but len(t) is {}'.
-                         format(len(d), npts))
-
-    # determine if using single or double field:
-    n = len(form.format(1, 1))
-    if n != 16 and n != 32:
-        raise ValueError('`form` produces a {} length string. It '
-                         'must be 16 or 32.'.format(n))
-    if title:
-        f.write('$ {:s}\n'.format(title))
-    if n == 32:
-        tablestr = tablestr + '*'
-        f.write('{:<8s}{:16d}\n*\n'.format(tablestr, tid))
-        rows = npts // 2
-        r = rows * 2
-        writer.vecwrite(f, '*       ' + form * 2 + '\n',
-                        t[:r:2], d[:r:2], t[1:r:2], d[1:r:2])
-        f.write('*       ')
-        for j in range(r, npts):
-            f.write(form.format(t[j], d[j]))
-    else:
-        f.write('{:<8s}{:8d}\n'.format(tablestr, tid))
-        rows = npts // 4
-        r = rows * 4
-        writer.vecwrite(f, '        ' + form * 4 + '\n',
-                        t[:r:4], d[:r:4], t[1:r:4], d[1:r:4],
-                        t[2:r:4], d[2:r:4], t[3:r:4], d[3:r:4])
-        f.write('        ')
-        for j in range(r, npts):
-            f.write(form.format(t[j], d[j]))
-    f.write('ENDT\n')
-
-
+@ytools.write_text_file
 def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
               tablestr="TABLED1"):
     """
@@ -1282,11 +1207,10 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     tid : integer
         ID for TABLED1 card
     t : 1d array_like
@@ -1339,8 +1263,42 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
     *                   1.00         1.00000            2.00         2.00000
     *                   3.00         3.00000ENDT
     """
-    return ytools.wtfile(f, _wttabled1, tid, t, d,
-                         title, form, tablestr)
+    t, d = np.atleast_1d(t, d)
+    t = t.ravel()
+    d = d.ravel()
+    npts = len(t)
+    if len(d) != npts:
+        raise ValueError('len(d) is {} but len(t) is {}'.
+                         format(len(d), npts))
+
+    # determine if using single or double field:
+    n = len(form.format(1, 1))
+    if n != 16 and n != 32:
+        raise ValueError('`form` produces a {} length string. It '
+                         'must be 16 or 32.'.format(n))
+    if title:
+        f.write('$ {:s}\n'.format(title))
+    if n == 32:
+        tablestr = tablestr + '*'
+        f.write('{:<8s}{:16d}\n*\n'.format(tablestr, tid))
+        rows = npts // 2
+        r = rows * 2
+        writer.vecwrite(f, '*       ' + form * 2 + '\n',
+                        t[:r:2], d[:r:2], t[1:r:2], d[1:r:2])
+        f.write('*       ')
+        for j in range(r, npts):
+            f.write(form.format(t[j], d[j]))
+    else:
+        f.write('{:<8s}{:8d}\n'.format(tablestr, tid))
+        rows = npts // 4
+        r = rows * 4
+        writer.vecwrite(f, '        ' + form * 4 + '\n',
+                        t[:r:4], d[:r:4], t[1:r:4], d[1:r:4],
+                        t[2:r:4], d[2:r:4], t[3:r:4], d[3:r:4])
+        f.write('        ')
+        for j in range(r, npts):
+            f.write(form.format(t[j], d[j]))
+    f.write('ENDT\n')
 
 
 def bulk2uset(*args):
@@ -1427,17 +1385,15 @@ def rdwtbulk(fin, fout):
     Parameters
     ----------
     fin : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
-    fout : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    fout : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
 
     Returns
     -------
@@ -1455,6 +1411,7 @@ def rdwtbulk(fin, fout):
         from pyyeti import nastran
         nastran.rdwtbulk('meco1.out', 'meco1.blk')
     """
+    @ytools.read_text_file
     def _rdbulk(f):
         fsearch(f, "COUNT        .   1  ..   2  ..   3")
         s = []
@@ -1474,13 +1431,14 @@ def rdwtbulk(fin, fout):
                 s.append(match)
         return '\n'.join(s) + '\n'
 
+    @ytools.write_text_file
     def _wtbulk(f, blk):
         f.write(blk)
 
-    blk = ytools.rdfile(fin, _rdbulk)
-    return ytools.wtfile(fout, _wtbulk, blk)
+    _wtbulk(fout, _rdbulk(fin))
 
 
+@ytools.read_text_file
 def rdeigen(f, use_pandas=True):
     """
     Read eigenvalue tables from a Nastran f06 file.
@@ -1488,11 +1446,10 @@ def rdeigen(f, use_pandas=True):
     Parameters
     ----------
     f : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     use_pandas : bool; optional
         If True, the values with be pandas objects
 
@@ -1553,24 +1510,22 @@ def rdeigen(f, use_pandas=True):
                 break
         return np.array(table)
 
-    def _rdeigen(f, use_pandas):
-        dct = {}
-        f.seek(0, 0)
-        while True:
-            se = _find_eigen(f)
-            if se is None:
-                return dct
-            table = _rd_eigen_table(f)
-            if use_pandas:
-                i = table[:, 0].astype(int)
-                c = ['mode #', 'ext #', 'eigenvalue', 'radians',
-                     'cycles', 'genmass', 'genstif']
-                table = pd.DataFrame(table, index=i, columns=c)
-            dct[se] = table
-
-    return ytools.rdfile(f, _rdeigen, use_pandas)
+    dct = {}
+    f.seek(0, 0)
+    while True:
+        se = _find_eigen(f)
+        if se is None:
+            return dct
+        table = _rd_eigen_table(f)
+        if use_pandas:
+            i = table[:, 0].astype(int)
+            c = ['mode #', 'ext #', 'eigenvalue', 'radians',
+                 'cycles', 'genmass', 'genstif']
+            table = pd.DataFrame(table, index=i, columns=c)
+        dct[se] = table
 
 
+@ytools.write_text_file
 def wtnasints(f, start, ints):
     """
     Utility routine for the nastran 'wt*' routines.
@@ -1578,11 +1533,10 @@ def wtnasints(f, start, ints):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     start : integer
         Beginning field for the integers; card name is in field 1, so
         start should be >= 2.
@@ -1601,24 +1555,21 @@ def wtnasints(f, start, ints):
                    8       9      10      11      12      13      14      15
                   16      17      18      19
     """
-    def _wtints(f, start, ints):
-        n = len(ints)
-        firstline = 10 - start
-        if n >= firstline:
-            i = firstline
-            f.write(('{:8d}' * i + '\n').format(*ints[:i]))
-            while n >= i + 8:
-                f.write(('{:8s}' + '{:8d}' * 8 + '\n').
-                        format('', *ints[i:i + 8]))
-                i += 8
-            if n > i:
-                n -= i
-                f.write(('{:8s}' + '{:8d}' * n + '\n').
-                        format('', *ints[i:]))
-        else:
-            f.write(('{:8d}' * n + '\n').format(*ints))
-
-    return ytools.wtfile(f, _wtints, start, ints)
+    n = len(ints)
+    firstline = 10 - start
+    if n >= firstline:
+        i = firstline
+        f.write(('{:8d}' * i + '\n').format(*ints[:i]))
+        while n >= i + 8:
+            f.write(('{:8s}' + '{:8d}' * 8 + '\n').
+                    format('', *ints[i:i + 8]))
+            i += 8
+        if n > i:
+            n -= i
+            f.write(('{:8s}' + '{:8d}' * n + '\n').
+                    format('', *ints[i:]))
+    else:
+        f.write(('{:8d}' * n + '\n').format(*ints))
 
 
 def rdcsupers(f):
@@ -1628,11 +1579,10 @@ def rdcsupers(f):
     Parameters
     ----------
     f : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
 
     Returns
     -------
@@ -1669,11 +1619,10 @@ def rdextrn(f, expand=True):
     Parameters
     ----------
     f : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     expand : bool; optional
         If True, expand rows like this::
 
@@ -1733,6 +1682,7 @@ def rdextrn(f, expand=True):
     return extrn
 
 
+@ytools.write_text_file
 def wtcsuper(f, superid, grids):
     """
     Writes a Nastran CSUPER card to a file.
@@ -1740,11 +1690,10 @@ def wtcsuper(f, superid, grids):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     superid : integer
         Superelement ID
     grids : 1d array_like
@@ -1762,12 +1711,11 @@ def wtcsuper(f, superid, grids):
     CSUPER       100       0       1       2       3       4       5       6
                    7       8       9
     """
-    def _wtcsuper(f, superid, grids):
-        f.write('CSUPER  {:8d}{:8d}'.format(superid, 0))
-        wtnasints(f, 4, grids)
-    return ytools.wtfile(f, _wtcsuper, superid, grids)
+    f.write('CSUPER  {:8d}{:8d}'.format(superid, 0))
+    wtnasints(f, 4, grids)
 
 
+@ytools.write_text_file
 def wtspc1(f, eid, dof, grids, name='SPC1'):
     """
     Writes a Nastran SPC1 (or similar) card to a file.
@@ -1775,11 +1723,10 @@ def wtspc1(f, eid, dof, grids, name='SPC1'):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     eid : integer
         Element ID
     dof : integer
@@ -1808,12 +1755,11 @@ def wtspc1(f, eid, dof, grids, name='SPC1'):
                 2015    2016    2017    2018    2019    2020    2021    2022
                 2023    2024    2025    2026    2027    2028    2029    2030
     """
-    def _wtspc1(f, eid, dof, grids, name):
-        f.write('{:<8s}{:8d}{:8d}'.format(name, eid, dof))
-        wtnasints(f, 4, grids)
-    return ytools.wtfile(f, _wtspc1, eid, dof, grids, name)
+    f.write('{:<8s}{:8d}{:8d}'.format(name, eid, dof))
+    wtnasints(f, 4, grids)
 
 
+@ytools.write_text_file
 def wtxset1(f, dof, grids, name="BSET1"):
     """
     Writes a Nastran BSET1, QSET1 (or similar) card to a file.
@@ -1821,11 +1767,10 @@ def wtxset1(f, dof, grids, name="BSET1"):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     dof : integer
         An integer concatenation of the DOF (ex: 123456)
     grids : 1d array_like
@@ -1849,12 +1794,11 @@ def wtxset1(f, dof, grids, name="BSET1"):
     QSET1          0    2001    2002    2003    2004    2005    2006    2007
                 2008    2009    2010    2011    2012
     """
-    def _wtxset1(f, dof, grids, name):
-        f.write('{:<8s}{:8d}'.format(name, dof))
-        wtnasints(f, 3, grids)
-    return ytools.wtfile(f, _wtxset1, dof, grids, name)
+    f.write('{:<8s}{:8d}'.format(name, dof))
+    wtnasints(f, 3, grids)
 
 
+@ytools.write_text_file
 def wtqcset(f, startgrid, nq):
     """
     Writes Nastran QSET1 and CSET1 cards for GRID modal DOF for use in
@@ -1863,11 +1807,10 @@ def wtqcset(f, startgrid, nq):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     startgrid : integer
         The start ID for the modal grids that need to be assigned to
         the Q-set and C-set. Any extra DOF are assigned to the C-set.
@@ -1888,37 +1831,35 @@ def wtqcset(f, startgrid, nq):
     QSET1         12  990003
     CSET1       3456  990003
     """
-    def _wtqcset(f, startgrid, nq):
-        ngrids = (nq + 5) // 6
-        endgrid = startgrid + ngrids - 1
-        xdof = nq - 6 * (ngrids - 1)
-        xdofs = '123456'[:xdof]
-        cdofs = '123456'[xdof:]
-        # write qset and cset cards:
-        if xdof == 6:
-            if ngrids > 1:
-                f.write('{:<8s}{:8d}{:8d}{:<8s}{:8d}\n'.
-                        format('QSET1', 123456,
-                               startgrid, ' THRU ', endgrid))
-            else:
-                f.write('{:<8s}{:8d}{:8d}\n'.
-                        format('QSET1', 123456, startgrid))
+    ngrids = (nq + 5) // 6
+    endgrid = startgrid + ngrids - 1
+    xdof = nq - 6 * (ngrids - 1)
+    xdofs = '123456'[:xdof]
+    cdofs = '123456'[xdof:]
+    # write qset and cset cards:
+    if xdof == 6:
+        if ngrids > 1:
+            f.write('{:<8s}{:8d}{:8d}{:<8s}{:8d}\n'.
+                    format('QSET1', 123456,
+                           startgrid, ' THRU ', endgrid))
         else:
-            if ngrids > 2:
-                f.write('{:<8s}{:8d}{:8d}{:<8s}{:8d}\n'.
-                        format('QSET1', 123456,
-                               startgrid, ' THRU ', endgrid - 1))
-            elif ngrids == 2:
-                f.write('{:<8s}{:8d}{:8d}\n'.
-                        format('QSET1', 123456, startgrid))
-            f.write('{:<8s}{:>8s}{:8d}\n'.
-                    format('QSET1', xdofs, endgrid))
-            f.write('{:<8s}{:>8s}{:8d}\n'.
-                    format('CSET1', cdofs, endgrid))
+            f.write('{:<8s}{:8d}{:8d}\n'.
+                    format('QSET1', 123456, startgrid))
+    else:
+        if ngrids > 2:
+            f.write('{:<8s}{:8d}{:8d}{:<8s}{:8d}\n'.
+                    format('QSET1', 123456,
+                           startgrid, ' THRU ', endgrid - 1))
+        elif ngrids == 2:
+            f.write('{:<8s}{:8d}{:8d}\n'.
+                    format('QSET1', 123456, startgrid))
+        f.write('{:<8s}{:>8s}{:8d}\n'.
+                format('QSET1', xdofs, endgrid))
+        f.write('{:<8s}{:>8s}{:8d}\n'.
+                format('CSET1', cdofs, endgrid))
 
-    return ytools.wtfile(f, _wtqcset, startgrid, nq)
 
-
+@ytools.write_text_file
 def wtrbe2(f, eid, indep, dof, dep):
     """
     Writes a Nastran RBE2 card to a file.
@@ -1926,11 +1867,10 @@ def wtrbe2(f, eid, indep, dof, dep):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     eid : integer
         Element ID
     indep : integer
@@ -1952,12 +1892,11 @@ def wtrbe2(f, eid, indep, dof, dep):
     RBE2           1     100  123456     101     102     103     104     105
                  106     107     108     109     110
     """
-    def _wtrbe2(f, eid, indep, dof, dep):
-        f.write('RBE2    {:8d}{:8d}{:8d}'.format(eid, indep, dof))
-        wtnasints(f, 5, dep)
-    return ytools.wtfile(f, _wtrbe2, eid, indep, dof, dep)
+    f.write('RBE2    {:8d}{:8d}{:8d}'.format(eid, indep, dof))
+    wtnasints(f, 5, dep)
 
 
+@ytools.write_text_file
 def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
            UM_List=None, alpha=None):
     """
@@ -1966,11 +1905,10 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     eid : integer
         Element ID
     GRID_dep : integer
@@ -2029,61 +1967,59 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
                         9904       3
             ALPHA     6.5e-6
     """
-    def _wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List, alpha):
-        f.write('RBE3    {:8d}        {:8d}{:8d}'.
-                format(eid, GRID_dep, DOF_dep))
-        field = 5
-
-        def _Inc_Field(f, field):
-            field += 1
-            if field == 10:
-                f.write('\n        ')
-                field = 2
-            return field
-
-        # loop over independents
-        for j in range(0, len(Ind_List), 2):
-            DOF_ind = np.atleast_1d(Ind_List[j])
-            GRIDS_ind = np.atleast_1d(Ind_List[j + 1])
-            dof = int(DOF_ind[0])
-            if len(DOF_ind) == 2:
-                wt = float(DOF_ind[1])
-            else:
-                wt = 1.0
-            field = _Inc_Field(f, field)
-            f.write('{:8.3f}'.format(wt))
-            field = _Inc_Field(f, field)
-            f.write('{:8d}'.format(dof))
-            for g in GRIDS_ind:
-                field = _Inc_Field(f, field)
-                f.write('{:8d}'.format(g))
-        f.write('\n')
-
-        def _Inc_UM_Field(f, field):
-            field += 1
-            if field == 9:
-                f.write('\n                ')
-                field = 3
-            return field
-
-        if UM_List is not None:
-            f.write('        UM      ')
-            field = 2
-            for j in UM_List:
-                field = _Inc_UM_Field(f, field)
-                f.write('{:8d}'.format(j))
-            f.write('\n')
-
-        if alpha is not None:
-            f.write('        ALPHA   {:>8s}\n'.format(alpha))
-
     if len(Ind_List) & 1:
         raise ValueError('`Ind_List` must have even length '
                          '(it is {})'.format(len(Ind_List)))
-    return ytools.wtfile(f, _wtrbe3, eid, GRID_dep, DOF_dep,
-                         Ind_List, UM_List, alpha)
+
+    f.write('RBE3    {:8d}        {:8d}{:8d}'.
+            format(eid, GRID_dep, DOF_dep))
+    field = 5
+
+    def _Inc_Field(f, field):
+        field += 1
+        if field == 10:
+            f.write('\n        ')
+            field = 2
+        return field
+
+    # loop over independents
+    for j in range(0, len(Ind_List), 2):
+        DOF_ind = np.atleast_1d(Ind_List[j])
+        GRIDS_ind = np.atleast_1d(Ind_List[j + 1])
+        dof = int(DOF_ind[0])
+        if len(DOF_ind) == 2:
+            wt = float(DOF_ind[1])
+        else:
+            wt = 1.0
+        field = _Inc_Field(f, field)
+        f.write('{:8.3f}'.format(wt))
+        field = _Inc_Field(f, field)
+        f.write('{:8d}'.format(dof))
+        for g in GRIDS_ind:
+            field = _Inc_Field(f, field)
+            f.write('{:8d}'.format(g))
+    f.write('\n')
+
+    def _Inc_UM_Field(f, field):
+        field += 1
+        if field == 9:
+            f.write('\n                ')
+            field = 3
+        return field
+
+    if UM_List is not None:
+        f.write('        UM      ')
+        field = 2
+        for j in UM_List:
+            field = _Inc_UM_Field(f, field)
+            f.write('{:8d}'.format(j))
+        f.write('\n')
+
+    if alpha is not None:
+        f.write('        ALPHA   {:>8s}\n'.format(alpha))
 
 
+@ytools.write_text_file
 def wtseset(f, superid, grids):
     """
     Writes a Nastran SESET card to a file.
@@ -2091,11 +2027,10 @@ def wtseset(f, superid, grids):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     superid: integer
         Superelement ID
     grids : 1d array_like
@@ -2115,20 +2050,19 @@ def wtseset(f, superid, grids):
     SESET        100      15      16      17      18      19      20      21
     SESET        100      22      23      24      25
     """
-    def _wtseset(f, superid, grids):
-        n = len(grids)
-        # 7 grids per SESET:
-        frm = 'SESET   {:8d}' + '{:8d}' * 7 + '\n'
-        i = 0
-        while i + 7 <= n:
-            f.write(frm.format(superid, *grids[i:i + 7]))
-            i += 7
-        if i < n:
-            frm = 'SESET   {:8d}' + '{:8d}' * (n - i) + '\n'
-            f.write(frm.format(superid, *grids[i:]))
-    return ytools.wtfile(f, _wtseset, superid, grids)
+    n = len(grids)
+    # 7 grids per SESET:
+    frm = 'SESET   {:8d}' + '{:8d}' * 7 + '\n'
+    i = 0
+    while i + 7 <= n:
+        f.write(frm.format(superid, *grids[i:i + 7]))
+        i += 7
+    if i < n:
+        frm = 'SESET   {:8d}' + '{:8d}' * (n - i) + '\n'
+        f.write(frm.format(superid, *grids[i:]))
 
 
+@ytools.write_text_file
 def wtset(f, setid, ids):
     """
     Writes a Nastran case-control SET card to a file.
@@ -2136,11 +2070,10 @@ def wtset(f, setid, ids):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     setid: integer
         Set ID
     ids : 1d array_like
@@ -2160,58 +2093,19 @@ def wtset(f, setid, ids):
      15, 16, 17, 18, 19, 20, 21,
      22, 23, 24, 25
     """
-    def _wtset(f, setid, ids):
-        f.write('SET {:d} ='.format(setid))
-        n = len(ids)
-        # 7 ids per line:
-        frm = ' {:d},' * 7 + '\n'
-        i = 0
-        while i + 7 < n:
-            f.write(frm.format(*ids[i:i + 7]))
-            i += 7
-        frm = ' {:d},' * (n - i - 1) + ' {:d}\n'
-        f.write(frm.format(*ids[i:]))
-    return ytools.wtfile(f, _wtset, setid, ids)
+    f.write('SET {:d} ='.format(setid))
+    n = len(ids)
+    # 7 ids per line:
+    frm = ' {:d},' * 7 + '\n'
+    i = 0
+    while i + 7 < n:
+        f.write(frm.format(*ids[i:i + 7]))
+        i += 7
+    frm = ' {:d},' * (n - i - 1) + ' {:d}\n'
+    f.write(frm.format(*ids[i:]))
 
 
-def _wtrspline(f, rid, ids, nper, DoL):
-    """
-    Routine used by :func:`wtrspline`. See documentation for
-    :func:`wtrspline`.
-    """
-    ids = np.atleast_2d(ids)
-    N = ids.shape[0]
-    if N < 3:
-        raise ValueError('not enough grids for RSPLINE')
-    dof = ['123456', '']
-    ind = ids[:, 1].astype(np.int64)
-    ids = ids[:, 0]
-    ind[0] = ind[-1] = 1
-    j = 0
-    while j < N - 1:
-        f.write('RSPLINE {:8}{:>8}{:8}'.format(rid, DoL, ids[j]))
-        rid += 1
-        j += 1
-        pos = 5
-        count = 1
-        done = 0
-        # write all but last grid of current segment:
-        while not done and j < N - 1:
-            f.write('{:8}'.format(ids[j]))
-            pos += 1
-            count += 1
-            if pos == 10:
-                f.write('\n        ')
-                pos = 2
-            f.write('{:>8}'.format(dof[ind[j]]))
-            j += 1
-            pos += 1
-            if ind[j] and count > nper:
-                done = 1
-        # write last grid for this rspline
-        f.write('{:8}\n'.format(ids[j]))
-
-
+@ytools.write_text_file
 def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
     """
     Write Nastran RSPLINE card(s).
@@ -2219,11 +2113,10 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     rid : integer
         ID for 1st RSPLINE; gets incremented by 1 for each RSPLINE
     ids : 2d array_like
@@ -2274,7 +2167,37 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
     RSPLINE       10     0.1     100     101  123456     102  123456     103
                          104  123456     105
     """
-    return ytools.wtfile(f, _wtrspline, rid, ids, nper, DoL)
+    ids = np.atleast_2d(ids)
+    N = ids.shape[0]
+    if N < 3:
+        raise ValueError('not enough grids for RSPLINE')
+    dof = ['123456', '']
+    ind = ids[:, 1].astype(np.int64)
+    ids = ids[:, 0]
+    ind[0] = ind[-1] = 1
+    j = 0
+    while j < N - 1:
+        f.write('RSPLINE {:8}{:>8}{:8}'.format(rid, DoL, ids[j]))
+        rid += 1
+        j += 1
+        pos = 5
+        count = 1
+        done = 0
+        # write all but last grid of current segment:
+        while not done and j < N - 1:
+            f.write('{:8}'.format(ids[j]))
+            pos += 1
+            count += 1
+            if pos == 10:
+                f.write('\n        ')
+                pos = 2
+            f.write('{:>8}'.format(dof[ind[j]]))
+            j += 1
+            pos += 1
+            if ind[j] and count > nper:
+                done = 1
+        # write last grid for this rspline
+        f.write('{:8}\n'.format(ids[j]))
 
 
 def _intersect(circA, circB, xyA, draw=False):
@@ -2527,73 +2450,6 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
     ax.get_figure().tight_layout()
 
 
-def _wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
-                     rbe2_id0, cord_id, makeplot, nper, DoL,
-                     independent):
-    """
-    Routine used by :func:`wtrspline`. See documentation for
-    :func:`wtrspline`.
-    """
-    IDs = []
-    xyz = []
-    for ring, name in ((r1grids, 'r1grids'),
-                       (r2grids, 'r2grids')):
-        if isinstance(ring, pd.DataFrame):
-            r = ring.shape[0]
-            if (r // 6) * 6 != r:
-                raise ValueError('number of rows `{}` is not '
-                                 'multiple of 6 for USET input'.
-                                 format(name))
-            IDs.append(ring.index.get_level_values('id')[::6])
-            xyz.append(ring.iloc[::6, 1:].values)
-        else:
-            ring = np.atleast_2d(ring)
-            IDs.append(ring[:, 0].astype(np.int64))
-            xyz.append(ring[:, 1:])
-
-    # fit both circles:
-    circ_parms = [ytools.fit_circle_3d(xyz[i].T) for i in (0, 1)]
-
-    # z axes better be aligned:
-    _check_z_alignment(circ_parms, 0.99)
-
-    # use 1st basic2local transform on second set of data to get all
-    # coordinates in same local system:
-    basic2local = circ_parms[0].basic2local
-    center = circ_parms[0].center
-    circ_parms[1].local = basic2local @ (xyz[1] - center).T
-
-    # the center point will often have near-zeros but be numerically
-    # off ... check for this and adjust if that's the case:
-    radius = circ_parms[0].radius
-    for i, value in enumerate(center):
-        if abs(value) < 1e-9 * radius:
-            center[i] = 0.0
-
-    # write local coordinate system to file:
-    _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0],
-                      node_id0)
-
-    # create new nodes that will be RBE2'd to ring 1 nodes, but
-    # located on ring 2 circle
-    # - these nodes will be defined in the local system but output in
-    #   basic
-    newpts, newids = _wtgrids_rbe2s(
-        f, circ_parms, center, basic2local, cord_id,
-        node_id0, rbe2_id0, IDs[0])
-
-    # rspline will tie the 'newpts' and the ring 2 nodes together:
-    rspline_nodes = _sort_n_write(
-        f, independent, circ_parms, newpts, newids,
-        IDs[1], rspline_id0, nper, DoL)
-
-    ax = ytools._check_makeplot(makeplot, figsize=[8, 6], need3d=True)
-    if ax:
-        _plot_rspline(
-            ax, circ_parms, xyz, newpts, newids, basic2local, center,
-            rspline_nodes, IDs[1])
-
-
 def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
                     rbe2_id0=None, cord_id=None, makeplot='new',
                     nper=1, DoL='0.1', independent='ring1'):
@@ -2603,11 +2459,10 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     r1grids : 2d array_like or DataFrame
         Contains the ids and locations of the ring 1 grids in basic
         coordinates. If 2d array_like, it has 4 columns describing
@@ -2789,9 +2644,65 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         rbe2_id0 = node_id0
     if cord_id is None:
         cord_id = node_id0 * 10
-    return ytools.wtfile(f, _wtrspline_rings, r1grids, r2grids,
-                         node_id0, rspline_id0, rbe2_id0, cord_id,
-                         makeplot, nper, DoL, independent)
+
+    IDs = []
+    xyz = []
+    for ring, name in ((r1grids, 'r1grids'),
+                       (r2grids, 'r2grids')):
+        if isinstance(ring, pd.DataFrame):
+            r = ring.shape[0]
+            if (r // 6) * 6 != r:
+                raise ValueError('number of rows `{}` is not '
+                                 'multiple of 6 for USET input'.
+                                 format(name))
+            IDs.append(ring.index.get_level_values('id')[::6])
+            xyz.append(ring.iloc[::6, 1:].values)
+        else:
+            ring = np.atleast_2d(ring)
+            IDs.append(ring[:, 0].astype(np.int64))
+            xyz.append(ring[:, 1:])
+
+    # fit both circles:
+    circ_parms = [ytools.fit_circle_3d(xyz[i].T) for i in (0, 1)]
+
+    # z axes better be aligned:
+    _check_z_alignment(circ_parms, 0.99)
+
+    # use 1st basic2local transform on second set of data to get all
+    # coordinates in same local system:
+    basic2local = circ_parms[0].basic2local
+    center = circ_parms[0].center
+    circ_parms[1].local = basic2local @ (xyz[1] - center).T
+
+    # the center point will often have near-zeros but be numerically
+    # off ... check for this and adjust if that's the case:
+    radius = circ_parms[0].radius
+    for i, value in enumerate(center):
+        if abs(value) < 1e-9 * radius:
+            center[i] = 0.0
+
+    # write local coordinate system to file:
+    _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0],
+                      node_id0)
+
+    # create new nodes that will be RBE2'd to ring 1 nodes, but
+    # located on ring 2 circle
+    # - these nodes will be defined in the local system but output in
+    #   basic
+    newpts, newids = _wtgrids_rbe2s(
+        f, circ_parms, center, basic2local, cord_id,
+        node_id0, rbe2_id0, IDs[0])
+
+    # rspline will tie the 'newpts' and the ring 2 nodes together:
+    rspline_nodes = _sort_n_write(
+        f, independent, circ_parms, newpts, newids,
+        IDs[1], rspline_id0, nper, DoL)
+
+    ax = ytools._check_makeplot(makeplot, figsize=[8, 6], need3d=True)
+    if ax:
+        _plot_rspline(
+            ax, circ_parms, xyz, newpts, newids, basic2local, center,
+            rspline_nodes, IDs[1])
 
 
 def wtvcomp(f, baa, kaa, bset, spoint1):
@@ -2801,11 +2712,10 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     baa : 2d array_like
         Craig-Bampton damping matrix
     kaa : 2d array_like
@@ -2854,6 +2764,7 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
     bd = np.diag(baa[qq])
     zeta = bd / (2 * np.sqrt(kd))
 
+    @ytools.write_text_file
     def _wtvcomp(f, zeta, spoint1):
         f.write('$ Critical damping ratios:\n')
         f.write('DMIG    VCOMP          0       9       1'
@@ -2863,7 +2774,7 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
         writer.vecwrite(f, '*       {:16d}{:16d}{:16.10g}\n',
                         spoint1 + np.arange(len(zeta)), 0, zeta)
 
-    return ytools.wtfile(f, _wtvcomp, zeta, spoint1)
+    _wtvcomp(f, zeta, spoint1)
 
 
 def wtcoordcards(f, ci):
@@ -2873,11 +2784,10 @@ def wtcoordcards(f, ci):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     ci : dictionary or None
         Dictionary of coordinate card info as returned by
         :func:`pyyeti.nastran.n2p.mkcordcardinfo`. If None or if dict
@@ -2908,6 +2818,7 @@ def wtcoordcards(f, ci):
     if ci is None or len(ci) == 0:
         return
 
+    @ytools.write_text_file
     def _wtcoords(f, ci):
         for k in ci:
             data = ci[k]  # [name, [[id, type, ref]; A; B; C]]
@@ -2921,9 +2832,10 @@ def wtcoordcards(f, ci):
             f.write(('{:<8s}' + '{:16.8e}' * 3 + '\n').
                     format('*', *coord[3]))
 
-    return ytools.wtfile(f, _wtcoords, ci)
+    _wtcoords(f, ci)
 
 
+@ytools.write_text_file
 def wtextrn(f, ids, dof):
     """
     Writes a Nastran EXTRN card to a file.
@@ -2931,11 +2843,10 @@ def wtextrn(f, ids, dof):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     ids : 1d array_like
         Vector of node ids
     dof : 1d array_like
@@ -2957,14 +2868,11 @@ def wtextrn(f, ids, dof):
     EXTRN        999  123456   10001       0   10002       0   10003       0
                10004       0   10005       0
     """
-    def _wtextrn(f, ids, dof):
-        f.write('EXTRN   ')
-        ints = np.zeros(len(ids) * 2, dtype=int)
-        ints[::2] = ids
-        ints[1::2] = dof
-        wtnasints(f, 2, ints)
-
-    return ytools.wtfile(f, _wtextrn, ids, dof)
+    f.write('EXTRN   ')
+    ints = np.zeros(len(ids) * 2, dtype=int)
+    ints[::2] = ids
+    ints[1::2] = dof
+    wtnasints(f, 2, ints)
 
 
 def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
@@ -3264,11 +3172,10 @@ def rddtipch(f, name='TUG1'):
     Parameters
     ----------
     f : string or file_like or None
-        Input for :func:`pyyeti.ytools.rdfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open`. If
-        file_like object, it is rewound first. Can also be the name of
-        a directory or None; in these cases, a GUI is opened for file
-        selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
     name : string
         Name of DTI table to read from the .pch file
 

@@ -258,3 +258,9 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
     - it's cumbersome the way it is now
 
 83. rddmig reads upper case names for op2, lower for pch?
+
+84. update guitools to Qt ... I think (this was nearly done i think
+    ... just never finalized it (see ~/python/gui/guitools_qt.py))
+
+85. update the numpy docstring output to be current (right now, still
+    using v 1.13)

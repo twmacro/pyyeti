@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Some math and I/O tools. Most are translated from Yeti to Python.
+Some math and I/O tools. The original set of functions provided by
+this module were originally translated from Yeti (now a dead language)
+to Python.
 """
 
 import pickle
@@ -10,6 +12,7 @@ import sys
 import contextlib
 import warnings
 from types import SimpleNamespace
+from functools import wraps
 import numpy as np
 import scipy.linalg as linalg
 from scipy.optimize import leastsq
@@ -1212,99 +1215,108 @@ def gensweep(ppc, fstart, fstop, rate):
     return sig, t, f
 
 
-def rdfile(f, rdfunc, *args, **kwargs):
+def read_text_file(rdfunc):
     r"""
-    Interface routine for other routines that read from a file.
+    Decorator that processes the file argument for reading
 
     Parameters
     ----------
-    f : string or file_like or None
-        Either a name of a file, or is a file_like object as returned
-        by :func:`open`. Can also be the name of a directory or None;
-        in these cases, a GUI is opened for file selection.
     rdfunc : function
-        Function that reads data from file; first argument is the
-        input file_like object.
-    *args, **kwargs : arguments
-        Arguments to pass to :func:`rdfunc`.
+        Function that reads text from a file. The first argument to
+        that function is a file argument. The file argument can be the
+        name of a file, or a file_like object as returned by
+        :func:`open` or :func:`io.StringIO`. It can also be the name
+        of a directory or None; in these cases, a GUI is opened for
+        file selection. For example, see
+        :func:`pyyeti.nastran.bulk.rdgrids`.
 
     Returns
     -------
-    res : any
-        Returns the output of :func:`rdfunc`
+    function
+        Function that processes the file argument before calling
+        `rdfunc`.
 
     See also
     --------
-    :func:`wtfile`
+    :func:`write_text_file`
 
     Examples
     --------
-    >>> from pyyeti.ytools import wtfile, rdfile
+    >>> from pyyeti.ytools import read_text_file, write_text_file
     >>> from io import StringIO
-    >>> def dowrite(f, string, number):
-    ...     f.write('{:s} = {:.3f}\n'.format(string, number))
-    >>> def doread(f):
+    >>> @read_text_file
+    ... def doread(f):
     ...     return f.readline()
+    >>> @write_text_file
+    ... def dowrite(f, string, number):
+    ...     f.write('{:s} = {:.3f}\n'.format(string, number))
     >>> with StringIO() as f:
-    ...     wtfile(f, dowrite, 'param', number=45.3)
+    ...     dowrite(f, 'param', number=45.3)
     ...     _ = f.seek(0, 0)
-    ...     s = rdfile(f, doread)
+    ...     s = doread(f)
     >>> s
     'param = 45.300\n'
     """
-    f = guitools.get_file_name(f, read=True)
-    if isinstance(f, str):
-        with open(f, 'r') as fin:
-            return rdfunc(fin, *args, **kwargs)
-    else:
-        return rdfunc(f, *args, **kwargs)
+    @wraps(rdfunc)
+    def mod_func(f, *args, **kwargs):
+        f = guitools.get_file_name(f, read=True)
+        if isinstance(f, str):
+            with open(f, 'r') as fin:
+                return rdfunc(fin, *args, **kwargs)
+        else:
+            return rdfunc(f, *args, **kwargs)
+    return mod_func
 
 
-def wtfile(f, wtfunc, *args, **kwargs):
+def write_text_file(wtfunc):
     r"""
-    Interface routine for other routines that write to a file.
+    Decorator that processes the file argument for writing
 
     Parameters
     ----------
-    f : string or file_like or 1 or None
-        Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`io.StringIO`. Input as integer 1 to
-        write to stdout (or use ``sys.stdout``). Can also be the name
-        of a directory or None; in these cases, a GUI is opened for
-        file selection. To write to a string, ``import io`` and set
-        ``f = io.StringIO()``; afterwards, retrieve string by
-        ``f.getvalue()``.
     wtfunc : function
-        Function that writes output; first argument is the output
-        file_like object.
-    *args, **kwargs : arguments
-        Arguments to pass to :func:`wtfunc`.
+        Function that writes text to a file. The first argument to
+        that function is a file argument. The file argument can be the
+        name of a file, or a file_like object as returned by
+        :func:`open` or :func:`io.StringIO`. It can also be input as
+        the integer 1 to write to stdout (or use
+        ``sys.stdout``). Finally, it can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection. To write to a string, ``import io`` and set ``f =
+        io.StringIO()``; afterwards, retrieve string by
+        ``f.getvalue()``. For example, see
+        :func:`pyyeti.nastran.bulk.wtgrids`.
 
     Returns
     -------
-    res : any
-        Returns the output of :func:`wtfunc`
+    function
+        Function that processes the file argument before calling
+        `wtfunc`.
 
     See also
     --------
-    :func:`rdfile`
+    :func:`read_text_file`
 
     Examples
     --------
-    >>> from pyyeti.ytools import wtfile
-    >>> def dowrite(f, string, number):
+    >>> from pyyeti.ytools import write_text_file
+    >>> @write_text_file
+    ... def dowrite(f, string, number):
     ...     f.write('{:s} = {:.3f}\n'.format(string, number))
-    >>> wtfile(1, dowrite, 'param', number=45.3)
+    >>> dowrite(1, 'param', number=45.3)
     param = 45.300
     """
-    f = guitools.get_file_name(f, read=False)
-    if isinstance(f, str):
-        with open(f, 'w') as fout:
-            return wtfunc(fout, *args, **kwargs)
-    else:
-        if f == 1:
-            f = sys.stdout
-        return wtfunc(f, *args, **kwargs)
+    @wraps(wtfunc)
+    def mod_func(f, *args, **kwargs):
+        f = guitools.get_file_name(f, read=False)
+        if isinstance(f, str):
+            with open(f, 'w') as fout:
+                return wtfunc(fout, *args, **kwargs)
+        else:
+            if f == 1:
+                f = sys.stdout
+            return wtfunc(f, *args, **kwargs)
+    return mod_func
 
 
 def _get_fopen(name, read=True):

@@ -1171,6 +1171,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     return s
 
 
+@ytools.write_text_file
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     """
     Routine used by :func:`rbmultchk`. See documentation for
@@ -1364,11 +1365,10 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     drm : 2d ndarray
         Data recovery matrix (DRM).
     name : string
@@ -1503,10 +1503,12 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     c = np.shape(rb)[1]
     if c != 6:
         raise ValueError('`rb` does not have 6 columns')
-    return ytools.wtfile(f, _rbmultchk, drm, name, rb, labels, drm2,
-                         prtnullrows, bset)
+
+    return _rbmultchk(f, drm, name, rb, labels, drm2,
+                      prtnullrows, bset)
 
 
+@ytools.write_text_file
 def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
     """
     Routine used by :func:`rbdispchk`. See documentation for
@@ -1588,11 +1590,10 @@ def rbdispchk(f, rbdisp, grids=None,
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     rbdisp : 2d ndarray
         Rigid-body displacements; size is 3*N x 6 where N is the
         number of nodes. Rows correspond to X, Y, Z triples for each
@@ -1699,10 +1700,10 @@ def rbdispchk(f, rbdisp, grids=None,
     if (r // 3) * 3 != r:
         raise ValueError('number of rows in `rbdisp` must be '
                          'a multiple of 3.')
-    return ytools.wtfile(f, _rbdispchk, rbdisp, grids, ttl,
-                         verbose, tol)
+    return _rbdispchk(f, rbdisp, grids, ttl, verbose, tol)
 
 
+@ytools.write_text_file
 def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
                 verbose, rb_normalizer):
     """
@@ -1830,11 +1831,10 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
         warnings from :func:`rbdispchk`. See also `refpoint` and
         `outfile`.
     outfile : string or file_like or 1 or None; optional
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     rb_normalizer : 2d array_like or None
         If not None, the `rbmodes` output will be normalized via::
 
@@ -1914,8 +1914,8 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     :func:`pyyeti.nastran.n2p.rbgeom`,
     :func:`pyyeti.nastran.n2p.rbgeom_uset`
     """
-    return ytools.wtfile(outfile, _cbcoordchk, K, bset, refpoint,
-                         grids, ttl, verbose, rb_normalizer)
+    return _cbcoordchk(outfile, K, bset, refpoint,
+                       grids, ttl, verbose, rb_normalizer)
 
 
 def _solve_eig(fout, k, m, mtype, ktype, types):
@@ -1978,370 +1978,7 @@ def _solve_eig(fout, k, m, mtype, ktype, types):
     return w, v
 
 
-def _cbcheck(fout, Mcb, Kcb, bseto, bref, uset, uref, conv, em_filt,
-             rb_norm, reorder):
-    """
-    Routine used by :func:`cbcheck`. See documentation for
-    :func:`cbcheck`.
-    """
-    n = np.size(Mcb, 0)
-
-    # check matrix properties:
-    mtype, types = ytools.mattype(Mcb)
-    ktype = ytools.mattype(Kcb)[0]
-    if mtype & types['symmetric']:
-        fout.write('Mass matrix is symmetric.\n')
-    else:
-        fout.write('Warning: mass matrix is not symmetric.\n')
-    if mtype & types['posdef']:
-        fout.write('Mass matrix is positive definite.\n')
-    else:
-        fout.write('Warning: mass matrix is not positive definite.\n')
-    if ktype & types['symmetric']:
-        fout.write('Stiffness matrix is symmetric.\n')
-    else:
-        fout.write('Warning: stiffness matrix is not symmetric.\n')
-
-    # some input checks:
-    if uset is None:
-        uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
-        uref = 1
-
-    nb = len(bseto)
-    if uset.shape[0] != nb:
-        raise ValueError('number of rows in `uset` is {}, but must '
-                         'equal len(b-set) ({})'.
-                         format(uset.shape[0], nb))
-
-    # convert units if necessary:
-    if conv is not None:
-        m = cbconvert(Mcb, bseto, conv)
-        k = cbconvert(Kcb, bseto, conv)
-        uset, uref = _uset_convert(uset, uref, conv)
-    else:
-        m = Mcb
-        k = Kcb
-
-    if reorder:
-        # reorder mass and stiffness:
-        m = cbreorder(m, bseto)
-        k = cbreorder(k, bseto)
-        i = np.argsort(bseto)
-        uset = uset.iloc[i]
-
-        # define "new" order of b-set:
-        b = locate.index2bool(bref, n)
-        bset = np.arange(nb)
-        bref = np.nonzero(b[bseto])[0]  # where ref is in new bset
-    else:
-        bset = np.sort(bseto)
-        if not (bset == bseto).all():
-            raise ValueError('when `reorder` is False, `bseto` must'
-                             ' be in ascending order')
-
-    # check for appropriate zeros:
-    qset = locate.flippv(bset, n)
-    nq = len(qset)
-    B = np.ix_(bset, bset)
-    Q = np.ix_(qset, qset)
-    QB = np.ix_(qset, bset)
-    mbb = m[B]
-    mqq = m[Q]
-    kbb = k[B]
-    kqq = k[Q]
-    error_flag = 0
-    mattol = 1.0e-12
-
-    def _prt_chk_str(fout, formstr, err, tol,
-                     good='Okay', bad='CHECK!', switch=False):
-        if err > tol:
-            flag = 1
-            status = bad
-        else:
-            flag = 0
-            status = good
-        formstr = formstr + ' {}\n'
-        if switch:
-            err = tol
-        fout.write(formstr.format(err, status))
-        return flag
-
-    fout.write('\nMass values check:\n')
-    mxmqqerr = np.max(np.abs(np.diag(mqq) - 1.0))
-    error_flag += _prt_chk_str(
-        fout, ('\tMaximum value of diag(MQQ)-1.0    = {:11g}'
-               '  (should be zero)'), mxmqqerr, mattol)
-    mxmqqerr = abs(mqq - np.diag(np.diag(mqq))).max()
-    error_flag += _prt_chk_str(
-        fout, ('\tMaximum off-diagonal value of MQQ = {:11g}'
-               '  (should be zero)'), mxmqqerr, mattol)
-
-    mnkqq = np.min(np.diag(kqq))
-    mxkqqerr = np.max(np.abs(kqq - np.diag(np.diag(kqq))))
-    mxkbb = np.max(np.abs(kbb))
-    mxkbq = abs(k[bset][:, qset]).max()
-    fout.write('\nStiffness values checks:\n')
-    _prt_chk_str(
-        fout, ('\tMaximum value of KBB              = {:11g}'
-               '  (should be zero only if statically-determinate)'),
-        mxkbb, mattol, good='check', bad='check')
-    error_flag += _prt_chk_str(
-        fout, ('\tMaximum value of KBQ              = {:11g}'
-               '  (should be zero)'), mxkbq, mattol)
-    error_flag += _prt_chk_str(
-        fout, ('\tMaximum off-diagonal value of KQQ = {:11g}'
-               '  (should be zero)'), mxkqqerr, mattol)
-
-    # print warning on frequencies less then 1/(2 pi):
-    error_flag += _prt_chk_str(
-        fout, ('\tMinimum diagonal value of KQQ     = {:11g}'
-               '  (should be > zero)'), 1.0, mnkqq, switch=True)
-
-    if error_flag > 0:
-        fout.write('\n\nWARNING!: check mass and stiffness carefully'
-                   ' (see above).\nAny failed checks need to be '
-                   'resolved before CLA.\n')
-
-    if nb == 6 and mxkbb > 0:
-        fout.write('Echoing KBB for visual inspection since max(KBB)'
-                   ' != 0:\n')
-        fout.write('KBB =\n')
-        form = '\t' + ('{:7.4f}  ') * 5 + '{:7.4f}\n'
-        writer.vecwrite(fout, form, kbb)
-        fout.write('\n\tNote: for comparison KQQ[0, 0] = {:.2f}.\n\n'.
-                   format(kqq[0, 0]))
-
-    # Three types of rigid-body modes will be calculated:
-    #
-    #   1. Stiffness based
-    #   2. Geometry based
-    #   3. From eigensolution
-    #
-    # These will aid in geometry checking, mass properties checks,
-    # and stiffness grounding checks.
-
-    # use geometry to generate a set of rb-modes:
-    rbg = n2p.rbgeom_uset(uset, uref)
-
-    if rb_norm is None:
-        if np.any(np.diff(bref) != 1):
-            rb_norm = True
-
-    if rb_norm:
-        rb_normalizer = rbg[bref]
-        ttl = ('Stiffness-based coordinates relative to `uref` '
-               'because of normalization (`rb_norm`):\n '
-               ' (Note: locations are in basic coordinate system.)\n')
-    else:
-        rb_normalizer = None
-        ttl = ('Stiffness-based coordinates relative to node starting'
-               ' at row/col {} (after any reordering):\n '
-               ' (Note: locations are in local coordinate system of '
-               'the reference node.)\n'.format(bref[0] + 1))
-
-    # coordinates of boundary points according to stiffness:
-    c_chk = cbcoordchk(
-        k, bset, bref,
-        uset.index.get_level_values('id')[::6],
-        ttl, True, fout, rb_normalizer)
-    rbs = c_chk.rbmodes
-
-    # calculate free-free modes:
-    w, v = _solve_eig(fout, k, m, mtype, ktype, types)
-
-    # assuming 6 rigid-body modes
-    rbe = linalg.solve(v[bref, :6].T, v[:, :6].T).T
-    if rb_norm:
-        rbe = rbe @ rb_normalizer
-
-    # distance of motion check:
-    def _write_move_chk(ttl, rss_s, rss_g, rss_e, uset):
-        fout.write(
-            ttl + '\n'
-            '-- should all be 1.0s (can be 0.0 for DOF with zero '
-            'stiffness):\n\n')
-        fout.write('\tNode          Stiffness-based      '
-                   '  Geometry-based        Eigenvalue-based\n')
-        fout.write('\t---------   -------------------    '
-                   '-------------------    -------------------\n')
-        writer.vecwrite(fout, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
-                        '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
-                        '{:5.3f}  {:5.3f}\n',
-                        uset.index.get_level_values('id')[::6],
-                        rss_s, rss_g, rss_e)
-        fout.write('\n\n')
-
-    rbs_b = rbs[bset]
-    rbg_b = rbg
-    rbe_b = rbe[bset]
-    nb = len(bset) // 6
-    rss_s = np.zeros((nb, 3))
-    rss_g = np.zeros((nb, 3))
-    rss_e = np.zeros((nb, 3))
-    for i in range(nb):
-        s = slice(i * 6, i * 6 + 3)
-        rss_s[i] = np.sqrt((rbs_b[s, :3]**2).sum(axis=0))
-        rss_g[i] = np.sqrt((rbg_b[s, :3]**2).sum(axis=0))
-        rss_e[i] = np.sqrt((rbe_b[s, :3]**2).sum(axis=0))
-
-    _write_move_chk('RB Translation Movement Check',
-                    rss_s, rss_g, rss_e, uset)
-
-    rss_rot_s = np.zeros((nb, 3))
-    rss_rot_g = np.zeros((nb, 3))
-    rss_rot_e = np.zeros((nb, 3))
-    for i in range(nb):
-        s = slice(i * 6 + 3, i * 6 + 6)
-        rss_rot_s[i] = np.sqrt((rbs_b[s, 3:]**2).sum(axis=0))
-        rss_rot_g[i] = np.sqrt((rbg_b[s, 3:]**2).sum(axis=0))
-        rss_rot_e[i] = np.sqrt((rbe_b[s, 3:]**2).sum(axis=0))
-
-    _write_move_chk('RB Rotation Movement Check',
-                    rss_rot_s, rss_rot_g, rss_rot_e, uset)
-
-    # get mass properties:
-    ms = rbs.T @ m @ rbs
-    mg = rbg.T @ mbb @ rbg
-    me = rbe.T @ m @ rbe
-
-    # cg location, radius of gyration:
-    (mcgs, ds, gyr_s, pgyr_s, I_s, Ip_s) = cgmass(ms, all6=True)
-    (mcgg, dg, gyr_g, pgyr_g, I_g, Ip_g) = cgmass(mg, all6=True)
-    (mcge, de, gyr_e, pgyr_e, I_e, Ip_e) = cgmass(me, all6=True)
-
-    fout.write('MASS PROPERTIES CHECKS:\n\n')
-
-    def _wrtmass(fout, mass, rbtype):
-        fout.write('6x6 mass matrix from {}-based rb modes:\n\n'.
-                   format(rbtype))
-        writer.vecwrite(
-            fout, '\t{:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}'
-            '  {:12.4f}  {:12.4f}\n', mass)
-        fout.write('\n\n')
-    _wrtmass(fout, ms, 'stiffness')
-    _wrtmass(fout, mg, 'geometry')
-    _wrtmass(fout, me, 'eigensolution')
-
-    fout.write('Comparisons from mass properties:\n')
-
-    def _wrtdist(fout, ds, dg, de, ttl, use123=False):
-        fout.write(ttl)
-        if use123:
-            fout.write('\t\tRB-Mode from                    1'
-                       '               2               3\n')
-        else:
-            fout.write('\t\tRB-Mode from                    X'
-                       '               Y               Z\n')
-        fout.write('\t\t------------              -----------------'
-                   '----------------------------\n')
-        fout.write('\t\t   Stiffness           {:14.6f}  '
-                   '{:14.6f}  {:14.6f}\n'.format(*ds))
-        fout.write('\t\t   Geometry            {:14.6f}  '
-                   '{:14.6f}  {:14.6f}\n'.format(*dg))
-        fout.write('\t\t   Eigensolution       {:14.6f}  '
-                   '{:14.6f}  {:14.6f}\n'.format(*de))
-    ttl = ('\n\tDistance to CG location from relevant reference '
-           'point:\n\n')
-    _wrtdist(fout, ds, dg, de, ttl)
-    ttl = ('\n\n\tRadius of gyration about X, Y, Z axes '
-           '(from CG):\n\n')
-    _wrtdist(fout, gyr_s, gyr_g, gyr_e, ttl)
-    ttl = ('\n\tRadius of gyration about principal axes '
-           '(from CG):\n\n')
-    _wrtdist(fout, pgyr_s, pgyr_g, pgyr_e, ttl, use123=True)
-    fout.write('\n\n')
-
-    def _wrtinertia(fout, I, Ip, rbtype):
-        fout.write('{}-based Inertia Matrix @ CG about X,Y,Z:\n\n'.
-                   format(rbtype.capitalize()))
-        writer.vecwrite(fout, '\t\t{:12.4f}  {:12.4f}  {:12.4f}\n',
-                        I)
-        fout.write('\n')
-        fout.write('\tPrincipal Axis Moments of Inertia:\n\n')
-        fout.write('\t\t{:12.4f}  {:12.4f}  {:12.4f}\n'.
-                   format(*np.sort(np.diag(Ip))))
-        fout.write('\n\n')
-    _wrtinertia(fout, I_s, Ip_s, 'stiffness')
-    _wrtinertia(fout, I_g, Ip_g, 'geometry')
-    _wrtinertia(fout, I_e, Ip_e, 'eigensolution')
-
-    fout.write('GROUNDING CHECKS:\n\n')
-
-    def _wrtground(fout, uset, rbf, rbfsumm, rbtype):
-        fout.write('                            K*RB using {}-'
-                   'based rb modes:\n'.format(rbtype))
-        fout.write('DOF                    X           Y           Z '
-                   '          RX          RY          RZ\n')
-        fout.write('-------------     -------------------------------'
-                   '-------------------------------------\n')
-        nb = uset.shape[0]
-        iddof = uset.iloc[:, :0].reset_index().values
-        writer.vecwrite(
-            fout, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
-            '  {:10.3f}  {:10.3f}  {:10.3f}\n',
-            iddof, rbf[:nb])
-        nq = rbf.shape[0] - nb
-        if nq > 0:
-            writer.vecwrite(
-                fout, '  modal  {:4d}   {:10.3f}  {:10.3f}'
-                '  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n',
-                np.arange(nq) + 1, rbf[nb::])
-        fout.write('\nSummation of {}-based rb-forces: '
-                   'RB\'*K*RB:\n\n'.format(rbtype))
-        writer.vecwrite(fout, '\t{:10.3f}  {:10.3f}  {:10.3f}  '
-                        '{:10.3f}  {:10.3f}  {:10.3f}\n', rbfsumm)
-        fout.write('\n\n')
-
-    rbfs = k @ rbs
-    rbfg = kbb @ rbg
-    rbfe = k @ rbe
-
-    _wrtground(fout, uset, rbfs, rbs.T @ rbfs, 'stiffness')
-    _wrtground(fout, uset, rbfg, rbg.T @ rbfg, 'geometry')
-    _wrtground(fout, uset, rbfe, rbe.T @ rbfe, 'eigensolution')
-
-    # free-free modes:
-    fout.write('FREE-FREE MODES:\n\n')
-    fout.write('\tMode   Frequency (Hz)\n')
-    fout.write('\t----   --------------\n')
-    writer.vecwrite(fout, '\t{:4d}  {:15.6f}\n',
-                    np.arange(len(w)) + 1, np.sqrt(w) / (2 * math.pi))
-
-    # compute modal-effective mass:
-    if nq > 0:
-        # effective mass in percent of total mass:
-        effmass = (m[QB] @ rbg)**2 * (100 / np.diag(mg))
-        num = np.arange(nq) + 1
-        frq = np.sqrt(np.abs(np.diag(kqq))) / (2 * math.pi)
-        summ = np.sum(effmass, axis=0)
-        fout.write('\n\nFIXED-BASE MODES w/ Percent Modal Effective'
-                   ' Mass:\n\n')
-        fout.write('Using geometry-based rb modes for effective mass '
-                   'calcs.\n')
-        if em_filt > 0:
-            fout.write('\nPrinting only the modes with at least '
-                       '{:.1f}% effective mass.\n'
-                       'The sum includes all modes.\n'.
-                       format(em_filt))
-            pv = np.any(effmass > em_filt, axis=1)
-            num = num[pv]
-            frq = frq[pv]
-            effmass = effmass[pv]
-        frm = '{:6d}     {:10.3f}    ' + '  {:6.2f}' * 6 + '\n'
-        dirstr = '    T1      T2      T3      R1      R2      R3\n'
-        linestr = '  ------  ------  ------  ------  ------  ------\n'
-        fout.write('\nMode No.  Frequency (Hz) ' + dirstr)
-        fout.write('--------  -------------- ' + linestr)
-        writer.vecwrite(fout, frm, num, frq, effmass)
-        fout.write(('\nTotal Effective Mass:'
-                    '    ' + '  {:6.2f}' * 6 + '\n').format(*summ))
-    else:
-        fout.write('\n\nThere are no modes for the modal-effective-'
-                   'mass check.\n')
-    return SimpleNamespace(m=m, k=k, bset=bset, rbs=rbs, rbg=rbg,
-                           rbe=rbe, uset=uset)
-
-
+@ytools.write_text_file
 def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
             uref=(0, 0, 0), conv=None, em_filt=0, rb_norm=None,
             reorder=True):
@@ -2351,11 +1988,10 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     Mcb : 2d ndarray
         Craig-Bampton mass. In order to solve the free-free eigenvalue
         problem, this routine first finds any null columns in `Mcb`
@@ -2527,5 +2163,359 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     :func:`pyyeti.nastran.n2p.addgrid`, :func:`cbconvert`,
     :func:`cbreorder`, :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     """
-    return ytools.wtfile(f, _cbcheck, Mcb, Kcb, bseto, bref, uset,
-                         uref, conv, em_filt, rb_norm, reorder)
+    n = np.size(Mcb, 0)
+
+    # check matrix properties:
+    mtype, types = ytools.mattype(Mcb)
+    ktype = ytools.mattype(Kcb)[0]
+    if mtype & types['symmetric']:
+        f.write('Mass matrix is symmetric.\n')
+    else:
+        f.write('Warning: mass matrix is not symmetric.\n')
+    if mtype & types['posdef']:
+        f.write('Mass matrix is positive definite.\n')
+    else:
+        f.write('Warning: mass matrix is not positive definite.\n')
+    if ktype & types['symmetric']:
+        f.write('Stiffness matrix is symmetric.\n')
+    else:
+        f.write('Warning: stiffness matrix is not symmetric.\n')
+
+    # some input checks:
+    if uset is None:
+        uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+        uref = 1
+
+    nb = len(bseto)
+    if uset.shape[0] != nb:
+        raise ValueError('number of rows in `uset` is {}, but must '
+                         'equal len(b-set) ({})'.
+                         format(uset.shape[0], nb))
+
+    # convert units if necessary:
+    if conv is not None:
+        m = cbconvert(Mcb, bseto, conv)
+        k = cbconvert(Kcb, bseto, conv)
+        uset, uref = _uset_convert(uset, uref, conv)
+    else:
+        m = Mcb
+        k = Kcb
+
+    if reorder:
+        # reorder mass and stiffness:
+        m = cbreorder(m, bseto)
+        k = cbreorder(k, bseto)
+        i = np.argsort(bseto)
+        uset = uset.iloc[i]
+
+        # define "new" order of b-set:
+        b = locate.index2bool(bref, n)
+        bset = np.arange(nb)
+        bref = np.nonzero(b[bseto])[0]  # where ref is in new bset
+    else:
+        bset = np.sort(bseto)
+        if not (bset == bseto).all():
+            raise ValueError('when `reorder` is False, `bseto` must'
+                             ' be in ascending order')
+
+    # check for appropriate zeros:
+    qset = locate.flippv(bset, n)
+    nq = len(qset)
+    B = np.ix_(bset, bset)
+    Q = np.ix_(qset, qset)
+    QB = np.ix_(qset, bset)
+    mbb = m[B]
+    mqq = m[Q]
+    kbb = k[B]
+    kqq = k[Q]
+    error_flag = 0
+    mattol = 1.0e-12
+
+    def _prt_chk_str(f, formstr, err, tol,
+                     good='Okay', bad='CHECK!', switch=False):
+        if err > tol:
+            flag = 1
+            status = bad
+        else:
+            flag = 0
+            status = good
+        formstr = formstr + ' {}\n'
+        if switch:
+            err = tol
+        f.write(formstr.format(err, status))
+        return flag
+
+    f.write('\nMass values check:\n')
+    mxmqqerr = np.max(np.abs(np.diag(mqq) - 1.0))
+    error_flag += _prt_chk_str(
+        f, ('\tMaximum value of diag(MQQ)-1.0    = {:11g}'
+            '  (should be zero)'), mxmqqerr, mattol)
+    mxmqqerr = abs(mqq - np.diag(np.diag(mqq))).max()
+    error_flag += _prt_chk_str(
+        f, ('\tMaximum off-diagonal value of MQQ = {:11g}'
+            '  (should be zero)'), mxmqqerr, mattol)
+
+    mnkqq = np.min(np.diag(kqq))
+    mxkqqerr = np.max(np.abs(kqq - np.diag(np.diag(kqq))))
+    mxkbb = np.max(np.abs(kbb))
+    mxkbq = abs(k[bset][:, qset]).max()
+    f.write('\nStiffness values checks:\n')
+    _prt_chk_str(
+        f, ('\tMaximum value of KBB              = {:11g}'
+            '  (should be zero only if statically-determinate)'),
+        mxkbb, mattol, good='check', bad='check')
+    error_flag += _prt_chk_str(
+        f, ('\tMaximum value of KBQ              = {:11g}'
+            '  (should be zero)'), mxkbq, mattol)
+    error_flag += _prt_chk_str(
+        f, ('\tMaximum off-diagonal value of KQQ = {:11g}'
+            '  (should be zero)'), mxkqqerr, mattol)
+
+    # print warning on frequencies less then 1/(2 pi):
+    error_flag += _prt_chk_str(
+        f, ('\tMinimum diagonal value of KQQ     = {:11g}'
+            '  (should be > zero)'), 1.0, mnkqq, switch=True)
+
+    if error_flag > 0:
+        f.write('\n\nWARNING!: check mass and stiffness carefully'
+                ' (see above).\nAny failed checks need to be '
+                'resolved before CLA.\n')
+
+    if nb == 6 and mxkbb > 0:
+        f.write('Echoing KBB for visual inspection since max(KBB)'
+                ' != 0:\n')
+        f.write('KBB =\n')
+        form = '\t' + ('{:7.4f}  ') * 5 + '{:7.4f}\n'
+        writer.vecwrite(f, form, kbb)
+        f.write('\n\tNote: for comparison KQQ[0, 0] = {:.2f}.\n\n'.
+                format(kqq[0, 0]))
+
+    # Three types of rigid-body modes will be calculated:
+    #
+    #   1. Stiffness based
+    #   2. Geometry based
+    #   3. From eigensolution
+    #
+    # These will aid in geometry checking, mass properties checks,
+    # and stiffness grounding checks.
+
+    # use geometry to generate a set of rb-modes:
+    rbg = n2p.rbgeom_uset(uset, uref)
+
+    if rb_norm is None:
+        if np.any(np.diff(bref) != 1):
+            rb_norm = True
+
+    if rb_norm:
+        rb_normalizer = rbg[bref]
+        ttl = ('Stiffness-based coordinates relative to `uref` '
+               'because of normalization (`rb_norm`):\n '
+               ' (Note: locations are in basic coordinate system.)\n')
+    else:
+        rb_normalizer = None
+        ttl = ('Stiffness-based coordinates relative to node starting'
+               ' at row/col {} (after any reordering):\n '
+               ' (Note: locations are in local coordinate system of '
+               'the reference node.)\n'.format(bref[0] + 1))
+
+    # coordinates of boundary points according to stiffness:
+    c_chk = cbcoordchk(
+        k, bset, bref,
+        uset.index.get_level_values('id')[::6],
+        ttl, True, f, rb_normalizer)
+    rbs = c_chk.rbmodes
+
+    # calculate free-free modes:
+    w, v = _solve_eig(f, k, m, mtype, ktype, types)
+
+    # assuming 6 rigid-body modes
+    rbe = linalg.solve(v[bref, :6].T, v[:, :6].T).T
+    if rb_norm:
+        rbe = rbe @ rb_normalizer
+
+    # distance of motion check:
+    def _write_move_chk(ttl, rss_s, rss_g, rss_e, uset):
+        f.write(
+            ttl + '\n'
+            '-- should all be 1.0s (can be 0.0 for DOF with zero '
+            'stiffness):\n\n')
+        f.write('\tNode          Stiffness-based      '
+                '  Geometry-based        Eigenvalue-based\n')
+        f.write('\t---------   -------------------    '
+                '-------------------    -------------------\n')
+        writer.vecwrite(f, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
+                        '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
+                        '{:5.3f}  {:5.3f}\n',
+                        uset.index.get_level_values('id')[::6],
+                        rss_s, rss_g, rss_e)
+        f.write('\n\n')
+
+    rbs_b = rbs[bset]
+    rbg_b = rbg
+    rbe_b = rbe[bset]
+    nb = len(bset) // 6
+    rss_s = np.zeros((nb, 3))
+    rss_g = np.zeros((nb, 3))
+    rss_e = np.zeros((nb, 3))
+    for i in range(nb):
+        s = slice(i * 6, i * 6 + 3)
+        rss_s[i] = np.sqrt((rbs_b[s, :3]**2).sum(axis=0))
+        rss_g[i] = np.sqrt((rbg_b[s, :3]**2).sum(axis=0))
+        rss_e[i] = np.sqrt((rbe_b[s, :3]**2).sum(axis=0))
+
+    _write_move_chk('RB Translation Movement Check',
+                    rss_s, rss_g, rss_e, uset)
+
+    rss_rot_s = np.zeros((nb, 3))
+    rss_rot_g = np.zeros((nb, 3))
+    rss_rot_e = np.zeros((nb, 3))
+    for i in range(nb):
+        s = slice(i * 6 + 3, i * 6 + 6)
+        rss_rot_s[i] = np.sqrt((rbs_b[s, 3:]**2).sum(axis=0))
+        rss_rot_g[i] = np.sqrt((rbg_b[s, 3:]**2).sum(axis=0))
+        rss_rot_e[i] = np.sqrt((rbe_b[s, 3:]**2).sum(axis=0))
+
+    _write_move_chk('RB Rotation Movement Check',
+                    rss_rot_s, rss_rot_g, rss_rot_e, uset)
+
+    # get mass properties:
+    ms = rbs.T @ m @ rbs
+    mg = rbg.T @ mbb @ rbg
+    me = rbe.T @ m @ rbe
+
+    # cg location, radius of gyration:
+    (mcgs, ds, gyr_s, pgyr_s, I_s, Ip_s) = cgmass(ms, all6=True)
+    (mcgg, dg, gyr_g, pgyr_g, I_g, Ip_g) = cgmass(mg, all6=True)
+    (mcge, de, gyr_e, pgyr_e, I_e, Ip_e) = cgmass(me, all6=True)
+
+    f.write('MASS PROPERTIES CHECKS:\n\n')
+
+    def _wrtmass(f, mass, rbtype):
+        f.write('6x6 mass matrix from {}-based rb modes:\n\n'.
+                format(rbtype))
+        writer.vecwrite(
+            f, '\t{:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}'
+            '  {:12.4f}  {:12.4f}\n', mass)
+        f.write('\n\n')
+    _wrtmass(f, ms, 'stiffness')
+    _wrtmass(f, mg, 'geometry')
+    _wrtmass(f, me, 'eigensolution')
+
+    f.write('Comparisons from mass properties:\n')
+
+    def _wrtdist(f, ds, dg, de, ttl, use123=False):
+        f.write(ttl)
+        if use123:
+            f.write('\t\tRB-Mode from                    1'
+                    '               2               3\n')
+        else:
+            f.write('\t\tRB-Mode from                    X'
+                    '               Y               Z\n')
+        f.write('\t\t------------              -----------------'
+                '----------------------------\n')
+        f.write('\t\t   Stiffness           {:14.6f}  '
+                '{:14.6f}  {:14.6f}\n'.format(*ds))
+        f.write('\t\t   Geometry            {:14.6f}  '
+                '{:14.6f}  {:14.6f}\n'.format(*dg))
+        f.write('\t\t   Eigensolution       {:14.6f}  '
+                '{:14.6f}  {:14.6f}\n'.format(*de))
+    ttl = ('\n\tDistance to CG location from relevant reference '
+           'point:\n\n')
+    _wrtdist(f, ds, dg, de, ttl)
+    ttl = ('\n\n\tRadius of gyration about X, Y, Z axes '
+           '(from CG):\n\n')
+    _wrtdist(f, gyr_s, gyr_g, gyr_e, ttl)
+    ttl = ('\n\tRadius of gyration about principal axes '
+           '(from CG):\n\n')
+    _wrtdist(f, pgyr_s, pgyr_g, pgyr_e, ttl, use123=True)
+    f.write('\n\n')
+
+    def _wrtinertia(f, I, Ip, rbtype):
+        f.write('{}-based Inertia Matrix @ CG about X,Y,Z:\n\n'.
+                format(rbtype.capitalize()))
+        writer.vecwrite(f, '\t\t{:12.4f}  {:12.4f}  {:12.4f}\n',
+                        I)
+        f.write('\n')
+        f.write('\tPrincipal Axis Moments of Inertia:\n\n')
+        f.write('\t\t{:12.4f}  {:12.4f}  {:12.4f}\n'.
+                format(*np.sort(np.diag(Ip))))
+        f.write('\n\n')
+    _wrtinertia(f, I_s, Ip_s, 'stiffness')
+    _wrtinertia(f, I_g, Ip_g, 'geometry')
+    _wrtinertia(f, I_e, Ip_e, 'eigensolution')
+
+    f.write('GROUNDING CHECKS:\n\n')
+
+    def _wrtground(f, uset, rbf, rbfsumm, rbtype):
+        f.write('                            K*RB using {}-'
+                'based rb modes:\n'.format(rbtype))
+        f.write('DOF                    X           Y           Z '
+                '          RX          RY          RZ\n')
+        f.write('-------------     -------------------------------'
+                '-------------------------------------\n')
+        nb = uset.shape[0]
+        iddof = uset.iloc[:, :0].reset_index().values
+        writer.vecwrite(
+            f, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
+            '  {:10.3f}  {:10.3f}  {:10.3f}\n',
+            iddof, rbf[:nb])
+        nq = rbf.shape[0] - nb
+        if nq > 0:
+            writer.vecwrite(
+                f, '  modal  {:4d}   {:10.3f}  {:10.3f}'
+                '  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n',
+                np.arange(nq) + 1, rbf[nb::])
+        f.write('\nSummation of {}-based rb-forces: '
+                'RB\'*K*RB:\n\n'.format(rbtype))
+        writer.vecwrite(f, '\t{:10.3f}  {:10.3f}  {:10.3f}  '
+                        '{:10.3f}  {:10.3f}  {:10.3f}\n', rbfsumm)
+        f.write('\n\n')
+
+    rbfs = k @ rbs
+    rbfg = kbb @ rbg
+    rbfe = k @ rbe
+
+    _wrtground(f, uset, rbfs, rbs.T @ rbfs, 'stiffness')
+    _wrtground(f, uset, rbfg, rbg.T @ rbfg, 'geometry')
+    _wrtground(f, uset, rbfe, rbe.T @ rbfe, 'eigensolution')
+
+    # free-free modes:
+    f.write('FREE-FREE MODES:\n\n')
+    f.write('\tMode   Frequency (Hz)\n')
+    f.write('\t----   --------------\n')
+    writer.vecwrite(f, '\t{:4d}  {:15.6f}\n',
+                    np.arange(len(w)) + 1, np.sqrt(w) / (2 * math.pi))
+
+    # compute modal-effective mass:
+    if nq > 0:
+        # effective mass in percent of total mass:
+        effmass = (m[QB] @ rbg)**2 * (100 / np.diag(mg))
+        num = np.arange(nq) + 1
+        frq = np.sqrt(np.abs(np.diag(kqq))) / (2 * math.pi)
+        summ = np.sum(effmass, axis=0)
+        f.write('\n\nFIXED-BASE MODES w/ Percent Modal Effective'
+                ' Mass:\n\n')
+        f.write('Using geometry-based rb modes for effective mass '
+                'calcs.\n')
+        if em_filt > 0:
+            f.write('\nPrinting only the modes with at least '
+                    '{:.1f}% effective mass.\n'
+                    'The sum includes all modes.\n'.
+                    format(em_filt))
+            pv = np.any(effmass > em_filt, axis=1)
+            num = num[pv]
+            frq = frq[pv]
+            effmass = effmass[pv]
+        frm = '{:6d}     {:10.3f}    ' + '  {:6.2f}' * 6 + '\n'
+        dirstr = '    T1      T2      T3      R1      R2      R3\n'
+        linestr = '  ------  ------  ------  ------  ------  ------\n'
+        f.write('\nMode No.  Frequency (Hz) ' + dirstr)
+        f.write('--------  -------------- ' + linestr)
+        writer.vecwrite(f, frm, num, frq, effmass)
+        f.write(('\nTotal Effective Mass:'
+                 '    ' + '  {:6.2f}' * 6 + '\n').format(*summ))
+    else:
+        f.write('\n\nThere are no modes for the modal-effective-'
+                'mass check.\n')
+    return SimpleNamespace(m=m, k=k, bset=bset, rbs=rbs, rbg=rbg,
+                           rbe=rbe, uset=uset)

@@ -53,6 +53,7 @@ def getith(i, args, fncs):
     return lst
 
 
+@ytools.write_text_file
 def _vecwrite(fout, string, length, args, fncs, postfunc, pfargs, so):
     """Utility routine for :func:`vecwrite`."""
     v = range(length)
@@ -78,11 +79,10 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
     Parameters
     ----------
     f : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     string : string
         The formatting string for the write, Python 3 format as in:
         `string`.format(a,b)
@@ -197,8 +197,7 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
                 length = curlen
         else:
             fncs.append(_get_scalar)
-    ytools.wtfile(f, _vecwrite, string, length, args, fncs,
-                  postfunc, pfargs, so)
+    _vecwrite(f, string, length, args, fncs, postfunc, pfargs, so)
 
 
 def formheader(headers, widths, formats,

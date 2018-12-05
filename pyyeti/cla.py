@@ -5039,11 +5039,10 @@ def rptext1(res, filename,
         Results data structure with attributes `.ext`, `.cases`, etc
         (see example in :class:`DR_Results`)
     filename : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     title : string; optional
         Title for report
     doabsmax : bool; optional
@@ -5133,6 +5132,7 @@ def rptext1(res, filename,
     header = title + '\n\n' + _get_rpt_headers(res) + '\n' + hu
 
     # write results
+    @ytools.write_text_file
     def _wtext(f, header, frm, printargs, perpage):
         if perpage < 1:
             # one additional in case nrows is zero
@@ -5146,8 +5146,7 @@ def rptext1(res, filename,
             e = b + perpage
             writer.vecwrite(f, frm, *printargs, so=slice(b, e))
 
-    ytools.wtfile(filename, _wtext, header, frm,
-                  printargs, perpage)
+    _wtext(filename, header, frm, printargs, perpage)
 
 
 def _get_numform(mxmn1, excel=False):
@@ -5185,9 +5184,8 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         If a string that ends with '.xlsx', a Microsoft Excel file is
         written.
 
-        Otherwise, `filename` is an input for
-        :func:`pyyeti.ytools.wtfile`. It is either a name of a file,
-        or is a file_like object as returned by :func:`open` or
+        Otherwise, `filename` is either a name of a file, or is a
+        file_like object as returned by :func:`open` or
         :func:`StringIO`. Input as integer 1 to write to stdout. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -5337,6 +5335,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         worksheet.set_column(0, 0, 20)
         worksheet.set_column(1, len(headers) - 1, 14)
 
+    @ytools.write_text_file
     def _wttab(f, header, hu, frm, res, loop_vars):
         f.write(header)
         ec = {}   # event counter
@@ -5432,8 +5431,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         hu, frm = writer.formheader(
             headers, widths, formats, sep=[0, 1],
             just='c', ulchar='=')
-        ytools.wtfile(filename, _wttab, header, hu, frm,
-                      res, loop_vars)
+        _wttab(filename, header, hu, frm, res, loop_vars)
     else:
         if not name:
             raise ValueError('`name` must be input when writing'
@@ -5490,11 +5488,10 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         The reference set of max/min data. Format is the same as
         `mxmn1`.
     filename : string or file_like or 1 or None
-        Input for :func:`pyyeti.ytools.wtfile`. Either a name of a
-        file, or is a file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
     title : string; must be named; optional
         Title for the report
     names : list/tuple; must be named; optional
@@ -6235,6 +6232,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         plt.interactive(imode)
 
     # write results
+    @ytools.write_text_file
     def _wtcmp(f, header, hu, frm, printargs, perpage,
                prtpv, pctinfo, desc):
         prtpv = prtpv.nonzero()[0]
@@ -6261,8 +6259,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
                 f.write(_get_histogram_str(
                     desc, hdr, pctinfo[lbl]))
 
-    ytools.wtfile(filename, _wtcmp, header, hu, frm,
-                  printargs, perpage, prtpv, pctinfo, desc)
+    _wtcmp(filename, header, hu, frm, printargs, perpage, prtpv,
+           pctinfo, desc)
     return pctinfo
 
 
