@@ -254,8 +254,9 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 81. Use wtcomment more in bulk.py
 
-82. Use decorator in bulk.py to handle file handle?
+~82. Use decorator in bulk.py to handle file handle?
     - it's cumbersome the way it is now
+    - v0.94.3
 
 83. rddmig reads upper case names for op2, lower for pch?
 
@@ -264,3 +265,10 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 85. update the numpy docstring output to be current (right now, still
     using v 1.13)
+
+86. Add a DR_Defs merge:
+    - ensure no duplicate categories
+    - ensure no duplicate [non]drms names for all superelements
+
+87. Add "addcat" skeleton code generator?
+    - goal is to make adding data recovery categories simpler

@@ -1443,6 +1443,7 @@ def test_addcat_3():
     @cla.DR_Def.addcat
     def _():
         name = 'ATM'
+        desc = 'First set of accelerations'
         labels = 4
         drms = {'drm': 1}
         misc = np.arange(10)
@@ -1451,6 +1452,7 @@ def test_addcat_3():
     @cla.DR_Def.addcat
     def _():
         name = 'ATM2'
+        desc = 'Second set of accelerations'
         labels = 4
         drms = {'drm2': 1}
         drfunc = 'ATM'
@@ -1459,6 +1461,17 @@ def test_addcat_3():
 
     df = drdefs.excel_summary(None)
     assert df['ATM2']['misc'] == '-'
+
+    drdefs.add_0rb('ATM', 'ATM2')
+
+    assert 'ATM_0rb' in drdefs
+    assert 'ATM2_0rb' in drdefs
+    assert (drdefs['ATM_0rb'].desc ==
+            'First set of accelerations w/o RB')
+    assert (drdefs['ATM2_0rb'].desc ==
+            'Second set of accelerations w/o RB')
+    assert (drdefs['ATM2_0rb'].desc ==
+            drdefs['ATM2'].desc + ' w/o RB')
 
 
 def test_event_add():

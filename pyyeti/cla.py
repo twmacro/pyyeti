@@ -1642,17 +1642,13 @@ class DR_Def(OrderedDict):
         would add 'SC_ifa_0rb' and 'SC_atm_0rb' categories with the
         first element in `uf_reds` set to 0.
         """
-        if args[0] not in self:
-            raise ValueError('{} not found'
-                             .format(args[0]))
-        desc = self[args[0]].desc + ' w/o RB'
-        self.copycat(args, '_0rb', uf_reds=(0, None, None, None),
-                     desc=desc)
-
-        # r, e, d, s = self[args[0]].uf_reds
-        # new_uf_reds = 0, e, d, s
-        # desc = self[args[0]].desc + ' w/o RB'
-        # self.copycat(args, '_0rb', uf_reds=new_uf_reds, desc=desc)
+        for arg in args:
+            if arg not in self:
+                raise ValueError('{} not found'
+                                 .format(arg))
+            desc = self[arg].desc + ' w/o RB'
+            self.copycat(arg, '_0rb', uf_reds=(0, None, None, None),
+                         desc=desc)
 
     def excel_summary(self, excel_file='dr_summary.xlsx'):
         """

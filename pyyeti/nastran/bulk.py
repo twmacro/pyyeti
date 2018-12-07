@@ -2681,22 +2681,29 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         if abs(value) < 1e-9 * radius:
             center[i] = 0.0
 
-    # write local coordinate system to file:
-    _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0],
-                      node_id0)
+    @ytools.write_text_file
+    def _write_file(f):
+        # write local coordinate system to file:
+        _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0],
+                          node_id0)
 
-    # create new nodes that will be RBE2'd to ring 1 nodes, but
-    # located on ring 2 circle
-    # - these nodes will be defined in the local system but output in
-    #   basic
-    newpts, newids = _wtgrids_rbe2s(
-        f, circ_parms, center, basic2local, cord_id,
-        node_id0, rbe2_id0, IDs[0])
+        # create new nodes that will be RBE2'd to ring 1 nodes, but
+        # located on ring 2 circle
+        # - these nodes will be defined in the local system but output
+        #   in basic
+        newpts, newids = _wtgrids_rbe2s(
+            f, circ_parms, center, basic2local, cord_id,
+            node_id0, rbe2_id0, IDs[0])
 
-    # rspline will tie the 'newpts' and the ring 2 nodes together:
-    rspline_nodes = _sort_n_write(
-        f, independent, circ_parms, newpts, newids,
-        IDs[1], rspline_id0, nper, DoL)
+        # rspline will tie the 'newpts' and the ring 2 nodes together:
+        rspline_nodes = _sort_n_write(
+            f, independent, circ_parms, newpts, newids,
+            IDs[1], rspline_id0, nper, DoL)
+
+        return newpts, newids, rspline_nodes
+
+    # write the rspline:
+    newpts, newids, rspline_nodes = _write_file(f)
 
     ax = ytools._check_makeplot(makeplot, figsize=[8, 6], need3d=True)
     if ax:
