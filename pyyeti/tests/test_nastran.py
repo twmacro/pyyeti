@@ -626,7 +626,7 @@ def test_rddmig2():
     # test symmetric writing/reading:
     symm = np.arange(12)[:, None] * np.arange(12)
     symm = symm.T @ symm
-    default['mrandm'].iloc[:, :] = symm
+    default['mrandm'].iloc[:, :] = symm.astype(float)
 
     with StringIO() as f:
         nastran.wtdmig(f, default)
