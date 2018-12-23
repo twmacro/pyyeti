@@ -260,8 +260,9 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 83. rddmig reads upper case names for op2, lower for pch?
 
-84. update guitools to Qt ... I think (this was nearly done i think
-    ... just never finalized it (see ~/python/gui/guitools_qt.py))
+84. if licensing is good, update guitools to Qt ... I think (this was
+    nearly done i think ... just never finalized it (see
+    ~/python/gui/guitools_qt.py))
 
 85. update the numpy docstring output to be current (right now, still
     using v 1.13)
@@ -272,3 +273,12 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 87. Add "addcat" skeleton code generator?
     - goal is to make adding data recovery categories simpler
+
+~88. Fix example in wtrspline_rings -- doesn't work on it's own
+     ~ fixed after v0.94.4
+
+~89. Fix wtrspline to be smarter about writing cards: right now,
+     it can write a completely independent card!
+     ~ fixed after v0.94.4
+
+90. Speed up addgrid -- it is VERY slow for large number of grids

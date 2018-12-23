@@ -2106,7 +2106,7 @@ def wtset(f, setid, ids):
 
 
 @ytools.write_text_file
-def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
+def wtrspline(f, rid, ids, DoL='0.1'):
     """
     Write Nastran RSPLINE card(s).
 
@@ -2122,16 +2122,8 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
     ids : 2d array_like
         2 column matrix: [grid_ids, independent_flag]; has grids for
         RSPLINE in desired order and a 0 or 1 flag for each where 1
-        means the grid is independent. Note: the flag is ignored for
-        the 1st and last grids; these are forced to be independent.
-    nper : integer
-        Number of grids to write per RSPLINE before starting to look
-        for next independent grid which will end the RSPLINE. Routine
-        will actually write a minimum of 3 nodes::
-
-                  independent - dependent - independent
-
-        ``nper = 1`` ensures the smallest rsplines are written.
+        means the grid is independent. Note: the 1st and last grids
+        must be independent.
     DoL : string or real scalar
         Specifies ratio of diameter of elastic tube to the sum of the
         lengths of all segments. Written with: ``'{:<8}'.format(DoL)``
@@ -2142,62 +2134,90 @@ def wtrspline(f, rid, ids, nper=1, DoL='0.1'):
 
     Notes
     -----
-    If ``nper = 1``, the RSPLINEs will follow this pattern::
+    The RSPLINEs will follow this pattern::
 
-        RSPLINE1  independent1 - dependent1 - independent2
-        RSPLINE2  independent2 - dependent2 - independent3
+        RSPLINE1  independent1 - dependents1 - independent2
+        RSPLINE2  independent2 - dependents2 - independent3
         ...
 
-    Note that there can be multiple dependents per RSPLINE.
+    Note that there can be multiple dependents sandwiched between the
+    two outside independent nodes per RSPLINE.
+
+    The spline element assumes a linear interpolation for displacement
+    and torsion along the axis of the spline, a quadratic
+    interpolation for rotations normal to the axis of the spline, and
+    a cubic interpolation for displacements normal to the axis of the
+    spline.
 
     See also
     --------
     :func:`wtrspline_rings`
 
+    Raises
+    ------
+    ValueError
+
+        If there are less than 3 grids for RSPLINE.
+
+        If either the first or last grids is dependent.
+
     Examples
     --------
     >>> import numpy as np
     >>> from pyyeti import nastran
-    >>> ids = np.array([[100, 1], [101, 0], [102, 0],
-    ...                 [103, 1], [104, 0], [105, 1]])
+    >>> ids = np.array([[100, 1],
+    ...                 [101, 0],
+    ...                 [102, 0],
+    ...                 [103, 1],
+    ...                 [104, 0],
+    ...                 [105, 1]])
     >>> nastran.wtrspline(1, 10, ids)
     RSPLINE       10     0.1     100     101  123456     102  123456     103
     RSPLINE       11     0.1     103     104  123456     105
-    >>> nastran.wtrspline(1, 10, ids, nper=15)
-    RSPLINE       10     0.1     100     101  123456     102  123456     103
-                         104  123456     105
     """
-    ids = np.atleast_2d(ids)
+    ids = np.atleast_2d(ids).astype(np.int64)
     N = ids.shape[0]
     if N < 3:
         raise ValueError('not enough grids for RSPLINE')
-    dof = ['123456', '']
-    ind = ids[:, 1].astype(np.int64)
-    ids = ids[:, 0]
-    ind[0] = ind[-1] = 1
-    j = 0
-    while j < N - 1:
-        f.write('RSPLINE {:8}{:>8}{:8}'.format(rid, DoL, ids[j]))
+
+    ids, ind = ids.T
+    if ind.all():
+        raise ValueError('there are no dependent DOF for RSPLINE')
+
+    if not ind[0] == ind[-1] == 1:
+        raise ValueError(
+            'the first and last grids must be independent')
+
+    # find indices of all dependents:
+    deps = (ind == 0).nonzero()[0]
+
+    # find gaps in indices of dependents list:
+    gaps = (np.diff(deps) != 1).nonzero()[0]
+
+    # starting indices of dependents:
+    firsts = deps[np.hstack((0, gaps + 1))]
+
+    # ending indices of dependents:
+    lasts = deps[np.hstack((gaps, len(deps) - 1))]
+
+    # write one RSPLINE per series of dependents:
+    for d0, d1 in zip(firsts, lasts):
+        f.write('RSPLINE {:8}{:>8}{:8}'.format(rid, DoL, ids[d0 - 1]))
         rid += 1
-        j += 1
-        pos = 5
-        count = 1
-        done = 0
+        field = 5  # next nastran field (1 to 10)
+
         # write all but last grid of current segment:
-        while not done and j < N - 1:
+        for j in range(d0, d1 + 1):
             f.write('{:8}'.format(ids[j]))
-            pos += 1
-            count += 1
-            if pos == 10:
+            field += 1
+            if field == 10:
                 f.write('\n        ')
-                pos = 2
-            f.write('{:>8}'.format(dof[ind[j]]))
-            j += 1
-            pos += 1
-            if ind[j] and count > nper:
-                done = 1
-        # write last grid for this rspline
-        f.write('{:8}\n'.format(ids[j]))
+                field = 2
+            f.write('  123456')
+            field += 1
+
+        # write closing independent:
+        f.write('{:8}\n'.format(ids[d1 + 1]))
 
 
 def _intersect(circA, circB, xyA, draw=False):
@@ -2356,7 +2376,7 @@ def _wtgrids_rbe2s(f, circ_parms, center, basic2local, cord_id,
 
 
 def _sort_n_write(f, independent, circ_parms, newpts, newids,
-                  ring2_ids, rspline_id0, nper, DoL):
+                  ring2_ids, rspline_id0, DoL):
     n1 = circ_parms[0].local.shape[1]
     n2 = circ_parms[1].local.shape[1]
 
@@ -2389,8 +2409,9 @@ def _sort_n_write(f, independent, circ_parms, newpts, newids,
     i = 0
     while ids[i, 1] == 0:
         i += 1
+    # stack ids, ensuring starting and ending node is independent:
     ids = np.vstack((ids[i:], ids[:i], ids[i]))
-    wtrspline(f, rspline_id0, ids, nper=nper, DoL=DoL)
+    wtrspline(f, rspline_id0, ids, DoL=DoL)
     return ids
 
 
@@ -2452,7 +2473,7 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
 
 def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
                     rbe2_id0=None, cord_id=None, makeplot='new',
-                    nper=1, DoL='0.1', independent='ring1'):
+                    DoL='0.1', independent='ring1'):
     """
     Creates a smooth RSPLINE to connect two rings of grids.
 
@@ -2463,10 +2484,11 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         by :func:`open` or :func:`StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
-    r1grids : 2d array_like or DataFrame
-        Contains the ids and locations of the ring 1 grids in basic
-        coordinates. If 2d array_like, it has 4 columns describing
-        the ring 1 grids::
+    r1grids : 2d array_like or DataFrame or tuple
+        Ignoring the tuple input option for now, `r1grids` contains
+        the ids and locations of the ring 1 grids in basic
+        coordinates. If 2d array_like, it has 4 columns describing the
+        ring 1 grids::
 
              [id, x, y, z] < -- basic coordinates
 
@@ -2474,9 +2496,17 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         containing just the ring 1 grids. The format of this
         DataFrame is described in
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
-    r2grids : 2d array_like or DataFrame
-        Contains the ids and locations of the ring 2 grids in basic
-        coordinates. See `r1grids` for description of format.
+
+        The default name in the output comments for ring 1 is 'Ring
+        1'. By using the tuple input option, you can provide a
+        name. For example, this is equivalent to the default::
+
+            ('Ring 1', r1grids)
+
+    r2grids : 2d array_like or DataFrame or tuple
+        Contains the ids and locations (and optionally, the name) of
+        the ring 2 grids in basic coordinates. See `r1grids` for
+        description of format.
     node_id0 : integer
         1st id of new nodes created to 'move' ring 1 nodes
     rspline_id0 : integer
@@ -2503,20 +2533,16 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         Note that if `makeplot` is 'add' or an axes object, it must be
         3d; otherwise a ValueError exception is raised.
 
-    nper : integer; optional
-        Number of grids to write per RSPLINE before starting to look
-        for next independent grid which will end the RSPLINE. Routine
-        will actually write a minimum of 3 nodes::
-
-                  independent - dependent - independent
-
-        ``nper = 1`` ensures the smallest RSPLINEs are written.
     DoL : string or real scalar; optional
         Specifies ratio of diameter of elastic tybe to the sum of the
         lengths of all segments. Written with: ``'{:<8}'.format(DoL)``
     independent : str; optional
-        Either 'ring1' or 'ring2'; specifies which ring will be
-        independent on the RSPLINEs.
+        Either 'ring1' or 'ring2' (or the actual name if one was
+        provided in the `r1grids` or `r2grids` input). Specifies which
+        ring will be independent on the RSPLINEs. Note that is
+        different than just switching the order of `r1grids` and
+        `r2grids`. This option modifies step 4 below while switching
+        `r1grids` and `r2grids` modifies all the steps.
 
     Returns
     -------
@@ -2543,8 +2569,12 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
          RSPLINE starts at the independent grid (on ring 1 or ring 2
          according to `independent`) with the lowest angular
          location. The angular locations range from 0 to 360 degrees,
-         counter-clockwise. The RSPLINEs proceed counter-clockwise and
-         the last grid is also the first grid to complete the circle.
+         counter-clockwise. The RSPLINEs proceed counter-clockwise
+         around the circle.
+
+    See also
+    --------
+    :func:`wtrspline`
 
     Raises
     ------
@@ -2575,6 +2605,8 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         :context: close-figs
 
         >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
+        >>> from mpl_toolkits.mplot3d import Axes3D
         >>> from pyyeti import nastran
         >>> theta1 = np.arange(0, 359, 360/5)*np.pi/180
         >>> rad1 = 50.
@@ -2698,7 +2730,7 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         # rspline will tie the 'newpts' and the ring 2 nodes together:
         rspline_nodes = _sort_n_write(
             f, independent, circ_parms, newpts, newids,
-            IDs[1], rspline_id0, nper, DoL)
+            IDs[1], rspline_id0, DoL)
 
         return newpts, newids, rspline_nodes
 

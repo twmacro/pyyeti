@@ -395,15 +395,25 @@ def test_wtrspline():
                     [109, 1], [110, 0], [111, 0],
                     [112, 1]])
     with StringIO() as f:
-        nastran.wtrspline(f, 10, ids, nper=15)
+        nastran.wtrspline(f, 10, ids)
         s = f.getvalue()
 
     sbe = (
         'RSPLINE       10     0.1     100     101  123456     102  123456     103\n'
-        '                     104  123456     105             106  123456     107\n'
-        '          123456     108  123456     109             110  123456     111\n'
-        '          123456     112\n')
+        'RSPLINE       11     0.1     103     104  123456     105\n'
+        'RSPLINE       12     0.1     105     106  123456     107  123456     108\n'
+        '          123456     109\n'
+        'RSPLINE       13     0.1     109     110  123456     111  123456     112\n'
+    )
     assert sbe == s
+
+    # test for first and last must be independent error:
+    ids[-1, 1] = 0
+    assert_raises(ValueError, nastran.wtrspline, 1, 10, ids)
+
+    # test for "no independents" error:
+    ids[:, 1] = 1
+    assert_raises(ValueError, nastran.wtrspline, 1, 10, ids)
 
 
 def test_wtrspline_rings():
@@ -435,13 +445,15 @@ def test_wtrspline_rings():
 
     with StringIO() as f:
         nastran.wtrspline_rings(f, ring1, ring2, 1001, 2001,
-                                makeplot=ax)
+                                makeplot=ax, independent='ring1')
         u, c = nastran.bulk2uset(f)
+        rsplines1 = nastran.rdcards(f, 'RSPLINE')
 
     with StringIO() as f:
         nastran.wtrspline_rings(f, uset1, uset2, 1001, 2001,
-                                makeplot=ax)
+                                makeplot=ax, independent='ring2')
         u2, c2 = nastran.bulk2uset(f)
+        rsplines2 = nastran.rdcards(f, 'RSPLINE')
 
     assert np.allclose(u, u2)
     for k, v in c2.items():
@@ -461,18 +473,26 @@ def test_wtrspline_rings():
     to_local = [[0, 1., 0], [0, 0, 1], [1., 0, 0]]
     assert np.allclose(c[10010][-3:].T, to_local)
 
+    # rsplines1 should have the 1001 series of numbers being
+    # independent:
+    assert (rsplines1[:, 2] > 1000).all()
+
+    # rsplines2 should have the 101 series of numbers being
+    # independent:
+    assert (rsplines2[:, 2] < 1000).all()
+
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1, uset2,
                   1001, 2001, makeplot='no', independent='badoption')
 
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1[:-1],
                   uset2, 1001, 2001, makeplot='no')
 
-    uset2 = None
+    uset3 = None
     for row in ring2:
-        uset2 = n2p.addgrid(uset2, int(row[0]), 'b', 0,
+        uset3 = n2p.addgrid(uset3, int(row[0]), 'b', 0,
                             [row[3], row[1], row[2]], 0)
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1,
-                  uset2, 1001, 2001, makeplot='no')
+                  uset3, 1001, 2001, makeplot='no')
 
 
 def test_wtcoordcards():
