@@ -191,6 +191,9 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
     - but, ifatm and ifltm for the port would be nice ... probably
 
+    - ALSO: have it be able to output "g, rad/sec^2", "g, g/in", and
+      "in/sec^2, rad/sec^2"
+
 ~64. Check magpct:
     ~ - should it listen to use_range or not? -- yes, post v0.94.0
     ~- should it listen to filter?
@@ -203,8 +206,10 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
     - implemented in v0.94.1
 
 66. Write a nastran coordinate system plotter
+    - use pyNastran instead?
 
 67. Write a nastran node plotter
+    - use pyNastran instead?
 
 68. Add extreme histories to cla.DR_Results.form_extreme
 
@@ -252,7 +257,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
     - or update it?
     - v0.94.3
 
-81. Use wtcomment more in bulk.py
+81. Use mkcomment more in bulk.py
 
 ~82. Use decorator in bulk.py to handle file handle?
     - it's cumbersome the way it is now
@@ -281,4 +286,10 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
      it can write a completely independent card!
      ~ fixed after v0.94.4
 
-90. Speed up addgrid -- it is VERY slow for large number of grids
+~90. Add name capability to wtrspline_rings
+     ~ after v0.94.4
+
+91. Speed up addgrid -- it is VERY slow for large number of grids
+
+~ 92. Change wtcomment to mkcomment ... more versatility
+      ~ after v0.94.4

@@ -8,6 +8,7 @@ Limited set of read/write routines for Nastran bulk data
 
     bulk2uset
     fsearch
+    mkcomment
     mknast
     nas_sscanf
     rdcards
@@ -21,7 +22,6 @@ Limited set of read/write routines for Nastran bulk data
     rdtabled1
     rdwtbulk
     wtextseout
-    wtcomment
     wtcoordcards
     wtcsuper
     wtdmig

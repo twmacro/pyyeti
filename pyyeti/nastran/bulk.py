@@ -24,7 +24,7 @@ from pyyeti.nastran import n2p, op4, op2
 
 __all__ = [
     'nas_sscanf', 'fsearch', 'rdgpwg', 'rdcards', 'rddmig',
-    'wtcomment', 'wtdmig', 'rdgrids', 'wtgrids', 'rdtabled1',
+    'mkcomment', 'wtdmig', 'rdgrids', 'wtgrids', 'rdtabled1',
     'wttabled1', 'bulk2uset', 'rdwtbulk', 'rdeigen', 'wtnasints',
     'rdcsupers', 'rdextrn', 'wtcsuper', 'wtspc1', 'wtxset1',
     'wtqcset', 'wtrbe2', 'wtrbe3', 'wtseset', 'wtset', 'wtrspline',
@@ -797,24 +797,20 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     return dct
 
 
-@ytools.write_text_file
-def wtcomment(f, comment, width=72, start='$ '):
+def mkcomment(comment, width=72, start='$ ', surround=True):
     """
-    Writes a Nastran comment with wrapping to a file.
+    Formats a string into a Nastran comment with wrapping.
 
     Parameters
     ----------
-    f : string or file_like or 1 or None
-        Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
-        write to stdout. Can also be the name of a directory or None;
-        in these cases, a GUI is opened for file selection.
     comment : string
         The string to write out, wrapping to `width` characters.
     width : integer; optional
         Specify maximum line length.
     start : string; optional
         String to start each line.
+    surround : bool; optional
+        If True, a leading and trailing '$\n' string will be added.
 
     Notes
     -----
@@ -832,17 +828,21 @@ def wtcomment(f, comment, width=72, start='$ '):
     ...      'option. The default start for each '
     ...      'line is "$ ", but that can be changed '
     ...      'as well.')
-    >>> nastran.wtcomment(1, s, width=55)
+    >>> print(nastran.mkcomment(s, width=55), end='')
+    $
     $ This is a long comment string to demonstrate the
     $ wrapping feature of this algorithm. It wraps to 72
     $ characters by default, but that can changed by the
     $ user via the `width` option. The default start for
     $ each line is "$ ", but that can be changed as well.
+    $
     """
-    comment = textwrap.fill(
+    s = textwrap.fill(
         comment, width=width, initial_indent=start,
-        subsequent_indent=start)
-    f.write(comment + '\n')
+        subsequent_indent=start) + '\n'
+    if surround:
+        s = '$\n' + s + '$\n'
+    return s
 
 
 @ytools.write_text_file
@@ -2320,7 +2320,8 @@ def _check_z_alignment(circ_parms, tol):
                          format(z1, z2, cosine))
 
 
-def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0):
+def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0,
+                      names):
     ref_cord_id = 0
     dist = max(1.0, np.linalg.norm(center))
     p = 10 ** np.floor(np.log10(dist))
@@ -2334,16 +2335,16 @@ def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0):
         ))]
     }
     comment = (
-        'Origin of local CORD2R {} is at center of ring 1; z is '
+        'Origin of local CORD2R {} is at center of {}; z is '
         'perpendicular to plane of circle, and x is aligned with '
         'node {} (and new node {}).'
-        .format(cord_id, node0, node_id0))
-    wtcomment(f, comment)
+        .format(cord_id, names[0], node0, node_id0))
+    f.write(mkcomment(comment))
     wtcoordcards(f, local_cord)
 
 
 def _wtgrids_rbe2s(f, circ_parms, center, basic2local, cord_id,
-                   node_id0, rbe2_id0, ring1_ids):
+                   node_id0, rbe2_id0, ring1_ids, names):
     n1 = circ_parms[0].local.shape[1]
     newpts = np.zeros((n1, 3))
 
@@ -2360,23 +2361,26 @@ def _wtgrids_rbe2s(f, circ_parms, center, basic2local, cord_id,
             circ_parms[0].local[:2, j])
 
     # write new grids
-    f.write('$\n$ Grids to RBE2 to Ring 1 grids. These grids line '
-            'up with Ring 2 circle.\n')
-    f.write('$ These will be used in an RSPLINE (which will be '
-            'smooth)\n$\n')
+    comment = ('Grids to RBE2 to the {} grids. These grids line '
+               'up with the {} circle so that the RSPLINE (which '
+               'ties together these new grids and the {} grids) will '
+               'be smooth.').format(names[0], names[1], names[1])
+    f.write(mkcomment(comment))
     vec = np.arange(n1)
     newids = node_id0 + vec
     rbe2ids = rbe2_id0 + vec
     wtgrids(f, newids, xyz=newpts, cp=cord_id)
-    f.write('$\n$ RBE2 old Ring 1 nodes to new nodes created above '
-            '(new nodes are\n$ independent):\n$\n')
+
+    comment = ('RBE2 the {} nodes to new nodes created above '
+               '(the new nodes are independent):').format(names[0])
+    f.write(mkcomment(comment))
     writer.vecwrite(f, 'RBE2,{},{},123456,{}\n',
                     rbe2ids, newids, ring1_ids)
     return newpts, newids
 
 
 def _sort_n_write(f, independent, circ_parms, newpts, newids,
-                  ring2_ids, rspline_id0, DoL):
+                  ring2_ids, rspline_id0, DoL, names):
     n1 = circ_parms[0].local.shape[1]
     n2 = circ_parms[1].local.shape[1]
 
@@ -2391,16 +2395,17 @@ def _sort_n_write(f, independent, circ_parms, newpts, newids,
     ids_2 = np.column_stack((ring2_ids, np.zeros(n2, np.int64)))
 
     if independent == 'ring1':
-        f.write(
-            '$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
-            'with the new nodes\n$ being independent.\n$\n')
+        comment = (('RSPLINE the {} nodes to the new nodes created '
+                    'above, with the new nodes being independent.')
+                   .format(names[1]))
         ids_1[:, 1] = 1
     else:
-        f.write(
-            '$\n$ RSPLINE Ring 2 nodes to new nodes created above, '
-            'with the Ring 2 nodes\n$ being independent.\n$\n')
+        comment = (('RSPLINE the new nodes created above to the {} '
+                    'nodes, with the {} nodes being independent.')
+                   .format(names[1], names[1]))
         ids_2[:, 1] = 1
 
+    f.write(mkcomment(comment))
     ids = np.vstack((ids_1, ids_2))
 
     # sort by angular location:
@@ -2416,7 +2421,7 @@ def _sort_n_write(f, independent, circ_parms, newpts, newids,
 
 
 def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
-                  center, rspline_nodes, ring2_ids):
+                  center, rspline_nodes, ring2_ids, names):
     for item in 'xyz':
         get_func = getattr(ax, 'get_{}label'.format(item))
         if not get_func():
@@ -2425,9 +2430,8 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
 
     # draw the fit for circles:
     th = np.deg2rad(np.arange(0.0, 361))
-    for parms, line, num in zip(circ_parms,
-                                ('+', 'x'),
-                                (1, 2)):
+    for num, (parms, line) in enumerate(zip(circ_parms,
+                                            ('+', 'x'))):
         x = parms.radius * np.cos(th)
         y = parms.radius * np.sin(th)
         z = 0 * x
@@ -2435,11 +2439,11 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
         circle_basic = (parms.center +
                         (np.column_stack((x, y, z)) @
                          parms.basic2local)).T
-        h = ax.plot(*xyz[num-1].T, line, markersize=8.0,
+        h = ax.plot(*xyz[num].T, line, markersize=8.0,
                     markeredgewidth=2.0,
-                    label='R{} nodes'.format(num))[0]
+                    label='{} nodes'.format(names[num]))[0]
         ax.plot(*circle_basic, h.get_color(),
-                label='R{} bset-fit circle'.format(num))
+                label='{} best-fit circle'.format(names[num]))
 
     # get basic coordinates of newpts:
     newpts_basic = newpts @ basic2local + center
@@ -2451,11 +2455,11 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
 
     h = ax.plot(*newpts_basic.T, 'o', markersize=5.0,
                 markeredgewidth=2.0,
-                label=('New R1 nodes\n'
-                       ' - should be on R2 circle'))[0]
+                label=('New {} nodes\n'
+                       ' - should be on {} circle').format(*names))[0]
     ax.plot(*segments.T,
             '-', color=h.get_color(),
-            label='RBE2s - should be R1 radial')
+            label='RBE2s - should be {} radial'.format(names[0]))
 
     # plot the rspline:
     unsorted_rspline_nodes = np.hstack((newids, ring2_ids))
@@ -2506,7 +2510,8 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     r2grids : 2d array_like or DataFrame or tuple
         Contains the ids and locations (and optionally, the name) of
         the ring 2 grids in basic coordinates. See `r1grids` for
-        description of format.
+        description of format. The default name for ring 2 is 'Ring
+        2'.
     node_id0 : integer
         1st id of new nodes created to 'move' ring 1 nodes
     rspline_id0 : integer
@@ -2537,12 +2542,14 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         Specifies ratio of diameter of elastic tybe to the sum of the
         lengths of all segments. Written with: ``'{:<8}'.format(DoL)``
     independent : str; optional
-        Either 'ring1' or 'ring2' (or the actual name if one was
-        provided in the `r1grids` or `r2grids` input). Specifies which
-        ring will be independent on the RSPLINEs. Note that is
-        different than just switching the order of `r1grids` and
-        `r2grids`. This option modifies step 4 below while switching
-        `r1grids` and `r2grids` modifies all the steps.
+        Either 'ring1' or 'ring2' or the assigned name if one was
+        provided in the `r1grids` or `r2grids` input. This input is
+        case-insensitive and all spaces are ignored, so 'Ring 1' is
+        the same as 'ring1'. Specifies which ring will be independent
+        on the RSPLINEs. Note that is different than just switching
+        the order of `r1grids` and `r2grids`. This option modifies
+        step 4 below while switching `r1grids` and `r2grids` modifies
+        all the steps.
 
     Returns
     -------
@@ -2601,6 +2608,9 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     2. Ring 2 will be at station 1.0 with 7 nodes on ring of radius
        45. IDs will be 101 to 107.
 
+    For demonstration, ring 1 will be named 'Spacecraft' while the
+    default will be accepted for ring 2 (which is 'Ring 2').
+
     .. plot::
         :context: close-figs
 
@@ -2616,6 +2626,8 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         ...                    sta1*np.ones(n1),        # x
         ...                    rad1*np.cos(theta1),     # y
         ...                    rad1*np.sin(theta1))).T  # z
+        >>> # Provide a name for ring 1:
+        >>> ring1 = ('Spacecraft', ring1)
         >>> theta2 = np.arange(10, 359, 360/7)*np.pi/180
         >>> rad2 = 45.
         >>> sta2 = 1.
@@ -2630,16 +2642,19 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         >>> nastran.wtrspline_rings(
         ...     1, ring1, ring2, 1001, 2001,
         ...     makeplot=ax)   # doctest: +SKIP
-        $ Origin of local CORD2R 10010 is at center of ring 1; z is
+        $
+        $ Origin of local CORD2R 10010 is at center of Spacecraft; z is
         $ perpendicular to plane of circle, and x is aligned with node 1 (and
         $ new node 1001).
+        $
         $ Coordinate 10010:
         CORD2R*            10010               0  0.00000000e+00  0.00000000e+00*
         *         0.00000000e+00  1.00000000e+00  0.00000000e+00  0.00000000e+00*
-        *         0.00000000e+00  1.00000000e+00  1.11022302e-16
+        *         0.00000000e+00  1.00000000e+00  0.00000000e+00
         $
-        $ Grids to RBE2 to Ring 1 grids. These grids line up with Ring 2 circle.
-        $ These will be used in an RSPLINE (which will be smooth)
+        $ Grids to RBE2 to the Spacecraft grids. These grids line up with the
+        $ Ring 2 circle so that the RSPLINE (which ties together these new grids
+        $ and the Ring 2 grids) will be smooth.
         $
         GRID*               1001           10010     45.00000000     -0.00000000
         *             1.00000000               0
@@ -2652,8 +2667,8 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         GRID*               1005           10010     13.90576475    -42.79754323
         *             1.00000000               0
         $
-        $ RBE2 old Ring 1 nodes to new nodes created above (new nodes are
-        $ independent):
+        $ RBE2 the Spacecraft nodes to new nodes created above (the new nodes
+        $ are independent):
         $
         RBE2,1001,1001,123456,1
         RBE2,1002,1002,123456,2
@@ -2661,8 +2676,8 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         RBE2,1004,1004,123456,4
         RBE2,1005,1005,123456,5
         $
-        $ RSPLINE Ring 2 nodes to new nodes created above, with the new nodes
-        $ being independent.
+        $ RSPLINE the Ring 2 nodes to the new nodes created above, with the new
+        $ nodes being independent.
         $
         RSPLINE     2001     0.1    1001     101  123456     102  123456    1002
         RSPLINE     2002     0.1    1002     103  123456    1003
@@ -2670,13 +2685,32 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         RSPLINE     2004     0.1    1004     106  123456    1005
         RSPLINE     2005     0.1    1005     107  123456    1001
     """
+    def _check_grids(grids, name):
+        if isinstance(grids, tuple) and len(grids) == 2:
+            return grids
+        return name, grids
+
+    def _despace(s):
+        return (''.join(s.split())).lower()
+
+    r1name, r1grids = _check_grids(r1grids, 'Ring 1')
+    r2name, r2grids = _check_grids(r2grids, 'Ring 2')
+
+    # ensure that independent is either 'ring1' or 'ring2':
+    independent = _despace(independent)
+    if independent == _despace(r1name):
+        independent = 'ring1'
+    elif independent == _despace(r2name):
+        independent = 'ring2'
     if independent not in ('ring1', 'ring2'):
         raise ValueError('invalid `independent` option')
+
     if rbe2_id0 is None:
         rbe2_id0 = node_id0
     if cord_id is None:
         cord_id = node_id0 * 10
 
+    names = (r1name, r2name)
     IDs = []
     xyz = []
     for ring, name in ((r1grids, 'r1grids'),
@@ -2710,14 +2744,14 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     # off ... check for this and adjust if that's the case:
     radius = circ_parms[0].radius
     for i, value in enumerate(center):
-        if abs(value) < 1e-9 * radius:
+        if abs(value) < 1e-7 * radius:
             center[i] = 0.0
 
     @ytools.write_text_file
     def _write_file(f):
         # write local coordinate system to file:
         _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0],
-                          node_id0)
+                          node_id0, names)
 
         # create new nodes that will be RBE2'd to ring 1 nodes, but
         # located on ring 2 circle
@@ -2725,12 +2759,12 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         #   in basic
         newpts, newids = _wtgrids_rbe2s(
             f, circ_parms, center, basic2local, cord_id,
-            node_id0, rbe2_id0, IDs[0])
+            node_id0, rbe2_id0, IDs[0], names)
 
         # rspline will tie the 'newpts' and the ring 2 nodes together:
         rspline_nodes = _sort_n_write(
             f, independent, circ_parms, newpts, newids,
-            IDs[1], rspline_id0, DoL)
+            IDs[1], rspline_id0, DoL, names)
 
         return newpts, newids, rspline_nodes
 
@@ -2741,7 +2775,7 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     if ax:
         _plot_rspline(
             ax, circ_parms, xyz, newpts, newids, basic2local, center,
-            rspline_nodes, IDs[1])
+            rspline_nodes, IDs[1], names)
 
 
 def wtvcomp(f, baa, kaa, bset, spoint1):
@@ -2862,14 +2896,16 @@ def wtcoordcards(f, ci):
         for k in ci:
             data = ci[k]  # [name, [[id, type, ref]; A; B; C]]
             coord = data[1]
+            abc = +coord[1:]
+            abc[abs(abc) < abs(abc).max() * 1e-15] = 0.0
             f.write('$ Coordinate {:d}:\n'.format(k))
             f.write('{:<8s}{:16d}{:16d}{:16.8e}{:16.8e}*\n'.
                     format(data[0] + '*', k, int(coord[0, 2]),
-                           *coord[1, :2]))
+                           *abc[0, :2]))
             f.write(('{:<8s}' + '{:16.8e}' * 4 + '*\n').
-                    format('*', coord[1, 2], *coord[2]))
+                    format('*', abc[0, 2], *abc[1]))
             f.write(('{:<8s}' + '{:16.8e}' * 3 + '\n').
-                    format('*', *coord[3]))
+                    format('*', *abc[2]))
 
     _wtcoords(f, ci)
 

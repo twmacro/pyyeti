@@ -434,10 +434,12 @@ def test_wtrspline_rings():
                        rad2 * np.cos(theta2),     # y
                        rad2 * np.sin(theta2))).T  # z
 
-    uset1 = n2p.addgrid(None, ring1[:, 0].astype(int),
-                        'b', 0, ring1[:, 1:], 0)
-    uset2 = n2p.addgrid(None, ring2[:, 0].astype(int),
-                        'b', 0, ring2[:, 1:], 0)
+    uset1 = ('Name 1',
+             n2p.addgrid(None, ring1[:, 0].astype(int),
+                         'b', 0, ring1[:, 1:], 0))
+    uset2 = ('Name 2',
+             n2p.addgrid(None, ring2[:, 0].astype(int),
+                         'b', 0, ring2[:, 1:], 0))
 
     fig = plt.figure('rspline demo', figsize=(8, 6))
     fig.clf()
@@ -451,7 +453,7 @@ def test_wtrspline_rings():
 
     with StringIO() as f:
         nastran.wtrspline_rings(f, uset1, uset2, 1001, 2001,
-                                makeplot=ax, independent='ring2')
+                                makeplot=ax, independent='n amE 2')
         u2, c2 = nastran.bulk2uset(f)
         rsplines2 = nastran.rdcards(f, 'RSPLINE')
 
@@ -484,6 +486,7 @@ def test_wtrspline_rings():
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1, uset2,
                   1001, 2001, makeplot='no', independent='badoption')
 
+    uset1 = uset1[1]
     assert_raises(ValueError, nastran.wtrspline_rings, 1, uset1[:-1],
                   uset2, 1001, 2001, makeplot='no')
 
