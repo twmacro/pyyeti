@@ -3108,3 +3108,123 @@ def test_set_dr_order():
     DR.set_dr_order(['atm1'], where='first')
     r = repr(DR)
     assert "['atm1', 'atm0', 'dtm1', 'ltm1', 'dtm0', 'ltm0']" in r
+
+
+def get_dr_defs(se, cats, drms_, nondrms_):
+    # setup CLA parameters:
+    # define some defaults for data recovery:
+    defaults = dict(
+        se=se,
+        uf_reds=(1, 1, 1.25, 1),
+        srsfrq=np.arange(.1, 50.1, .1),
+        srsQs=(10, 33),
+    )
+
+    drdefs = cla.DR_Def(defaults)
+
+    for i in range(len(cats)):
+        @cla.DR_Def.addcat
+        def _():
+            name = cats[i]
+            desc = 'description'
+            labels = 12
+            drms = {drms_[i]: i}
+            nondrms = {nondrms_[i]: 10 + i}
+            drfunc = f"Vars[se]['{name}'] @ sol.a"
+            srsopts = dict(eqsine=1, ic='steady')
+            drdefs.add(**locals())
+
+    return drdefs
+
+
+def test_dr_def_merge():
+    names = ['atm', 'ltm', 'dtm']
+    cats = ['atm0', 'ltm0', 'dtm0',
+            'atm1', 'ltm1', 'dtm1',
+            'atm2', 'ltm2', 'dtm2']
+    drms = [name + '_d' for name in cats]
+    nondrms = [name + '_n' for name in cats]
+
+    drdefs = [get_dr_defs(se,
+                          cats[3*i:3*i+3],
+                          drms[3*i:3*i+3],
+                          nondrms[3*i:3*i+3])
+              for i, se in zip(range(3), (101, 102, 102))]
+
+    drdefs_merge = cla.DR_Def.merge(
+        drdefs[0], drdefs[1], drdefs[2])
+    drdefs_add = drdefs[0] + drdefs[1] + drdefs[2]
+
+    # se 101 has the 0 drms and se 102 has the 1 & 2 drms:
+    for drdefs_ in (drdefs_merge, drdefs_add):
+        for se, addon in ((101, [0]),
+                          (102, [1, 2])):
+            cur_drms = drdefs_['_vars'].drms[se]
+            cur_nondrms = drdefs_['_vars'].nondrms[se]
+            for i, name in enumerate(names):
+                for j in addon:
+                    cur_name = name + '{}_d'.format(j)
+                    assert cur_name in cur_drms
+                    assert cur_drms[cur_name] == i
+
+                    cur_name = name + '{}_n'.format(j)
+                    assert cur_name in cur_nondrms
+                    assert cur_nondrms[cur_name] == 10 + i
+
+    assert list(drdefs_merge) == ['_vars', *cats]
+    assert list(drdefs_add) == ['_vars', *cats]
+
+    drdefs_add = drdefs[2] + drdefs[0] + drdefs[1]
+    new_cats = [name + str(i)
+                for i in (2, 0, 1)
+                for name in ['atm', 'ltm', 'dtm']
+                ]
+    assert list(drdefs_add) == ['_vars', *new_cats]
+
+    assert (list(cla.DR_Def.merge(drdefs[1])) ==
+            ['_vars', 'atm1', 'ltm1', 'dtm1'])
+
+    # check for some errors:
+    cats2 = ['atm0', 'ltm0', 'dtm0',
+             'atm0', 'ltm1', 'dtm1',
+             'atm2', 'ltm1', 'dtm2']
+    drms2 = [name + '_d' for name in cats2]
+    nondrms2 = [name + '_n' for name in cats2]
+
+    drdefs = [get_dr_defs(se,
+                          cats2[3*i:3*i+3],
+                          drms[3*i:3*i+3],
+                          nondrms[3*i:3*i+3])
+              for i, se in zip(range(3), (101, 102, 102))]
+
+    # should raise ValueError for duplicate categories:
+    assert_raises_regex(
+        ValueError,
+        r'there were duplicate categories:\n.*atm0.*ltm1',
+        cla.DR_Def.merge, drdefs[0], drdefs[1], drdefs[2])
+
+    drdefs = [get_dr_defs(se,
+                          cats[3*i:3*i+3],
+                          drms2[3*i:3*i+3],
+                          nondrms[3*i:3*i+3])
+              for i, se in zip(range(3), (101, 102, 102))]
+
+    # should raise ValueError for duplicate drms:
+    assert_raises_regex(
+        ValueError,
+        (r'there were duplicate "drms" names. By SE:\n'
+         r'102:.*ltm1_d.*'),
+        cla.DR_Def.merge, drdefs[0], drdefs[1], drdefs[2])
+
+    drdefs = [get_dr_defs(se,
+                          cats[3*i:3*i+3],
+                          drms[3*i:3*i+3],
+                          nondrms2[3*i:3*i+3])
+              for i, se in zip(range(3), (101, 102, 102))]
+
+    # should raise ValueError for duplicate nondrms:
+    assert_raises_regex(
+        ValueError,
+        (r'there were duplicate "nondrms" names. By SE:\n'
+         r'102:.*ltm1_n.*'),
+        cla.DR_Def.merge, drdefs[0], drdefs[1], drdefs[2])

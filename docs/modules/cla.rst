@@ -15,6 +15,7 @@ Class for defining data recovery categories
     DR_Def.add_0rb
     DR_Def.copycat
     DR_Def.excel_summary
+    DR_Def.merge
 
 Class for getting data recovery ready for running a specific event
 ------------------------------------------------------------------
@@ -76,6 +77,7 @@ Utility routines
     PSD_consistent_rss
     reldisp_dtm
     rdext
+    reorder
     rptext1
     rptpct1
     rpttab1

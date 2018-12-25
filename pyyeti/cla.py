@@ -781,6 +781,81 @@ def _merge_uf_reds(old, new, method='replace'):
     return tuple(merged)
 
 
+def reorder(ordered_dict, keys, where):
+    """
+    Copy and reorder OrderedDict
+
+    Parameters
+    ----------
+    ordered_dict : OrderedDict instance
+        The OrderedDict to copy and put in a new order
+    keys : iterable
+        Iterable of keys in the ordered desired. Note that all
+        keys do not need to be included, just those where a new
+        order is desired. For example, if you just want to ensure
+        that 'scltm' is first::
+
+            new_dict = reorder(ordered_dict, ['scltm'], 'first')
+
+    where : string
+        Either 'first' or 'last'. Specifies where to put the
+        reordered items in the final order.
+
+    Returns
+    -------
+    OrderedDict instance
+        A new OrderedDict ordered as specified
+
+    Raises
+    ------
+    ValueError
+        If a key is not found
+    ValueError
+        If `where` is not 'first' or 'last'
+
+    Examples
+    --------
+    >>> from pyyeti import cla
+    >>> dct = OrderedDict((('one', 1),
+    ...                    ('two', 2),
+    ...                    ('three', 3)))
+    >>> dct
+    OrderedDict([('one', 1), ('two', 2), ('three', 3)])
+    >>> cla.reorder(dct, ['three', 'two'], 'first')
+    OrderedDict([('three', 3), ('two', 2), ('one', 1)])
+    """
+    def reorder_keys(all_keys, keys, where):
+        all_keys = list(all_keys)
+        keys = list(keys)
+
+        # ensure all keys are in all_keys:
+        for k in keys:
+            if k not in all_keys:
+                raise ValueError(
+                    'Key "{}" not found. Order unchanged.'
+                    .format(k))
+
+        if where == 'first':
+            new_keys = list(keys)
+            new_keys.extend(k for k in all_keys
+                            if k not in keys)
+        elif where == 'last':
+            new_keys = [k for k in all_keys
+                        if k not in keys]
+            new_keys.extend(keys)
+        else:
+            raise ValueError(
+                "`where` must be 'first' or 'last', not {!r}"
+                .format(where))
+
+        return new_keys
+
+    return OrderedDict(
+        (k, ordered_dict[k])
+        for k in reorder_keys(ordered_dict, keys, where)
+    )
+
+
 class DR_Def(OrderedDict):
     """
     Data recovery definitions.
@@ -795,7 +870,7 @@ class DR_Def(OrderedDict):
     determined by the order they are added to an instance of
     :class:`DR_Event` via :func:`DR_Event.add`.
     :func:`DR_Event.set_dr_order` can be used to modify the final
-    order.
+    order. :func:`reorder` can also be used for that purpose.
 
     Attributes
     ----------
@@ -1386,7 +1461,9 @@ class DR_Def(OrderedDict):
         :func:`DR_Def.add` determines the order of data recovery
         categories within each :class:`DR_Def` instance.
         :func:`DR_Event.set_dr_order` can be used to modify the final
-        order.
+        order. That routine uses the more general :func:`reorder`
+        to reorder the categories. :func:`reorder` can copy and
+        reorder any OrderedDict.
 
         **Entering partition vectors.** The `histpv`, `srspv` and
         `ignorepv` inputs are all handled similarly. They can be input
@@ -1746,6 +1823,147 @@ class DR_Def(OrderedDict):
                 worksheet.freeze_panes(1, 1)
         return df
 
+    @staticmethod
+    def merge(first, *args):
+        """
+        Merge DR_Def instances together to make a new instance
+
+        Parameters
+        ----------
+        first : DR_Def instance
+            The first DR_Def instance to merge with other instances
+        *args : any number of DR_Def instances
+            The other DR_Def instances to merge with `first`
+
+        Returns
+        -------
+        DR_Def instance
+            The merger of all input DR_Def instances
+
+        Notes
+        -----
+        The final order of categories is as input. That is, the
+        categories of `first` are first and in the order they were
+        defined. The others are treated similarly. Note that the order
+        can be changed via :func:`reorder`.
+        :func:`DR_Event.set_dr_order` can also be used to modify the
+        final data recovery order.
+
+        The ``+`` operator can also be used to merge DR_Def instances.
+        That is, this::
+
+            drdefs_new = DR_Def.merge(drdefs1, drdefs2, drdefs3)
+
+        is equivalent to this::
+
+            drdefs_new = drdefs1 + drdefs2 + drdefs3
+
+        except calling :func:`DR_Def.merge` directly is more efficient
+        if there are more than two instances being merged.
+
+        Examples
+        --------
+        For demonstration, create two data recovery categories using
+        two DR_Def instances instead of just one, and them merge them
+        together:
+
+        >>> from pyyeti import cla
+        >>>
+        >>> drdefs1 = cla.DR_Def()
+        >>> @cla.DR_Def.addcat
+        ... def _():
+        ...     se = 101
+        ...     name = 'atm'
+        ...     desc = 'description'
+        ...     labels = 12
+        ...     drms = {'atm': 1}
+        ...     nondrms = {'radius': 10}
+        ...     drfunc = f"Vars[se]['{name}'] @ sol.a"
+        ...     drdefs1.add(**locals())
+        >>>
+        >>> drdefs2 = cla.DR_Def()
+        >>> @cla.DR_Def.addcat
+        ... def _():
+        ...     se = 102
+        ...     name = 'dtm'
+        ...     desc = 'description'
+        ...     labels = 6
+        ...     drms = {'dtm': 2}
+        ...     nondrms = {'station': 20}
+        ...     drfunc = f"Vars[se]['{name}'] @ sol.d"
+        ...     drdefs2.add(**locals())
+        >>>
+        >>> drdefs = cla.DR_Def.merge(drdefs1, drdefs2)
+        >>> drdefs    # doctest: +ELLIPSIS
+        DR_Def (...) with 2 categories: ['_vars', 'atm', 'dtm']
+
+        You can also use the ``+`` operator:
+
+        >>> drdefs = drdefs1 + drdefs2
+        >>> drdefs    # doctest: +ELLIPSIS
+        DR_Def (...) with 2 categories: ['_vars', 'atm', 'dtm']
+        """
+        # to check for duplicate category names, use a set:
+        cats = set(first)
+        cats.remove('_vars')
+        duplicate_cats = set()
+        for arg in args:
+            newcats = set(arg)
+            newcats.remove('_vars')
+            duplicate_cats |= cats.intersection(newcats)
+            cats |= newcats
+
+        # were there any duplicate categories?:
+        if duplicate_cats:
+            raise ValueError('there were duplicate categories:\n\t{!r}'
+                             .format(sorted(duplicate_cats)))
+
+        # category names are unique, need to check drms & nondrms:
+        data = {}
+        for attr_name in ('drms', 'nondrms'):
+            duplicate_drms = {}
+            drms = getattr(first['_vars'], attr_name).copy()
+            for arg in args:
+                new_drms = getattr(arg['_vars'], attr_name)
+                for se, drm_dict in new_drms.items():
+                    if se in drms:
+                        # check for duplicate drm names:
+                        current = set(drms[se])
+                        new = set(drm_dict)
+                        if se not in duplicate_drms:
+                            duplicate_drms[se] = set()
+                        duplicate_drms[se] |= current.intersection(new)
+                        drms[se].update(drm_dict)
+                    else:
+                        drms[se] = drm_dict.copy()
+
+            # were there any duplicate drm names?:
+            dup_names = ''.join('{}: {}\n'.format(se, sorted(dups))
+                                for se, dups in duplicate_drms.items()
+                                if dups)
+
+            if dup_names:
+                raise ValueError(
+                    'there were duplicate "{}" names. By SE:\n{}'
+                    .format(attr_name, dup_names))
+
+            data[attr_name] = drms
+
+        # if here, no duplicates, so merge:
+        drdefs = DR_Def()
+        drdefs.update(first)
+        for arg in args:
+            drdefs.update(arg)
+        drdefs['_vars'] = SimpleNamespace(drms=data['drms'],
+                                          nondrms=data['nondrms'])
+        return drdefs
+
+    def __add__(self, other):
+        """
+        Syntactic sugar for the :func:`DR_Def.merge` method.
+        """
+        return DR_Def.merge(self, other)
+
 
 class DR_Event:
     """
@@ -2033,6 +2251,7 @@ class DR_Event:
 
         Notes
         -----
+        This is a convenience method for the :func:`reorder` routine.
         Updates the `Info` attribute to reflect the new order. Call
         this routine before calling :func:`prepare_results`.
 
@@ -2105,37 +2324,7 @@ class DR_Event:
         >>> print(repr(DR))    # doctest: +ELLIPSIS
         DR_Event ... ['atm0', 'ltm0', 'dtm1', 'ltm1', 'dtm0', 'atm1']
         """
-        def reorder_keys(all_keys, keys, where):
-            all_keys = list(all_keys)
-            keys = list(keys)
-
-            # ensure all keys are in all_keys:
-            for k in keys:
-                if k not in all_keys:
-                    raise ValueError(
-                        'Category "{}" not found. Order unchanged.'
-                        .format(k))
-
-            if where == 'first':
-                new_keys = list(keys)
-                new_keys.extend(k for k in all_keys
-                                if k not in keys)
-            elif where == 'last':
-                new_keys = [k for k in all_keys
-                            if k not in keys]
-                new_keys.extend(keys)
-            else:
-                raise ValueError(
-                    "`where` must be 'first' or 'last', not {!r}"
-                    .format(where))
-
-            return new_keys
-
-        new_info = OrderedDict(
-            (k, self.Info[k])
-            for k in reorder_keys(self.Info, cats, where)
-        )
-        self.Info = new_info
+        self.Info = reorder(self.Info, cats, where)
 
     def prepare_results(self, mission, event):
         """
