@@ -250,14 +250,15 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
      now I think
      - v0.94.3
 
-79. Improve coverage of new wtrspline_rings routine
+~ 79. Improve coverage of new wtrspline_rings routine
 
 ~80. Have fit_circle_2d use fit_circle_3d ... I think
     - or delete it?
     - or update it?
     - v0.94.3
 
-81. Use mkcomment more in bulk.py
+~ 81. Use mkcomment more in bulk.py
+      ~ nothing more to do really
 
 ~82. Use decorator in bulk.py to handle file handle?
     - it's cumbersome the way it is now
