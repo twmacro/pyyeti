@@ -577,8 +577,8 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         iddof = sorted(iddof, key=lambda x: 10 * x[0] + x[1])
         return pd.MultiIndex.from_tuples(iddof, names=['ID', 'DOF'])
 
-    def _mk_dataframe(mtype, form, row_ids, row_iddof, col_iddof,
-                      ncol):
+    def _prep_dataframe(mtype, form, row_ids, row_iddof, col_iddof,
+                        ncol):
         # create dataframe:
         dtype = float if mtype < 3 else complex
         if form != 9:
@@ -597,7 +597,11 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
             else:
                 colindex = sorted(nid for nid, dof in col_iddof)
         data = np.zeros((len(rowindex), len(colindex)), dtype)
-        return pd.DataFrame(data, index=rowindex, columns=colindex)
+        return data, rowindex, colindex
+
+    def _get_1d_index(index):
+        ind = index.to_frame().values
+        return ind[:, 0] * 10 + ind[:, 1]
 
     def _cards_to_df(c, dmig_names):
         # punch file
@@ -641,18 +645,21 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                 j += 1
 
             # create dataframe:
-            dct[name] = _mk_dataframe(
+            mat, rowindex, colindex = _prep_dataframe(
                 mtype, form, row_ids, row_iddof, col_iddof, ncol)
 
             j = i + 1
             # put data into dataframe:
-            df = dct[name]
+            r_id_dof = _get_1d_index(rowindex)
+            if form != 9:
+                c_id_dof = _get_1d_index(colindex)
+            else:
+                c_id_dof = colindex
             while j < len(c) and c[j][0].lower() == name:
                 nid, dof = c[j][1:3]
                 if form != 9:
-                    col = (nid, dof)
-                else:
-                    col = nid
+                    nid = nid * 10 + dof
+                ci = np.searchsorted(c_id_dof, nid)
 
                 # for each column, look across rows:
                 rowids = c[j][4::4]
@@ -660,19 +667,23 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                 reals = c[j][6::4]
                 if mtype < 3:
                     for nid, dof, real in zip(rowids, rowdofs, reals):
-                        df.loc[(nid, dof), col] = real
+                        ri = np.searchsorted(r_id_dof, nid * 10 + dof)
+                        mat[ri, ci] = real
                         if form == 6:
-                            df.loc[col, (nid, dof)] = real
+                            mat[ci, ri] = real
                 else:
                     imags = c[j][7::4]
                     for nid, dof, real, imag in zip(rowids, rowdofs,
                                                     reals, imags):
                         val = real + 1j * imag
-                        df.loc[(nid, dof), col] = val
+                        ri = np.searchsorted(r_id_dof, nid * 10 + dof)
+                        mat[ri, ci] = val
                         if form == 6:
-                            df.loc[col, (nid, dof)] = val
+                            mat[ci, ri] = val
                 j += 1
             i = j
+            dct[name] = pd.DataFrame(
+                mat, index=rowindex, columns=colindex)
         return dct
 
     def _read_op2_dmig(o2, dmig_names):
@@ -737,18 +748,22 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                     add_iddof(row_ids, row_iddof, nid, dof)
 
             # create dataframe:
-            dct[name] = _mk_dataframe(
+            mat, rowindex, colindex = _prep_dataframe(
                 mtype, form, row_ids, row_iddof, col_iddof, ncol)
 
             # put data into dataframe:
-            df = dct[name]
+            # df = dct[name]
+            r_id_dof = _get_1d_index(rowindex)
+            if form != 9:
+                c_id_dof = _get_1d_index(colindex)
+            else:
+                c_id_dof = colindex
             j = 12
             while j < len(rec) - 2:
                 nid, dof = rec[j:j + 2]
                 if form != 9:
-                    col = (nid, dof)
-                else:
-                    col = nid
+                    nid = nid * 10 + dof
+                ci = np.searchsorted(c_id_dof, nid)
 
                 j += 2
                 nid = rec[j]
@@ -758,11 +773,14 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                     val = rec[j:j + ints_per_number]
                     val.dtype = dtype
                     j += ints_per_number
-                    df.loc[(nid, dof), col] = val
+                    ri = np.searchsorted(r_id_dof, nid * 10 + dof)
+                    mat[ri, ci] = val
                     if form == 6:
-                        df.loc[col, (nid, dof)] = val
+                        mat[ci, ri] = val
                     nid = rec[j]
                 j += 2
+            dct[name] = pd.DataFrame(
+                mat, index=rowindex, columns=colindex)
         return dct
 
     # MAIN routine

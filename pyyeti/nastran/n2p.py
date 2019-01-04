@@ -2372,6 +2372,8 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
     # allocate dataframe:
     usetid = make_uset(gid)
+    nd_nasset = np.zeros(usetid.shape[0], np.int32)
+    nd_xyz = np.zeros((usetid.shape[0], 3))
 
     # ensure nasset is iterable:
     smap = {}
@@ -2386,6 +2388,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     xyz = np.atleast_2d(xyz)
 
     # cols = ['nasset', 'x', 'y', 'z']
+    i = 0
     for g, u, _cin, _xyz, _cout in zip(gid, nasset, cin, xyz, cout):
         _uset = _addgrid_get_uset(u, mask, smap)
 
@@ -2395,11 +2398,16 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
         # form x, y, z columns of dataframe:
         _cout = mkusetcoordinfo(_cout, uset, coordref)
-        _xyz = np.vstack((loc, _cout))
 
         # put in dataframe:
-        usetid.loc[g, 'nasset'] = _uset
-        usetid.loc[g, 'x':'z'] = _xyz
+        nd_nasset[i:i + 6] = _uset
+        nd_xyz[i] = loc
+        nd_xyz[i + 1:i + 6] = _cout
+        i += 6
+
+    # turn back into dataframe:
+    usetid.iloc[:, 0] = nd_nasset
+    usetid.iloc[:, 1:] = nd_xyz
 
     if uset is not None:
         # concatenate to maintain order as input:
