@@ -6673,7 +6673,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         ax.ticklabel_format(useOffset=False,
                             style='sci', scilimits=(-3, 4))
         txt = ax.get_yaxis().get_offset_text()
-        txt.set_x(-.22)
+        txt.set_x(-0.22)
         txt.set_va('bottom')
         plt.grid(True)
         return sub, filenum, prefix
@@ -6711,6 +6711,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     def _plot_all(curres, q, frq, hist, showboth, cases, sub,
                   cols, maxcol, name, label, maxlen,
                   sname, rowpv, j):
+        legwidth = 0.0
         # legspace = matplotlib.rcParams['legend.labelspacing']
         if issrs:
             srsall = curres.srs.srs[q]
@@ -6737,15 +6738,46 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             for n, case in enumerate(cases):
                 h += plot(x, hist[n, j], linestyle='-', label=case)
         if sub == maxcol:
-            plt.legend(loc='upper left',
-                       bbox_to_anchor=(1.02, 1.),
-                       borderaxespad=0.,
-                       fontsize='small',
-                       framealpha=0.5,
-                       # labelspacing=legspace*.9,
-                       )
+            fig = plt.gcf()
+            ax = plt.gca()
+            handles, labels = ax.get_legend_handles_labels()
+            leg = fig.legend(
+                handles,
+                labels,
+                loc='upper right',
+                bbox_to_anchor=(
+                    1.0 - 0.3 / figsize[0],
+                    1.0 - 0.3 / figsize[1]),
+                fontsize='small',
+                framealpha=0.5,
+            )
+            legwidth = (leg.get_tightbbox(fig.canvas.get_renderer())
+                        .inverse_transformed(fig.transFigure)
+                        .width)
+            # legwidth = (leg.get_window_extent()
+            #             .inverse_transformed(fig.transFigure)
+            #             .width)
+            # print('legend_width =', legwidth)
+            # fig.canvas.draw()
+            # legwidth = (leg.get_tightbbox(fig.canvas.get_renderer())
+            #             .inverse_transformed(fig.transFigure)
+            #             .width)
+            # # legwidth = (leg.get_window_extent()
+            # #             .inverse_transformed(fig.transFigure)
+            # #             .width)
+            # print('legend_width =', legwidth)
+
+            # ax.legend(
+            #     loc='upper left',
+            #     bbox_to_anchor=(1.02, 1.),
+            #     borderaxespad=0.,
+            #     fontsize='small',
+            #     framealpha=0.5,
+            #     # labelspacing=legspace*.9,
+            # )
         _add_title(name, label, maxlen, sname,
                    rowpv[j] + 1, cols, q)
+        return legwidth
 
     def _plot_ext(curres, q, frq, sub, cols, maxcol, name,
                   label, maxlen, sname, rowpv, j):
@@ -6760,6 +6792,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         if q == Qs[0]:
             _add_title(name, label, maxlen, sname,
                        rowpv[j] + 1, cols)
+        return 0.0  # return a value for legwidth
 
     def _add_xy_labels(uj, xlab, ylab, srstype):
         if isinstance(units, str):
@@ -6893,6 +6926,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             maxcol = cols if nplots > cols else nplots
             sub = perpage
             prefix = None
+            legwidth = 0.0
             for j in range(nplots):
                 sub, filenum, prefix = _prep_subplot(
                     rows, cols, sub, perpage, filenum, nplots,
@@ -6901,23 +6935,38 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                 if issrs:
                     for q in Qs:
                         if showall:
-                            _plot_all(res[name], q, x, y,
-                                      showboth, _cases, sub, cols,
-                                      maxcol, name, label,
-                                      maxlen, sname, rowpv, j)
+                            lw = _plot_all(
+                                res[name], q, x, y,
+                                showboth, _cases, sub, cols,
+                                maxcol, name, label,
+                                maxlen, sname, rowpv, j)
                         else:
-                            _plot_ext(res[name], q, x, sub, cols,
-                                      maxcol, name, label,
-                                      maxlen, sname, rowpv, j)
+                            lw = _plot_ext(
+                                res[name], q, x, sub, cols,
+                                maxcol, name, label,
+                                maxlen, sname, rowpv, j)
                 else:
-                    _plot_all(res[name], None, x, y, showboth,
-                              _cases, sub, cols, maxcol,
-                              name, label, maxlen, sname,
-                              rowpv, j)
+                    lw = _plot_all(
+                        res[name], None, x, y, showboth,
+                        _cases, sub, cols, maxcol,
+                        name, label, maxlen, sname,
+                        rowpv, j)
                 _add_xy_labels(uj, xlab, ylab, srstype)
 
+                legwidth = max(legwidth, lw)
+
                 if j + 1 == nplots or (j + 1) % perpage == 0:
-                    plt.tight_layout(**tight_layout_args)
+                    tla = tight_layout_args.copy()
+                    if 'rect' in tla:
+                        tla['rect'] = (
+                            tla['rect'][0],
+                            tla['rect'][1],
+                            tla['rect'][2] - legwidth,
+                            tla['rect'][3])
+                    else:
+                        tla['rect'] = (0, 0, 1 - legwidth, 1)
+                    legwidth = 0.0
+                    plt.tight_layout(**tla)
                     if fmt == 'pdf' and onepdf:
                         pdffile.savefig()
                         # orientation=orientation,
