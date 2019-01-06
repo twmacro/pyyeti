@@ -28,6 +28,7 @@ Member functions:
 
     OP2.directory
     OP2.prtdir
+    OP2.file_handle
     OP2.rdop2eot
     OP2.rdop2header
     OP2.rdop2nt
@@ -39,6 +40,7 @@ Member functions:
     OP2.rdop2record
     OP2.rdop2tabheaders
     OP2.rdop2tload
+    OP2.set_position
     OP2.skipop2matrix
     OP2.skipop2record
     OP2.skipop2table

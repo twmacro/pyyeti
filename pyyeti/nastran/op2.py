@@ -314,6 +314,51 @@ class OP2(object):
         """Skips `n` key triplets ([reclen, key, endrec])."""
         self._fileh.read(n * (8 + self._ibytes))
 
+    def file_handle(self):
+        """Returns the op2 file handle"""
+        return self._fileh
+
+    def set_position(self, pos, which=0):
+        """
+        Set the op2 file position
+
+        Parameters
+        ----------
+        pos : integer or string
+            If integer, it is the desired byte offset in the file. If
+            a string, it is the name of the datablock to position to;
+            in this case, the `which` parameter is also used.
+        which : integer; optional
+            If `pos` is a string, `which` specifies which occurrence
+            of the datablock to seek to. Counting starts at 0.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        The following two code snippets position to the start of the
+        first KAA datablock and read it in. The first gets the
+        position the "hard way"::
+
+            o2 = op2.OP2('mds.op2')
+            fpos = o2.dbnames['KAA'][0][0][0]
+            o2.set_position(fpos)
+            name, trailer, rectype = o2.rdop2nt()
+            kaa = o2.rdop2matrix(trailer)
+
+        The second uses the string feature of this routine::
+
+            o2 = op2.OP2('mds.op2')
+            o2.set_position('KAA')
+            name, trailer, rectype = o2.rdop2nt()
+            kaa = o2.rdop2matrix(trailer)
+        """
+        if isinstance(pos, str):
+            pos = self.dbnames[pos][which][0][0]
+        self._fileh.seek(pos)
+
     def rdop2header(self):
         """
         Reads Nastran output2 header label.
@@ -510,23 +555,40 @@ class OP2(object):
             self._skipkey(2)
             eot, key = self.rdop2eot()
 
-    def rdop2mats(self):
-        """Read all matrices from Nastran output2 file.
+    def rdop2mats(self, names=None):
+        """
+        Read all matrices from Nastran output2 file.
 
-        Returns dictionary containing all matrices in the op2 file:
-        {'NAME1': matrix1, 'NAME2': matrix2, ...}
+        Parameters
+        ----------
+        names : list_like; optional
+            Iterable of names to read in. If None, read all. These can
+            be input in lower case.
 
+        Returns
+        -------
+        dict
+            Dictionary containing all matrices in the op2 file:
+            {'NAME1': matrix1, 'NAME2': matrix2, ...}
+
+        Notes
+        -----
         The keys are the names as stored (upper case).
         """
         self._fileh.seek(self._postheaderpos)
         mats = {}
+        if names:
+            names = [n.upper() for n in names]
         while 1:
             name, trailer, rectype = self.rdop2nt()
             if name is None:
                 break
             if rectype > 0:
-                print("Reading matrix {}...".format(name))
-                mats[name] = self.rdop2matrix(trailer)
+                if not names or name in names:
+                    print("Reading matrix {}...".format(name))
+                    mats[name] = self.rdop2matrix(trailer)
+                else:
+                    self.skipop2matrix(trailer)
             else:
                 self.skipop2table()
         return mats
@@ -588,7 +650,7 @@ class OP2(object):
 
             o2 = op2.OP2('mds.op2')
             fpos = o2.dbnames['KAA'][0][0][0]
-            o2._fileh.seek(fpos)
+            o2.set_position(fpos)
             name, trailer, rectype = o2.rdop2nt()
             kaa = o2.rdop2matrix(trailer)
 
@@ -841,7 +903,7 @@ class OP2(object):
 
             o2 = op2.OP2('modes.op2')
             fpos = o2.dbnames['GEOM1S'][-1][0][0]
-            o2._fileh.seek(fpos)
+            o2.set_position(fpos)
             name, trailer, dbtype = o2.rdop2nt()
             o2.rdop2tabheaders('GEOM1S')
 

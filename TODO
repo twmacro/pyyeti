@@ -296,3 +296,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
 ~ 92. Change wtcomment to mkcomment ... more versatility
       ~ after v0.94.4
+93. test new op2 additions:
+     - file_handle
+     - set_position
+     - rdop2mats ... the names parameter is new

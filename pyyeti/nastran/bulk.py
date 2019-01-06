@@ -816,7 +816,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
 
 def mkcomment(comment, width=72, start='$ ', surround=True):
-    """
+    r"""
     Formats a string into a Nastran comment with wrapping.
 
     Parameters
@@ -829,6 +829,10 @@ def mkcomment(comment, width=72, start='$ ', surround=True):
         String to start each line.
     surround : bool; optional
         If True, a leading and trailing '$\n' string will be added.
+
+    Returns
+    -------
+    None
 
     Notes
     -----

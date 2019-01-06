@@ -6708,10 +6708,56 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         ttl = _add_q(ttl, q)
         plt.title(ttl, fontsize=big)
 
+    def _add_legend(leg_info):
+        ax = plt.gca()
+        fig = plt.gcf()
+        handles, labels = ax.get_legend_handles_labels()
+        if 'rect' in tight_layout_args:
+            lx = tight_layout_args['rect'][2]
+            ly = tight_layout_args['rect'][3]
+        else:
+            lx = 1.0 - 0.3 / figsize[0]
+            ly = 1.0 - 0.3 / figsize[1]
+        leg = fig.legend(
+            handles,
+            labels,
+            loc='upper right',
+            bbox_to_anchor=(lx, ly),
+            fontsize='small',
+            framealpha=0.5,
+            # fancybox=True,
+            # borderaxespad=0.,
+            # labelspacing=legspace*.9,
+        )
+        legwidth = (leg.get_tightbbox(fig.canvas.get_renderer())
+                    .inverse_transformed(fig.transFigure)
+                    .width)
+        leg_info[0] = leg
+        leg_info[1] = legwidth
+
+    def _legend_layout(leg_info):
+        tla = tight_layout_args.copy()
+        if leg_info[0]:
+            if 'rect' in tla:
+                tla['rect'] = (
+                    tla['rect'][0],
+                    tla['rect'][1],
+                    tla['rect'][2] - leg_info[1],
+                    tla['rect'][3])
+            else:
+                tla['rect'] = (0, 0, 1 - leg_info[1], 1)
+
+        # if the legend belongs to an axes object, don't include it in
+        # the tight_layout calculations:
+        # 1: leg_in_layout = leg_info[0].get_in_layout()
+        # 2: leg_info[0].set_in_layout(False)
+        plt.tight_layout(**tla)
+        # 3: leg_info[0].set_in_layout(leg_in_layout)
+        leg_info[0] = None
+
     def _plot_all(curres, q, frq, hist, showboth, cases, sub,
                   cols, maxcol, name, label, maxlen,
-                  sname, rowpv, j):
-        legwidth = 0.0
+                  sname, rowpv, j, leg_info):
         # legspace = matplotlib.rcParams['legend.labelspacing']
         if issrs:
             srsall = curres.srs.srs[q]
@@ -6738,46 +6784,9 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             for n, case in enumerate(cases):
                 h += plot(x, hist[n, j], linestyle='-', label=case)
         if sub == maxcol:
-            fig = plt.gcf()
-            ax = plt.gca()
-            handles, labels = ax.get_legend_handles_labels()
-            leg = fig.legend(
-                handles,
-                labels,
-                loc='upper right',
-                bbox_to_anchor=(
-                    1.0 - 0.3 / figsize[0],
-                    1.0 - 0.3 / figsize[1]),
-                fontsize='small',
-                framealpha=0.5,
-            )
-            legwidth = (leg.get_tightbbox(fig.canvas.get_renderer())
-                        .inverse_transformed(fig.transFigure)
-                        .width)
-            # legwidth = (leg.get_window_extent()
-            #             .inverse_transformed(fig.transFigure)
-            #             .width)
-            # print('legend_width =', legwidth)
-            # fig.canvas.draw()
-            # legwidth = (leg.get_tightbbox(fig.canvas.get_renderer())
-            #             .inverse_transformed(fig.transFigure)
-            #             .width)
-            # # legwidth = (leg.get_window_extent()
-            # #             .inverse_transformed(fig.transFigure)
-            # #             .width)
-            # print('legend_width =', legwidth)
-
-            # ax.legend(
-            #     loc='upper left',
-            #     bbox_to_anchor=(1.02, 1.),
-            #     borderaxespad=0.,
-            #     fontsize='small',
-            #     framealpha=0.5,
-            #     # labelspacing=legspace*.9,
-            # )
+            _add_legend(leg_info)
         _add_title(name, label, maxlen, sname,
                    rowpv[j] + 1, cols, q)
-        return legwidth
 
     def _plot_ext(curres, q, frq, sub, cols, maxcol, name,
                   label, maxlen, sname, rowpv, j):
@@ -6792,7 +6801,6 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         if q == Qs[0]:
             _add_title(name, label, maxlen, sname,
                        rowpv[j] + 1, cols)
-        return 0.0  # return a value for legwidth
 
     def _add_xy_labels(uj, xlab, ylab, srstype):
         if isinstance(units, str):
@@ -6926,7 +6934,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             maxcol = cols if nplots > cols else nplots
             sub = perpage
             prefix = None
-            legwidth = 0.0
+            leg_info = [None, 0.0]
             for j in range(nplots):
                 sub, filenum, prefix = _prep_subplot(
                     rows, cols, sub, perpage, filenum, nplots,
@@ -6935,38 +6943,28 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
                 if issrs:
                     for q in Qs:
                         if showall:
-                            lw = _plot_all(
+                            _plot_all(
                                 res[name], q, x, y,
                                 showboth, _cases, sub, cols,
                                 maxcol, name, label,
-                                maxlen, sname, rowpv, j)
+                                maxlen, sname, rowpv, j,
+                                leg_info)
                         else:
-                            lw = _plot_ext(
+                            _plot_ext(
                                 res[name], q, x, sub, cols,
                                 maxcol, name, label,
                                 maxlen, sname, rowpv, j)
                 else:
-                    lw = _plot_all(
+                    _plot_all(
                         res[name], None, x, y, showboth,
                         _cases, sub, cols, maxcol,
                         name, label, maxlen, sname,
-                        rowpv, j)
+                        rowpv, j, leg_info)
                 _add_xy_labels(uj, xlab, ylab, srstype)
 
-                legwidth = max(legwidth, lw)
-
                 if j + 1 == nplots or (j + 1) % perpage == 0:
-                    tla = tight_layout_args.copy()
-                    if 'rect' in tla:
-                        tla['rect'] = (
-                            tla['rect'][0],
-                            tla['rect'][1],
-                            tla['rect'][2] - legwidth,
-                            tla['rect'][3])
-                    else:
-                        tla['rect'] = (0, 0, 1 - legwidth, 1)
-                    legwidth = 0.0
-                    plt.tight_layout(**tla)
+                    _legend_layout(leg_info)
+
                     if fmt == 'pdf' and onepdf:
                         pdffile.savefig()
                         # orientation=orientation,
