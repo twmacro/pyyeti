@@ -240,7 +240,7 @@ def test_codefuncs():
     for v in list(sys.modules.values()):
         if getattr(v, '__warningregistry__', None):
             v.__warningregistry__ = {}
-    with op2.OP2() as o:
+    with op2.OP2('pyyeti/tests/nastran_drm12/drm12.op2') as o:
         assert o.CodeFuncs[1](7) == 1
         assert o.CodeFuncs[1](3002) == 2
         assert o.CodeFuncs[2](123) == 23
@@ -311,6 +311,17 @@ def test_rdop2mats():
             assert np.allclose(dct2['rmat'][0], dct['ZUZR04'])
             assert np.allclose(dct2['cmat'][0], dct['ZUZR05'])
             assert np.allclose(dct2['rcmat'][0], dct['ZUZR06'])
+
+    with op2.OP2(dr + 'double_le.op2') as o2:
+        dct = o2.rdop2mats(['zuzr01', 'zuzr03'])
+        assert np.allclose(dct2['rmat'][0], dct['ZUZR01'])
+        assert np.allclose(dct2['rcmat'][0], dct['ZUZR03'])
+        assert len(dct) == 2
+
+    dct = op2.rdmats(dr + 'double_le.op2', ['zuzr01', 'zuzr03'])
+    assert np.allclose(dct2['rmat'][0], dct['ZUZR01'])
+    assert np.allclose(dct2['rcmat'][0], dct['ZUZR03'])
+    assert len(dct) == 2
 
     with op2.OP2(dr + 'double_le.op2') as o2:
         d, l, starts, stops = o2.directory()
@@ -404,9 +415,9 @@ def test_rdpostop2_assemble():
     with op2.OP2('pyyeti/tests/nas2cam_extseout/'
                  'assemble.op2') as o2:
         o2._rowsCutoff = 0
-        fpos = o2.dbnames['GEOM1S'][2][0][0]
-
-        o2._fileh.seek(fpos)
+        # fpos = o2.dbnames['GEOM1S'][2][0][0]
+        # o2._fileh.seek(fpos)
+        o2.set_position('GEOM1S', 2)
         name, trailer, dbtype = o2.rdop2nt()
         (cords, sebulk, selist,
          seload, seconct) = o2._rdop2geom1cord2()
@@ -420,22 +431,23 @@ def test_rdop2record():
                  'inboard.op2') as o2:
         fpos = o2.dbnames['DYNAMICS'][0][0][0]
 
-        o2._fileh.seek(fpos)
+        fh = o2.file_handle()
+        fh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
         o2._rowsCutoff = 40000
         r1 = o2.rdop2record()
 
-        o2._fileh.seek(fpos)
+        fh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
         o2._rowsCutoff = 0
         r2 = o2.rdop2record()
         assert np.all(r1 == r2)
 
-        o2._fileh.seek(fpos)
+        fh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
         assert_raises(ValueError, o2.rdop2record, 'badform')
 
-        o2._fileh.seek(fpos)
+        fh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
         o2.rdop2tabheaders('DYNAMICS')
 

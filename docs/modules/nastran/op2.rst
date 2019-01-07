@@ -11,6 +11,7 @@ Main routines
 
     procdrm12
     nastran_dr_descriptions
+    rdmats
     rdnas2cam
     rdpostop2
 

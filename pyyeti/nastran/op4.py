@@ -30,7 +30,7 @@ import scipy.sparse as sp
 from pyyeti import guitools
 
 
-class OP4(object):
+class OP4:
     """
     Class for reading/writing Nastran output4 (.op4) files.
 
@@ -1987,7 +1987,7 @@ def load(filename=None, namelist=None, into='dct', justmatrix=False,
 
     Parameters
     ----------
-    filename : string or None
+    filename : string or None; optional
         Name of op4 file to read. Can also be the name of a directory
         or None; in these cases, a GUI is opened for file selection.
     namelist : list, string, or None; optional
@@ -2107,7 +2107,7 @@ def read(filename=None, namelist=None, into='dct', justmatrix=True,
 
     Parameters
     ----------
-    filename : string or None
+    filename : string or None; optional
         Name of op4 file to read. Can also be the name of a directory
         or None; in these cases, a GUI is opened for file selection.
     namelist : list, string, or None; optional
@@ -2177,7 +2177,7 @@ def dir(filename=None, verbose=True):
 
     Parameters
     ----------
-    filename : string or None
+    filename : string or None; optional
         Name of op4 file to read. Can also be the name of a directory
         or None; in these cases, a GUI is opened for file selection.
     verbose : bool; optional

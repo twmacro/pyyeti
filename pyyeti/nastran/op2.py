@@ -23,7 +23,7 @@ import numpy as np
 from pyyeti import guitools
 from pyyeti.nastran import op4, n2p
 
-__all__ = ['rdnas2cam', 'procdrm12', 'rdpostop2', 'OP2',
+__all__ = ['rdmats', 'rdnas2cam', 'procdrm12', 'rdpostop2', 'OP2',
            'nastran_dr_descriptions']
 
 #  Notes on the op2 format.
@@ -135,14 +135,14 @@ def _expanddof(ids, pvgrids):
     return np.vstack((expids[V], dof[V])).T
 
 
-class OP2(object):
+class OP2:
     """Class for reading Nastran op2 files and nas2cam data files."""
 
-    def __init__(self, filename=None):
+    def __init__(self, filename):
         self._fileh = None
         self._CodeFuncs = None
-        if isinstance(filename, str):
-            self._op2open(filename)
+        # if isinstance(filename, str):
+        self._op2open(filename)
 
     def __del__(self):
         if self._fileh:
@@ -1998,6 +1998,38 @@ class OP2(object):
                 nas['maps'][se] = []
         nas['selist'] = selist
         return nas
+
+
+def rdmats(filename=None, names=None):
+    """
+    Read all matrices from Nastran output2 file.
+
+    Parameters
+    ----------
+    filename : string or None; optional
+        Name of op2 file to read. Can also be the name of a directory
+        or None; in these cases, a GUI is opened for file selection.
+    names : list_like; optional
+        Iterable of names to read in. If None, read all. These can
+        be input in lower case.
+
+    Returns
+    -------
+    dict
+        Dictionary containing all matrices in the op2 file:
+        {'NAME1': matrix1, 'NAME2': matrix2, ...}
+
+    Notes
+    -----
+    The keys are the names as stored (upper case).
+
+    This routine is for convenience; this is what it does::
+
+        filename = guitools.get_file_name(filename, read=True)
+        return OP2(filename).rdop2mats(names)
+    """
+    filename = guitools.get_file_name(filename, read=True)
+    return OP2(filename).rdop2mats(names)
 
 
 def _get_op2_op4(op2file, op4file):
