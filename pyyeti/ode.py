@@ -1000,32 +1000,48 @@ class _BaseODE(object):
         except ValueError:
             self.slices = False
 
-    def _chk_diag_part(self, m, b, k):
+    def _chk_diag_part(self, m, b, k, cd_as_force=False):
         """Checks for all-diagonal and partitions based on rf modes"""
-        unc = 0
         krf = None
+        cdforces = False
+
+        unc = 0
         if (m is None or m.ndim == 1 or
                 (m.ndim == 2 and ytools.isdiag(m))):
             unc += 1
+
         if b.ndim == 1 or (b.ndim == 2 and ytools.isdiag(b)):
             unc += 1
+        elif cd_as_force:
+            unc += 1
+            cdforces = True
+
         if k.ndim == 1 or (k.ndim == 2 and ytools.isdiag(k)):
             unc += 1
+
         if unc == 3:
             unc = True
             if m is not None and m.ndim == 2:
                 m = np.diag(m).copy()
             if b.ndim == 2:
-                b = np.diag(b).copy()
+                bd = np.diag(b).copy()
+                if cdforces:
+                    bo = b.copy()
+                    i = np.arange(bo.shape[0])
+                    bo[i, i] = 0.0    # off diagonal damping
+                b = bd
             if k.ndim == 2:
                 k = np.diag(k).copy()
             if self.rfsize:
                 if m is not None:
                     m = m[self.nonrf]
                 b = b[self.nonrf]
+                if cdforces:
+                    bo = bo[np.ix_(self.nonrf, self.nonrf)]
                 krf = k[self.rf]
                 k = k[self.nonrf]
         else:
+            cdforces = False
             unc = False
             if m is not None and m.ndim == 1:
                 m = np.diag(m)
@@ -1043,6 +1059,9 @@ class _BaseODE(object):
                 k = k[pvnonrf]
         self.m = m
         self.b = b
+        self.cdforces = cdforces
+        if cdforces:
+            self.bo = bo
         self.k = k
         self.krf = krf
         self.unc = unc
@@ -1154,7 +1173,9 @@ class _BaseODE(object):
         b = u.T @ b @ u
         return m, b, k
 
-    def _common_precalcs(self, m, b, k, h, rb, rf, pre_eig=False):
+    def _common_precalcs(
+            self, m, b, k, h, rb, rf,
+            pre_eig=False, cd_as_force=False):
         systype = float
         self.mid = id(m)
         self.bid = id(b)
@@ -1189,7 +1210,7 @@ class _BaseODE(object):
         self.nonrfsz = nonrf.size
         self.kdof = nonrf
         self.ksize = nonrf.size
-        self._chk_diag_part(m, b, k)
+        self._chk_diag_part(m, b, k, cd_as_force)
         self._make_rb_el(rb)
         self._inv_krf()
         self.systype = systype
@@ -1340,7 +1361,13 @@ class _BaseODE(object):
             kdof = self.kdof
             F = force[kdof]
             if self.unc:
-                B = self.b[:, None] * v[kdof]
+                if self.cdforces:
+                    b = self.bo.copy()
+                    i = np.arange(self.ksize)
+                    b[i, i] = self.b    # full damping
+                    B = b @ v[kdof]
+                else:
+                    B = self.b[:, None] * v[kdof]
                 K = self.k[:, None] * d[kdof]
                 if self.m is not None:
                     a[kdof] = self.invm * (F - B - K)
@@ -2288,7 +2315,7 @@ class SolveUnc(_BaseODE):
     """
 
     def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
-                 pre_eig=False):
+                 pre_eig=False, cd_as_force=False):
         """
         Instantiates a :class:`SolveUnc` solver.
 
@@ -2350,6 +2377,21 @@ class SolveUnc(_BaseODE):
             symmetric/hermitian and mass is positive definite (see
             :func:`scipy.linalg.eigh`). Just leave it as False if the
             equations are already in modal space.
+        cd_as_force : bool; optional
+            If damping is the only coupled matrix (after `pre_eig` if
+            that is used), then setting this option to True means that:
+
+                1. The ODEs are solved with the diagonal terms only
+                   (this uses the standard pre-formulated integration
+                   coefficients from :func:`get_su_coef`).
+                2. The off-diagonal damping terms are treated as a
+                   force by moving them to the right-hand-side.
+
+            Note that this means the solution is not piece-wise linear
+            exact in this case. The assumption is that the damping
+            diagonal is dominant enough for the uncoupled solver
+            coefficients to be "good enough". A finer time-step may
+            also be required.
 
         Notes
         -----
@@ -2408,12 +2450,18 @@ class SolveUnc(_BaseODE):
         The mass, damping and stiffness may be real or complex since
         this solver is also used for frequency domain problems.
         """
-        self._common_precalcs(m, b, k, h, rb, rf, pre_eig)
+        self._common_precalcs(m, b, k, h, rb, rf, pre_eig,
+                              cd_as_force)
         if self.ksize:
             if self.unc and self.systype is float:
                 self._inv_m()
                 self.pc = get_su_coef(self.m, self.b, self.k,
                                       h, self.rb)
+                if self.cdforces:
+                    # add ``alpha = bo (I + Bp bo)^-1`` to pc:
+                    Bp = self.pc.Bp[:, None]
+                    tmp = np.eye(self.ksize) + Bp * self.bo
+                    self.pc.alpha = la.solve(tmp.T, self.bo.T).T
             else:
                 self.pc = self._get_su_eig(h is not None)
         else:
@@ -2461,7 +2509,10 @@ class SolveUnc(_BaseODE):
         if self.nonrfsz:
             if self.unc and self.systype is float:
                 # for uncoupled, m, b, k have rb+el (all nonrf)
-                self._solve_real_unc(d, v, force)
+                if self.cdforces:
+                    self._solve_real_unc_cdforces(d, v, force)
+                else:
+                    self._solve_real_unc(d, v, force)
             else:
                 # for coupled, m, b, k are only el only
                 self._solve_complex_unc(d, v, a, force)
@@ -2618,7 +2669,11 @@ class SolveUnc(_BaseODE):
         self._d, self._v, self._a, self._force = d, v, a, force
         if self.unc and self.systype is float:
             # for uncoupled, m, b, k have rb+el (all nonrf)
-            generator = self._solve_real_unc_generator(d, v, F0)
+            if self.cdforces:
+                generator = self._solve_real_unc_generator_cdforces(
+                    d, v, F0)
+            else:
+                generator = self._solve_real_unc_generator(d, v, F0)
             next(generator)
             return generator, d, v
         else:
@@ -2879,6 +2934,57 @@ class SolveUnc(_BaseODE):
             d[kdof] = D
             v[kdof] = V
 
+    def _solve_real_unc_cdforces(self, d, v, force):
+        """Solve the real uncoupled equations for :class:`SolveUnc`"""
+        # solve: ... V[:, i+1] needs to be solved for, but these are
+        # the starting equations:
+        # for i in range(nt-1):
+        #     D[:,i+1] = F *D[:, i] + G *V[:, i] +
+        #                A *force[:, i] + B *force[:, i+1]
+        #                - A * Co @ V[:, i] - B * Co @ V[:, i+1]
+        #     V[:,i+1] = Fp*D[:, i] + Gp*V[:, i] +
+        #                Ap*force[:, i] + Bp*force[:, i+1]
+        #                - Ap * Co @ V[:, i] - Bp * Co @ V[:, i+1]
+        nt = force.shape[1]
+        if nt == 1:
+            return
+        pc = self.pc
+        kdof = self.kdof
+        F = pc.F
+        G = pc.G
+        A = pc.A
+        B = pc.B
+        Fp = pc.Fp
+        Gp = pc.Gp
+        Ap = pc.Ap
+        Bp = pc.Bp
+        D = d[kdof]
+        V = v[kdof]
+        if self.order == 1:
+            ABF = (A[:, None] * force[kdof, :-1] +
+                   B[:, None] * force[kdof, 1:])
+            ABFp = (Ap[:, None] * force[kdof, :-1] +
+                    Bp[:, None] * force[kdof, 1:])
+        else:
+            ABF = (A + B)[:, None] * force[kdof, :-1]
+            ABFp = (Ap + Bp)[:, None] * force[kdof, :-1]
+        di = D[:, 0]
+        vi = V[:, 0]
+        alpha = self.pc.alpha
+        bo = self.bo
+        dmpfrc0 = bo @ vi
+        for i in range(nt - 1):
+            v_part = Fp * di + Gp * vi + ABFp[:, i] - Ap * dmpfrc0
+            dmpfrc1 = alpha @ v_part
+            D[:, i + 1] = di = (F * di + G * vi +
+                                ABF[:, i] - A * dmpfrc0 - B * dmpfrc1)
+            V[:, i + 1] = vi = v_part - Bp * dmpfrc1
+            dmpfrc0 = dmpfrc1
+
+        if not self.slices:
+            d[kdof] = D
+            v[kdof] = V
+
     def _solve_real_unc_generator(self, d, v, F0):
         """Solve the real uncoupled equations for :class:`SolveUnc`"""
         # solve:
@@ -3014,6 +3120,179 @@ class SolveUnc(_BaseODE):
                         d[:, i] = F * di + G * vi + AB * F0
                         v[:, i] = Fp * di + Gp * vi + ABp * F0
 
+    def _solve_real_unc_generator_cdforces(self, d, v, F0):
+        """Solve the real uncoupled equations for :class:`SolveUnc`"""
+        nt = d.shape[1]
+        if nt == 1:
+            yield
+        Force = self._force
+
+        if self.rfsize:
+            rf = self.rf
+            ikrf = self.ikrf.ravel()
+
+        if not self.ksize:
+            while True:
+                j, F1 = yield
+                if j < 0:
+                    # add to previous soln
+                    Force[:, i] += F1
+                    d[:, i] += ikrf * F1[rf]
+                else:
+                    i = j
+                    Force[:, i] = F1
+                    d[:, i] = ikrf * F1[rf]
+
+        # there are rb/el modes if here
+        pc = self.pc
+        kdof = self.kdof
+        F = pc.F
+        G = pc.G
+        A = pc.A
+        B = pc.B
+        Fp = pc.Fp
+        Gp = pc.Gp
+        Ap = pc.Ap
+        Bp = pc.Bp
+        alpha = self.pc.alpha
+        bo = self.bo
+
+        if self.order == 1:
+            if self.rfsize:
+                # rigid-body and elastic equations:
+                D = d[kdof]
+                V = v[kdof]
+                dmpfrc1 = bo @ V[:, 0]
+
+                # resflex equations:
+                drf = d[rf]
+                # for i in range(nt-1):
+                while True:
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                        F1k = F1[kdof]
+
+                        v_part = Bp * F1k
+                        dmpfrc1_addon = alpha @ v_part
+                        dmpfrc1 += dmpfrc1_addon
+                        D[:, i] += B * (F1k - dmpfrc1_addon)
+                        V[:, i] += v_part - Bp * dmpfrc1_addon
+
+                        drf[:, i] += ikrf * F1[rf]
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        # rb + el:
+                        F0k = Force[kdof, i - 1]
+                        F1k = F1[kdof]
+                        di = D[:, i - 1]
+                        vi = V[:, i - 1]
+
+                        dmpfrc0 = dmpfrc1
+                        v_part = (Fp * di + Gp * vi +
+                                  Ap * (F0k - dmpfrc0) +
+                                  Bp * F1k)
+                        dmpfrc1 = alpha @ v_part
+                        D[:, i] = (F * di + G * vi +
+                                   A * (F0k - dmpfrc0) +
+                                   B * (F1k - dmpfrc1))
+                        V[:, i] = v_part - Bp * dmpfrc1
+
+                        # rf:
+                        drf[:, i] = ikrf * F1[rf]
+            else:
+                dmpfrc1 = bo @ v[:, 0]
+                # only rigid-body and elastic equations:
+                while True:
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+
+                        v_part = Bp * F1
+                        dmpfrc1_addon = alpha @ v_part
+                        dmpfrc1 += dmpfrc1_addon
+                        d[:, i] += B * (F1 - dmpfrc1_addon)
+                        v[:, i] += v_part - Bp * dmpfrc1_addon
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        # rb + el:
+                        F0 = Force[:, i - 1]
+                        di = d[:, i - 1]
+                        vi = v[:, i - 1]
+                        dmpfrc0 = dmpfrc1
+                        v_part = (Fp * di + Gp * vi +
+                                  Ap * (F0 - dmpfrc0) +
+                                  Bp * F1)
+                        dmpfrc1 = alpha @ v_part
+                        d[:, i] = (F * di + G * vi +
+                                   A * (F0 - dmpfrc0) +
+                                   B * (F1 - dmpfrc1))
+                        v[:, i] = v_part - Bp * dmpfrc1
+        else:
+            # order == 0
+            AB = A + B
+            ABp = Ap + Bp
+            if self.rfsize:
+                # rigid-body and elastic equations:
+                D = d[kdof]
+                V = v[kdof]
+                dmpfrc1 = bo @ V[:, 0]
+
+                # resflex equations:
+                drf = d[rf]
+                # for i in range(nt-1):
+                while True:
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                        drf[:, i] += ikrf * F1[rf]
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        # rb + el:
+                        F0k = Force[kdof, i - 1]
+                        di = D[:, i - 1]
+                        vi = V[:, i - 1]
+
+                        dmpfrc0 = dmpfrc1
+                        v_part = (Fp * di + Gp * vi +
+                                  ABp * F0k - Ap * dmpfrc0)
+                        dmpfrc1 = alpha @ v_part
+                        D[:, i] = (F * di + G * vi + AB * F0k -
+                                   A * dmpfrc0 - B * dmpfrc1)
+                        V[:, i] = v_part - Bp * dmpfrc1
+
+                        # rf:
+                        drf[:, i] = ikrf * F1[rf]
+            else:
+                # only rigid-body and elastic equations:
+                dmpfrc1 = bo @ v[:, 0]
+                while True:
+                    j, F1 = yield
+                    if j < 0:
+                        # add to previous soln
+                        Force[:, i] += F1
+                    else:
+                        i = j
+                        Force[:, i] = F1
+                        # rb + el:
+                        F0 = Force[:, i - 1]
+                        di = d[:, i - 1]
+                        vi = v[:, i - 1]
+
+                        dmpfrc0 = dmpfrc1
+                        v_part = (Fp * di + Gp * vi +
+                                  ABp * F0 - Ap * dmpfrc0)
+                        dmpfrc1 = alpha @ v_part
+                        d[:, i] = (F * di + G * vi + AB * F0 -
+                                   A * dmpfrc0 - B * dmpfrc1)
+                        v[:, i] = v_part - Bp * dmpfrc1
+
     def _get_f2x_real_unc(self, phi, velo):
         """
         Get f2x transform for henkel-mar
@@ -3027,7 +3306,12 @@ class SolveUnc(_BaseODE):
                 B = pc.Bp[:, None]
             else:
                 B = pc.B[:, None]
-            flex = phik @ (B * phik.T)
+            if self.cdforces:
+                alpha = pc.alpha
+                tmp = B * (np.eye(self.ksize) - alpha * pc.Bp)
+                flex = phik @ tmp @ phik.T
+            else:
+                flex = phik @ (B * phik.T)
         else:
             flex = 0.0
         flex = self._add_rf_flex(flex, phi, velo, True)

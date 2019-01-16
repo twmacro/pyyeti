@@ -1,4 +1,4 @@
-d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
+0. generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, …)
     - base this off of scipy.linalg.block_diag ... or is there
       something there already?
 
@@ -19,7 +19,7 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
                    DR_Results(drdefs, mission, event)
                    … similar to DR.prepare_results(mission, event)
                    … and/or, what about a DR_Def.prepare_results()
-    ß actually, replace DR_Event.prepare_results() I think!!
+    - actually, replace DR_Event.prepare_results() I think
                    Get rid of Info in DR_Event? Probably can’t because
                    of the uf_reds override.
 
@@ -32,32 +32,18 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 
     - think about getting rid of DR_Event altogether ... just update
       a new DR_Def with all drdefs/dufs/ulvs's ... will this work?
-
-    Be sure to update doctest for add_maxmin
-
-    ~ DR_Def could be derived from dict or OrderedDict …
-    “drdefs[cat]” seems better than “drdefs.dr_def[cat]”
-
-    ~ Hmm … what about "class DR_Event(dict)"?
-                   Nah, this one seems okay as is
+      - i don't think so
 
     Update the code to better handle NaNs.
       - got a couple different methods going right now ... ??
 
-
-~    1 resp_plots pdf filename -- this is the `onepdf` option i believe
     2 write complete test_cla.py
-~    3 magpct needs to be able to chop off small numbers
-
     4 when flagging, but no flags, format is shortened by one char for that column
     5 maybe add option to use only one figure ... that should be default ?
-
     6 y-axis label written far away in srs3/net_ifatm_0rb_eqsine_all.pdf plot ... why?
-~    7 include documentation link for "load" and "save"
     8 Save eqsine to xlsx file
 
-~16. op2 updates:
-  - some functions should be "public", like _rdop2nt()
+
 19. Add windowends to srs ?
 
 
@@ -107,30 +93,14 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
        (if None, more actively make do without it … with
        warning maybe?)
 
-~41. Move find_center ?
-    - moved and renamed to fit_circle_[2d|3d] in ytools
-
 43. Bref – what about a model with mechanisms?
     - let bref not be a mult of 6?
 
-~ 44. ? Update n2p.mkdofpv to be able to make a best effort (no raise on
-    dofs not found … just trim output accordingly)
-      - "strict" is the new argument
-      - add tests - v0.94.1
-      - beta in version 0.93.6
-
-` 45. Update op2.rdpostop2 to return the seconct card too
-      - add tests
-      - update help
-      - beta in version 0.93.6
-
 48. add sparse Newmark solver
 
-52.
-   - In rdpostop2, matrix names should probably be lower case.
-   - Add the “tf” class somewhere.
-       o   After add “pade” …
-   - Enhance the ‘seconct’ output (include ‘up’, ‘down’? … this is only down (I think)):
+52. In rdpostop2, matrix names should probably be lower case.
+
+53. Enhance the ‘seconct’ output (include ‘up’, ‘down’? … this is only down (I think)):
 
    p = op2.rdpostop2(sys_op2 + '.op2')
    seconct = {}
@@ -144,8 +114,6 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
    201: array([2000004, 2005283, 2005319, ..., 5924498, 5924499, 5924500], dtype=int32),
    609: array([7999031, 7999032, 7999033, ..., 9004098, 9004099, 9004100], dtype=int32)}
 
-53. Implement the Chapman integrator
-
 ~ 58. Order of recovery should be maintained from definition order
      o   I think the only change (besides documenting that order is
          used) is to change this from:
@@ -154,14 +122,15 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
             self.Info = OrderedDict()
      o   In DR_Event.__init__
 
-    But, for this to be really useful, we probably need to enhance
+59. For 58 to be really useful, probably need to enhance
     calls to the drfuncs … would want access to other categories.
     Need some good ideas for this.
      o   Pass in the parent DR_Results … ?
 
-60. Update drfunc arg list to enhance functionality:
+     o Update drfunc arg list to enhance functionality:
     - now: drfunc(sol, nas, Vars, se)
-    - new: drfunc(sol, se_vars, event_data, user_arg) ... or something
+    - new, after discussion with BTA:
+      drfunc(sol, se_vars, event_data, user_arg) ... or something
       - event_data is a dict with potentially:
          - parent DR_Results
          - name
@@ -171,13 +140,6 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
          - current case
          - ? freq for psd functions?
          - nas
-
-~61. wtrspline_rings:  assumes rings are aligned with an axis!?
-    - v0.94.3
-
-~62. findcenter: implement in 3d ... goes with 61.
-    - think about whether input should be 3 x n (current) or n x 3
-    - v0.94.3
 
 63. mk_net_drms: output coord system could be input ...
     think of multiple ports
@@ -194,17 +156,6 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
     - ALSO: have it be able to output "g, rad/sec^2", "g, g/in", and
       "in/sec^2, rad/sec^2"
 
-~64. Check magpct:
-    ~ - should it listen to use_range or not? -- yes, post v0.94.0
-    ~- should it listen to filter?
-    - v0.94.1 enhanced this option to the filter two ways:
-       - just use it
-       - use it with symlog
-
-~65. Enhance `onepdf` == True option for cla.mk_plots (and related).
-    Should have type of plot in name to avoid overwriting files.
-    - implemented in v0.94.1
-
 66. Write a nastran coordinate system plotter
     - use pyNastran instead?
 
@@ -214,14 +165,9 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
 68. Add extreme histories to cla.DR_Results.form_extreme
 
 69. Find or write a replacement for "mkruns"
-
-~70. Update 'makeplot' handling ... return axis object
-     - v0.94.3
+    - Britney has something maybe for this ... ?
 
 71. Implement compmat i think
-
-~72. Write a nastran comment writer … using textwrap
-    - v0.94.3
 
 73. Check into subspace iteration logic
     - Bathe K.J. The subspace iteration method – Revisited.
@@ -245,60 +191,56 @@ d generic assemble array routine ? (a, b, …, c, ‘’, A, B, …C, ‘’, �
        - 'modes' (or 'phi' or 'ulvs' or ?)
        - 'resflex' (or 'g' or 'rf' or 'mugf' or ?)
        - 'none' (or 'other' or 'misc' or 'data' or ?)
-
-~78. PP needs to be updated to NOT sort dictionaries … they are sorted
-     now I think
-     - v0.94.3
-
-~ 79. Improve coverage of new wtrspline_rings routine
-
-~80. Have fit_circle_2d use fit_circle_3d ... I think
-    - or delete it?
-    - or update it?
-    - v0.94.3
-
-~ 81. Use mkcomment more in bulk.py
-      ~ nothing more to do really
-
-~82. Use decorator in bulk.py to handle file handle?
-    - it's cumbersome the way it is now
-    - v0.94.3
+    - from discussion with BTA, think about using, for example:
+         acce = ltma
+         velo = ltmv
+         disp = ltmd
+         forc = ltmf
+       - probably wouldn't need to define a drfunc in this case!
 
 83. rddmig reads upper case names for op2, lower for pch?
 
 84. if licensing is good, update guitools to Qt ... I think (this was
-    nearly done i think ... just never finalized it (see
-    ~/python/gui/guitools_qt.py))
+    nearly done i think ... just never finalized it because of license
+    (see ~/python/gui/guitools_qt.py))
 
 85. update the numpy docstring output to be current (right now, still
     using v 1.13)
 
-`86. Add a DR_Defs merge:
-    ~- ensure no duplicate categories
-    ~- ensure no duplicate [non]drms names for all superelements
-    - need to check coverage
-    - added post v0.94.4
-
 87. Add "addcat" skeleton code generator?
     - goal is to make adding data recovery categories simpler
 
-~88. Fix example in wtrspline_rings -- doesn't work on it's own
-     ~ fixed after v0.94.4
+97. Add the “tf” class somewhere. Maybe ...
+      o   After add “pade” …
 
-~89. Fix wtrspline to be smarter about writing cards: right now,
-     it can write a completely independent card!
-     ~ fixed after v0.94.4
+98. datacursor.DC
+    - add highlight_line option? Line would be plotted in a
+      specifiable style when clicked (or hovered on?)
+      o   Hmm, probably any time an annotation would be drawn
+      o   Ability to turn off annotation might then be a desirable
+          option
 
-~90. Add name capability to wtrspline_rings
-     ~ after v0.94.4
+99. Add generator feature and hm features to Newmark-Beta solver
 
-91. Speed up addgrid -- it is VERY slow for large number of grids
+`100. Add the Chapman solver (or similar) with the generator & hm
+     features
+     - added in version 0.94.6
+     - need to add tests for new solver!
 
-~ 92. Change wtcomment to mkcomment ... more versatility
-      ~ after v0.94.4
+101. Add regex to nastran.rdcards …
+     ‘DTI     SELOAD’ would be better as ‘DTI\s+SELOAD’
 
-~93. test new op2 additions:
-     - file_handle
-     - set_position
-     - rdop2mats ... the names parameter is new
-     ~ done for v0.94.5
+102. Fix up the sparse documentation for wtextseout
+
+103. Add units option to mk_net_drms:
+     o   G, rad/sec^2
+     o   G, G/in
+     o   In/sec^2, rad/sec^2
+
+104. Add 'axis' option fftfilt (and others too probably)
+     o make it elegant ... check dsp.windowends to see if that's
+       done well. Numpy must have nice functions for this since
+       many of those functions allow it. Share code amongst
+       these functions.
+
+      
