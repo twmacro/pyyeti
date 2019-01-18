@@ -3156,6 +3156,7 @@ class SolveUnc(_BaseODE):
         Bp = pc.Bp
         alpha = self.pc.alpha
         bo = self.bo
+        i_last = 0
 
         if self.order == 1:
             if self.rfsize:
@@ -3190,14 +3191,15 @@ class SolveUnc(_BaseODE):
                         di = D[:, i - 1]
                         vi = V[:, i - 1]
 
-                        dmpfrc0 = dmpfrc1
+                        dmpfrc0 = (dmpfrc1 if i_last == i - 1
+                                   else bo @ vi)
+                        i_last = i
+                        _f0 = F0k - dmpfrc0
                         v_part = (Fp * di + Gp * vi +
-                                  Ap * (F0k - dmpfrc0) +
-                                  Bp * F1k)
+                                  Ap * _f0 + Bp * F1k)
                         dmpfrc1 = alpha @ v_part
                         D[:, i] = (F * di + G * vi +
-                                   A * (F0k - dmpfrc0) +
-                                   B * (F1k - dmpfrc1))
+                                   A * _f0 + B * (F1k - dmpfrc1))
                         V[:, i] = v_part - Bp * dmpfrc1
 
                         # rf:
@@ -3223,14 +3225,15 @@ class SolveUnc(_BaseODE):
                         F0 = Force[:, i - 1]
                         di = d[:, i - 1]
                         vi = v[:, i - 1]
-                        dmpfrc0 = dmpfrc1
+                        dmpfrc0 = (dmpfrc1 if i_last == i - 1
+                                   else bo @ vi)
+                        i_last = i
+                        _f0 = F0 - dmpfrc0
                         v_part = (Fp * di + Gp * vi +
-                                  Ap * (F0 - dmpfrc0) +
-                                  Bp * F1)
+                                  Ap * _f0 + Bp * F1)
                         dmpfrc1 = alpha @ v_part
                         d[:, i] = (F * di + G * vi +
-                                   A * (F0 - dmpfrc0) +
-                                   B * (F1 - dmpfrc1))
+                                   A * _f0 + B * (F1 - dmpfrc1))
                         v[:, i] = v_part - Bp * dmpfrc1
         else:
             # order == 0
@@ -3259,7 +3262,9 @@ class SolveUnc(_BaseODE):
                         di = D[:, i - 1]
                         vi = V[:, i - 1]
 
-                        dmpfrc0 = dmpfrc1
+                        dmpfrc0 = (dmpfrc1 if i_last == i - 1
+                                   else bo @ vi)
+                        i_last = i
                         v_part = (Fp * di + Gp * vi +
                                   ABp * F0k - Ap * dmpfrc0)
                         dmpfrc1 = alpha @ v_part
@@ -3285,7 +3290,9 @@ class SolveUnc(_BaseODE):
                         di = d[:, i - 1]
                         vi = v[:, i - 1]
 
-                        dmpfrc0 = dmpfrc1
+                        dmpfrc0 = (dmpfrc1 if i_last == i - 1
+                                   else bo @ vi)
+                        i_last = i
                         v_part = (Fp * di + Gp * vi +
                                   ABp * F0 - Ap * dmpfrc0)
                         dmpfrc1 = alpha @ v_part
