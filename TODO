@@ -238,10 +238,10 @@
      o   In/sec^2, rad/sec^2
 
 104. Add 'axis' option fftfilt (and others too probably)
-     o make it elegant ... check dsp.windowends to see if that's
-       done well. Numpy must have nice functions for this since
-       many of those functions allow it. Share code amongst
-       these functions.
+     o make it elegant ... check dsp.exclusive_sgfilter to see if
+       that's done well. Numpy must have nice functions for this since
+       many of those functions allow it. Share code amongst these
+       functions.
 
 105. Think about refactoring the cd_as_force=True option of SolveUnc
      to its own class ... inheriting from SolveUnc (that way, don’t
