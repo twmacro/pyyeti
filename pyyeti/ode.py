@@ -2387,11 +2387,20 @@ class SolveUnc(_BaseODE):
                 2. The off-diagonal damping terms are treated as a
                    force by moving them to the right-hand-side.
 
-            Note that this means the solution is not piece-wise linear
-            exact in this case. The assumption is that the damping
-            diagonal is dominant enough for the uncoupled solver
-            coefficients to be "good enough". A finer time-step may
-            also be required.
+            Note that the solution is not piece-wise linear exact in
+            this case. The assumption is that the damping diagonal is
+            dominant enough for the uncoupled solver coefficients to
+            be good enough. A finer time-step may also be required.
+            This option can be particularly advantageous when the
+            generator (:func:`SolveUnc.generator`) feature is used: in
+            one test, using this option was approximately 70 times
+            faster than the default (which uses the complex eigenvalue
+            solution for coupled damping) and more than 200 times
+            faster the the :class:`SolveExp2` solver. In that test,
+            the accuracy was acceptable with 25 points per cycle (ppc)
+            at the highest frequency (``ppc = 1 / (h * freq_high)``).
+            However, accuracy is problem dependent and needs to be
+            verified before trusting the results.
 
         Notes
         -----
@@ -2438,6 +2447,11 @@ class SolveUnc(_BaseODE):
                    otherwise
         phi        the mode shape matrix from the "pre" eigensolution;
                    only present if `pre_eig` is True
+        cdforces   True if `cd_as_force` option is being used (which
+                   means damping is coupled, but mass and stiffness
+                   are not)
+        bo         Off-diagonal damping terms (present when `cdforces`
+                   is True
         systype    float or complex; determined by `m` `b` `k`
         =========  ===================================================
 
@@ -3869,7 +3883,7 @@ class SolveUnc(_BaseODE):
             else:
                 d[el] = (force[el] /
                          (1j * (self.b[_el][:, None] @ fw) +
-                          self.k[_el][:, None] -
+                            self.k[_el][:, None] -
                           self.m[_el][:, None] @ fw2))
             a[el] = d[el] * -(freqw2)
             v[el] = d[el] * (1j * freqw)
@@ -4198,8 +4212,8 @@ class SolveNewmark(_BaseODE):
                     De = 3 * F[:, -1] + A1 * D[:, -1] + A0 * D[:, -2]
                 else:
                     for j in range(2, nt):
-                        D[:, j] = (F[:, j] + F[:, j - 1] +
-                                   F[:, j - 2] + A1 @ D[:, j - 1]
+                        D[:, j] = (F[:, j] + F[:, j - 1]
+                                   + F[:, j - 2] + A1 @ D[:, j - 1]
                                    + A0 @ D[:, j - 2])
                     De = 3 * F[:, -1] + A1 @ D[:, -1] + A0 @ D[:, -2]
             else:

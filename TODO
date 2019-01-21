@@ -246,4 +246,6 @@
 105. Think about refactoring the cd_as_force=True option of SolveUnc
      to its own class ... inheriting from SolveUnc (that way, don’t
      need the non-uniformity of having the cd_as_force option)
-       o   SolveUncCD? ... And fail when M & K are not diagonal?
+       o SolveUncCD? ... And fail when M & K are not diagonal? (nah on
+         the fail i think ... just fall back to SolveUnc)
+       o Refactoring this seems good for doc purposes
