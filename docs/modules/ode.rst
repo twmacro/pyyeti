@@ -24,6 +24,18 @@ Time and frequency domain equation of motion solvers
     SolveUnc.finalize
     SolveUnc.get_f2x
 
+2nd Order ODE Solver `SolveCDF`
+-------------------------------
+.. autosummary::
+    :toctree: generated/
+
+    SolveCDF
+    SolveCDF.tsolve
+    SolveCDF.fsolve
+    SolveCDF.generator
+    SolveCDF.finalize
+    SolveCDF.get_f2x
+
 2nd Order ODE Solver `SolveExp2`
 --------------------------------
 .. autosummary::

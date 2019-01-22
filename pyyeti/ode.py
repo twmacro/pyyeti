@@ -2157,7 +2157,8 @@ class SolveUnc(_BaseODE):
         M \ddot{q} + B \dot{q} + K q = F
 
     Note that the mass, damping and stiffness can be fully populated
-    (coupled).
+    (coupled). If mass and stiffness are diagonal, but damping is
+    coupled, see also :class:`SolveCDF`.
 
     Like :class:`SolveExp2`, this solver is exact assuming piece-wise
     linear forces (if `order` is 1) or piece-wise constant forces (if
@@ -2251,7 +2252,7 @@ class SolveUnc(_BaseODE):
 
     See also
     --------
-    :class:`SolveExp2`.
+    :class:`SolveCDF`, :class:`SolveExp2`.
 
     Examples
     --------
@@ -3919,6 +3920,329 @@ class SolveUnc(_BaseODE):
             d[kdof] = pc.ur_d @ (w / H)
             a[kdof] = d[kdof] * -(freqw2)
             v[kdof] = d[kdof] * (1j * freqw)
+
+
+class SolveCDF(SolveUnc):
+    r"""
+    2nd order ODE time and frequency domain solvers for "uncoupled"
+    equations of motion
+
+    This class is for solving:
+
+    .. math::
+        M \ddot{q} + C \dot{q} + K q = P
+
+    This class inherits from :class:`SolveUnc` and adds one additional
+    time-domain solver for a special (but quite common) case: when
+    damping is coupled but the mass and stiffness are diagonal. For
+    all other cases, using :class:`SolveCDF` is the same as using
+    :class:`SolveUnc`.
+
+    When the damping is coupled but the mass and stiffness are
+    diagonal, this solver (:class:`SolveCDF`) simply treats the
+    off-diagonal damping terms as forces and uses the uncoupled
+    equations (diagonal) solver of :class:`SolveUnc`.
+
+    Note that the solution is not piece-wise linear exact in this
+    case. It is assumed that the off-diagonal damping terms for each
+    ODE equation, in total, have a negligible effect on the derivative
+    relationships for that equation and can be treated as applied
+    forces. In practice, as long as the time-step is fine enough, this
+    solver has been found to be fast and accurate.
+
+    :class:`SolveCDF` can be particularly advantageous when the
+    generator (:func:`SolveCDF.generator`) feature is used: in one
+    test, using :class:`SolveCDF` was approximately 70 times faster
+    than using :class:`SolveUnc` (which uses the complex eigensolution
+    for coupled damping) and more than 200 times faster than the
+    :class:`SolveExp2` solver. In that test, the accuracy was
+    acceptable for :class:`SolveCDF` with 25 points per cycle (ppc) at
+    the highest frequency (``ppc = 1 / (h * freq_high)``). However,
+    accuracy is problem dependent and needs to be verified before
+    trusting the results.
+
+    Consider the equation of motion with the off-diagonal damping
+    terms moved to the right-hand-side to be treated as an applied
+    force:
+
+    .. math::
+        M \ddot{q} + C_d \dot{q} + K q = P - C_{od} \dot{q}
+
+    Since the ODE equations are uncoupled, the pre-formulated
+    uncoupled integration coefficients are used (see
+    :func:`get_su_coef`) to yield the following recursive solution:
+
+    .. math::
+        \begin{aligned}
+        q_{i+1} &= F q_i + G \dot{q}_i +
+           A (P_i - C_{od} \dot{q}_i) +
+           B (P_{i+1} - C_{od} \dot{q}_{i+1})
+
+        \dot{q}_{i+1} &= F_p q_i + G_p \dot{q}_i +
+           A_p (P_i - C_{od} \dot{q}_i) +
+           B_p (P_{i+1} - C_{od} \dot{q}_{i+1})
+        \end{aligned}
+
+    The second equation can be solved for :math:`\dot{q}_{i+1}`:
+
+    .. math::
+        \begin{aligned}
+        (I + B_p C_{od}) \dot{q}_{i+1} &=
+           F_p q_i + G_p \dot{q}_i +
+           A_p (P_i - C_{od} \dot{q}_i) +
+           B_p P_{i+1}
+
+        \dot{q}_{i+1} &= Z (
+           F_p q_i + G_p \dot{q}_i +
+           A_p (P_i - C_{od} \dot{q}_i) +
+           B_p P_{i+1})
+
+        \dot{q}_{i+1} &= Z Vpart_i
+        \end{aligned}
+
+    where :math:`Z = (I + B_p C_{od})^{-1}`.
+
+    With :math:`\dot{q}_{i+1}`, :math:`q_{i+1}` can be computed as
+    shown above. Using the equations as written, with :math:`Z`
+    precomputed, would require two matrix-vector multiplies per loop:
+    :math:`Z Vpart_i` and :math:`C_{od} \dot{q}_{i+1}`. We can get rid
+    of one matrix-vector multiply per loop by precomputing the product
+    of the two matrices and outside the loop and reorder some
+    calculations. First, precalculate :math:`\alpha`:
+
+    .. math::
+        \alpha = C_{od} Z = C_{od} (I + B_p C_{od})^{-1}
+
+    Let the off-diagonal damping force be denoted by :math:`Q`
+    (:math:`Q_i \equiv C_{od} \dot{q}_i`). Then, in the loop:
+
+    .. math::
+        \begin{aligned}
+        Vpart_i &= F_p q_i + G_p \dot{q}_i +
+                   A_p (P_i - Q_i) + B_p P_{i+1}
+
+        Q_{i+1} &= \alpha Vpart_i
+
+        q_{i+1} &= F q_i + G \dot{q}_i +
+           A (P_i - Q_i) + B (P_{i+1} - Q_{i+1})
+
+        \dot{q}_{i+1} &= Vpart_i - B_p Q_{i+1}
+        \end{aligned}
+
+    .. note::
+
+        The above equations are for the non-residual-flexibility
+        modes. The 'rf' modes are solved statically and any initial
+        conditions are ignored for them.
+
+    For a static solution:
+
+        - rigid-body displacements = zeros
+        - elastic displacments = inv(k[elastic]) * F[elastic]
+        - velocity = zeros
+        - rigid-body accelerations = inv(m[rigid]) * F[rigid]
+        - elastic accelerations = zeros
+
+    See also
+    --------
+    :class:`SolveUnc`, :class:`SolveExp2`.
+
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        >>> from pyyeti import ode
+        >>> import numpy as np
+        >>> m = np.array([10., 30., 30., 30.])    # diag mass
+        >>> k = np.array([0., 6.e5, 6.e5, 6.e5])  # diag stiffness
+        >>> zeta = np.array([0., .05, 1., 2.])    # % damping
+        >>> b = np.diag(2.*zeta*np.sqrt(k/m)*m)   # diag of damping
+        >>> b_off = -np.diag(np.diag(b)[:-1], 1) / 100
+        >>> b += b_off + b_off.T                  # coupled damping
+        >>> h = 0.001                             # time step
+        >>> t = np.arange(0, .3001, h)            # time vector
+        >>> f = np.vstack((3*(1-np.cos(2*np.pi*2*t)),   # ffn
+        ...                4.5*(np.cos(np.sqrt(k[1]/m[1])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[2]/m[2])*t)),
+        ...                4.5*(np.cos(np.sqrt(k[3]/m[3])*t))))
+        >>> f *= 1.e4
+        >>> ts = ode.SolveCDF(m, b, k, h)
+        >>> sol = ts.tsolve(f, static_ic=1)
+
+        Solve with scipy.signal.lsim for comparison:
+
+        >>> A = ode.make_A(m, b, k)
+        >>> n = len(m)
+        >>> Z = np.zeros((n, n), float)
+        >>> B = np.vstack((np.eye(n), Z))
+        >>> C = np.vstack((A, np.hstack((Z, np.eye(n)))))
+        >>> D = np.vstack((B, Z))
+        >>> ic = np.hstack((sol.v[:, 0], sol.d[:, 0]))
+        >>> import scipy.signal
+        >>> f2 = (1./m).reshape(-1, 1) * f
+        >>> tl, yl, xl = scipy.signal.lsim((A, B, C, D), f2.T, t,
+        ...                                X0=ic)
+        >>>
+        >>> print('acce cmp:',
+        ...       np.allclose(yl[:, :n], sol.a.T,
+        ...                   atol=1e-5*abs(sol.a).max()))
+        acce cmp: True
+        >>> print('velo cmp:',
+        ...       np.allclose(yl[:, n:2*n], sol.v.T,
+        ...                   atol=1e-5*abs(sol.v).max()))
+        velo cmp: True
+        >>> print('disp cmp:',
+        ...       np.allclose(yl[:, 2*n:], sol.d.T,
+        ...                   atol=1e-5*abs(sol.d).max()))
+        disp cmp: True
+
+        Plot the four accelerations:
+
+        >>> import matplotlib.pyplot as plt
+        >>> fig = plt.figure('SolveCDF vs. lsim', figsize=[8, 8])
+        >>> labels = ['Rigid-body', 'Underdamped',
+        ...           'Critically Damped', 'Overdamped']
+        >>> for j, name in zip(range(4), labels):
+        ...     _ = plt.subplot(4, 1, j+1)
+        ...     _ = plt.plot(t, sol.a[j], label='SolveUnc')
+        ...     _ = plt.plot(tl, yl[:, j], label='scipy lsim')
+        ...     _ = plt.title(name)
+        ...     _ = plt.ylabel('Acceleration')
+        ...     _ = plt.xlabel('Time (s)')
+        ...     if j == 0:
+        ...         _ = plt.legend(loc='best')
+        >>> plt.tight_layout()
+    """
+
+    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
+                 pre_eig=False):
+        """
+        Instantiates a :class:`SolveCDF` solver.
+
+        Parameters
+        ----------
+        m : 1d or 2d ndarray or None
+            Mass; vector (of diagonal), or full; if None, mass is
+            assumed identity
+        b : 1d or 2d ndarray
+            Damping; vector (of diagonal), or full
+        k : 1d or 2d ndarray
+            Stiffness; vector (of diagonal), or full
+        h : scalar or None; optional
+            Time step; can be None if only want to solve a static
+            problem or if only solving frequency domain problems
+        rb : 1d array or None; optional
+            Index partition vector for rigid-body modes. Set to [] to
+            specify no rigid-body modes. If None, the rigid-body modes
+            will be automatically detected by this logic for uncoupled
+            systems::
+
+               rb = np.nonzero(abs(k).max(0) < 0.005)[0]
+
+            And by this logic for coupled systems::
+
+               rb = ((abs(k).max(axis=0) < 0.005) &
+                     (abs(k).max(axis=1) < 0.005) &
+                     (abs(b).max(axis=0) < 0.005) &
+                     (abs(b).max(axis=1) < 0.005)).nonzero()[0]
+
+            .. note::
+                `rb` applies only to modal-space equations. Use
+                `pre-eig` if necessary to convert to modal-space. This
+                means that if `rb` is an index vector, it specifies
+                the rigid-body modes *after* the `pre_eig`
+                operation. See also `pre_eig`.
+
+        rf : 1d array or None; optional
+            Index partition vector for res-flex modes; these will be
+            solved statically. As for the `rb` option, the `rf` option
+            only applies to modal space equations (possibly after the
+            `pre_eig` operation).
+        order : integer; optional
+            Specify which solver to use:
+
+            - 0 for the zero order hold (force stays constant across
+              time step)
+            - 1 for the 1st order hold (force can vary linearly across
+              time step)
+
+        pre_eig : bool; optional
+            If True, an eigensolution will be computed with the mass
+            and stiffness matrices to convert the system to modal
+            space. This will allow the automatic detection of
+            rigid-body modes which is necessary for the complex
+            eigenvalue method to work properly on systems with
+            rigid-body modes (unless those modes have damping). No
+            modes are truncated. Only works if stiffness is
+            symmetric/hermitian and mass is positive definite (see
+            :func:`scipy.linalg.eigh`). Just leave it as False if the
+            equations are already in modal space.
+
+        Notes
+        -----
+        The instance is populated with some or all of the following
+        members. Note that in the table, `non-rf/elastic` means
+        `non-rf` for uncoupled systems, `elastic` for coupled -- the
+        difference is whether or not the rigid-body modes are
+        included: they are for uncoupled.
+
+        =========  ===================================================
+        Member     Description
+        =========  ===================================================
+        m          mass for the non-rf/elastic modes
+        b          damping for the non-rf/elastic modes
+        k          stiffness for the non-rf/elastic modes
+        h          time step
+        rb         index vector or slice for the rb modes
+        el         index vector or slice for the el modes
+        rf         index vector or slice for the rf modes
+        _rb        index vector or slice for the rb modes relative to
+                   the non-rf modes
+        _el        index vector or slice for the el modes relative to
+                   the non-rf modes
+        nonrf      index vector or slice for the non-rf modes
+        kdof       index vector or slice for the non-rf/elastic modes
+        n          number of total DOF
+        rbsize     number of rb modes
+        elsize     number of el modes
+        rfsize     number of rf modes
+        nonrfsz    number of non-rf modes
+        ksize      number of non-rf/elastic modes
+        invm       decomposition of m for the non-rf/elastic modes
+        imrb       decomposition of m for the rb modes
+        krf        stiffness for the rf modes
+        ikrf       inverse of stiffness for the rf modes
+        unc        True if there are no off-diagonal terms in any
+                   matrix; False otherwise
+        order      order of solver (0 or 1; see above)
+        pc         None or record (SimpleNamespace) of integration
+                   coefficients; if uncoupled, this is populated by
+                   :func:`get_su_coef`; otherwise by
+                   :func:`SolveUnc._get_su_eig`
+        pre_eig    True if the "pre" eigensolution was done; False
+                   otherwise
+        phi        the mode shape matrix from the "pre" eigensolution;
+                   only present if `pre_eig` is True
+        cdforces   True if `cd_as_force` option is being used (which
+                   means damping is coupled, but mass and stiffness
+                   are not)
+        bo         Off-diagonal damping terms (present when `cdforces`
+                   is True
+        systype    float or complex; determined by `m` `b` `k`
+        =========  ===================================================
+
+        Unlike for :class:`SolveExp2`, `order` is not used until the
+        solver is called. In other words, this routine prepares the
+        integration coefficients for a first order hold no matter what
+        the setting of `order` is, but the solver will adjust the use
+        of the forces to account for the `order` setting.
+
+        The mass, damping and stiffness may be real or complex since
+        this solver is also used for frequency domain problems.
+        """
+        super().__init__(m, b, k, h, rb, rf, order, pre_eig,
+                         cd_as_force=True)
 
 
 class SolveNewmark(_BaseODE):
