@@ -222,10 +222,11 @@
 
 99. Add generator feature and hm features to Newmark-Beta solver
 
-`100. Add the Chapman solver (or similar) with the generator & hm
+~100. Add the Chapman solver (or similar) with the generator & hm
      features
      - added in version 0.94.6
      - need to add tests for new solver!
+     - add as SolveCDF in 0.94.7
 
 101. Add regex to nastran.rdcards …
      ‘DTI     SELOAD’ would be better as ‘DTI\s+SELOAD’
@@ -243,9 +244,15 @@
        many of those functions allow it. Share code amongst these
        functions.
 
-105. Think about refactoring the cd_as_force=True option of SolveUnc
+~105. Think about refactoring the cd_as_force=True option of SolveUnc
      to its own class ... inheriting from SolveUnc (that way, don’t
      need the non-uniformity of having the cd_as_force option)
        o SolveUncCD? ... And fail when M & K are not diagonal? (nah on
          the fail i think ... just fall back to SolveUnc)
        o Refactoring this seems good for doc purposes
+     - done as SolveCDF, v0.94.7
+
+106. Add Henkel-Mar class -- I think. The one in
+     python/workworks/henkelmar.py *might* be where to start.
+
+107. Add more tutorials.

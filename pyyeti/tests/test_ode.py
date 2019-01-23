@@ -4535,8 +4535,7 @@ def run_solvers_cd_as_forces(m, b, k, h, order, rf, f):
 
     se2 = ode.SolveExp2(m, b, k, h, order=order, rf=rf)
     su = ode.SolveUnc(m, b, k, h, order=order, rf=rf)
-    sudf = ode.SolveUnc(m, b, k, h, cd_as_force=True,
-                        order=order, rf=rf)
+    sudf = ode.SolveCDF(m, b, k, h, order=order, rf=rf)
 
     assert sudf.cdforces
 
