@@ -42,6 +42,14 @@ def test_fdepsd_absacce():
     assert abs(np.mean(fde_auto.psd.iloc[pv, 2:], axis=0) - sp).max() < .12
     assert np.all(fde_auto.freq == freq)
 
+    # check the damage indicators:
+    flight_over_test = (fde_auto.di_sig.loc[freq[0]]
+                        / fde_auto.di_test.loc[freq[0]])
+    var = fde_auto.var[freq[0]]
+    assert abs(1 - flight_over_test['b=4'] ** (1 / 2) / var) < 0.1
+    assert abs(1 - flight_over_test['b=8'] ** (1 / 4) / var) < 0.15
+    assert abs(1 - flight_over_test['b=12'] ** (1 / 6) / var) < 0.25
+
     fde_none = fdepsd(sig, sr, freq, q, rolloff=None)
     fde_pre = fdepsd(sig, sr, freq, q, rolloff='prefilter')
     assert np.all((fde_none.psd <= fde_pre.psd).values)
@@ -79,6 +87,14 @@ def test_fdepsd_pvelo():
     assert abs(np.mean(fde_auto.psd.iloc[pv, :2], axis=0) - sp).max() < .22
     assert abs(np.mean(fde_auto.psd.iloc[pv, 2:], axis=0) - sp).max() < .22
     assert np.all(fde_auto.freq == freq)
+
+    # check the damage indicators:
+    flight_over_test = (fde_auto.di_sig.loc[freq[0]]
+                        / fde_auto.di_test.loc[freq[0]])
+    var = fde_auto.var[freq[0]]
+    assert abs(1 - flight_over_test['b=4'] ** (1 / 2) / var) < 0.1
+    assert abs(1 - flight_over_test['b=8'] ** (1 / 4) / var) < 0.15
+    assert abs(1 - flight_over_test['b=12'] ** (1 / 6) / var) < 0.25
 
     fde_none = fdepsd(sig, sr, freq, q, resp='pvelo', rolloff=None)
     fde_pre = fdepsd(sig, sr, freq, q, resp='pvelo',

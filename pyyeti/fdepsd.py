@@ -185,7 +185,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
 
     Returns
     -------
-    A record (SimpleNamespace class) with the members:
+    A SimpleNamespace with the members:
 
     freq : 1d ndarray
         Same as input `freq`.
@@ -229,6 +229,34 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         with `binamps` and the count is cumulative; that is, the count
         in each entry includes cycles at the `binamps` amplitude and
         above. Therefore, first column has total cycles for the SDOF.
+    bincount : pandas DataFrame; ``len(freq) x nbins``
+        Non-cumulative version of `count`.
+    di_sig : pandas DataFrame; ``len(freq) x 3``
+        Damage indicators for the `sig` signal. Index is `freq` and
+        columns are ['b=4', 'b=8', 'b=12']. The value for each
+        frequency is the sum of the cycle count for a bin times its
+        amplitude to the b power. That is, for the j-th frequency, the
+        'b=4' indicator is::
+
+            amps = binamps.loc[freq[j]]
+            counts = bincount.loc[freq[j]]
+
+            di = (amps**b4) @ counts
+
+        Note that this definition is slightly different than equation
+        14 from [#fde1]_ (would have to divide by the frequency), but
+        the same as equation 10 of [#fde2]_ without the constant.
+    di_test : pandas DataFrame; ``len(freq) x 3``
+        Damage indicators for the test. Same size as `di_sig`. Each
+        value depends only on the frequency and `T0`. The ratio of a
+        signal damage indicator to the corresponding test damage
+        indicator is equal to the standard deviation of the single DOF
+        response to `sig` raised to the `b` power. (This relationship
+        is the basis of determining the amplitude of the test signal.)
+        For example::
+
+           sigma ** b = di_sig[freq, b] / di_test[freq, b]
+
     sig : 1d ndarray
         The version of the input `sig` that is fed into the fatique
         damage algorithm. This would be after any filtering,
@@ -328,9 +356,9 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
     spec level. The damage-based PSDs will be calculated with several
     Qs and enveloped.
 
-    In this example, G2 envelopes G1, G4, G8, G12.  This is not always
+    In this example, G2 envelopes G1, G4, G8, G12. This is not always
     the case.  For example, try TF=120; the damage-based curves go up
-    fit equal damage in 60s.
+    in order to fit equal damage in 60s.
 
     One Count vs. Amp**2 plot is done for illustration.
 
@@ -618,6 +646,11 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         Gmax = np.sqrt(np.vstack((G4, G8, G12)) *
                        (Q * lnN0) / (4 * pi * freq))
 
+        # for output, scale the damage indicators:
+        Dt4 *= 4    # 2 ** (b/2)
+        Dt8 *= 16
+        Dt12 *= 64
+
     # assemble outputs:
     columns = ['G1', 'G2', 'G4', 'G8', 'G12']
     lcls = locals()
@@ -631,15 +664,24 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
                         columns=columns, index=index)
     BinAmps = pd.DataFrame(BinAmps, index=index)
     Count = pd.DataFrame(Count, index=index)
+    BinCount = pd.DataFrame(BinCount, index=index)
     Var = pd.Series(Var, index=index)
     SRSmax = pd.Series(SRSmax, index=index)
+    di_sig = pd.DataFrame(np.column_stack((Df4, Df8, Df12)),
+                          columns=['b=4', 'b=8', 'b=12'],
+                          index=index)
+    di_test = pd.DataFrame(np.column_stack((Dt4, Dt8, Dt12)),
+                           columns=['b=4', 'b=8', 'b=12'],
+                           index=index)
     # df = pd.concat(
     #     objs=[Gpsd, Gmax, BinAmps, Count, pd.DataFrame(Var),
     #           pd.DataFrame(SRSmax)],
     #     keys=['PSD', 'Peak Amp', 'Bin Amp', 'Count', 'Var', 'SRS'],
     #     axis=1,
     #     copy=False)
-    return SimpleNamespace(freq=freq, psd=Gpsd, peakamp=Gmax,
-                           binamps=BinAmps, count=Count, var=Var,
-                           srs=SRSmax, parallel=parallel, ncpu=ncpu,
-                           resp=resp, sig=sig)  # , df=df)
+    return SimpleNamespace(
+        freq=freq, psd=Gpsd, peakamp=Gmax, binamps=BinAmps,
+        count=Count, bincount=BinCount, var=Var, srs=SRSmax,
+        parallel=parallel, ncpu=ncpu,
+        di_sig=di_sig, di_test=di_test,
+        resp=resp, sig=sig)
