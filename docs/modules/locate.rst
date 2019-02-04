@@ -6,6 +6,7 @@ Tools for locating elements inside arrays/lists
 .. autosummary::
     :toctree: generated/
 
+    find_duplicates
     find_rows
     find_subseq
     find_unique

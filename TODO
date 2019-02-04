@@ -256,3 +256,24 @@
      python/workworks/henkelmar.py *might* be where to start.
 
 107. Add more tutorials.
+
+~108. Fdepsd Di_test – mention it doesn’t include sigma
+
+~109. I think: get rid of hadamard in SolveUnc doc
+     - version 0.94.9
+
+110. Consider refactoring the generator solvers by using “yield from”
+     (can code be reused?)
+
+111. Consider refactoring large modules into small files
+     o   Approach used in scipy:
+         - make ode, cla, ... packages ... just like nastran is now
+         - in the ode/__init__.py, imports could be, for example:
+              from .solveunc import *
+              from .solveexp2 import *
+
+112. Can some things (ode solvers?) be sped up by numba?
+
+~113. Move "finddups" from ode to locate (and rename it to
+     'find_duplicates')
+     - version 0.94.9

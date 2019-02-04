@@ -81,6 +81,5 @@ Utility routines
     addconj
     delconj
     eigss
-    finddups
     get_su_coef
     make_A

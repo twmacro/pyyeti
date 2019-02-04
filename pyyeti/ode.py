@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Time and frequency domain ODE solvers for matrix equations. Adapted
@@ -11,7 +12,7 @@ from types import SimpleNamespace
 import warnings
 import scipy.linalg as la
 import numpy as np
-from pyyeti import expmint, ytools
+from pyyeti import expmint, ytools, locate
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -276,43 +277,6 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
                            pvrb=pvrb, pvrb_damped=pvrb_damped)
 
 
-def finddups(v, tol=0.):
-    """
-    Find duplicate values in a vector (or within a tolerance).
-
-    Parameters
-    ----------
-    v : 1d array_like
-        Vector to find duplicates in.
-    tol : scalar; optional
-        Tolerance for checking for duplicates. Values are considered
-        duplicates if the absolute value of the difference is <=
-        `tol`.
-
-    Returns
-    -------
-    dups : 1d ndarray
-        Bool partition vector for repeated values. `dups` will have
-        True for any value that is repeated anywhere else in the
-        vector. It will be all False if there are no repeated values.
-
-    Examples
-    --------
-    >>> from pyyeti import ode
-    >>> ode.finddups([0, 10, 2, 2, 6, 10, 10])
-    array([False,  True,  True,  True, False,  True,  True], dtype=bool)
-    """
-    v = np.atleast_1d(v)
-    i = np.argsort(v)
-    dif = np.diff(v[i])
-    dups = np.zeros(v.size, bool)
-    tf = abs(dif) <= tol
-    dups[i[1:-1]] = np.logical_or(tf[1:], tf[:-1])
-    dups[i[0]] = tf[0]
-    dups[i[-1]] = tf[-1]
-    return dups
-
-
 def _eigc_dups(lam, tol=1.e-10):
     """
     Find duplicate complex eigenvalues from state-space formulation.
@@ -356,7 +320,7 @@ def _eigc_dups(lam, tol=1.e-10):
     i = np.argsort(abs(lam.imag), kind='mergesort')
     lams = lam[i]  # order: real then complex w/ conjugates adjacent
     # find repeated roots:
-    dups = np.nonzero(finddups(lams, tol))[0]
+    dups = np.nonzero(locate.find_duplicates(lams, tol))[0]
     return lams, i, dups
 
 
@@ -2165,7 +2129,8 @@ class SolveUnc(_BaseODE):
     `order` is 0).
 
     For uncoupled equations, pre-formulated integration coefficients
-    are used (see :func:`get_su_coef`) as follows:
+    are used (see :func:`get_su_coef`) as follows (think of the
+    coefficients as diagonal matrices):
 
     .. math::
         \begin{aligned}
@@ -2234,15 +2199,13 @@ class SolveUnc(_BaseODE):
     By assuming :math:`v(t_n+\tau)` is piece-wise linear or constant
     for each step, an exact, closed form solution can be
     calculated. The class function
-    :func:`SolveUnc._get_complex_su_coefs` computes the vectors `Fe`
-    (:math:`e^{\lambda h}`), `Ae`, and `Be` so that a solution (for
-    all equations) can be computed by:
+    :func:`SolveUnc._get_complex_su_coefs` computes the integration
+    coefficient vectors `Fe` (:math:`e^{\lambda h}`), `Ae`, and `Be`
+    so that a solution (for all equations) can be computed by (think
+    of `Fe`, `Ae`, and `Be` as diagonal matrices):
 
     .. math::
-        u_{n+1} = Fe \circ u_{n} + Ae \circ v_{n} + Be \circ v_{n+1}
-
-    The :math:`\circ` symbol represents a term-by-term (or Hadamard)
-    product.
+        u_{n+1} = Fe u_{n} + Ae v_{n} + Be v_{n+1}
 
     .. note::
 
@@ -4842,10 +4805,10 @@ class FreqDirect(_BaseODE):
     Unlike :class:`SolveUnc`, since this routine makes no special
     provisions for rigid-body modes when computing the response;
     therefore, including 0.0 in `freq` can cause a divide-by-zero. It
-    is thereforce recommended to ensure that all values in `freq` >
+    is therefore recommended to ensure that all values in `freq` >
     0.0, at least when rigid-body modes are present. After the
     solution is computed, for equations that are in modal space, the
-    rigid-body part of the response maybe zeroed out according to the
+    rigid-body part of the response may be zeroed out according to the
     `incrb` parameter in :func:`fsolve`.
 
     See also

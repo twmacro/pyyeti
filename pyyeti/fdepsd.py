@@ -236,26 +236,27 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         columns are ['b=4', 'b=8', 'b=12']. The value for each
         frequency is the sum of the cycle count for a bin times its
         amplitude to the b power. That is, for the j-th frequency, the
-        'b=4' indicator is::
+        indicator is::
 
             amps = binamps.loc[freq[j]]
             counts = bincount.loc[freq[j]]
 
-            di = (amps**b4) @ counts
+            di = (amps ** b) @ counts
 
         Note that this definition is slightly different than equation
         14 from [#fde1]_ (would have to divide by the frequency), but
         the same as equation 10 of [#fde2]_ without the constant.
     di_test : pandas DataFrame; ``len(freq) x 3``
-        Damage indicators for the test. Same size as `di_sig`. Each
-        value depends only on the frequency and `T0`. The ratio of a
-        signal damage indicator to the corresponding test damage
-        indicator is equal to the standard deviation of the single DOF
-        response to `sig` raised to the `b` power. (This relationship
-        is the basis of determining the amplitude of the test signal.)
+        Damage indicators for the test without the variance
+        factor. Same size as `di_sig`. Each value depends only on the
+        frequency, `T0`, and the fatigue exponent ``b``. The ratio of
+        a signal damage indicator to the corresponding test damage
+        indicator is equal to the variance of the single DOF response
+        to `sig` raised to the ``b/2`` power. (This relationship is
+        the basis of determining the amplitude of the test signal.)
         For example::
 
-           sigma ** b = di_sig[freq, b] / di_test[freq, b]
+           var[freq] ** (b / 2) = di_sig[freq, b] / di_test[freq, b]
 
     sig : 1d ndarray
         The version of the input `sig` that is fed into the fatique

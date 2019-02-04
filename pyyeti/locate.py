@@ -62,6 +62,43 @@ def find_vals(m, v):
     return pv
 
 
+def find_duplicates(v, tol=0.):
+    """
+    Find duplicate values in a vector (or within a tolerance).
+
+    Parameters
+    ----------
+    v : 1d array_like
+        Vector to find duplicates in.
+    tol : scalar; optional
+        Tolerance for checking for duplicates. Values are considered
+        duplicates if the absolute value of the difference is <=
+        `tol`.
+
+    Returns
+    -------
+    dups : 1d ndarray
+        Bool partition vector for repeated values. `dups` will have
+        True for any value that is repeated anywhere else in the
+        vector. It will be all False if there are no repeated values.
+
+    Examples
+    --------
+    >>> from pyyeti import locate
+    >>> locate.find_duplicates([0, 10, 2, 2, 6, 10, 10])
+    array([False,  True,  True,  True, False,  True,  True], dtype=bool)
+    """
+    v = np.atleast_1d(v)
+    i = np.argsort(v)
+    dif = np.diff(v[i])
+    dups = np.zeros(v.size, bool)
+    tf = abs(dif) <= tol
+    dups[i[1:-1]] = np.logical_or(tf[1:], tf[:-1])
+    dups[i[0]] = tf[0]
+    dups[i[-1]] = tf[-1]
+    return dups
+
+
 def find_subseq(seq, subseq):
     """
     Returns indices of where subseq occurs in seq.  Both are 1d numpy
