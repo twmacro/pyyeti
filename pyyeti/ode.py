@@ -2205,7 +2205,7 @@ class SolveUnc(_BaseODE):
     of `Fe`, `Ae`, and `Be` as diagonal matrices):
 
     .. math::
-        u_{n+1} = Fe u_{n} + Ae v_{n} + Be v_{n+1}
+        u_{n+1} = F_e u_{n} + A_e v_{n} + B_e v_{n+1}
 
     .. note::
 

@@ -320,8 +320,8 @@ def _rdcomma(fiter, s, conchar, blank, tolist):
 
 
 @ytools.read_text_file
-def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
-            no_data_return=None):
+def rdcards(f, name, blank=0, return_var='array', dtype=float,
+            no_data_return=None, regex=False):
     """
     Read Nastran cards (lines) into a matrix, dictionary, or list.
 
@@ -335,35 +335,53 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     name : string
         Usually the card name, but is really just the initial part of
         the string to look for. This means that `name` can span more
-        then one field, in case that is handy.
+        then one field, in case that is handy. It can also be a
+        regular expression if the `regex` option is set to True. This
+        routine is case insensitive: if `regex` is False, `name` is
+        converted to lower case as are the lines that are read in from
+        the file; otherwise, the ``re.IGNORECASE`` option is used.
     blank : scalar; optional
         Numeric value to use for blank fields and string-valued
         fields.
-    todict : bool; optional
-        If True, return a dictionary. Otherwise, return a matrix
-        unless `tolist` is True.
-    tolist : bool; optional
-        If True (and `todict` is False), return a list of
-        lists. Otherwise, return a matrix or dictionary according to
-        `todict`. Returning a list is the only way to preserve strings
-        and is therefore the "truest" read of the cards.
-    dtype : data-type, optional
-        The desired data-type for the output.
+    return_var : string; optional
+        Specifies which data structure to use for the data:
+
+        ============   ============================================
+        `return_var`   Routine returns
+        ============   ============================================
+          'array'      a numpy ndarray of type `dtype`; non-numeric
+                       fields are set to `blank`
+          'list'       a list of lists; this is the "truest" reader
+                       since string fields are retained and only
+                       blank fields are set to `blank`
+          'dict'       a dictionary; each card becomes a dictionary
+                       entry: the value is a numpy ndarray of type
+                       `dtype` and the key is the first element of
+                       that ndarray (but before converting to
+                       `dtype`)
+        ============   ============================================
+
+    dtype : data-type; optional
+        The desired array data-type for the 'array' or 'dict' output
+        options.
     no_data_return : any variable; optional
         If no data is found, this routine returns `no_data_return`.
+    regex : bool; optional
+        If set to True, Use regular expression matching instead of
+        literal string matching.
 
     Returns
     -------
-    cards : ndarray or dictionary or list or no_data_return
+    cards : ndarray or list or dictionary or no_data_return
 
-        - If a matrix is returned, each row is a card, padded with
+        - If an ndarray is returned, each row is a card, padded with
           blanks as necessary.
-        - If a dictionary is returned, the first number from each card
-          is used as the key and the value are all the numbers from
-          the card in a row vector (including the first value).
         - If a list (of lists) is returned, each item is a card and is
           a list of values from the card, the length of which is the
           number of items on the card.
+        - If a dictionary is returned, the first number from each card
+          is used as the key and the value are all the numbers from
+          the card in a row vector (including the first value).
         - `no_data_return` is returned if no cards of requested name
           were found.
 
@@ -374,21 +392,81 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     that the characters in the continuation fields are ignored. It
     also uses nas_sscanf to read the numbers, so numbers like 1.-3
     (which means 1.e-3) are okay. Blank fields and string fields are
-    set to `blank`, except when `tolist` is True; in that case, string
-    fields are kept as is and only blank fields are set to `blank`.
+    set to `blank`, except when `return_var` is 'list'; in that case,
+    string fields are kept as is and only blank fields are set to
+    `blank`.
 
     Note: this routine is has no knowledge of any card, which means
     that it will not append trailing blanks to a card. For example, if
     a GRID card is: 'GRID, 1', then this routine would return 1, not
-    [1, 0, 0, 0, 0, 0, 0, 0]. The :func:`rdgrids` routine would return
-    [1, 0, 0, 0, 0, 0, 0, 0] since it knows the number of fields a
-    GRID card has.
+    ``[1, 0, 0, 0, 0, 0, 0, 0]``. The :func:`rdgrids` routine would
+    return ``[1, 0, 0, 0, 0, 0, 0, 0]`` since it knows the number of
+    fields a GRID card has.
+
+    Examples
+    --------
+    Create some bulk data to read:
+
+    >>> from io import StringIO
+    >>> from pyyeti.nastran import bulk
+    >>> fs = StringIO('''
+    ... DTI     SELOAD         1       2
+    ... dti     seload         3       4
+    ... dti,seload,5,6
+    ... DTI, SELOAD, 7, 8.0, 'a'
+    ... DTI,SETREE,100,0
+    ... ''')
+
+    Read all the DTI cards to a list:
+
+    >>> lst = bulk.rdcards(fs, 'dti', return_var='list')
+    >>> for item in lst: print(item)
+    ['SELOAD', 1, 2]
+    ['seload', 3, 4]
+    ['seload', 5, 6]
+    ['SELOAD', 7, 8.0, "'a'"]
+    ['SETREE', 100, 0]
+
+    Read some of the DTI,SELOAD cards (it's case-insensitive):
+
+    >>> bulk.rdcards(fs, 'dti     seload')
+    array([[ 0.,  1.,  2.],
+           [ 0.,  3.,  4.]])
+
+    Use a regular expression for more power:
+
+    >>> bulk.rdcards(fs, r'DTI(,\s*|\s+)SELOAD', regex=True)
+    array([[ 0.,  1.,  2.,  0.],
+           [ 0.,  3.,  4.,  0.],
+           [ 0.,  5.,  6.,  0.],
+           [ 0.,  7.,  8.,  0.]])
+
+    Same, but read into a list:
+
+    >>> lst = bulk.rdcards(fs, r'DTI(,\s*|\s+)SELOAD', regex=True,
+    ...                    return_var='list')
+    >>> for item in lst: print(item)
+    ['SELOAD', 1, 2]
+    ['seload', 3, 4]
+    ['seload', 5, 6]
+    ['SELOAD', 7, 8.0, "'a'"]
     """
-    name = name.lower()
-    if todict:
+    if not regex:
+        name = name.lower()
+    else:
+        prog = re.compile(name, re.IGNORECASE)
+    if return_var not in ('array', 'list', 'dict'):
+        raise ValueError(
+            'invalid `return_var` setting; must be one of:'
+            ' ("array", "list", "dict")')
+
+    if return_var == 'dict':
         Vals = {}
+        todict = True
         tolist = False
     else:
+        todict = False
+        tolist = return_var == 'list'
         Vals = []
     mxlen = 0
     f.seek(0, 0)
@@ -403,8 +481,13 @@ def rdcards(f, name, blank=0, todict=False, tolist=False, dtype=float,
     it = iter(f)
     s = _readline(it)
     while True:
-        while s is not None and s.lower().find(name) != 0:
-            s = _readline(it)
+        if not regex:
+            while s is not None and s.lower().find(name) != 0:
+                s = _readline(it)
+        else:
+            while s is not None and not prog.match(s):
+                s = _readline(it)
+
         if s is None:
             break
         s = _get_line(it, s, trim=False)
@@ -478,8 +561,8 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     Notes
     -----
     For the punch format, this routine first reads all DMIG entries
-    via :func:`rdcards` using the `tolist` option. It then builds a
-    dictionary of DataFrames for only those entries specified in
+    via :func:`rdcards` using the 'list' output option. It then builds
+    a dictionary of DataFrames for only those entries specified in
     `dmig_names`. It is assumed that DMIG entries are in order in the
     file.
 
@@ -600,7 +683,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         return data, rowindex, colindex
 
     def _get_1d_index(index):
-        ind = index.to_frame().values
+        ind = index.to_frame().to_numpy()
         return ind[:, 0] * 10 + ind[:, 1]
 
     def _cards_to_df(c, dmig_names):
@@ -692,8 +775,8 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         name, trailer, dbtype = o2.rdop2nt()
         while name is not None:
             # print(f'op2: found {name}')
-            if (dmig_names is not None and
-                    name.lower() not in dmig_names):
+            if (dmig_names is not None
+                    and name.lower() not in dmig_names):
                 o2.skipop2table()
             else:
                 rec = o2.rdop2record()
@@ -798,7 +881,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
     if f is not None and not isinstance(f, str):
         # assume file handle, assume punch
-        cards = rdcards(f, name='dmig', tolist=True, blank='')
+        cards = rdcards(f, name='dmig', return_var='list', blank='')
         return _cards_to_df(cards, dmig_names)
 
     # read op2 or punch ... try op2, if that fails, assume punch:
@@ -806,7 +889,8 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     try:
         o2 = op2.OP2(dmigfile)
     except ValueError:
-        cards = rdcards(dmigfile, name='dmig', tolist=True, blank='')
+        cards = rdcards(dmigfile, name='dmig',
+                        return_var='list', blank='')
         dct = _cards_to_df(cards, dmig_names)
     else:
         o2dct = _read_op2_dmig(o2, dmig_names)
@@ -961,7 +1045,7 @@ def wtdmig(f, dct):
     100 1    3.5 -1.2 -2.4
         2   -1.2  8.8  6.5
         6   -2.4  6.5  9.9
-    >>> np.all((k2 == k).values)
+    >>> np.all((k2 == k).to_numpy())
     True
     """
     for name, value in dct.items():
@@ -979,7 +1063,7 @@ def wtdmig(f, dct):
                 '"{}" must have a 1 or 2-level column index but has '
                 '{} levels'.format(name, colids.nlevels))
 
-        m = value.values
+        m = value.to_numpy()
         ncol = value.shape[1]
 
         # determine form of matrix:
@@ -1145,20 +1229,20 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
                          " must be 8 or 16.\n", length)
     if ps == seid == "":
         if len(teststr) > 8:
-            string = ("GRID*   {:16d}{:16d}" + form * 2 +
-                      "\n*       " + form + "{:16d}\n")
+            string = ("GRID*   {:16d}{:16d}" + form * 2
+                      + "\n*       " + form + "{:16d}\n")
         else:
             string = ("GRID    {:8d}{:8d}" + form * 3 + "{:8d}\n")
         writer.vecwrite(f, string, grids, cp, xyz[:, 0], xyz[:, 1],
                         xyz[:, 2], cd)
     else:
         if len(teststr) > 8:
-            string = ("GRID*   {:16d}{:16d}" + form * 2 +
-                      "\n*       " + form +
-                      "{:16d}{:>16}{:>16}\n")
+            string = ("GRID*   {:16d}{:16d}" + form * 2
+                      + "\n*       " + form
+                      + "{:16d}{:>16}{:>16}\n")
         else:
-            string = ("GRID    {:8d}{:8d}" + form * 3 +
-                      "{:8d}{:>8}{:>8}\n")
+            string = ("GRID    {:8d}{:8d}" + form * 3
+                      + "{:8d}{:>8}{:>8}\n")
         writer.vecwrite(f, string, grids, cp, xyz[:, 0], xyz[:, 1],
                         xyz[:, 2], cd, ps, seid)
 
@@ -1213,7 +1297,7 @@ def rdtabled1(f, name='tabled1'):
     >>> np.allclose(d, dct[4000][:, 1])
     True
     """
-    d = rdcards(f, name, todict=1)
+    d = rdcards(f, name, return_var='dict')
     for tid in d:
         vec = d[tid]
         d[tid] = np.vstack([vec[8:-1:2], vec[9:-1:2]]).T
@@ -1617,7 +1701,7 @@ def rdcsupers(f):
     Any "THRU" fields will be set to -1. This routine simply calls the
     more general routine :func:`rdcards`::
 
-        rdcards(f, 'csuper', todict=True, dtype=np.int64, blank=-1)
+        rdcards(f, 'csuper', return_var='dict', dtype=np.int64, blank=-1)
 
     Examples
     --------
@@ -1631,7 +1715,8 @@ def rdcsupers(f):
     {101: array([    101,       0,       3,      11,      19,      27,
            1995001, 1995002, 1995003,      -1, 1995010]...)}
     """
-    return rdcards(f, 'csuper', todict=True, dtype=np.int64, blank=-1)
+    return rdcards(f, 'csuper', return_var='dict',
+                   dtype=np.int64, blank=-1)
 
 
 def rdextrn(f, expand=True):
@@ -2458,8 +2543,8 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
         y = parms.radius * np.sin(th)
         z = 0 * x
         # transform to basic coordinates and plot:
-        circle_basic = (parms.center +
-                        (np.column_stack((x, y, z)) @
+        circle_basic = (parms.center
+                        + (np.column_stack((x, y, z)) @
                          parms.basic2local)).T
         h = ax.plot(*xyz[num].T, line, markersize=8.0,
                     markeredgewidth=2.0,
@@ -2744,7 +2829,7 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
                                  'multiple of 6 for USET input'.
                                  format(name))
             IDs.append(ring.index.get_level_values('id')[::6])
-            xyz.append(ring.iloc[::6, 1:].values)
+            xyz.append(ring.iloc[::6, 1:].to_numpy())
         else:
             ring = np.atleast_2d(ring)
             IDs.append(ring[:, 0].astype(np.int64))
@@ -2997,7 +3082,9 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
         Index partition vector for the bset
     uset : pandas DataFrame
         A DataFrame as output by
-        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Unlike
+        :func:`pyyeti.cb.mk_net_drms`, this `uset` defines the b-set
+        nodes in l/v coordinates.
     spoint1 : integer
         Starting value for the SPOINTs (for modal DOF)
     sedn : integer; optional
@@ -3068,9 +3155,9 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
     dof = uset.index.get_level_values('dof')
     pv = dof == 1
     grids = grids[pv]
-    xyz = uset.loc[pv, 'x':'z'].values
+    xyz = uset.loc[pv, 'x':'z'].to_numpy()
     pv = dof == 2
-    cd = uset.loc[pv, 'x'].values.astype(int)
+    cd = uset.loc[pv, 'x'].to_numpy().astype(int)
 
     # Write out ASM file
     unit = se

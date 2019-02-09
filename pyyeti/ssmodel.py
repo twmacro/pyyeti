@@ -79,7 +79,7 @@ class SSModel(object):
                     repr(self.h),
                     repr(self.method),
                     repr(self.prewarp)
-                )
+        )
 
     def getlti(self):
         """
@@ -93,7 +93,8 @@ class SSModel(object):
         return signal.lti(self.A, self.B, self.C, self.D)
 
     def d2c(self, method='foh', prewarp=0):
-        """Compute a continuous state-space model (s-plane) from discrete
+        """
+        Compute a continuous state-space model (s-plane) from discrete
         state-space model (z-plane).
 
         Parameters
@@ -178,25 +179,27 @@ class SSModel(object):
 
         """
         if self.h is None:
-            raise ValueError('model is already continuous??')
+            return self
+            # raise ValueError('model is already continuous??')
+
         h = self.h
         if method == 'tustin':
             if prewarp is None or prewarp == 0:
-                k = 2/h
+                k = 2 / h
             else:
-                k = prewarp / np.tan(prewarp*h/2)
+                k = prewarp / np.tan(prewarp * h / 2)
             I = np.eye(self.A.shape[0])
             q = la.lu_factor(I + self.A)
-            A = k*la.lu_solve(q, self.A.T-I, 1).T
+            A = k * la.lu_solve(q, self.A.T - I, 1).T
             QB = la.lu_solve(q, self.B)
-            B = (k*I-A).dot(QB)
+            B = (k * I - A).dot(QB)
             C = self.C.copy()
             D = self.D - self.C.dot(QB)
             return SSModel(A, B, C, D, method=method, prewarp=prewarp)
 
         # the rest all form A the same way:
         lam, phi = la.eig(self.A)
-        A = (la.solve(phi.T, (phi * (np.log(lam)/h)).T).T).real
+        A = (la.solve(phi.T, (phi * (np.log(lam) / h)).T).T).real
 
         if method == 'foh':
             E, P, Q = expmint.getEPQ(A, h, 1)
@@ -224,11 +227,15 @@ class SSModel(object):
         raise ValueError('invalid `method` argument')
 
     def c2d(self, h, method='foh', prewarp=0):
-        """Compute a discrete state-space model (z-plane) from continuous
+        """
+        Compute a discrete state-space model (z-plane) from continuous
         state-space model (s-plane).
 
         Parameters
         ----------
+        h : scalar or None
+            None for continuous models, the time step for discete
+            models.
         method : string, optional
             Conversion method: 'zoh', 'zoha', 'foh', or 'tustin':
 
@@ -310,7 +317,8 @@ class SSModel(object):
 
         """
         if self.h:
-            raise ValueError('model is already discrete??')
+            return self
+            # raise ValueError('model is already discrete??')
 
         if method == 'zoh':
             A, B, Q = expmint.getEPQ(self.A, h, 0, B=self.B)
@@ -336,14 +344,14 @@ class SSModel(object):
 
         if method == 'tustin':
             if prewarp is None or prewarp == 0:
-                k = 2/h
+                k = 2 / h
             else:
-                k = prewarp / np.tan(prewarp*h/2)
+                k = prewarp / np.tan(prewarp * h / 2)
             I = np.eye(self.A.shape[0])
-            q = la.lu_factor(k*I-self.A)
-            A = la.lu_solve(q, k*I+self.A)
+            q = la.lu_factor(k * I - self.A)
+            A = la.lu_solve(q, k * I + self.A)
             QB = la.lu_solve(q, self.B)
-            B = (I+A).dot(QB)
+            B = (I + A).dot(QB)
             C = self.C.copy()
             D = self.C.dot(QB) + self.D
             return SSModel(A, B, C, D, h, method, prewarp)

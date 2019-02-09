@@ -698,9 +698,9 @@ def cgmass(m, all6=False):
     dz = m[0, 4] / mx
 
     # compute mass terms that will be subtracted off:
-    Md = np.array([[0,     mx * dz,    -mz * dy],
-                   [-my * dz,         0,     my * dx],
-                   [mz * dy,    -my * dx,         0]])
+    Md = np.array([[0, mx * dz, -mz * dy],
+                   [-my * dz, 0, my * dx],
+                   [mz * dy, -my * dx, 0]])
 
     I = np.array(
         [[mz * dy**2 + my * dz**2, -mz * dx * dy, -my * dx * dz],
@@ -776,15 +776,21 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         only consider forces on this subset so if there are other
         boundary DOF that are connected to other superelements, the CG
         recovery transforms are probably not very useful.
-    uset : pandas DataFrame; optional for single point interface
+    uset : pandas DataFrame or None; optional
         A DataFrame as output by
-        :func:`pyyeti.nastran.op2.OP2.rdn2cop2` or
-        :func:`pyyeti.nastran.n2p.addgrid`. For information on the
-        format of this matrix, see
-        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. This defines the
-        Craig-Bampton interface nodes in s/c coordinates, *not* in l/v
-        coordinates. Use `sccoord` to define the transformation from
-        l/v to s/c coordinates.
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Defines the
+        Craig-Bampton interface nodes in s/c coordinates.
+
+        .. warning::
+
+            This defines the Craig-Bampton interface nodes in **s/c
+            coordinates**, *not* in l/v coordinates. Use `sccoord` to
+            define the transformation from l/v to s/c coordinates.
+
+            This is not the same `uset` as the one used in
+            :func:`pyyeti.nastran.bulk.wtextseout`, which would be in
+            l/v coordinates. However, it is likely (but not
+            necessarily) the same as the one used for :func:`cbcheck`.
 
         If `uset` is None, a single grid with id 1 will be
         automatically created at (0, 0, 0). The
@@ -828,6 +834,14 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         The string form assumes units of meter & kg, and inch &
         lbf*s**2/inch (slinch). See :func:`cbconvert` for more
         information.
+
+        .. note::
+            If units are converted, the data recovery rows
+            corresponding to the s/c will still output in the original
+            s/c units. The rows for the l/v will be in l/v units. To
+            have the s/c rows also output in l/v units, convert units
+            of `Mcb` and `Kcb` with :func:`cbconvert` before calling
+            this routine.
 
     reorder : bool; optional
         If True, reorder the DOF so the b-set are first (uses
@@ -878,7 +892,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         moment-based load factors. Row order is *independent* of the
         models' coordinates and the units are 'g'. The signs of the
         moment based lateral CG load factors are set to match the
-        lateral directions (to match the shear-based directions).  See
+        lateral directions (to match the shear-based directions). See
         the `cglf_labels` output for the row descriptions.
     cglfd : 2d ndarray with 14 rows
         The displacement-dependent portion of the net CG load factor
@@ -2454,7 +2468,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         f.write('-------------     -------------------------------'
                 '-------------------------------------\n')
         nb = uset.shape[0]
-        iddof = uset.iloc[:, :0].reset_index().values
+        iddof = uset.iloc[:, :0].reset_index().to_numpy()
         writer.vecwrite(
             f, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
             '  {:10.3f}  {:10.3f}  {:10.3f}\n',
