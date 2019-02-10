@@ -3084,7 +3084,8 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
         A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Unlike
         :func:`pyyeti.cb.mk_net_drms`, this `uset` defines the b-set
-        nodes in l/v coordinates.
+        nodes relative to the basic coordinate system of superelement
+        0.
     spoint1 : integer
         Starting value for the SPOINTs (for modal DOF)
     sedn : integer; optional

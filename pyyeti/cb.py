@@ -779,18 +779,18 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     uset : pandas DataFrame or None; optional
         A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Defines the
-        Craig-Bampton interface nodes in s/c coordinates.
+        Craig-Bampton interface nodes relative to the s/c basic
+        coordinate system. Use the `sccoord` option to define the
+        transformation from l/v to s/c coordinates.
 
         .. warning::
-
-            This defines the Craig-Bampton interface nodes in **s/c
-            coordinates**, *not* in l/v coordinates. Use `sccoord` to
-            define the transformation from l/v to s/c coordinates.
-
-            This is not the same `uset` as the one used in
-            :func:`pyyeti.nastran.bulk.wtextseout`, which would be in
-            l/v coordinates. However, it is likely (but not
-            necessarily) the same as the one used for :func:`cbcheck`.
+            Using a USET table where the nodes are defined relative to
+            l/v basic will give incorrect results (unless the s/c
+            basic and the l/v basic are the same). That means that
+            this USET table is not the same one that gets used in
+            :func:`pyyeti.nastran.bulk.wtextseout`, which is relative
+            to l/v basic. However, it is likely (but not necessarily)
+            the same as the one used for :func:`cbcheck`.
 
         If `uset` is None, a single grid with id 1 will be
         automatically created at (0, 0, 0). The
@@ -804,8 +804,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         location is in s/c basic (before any unit conversion). Can
         also be an integer grid id defined in `uset`.
     sccoord : 3x3 or 4x3 array_like or None; optional
-        If 3x3, it is transform from l/v basic to s/c. If 4x3, it is
-        the CORD2R, CORD2C or CORD2S information specifying the
+        If 3x3, it is the transform from l/v basic to s/c. If 4x3, it
+        is the CORD2R, CORD2C or CORD2S information specifying the
         coordinate system of the s/c relative to the l/v basic
         (reference_id must be 0)::
 
@@ -849,7 +849,6 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     g : scalar; optional
         Standard gravity in l/v units.
     tau : string or 2-tuple of strings; optional
-
         Specifies the translational acceleration units in the `ifatm`
         and `cgatm` matrices for both the s/c and l/v. If a 2-tuple,
         the s/c is specified first. The string(s) can be 'g' or
@@ -858,19 +857,17 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
         .. note::
             Except for 'g', only the length unit is specified. To
-            specify output units of ``m/sec^2``, set tau to 'm'.
+            specify output units of ``m/sec^2``, set `tau` to 'm'.
 
         .. note::
             Note that the `cglf` outputs will be in 'g' units
             regardless of `tau`.
 
         .. warning::
-            If a string is set to 'g', units are converted such that
-            the output will be in g's. For anything else, there is no
-            conversion, and the string is only used for labeling. For
-            example, if the natural output units are ``m/sec^2``,
-            setting `tau` to 'in' will only cause your labels to be
-            wrong.
+            As noted above, there is no conversion of units for
+            anything other than 'g'. For example, if the natural output
+            units are ``m/sec^2``, setting `tau` to 'in' will only
+            cause your labels to be wrong.
 
         Here are some examples:
 
