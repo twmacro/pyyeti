@@ -753,7 +753,7 @@ def _get_Tlv2sc(sccoord):
 
 def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
                 ref=[0, 0, 0], sccoord=None, conv=None, reorder=True,
-                g=9.80665 / 0.0254):
+                g=9.80665 / 0.0254, tau='g'):
     """
     Form common data recovery matrices for "net" interface responses.
 
@@ -832,7 +832,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
             * 'e2m' (convert from English to metric)
 
         The string form assumes units of meter & kg, and inch &
-        lbf*s**2/inch (slinch). See :func:`cbconvert` for more
+        lbf*s^2/inch (slinch). See :func:`cbconvert` for more
         information.
 
         .. note::
@@ -848,6 +848,54 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         :func:`cbreorder`).
     g : scalar; optional
         Standard gravity in l/v units.
+    tau : string or 2-tuple of strings; optional
+
+        Specifies the translational acceleration units in the `ifatm`
+        and `cgatm` matrices for both the s/c and l/v. If a 2-tuple,
+        the s/c is specified first. The string(s) can be 'g' or
+        anything else, but only 'g' causes any kind of output unit
+        conversion. The string(s) will be used for labeling.
+
+        .. note::
+            Except for 'g', only the length unit is specified. To
+            specify output units of ``m/sec^2``, set tau to 'm'.
+
+        .. note::
+            Note that the `cglf` outputs will be in 'g' units
+            regardless of `tau`.
+
+        .. warning::
+            If a string is set to 'g', units are converted such that
+            the output will be in g's. For anything else, there is no
+            conversion, and the string is only used for labeling. For
+            example, if the natural output units are ``m/sec^2``,
+            setting `tau` to 'in' will only cause your labels to be
+            wrong.
+
+        Here are some examples:
+
+        ============  ================================================
+           `tau`      Effect on `ifatm` and `cgatm` matrices
+        ============  ================================================
+            'g'       The matrices for both the s/c and the l/v output
+                      in g's and both labels will have '(g)'
+
+         ('g', 'g')   Same
+
+            'in'      The matrices output in the natural units of each
+                      model and labels will have '(in/s^2)'
+
+        ('in', 'in')  Same
+
+        ('m', 'in')   The matrices output in the natural units of each
+                      model and the s/c labels will have '(m/s^2)'
+                      while the l/v labels will have '(in/s^2)'
+
+        ('m', 'g')    The matrices for the s/c output in the s/c
+                      natural units and the labels will have
+                      ('m/s^2'); the matrices for the l/v output in
+                      g's and the l/v labels will have '(g)'
+        ============  ================================================
 
     Returns
     -------
@@ -865,12 +913,13 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     ifatm_sc, ifatm_lv : 2d ndarrays
         The net interface acceleration data recovery matrices in s/c
         and l/v coordinates, respectively. Acceleration-
-        dependent. Units are 'g' and 'rad/sec**2'.
+        dependent. Units are 'g' or 'length/sec^2' (see the input
+        `tau`) and 'rad/sec^2'.
     cgatm_sc, cgatm_lv : 2d ndarrays
         The net CG acceleration data recovery matrices in s/c and l/v
         coordinates, respectively. These are based on interface
-        forces. Acceleration-dependent. Units are 'g' and
-        'rad/sec**2'.
+        forces. Acceleration-dependent. Units are 'g' or
+        'length/sec^2' (see the input `tau`) and 'rad/sec^2'.
     ifltma : 2d ndarray with 12 rows
         The acceleration-dependent portion of the net interface force
         data recovery matrix in s/c and l/v units and coordinates
@@ -882,7 +931,8 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     ifatm : 2d ndarray with 12 rows
         The net interface acceleration data recovery matrix in s/c and
         l/v coordinates (s/c first). Acceleration-dependent. Units are
-        'g' and 'rad/sec**2'. See also `ifatm_labels`.
+        'g' or 'length/sec^2' (see the input `tau`) and
+        'rad/sec^2'. See also `ifatm_labels`.
     cglfa : 2d ndarray with 14 rows
         The acceleration-dependent portion of the net CG load factor
         data recovery matrix in s/c and l/v coordinates. The first 5
@@ -898,9 +948,9 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         The displacement-dependent portion of the net CG load factor
         data recovery matrix. Should be zero unless `bsubset` is used.
     ifltm_labels : list
-        List of strings describing the rows if the `ifltma` and
+        List of strings describing the rows of the `ifltma` and
         `ifltmd` recovery matrices. Label order depends on models. As
-        an example, assume s/c axial is 'Z' and and l/v axial is 'X'::
+        an example, assume s/c axial is 'Z' and l/v axial is 'X'::
 
             ['I/F Lateral Frc FX sc',
              'I/F Lateral Frc FY sc',
@@ -916,13 +966,14 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
              'I/F Moment      MZ lv']
 
     ifatm_labels : list
-        List of strings describing the rows if the `ifatm` recovery
+        List of strings describing the rows of the `ifatm` recovery
         matrix. Label order depends on models. As an example, assume
-        s/c axial is 'Z' and and l/v axial is 'X'::
+        s/c axial is 'Z', l/v axial is 'X', and that
+        `tau` is ``'g'`` (or ``('g', 'g')``)::
 
-            ['I/F Axial     X sc (g)',
+            ['I/F Lateral   X sc (g)',
              'I/F Lateral   Y sc (g)',
-             'I/F Lateral   Z sc (g)',
+             'I/F Axial     Z sc (g)',
              'I/F Torsion  RX sc (r/s^2)',
              'I/F Rotation RY sc (r/s^2)',
              'I/F Rotation RZ sc (r/s^2)',
@@ -934,7 +985,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
              'I/F Rotation RZ lv (r/s^2)']
 
     cglf_labels : list
-        List of strings describing the rows if the `cglfa` and `cglfd`
+        List of strings describing the rows of the `cglfa` and `cglfd`
         recovery matrices. The return value is::
 
             ['S/C CG Axial         sc',    # 0
@@ -1020,7 +1071,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         lbls[ax + 3] = lbls[ax + 3].replace(r_old, r_new)
         return lbls
 
-    def _get_labels(scaxial_sc, scaxial_lv):
+    def _get_labels(scaxial_sc, scaxial_lv, tau):
         labels = ['I/F Lateral Frc FX {}',
                   'I/F Lateral Frc FY {}',
                   'I/F Lateral Frc FZ {}',
@@ -1039,6 +1090,14 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         tr = 'Lateral', 'Axial  ', 'Rotation', 'Torsion '
         ifatm_labels = (_putaxial(labels, scaxial_sc, ' sc', *tr) +
                         _putaxial(labels, scaxial_lv, ' lv', *tr))
+
+        # fix up translational acceleration units if needed:
+        for tau_, rows in zip(tau, (range(3), range(6, 9))):
+            if tau_ != 'g':
+                for i in rows:
+                    ifatm_labels[i] = ifatm_labels[i].replace(
+                        '(g)', '({}/s^2)'.format(tau_))
+
         cglf_labels = ['S/C CG Axial         sc',
                        'S/C CG Shear Lat 1   sc',
                        'S/C CG Shear Lat 2   sc',
@@ -1058,6 +1117,10 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     # main routine
     if uset is None:
         uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+
+    # ensure that tau is a 2-tuple:
+    if isinstance(tau, str):
+        tau = (tau, tau)
 
     if reorder:
         Mcb = cbreorder(Mcb, bset)
@@ -1120,10 +1183,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
     # add center point for RBE3
     if isinstance(ref, numbers.Integral):
-        # i = np.nonzero(uset_if[:, 0] == ref)[0][0]
-        # ref = uset[i, 3:]
         ref = uset.loc[ref, 'x':'z']
-    # grids = uset_if[::6, 0].astype(np.int64)
     grids = uset_if.index.get_level_values('id')[::6]
     new_id = grids.max() + 1
     uset2 = n2p.addgrid(uset_if, new_id, 'b', 0, ref, 0)
@@ -1159,17 +1219,37 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     ifatm_lv = Tsc2lv @ ifatm_sc
     cgatm_lv = Tsc2lv @ cgatm_sc
 
+    # compute cglf:
+    cglfa, cglfd = _get_cglf(cgatm_sc, ifltma_sc, ifltmd_sc,
+                             cgatm_lv, ifltma_lv, ifltmd_lv,
+                             cg_sc, scaxial_sc, weight_sc, height_sc,
+                             cg_lv, scaxial_lv, weight_lv, height_lv)
+
+    # check tau:
+    if tau[0] != 'g':
+        # convert output units of s/c back to the natural units:
+        if conv is not None:
+            # if conv is 'm2e', then lengthconv is 1/0.0254 in/m
+            factor = g / lengthconv
+        else:
+            factor = g
+        ifatm_sc[:3] *= factor
+        cgatm_sc[:3] *= factor
+
+    if tau[1] != 'g':
+        # convert output units of l/v back to the natural units:
+        ifatm_lv[:3] *= g
+        cgatm_lv[:3] *= g
+
     # assemble ifltma, ifltmd, ifatm, cglf, and the companion
     # label lists:
     ifltma = np.vstack((ifltma_sc, ifltma_lv))
     ifltmd = np.vstack((ifltmd_sc, ifltmd_lv))
     ifatm = np.vstack((ifatm_sc, ifatm_lv))
-    cglfa, cglfd = _get_cglf(cgatm_sc, ifltma_sc, ifltmd_sc,
-                             cgatm_lv, ifltma_lv, ifltmd_lv,
-                             cg_sc, scaxial_sc, weight_sc, height_sc,
-                             cg_lv, scaxial_lv, weight_lv, height_lv)
-    ifltm_labels, ifatm_labels, cglf_labels = _get_labels(scaxial_sc,
-                                                          scaxial_lv)
+    (ifltm_labels,
+     ifatm_labels,
+     cglf_labels) = _get_labels(scaxial_sc, scaxial_lv, tau)
+
     # make output variable:
     namelist = ['ifltma', 'ifltmd', 'ifatm', 'cglfa', 'cglfd',
                 'ifltm_labels', 'ifatm_labels', 'cglf_labels',
