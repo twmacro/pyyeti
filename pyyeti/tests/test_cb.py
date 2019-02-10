@@ -138,10 +138,10 @@ def test_cbreorder_m():
                     [63, 56, 49, 42, 35, 28, 14, 21],
                     [54, 48, 42, 36, 30, 24, 12, 18],
                     [45, 40, 35, 30, 25, 20, 10, 15],
-                    [36, 32, 28, 24, 20, 16,  8, 12],
-                    [27, 24, 21, 18, 15, 12,  6,  9],
-                    [9,  8,  7,  6,  5,  4,  2,  3],
-                    [18, 16, 14, 12, 10,  8,  4,  6]])
+                    [36, 32, 28, 24, 20, 16, 8, 12],
+                    [27, 24, 21, 18, 15, 12, 6, 9],
+                    [9, 8, 7, 6, 5, 4, 2, 3],
+                    [18, 16, 14, 12, 10, 8, 4, 6]])
     assert np.all(mnew == sbe)
 
     # without the following, when pandas is imported, we get:
@@ -168,10 +168,10 @@ def test_cbreorder_m():
                     [63, 56, 49, 42, 35, 28, 21, 14],
                     [54, 48, 42, 36, 30, 24, 18, 12],
                     [45, 40, 35, 30, 25, 20, 15, 10],
-                    [36, 32, 28, 24, 20, 16, 12,  8],
-                    [27, 24, 21, 18, 15, 12,  9,  6],
-                    [18, 16, 14, 12, 10,  8,  6,  4],
-                    [9,  8,  7,  6,  5,  4,  3,  2]])
+                    [36, 32, 28, 24, 20, 16, 12, 8],
+                    [27, 24, 21, 18, 15, 12, 9, 6],
+                    [18, 16, 14, 12, 10, 8, 6, 4],
+                    [9, 8, 7, 6, 5, 4, 3, 2]])
     assert np.all(mnew == sbe)
 
 
@@ -186,10 +186,10 @@ def test_cbreorder_drm():
     #        [12, 18, 24, 30, 36, 42, 48, 54]])
 
     dnew = cb.cbreorder(drm, np.arange(7, 1, -1), drm=True)
-    sbe = np.array([[9,  8,  7,  6,  5,  4,  2,  3],
-                    [18, 16, 14, 12, 10,  8,  4,  6],
-                    [27, 24, 21, 18, 15, 12,  6,  9],
-                    [36, 32, 28, 24, 20, 16,  8, 12],
+    sbe = np.array([[9, 8, 7, 6, 5, 4, 2, 3],
+                    [18, 16, 14, 12, 10, 8, 4, 6],
+                    [27, 24, 21, 18, 15, 12, 6, 9],
+                    [36, 32, 28, 24, 20, 16, 8, 12],
                     [45, 40, 35, 30, 25, 20, 10, 15],
                     [54, 48, 42, 36, 30, 24, 12, 18]])
     assert np.all(dnew == sbe)
@@ -207,26 +207,26 @@ def test_cbreorder_drm():
     #        [11, 12, 13, 14, 15]])
     with assert_warns(RuntimeWarning):
         dnew = cb.cbreorder(drm, [0, 1, 2, 3], drm=True, last=True)
-    sbe = np.array([[5,  1,  2,  3,  4],
-                    [10,  6,  7,  8,  9],
+    sbe = np.array([[5, 1, 2, 3, 4],
+                    [10, 6, 7, 8, 9],
                     [15, 11, 12, 13, 14]])
     assert np.all(dnew == sbe)
 
 
 def test_cgmass():
-    mass = np.array([[3,     0,     0,     0,     0,     0],
-                     [0,     3,     0,     0,     0,   120],
-                     [0,     0,     3,     0,  -120,     0],
-                     [0,     0,     0,  1020,   -60,    22],
-                     [0,     0,  -120,   -60,  7808,    23],
-                     [0,   120,     0,    22,    23,  7800]])
+    mass = np.array([[3, 0, 0, 0, 0, 0],
+                     [0, 3, 0, 0, 0, 120],
+                     [0, 0, 3, 0, -120, 0],
+                     [0, 0, 0, 1020, -60, 22],
+                     [0, 0, -120, -60, 7808, 23],
+                     [0, 120, 0, 22, 23, 7800]])
     mcg1, dcg1 = cb.cgmass(mass)
-    sbe = np.array([[3.,     0.,     0.,     0.,     0.,     0.],
-                    [0.,     3.,     0.,     0.,     0.,     0.],
-                    [0.,     0.,     3.,     0.,     0.,     0.],
-                    [0.,     0.,     0.,  1020.,   -60.,    22.],
-                    [0.,     0.,     0.,   -60.,  3008.,    23.],
-                    [0.,     0.,     0.,    22.,    23.,  3000.]])
+    sbe = np.array([[3., 0., 0., 0., 0., 0.],
+                    [0., 3., 0., 0., 0., 0.],
+                    [0., 0., 3., 0., 0., 0.],
+                    [0., 0., 0., 1020., -60., 22.],
+                    [0., 0., 0., -60., 3008., 23.],
+                    [0., 0., 0., 22., 23., 3000.]])
     assert np.allclose(mcg1, sbe)
     assert np.allclose(dcg1, [40., 0., 0.])
 
@@ -236,13 +236,13 @@ def test_cgmass():
     assert np.all(abs(gyr - [18.4391, 31.6649, 31.6228]) < 1e-3)
     assert np.all(abs(pgyr - [18.4204, 31.5288, 31.7693]) < 1e-3)
 
-    sbe = np.array([[1020.,   -60.,    22.],
-                    [-60.,  3008.,    23.],
-                    [22.,    23.,  3000.]])
+    sbe = np.array([[1020., -60., 22.],
+                    [-60., 3008., 23.],
+                    [22., 23., 3000.]])
     assert np.allclose(I, sbe)
-    sbe = np.array([[1017.9312,     0.,     0.],
-                    [0.,  2982.2045,     0.],
-                    [0.,     0.,  3027.8643]])
+    sbe = np.array([[1017.9312, 0., 0.],
+                    [0., 2982.2045, 0.],
+                    [0., 0., 3027.8643]])
     assert np.all(abs(pI - sbe) < 1e-3)
 
     mass[1, 0] = 4.
@@ -636,12 +636,12 @@ def test_rbmultchk():
     s = s.splitlines()
     table, nj1 = gettable(s, 15, 0, 'Absolute Maximums', 3)
     sbe = np.array([
-        [600,   300,   300,   0.00259],
-        [600,   300,   300,   0.00259],
-        [600,   300,   300,   0.00259],
-        [150,  -930,   150,   0.00259],
-        [600,   300,   300,   0.00259],
-        [150,  -930,   150,   0.00259]])
+        [600, 300, 300, 0.00259],
+        [600, 300, 300, 0.00259],
+        [600, 300, 300, 0.00259],
+        [150, -930, 150, 0.00259],
+        [600, 300, 300, 0.00259],
+        [150, -930, 150, 0.00259]])
 
     assert np.allclose(table[:, 1:5], sbe)
 
@@ -751,8 +751,8 @@ def test_rbmultchk2():
 
 
 def test_rbdispchk():
-    coords = np.array([[0,  0,  0],
-                       [1,  2,  3],
+    coords = np.array([[0, 0, 0],
+                       [1, 2, 3],
                        [4, -5, 25]])
     rb = n2p.rbgeom(coords)
     xyz_pv = ytools.mkpattvec([0, 1, 2], 3 * 6, 6).ravel()
@@ -1027,12 +1027,12 @@ def test_mk_net_drms():
     #   matrix at the reference point ... which, conveniently,
     #   is provided in the cbtf tutorial:
     mass = np.array(
-        [[1.755,   0.,   -0.,     0.,      0.,      0.],
-         [0.,   1.755,   -0.,    -0.,      0.,    772.22],
-         [-0.,  -0.,    1.755,     0.,   -772.22,     -0.],
-         [0.,  -0.,    0., 35905.202,     -0.,     -0.],
-         [0.,   0., -772.22,    -0., 707976.725,    109.558],
-         [0., 772.22,   -0.,    -0.,    109.558, 707976.725]])
+        [[1.755, 0., -0., 0., 0., 0.],
+         [0., 1.755, -0., -0., 0., 772.22],
+         [-0., -0., 1.755, 0., -772.22, -0.],
+         [0., -0., 0., 35905.202, -0., -0.],
+         [0., 0., -772.22, -0., 707976.725, 109.558],
+         [0., 772.22, -0., -0., 109.558, 707976.725]])
     sbe = mass
     sbe[:, :3] *= 1000  # scale up translations
     assert abs(sbe - l_sc).max() < .5
@@ -1060,6 +1060,52 @@ def test_mk_net_drms():
     assert net.scaxial_lv == 2
 
     compare_nets(net, net2)
+
+    # check the natural unit output:
+    net3 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
+                          sccoord=Tl2s, conv=conv, g=g,
+                          tau=('mm', 'm'))
+    for drm in ('ifatm', 'cgatm'):
+        if drm == 'ifatm':
+            # only ifatm has 12 rows
+            drm1 = getattr(net, drm)
+            drm3 = getattr(net3, drm)
+            assert np.allclose(drm3[:3], drm1[:3] * g * 1000)
+            assert np.allclose(drm3[3:6], drm1[3:6])
+            assert np.allclose(drm3[6:9], drm1[6:9] * g)
+            assert np.allclose(drm3[9:], drm1[9:])
+        for ext, factor in (('_sc', 1000), ('_lv', 1)):
+            drm1 = getattr(net, drm + ext)
+            drm3 = getattr(net3, drm + ext)
+            assert np.allclose(drm3[:3], drm1[:3] * g * factor)
+            assert np.allclose(drm3[3:], drm1[3:])
+
+    labels3 = (
+        [i.replace('g', 'mm/s^2') for i in net.ifatm_labels[:6]] +
+        [i.replace('g', 'm/s^2') for i in net.ifatm_labels[6:]])
+    assert labels3 == net3.ifatm_labels
+
+    net4 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
+                          sccoord=Tl2s, conv=conv, g=g,
+                          tau=('g', 'm'))
+    for drm in ('ifatm', 'cgatm'):
+        if drm == 'ifatm':
+            # only ifatm has 12 rows
+            drm1 = getattr(net, drm)
+            drm3 = getattr(net3, drm)
+            drm4 = getattr(net4, drm)
+            assert np.allclose(drm4[:3], drm1[:3])
+            assert np.allclose(drm4[3:6], drm1[3:6])
+            assert np.allclose(drm4[6:9], drm3[6:9])
+            assert np.allclose(drm4[9:], drm3[9:])
+        for ext, net_ in (('_sc', net), ('_lv', net3)):
+            drm1 = getattr(net_, drm + ext)
+            drm4 = getattr(net4, drm + ext)
+            assert np.allclose(drm4[:3], drm1[:3])
+            assert np.allclose(drm4[3:], drm1[3:])
+
+    labels4 = net.ifatm_labels[:6] + net3.ifatm_labels[6:]
+    assert labels4 == net4.ifatm_labels
 
 
 def test_mk_net_drms_6dof():
@@ -1106,12 +1152,12 @@ def test_mk_net_drms_6dof():
     sbe[:3] *= 1 / g
     assert np.allclose(a_sc, sbe)
     mass = np.array(
-        [[1.755,   0.,   -0.,     0.,      0.,      0.],
-         [0.,   1.755,   -0.,    -0.,      0.,    772.22],
-         [-0.,  -0.,    1.755,     0.,   -772.22,     -0.],
-         [0.,  -0.,    0., 35905.202,     -0.,     -0.],
-         [0.,   0., -772.22,    -0., 707976.725,    109.558],
-         [0., 772.22,   -0.,    -0.,    109.558, 707976.725]])
+        [[1.755, 0., -0., 0., 0., 0.],
+         [0., 1.755, -0., -0., 0., 772.22],
+         [-0., -0., 1.755, 0., -772.22, -0.],
+         [0., -0., 0., 35905.202, -0., -0.],
+         [0., 0., -772.22, -0., 707976.725, 109.558],
+         [0., 772.22, -0., -0., 109.558, 707976.725]])
     sbe = mass
     assert abs(sbe - l_sc).max() < .0005
 
