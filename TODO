@@ -43,12 +43,9 @@
     6 y-axis label written far away in srs3/net_ifatm_0rb_eqsine_all.pdf plot ... why?
     8 Save eqsine to xlsx file
 
-
 19. Add windowends to srs ?
 
-
 21. In cb or cla:
-    - In mk_net_drms, add use_g_units
     - make routine that returns string for adding data recovery categories for mk_net_drms output:
         """
         @cla.DR_Def.addcat
@@ -153,8 +150,9 @@
 
     - but, ifatm and ifltm for the port would be nice ... probably
 
-    - ALSO: have it be able to output "g, rad/sec^2", "g, g/in", and
+    ~ - ALSO: have it be able to output "g, rad/sec^2", "g, g/in", and
       "in/sec^2, rad/sec^2"
+        v0.95.0
 
 66. Write a nastran coordinate system plotter
     - use pyNastran instead?
@@ -228,15 +226,17 @@
      - need to add tests for new solver!
      - add as SolveCDF in 0.94.7
 
-101. Add regex to nastran.rdcards …
+~101. Add regex to nastran.rdcards …
      ‘DTI     SELOAD’ would be better as ‘DTI\s+SELOAD’
+     - done in version 0.95.0
 
 102. Fix up the sparse documentation for wtextseout
 
-103. Add units option to mk_net_drms:
+~ 103. Add units option to mk_net_drms:
      o   G, rad/sec^2
      o   G, G/in
      o   In/sec^2, rad/sec^2
+     - done in version 0.95.0
 
 104. Add 'axis' option fftfilt (and others too probably)
      o make it elegant ... check dsp.exclusive_sgfilter to see if
