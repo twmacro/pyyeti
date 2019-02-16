@@ -2553,7 +2553,7 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
         f.write('-------------     -------------------------------'
                 '-------------------------------------\n')
         nb = uset.shape[0]
-        iddof = uset.iloc[:, :0].reset_index().to_numpy()
+        iddof = uset.iloc[:, :0].reset_index().values
         writer.vecwrite(
             f, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
             '  {:10.3f}  {:10.3f}  {:10.3f}\n',

@@ -196,26 +196,26 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     uset_dof1 = uset.iloc[::6, :]
     if np.size(refpoint) == 1:
         refpoint = uset_dof1.index.get_loc((refpoint, 1))
-    xyz = uset_dof1.loc[:, 'x':'z'].to_numpy()
+    xyz = uset_dof1.loc[:, 'x':'z'].values
     rb = rbgeom(xyz, refpoint)
 
     # treat as rectangular here; fix cylindrical & spherical below
     rb2 = np.zeros((np.shape(rb)))
     for j in range(ngrids):
         i = 6 * j
-        t = uset.iloc[i + 3:i + 6, 1:].to_numpy().T
+        t = uset.iloc[i + 3:i + 6, 1:].values.T
         rb2[i:i + 3] = t @ rb[i:i + 3]
         rb2[i + 3:i + 6] = t @ rb[i + 3:i + 6]
 
     # fix up cylindrical:
     grid_loc = np.arange(0, uset.shape[0], 6)
-    cyl = (uset.loc[(slice(None), 2), 'y'] == 2).to_numpy()
+    cyl = (uset.loc[(slice(None), 2), 'y'] == 2).values
     if cyl.any():
         grid_loc_cyl = grid_loc[cyl]
         for i in grid_loc_cyl:
-            t = uset.iloc[i + 3:i + 6, 1:].to_numpy().T
+            t = uset.iloc[i + 3:i + 6, 1:].values.T
             loc = uset.iloc[i, 1:]
-            loc2 = t @ (loc - uset.iloc[i + 2, 1:]).to_numpy()
+            loc2 = t @ (loc - uset.iloc[i + 2, 1:]).values
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
                 th = math.atan2(loc2[1], loc2[0])
                 c = math.cos(th)
@@ -225,13 +225,13 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
                 rb2[i + 3:i + 5] = t @ rb2[i + 3:i + 5]
 
     # fix up spherical:
-    sph = (uset.loc[(slice(None), 2), 'y'] == 3).to_numpy()
+    sph = (uset.loc[(slice(None), 2), 'y'] == 3).values
     if sph.any():
         grid_loc_sph = grid_loc[sph]
         for i in grid_loc_sph:
-            t = uset.iloc[i + 3:i + 6, 1:].to_numpy().T
+            t = uset.iloc[i + 3:i + 6, 1:].values.T
             loc = uset.iloc[i, 1:]
-            loc2 = t @ (loc - uset.iloc[i + 2, 1:]).to_numpy()
+            loc2 = t @ (loc - uset.iloc[i + 2, 1:]).values
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
                 phi = math.atan2(loc2[1], loc2[0])
                 c = math.cos(phi)
@@ -966,7 +966,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
         6   12    0  0  0  0  0  6  0  0  12  12  12  12  12  12
     """
     usetmask = mkusetmask()
-    nasset = uset.iloc[:, 0].to_numpy()
+    nasset = uset.iloc[:, 0].values
     allsets = (list('MSOQRCBELTADF')
                + ['FE', 'N', 'NE', 'G', 'P', 'U1',
                 'U2', 'U3', 'U4', 'U5', 'U6'])
@@ -1047,7 +1047,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
 
         if pv.any():
             f.write("{}\n{}\n".format(header, colheader))
-            uset_mod = uset.iloc[pv, :0].reset_index().to_numpy()
+            uset_mod = uset.iloc[pv, :0].reset_index().values
             full_rows = pv.size // 10
             rem = pv.size - 10 * full_rows
             count = 1
@@ -1161,7 +1161,7 @@ def mksetpv(uset, major, minor):
         major = mkusetmask(major)
     if isinstance(minor, str):
         minor = mkusetmask(minor)
-    uset_set = uset['nasset'].to_numpy()
+    uset_set = uset['nasset'].values
     pvmajor = (uset_set & major) != 0
     pvminor = (uset_set & minor) != 0
     if np.any(~pvmajor & pvminor):
@@ -1401,7 +1401,7 @@ def mkcordcardinfo(uset, cid=None):
                                     [0., 0., 1.],
                                     [1., 0., 0.]])]
 
-    dof = uset.index.get_level_values('dof').to_numpy()
+    dof = uset.index.get_level_values('dof').values
     pv = (dof == 2).nonzero()[0]
     if pv.size == 0:
         if cid is not None:
@@ -1410,7 +1410,7 @@ def mkcordcardinfo(uset, cid=None):
         return {}
 
     def _getlist(coordinfo):
-        coordinfo = coordinfo.to_numpy()
+        coordinfo = coordinfo.values
         A = coordinfo[1]
         # transpose so T transforms from basic to local:
         T = coordinfo[2:].T
@@ -1421,7 +1421,7 @@ def mkcordcardinfo(uset, cid=None):
         return [name, np.vstack(([cid, typ, 0], A, B, C))]
 
     if cid is not None:
-        pv2 = (uset.iloc[pv, 1] == cid).to_numpy().nonzero()[0]
+        pv2 = (uset.iloc[pv, 1] == cid).values.nonzero()[0]
         if pv2.size == 0:
             raise ValueError('{} not found in USET table.'.
                              format(cid))
@@ -1431,13 +1431,13 @@ def mkcordcardinfo(uset, cid=None):
         return _getlist(coordinfo)
 
     CI = {}
-    pv2 = (uset.iloc[pv, 1] > 0).to_numpy().nonzero()[0]
+    pv2 = (uset.iloc[pv, 1] > 0).values.nonzero()[0]
     if pv2.size == 0:
         return CI
     pv = pv[pv2]
     ids = set(uset.iloc[pv, 1].astype(np.int64))
     for cid in ids:
-        pv2 = (uset.iloc[pv, 1] == cid).to_numpy().nonzero()[0][0]
+        pv2 = (uset.iloc[pv, 1] == cid).values.nonzero()[0][0]
         r = pv[pv2]
         coordinfo = uset.iloc[r:r + 5, 1:]
         CI[cid] = _getlist(coordinfo)
@@ -1468,13 +1468,13 @@ def _mkusetcoordinfo_byid(refid, uset):
         return np.vstack((np.array([[0, 1, 0], [0., 0., 0.]]),
                           np.eye(3)))
     if uset is not None:
-        dof = uset.index.get_level_values('dof').to_numpy()
+        dof = uset.index.get_level_values('dof').values
         pv = (dof == 2).nonzero()[0]
         if pv.size > 0:
-            pos = (uset.iloc[pv, 1] == refid).to_numpy().nonzero()[0]
+            pos = (uset.iloc[pv, 1] == refid).values.nonzero()[0]
             if pos.size > 0:
                 i = pv[pos[0]]
-                return uset.iloc[i:i + 5, 1:].to_numpy()
+                return uset.iloc[i:i + 5, 1:].values
     raise ValueError('reference coordinate id {} not '
                      'found in `uset`.'.format(refid))
 
@@ -1913,7 +1913,7 @@ def getcoordinates(uset, gid, csys, coordref=None):
     array([ 0.,  0.,  0.])
     """
     if np.size(gid) == 1:
-        xyz_basic = uset.loc[(gid, 1), 'x':'z'].to_numpy()
+        xyz_basic = uset.loc[(gid, 1), 'x':'z'].values
     else:
         xyz_basic = np.asarray(gid).ravel()
     if np.size(csys) == 1 and csys == 0:
@@ -2577,7 +2577,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     ddof = expanddof([[GRID_dep, DOF_dep]])
 
     # form independent DOF table:
-    usetdof = uset.iloc[:, :0].reset_index().to_numpy()
+    usetdof = uset.iloc[:, :0].reset_index().values
     idof = []
     wtdof = []
     for j in range(0, len(Ind_List), 2):
@@ -2956,7 +2956,7 @@ def _proc_mset(nas, se, dof):
     m = np.nonzero(mksetpv(uset, "g", "m"))[0]
     pvdofm = gm = None
     if m.size > 0:
-        iddof = uset.iloc[m, :0].reset_index().to_numpy()
+        iddof = uset.iloc[m, :0].reset_index().values
         pvdofm = locate.mat_intersect(iddof, dof)[0]
 
         if pvdofm.size > 0:
@@ -2990,7 +2990,7 @@ def _formtran_0(nas, dof, gset):
                            "nas['pha'][0] are available.")
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
-    iddof = uset.iloc[:, :0].reset_index().to_numpy()
+    iddof = uset.iloc[:, :0].reset_index().values
     if o.size > 0:   # pragma: no cover
         v = locate.mat_intersect(iddof[o], dof)[0]
         if v.size > 0:
@@ -3134,7 +3134,7 @@ def formtran(nas, se, dof, gset=False):
 
     sets = np.zeros(0, np.int64)
     t = np.nonzero(mksetpv(uset, "g", "t"))[0]
-    iddof = uset.iloc[:, :0].reset_index().to_numpy()
+    iddof = uset.iloc[:, :0].reset_index().values
     pvdoft = locate.mat_intersect(iddof[t], dof)[0]
     hast = 0
     if pvdoft.size > 0:
@@ -3338,7 +3338,7 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
         usetup = nas['uset'][seup]
         usetdn = nas['uset'][sedown]
         tqup = upasetpv(nas, seup)
-        iddof = usetdn.iloc[tqup, :0].reset_index().to_numpy()
+        iddof = usetdn.iloc[tqup, :0].reset_index().values
         ulvs1 = formtran(nas, sedown, iddof, gset)[0]
         # get rid of c-set if required
         if not keepcset:

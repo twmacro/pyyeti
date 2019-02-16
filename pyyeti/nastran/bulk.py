@@ -683,7 +683,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         return data, rowindex, colindex
 
     def _get_1d_index(index):
-        ind = index.to_frame().to_numpy()
+        ind = index.to_frame().values
         return ind[:, 0] * 10 + ind[:, 1]
 
     def _cards_to_df(c, dmig_names):
@@ -1045,7 +1045,7 @@ def wtdmig(f, dct):
     100 1    3.5 -1.2 -2.4
         2   -1.2  8.8  6.5
         6   -2.4  6.5  9.9
-    >>> np.all((k2 == k).to_numpy())
+    >>> np.all((k2 == k).values)
     True
     """
     for name, value in dct.items():
@@ -1063,7 +1063,7 @@ def wtdmig(f, dct):
                 '"{}" must have a 1 or 2-level column index but has '
                 '{} levels'.format(name, colids.nlevels))
 
-        m = value.to_numpy()
+        m = value.values
         ncol = value.shape[1]
 
         # determine form of matrix:
@@ -2829,7 +2829,7 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
                                  'multiple of 6 for USET input'.
                                  format(name))
             IDs.append(ring.index.get_level_values('id')[::6])
-            xyz.append(ring.iloc[::6, 1:].to_numpy())
+            xyz.append(ring.iloc[::6, 1:].values)
         else:
             ring = np.atleast_2d(ring)
             IDs.append(ring[:, 0].astype(np.int64))
@@ -3156,9 +3156,9 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
     dof = uset.index.get_level_values('dof')
     pv = dof == 1
     grids = grids[pv]
-    xyz = uset.loc[pv, 'x':'z'].to_numpy()
+    xyz = uset.loc[pv, 'x':'z'].values
     pv = dof == 2
-    cd = uset.loc[pv, 'x'].to_numpy().astype(int)
+    cd = uset.loc[pv, 'x'].values.astype(int)
 
     # Write out ASM file
     unit = se
