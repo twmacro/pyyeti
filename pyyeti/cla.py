@@ -18,6 +18,7 @@ from keyword import iskeyword
 import warnings
 import numpy as np
 import scipy.linalg as la
+import scipy.signal as signal
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.transforms as transforms
@@ -4843,7 +4844,7 @@ def _calc_covariance_sine_cosine(varx, vary, covar):
         #       [(vary - varx + term) / (2 * covar)]
 
         # get angle to eigenvector: arctan2(x2, x1) = arctan(x2):
-        term = np.sqrt((vary - varx)**2 + 4*covar**2)
+        term = np.sqrt((vary - varx)**2 + 4 * covar**2)
         theta = np.arctan((vary - varx + term) / (2 * covar))
         s[pv] = np.sin(theta)
         c[pv] = np.cos(theta)
@@ -6395,7 +6396,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             _get_noteline(use_range, names, prtbads, flagbads))
     header = (title + '\n\n' +
               _get_rpt_headers(desc=desc, uf_reds=uf_reds,
-                               units=units, misc=misc) +
+                                 units=units, misc=misc) +
               '\n')
 
     imode = plt.isinteractive()
@@ -6755,6 +6756,11 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         # 3: leg_info[0].set_in_layout(leg_in_layout)
         leg_info[0] = None
 
+    def _mark_srs(x, y, line, marker, label, **kwargs):
+        me = signal.argrelextrema(y, np.greater)[0]
+        return plot(x, y, line, marker=marker,
+                    markevery=list(me), label=label, **kwargs)
+
     def _plot_all(curres, q, frq, hist, showboth, cases, sub,
                   cols, maxcol, name, label, maxlen,
                   sname, rowpv, j, leg_info):
@@ -6764,20 +6770,19 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             srsext = curres.srs.ext[q]
             # srsall (cases x rows x freq)
             # srsext (each rows x freq)
-            every = len(frq) // 25
             h = []
             marker = get_marker_cycle()
             for n, case in enumerate(cases):
-                h += plot(x, srsall[n, j], linestyle='-',
-                          marker=next(marker), markevery=every,
-                          label=case)
-                every += 1
+                h += _mark_srs(
+                    x, srsall[n, j], '-',
+                    marker=next(marker), label=case)
             if showboth:
                 # set zorder=-1 ?
                 h.insert(0,
-                         plot(x, srsext[j], 'k-', lw=2, alpha=0.5,
-                              marker=next(marker), markevery=every,
-                              label=curres.event)[0])
+                         _mark_srs(
+                             x, srsext[j], 'k-',
+                             lw=2, alpha=0.5, marker=next(marker),
+                             label=curres.event)[0])
         else:
             # hist (cases x rows x time | freq)
             h = []

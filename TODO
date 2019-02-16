@@ -284,10 +284,10 @@
 ~114. misspelled efficient in ode tutorial
       -fixed in v0.95.1
 
-115. cla.DR_Results srs plotter: hit the peaks
+~115. cla.DR_Results srs plotter: hit the peaks
+      -fixed in v0.95.1
 
-~116. The 6x6 mass matrix stuff is wrong in pyYeti!
-      - TRU discovered this
+~116. From TRU: the 6x6 mass matrix stuff is wrong in pyYeti!
       - fixed in v0.95.1
 
 ~117. What to do about this:

@@ -586,18 +586,18 @@ def owlab(pth):
         freq = cla.freq3_augment(np.arange(25.0, 45.1, 0.5),
                                  nas['lambda'][0])
         #                 freq     x      y      z
-        rnd = [np.array([[1.0,  90.0, 110.0, 110.0],
-                         [30.0,  90.0, 110.0, 110.0],
+        rnd = [np.array([[1.0, 90.0, 110.0, 110.0],
+                         [30.0, 90.0, 110.0, 110.0],
                          [31.0, 200.0, 400.0, 400.0],
                          [40.0, 200.0, 400.0, 400.0],
-                         [41.0,  90.0, 110.0, 110.0],
-                         [50.0,  90.0, 110.0, 110.0]]),
-               np.array([[1.0,  90.0, 110.0, 110.0],
-                         [20.0,  90.0, 110.0, 110.0],
+                         [41.0, 90.0, 110.0, 110.0],
+                         [50.0, 90.0, 110.0, 110.0]]),
+               np.array([[1.0, 90.0, 110.0, 110.0],
+                         [20.0, 90.0, 110.0, 110.0],
                          [21.0, 200.0, 400.0, 400.0],
                          [30.0, 200.0, 400.0, 400.0],
-                         [31.0,  90.0, 110.0, 110.0],
-                         [50.0,  90.0, 110.0, 110.0]])]
+                         [31.0, 90.0, 110.0, 110.0],
+                         [50.0, 90.0, 110.0, 110.0]])]
 
         fs = ode.SolveUnc(*mbk)
         for j, ff in enumerate(rnd):
@@ -925,8 +925,8 @@ def confirm():
                             mnval = (claval / 0.57 - 1) * 100
                             mxval = (claval / 0.449 - 1) * 100
                             mean = (mnval + mxval) / 14
-                            std = np.sqrt(((mnval - mean)**2 +
-                                           (mxval - mean)**2
+                            std = np.sqrt(((mnval - mean)**2
+                                           + (mxval - mean)**2
                                            + 12 * (0 - mean)**2) / 13)
                             sbe = np.r_[np.round([mnval, mxval], 2),
                                         np.round([mean, std], 4)]
@@ -1117,45 +1117,45 @@ def test_extrema_1():
     casenum = 1
     cla.extrema(curext, mm, maxcase, mincase, casenum)
 
-    assert np.all(curext.ext == np.array([[1.,  0.],
-                                          [1.,  1.],
-                                          [2.,  1.],
-                                          [3.,  1.],
-                                          [4.,  1.]]))
+    assert np.all(curext.ext == np.array([[1., 0.],
+                                          [1., 1.],
+                                          [2., 1.],
+                                          [3., 1.],
+                                          [4., 1.]]))
 
-    assert np.all(curext.ext_x == np.array([[0.,  1.],
-                                            [0.,  0.],
-                                            [1.,  0.],
-                                            [1.,  0.],
-                                            [1.,  0.]]))
+    assert np.all(curext.ext_x == np.array([[0., 1.],
+                                            [0., 0.],
+                                            [1., 0.],
+                                            [1., 0.],
+                                            [1., 0.]]))
     assert curext.maxcase == ['Case 1', 'Case 1',
                               'Case 2', 'Case 2', 'Case 2']
     assert curext.mincase == ['Case 2', 'Case 1',
                               'Case 1', 'Case 1', 'Case 1']
 
-    assert np.all(curext.mx == np.array([[1.,  0.],
-                                         [1.,  1.],
-                                         [1.,  2.],
-                                         [1.,  3.],
-                                         [1.,  4.]]))
+    assert np.all(curext.mx == np.array([[1., 0.],
+                                         [1., 1.],
+                                         [1., 2.],
+                                         [1., 3.],
+                                         [1., 4.]]))
 
-    assert np.all(curext.mn == np.array([[1.,  0.],
-                                         [1.,  1.],
-                                         [1.,  2.],
-                                         [1.,  3.],
-                                         [1.,  4.]]))
+    assert np.all(curext.mn == np.array([[1., 0.],
+                                         [1., 1.],
+                                         [1., 2.],
+                                         [1., 3.],
+                                         [1., 4.]]))
 
-    assert np.all(curext.mx_x == np.array([[0.,  1.],
-                                           [0.,  1.],
-                                           [0.,  1.],
-                                           [0.,  1.],
-                                           [0.,  1.]]))
+    assert np.all(curext.mx_x == np.array([[0., 1.],
+                                           [0., 1.],
+                                           [0., 1.],
+                                           [0., 1.],
+                                           [0., 1.]]))
 
-    assert np.all(curext.mn_x == np.array([[0.,  1.],
-                                           [0.,  1.],
-                                           [0.,  1.],
-                                           [0.,  1.],
-                                           [0.,  1.]]))
+    assert np.all(curext.mn_x == np.array([[0., 1.],
+                                           [0., 1.],
+                                           [0., 1.],
+                                           [0., 1.],
+                                           [0., 1.]]))
 
 
 def test_extrema_2():
@@ -1180,11 +1180,11 @@ def test_extrema_2():
     casenum = 1
     cla.extrema(curext, mm, maxcase, mincase, casenum)
 
-    assert np.all(curext.ext == np.array([[1.,  0.],
-                                          [1.,  1.],
-                                          [2.,  1.],
-                                          [3.,  1.],
-                                          [4.,  1.]]))
+    assert np.all(curext.ext == np.array([[1., 0.],
+                                          [1., 1.],
+                                          [2., 1.],
+                                          [3., 1.],
+                                          [4., 1.]]))
 
     assert curext.ext_x is None
     assert curext.maxcase == ['Case 1', 'Case 1',
@@ -1192,17 +1192,17 @@ def test_extrema_2():
     assert curext.mincase == ['Case 2', 'Case 1',
                               'Case 1', 'Case 1', 'Case 1']
 
-    assert np.all(curext.mx == np.array([[1.,  0.],
-                                         [1.,  1.],
-                                         [1.,  2.],
-                                         [1.,  3.],
-                                         [1.,  4.]]))
+    assert np.all(curext.mx == np.array([[1., 0.],
+                                         [1., 1.],
+                                         [1., 2.],
+                                         [1., 3.],
+                                         [1., 4.]]))
 
-    assert np.all(curext.mn == np.array([[1.,  0.],
-                                         [1.,  1.],
-                                         [1.,  2.],
-                                         [1.,  3.],
-                                         [1.,  4.]]))
+    assert np.all(curext.mn == np.array([[1., 0.],
+                                         [1., 1.],
+                                         [1., 2.],
+                                         [1., 3.],
+                                         [1., 4.]]))
     assert np.isnan(curext.mx_x).sum() == 10
     assert np.isnan(curext.mn_x).sum() == 10
 
@@ -3146,9 +3146,9 @@ def test_dr_def_merge():
     nondrms = [name + '_n' for name in cats]
 
     drdefs = [get_dr_defs(se,
-                          cats[3*i:3*i+3],
-                          drms[3*i:3*i+3],
-                          nondrms[3*i:3*i+3])
+                          cats[3 * i:3 * i + 3],
+                          drms[3 * i:3 * i + 3],
+                          nondrms[3 * i:3 * i + 3])
               for i, se in zip(range(3), (101, 102, 102))]
 
     drdefs_merge = cla.DR_Def.merge(
@@ -3192,9 +3192,9 @@ def test_dr_def_merge():
     nondrms2 = [name + '_n' for name in cats2]
 
     drdefs = [get_dr_defs(se,
-                          cats2[3*i:3*i+3],
-                          drms[3*i:3*i+3],
-                          nondrms[3*i:3*i+3])
+                          cats2[3 * i:3 * i + 3],
+                          drms[3 * i:3 * i + 3],
+                          nondrms[3 * i:3 * i + 3])
               for i, se in zip(range(3), (101, 102, 102))]
 
     # should raise ValueError for duplicate categories:
@@ -3204,9 +3204,9 @@ def test_dr_def_merge():
         cla.DR_Def.merge, drdefs[0], drdefs[1], drdefs[2])
 
     drdefs = [get_dr_defs(se,
-                          cats[3*i:3*i+3],
-                          drms2[3*i:3*i+3],
-                          nondrms[3*i:3*i+3])
+                          cats[3 * i:3 * i + 3],
+                          drms2[3 * i:3 * i + 3],
+                          nondrms[3 * i:3 * i + 3])
               for i, se in zip(range(3), (101, 102, 102))]
 
     # should raise ValueError for duplicate drms:
@@ -3217,9 +3217,9 @@ def test_dr_def_merge():
         cla.DR_Def.merge, drdefs[0], drdefs[1], drdefs[2])
 
     drdefs = [get_dr_defs(se,
-                          cats[3*i:3*i+3],
-                          drms[3*i:3*i+3],
-                          nondrms2[3*i:3*i+3])
+                          cats[3 * i:3 * i + 3],
+                          drms[3 * i:3 * i + 3],
+                          nondrms2[3 * i:3 * i + 3])
               for i, se in zip(range(3), (101, 102, 102))]
 
     # should raise ValueError for duplicate nondrms:
