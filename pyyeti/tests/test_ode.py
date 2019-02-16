@@ -3834,7 +3834,8 @@ def test_ode_coupled_2_mNone_generator():
 
 
 def test_abstractness():
-    a = ode._BaseODE()
+    from pyyeti.ode._base_ode_class import _BaseODE
+    a = _BaseODE()
     assert_raises(NotImplementedError, a.tsolve)
     assert_raises(NotImplementedError, a.fsolve)
     assert_raises(NotImplementedError, a.generator)
