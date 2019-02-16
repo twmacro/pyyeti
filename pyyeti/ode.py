@@ -3954,17 +3954,21 @@ class SolveCDF(SolveUnc):
     :func:`get_su_coef`) as follows:
 
     .. math::
-        \begin{aligned}
-        q_{i+1} &= F q_i + G \dot{q}_i +
-           A (P_i - C_{od} \dot{q}_i) +
-           B (P_{i+1} - C_{od} \dot{q}_{i+1})
+        \begin{array}{lr}
+          \begin{aligned}
+            q_{i+1} &= F q_i + G \dot{q}_i +
+               A (P_i - C_{od} \dot{q}_i) +
+               B (P_{i+1} - C_{od} \dot{q}_{i+1})
 
-        \dot{q}_{i+1} &= F_p q_i + G_p \dot{q}_i +
-           A_p (P_i - C_{od} \dot{q}_i) +
-           B_p (P_{i+1} - C_{od} \dot{q}_{i+1})
-        \end{aligned}
+            \dot{q}_{i+1} &= F_p q_i + G_p \dot{q}_i +
+               A_p (P_i - C_{od} \dot{q}_i) +
+               B_p (P_{i+1} - C_{od} \dot{q}_{i+1})
+          \end{aligned}
+          \begin{aligned} \qquad \qquad (1)
+                       \\ \qquad \qquad (2) \end{aligned}
+        \end{array}
 
-    The second equation can be solved for :math:`\dot{q}_{i+1}`:
+    Equation 2 can be solved for :math:`\dot{q}_{i+1}`:
 
     .. math::
         \begin{aligned}
@@ -3981,11 +3985,11 @@ class SolveCDF(SolveUnc):
         \dot{q}_{i+1} &= Z Vpart_i
         \end{aligned}
 
-    where :math:`Z = (I + B_p C_{od})^{-1}` and :math:`Vpart_i =
-    F_p q_i + G_p \dot{q}_i + A_p (P_i - Q_i) + B_p P_{i+1}`.
+    where :math:`Z = (I + B_p C_{od})^{-1}` and :math:`Vpart_i = F_p
+    q_i + G_p \dot{q}_i + A_p (P_i - C_{od} \dot{q}_i) + B_p P_{i+1}`.
 
-    With :math:`\dot{q}_{i+1}`, :math:`q_{i+1}` can be computed as
-    shown above. Using the equations as written, with :math:`Z`
+    With :math:`\dot{q}_{i+1}`, :math:`q_{i+1}` can be computed from
+    Equation 1 above. Using the equations as written, with :math:`Z`
     precomputed, would require two matrix-vector multiplies per loop:
     :math:`Z Vpart_i` and :math:`C_{od} \dot{q}_{i+1}`. We can get rid
     of one matrix-vector multiply per loop by precomputing the product
@@ -4090,7 +4094,7 @@ class SolveCDF(SolveUnc):
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
         ...     _ = plt.subplot(4, 1, j+1)
-        ...     _ = plt.plot(t, sol.a[j], label='SolveUnc')
+        ...     _ = plt.plot(t, sol.a[j], label='SolveCDF')
         ...     _ = plt.plot(tl, yl[:, j], label='scipy lsim')
         ...     _ = plt.title(name)
         ...     _ = plt.ylabel('Acceleration')

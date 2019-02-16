@@ -282,10 +282,20 @@
      - version 0.94.9
 
 ~114. misspelled efficient in ode tutorial
+      -fixed in v0.95.1
 
 115. cla.DR_Results srs plotter: hit the peaks
 
 ~116. The 6x6 mass matrix stuff is wrong in pyYeti!
+      - TRU discovered this
+      - fixed in v0.95.1
 
-117. What to do about this:
+~117. What to do about this:
      The pandas “to_numpy” was added in version 0.24.0 … hmmm
+     - reverted back to .values in v0.95.1
+
+~118. SolveCDF doc updates from BTA:
+     - define Qi before using it
+     - number equations
+     - example uses SolveUnc for plot label
+     - fixed in v0.95.1
