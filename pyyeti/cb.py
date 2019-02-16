@@ -616,26 +616,34 @@ def cgmass(m, all6=False):
     .. math::
         M = \left[
         \begin{array}{cccccc}
-            m_x &   0 & 0   &        0 &  m_x d_z & -m_z d_y \\
+            m_x &   0 & 0   &        0 &  m_x d_z & -m_x d_y \\
             0   & m_y & 0   & -m_y d_z &      0   &  m_y d_x \\
-            0   &   0 & m_z & m_z d_y  & -m_y d_x &        0 \\
-            0   & -m_x d_z &  m_z d_y &
+            0   &   0 & m_z & m_z d_y  & -m_z d_x &        0 \\
+            0   & -m_y d_z &  m_z d_y &
                 I_{xx} + m_z d_y^2 + m_y d_z^2
-                & I_{xy} - m_z d_x d_y
-                & I_{xz} - m_y d_x d_z \\
-            m_x d_z &      0   & -m_y d_x &
-                I_{xy} - m_z d_x d_y
+                & -I_{xy} - m_z d_x d_y
+                & -I_{xz} - m_y d_x d_z \\
+            m_x d_z &      0   & -m_z d_x &
+                -I_{xy} - m_z d_x d_y
                 & I_{yy} + m_z d_x^2 + m_x d_z^2
-                & I_{yz} - m_x d_y d_z \\
-            -m_z d_y &  m_y d_x &   0 &
-                I_{xz} - m_y d_x d_z
-                & I_{yz} - m_x d_y d_z
+                & -I_{yz} - m_x d_y d_z \\
+            -m_x d_y &  m_y d_x &   0 &
+                -I_{xz} - m_y d_x d_z
+                & -I_{yz} - m_x d_y d_z
                 & I_{zz} + m_x d_y^2 + m_y d_x^2
         \end{array} \right]
 
     The distances :math:`d_j` are the distances from the reference
     point to the cg in the coordinate system of that reference point.
     The inertias :math:`I_{ij}` are relative to the CG.
+
+    The product of inertia terms are defined by, for example:
+
+    .. math::
+        I_{xy} = I_{yx} = \int x y dm
+
+    where :math:`x` and :math:`y` are the distances from the CG to the
+    mass :math:`dm`.
 
     The radius of gyration about the X axis is computed by
     :math:`\sqrt{I_{xx}/m_x}`. The others are computed similarly.
@@ -698,9 +706,9 @@ def cgmass(m, all6=False):
     dz = m[0, 4] / mx
 
     # compute mass terms that will be subtracted off:
-    Md = np.array([[0, mx * dz, -mz * dy],
+    Md = np.array([[0, mx * dz, -mx * dy],
                    [-my * dz, 0, my * dx],
-                   [mz * dy, -my * dx, 0]])
+                   [mz * dy, -mz * dx, 0]])
 
     I = np.array(
         [[mz * dy**2 + my * dz**2, -mz * dx * dy, -my * dx * dz],

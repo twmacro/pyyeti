@@ -256,6 +256,9 @@
      python/workworks/henkelmar.py *might* be where to start.
 
 107. Add more tutorials.
+     - generator solver
+     - force limiting
+     - nonlinear spring analysis
 
 ~108. Fdepsd Di_test – mention it doesn’t include sigma
 
@@ -277,3 +280,12 @@
 ~113. Move "finddups" from ode to locate (and rename it to
      'find_duplicates')
      - version 0.94.9
+
+~114. misspelled efficient in ode tutorial
+
+115. cla.DR_Results srs plotter: hit the peaks
+
+~116. The 6x6 mass matrix stuff is wrong in pyYeti!
+
+117. What to do about this:
+     The pandas “to_numpy” was added in version 0.24.0 … hmmm

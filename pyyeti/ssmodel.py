@@ -233,9 +233,8 @@ class SSModel(object):
 
         Parameters
         ----------
-        h : scalar or None
-            None for continuous models, the time step for discete
-            models.
+        h : scalar
+            The time step for discretization
         method : string, optional
             Conversion method: 'zoh', 'zoha', 'foh', or 'tustin':
 
