@@ -268,12 +268,13 @@
 110. Consider refactoring the generator solvers by using “yield from”
      (can code be reused?)
 
-111. Consider refactoring large modules into small files
+`111. Consider refactoring large modules into small files
      o   Approach used in scipy:
          - make ode, cla, ... packages ... just like nastran is now
          - in the ode/__init__.py, imports could be, for example:
               from .solveunc import *
               from .solveexp2 import *
+     - ode, cla refactored in v0.95.1
 
 112. Can some things (ode solvers?) be sped up by numba?
 
