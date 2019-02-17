@@ -75,8 +75,7 @@ Utility routines
     nan_argmin
     PrintCLAInfo
     PSD_consistent_rss
-    reldisp_dtm
-    rdext
+    relative_displacement_dtm
     reorder
     rptext1
     rptpct1

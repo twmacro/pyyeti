@@ -2080,10 +2080,11 @@ def test_rptext1():
 
 
 def test_get_numform():
-    assert cla._get_numform(0.0) == '{:13.0f}'
-    assert cla._get_numform(np.array([1e12, 1e4])) == '{:13.6e}'
-    assert cla._get_numform(np.array([1e8, 1e4])) == '{:13.1f}'
-    assert cla._get_numform(np.array([1e10, 1e5])) == '{:13.0f}'
+    from pyyeti.cla.report_writers import _get_numform
+    assert _get_numform(0.0) == '{:13.0f}'
+    assert _get_numform(np.array([1e12, 1e4])) == '{:13.6e}'
+    assert _get_numform(np.array([1e8, 1e4])) == '{:13.1f}'
+    assert _get_numform(np.array([1e10, 1e5])) == '{:13.0f}'
 
 
 def test_rpttab1():
@@ -2959,12 +2960,14 @@ def test_reldisp_dtm():
         [INBOARD, 11, OUTBOARD, 18],
     ]
 
-    reldtm, L, rellabels = cla.reldisp_dtm(nas, nodepairs)
+    reldtm, L, rellabels = cla.relative_displacement_dtm(
+        nas, nodepairs)
     assert np.allclose(L, 300.0 * np.sqrt(2))
     assert rellabels == ['SE101,10 - SE101,3',
                          'SE101,18 - SE0,11']
 
-    assert_raises(ValueError, cla.reldisp_dtm, nas, [[SC, 11, 0, 11]])
+    assert_raises(ValueError, cla.relative_displacement_dtm,
+                  nas, [[SC, 11, 0, 11]])
 
     # notes:
     # - element 66 runs between 3 & 10

@@ -1,0 +1,739 @@
+# -*- coding: utf-8 -*-
+import itertools
+import copy
+from collections import OrderedDict
+from types import SimpleNamespace
+from keyword import iskeyword
+import numpy as np
+from pyyeti import locate
+
+
+__all__ = [
+    '_is_valid_identifier',
+    '_merge_uf_reds',
+    'get_marker_cycle',
+    '_proc_filterval',
+    'PrintCLAInfo',
+    'freq3_augment',
+    'maxmin',
+    'nan_argmax',
+    'nan_argmin',
+    'nan_absmax',
+    'extrema',
+    'reorder',
+    '_calc_covariance_sine_cosine',
+    'PSD_consistent_rss',
+]
+
+
+# FIXME: We need the str/repr formatting used in Numpy < 1.14.
+try:
+    np.set_printoptions(legacy='1.13')
+except TypeError:
+    pass
+
+
+def _is_valid_identifier(name):
+    "Return True if `name` is valid Python identifier"
+    return name.isidentifier() and not iskeyword(name)
+
+
+def _merge_uf_reds(old, new, method='replace'):
+    if method == 'replace':
+        merged = (n if n is not None else o
+                  for o, n in zip(old, new))
+    elif method == 'multiply':
+        merged = (o * n if n is not None else o
+                  for o, n in zip(old, new))
+    elif callable(method):
+        merged = (method(o, n) if n is not None else o
+                  for o, n in zip(old, new))
+    else:
+        raise ValueError(
+            '`method` value must be either "replace", '
+            '"multiply", or a function (a callable)')
+    return tuple(merged)
+
+
+def get_marker_cycle():
+    """
+    Return an ``itertools.cycle`` of plot markers.
+
+    The list is taken from `matplotlib.markers`. Currently::
+
+        'o',          # circle
+        'v',          # triangle_down
+        '^',          # triangle_up
+        '<',          # triangle_left
+        '>',          # triangle_right
+        '1',          # tri_down
+        '2',          # tri_up
+        '3',          # tri_left
+        '4',          # tri_right
+        '8',          # octagon
+        's',          # square
+        'p',          # pentagon
+        'P',          # plus (filled)
+        '*',          # star
+        'h',          # hexagon1
+        'H',          # hexagon2
+        '+',          # plus
+        'x',          # x
+        'X',          # x (filled)
+        'D',          # diamond
+        'd',          # thin_diamond
+
+    """
+    return itertools.cycle([
+        'o',          # circle
+        'v',          # triangle_down
+        '^',          # triangle_up
+        '<',          # triangle_left
+        '>',          # triangle_right
+        '1',          # tri_down
+        '2',          # tri_up
+        '3',          # tri_left
+        '4',          # tri_right
+        '8',          # octagon
+        's',          # square
+        'p',          # pentagon
+        'P',          # plus (filled)
+        '*',          # star
+        'h',          # hexagon1
+        'H',          # hexagon2
+        '+',          # plus
+        'x',          # x
+        'X',          # x (filled)
+        'D',          # diamond
+        'd',          # thin_diamond
+    ])
+
+
+def _proc_filterval(filterval, nrows):
+    if filterval is None:
+        return None
+    filterval = np.atleast_1d(filterval)
+    if filterval.ndim > 1:
+        raise ValueError('`filterval` must be 1-D (is {}-D)'
+                         .format(filterval))
+    nfilt = len(filterval)
+    if nfilt > 1 and nfilt != nrows:
+        raise ValueError('`filterval` has incorrect length:'
+                         ' expected {} elements, but got {}'
+                         .format(nrows, nfilt))
+    return filterval
+
+
+def PrintCLAInfo(mission, event):
+    "PrintCLAInfo Print CLA event info, typically for the log file"
+    print('Mission:  {}'.format(mission))
+    print('Event:    {}'.format(event))
+
+
+def freq3_augment(freq1, lam, tol=1.e-5):
+    """
+    Mimic Nastran's FREQ3 augmentation of a frequency vector.
+
+    Parameters
+    ----------
+    freq1 : 1d array_like
+        Initial frequencies (Hz)
+    lam : 1d array_like
+        System eigenvalues (rad/sec)^2
+    tol : scalar; optional
+        Tolerance used for deleting near-duplicate frequencies
+
+    Returns
+    -------
+    freq : 1d ndarray
+        The modified frequency vector
+
+    Notes
+    -----
+    Only natural frequencies in the range of `freq1` will be added.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import cla
+    >>> freq1 = np.arange(5., 11.)
+    >>> sysHz = np.array([3.3, 6.7, 8.9, 9.00001, 12.4])
+    >>> lam = (2*np.pi*sysHz)**2
+    >>> np.set_printoptions(linewidth=80)
+    >>> cla.freq3_augment(freq1, lam)
+    array([  5. ,   6. ,   6.7,   7. ,   8. ,   8.9,   9. ,  10. ])
+    """
+    freq1, lam = np.atleast_1d(freq1, lam)
+    sysfreqs = np.sqrt(abs(lam)) / (2 * np.pi)
+    pv = np.nonzero(np.logical_and(sysfreqs > freq1[0],
+                                   sysfreqs < freq1[-1]))[0]
+    freq3 = sysfreqs[pv]
+    freq = np.sort(np.hstack((freq1, freq3)))
+    uniq = locate.find_unique(freq, tol * (freq[-1] - freq[0]))
+    return freq[uniq]
+
+
+def maxmin(response, x):
+    """
+    Compute max & min of a response matrix.
+
+    Parameters
+    ----------
+    response : 2d ndarray
+        Matrix where each row is a response signal.
+    x: 1d ndarray
+        X-axis vector (eg, time or frequency);
+        ``len(x) = response.shape[1]``
+
+    Returns
+    -------
+    mxmn : 2d ndarray
+        Four column matrix: ``[max, x_of_max, min, x_of_min]``
+    """
+    r, c = np.shape(response)
+    if c != len(x):
+        raise ValueError('# of cols in `response` is not compatible '
+                         'with `x`.')
+    jx = np.nanargmax(response, axis=1)
+    jn = np.nanargmin(response, axis=1)
+    ind = np.arange(r)
+    mx = response[ind, jx]
+    mn = response[ind, jn]
+    return SimpleNamespace(
+        ext=np.column_stack((mx, mn)),
+        ext_x=np.column_stack((x[jx], x[jn])))
+
+
+def nan_argmax(v1, v2):
+    """
+    Find where `v2` is greater than `v1` ignoring NaNs.
+
+    Parameters
+    ----------
+    v1 : ndarray
+        First set of values to compare
+    v2 : ndarray
+        Second set of values to compare; must be broadcast-compatible
+        with `v1`.
+
+    Returns
+    -------
+    pv : bool ndarray
+        Contains True where `v2` is greater than `v1` ignoring NaNs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import cla
+    >>> v1 = np.array([1.0, np.nan, 2.0, np.nan])
+    >>> v2 = np.array([-2.0, 3.0, np.nan, np.nan])
+    >>> cla.nan_argmax(v1, v2)
+    array([False,  True, False, False], dtype=bool)
+    >>> cla.nan_argmin(v1, v2)
+    array([ True,  True, False, False], dtype=bool)
+    """
+    with np.errstate(invalid='ignore'):
+        return (v2 > v1) | (np.isnan(v1) & ~np.isnan(v2))
+
+
+def nan_argmin(v1, v2):
+    """
+    Find where `v2` is less than `v1` ignoring NaNs.
+
+    Parameters
+    ----------
+    v1 : ndarray
+        First set of values to compare
+    v2 : ndarray
+        Second set of values to compare; must be broadcast-compatible
+        with `v1`.
+
+    Returns
+    -------
+    pv : bool ndarray
+        Contains True where `v2` is less than `v1` ignoring NaNs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import cla
+    >>> v1 = np.array([1.0, np.nan, 2.0, np.nan])
+    >>> v2 = np.array([-2.0, 3.0, np.nan, np.nan])
+    >>> cla.nan_argmax(v1, v2)
+    array([False,  True, False, False], dtype=bool)
+    >>> cla.nan_argmin(v1, v2)
+    array([ True,  True, False, False], dtype=bool)
+    """
+    with np.errstate(invalid='ignore'):
+        return (v2 < v1) | (np.isnan(v1) & ~np.isnan(v2))
+
+
+def nan_absmax(v1, v2):
+    """
+    Get absolute maximum values between `v1` and `v2` while
+    retaining signs and ignoring NaNs.
+
+    Parameters
+    ----------
+    v1 : ndarray
+        First set of values to compare
+    v2 : ndarray
+        Second set of values to compare; must be broadcast-compatible
+        with `v1`.
+
+    Returns
+    -------
+    amax : ndarray
+        The absolute maximum values over `v1` and `v2`. The signs are
+        retained and NaNs are ignored as much as possible.
+    pv : bool ndarray
+        Contains True where ``abs(v2)`` is greater than ``abs(v1)``
+        ignoring NaNs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import cla
+    >>> v1 = np.array([[1, -4], [3, 5]])
+    >>> v2 = np.array([[-2, 3], [4, np.nan]])
+    >>> cla.nan_absmax(v1, v2)
+    (array([[-2, -4],
+           [ 4,  5]]), array([[ True, False],
+           [ True, False]], dtype=bool))
+    """
+    amx = v1.copy()
+    pv = nan_argmax(abs(v1), abs(v2))
+    amx[pv] = v2[pv]
+    return amx, pv
+
+
+def extrema(curext, mm, maxcase, mincase=None, casenum=None):
+    """
+    Update extrema values in 'curext'
+
+    Parameters
+    ----------
+    curext : SimpleNamespace
+        Has extrema information (members may be None on first call)::
+
+            .ext     = 1 or 2 columns: [max, min]
+            .ext_x   = None or 1 or 2 columns: [x_of_max, x_of_min]
+            .maxcase = list of strings identifying maximum case
+            .mincase = list of strings identifying minimum case
+
+        Also has these members if casenum is an integer::
+
+            .mx      = [case1_max, case2_max, ...]
+            .mn      = [case1_min, case2_min, ...]
+            .mx_x    = [case1_x_of_max, case2_x_of_max, ...]
+            .mn_x    = [case1_x_of_min, case2_x_of_min, ...]
+
+        The `mx_x` and `mn_x` will have ``np.nan`` values if
+        `ext_x` is None.
+    mm : SimpleNamespace
+        Has min/max information for a case (or over cases)::
+
+            .ext     = 1 or 2 columns: [max, min]
+            .ext_x   = None or 1 or 2 columns: [x_of_max, x_of_min]
+
+    maxcase : string or list of strings
+        String or list of strings identifying the load case(s) for the
+        maximum values. This is analogous to `curext.maxcase` but
+        pertaining to `mm` (handy if `mm` is from another extrema data
+        set).
+    mincase : string or list of strings or None; optional
+        Analogous to `maxcase` for the minimum values or None. If
+        None, it is a copy of the `maxcase` values.
+    casenum : integer or None; optional
+        If integer, it is case number (starting at 0); `curext` will
+        have the `.mx`, `.mn`, `.mx_x`, `.mn_x` members and the
+        `casenum` column of each of these will be set to the data from
+        `mm`. Zeros will be used for "x" if `mm` is 1 or 2 columns.
+        If None, `.mx`, `.mn`, `.mx_x`, `.mn_x` are not updated
+        (and need not be present).
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    This routine updates the `curext` variable. This routine is
+    typically called indirectly via
+    :func:`DR_Results.time_data_recovery`,
+    :func:`DR_Results.frf_data_recovery`, and
+    :func:`DR_Results.psd_data_recovery`.
+    """
+    def _put_time(curext, mm, j, col_lhs, col_rhs):
+        if mm.ext_x is not None:
+            if curext.ext_x is None:
+                curext.ext_x = copy.copy(mm.ext_x)
+            else:
+                curext.ext_x[j, col_lhs] = mm.ext_x[j, col_rhs]
+        elif curext.ext_x is not None:          # pragma: no cover
+            curext.ext_x[j, col_lhs] = np.nan
+
+    r, c = mm.ext.shape
+    if c not in [1, 2]:
+        raise ValueError('mm.ext has {} cols, but must have 1 or 2.'
+                         .format(c))
+
+    # expand current case information to full size if necessary
+    if isinstance(maxcase, str):
+        maxcase = r * [maxcase]
+    else:
+        maxcase = maxcase[:]
+
+    if c == 1:
+        if casenum is not None:  # record current results
+            curext.mx[:, casenum] = mm.ext[:, 0]
+            curext.mn[:, casenum] = mm.ext[:, 0]
+            if mm.ext_x is not None:
+                curext.mx_x[:, casenum] = mm.ext_x[:, 0]
+                curext.mn_x[:, casenum] = mm.ext_x[:, 0]
+            else:
+                curext.mx_x[:, casenum] = np.nan
+                curext.mn_x[:, casenum] = np.nan
+
+        if curext.ext is None:
+            curext.ext = mm.ext @ [[1, 1]]
+            if mm.ext_x is not None:
+                curext.ext_x = mm.ext_x @ [[1, 1]]
+            else:
+                curext.ext_x = None
+            curext.maxcase = maxcase
+            curext.mincase = maxcase[:]
+            return
+
+        # keep sign but compare based on absolute
+        j = nan_argmax(abs(curext.ext), abs(mm.ext)).nonzero()[0]
+        if j.size > 0:
+            for i in j:
+                curext.maxcase[i] = maxcase[i]
+            curext.ext[j, 0] = mm.ext[j, 0]
+            _put_time(curext, mm, j, 0, 0)
+
+        j = nan_argmin(abs(curext.ext), abs(mm.ext)).nonzero()[0]
+        if j.size > 0:
+            for i in j:
+                curext.mincase[i] = maxcase[i]
+            curext.ext[j, 1] = mm.ext[j, 0]
+            _put_time(curext, mm, j, 1, 0)
+        return
+
+    if mincase is None:
+        mincase = maxcase[:]
+    elif isinstance(mincase, str):
+        mincase = r * [mincase]
+    else:
+        mincase = mincase[:]
+
+    if casenum is not None:  # record current results
+        curext.mx[:, casenum] = mm.ext[:, 0]
+        curext.mn[:, casenum] = mm.ext[:, 1]
+        if mm.ext_x is not None:
+            curext.mx_x[:, casenum] = mm.ext_x[:, 0]
+            curext.mn_x[:, casenum] = mm.ext_x[:, 1]
+        else:
+            curext.mx_x[:, casenum] = np.nan
+            curext.mn_x[:, casenum] = np.nan
+
+    if curext.ext is None:
+        curext.ext = mm.ext.copy()
+        curext.ext_x = copy.copy(mm.ext_x)
+        curext.maxcase = maxcase
+        curext.mincase = mincase
+        return
+
+    j = nan_argmax(curext.ext[:, 0], mm.ext[:, 0]).nonzero()[0]
+    if j.size > 0:
+        for i in j:
+            curext.maxcase[i] = maxcase[i]
+        curext.ext[j, 0] = mm.ext[j, 0]
+        _put_time(curext, mm, j, 0, 0)
+
+    j = nan_argmin(curext.ext[:, 1], mm.ext[:, 1]).nonzero()[0]
+    if j.size > 0:
+        for i in j:
+            curext.mincase[i] = mincase[i]
+        curext.ext[j, 1] = mm.ext[j, 1]
+        _put_time(curext, mm, j, 1, 1)
+
+
+def reorder(ordered_dict, keys, where):
+    """
+    Copy and reorder OrderedDict
+
+    Parameters
+    ----------
+    ordered_dict : OrderedDict instance
+        The OrderedDict to copy and put in a new order
+    keys : iterable
+        Iterable of keys in the order desired. Note that all keys do
+        not need to be included, just those where a new order is
+        desired. For example, if you just want to ensure that 'scltm'
+        is first::
+
+            new_dict = reorder(ordered_dict, ['scltm'], 'first')
+
+    where : string
+        Either 'first' or 'last'. Specifies where to put the
+        reordered items in the final order.
+
+    Returns
+    -------
+    OrderedDict instance
+        A new OrderedDict ordered as specified
+
+    Raises
+    ------
+    ValueError
+        If a key is not found
+    ValueError
+        If `where` is not 'first' or 'last'
+
+    Examples
+    --------
+    >>> from pyyeti import cla
+    >>> dct = OrderedDict((('one', 1),
+    ...                    ('two', 2),
+    ...                    ('three', 3)))
+    >>> dct
+    OrderedDict([('one', 1), ('two', 2), ('three', 3)])
+    >>> cla.reorder(dct, ['three', 'two'], 'first')
+    OrderedDict([('three', 3), ('two', 2), ('one', 1)])
+    """
+    def reorder_keys(all_keys, keys, where):
+        all_keys = list(all_keys)
+        keys = list(keys)
+
+        # ensure all keys are in all_keys:
+        for k in keys:
+            if k not in all_keys:
+                raise ValueError(
+                    'Key "{}" not found. Order unchanged.'
+                    .format(k))
+
+        if where == 'first':
+            new_keys = list(keys)
+            new_keys.extend(k for k in all_keys
+                            if k not in keys)
+        elif where == 'last':
+            new_keys = [k for k in all_keys
+                        if k not in keys]
+            new_keys.extend(keys)
+        else:
+            raise ValueError(
+                "`where` must be 'first' or 'last', not {!r}"
+                .format(where))
+
+        return new_keys
+
+    return OrderedDict(
+        (k, ordered_dict[k])
+        for k in reorder_keys(ordered_dict, keys, where)
+    )
+
+
+def _calc_covariance_sine_cosine(varx, vary, covar):
+    # See, for example:
+    # http://www.visiondummy.com/2014/04/
+    #             draw-error-ellipse-representing-covariance-matrix/)
+
+    # Have covariance matrix:
+    #  A = [varx, covar]
+    #      [covar, vary]
+
+    # Need to find the angle from the x-axis to the eigenvector that
+    # maximizes the vector sum response (RSS). The maximizing
+    # eigenvector corresponds to the largest eigenvalue (can think of
+    # this as principal axes too). Could do that with
+    # scipy.linalg.eigh:
+    #     lam, phi = scipy.linalg.eigh(A)
+    #     # since 2nd eigenvalue from `eigh` is biggest:
+    #     theta = np.arctan2(phi[1, 1], phi[0, 1])
+    #
+    # Or, since this is just a 2x2 for each item, we can also solve
+    # this by ahead of time.
+
+    # allocate sine and cosine arrays:
+    n = varx.shape[0]
+    s = np.empty(n)
+    c = np.empty(n)
+
+    # check for very small covar:
+    pv = abs(covar) <= 1e-12 * np.fmax(varx, vary)
+    if pv.any():
+        # put in pi/2 where vary > varx, 0.0 for others:
+        y_bigger = varx[pv] < vary[pv]
+        s[pv] = y_bigger      # where vary > varx: sin(pi/2) = 1
+        c[pv] = 1 - y_bigger
+
+    pv = ~pv  # where there is a non-zero covariance
+    if pv.any():
+        varx, vary, covar = varx[pv], vary[pv], covar[pv]
+        # Eigenvalues are (from hand calcs):
+        #   term = sqrt((vary - varx)**2 + 4*covar**2)
+        #   lambda = (varx + vary +- term) / 2
+        #
+        # Note that both eigenvalues are always real. Since all three
+        # values in the lambda expression are positive, the largest
+        # eigenvalue is with the positive sign. The eigenvector
+        # associated with that is (using the top row of
+        # ``(A - lambda_max I) X = 0`` and defining first element as
+        # 1):
+
+        #   X = [                1                 ]
+        #       [(vary - varx + term) / (2 * covar)]
+
+        # get angle to eigenvector: arctan2(x2, x1) = arctan(x2):
+        term = np.sqrt((vary - varx)**2 + 4 * covar**2)
+        theta = np.arctan((vary - varx + term) / (2 * covar))
+        s[pv] = np.sin(theta)
+        c[pv] = np.cos(theta)
+
+    return s, c
+
+
+def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
+                       case, i):
+    """
+    Compute phase-consistent (time-correlated) root-sum-square (RSS)
+    responses in a PSD analysis; each RSS is of two rows.
+
+    In the following, 'x' denotes DOF 1 for the RSS and 'y' denotes
+    the perpendicular direction: resp = sqrt(x*x + y*y).
+
+    Parameters
+    ----------
+    resp : 2d ndarray
+        Frequency response curves: DOF x len(freq)
+    xr : 1d array_like
+        Index vector of the 'x' `resp` rows (input to RSS)
+    yr : 1d array_like
+        Index vector of the 'y' `resp` rows (input to RSS)
+    rr : 1d array_like or None
+        If RSS responses are to be stored in the same matrix
+        (category) as `resp`, then `rr` is an index vector specifying
+        which rows will hold the RSS. For example, `resp` could have
+        3 rows with ``xr = 0``, ``yr = 1``, and ``rr = 2``. The 3rd
+        row would be the RSS of the first two.
+
+        On the other hand, if the RSS is to be stored alone in its
+        category, set `rr` to None. For example, `resp` could have 2
+        rows with ``xr = 0``, ``yr = 1``. Then, the category would
+        only have 1 data recovery item
+    freq : 1d array_like
+        Frequency vector (Hz)
+    forcepsd : 2d ndarray
+        Matrix of force PSDs; nforces x len(freq)
+    drmres : input/output SimpleNamespace
+        Results for a DRM; eg if drmres = results['ifa']:
+
+        .. code-block:: none
+
+           .rms (r x cases)
+           .cases (list of cases)
+           .freq (freq x 1)
+           .psd (cases x r x freq)
+           ._psd (temp dict, psd[case] is freq x r)
+           .srs.srs[q] (cases x r x freq)
+           .srs.ext[q] (each r x freq)
+           .srs.frq (freq,)
+           .srs.type (string, either 'srs' or 'eqsine')
+           .srs.units (string, eg: 'G, rad/sec^2')
+           .ext (r x 2), .maxcase (length r), .mincase ([])
+
+    case : string
+        Unique case identifier (like 'MaxQ') for storing the PSD
+        results, eg::
+
+            results['ifa']._psd[case]
+
+    i : integer
+        Current force index; starts at 0 and goes to nforces-1
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    This function is typically called by a "drfunc" specified in a
+    call to :func:`DR_Def.add`. An example function that uses this
+    routine is provided there.
+
+    The `drmres` input is modified on each call::
+
+         ._psd[case] is updated (size = drm rows x freq)
+
+    On the last call the RSS is computed and stored in ``._psd[case]``
+    according to `rr`.
+
+    These members are created to keep track of needed values (but
+    deleted on last call)::
+
+         .tmp.varx  = 'x' variance
+         .tmp.vary  = 'y' variance
+         .tmp.covar = covariance
+         .tmp.xresp = list of 'x' response matrices;
+                       - list is nforces long
+                       - each response matrix is len(xr) x freq
+         .tmp.yresp = list of 'y' response matrices
+
+    This routine works by computing the maximum length principal axis
+    (eigenvector) of the covariance matrix. The RSS results are then
+    calculated along the eigenvector direction. See comments in source
+    code of :func:`_calc_covariance_sine_cosine` for more
+    details. Also see, for example, reference [#cov]_.
+
+    References
+    ----------
+    .. [#cov] http://www.visiondummy.com/2014/04/
+              draw-error-ellipse-representing-covariance-matrix/
+    """
+    # drmres is a SimpleNamespace: drmres = results[drm]
+    # i is psd force index
+    F = forcepsd[i]
+    # normal, non-rss data recovery:
+    if rr is not None:
+        drmres._psd[case] += F * abs(resp)**2
+    N = forcepsd.shape[0]
+    if i == 0:
+        drmres.tmp = SimpleNamespace(
+            varx=0,
+            vary=0,
+            covar=0,
+            xresp=[0] * N,
+            yresp=[0] * N)
+
+    x = resp[xr]
+    y = resp[yr]
+    tmp = drmres.tmp
+    tmp.varx += F * abs(x)**2
+    tmp.vary += F * abs(y)**2
+    tmp.covar += F * np.real(x * np.conj(y))
+    tmp.xresp[i] = x
+    tmp.yresp[i] = y
+
+    if i == N - 1:
+        varx = np.trapz(tmp.varx, freq)
+        vary = np.trapz(tmp.vary, freq)
+        covar = np.trapz(tmp.covar, freq)
+        s, c = _calc_covariance_sine_cosine(varx, vary, covar)
+
+        # now have all sines/cosines, compute consistent vector sum
+        # results:
+        rss_resp = 0.0
+        for j in range(N):
+            respxy = (c[:, None] * tmp.xresp[j]
+                      + s[:, None] * tmp.yresp[j])
+            rss_resp += forcepsd[j] * abs(respxy)**2
+
+        if rr is not None:
+            drmres._psd[case][rr] = rss_resp
+        else:
+            drmres._psd[case] = rss_resp
+
+        # delete 'extra' info:
+        del drmres.tmp

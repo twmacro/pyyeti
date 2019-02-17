@@ -14,5 +14,4 @@ from .solvecdf import SolveCDF
 from .solveexp1 import SolveExp1
 from .solveexp2 import SolveExp2
 from .solvenewmark import SolveNewmark
-from .solvepsd import solvepsd
 from .solveunc import SolveUnc
