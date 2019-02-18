@@ -5,7 +5,7 @@ from nose.tools import *
 
 
 def test_calcAM():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     maa = nas['maa'][101]
     kaa = nas['kaa'][101]
     uset = nas['uset'][101]

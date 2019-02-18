@@ -40,12 +40,12 @@ def runcomp(nas, m):
 
 
 def test_n2c_csuper():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     # nas.keys()
     # dict_keys(['rfmodes', 'fgravh', 'lambda', 'phg', 'dnids', 'nrb',
     # 'maps', 'kaa', 'cstm', 'maa', 'fgravg', 'uset', 'selist', 'upids',
     # 'cstm2'])
-    m = matlab.loadmat('pyyeti/tests/nas2cam_csuper/nas2cam.mat')
+    m = matlab.loadmat('tests/nas2cam_csuper/nas2cam.mat')
     # In [41]: m['nas'].dtype.names
     # Out[41]:
     # ('cstm',
@@ -66,8 +66,8 @@ def test_n2c_csuper():
 
 
 def test_n2c_extseout():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_extseout/nas2cam')
-    m = matlab.loadmat('pyyeti/tests/nas2cam_extseout/nas2cam.mat')
+    nas = op2.rdnas2cam('tests/nas2cam_extseout/nas2cam')
+    m = matlab.loadmat('tests/nas2cam_extseout/nas2cam.mat')
     runcomp(nas, m)
 
 
@@ -75,11 +75,11 @@ def test_drm12_reader():
     import numpy as np
     o4 = op4.OP4()
 
-    drm12 = 'pyyeti/tests/nastran_drm12/drm12'
+    drm12 = 'tests/nastran_drm12/drm12'
     mats = o4.dctload(drm12 + '.op4')
     dsorted = op2.procdrm12(drm12, dosort=True)
     # just to exercise more code:
-    with op2.OP2('pyyeti/tests/nastran_drm12/drm12.op2') as o2:
+    with op2.OP2('tests/nastran_drm12/drm12.op2') as o2:
         dkeys = o2.rddrm2op2(1)
 
     # check desc:
@@ -156,8 +156,8 @@ def test_drm12_reader():
 
     # check desc:
     assert np.all(['T1', 'T2', 'T3'] * 3 == draw['DTM_desc'])
-    assert np.all(['T3', 'T1', 'T2'] +
-                  ['T1', 'T2', 'T3'] * 2 == draw['ATM_desc'])
+    assert np.all(['T3', 'T1', 'T2']
+                  + ['T1', 'T2', 'T3'] * 2 == draw['ATM_desc'])
     spcf_desc = ['Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']
     assert np.all(spcf_desc * 4 == draw['SPCF_desc'])
     stress = ["CBAR Bending Stress 1 - End A",         # 2
@@ -185,8 +185,8 @@ def test_drm12_reader():
              "CBAR Shear 2",                          # 7
              "CBAR Axial Force",                      # 8
              "CBAR Torque"]                           # 9
-    assert np.all(force + force[-1:] +
-                  force[-2:-1] + force == draw['LTM_desc'])
+    assert np.all(force + force[-1:]
+                  + force[-2:-1] + force == draw['LTM_desc'])
 
     # check id_dof:
     ids = np.array([[14] * 3, [12] * 3, [32] * 3]).reshape((1, -1)).T
@@ -209,8 +209,8 @@ def test_drm12_reader():
     assert np.all(iddof == draw['STM_id_dof'])
 
     ids = np.array([[23] * 8 + [28] * 2 + [11] * 8]).reshape((1, -1)).T
-    dof = np.array([[i for i in range(2, 10)] + [9, 8] +
-                    [i for i in range(2, 10)]]).T
+    dof = np.array([[i for i in range(2, 10)] + [9, 8]
+                    + [i for i in range(2, 10)]]).T
     iddof = np.hstack((ids, dof))
     assert np.all(iddof == draw['LTM_id_dof'])
 
@@ -229,8 +229,8 @@ def test_drm12_reader():
     assert np.all(mats['moefs1'][0][rows] == draw['LTMD'])
     assert np.all(mats['moefd1'][0][rows] == draw['LTMA'])
 
-    rows = np.array([i for i in range(16, 31)] +
-                    [i for i in range(1, 16)]) - 1
+    rows = np.array([i for i in range(16, 31)]
+                    + [i for i in range(1, 16)]) - 1
     assert np.all(mats['moess1'][0][rows] == draw['STMD'])
     assert np.all(mats['moesd1'][0][rows] == draw['STMA'])
 
@@ -240,7 +240,7 @@ def test_codefuncs():
     for v in list(sys.modules.values()):
         if getattr(v, '__warningregistry__', None):
             v.__warningregistry__ = {}
-    with op2.OP2('pyyeti/tests/nastran_drm12/drm12.op2') as o:
+    with op2.OP2('tests/nastran_drm12/drm12.op2') as o:
         assert o.CodeFuncs[1](7) == 1
         assert o.CodeFuncs[1](3002) == 2
         assert o.CodeFuncs[2](123) == 23
@@ -263,7 +263,7 @@ def test_codefuncs():
         assert_warns(RuntimeWarning, o._check_code, 22,
                      [4], [[42]], 'test')
         assert o._check_code(18, [funccode], [[val]], 'test')
-        assert_warns(RuntimeWarning,  o._check_code, 18,
+        assert_warns(RuntimeWarning, o._check_code, 18,
                      [funccode], [[1]], 'test')
 
         assert_raises(ValueError, o._check_code, 22,
@@ -274,7 +274,7 @@ def test_codefuncs():
 
 def test_bigend():
     # most files are little-endian ... test a big-endian file:
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam/bigend_nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam/bigend_nas2cam')
     # 1st 3 rows of the GM matrix should have 1/3 in x, y, z
     # positions: [[ 1/3,   0,   0, 0, 0, 0, 1/3,   0,   0, ...],
     #             [   0, 1/3,   0, 0, 0, 0,   0, 1/3,   0, ...],
@@ -289,12 +289,12 @@ def test_bigend():
 
 def test_notop2():
     assert_raises(ValueError, op2.OP2,
-                  'pyyeti/tests/nas2cam/no_se.dat')
+                  'tests/nas2cam/no_se.dat')
 
 
 def test_rdop2mats():
-    dct2 = op4.load('pyyeti/tests/nastran_op4_data/r_c_rc.op4')
-    dr = 'pyyeti/tests/nastran_op2_data/'
+    dct2 = op4.load('tests/nastran_op4_data/r_c_rc.op4')
+    dr = 'tests/nastran_op2_data/'
     for cut in (0, 30000):
         for name in ('double_le.op2', 'double_be.op2'):
             with op2.OP2(dr + name) as o2:
@@ -334,15 +334,15 @@ def test_rdop2tload():
     sbe[0] = range(1001, 1031)
     sbe[1] = range(1101, 1131)
     sbe[4] = 1000
-    tload = op2.OP2('pyyeti/tests/nas2cam_extseout/'
+    tload = op2.OP2('tests/nas2cam_extseout/'
                     'inboard.op2').rdop2tload()
     assert np.all(tload[:5] == sbe)
 
-    tload = op2.OP2('pyyeti/tests/nas2cam_extseout/'
+    tload = op2.OP2('tests/nas2cam_extseout/'
                     'inboard_v2007.op2').rdop2tload()
     assert np.all(tload[:5] == sbe)
 
-    with op2.OP2('pyyeti/tests/nas2cam_extseout/'
+    with op2.OP2('tests/nas2cam_extseout/'
                  'inboard.op2') as o2:
         o2._rowsCutoff = 0
         tload = o2.rdop2tload()
@@ -350,20 +350,20 @@ def test_rdop2tload():
 
 
 def test_rdpostop2():
-    post = op2.rdpostop2('pyyeti/tests/nas2cam_extseout/'
+    post = op2.rdpostop2('tests/nas2cam_extseout/'
                          'inboard.op2', 1, 1, 1, 1)
 
     dof = post['mats']['ougv1'][0]['dof']
     lam = post['mats']['ougv1'][0]['lambda']
     ougv1 = post['mats']['ougv1'][0]['ougv1']
 
-    o4 = op4.load('pyyeti/tests/nas2cam_extseout/inboard.op4')
+    o4 = op4.load('tests/nas2cam_extseout/inboard.op4')
     mug1 = o4['mug1'][0]
-    tug1 = nastran.rddtipch('pyyeti/tests/nas2cam_extseout/'
+    tug1 = nastran.rddtipch('tests/nas2cam_extseout/'
                             'inboard.pch')
-    tef1 = nastran.rddtipch('pyyeti/tests/nas2cam_extseout/'
+    tef1 = nastran.rddtipch('tests/nas2cam_extseout/'
                             'inboard.pch', 'TEF1')
-    tes1 = nastran.rddtipch('pyyeti/tests/nas2cam_extseout/'
+    tes1 = nastran.rddtipch('tests/nas2cam_extseout/'
                             'inboard.pch', 'TES1')
 
     # ougv1, oef1, oes1 ... they don't have the constraint modes
@@ -391,7 +391,7 @@ def test_rdpostop2():
     assert np.all(post['mats']['oes1'][0][1][pv, 0] == tes1[:, 0])
     assert np.all(post['mats']['oes1'][0][1][:, 1] == 34)
 
-    with op2.OP2('pyyeti/tests/nas2cam_extseout/'
+    with op2.OP2('tests/nas2cam_extseout/'
                  'inboard.op2') as o2:
         o2._rowsCutoff = 0
         fpos = o2.dbnames['OUGV1'][0][0][0]
@@ -405,14 +405,14 @@ def test_rdpostop2():
 
 
 def test_rdpostop2_assemble():
-    post = op2.rdpostop2('pyyeti/tests/nas2cam_extseout/'
+    post = op2.rdpostop2('tests/nas2cam_extseout/'
                          'assemble.op2', 1, 1)
     assert np.all(post['selist'] == [[101, 0], [102, 0], [0, 0]])
     sebulk = np.array([[101, 5, -1, 2, 0., 1, 3, 101],
                        [102, 5, -1, 2, 0., 1, 3, 102]])
     assert np.all(post['sebulk'] == sebulk)
 
-    with op2.OP2('pyyeti/tests/nas2cam_extseout/'
+    with op2.OP2('tests/nas2cam_extseout/'
                  'assemble.op2') as o2:
         o2._rowsCutoff = 0
         # fpos = o2.dbnames['GEOM1S'][2][0][0]
@@ -427,7 +427,7 @@ def test_rdpostop2_assemble():
 
 
 def test_rdop2record():
-    with op2.OP2('pyyeti/tests/nas2cam_extseout/'
+    with op2.OP2('tests/nas2cam_extseout/'
                  'inboard.op2') as o2:
         fpos = o2.dbnames['DYNAMICS'][0][0][0]
 
@@ -453,7 +453,7 @@ def test_rdop2record():
 
 
 def test_prtdir():
-    with op2.OP2('pyyeti/tests/nas2cam_extseout/'
+    with op2.OP2('tests/nas2cam_extseout/'
                  'inboard.op2') as o2:
         o2.dblist = []
         o2.prtdir()
@@ -472,7 +472,7 @@ def compdict(d1, d2, is_dataframe=False):
 
 
 def test_rdop2emap():
-    with op2.OP2('pyyeti/tests/nas2cam_csuper/nas2cam.op2') as o2:
+    with op2.OP2('tests/nas2cam_csuper/nas2cam.op2') as o2:
         nas1 = o2.rdn2cop2()
         o2._rowsCutoff = 0
         nas2 = o2.rdn2cop2()

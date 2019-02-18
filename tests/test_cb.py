@@ -40,7 +40,7 @@ def test_cbconvert_2():
 
 
 def test_cbtf():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     maa = nas['maa'][102]
     kaa = nas['kaa'][102]
     uset = nas['uset'][102]
@@ -150,7 +150,7 @@ def test_cbreorder_m():
     # Traceback (most recent call last):
     #   File "/home/macro/anaconda3/lib/python3.5/site-packages/nose/case.py", line 198, in runTest
     #     self.test(*self.arg)
-    #   File "/home/macro/code/pyyeti/pyyeti/tests/test_n2p_nose.py", line 1380, in test_badrbe3_error
+    #   File "/home/macro/code/pyyeti/tests/test_n2p_nose.py", line 1380, in test_badrbe3_error
     #     with assert_warns(RuntimeWarning) as cm:
     #   File "/home/macro/anaconda3/lib/python3.5/unittest/case.py", line 225, in __enter__
     #     for v in sys.modules.values():
@@ -320,7 +320,7 @@ def compare_cbcheck_output(s, sy):
 
 
 def test_cbcheck_indeterminate():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     se = 101
     maa = nas['maa'][se]
     kaa = nas['kaa'][se]
@@ -366,7 +366,7 @@ def test_cbcheck_indeterminate():
     assert sfile == s
     s = s.splitlines()
 
-    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+    with open('tests/nas2cam_csuper/yeti_outputs/'
               'cbcheck_yeti_101.out') as f:
         sy = f.read().splitlines()
 
@@ -392,7 +392,7 @@ def test_cbcheck_indeterminate():
 
 
 def test_cbcheck_determinate():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     se = 101
     maa = nas['maa'][se]
     kaa = nas['kaa'][se]
@@ -431,7 +431,7 @@ def test_cbcheck_determinate():
         s = f.getvalue()
 
     s = s.splitlines()
-    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+    with open('tests/nas2cam_csuper/yeti_outputs/'
               'cbcheck_yeti_101_single.out') as f:
         sy = f.read().splitlines()
 
@@ -446,7 +446,7 @@ def test_cbcheck_determinate():
 
 
 def test_cbcheck_unit_convert():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     se = 101
     maa = nas['maa'][se]
     kaa = nas['kaa'][se]
@@ -473,7 +473,7 @@ def test_cbcheck_unit_convert():
         s = f.getvalue()
 
     s = s.splitlines()
-    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+    with open('tests/nas2cam_csuper/yeti_outputs/'
               'cbcheck_yeti_101_unitconv.out') as f:
         sy = f.read().splitlines()
 
@@ -484,7 +484,7 @@ def test_cbcheck_unit_convert():
 
 
 def test_cbcheck_reorder():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     se = 101
     maa = nas['maa'][se]
     kaa = nas['kaa'][se]
@@ -508,7 +508,7 @@ def test_cbcheck_reorder():
             f, maa, kaa, b, b[:6], usetb, em_filt=2)
         s = f.getvalue()
     s = s.splitlines()
-    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+    with open('tests/nas2cam_csuper/yeti_outputs/'
               'cbcheck_yeti_101.out') as f:
         sy = f.read().splitlines()
 
@@ -519,7 +519,7 @@ def test_cbcheck_reorder():
 
 
 def test_cbcheck_indeterminate_rb_norm():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     se = 101
     maa = nas['maa'][se]
     kaa = nas['kaa'][se]
@@ -544,7 +544,7 @@ def test_cbcheck_indeterminate_rb_norm():
         s = f.getvalue()
     s = s.splitlines()
 
-    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+    with open('tests/nas2cam_csuper/yeti_outputs/'
               'cbcheck_yeti_101_rbnorm.out') as f:
         sy = f.read().splitlines()
 
@@ -556,7 +556,7 @@ def test_cbcheck_indeterminate_rb_norm():
 
 
 def test_cbcheck_indeterminate_rb_norm2():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     se = 102
     maa = nas['maa'][se]
     kaa = nas['kaa'][se]
@@ -581,7 +581,7 @@ def test_cbcheck_indeterminate_rb_norm2():
         s = f.getvalue()
     s = s.splitlines()
 
-    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+    with open('tests/nas2cam_csuper/yeti_outputs/'
               'cbcheck_yeti_102_rbnorm.out') as f:
         sy = f.read().splitlines()
 
@@ -593,7 +593,7 @@ def test_cbcheck_indeterminate_rb_norm2():
 
 
 def test_rbmultchk():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     se = 101
     maa = nas['maa'][se]
     kaa = nas['kaa'][se]
@@ -697,7 +697,7 @@ def test_rbmultchk():
     assert s2 == s3
 
     s = s.splitlines()
-    with open('pyyeti/tests/nas2cam_csuper/yeti_outputs/'
+    with open('tests/nas2cam_csuper/yeti_outputs/'
               'rbmultchk_yeti_101.out') as f:
         sy = f.read().splitlines()
 
@@ -893,7 +893,7 @@ def test_cbcoordchk():
 
 
 def test_cbcoordchk2():
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
     se = 101
     maa = nas['maa'][se]
     kaa = nas['kaa'][se]
@@ -940,6 +940,7 @@ def compare_nets(net, net2):
 
 def test_mk_net_drms():
     pth = os.path.dirname(inspect.getfile(cb))
+    pth = os.path.join(pth, '..')
     pth = os.path.join(pth, 'tests')
     pth = os.path.join(pth, 'nas2cam_csuper')
 
@@ -1111,6 +1112,7 @@ def test_mk_net_drms():
 def test_mk_net_drms_6dof():
     # same as above, but reduced to single point interface
     pth = os.path.dirname(inspect.getfile(cb))
+    pth = os.path.join(pth, '..')
     pth = os.path.join(pth, 'tests')
     pth = os.path.join(pth, 'nas2cam_csuper')
     mk = op4.load(os.path.join(pth, 'inboard.op4'))
@@ -1183,6 +1185,7 @@ def test_mk_net_drms_6dof():
 
 def test_cglf_moment_signs():
     pth = os.path.dirname(inspect.getfile(cb))
+    pth = os.path.join(pth, '..')
     pth = os.path.join(pth, 'tests')
     pth = os.path.join(pth, 'cla_test_data')
 

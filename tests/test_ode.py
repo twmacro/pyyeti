@@ -2490,7 +2490,7 @@ def test_approx_rbmodes():
     from pyyeti.nastran import op2, n2p
     from pyyeti.ode import SolveUnc as su
     from pyyeti.ode import SolveExp2 as se2
-    nas = op2.rdnas2cam('pyyeti/tests/nas2cam/with_se_nas2cam')
+    nas = op2.rdnas2cam('tests/nas2cam/with_se_nas2cam')
 
     # setup mass, stiffness, damping:
     m = None  # treated as identity

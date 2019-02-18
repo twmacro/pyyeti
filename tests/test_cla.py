@@ -12,7 +12,6 @@ from scipy.io import matlab
 import scipy.interpolate as interp
 import scipy.linalg as la
 from nose.tools import *
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from pyyeti import cla, cb, ode, stats
 from pyyeti import nastran, srs
@@ -299,13 +298,13 @@ def test_form_extreme():
         results['FDLC']['extreme'].rpttab(direc='./temp_fdlc_tab')
         # check results:
         compresults('./temp_tab/ATM.tab',
-                    'pyyeti/tests/cla_test_data/fake_cla/ATM.tab')
+                    'tests/cla_test_data/fake_cla/ATM.tab')
         compresults('./temp_tab/LTM.tab',
-                    'pyyeti/tests/cla_test_data/fake_cla/LTM.tab')
+                    'tests/cla_test_data/fake_cla/LTM.tab')
         compresults('./temp_fdlc_tab/ATM.tab',
-                    'pyyeti/tests/cla_test_data/fake_cla/ATM_fdlc.tab')
+                    'tests/cla_test_data/fake_cla/ATM_fdlc.tab')
         compresults('./temp_fdlc_tab/LTM.tab',
-                    'pyyeti/tests/cla_test_data/fake_cla/LTM_fdlc.tab')
+                    'tests/cla_test_data/fake_cla/LTM_fdlc.tab')
     finally:
         shutil.rmtree('./temp_tab', ignore_errors=True)
         shutil.rmtree('./temp_fdlc_tab', ignore_errors=True)
@@ -1069,7 +1068,7 @@ def test_transfer_orbit_cla():
         if os.path.exists('temp_cla'):
             shutil.rmtree('./temp_cla', ignore_errors=True)
         os.mkdir('temp_cla')
-        pth = '../pyyeti/tests/cla_test_data/'
+        pth = '../tests/cla_test_data/'
         with cd('temp_cla'):
             plt.close('all')
             prepare_4_cla(pth)
@@ -2937,7 +2936,7 @@ def test_reldisp_dtm():
     OUTBOARD = 101
 
     event = 'TOES'
-    pth = 'pyyeti/tests/cla_test_data/'
+    pth = 'tests/cla_test_data/'
 
     # load nastran data:
     nas = op2.rdnas2cam(pth + 'nas2cam')
