@@ -76,7 +76,6 @@ Utility routines
     PrintCLAInfo
     PSD_consistent_rss
     relative_displacement_dtm
-    reorder
     rptext1
     rptpct1
     rpttab1

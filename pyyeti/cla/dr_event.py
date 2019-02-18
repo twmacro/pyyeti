@@ -8,9 +8,10 @@ import warnings
 from collections import OrderedDict
 import numpy as np
 import scipy.linalg as la
+from pyyeti.ytools import reorder_dict
 from pyyeti.nastran import n2p
 from .dr_results import DR_Results
-from ._utilities import _merge_uf_reds, reorder
+from ._utilities import _merge_uf_reds
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -306,9 +307,10 @@ class DR_Event:
 
         Notes
         -----
-        This is a convenience method for the :func:`reorder` routine.
-        Updates the `Info` attribute to reflect the new order. Call
-        this routine before calling :func:`prepare_results`.
+        This is a convenience method for the
+        :func:`pyyeti.ytools.reorder_dict` routine.  Updates the
+        `Info` attribute to reflect the new order. Call this routine
+        before calling :func:`prepare_results`.
 
         See :class:`DR_Def` for a discussion about how the order of
         data recovery is determined. In summary: :func:`DR_Event.add`
@@ -379,7 +381,7 @@ class DR_Event:
         >>> print(repr(DR))    # doctest: +ELLIPSIS
         DR_Event ... ['atm0', 'ltm0', 'dtm1', 'ltm1', 'dtm0', 'atm1']
         """
-        self.Info = reorder(self.Info, cats, where)
+        self.Info = reorder_dict(self.Info, cats, where)
 
     def prepare_results(self, mission, event):
         """

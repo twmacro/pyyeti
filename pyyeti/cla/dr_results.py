@@ -13,7 +13,9 @@ import matplotlib.pyplot as plt
 import xlsxwriter
 from pyyeti import locate, srs
 from ._utilities import _is_valid_identifier, maxmin, extrema
-from .report_writers import rptext1, rptpct1, rpttab1
+from ._rptext1 import rptext1
+from ._rptpct1 import rptpct1
+from ._rpttab1 import rpttab1
 from .dr_results_plots import mk_plots
 
 

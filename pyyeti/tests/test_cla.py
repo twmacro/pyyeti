@@ -2080,7 +2080,7 @@ def test_rptext1():
 
 
 def test_get_numform():
-    from pyyeti.cla.report_writers import _get_numform
+    from pyyeti.cla._utilities import _get_numform
     assert _get_numform(0.0) == '{:13.0f}'
     assert _get_numform(np.array([1e12, 1e4])) == '{:13.6e}'
     assert _get_numform(np.array([1e8, 1e4])) == '{:13.1f}'

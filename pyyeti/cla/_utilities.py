@@ -4,6 +4,7 @@ import copy
 from collections import OrderedDict
 from types import SimpleNamespace
 from keyword import iskeyword
+import datetime
 import numpy as np
 from pyyeti import locate
 
@@ -11,6 +12,8 @@ from pyyeti import locate
 __all__ = [
     '_is_valid_identifier',
     '_merge_uf_reds',
+    '_get_rpt_headers',
+    '_get_numform',
     'get_marker_cycle',
     '_proc_filterval',
     'PrintCLAInfo',
@@ -20,7 +23,7 @@ __all__ = [
     'nan_argmin',
     'nan_absmax',
     'extrema',
-    'reorder',
+    #     'reorder',
     '_calc_covariance_sine_cosine',
     'PSD_consistent_rss',
 ]
@@ -53,6 +56,47 @@ def _merge_uf_reds(old, new, method='replace'):
             '`method` value must be either "replace", '
             '"multiply", or a function (a callable)')
     return tuple(merged)
+
+
+def _get_rpt_headers(res=None, desc=None, uf_reds=None,
+                     units=None, misc=''):
+    if res is not None:
+        desc = res.drminfo.desc
+        uf_reds = res.drminfo.uf_reds
+        units = res.drminfo.units
+    descline = 'Description: {}\n'.format(desc)
+    if uf_reds is None:
+        unceline = 'Uncertainty: Not specified\n'
+    else:
+        unceline = ('Uncertainty: [Rigid, Elastic, Dynamic, Static] '
+                    '= [{}, {}, {}, {}]\n'
+                    .format(*uf_reds))
+    unitline = 'Units:       {}\n'.format(units)
+    currdate = datetime.date.today().strftime('%d-%b-%Y')
+    dateline = 'Date:        {}\n'.format(currdate)
+    return descline + unceline + unitline + misc + dateline
+
+
+def _get_numform(mxmn1, excel=False):
+    # excel logic is different than text:
+    # - it avoids scientific notation since the actual values are
+    #   there ... the user can just change the format
+    pv = (mxmn1 != 0.0) & np.isfinite(mxmn1)
+    if not np.any(pv):
+        return '{:13.0f}' if not excel else '#,##0.'
+    pmx = int(np.floor(np.log10(abs(mxmn1[pv]).max())))
+    if excel:
+        numform = '#,##0.' + '0' * (5 - pmx)
+    else:
+        pmn = int(np.floor(np.log10(abs(mxmn1[pv]).min())))
+        if pmx - pmn < 6 and pmn > -3:
+            if pmn < 5:
+                numform = '{{:13.{}f}}'.format(5 - pmn)
+            else:
+                numform = '{:13.0f}'
+        else:
+            numform = '{:13.6e}'
+    return numform
 
 
 def get_marker_cycle():
@@ -460,79 +504,79 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         _put_time(curext, mm, j, 1, 1)
 
 
-def reorder(ordered_dict, keys, where):
-    """
-    Copy and reorder OrderedDict
-
-    Parameters
-    ----------
-    ordered_dict : OrderedDict instance
-        The OrderedDict to copy and put in a new order
-    keys : iterable
-        Iterable of keys in the order desired. Note that all keys do
-        not need to be included, just those where a new order is
-        desired. For example, if you just want to ensure that 'scltm'
-        is first::
-
-            new_dict = reorder(ordered_dict, ['scltm'], 'first')
-
-    where : string
-        Either 'first' or 'last'. Specifies where to put the
-        reordered items in the final order.
-
-    Returns
-    -------
-    OrderedDict instance
-        A new OrderedDict ordered as specified
-
-    Raises
-    ------
-    ValueError
-        If a key is not found
-    ValueError
-        If `where` is not 'first' or 'last'
-
-    Examples
-    --------
-    >>> from pyyeti import cla
-    >>> dct = OrderedDict((('one', 1),
-    ...                    ('two', 2),
-    ...                    ('three', 3)))
-    >>> dct
-    OrderedDict([('one', 1), ('two', 2), ('three', 3)])
-    >>> cla.reorder(dct, ['three', 'two'], 'first')
-    OrderedDict([('three', 3), ('two', 2), ('one', 1)])
-    """
-    def reorder_keys(all_keys, keys, where):
-        all_keys = list(all_keys)
-        keys = list(keys)
-
-        # ensure all keys are in all_keys:
-        for k in keys:
-            if k not in all_keys:
-                raise ValueError(
-                    'Key "{}" not found. Order unchanged.'
-                    .format(k))
-
-        if where == 'first':
-            new_keys = list(keys)
-            new_keys.extend(k for k in all_keys
-                            if k not in keys)
-        elif where == 'last':
-            new_keys = [k for k in all_keys
-                        if k not in keys]
-            new_keys.extend(keys)
-        else:
-            raise ValueError(
-                "`where` must be 'first' or 'last', not {!r}"
-                .format(where))
-
-        return new_keys
-
-    return OrderedDict(
-        (k, ordered_dict[k])
-        for k in reorder_keys(ordered_dict, keys, where)
-    )
+# def reorder(ordered_dict, keys, where):
+#     """
+#     Copy and reorder OrderedDict
+#
+#     Parameters
+#     ----------
+#     ordered_dict : OrderedDict instance
+#         The OrderedDict to copy and put in a new order
+#     keys : iterable
+#         Iterable of keys in the order desired. Note that all keys do
+#         not need to be included, just those where a new order is
+#         desired. For example, if you just want to ensure that 'scltm'
+#         is first::
+#
+#             new_dict = reorder(ordered_dict, ['scltm'], 'first')
+#
+#     where : string
+#         Either 'first' or 'last'. Specifies where to put the
+#         reordered items in the final order.
+#
+#     Returns
+#     -------
+#     OrderedDict instance
+#         A new OrderedDict ordered as specified
+#
+#     Raises
+#     ------
+#     ValueError
+#         If a key is not found
+#     ValueError
+#         If `where` is not 'first' or 'last'
+#
+#     Examples
+#     --------
+#     >>> from pyyeti import cla
+#     >>> dct = OrderedDict((('one', 1),
+#     ...                    ('two', 2),
+#     ...                    ('three', 3)))
+#     >>> dct
+#     OrderedDict([('one', 1), ('two', 2), ('three', 3)])
+#     >>> cla.reorder(dct, ['three', 'two'], 'first')
+#     OrderedDict([('three', 3), ('two', 2), ('one', 1)])
+#     """
+#     def reorder_keys(all_keys, keys, where):
+#         all_keys = list(all_keys)
+#         keys = list(keys)
+#
+#         # ensure all keys are in all_keys:
+#         for k in keys:
+#             if k not in all_keys:
+#                 raise ValueError(
+#                     'Key "{}" not found. Order unchanged.'
+#                     .format(k))
+#
+#         if where == 'first':
+#             new_keys = list(keys)
+#             new_keys.extend(k for k in all_keys
+#                             if k not in keys)
+#         elif where == 'last':
+#             new_keys = [k for k in all_keys
+#                         if k not in keys]
+#             new_keys.extend(keys)
+#         else:
+#             raise ValueError(
+#                 "`where` must be 'first' or 'last', not {!r}"
+#                 .format(where))
+#
+#         return new_keys
+#
+#     return OrderedDict(
+#         (k, ordered_dict[k])
+#         for k in reorder_keys(ordered_dict, keys, where)
+#     )
 
 
 def _calc_covariance_sine_cosine(varx, vary, covar):
@@ -726,8 +770,8 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         # results:
         rss_resp = 0.0
         for j in range(N):
-            respxy = (c[:, None] * tmp.xresp[j]
-                      + s[:, None] * tmp.yresp[j])
+            respxy = (c[:, None] * tmp.xresp[j] +
+                      s[:, None] * tmp.yresp[j])
             rss_resp += forcepsd[j] * abs(respxy)**2
 
         if rr is not None:

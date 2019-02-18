@@ -157,7 +157,7 @@ def fit_circle_2d(x, y, makeplot='no'):
     """
     x, y = np.atleast_1d(x, y)
     basic2local, center, radius = _initial_circle_fit(
-        np.vstack((x, y, 0*x)))
+        np.vstack((x, y, 0 * x)))
     clx, cly = center[:2]
 
     # The optimization routine leastsq needs a function that returns
@@ -223,7 +223,7 @@ def axis_equal_3d(ax, buffer_space=10):
                         for dim in 'xyz'])
     max_dimension = max(abs(extents[:, 1] - extents[:, 0]))
     centers = np.mean(extents, axis=1)
-    r = max_dimension/2 * (1+buffer_space/100)
+    r = max_dimension / 2 * (1 + buffer_space / 100)
     for ctr, dim in zip(centers, 'xyz'):
         getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
 
@@ -245,9 +245,9 @@ def _circle_fit_residuals(p, basic2local, basic, circ_parms):
     # t2 = np.array([[c2, 0, -s2], [0, 1, 0], [s2, 0, c2]])
     # trans = t2 @ t1
     # or, doing it by hand:
-    trans = np.array([[c2, s1*s2, -s2*c1],
+    trans = np.array([[c2, s1 * s2, -s2 * c1],
                       [0, c1, s1],
-                      [s2, -c2*s1, c1*c2]])
+                      [s2, -c2 * s1, c1 * c2]])
     new_basic2local = trans @ basic2local
     local = new_basic2local @ (basic - [[xc], [yc], [zc]])
     radii = np.linalg.norm(local[:2], axis=0)
@@ -257,7 +257,7 @@ def _circle_fit_residuals(p, basic2local, basic, circ_parms):
         circ_parms.local = local
         circ_parms.radius = radius
         circ_parms.center = np.array([xc, yc, zc])
-    return np.hstack((radii/radius - 1, local[2]))
+    return np.hstack((radii / radius - 1, local[2]))
 
 
 def fit_circle_3d(basic, makeplot='no'):
@@ -448,7 +448,7 @@ def fit_circle_3d(basic, makeplot='no'):
         # transform to basic coordinates and plot:
         circle_basic = (circ_parms.center +
                         (np.column_stack((x, y, z)) @
-                         circ_parms.basic2local)).T
+                           circ_parms.basic2local)).T
         ax.plot(*circle_basic, label='Fit')
         axis_equal_3d(ax)
         ax.legend(loc='upper left', bbox_to_anchor=(1.0, 1.0))
@@ -1372,3 +1372,86 @@ def load(name):
     name, fopen = _get_fopen(name, read=True)
     with fopen(name, 'rb') as f:
         return pickle.load(f)
+
+
+def reorder_dict(ordered_dict, keys, where):
+    """
+    Copy and reorder an ordered dictionary
+
+    .. note::
+
+        This will also work for regular Python ``dict`` objects for
+        Python 3.7+ where insertion order is guaranteed.
+
+    Parameters
+    ----------
+    ordered_dict : instance of OrderedDict (or other ordered mapping)
+        The ordered dictionary to copy and put in a new order. Must
+        accept tuple of 2-tuples, eg, ``((key1, value1),
+        (key2, value2), ...)`` in its ``__init__`` function.
+    keys : iterable
+        Iterable of keys in the order desired. Note that all keys do
+        not need to be included, just those where a new order is
+        desired. For example, if you just want to ensure that 'scltm'
+        is first::
+
+            new_dict = reorder_dict(ordered_dict, ['scltm'], 'first')
+
+    where : string
+        Either 'first' or 'last'. Specifies where to put the
+        reordered items in the final order.
+
+    Returns
+    -------
+    ordered dictionary object (same type as `ordered_dict`)
+        A new ordered dictionary, reordered as specified
+
+    Raises
+    ------
+    ValueError
+        If a key is not found
+    ValueError
+        If `where` is not 'first' or 'last'
+
+    Examples
+    --------
+    >>> from collections import OrderedDict
+    >>> from pyyeti.ytools import reorder_dict
+    >>> dct = OrderedDict((('one', 1),
+    ...                    ('two', 2),
+    ...                    ('three', 3)))
+    >>> dct
+    OrderedDict([('one', 1), ('two', 2), ('three', 3)])
+    >>> reorder_dict(dct, ['three', 'two'], 'first')
+    OrderedDict([('three', 3), ('two', 2), ('one', 1)])
+    """
+    def reorder_keys(all_keys, keys, where):
+        all_keys = list(all_keys)
+        keys = list(keys)
+
+        # ensure all keys are in all_keys:
+        for k in keys:
+            if k not in all_keys:
+                raise ValueError(
+                    'Key "{}" not found. Order unchanged.'
+                    .format(k))
+
+        if where == 'first':
+            new_keys = list(keys)
+            new_keys.extend(k for k in all_keys
+                            if k not in keys)
+        elif where == 'last':
+            new_keys = [k for k in all_keys
+                        if k not in keys]
+            new_keys.extend(keys)
+        else:
+            raise ValueError(
+                "`where` must be 'first' or 'last', not {!r}"
+                .format(where))
+
+        return new_keys
+
+    return type(ordered_dict)(
+        (k, ordered_dict[k])
+        for k in reorder_keys(ordered_dict, keys, where)
+    )

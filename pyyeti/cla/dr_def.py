@@ -39,7 +39,8 @@ class DR_Def(OrderedDict):
     determined by the order they are added to an instance of
     :class:`DR_Event` via :func:`DR_Event.add`.
     :func:`DR_Event.set_dr_order` can be used to modify the final
-    order. :func:`reorder` can also be used for that purpose.
+    order. :func:`pyyeti.ytools.reorder_dict` can also be used for
+    that purpose.
 
     Attributes
     ----------
@@ -630,9 +631,9 @@ class DR_Def(OrderedDict):
         :func:`DR_Def.add` determines the order of data recovery
         categories within each :class:`DR_Def` instance.
         :func:`DR_Event.set_dr_order` can be used to modify the final
-        order. That routine uses the more general :func:`reorder`
-        to reorder the categories. :func:`reorder` can copy and
-        reorder any OrderedDict.
+        order. That routine uses the more general
+        :func:`.pyyeti.ytools.reorder_dict` to reorder the
+        categories.
 
         **Entering partition vectors.** The `histpv`, `srspv` and
         `ignorepv` inputs are all handled similarly. They can be input
@@ -1014,7 +1015,7 @@ class DR_Def(OrderedDict):
         The final order of categories is as input. That is, the
         categories of `first` are first and in the order they were
         defined. The others are treated similarly. Note that the order
-        can be changed via :func:`reorder`.
+        can be changed via :func:`pyyeti.ytools.reorder_dict`.
         :func:`DR_Event.set_dr_order` can also be used to modify the
         final data recovery order.
 

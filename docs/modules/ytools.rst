@@ -20,6 +20,7 @@ Math/utility routines
     mkpattvec
     multmd
     np_printoptions
+    reorder_dict
     sturm
 
 I/O helper routines
