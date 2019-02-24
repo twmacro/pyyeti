@@ -2178,7 +2178,7 @@ def nastran_dr_descriptions():
     Returns
     -------
     desc : dictionary
-        Has keys: 'acce', 'spcf', 'stress', 'force':
+        Has keys: 'acce', 'spcf', 'force', 'stress':
 
         .. code-block:: none
 
@@ -2186,7 +2186,7 @@ def nastran_dr_descriptions():
                 ['T1', 'T2', 'T3',  'R1', 'R2', 'R3']
             desc['spcf'] : numpy string array
                 ['Fx', 'Fy', 'Fz',  'Mx', 'My', 'Mz']
-            desc['stress'] : dict
+            desc['force'] : dict
                 Dictionary with element numbers as keys to numpy
                 string arrays.
             desc['stress'] : dict
@@ -2195,15 +2195,15 @@ def nastran_dr_descriptions():
 
     Notes
     -----
-    The stress and force returns are dictionaries indexed by the
-    element id. For example, for the CBAR (which is element 34)::
+    The force and stress dictionaries are indexed by the element
+    id. For example, for the CBAR (which is element 34)::
 
-        desc['stress'][34] = ['CBAR Bending Stress 1 - End A',
-                              'CBAR Bending Stress 2 - End A',
-                              ...]
         desc['force'][34] = ['CBAR Bending Moment 1 - End A',
                              'CBAR Bending Moment 2 - End A',
                              ...]
+        desc['stress'][34] = ['CBAR Bending Stress 1 - End A',
+                              'CBAR Bending Stress 2 - End A',
+                              ...]
     """
     #   Acceleration, Velocity, Displacement Recovery Items:
     accedesc = ["T1", "T2", "T3", "R1", "R2", "R3"]

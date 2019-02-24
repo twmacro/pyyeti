@@ -1917,6 +1917,25 @@ def test_ode_coupled_freq():
             assert np.allclose(sol.d[:, 1:], sold.d)
 
 
+def test_ode_coupled_freq_cdf():
+    # uncoupled equations
+    m = np.array([10., 30., 30., 30.])     # diagonal of mass
+    k = np.array([0., 6.e5, 6.e5, 6.e5])   # diagonal of stiffness
+    zeta = np.array([0., .05, 1., 2.])     # percent damping
+    b = 2. * zeta * np.sqrt(k / m) * m             # diagonal of damping
+
+    m = np.diag(m)
+    k = np.diag(k)
+    b = np.diag(b)
+
+    b[1:, 1:] += np.random.randn(3, 3)
+    freq = np.arange(0, 35, .5)
+    f = np.ones((4, freq.size))
+
+    tcdf = ode.SolveCDF(m, b, k)
+    assert_raises(NotImplementedError, tcdf.fsolve, f, freq)
+
+
 def test_ode_coupled_freq_mNone():
     # uncoupled equations
     m = None

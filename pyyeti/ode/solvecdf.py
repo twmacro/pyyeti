@@ -224,3 +224,36 @@ class SolveCDF(SolveUnc):
         """
         super().__init__(m, b, k, h, rb, rf, order, pre_eig,
                          cd_as_force=True)
+
+    def generator(self, nt, F0, d0=None, v0=None, static_ic=False):
+        """
+        Python "generator" version of :func:`SolveCDF.tsolve`;
+        interactively solve (or re-solve) one step at a time.
+
+        This routine simply calls :func:`SolveUnc.generator` and
+        only exists to provide this documentation (this is explained
+        in :class:`SolveCDF`). See :func:`SolveUnc.generator` for
+        information on using this feature; just replace "SolveUnc"
+        with "SolveCDF".
+        """
+        return super().generator(nt, F0, d0, v0, static_ic)
+
+    def fsolve(self, force, freq, incrb=2):
+        """
+        Solve frequency-domain modal equations of motion using
+        uncoupled equations.
+
+        This routine simply calls :func:`SolveUnc.fsolve` and
+        only exists to provide this documentation (this is explained
+        in :class:`SolveCDF`). See :func:`SolveUnc.fsolve` for
+        information on using this feature; just replace "SolveUnc"
+        with "SolveCDF".
+
+        .. note::
+            Off-diagonal damping as forces is not implemented for the
+            frequency domain. In that case (which is the only case
+            where :class:`SolveCDF` is different from
+            :class:`SolveUnc`), :func:`SolveUnc.fsolve` will raise
+            a ``NotImplementedError`` exception.
+        """
+        return super().fsolve(force, freq, incrb)

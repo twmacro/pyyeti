@@ -346,7 +346,7 @@ class SolveUnc(_BaseODE):
                 self._inv_m()
                 self.pc = get_su_coef(self.m, self.b, self.k,
                                       h, self.rb)
-                if self.cdforces:
+                if self.cdforces and self.pc:
                     # add ``alpha = bo (I + Bp bo)^-1`` to pc:
                     Bp = self.pc.Bp[:, None]
                     tmp = np.eye(self.ksize) + Bp * self.bo
@@ -403,7 +403,7 @@ class SolveUnc(_BaseODE):
                 else:
                     self._solve_real_unc(d, v, force)
             else:
-                # for coupled, m, b, k are only el only
+                # for coupled, m, b, k have el only
                 self._solve_complex_unc(d, v, a, force)
         self._calc_acce_kdof(d, v, a, force)
         return self._solution(d, v, a)
@@ -566,7 +566,7 @@ class SolveUnc(_BaseODE):
             next(generator)
             return generator, d, v
         else:
-            # for coupled, m, b, k are only el only
+            # for coupled, m, b, k have el only
             generator = self._solve_complex_unc_generator(d, v, a, F0)
             next(generator)
             return generator, d, v
@@ -723,6 +723,13 @@ class SolveUnc(_BaseODE):
         --------
         :class:`FreqDirect`
 
+        Raises
+        ------
+        NotImplementedError
+            When attribute `cd_as_force` is True, since off-diagonal
+            damping as forces is not implemented for the frequency
+            domain.
+
         Examples
         --------
         .. plot::
@@ -775,10 +782,14 @@ class SolveUnc(_BaseODE):
         self._force_freq_compat_chk(force, freq)
         if self.nonrfsz:
             if self.unc:
+                if self.cdforces:
+                    raise NotImplementedError(
+                        'off-diagonal damping as forces is not '
+                        'implemented for the frequency domain')
                 # for uncoupled, m, b, k have rb+el (all nonrf)
                 self._solve_freq_unc(d, v, a, force, freq, incrb)
             else:
-                # for coupled, m, b, k are only el only
+                # for coupled, m, b, k have el only
                 self._solve_freq_coup(d, v, a, force, freq, incrb)
         return self._solution_freq(d, v, a, freq)
 
