@@ -21,7 +21,7 @@ from .dr_results_plots import mk_plots
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -50,24 +50,22 @@ def get_drfunc(drinfo, get_psd=False):
         function was defined; only returned if `get_psd` is True.
     """
     if _is_valid_identifier(drinfo.drfunc):
-        spec = importlib.util.spec_from_file_location("has_drfuncs",
-                                                      drinfo.drfile)
+        spec = importlib.util.spec_from_file_location("has_drfuncs", drinfo.drfile)
         drmod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(drmod)
         func = getattr(drmod, drinfo.drfunc)
         if get_psd:
-            psdfunc = getattr(drmod, drinfo.drfunc + '_psd', None)
+            psdfunc = getattr(drmod, drinfo.drfunc + "_psd", None)
             return func, psdfunc
         return func
 
     # build function and return it:
-    strfunc = ('def _func(sol, nas, Vars, se):\n'
-               '    return ' + drinfo.drfunc.strip())
+    strfunc = "def _func(sol, nas, Vars, se):\n    return " + drinfo.drfunc.strip()
     g = globals()
     exec(strfunc, g)
     if get_psd:
-        return g['_func'], None
-    return g['_func']
+        return g["_func"], None
+    return g["_func"]
 
 
 def _is_eqsine(opts):
@@ -84,8 +82,8 @@ def _is_eqsine(opts):
     flag : bool
         True if the eqsine option is set to true.
     """
-    if 'eqsine' in opts:
-        return opts['eqsine']
+    if "eqsine" in opts:
+        return opts["eqsine"]
     return False
 
 
@@ -300,10 +298,10 @@ class DR_Results(OrderedDict):
     """
 
     def __repr__(self):
-        cats = ', '.join("'{}'".format(name) for name in self)
-        return ('{} ({}) with {} keys: [{}]'
-                .format(type(self).__name__, hex(id(self)),
-                        len(self), cats))
+        cats = ", ".join("'{}'".format(name) for name in self)
+        return "{} ({}) with {} keys: [{}]".format(
+            type(self).__name__, hex(id(self)), len(self), cats
+        )
 
     def init(self, Info, mission, event, cats=None):
         """
@@ -331,7 +329,7 @@ class DR_Results(OrderedDict):
         The name "_vars" is quietly skipped if present in `Info`.
         """
         for name in Info:
-            if name == '_vars' or (cats and name not in cats):
+            if name == "_vars" or (cats and name not in cats):
                 continue
             self[name] = SimpleNamespace(
                 ext=None,
@@ -339,7 +337,8 @@ class DR_Results(OrderedDict):
                 mincase=None,
                 mission=mission,
                 event=event,
-                drminfo=copy.copy(Info[name]))
+                drminfo=copy.copy(Info[name]),
+            )
 
     def merge(self, results_iter, rename_dict=None):
         """
@@ -402,6 +401,7 @@ class DR_Results(OrderedDict):
            results['extreme'].rpttab()
            cla.save('results.pgz', results)
         """
+
         def _get_event_name(results):
             # get any value from dict:
             v = next(iter(results.values()))
@@ -409,13 +409,12 @@ class DR_Results(OrderedDict):
                 return v.event
             if isinstance(v, DR_Results):
                 try:
-                    v2 = results['extreme']
+                    v2 = results["extreme"]
                 except KeyError:
-                    return ', '.join(key for key in results)
+                    return ", ".join(key for key in results)
                 else:
                     return next(iter(v2.values())).event
-            raise TypeError('unexpected type: {}'
-                            .format(str(type(results))))
+            raise TypeError("unexpected type: {}".format(str(type(results))))
 
         events = []
         for results in results_iter:
@@ -586,10 +585,11 @@ class DR_Results(OrderedDict):
         value = next(iter(self.values()))
         if not isinstance(value, SimpleNamespace):
             raise TypeError(
-                ':func:`split` only works with base-level '
-                ':class:`DR_Results` instances (eg: '
-                'instead of ``res.split()``, try '
-                'something like ``res[event].split()``).')
+                ":func:`split` only works with base-level "
+                ":class:`DR_Results` instances (eg: "
+                "instead of ``res.split()``, try "
+                "something like ``res[event].split()``)."
+            )
         res = DR_Results()
         cases = value.cases
         for j, case in enumerate(cases):
@@ -597,8 +597,8 @@ class DR_Results(OrderedDict):
             # copy "case" results (j'th) into res[case]:
             for cat, sns in self.items():
                 newsns = DR_Results.init_extreme_cat(
-                    [case], sns, ext_name=case,  # sns.event,
-                    domain=sns.domain)
+                    [case], sns, ext_name=case, domain=sns.domain  # sns.event,
+                )
 
                 # copy j'th results:
                 newsns.mx[:, 0] = sns.mx[:, j]
@@ -606,11 +606,10 @@ class DR_Results(OrderedDict):
                 newsns.ext = np.column_stack((newsns.mx, newsns.mn))
                 newsns.mx_x[:, 0] = sns.mx_x[:, j]
                 newsns.mn_x[:, 0] = sns.mn_x[:, j]
-                newsns.ext_x = np.column_stack((newsns.mx_x,
-                                                newsns.mn_x))
+                newsns.ext_x = np.column_stack((newsns.mx_x, newsns.mn_x))
 
                 # check for hist, time, psd, freq
-                for item in ('hist', 'time', 'psd', 'freq'):
+                for item in ("hist", "time", "psd", "freq"):
                     try:
                         v = getattr(sns, item)
                     except AttributeError:
@@ -638,8 +637,9 @@ class DR_Results(OrderedDict):
                 res[case][cat] = newsns
         return res
 
-    def add_maxmin(self, cat, mxmn, maxcase, mincase=None,
-                   mxmn_xvalue=None, domain=None):
+    def add_maxmin(
+        self, cat, mxmn, maxcase, mincase=None, mxmn_xvalue=None, domain=None
+    ):
         """
         Add maximum and minimum values from an external source
 
@@ -797,8 +797,7 @@ class DR_Results(OrderedDict):
         except ValueError:
             pass
         else:
-            raise ValueError("case '{}' already defined!"
-                             .format(case))
+            raise ValueError("case '{}' already defined!".format(case))
         res.mx[:, j] = mm.ext[:, 0]
         res.mx_x[:, j] = mm.ext_x[:, 0]
         res.mn[:, j] = mm.ext[:, 1]
@@ -810,9 +809,11 @@ class DR_Results(OrderedDict):
             m = res.ext.shape[0]
         lbllen = len(res.drminfo.labels)
         if lbllen != m:
-            raise ValueError('for {}, length of `labels` ({}) does '
-                             'not match number of data recovery '
-                             'items ({})'.format(name, lbllen, m))
+            raise ValueError(
+                "for {}, length of `labels` ({}) does "
+                "not match number of data recovery "
+                "items ({})".format(name, lbllen, m)
+            )
 
     def _init_mxmn(self, name, res, domain, mm, n):
         m = mm.ext.shape[0]
@@ -825,32 +826,29 @@ class DR_Results(OrderedDict):
         res.cases = n * [[]]
         return m
 
-    def _init_results_cat(self, name, dr, resp, respname,
-                          x, xname, mm, n, dohist, dosrs):
+    def _init_results_cat(
+        self, name, dr, resp, respname, x, xname, mm, n, dohist, dosrs
+    ):
         # dohist is here for 3rd party use cases
         res = self[name]
         m = self._init_mxmn(name, res, xname, mm, n)
         if dr.histpv is not None and dohist:
             m = len(resp[dr.histpv, 0])
             setattr(res, xname, x)
-            setattr(res, respname, np.zeros((n, m, len(x)),
-                                            resp.dtype))
+            setattr(res, respname, np.zeros((n, m, len(x)), resp.dtype))
         if dr.srspv is not None and dosrs:
-            res.srs = SimpleNamespace(frq=dr.srsfrq,
-                                      units=dr.srsunits,
-                                      srs={}, ext={})
+            res.srs = SimpleNamespace(frq=dr.srsfrq, units=dr.srsunits, srs={}, ext={})
             m = len(resp[dr.srspv, 0])
             sh = (n, m, (len(res.srs.frq)))
             for q in dr.srsQs:
                 res.srs.srs[q] = np.zeros(sh)
 
-    def _compute_srs(self, res, dr, resp, respname,
-                     x, j, first, sr=None, pf=None):
+    def _compute_srs(self, res, dr, resp, respname, x, j, first, sr=None, pf=None):
         if _is_eqsine(dr.srsopts):
-            res.srs.type = 'eqsine'
+            res.srs.type = "eqsine"
             eqsine = True
         else:
-            res.srs.type = 'srs'
+            res.srs.type = "srs"
             eqsine = False
 
         rr = resp[dr.srspv].T
@@ -858,34 +856,30 @@ class DR_Results(OrderedDict):
             fact = dr.srsconv
 
             # compute the srs:
-            if respname == 'hist':
-                srs_cur = fact * srs.srs(
-                    rr, sr, dr.srsfrq, q, **dr.srsopts).T
-            elif respname == 'frf':
+            if respname == "hist":
+                srs_cur = fact * srs.srs(rr, sr, dr.srsfrq, q, **dr.srsopts).T
+            elif respname == "frf":
                 if eqsine:
                     fact /= q
-                srs_cur = fact * srs.srs_frf(
-                    rr, x, dr.srsfrq, q).T
-            elif respname == 'psd':
+                srs_cur = fact * srs.srs_frf(rr, x, dr.srsfrq, q).T
+            elif respname == "psd":
                 fact *= pf
                 if eqsine:
                     fact /= q
-                srs_cur = fact * srs.vrs(
-                    (x, rr), x, q, Fn=dr.srsfrq, linear=True).T
-            else:    # pragma: no cover
-                raise ValueError('`respname` must be one of: '
-                                 '"hist", "frf", or "psd"')
+                srs_cur = fact * srs.vrs((x, rr), x, q, Fn=dr.srsfrq, linear=True).T
+            else:  # pragma: no cover
+                raise ValueError(
+                    "`respname` must be one of: " '"hist", "frf", or "psd"'
+                )
 
             # store results and keep track of extreme srs:
             res.srs.srs[q][j] = srs_cur
             if first:
                 res.srs.ext[q] = srs_cur
             else:
-                res.srs.ext[q] = np.fmax(res.srs.ext[q],
-                                         srs_cur)
+                res.srs.ext[q] = np.fmax(res.srs.ext[q], srs_cur)
 
-    def time_data_recovery(self, sol, nas, case, DR, n, j,
-                           dosrs=True):
+    def time_data_recovery(self, sol, nas, case, DR, n, j, dosrs=True):
         """
         Time-domain data recovery function
 
@@ -940,8 +934,17 @@ class DR_Results(OrderedDict):
 
             if first:
                 self._init_results_cat(
-                    name, dr, resp, 'hist', SOL.t, 'time',
-                    mm, n, dohist=True, dosrs=dosrs)
+                    name,
+                    dr,
+                    resp,
+                    "hist",
+                    SOL.t,
+                    "time",
+                    mm,
+                    n,
+                    dohist=True,
+                    dosrs=dosrs,
+                )
 
             self._store_maxmin(res, mm, j, case)
 
@@ -950,11 +953,9 @@ class DR_Results(OrderedDict):
 
             if dr.srspv is not None and dosrs:
                 sr = 1 / SOL.h if SOL.h else None
-                self._compute_srs(res, dr, resp, 'hist',
-                                  SOL.t, j, first, sr=sr)
+                self._compute_srs(res, dr, resp, "hist", SOL.t, j, first, sr=sr)
 
-    def frf_data_recovery(self, sol, nas, case, DR, n, j,
-                          dosrs=True):
+    def frf_data_recovery(self, sol, nas, case, DR, n, j, dosrs=True):
         """
         Frequency response data recovery function
 
@@ -1011,8 +1012,17 @@ class DR_Results(OrderedDict):
 
             if first:
                 self._init_results_cat(
-                    name, dr, resp, 'frf', SOL.f, 'freq',
-                    mm, n, dohist=True, dosrs=dosrs)
+                    name,
+                    dr,
+                    resp,
+                    "frf",
+                    SOL.f,
+                    "freq",
+                    mm,
+                    n,
+                    dohist=True,
+                    dosrs=dosrs,
+                )
 
             self._store_maxmin(res, mm, j, case)
 
@@ -1020,11 +1030,11 @@ class DR_Results(OrderedDict):
                 res.frf[j] = resp[dr.histpv]
 
             if dr.srspv is not None and dosrs:
-                self._compute_srs(res, dr, resp, 'frf',
-                                  SOL.f, j, first)
+                self._compute_srs(res, dr, resp, "frf", SOL.f, j, first)
 
-    def solvepsd(self, nas, case, DR, fs, forcepsd, t_frc, freq,
-                 incrb=2, verbose=False):
+    def solvepsd(
+        self, nas, case, DR, fs, forcepsd, t_frc, freq, incrb=2, verbose=False
+    ):
         """
         Solve equations of motion in frequency domain with PSD forces
 
@@ -1095,9 +1105,11 @@ class DR_Results(OrderedDict):
         nonzero_forces = np.any(forcepsd, axis=1).nonzero()[0]
         if nonzero_forces.size:
             if verbose:
-                print('Trimming off {} zero forces'
-                      .format(forcepsd.shape[0] -
-                              nonzero_forces.size))
+                print(
+                    "Trimming off {} zero forces".format(
+                        forcepsd.shape[0] - nonzero_forces.size
+                    )
+                )
             forcepsd = forcepsd[nonzero_forces]
             t_frc = t_frc[nonzero_forces]
         freq = np.atleast_1d(freq)
@@ -1109,13 +1121,12 @@ class DR_Results(OrderedDict):
         # initialize categories for data recovery
         drfuncs = {}
         for key, value in self.items():
-            if '_psd' not in value.__dict__:
+            if "_psd" not in value.__dict__:
                 value.freq = freq
                 value._psd = {}
             else:
                 if not np.allclose(value.freq, freq):
-                    raise ValueError('`freq` must match `freq` '
-                                     'from previous case')
+                    raise ValueError("`freq` must match `freq` from previous case")
             value._psd[case] = 0.0
             # get data recovery functions just once, outside of main
             # loop; returns tuple: (func, func_psd) ... func_psd will
@@ -1124,11 +1135,11 @@ class DR_Results(OrderedDict):
             drfuncs[key] = get_drfunc(value.drminfo, get_psd=True)
 
         import time
+
         timers = [0, 0, 0]
         for i in range(rpsd):
             if verbose:
-                print('{}: processing force {} of {}'
-                      .format(case, i + 1, rpsd))
+                print("{}: processing force {} of {}".format(case, i + 1, rpsd))
             # solve for unit FRF for i'th force:
             genforce = t_frc[i][:, None] * unitforce
             t1 = time.time()
@@ -1138,7 +1149,7 @@ class DR_Results(OrderedDict):
 
             # apply uncertainty factors:
             t1 = time.time()
-            sol = DR.frf_apply_uf(sol, nas['nrb'])
+            sol = DR.frf_apply_uf(sol, nas["nrb"])
             # sol = DR.apply_uf(sol, *mbk, nas['nrb'], rfmodes)
             timers[1] += time.time() - t1
 
@@ -1149,19 +1160,20 @@ class DR_Results(OrderedDict):
                 se = value.drminfo.se
                 if drfuncs[key][1]:
                     # use PSD recovery function if present:
-                    drfuncs[key][1](sol[uf_reds], nas, DR.Vars, se,
-                                    freq, forcepsd, value, case, i)
+                    drfuncs[key][1](
+                        sol[uf_reds], nas, DR.Vars, se, freq, forcepsd, value, case, i
+                    )
                 else:
                     # otherwise, use normal recovery function:
-                    resp = drfuncs[key][0](sol[uf_reds], nas,
-                                           DR.Vars, se)
-                    value._psd[case] += forcepsd[i] * abs(resp)**2
+                    resp = drfuncs[key][0](sol[uf_reds], nas, DR.Vars, se)
+                    value._psd[case] += forcepsd[i] * abs(resp) ** 2
             timers[2] += time.time() - t1
         if verbose:
-            print('timers =', timers)
+            print("timers =", timers)
 
-    def psd_data_recovery(self, case, DR, n, j, dosrs=True,
-                          peak_factor=3.0, resp_time=None):
+    def psd_data_recovery(
+        self, case, DR, n, j, dosrs=True, peak_factor=3.0, resp_time=None
+    ):
         """
         PSD data recovery function
 
@@ -1223,6 +1235,7 @@ class DR_Results(OrderedDict):
         .. [#rand1] Wirsching, Paez, Ortiz, "Random Vibrations: Theory
                     and Practice", Dover Publications, Inc., 2006.
         """
+
         def _calc_rms(df, p):
             sumpsd = p[:, :-1] + p[:, 1:]
             return np.sqrt((df * sumpsd).sum(axis=1) / 2)
@@ -1242,20 +1255,30 @@ class DR_Results(OrderedDict):
             #   af = vel_rms/disp_rms * (1/(2 pi))      (Hz)
             # vel_psd = (2 pi f)**2 * PSD
             # - note that the 2 pi factor cancels after square root
-            vrms = _calc_rms(freqstep, freq**2 * psd)
+            vrms = _calc_rms(freqstep, freq ** 2 * psd)
 
             pk = peak_factor * rms
             pk_freq = vrms / rms
             mm = SimpleNamespace(
                 ext=np.column_stack((pk, -pk)),
-                ext_x=np.column_stack((pk_freq, pk_freq)))
+                ext_x=np.column_stack((pk_freq, pk_freq)),
+            )
 
             extrema(res, mm, case)
 
             if first:
                 self._init_results_cat(
-                    name, dr, psd, 'psd', res.freq, 'freq',
-                    mm, n, dohist=True, dosrs=dosrs)
+                    name,
+                    dr,
+                    psd,
+                    "psd",
+                    res.freq,
+                    "freq",
+                    mm,
+                    n,
+                    dohist=True,
+                    dosrs=dosrs,
+                )
                 res.rms = np.zeros((rms.shape[0], n))
 
             self._store_maxmin(res, mm, j, case)
@@ -1271,8 +1294,7 @@ class DR_Results(OrderedDict):
                 else:
                     pf = peak_factor
                 # spec = (freq, psd[dr.srspv].T)
-                self._compute_srs(res, dr, psd, 'psd',
-                                  freq, j, first, pf=pf)
+                self._compute_srs(res, dr, psd, "psd", freq, j, first, pf=pf)
 
         if j == n - 1:
             del res._psd
@@ -1309,17 +1331,16 @@ class DR_Results(OrderedDict):
             mx = res.mx.mean(axis=1) + k * res.mx.std(ddof=1, axis=1)
             mn = res.mn.mean(axis=1) - k * res.mn.std(ddof=1, axis=1)
             res.ext = np.column_stack((mx, mn))
-            res.maxcase = res.mincase = ['Statistical'] * mx.shape[0]
+            res.maxcase = res.mincase = ["Statistical"] * mx.shape[0]
             res.ext_x = None
 
             # handle SRS if it is there:
-            if 'srs' in res.__dict__:
+            if "srs" in res.__dict__:
                 for Q in res.srs.srs:
                     arr = res.srs.srs[Q]
-                    res.srs.ext[Q] = (arr.mean(axis=0) +
-                                      k * arr.std(ddof=1, axis=0))
+                    res.srs.ext[Q] = arr.mean(axis=0) + k * arr.std(ddof=1, axis=0)
 
-    def all_base_events(self, top_level_name='Top Level'):
+    def all_base_events(self, top_level_name="Top Level"):
         """
         A generator for looping over all base events
 
@@ -1390,6 +1411,7 @@ class DR_Results(OrderedDict):
         SC_atm : namespace()
         SC_ltm : namespace()
         """
+
         def _all_bases(dct, topname):
             value = next(iter(dct.values()))
             if isinstance(value, SimpleNamespace):
@@ -1397,9 +1419,10 @@ class DR_Results(OrderedDict):
             elif isinstance(value, DR_Results):
                 for name, value in dct.items():
                     yield from _all_bases(value, name)
+
         yield from _all_bases(self, top_level_name)
 
-    def all_nonbase_events(self, top_level_name='Top Level'):
+    def all_nonbase_events(self, top_level_name="Top Level"):
         """
         A generator for looping over all non-base events
 
@@ -1426,12 +1449,14 @@ class DR_Results(OrderedDict):
         --------
         See :func:`all_base_events` for an example.
         """
+
         def _all_nonbases(dct, topname):
             value = next(iter(dct.values()))
             if isinstance(value, DR_Results):
                 yield topname, dct
                 for name, value in dct.items():
                     yield from _all_nonbases(value, name)
+
         yield from _all_nonbases(self, top_level_name)
 
     def all_categories(self):
@@ -1458,12 +1483,14 @@ class DR_Results(OrderedDict):
         --------
         See :func:`all_base_events` for an example.
         """
+
         def _all_cats(dct):
             for name, value in dct.items():
                 if isinstance(value, DR_Results):
                     yield from _all_cats(value)
                 elif isinstance(value, SimpleNamespace):
                     yield name, value
+
         yield from _all_cats(self)
 
     def delete_extreme(self):
@@ -1478,7 +1505,7 @@ class DR_Results(OrderedDict):
         this routine to delete any stale 'extreme' entries before
         forming any new entries.
         """
-        self.pop('extreme', None)
+        self.pop("extreme", None)
         for value in self.values():
             if isinstance(value, DR_Results):
                 value.delete_extreme()
@@ -1486,8 +1513,7 @@ class DR_Results(OrderedDict):
                 return
 
     @staticmethod
-    def init_extreme_cat(cases, oldcat, ext_name='Envelope',
-                         domain='X-Value'):
+    def init_extreme_cat(cases, oldcat, ext_name="Envelope", domain="X-Value"):
         """
         Initialize an "extrema" data recovery category
 
@@ -1575,13 +1601,23 @@ class DR_Results(OrderedDict):
         drminfo = copy.copy(oldcat.drminfo)
 
         ret = SimpleNamespace(
-            cases=cases, drminfo=drminfo, mission=oldcat.mission,
-            event=ext_name, ext=None, ext_x=None, maxcase=None,
-            mincase=None, mx=mx, mn=mn, mx_x=mx_x,
-            mn_x=mn_x, domain=domain)
+            cases=cases,
+            drminfo=drminfo,
+            mission=oldcat.mission,
+            event=ext_name,
+            ext=None,
+            ext_x=None,
+            maxcase=None,
+            mincase=None,
+            mx=mx,
+            mn=mn,
+            mx_x=mx_x,
+            mn_x=mn_x,
+            domain=domain,
+        )
 
         # handle SRS if present:
-        osrs = getattr(oldcat, 'srs', None)
+        osrs = getattr(oldcat, "srs", None)
         if osrs is not None:
             srs_ns = copy.copy(osrs)
             srs_ns.ext = copy.deepcopy(osrs.ext)
@@ -1594,8 +1630,7 @@ class DR_Results(OrderedDict):
 
         return ret
 
-    def form_extreme(self, ext_name='Envelope', case_order=None,
-                     doappend=2):
+    def form_extreme(self, ext_name="Envelope", case_order=None, doappend=2):
         """
         Form extreme response over sets of results
 
@@ -1669,7 +1704,7 @@ class DR_Results(OrderedDict):
                        .maxcase = 'Gust,Yaw'         if doappend = 2
                        .maxcase = 'Frq 3'            if doappend = 3
         """
-        DEFDOMAIN = 'X-Value'
+        DEFDOMAIN = "X-Value"
 
         def _mk_case_lbls(case, val, use_ext, doappend):
             case = str(case)
@@ -1677,10 +1712,10 @@ class DR_Results(OrderedDict):
                 doappend = 1
             maxcase = mincase = case
             # handle 1 and 3 settings:
-            if 'maxcase' in val.__dict__:   # always true?
+            if "maxcase" in val.__dict__:  # always true?
                 if doappend == 1:
-                    maxcase = [case + ',' + i for i in val.maxcase]
-                    mincase = [case + ',' + i for i in val.mincase]
+                    maxcase = [case + "," + i for i in val.maxcase]
+                    mincase = [case + "," + i for i in val.mincase]
                 elif doappend == 3:
                     maxcase = val.maxcase
                     mincase = val.mincase
@@ -1695,7 +1730,7 @@ class DR_Results(OrderedDict):
             ext_new = copy.copy(ext_old)
             ext_new.drminfo = copy.copy(ext_old.drminfo)
             ext_new.drminfo.labels = labels
-            for name in ['ext', 'ext_x', 'mx', 'mn', 'mx_x', 'mn_x']:
+            for name in ["ext", "ext_x", "mx", "mn", "mx_x", "mn_x"]:
                 old = ext_old.__dict__[name]
                 if old is not None:
                     new = np.empty((n, old.shape[1]))
@@ -1703,8 +1738,8 @@ class DR_Results(OrderedDict):
                     new[pv] = old
                     ext_new.__dict__[name] = new
             if ext_old.maxcase is not None:
-                maxcase = ['n/a' for i in range(n)]
-                mincase = ['n/a' for i in range(n)]
+                maxcase = ["n/a" for i in range(n)]
+                mincase = ["n/a" for i in range(n)]
                 for i, j in enumerate(pv):
                     maxcase[j] = ext_old.maxcase[i]
                     mincase[j] = ext_old.mincase[i]
@@ -1721,17 +1756,17 @@ class DR_Results(OrderedDict):
                 return ext1, ext2
             for lbls in (l1, l2):
                 if len(lbls) != len(set(lbls)):
-                    msg = ('Row labels for "{}" (event "{}") are not '
-                           'all unique. Cannot compare to event "{}".'
-                           .format(ext1.drminfo.desc,
-                                   ext1.event,
-                                   ext2.event))
+                    msg = (
+                        'Row labels for "{}" (event "{}") are not '
+                        'all unique. Cannot compare to event "{}".'.format(
+                            ext1.drminfo.desc, ext1.event, ext2.event
+                        )
+                    )
                     raise ValueError(msg)
             # for both ext1 and ext2, expand:
             #   [ext, ext_x, maxcase, mincase, mx, mn, mx_x, mn_x]
             l3, pv1, pv2 = locate.merge_lists(l1, l2)
-            return (_expand(ext1, l3, pv1),
-                    _expand(ext2, l3, pv2))
+            return (_expand(ext1, l3, pv1), _expand(ext2, l3, pv2))
 
         def _calc_extreme(dct, ext_name, case_order, doappend):
             if case_order is None:
@@ -1742,7 +1777,7 @@ class DR_Results(OrderedDict):
             domain = None
             for j, case in enumerate(cases):
                 try:
-                    curext = dct[case]['extreme']
+                    curext = dct[case]["extreme"]
                     use_ext = True
                 except KeyError:
                     curext = dct[case]
@@ -1751,20 +1786,21 @@ class DR_Results(OrderedDict):
                 for drm, val in curext.items():
                     if drm not in new_ext:
                         new_ext[drm] = new_ext.init_extreme_cat(
-                            cases, val, ext_name, DEFDOMAIN)
+                            cases, val, ext_name, DEFDOMAIN
+                        )
                     else:
-                        new_ext[drm], val = _check_row_compatibility(
-                            new_ext[drm], val)
+                        new_ext[drm], val = _check_row_compatibility(new_ext[drm], val)
                     if domain is not None:
                         if domain != val.domain:
                             domain = DEFDOMAIN
                     else:
                         domain = val.domain
                     maxcase, mincase = _mk_case_lbls(
-                        case, val, use_ext, doappend=doappend)
+                        case, val, use_ext, doappend=doappend
+                    )
                     extrema(new_ext[drm], val, maxcase, mincase, j)
 
-                    osrs = getattr(val, 'srs', None)
+                    osrs = getattr(val, "srs", None)
                     if osrs is not None:
                         _ext = new_ext[drm].srs.ext
                         _srs = new_ext[drm].srs.srs
@@ -1784,8 +1820,7 @@ class DR_Results(OrderedDict):
                     return
                 # use ext_name, case_order only at the top level
                 _add_extreme(value, name, None, doappend)
-            dct['extreme'] = _calc_extreme(
-                dct, ext_name, case_order, doappend)
+            dct["extreme"] = _calc_extreme(dct, ext_name, case_order, doappend)
 
         # main routine:
         self.delete_extreme()
@@ -1806,19 +1841,20 @@ class DR_Results(OrderedDict):
         See example usage in :func:`DR_Results.merge`.
         """
         for name, cat in self.all_categories():
-            for attr in ('hist', 'time', 'psd', 'freq'):
+            for attr in ("hist", "time", "psd", "freq"):
                 try:
                     delattr(cat, attr)
                 except AttributeError:
                     pass
-            if hasattr(cat, 'srs'):
+            if hasattr(cat, "srs"):
                 try:
-                    delattr(cat.srs, 'srs')
+                    delattr(cat.srs, "srs")
                 except AttributeError:  # pragma: no cover
                     pass
 
-    def rptext(self, event=None, direc='ext', doabsmax=False,
-               numform='{:13.5e}', perpage=-1):
+    def rptext(
+        self, event=None, direc="ext", doabsmax=False, numform="{:13.5e}", perpage=-1
+    ):
         """
         Writes .ext files for all max/min results.
 
@@ -1852,14 +1888,18 @@ class DR_Results(OrderedDict):
             mission = res.mission
             if event is None:
                 event = res.event
-            title = '{} - {} Extrema Results'.format(mission, event)
-            filename = os.path.join(direc, name + '.ext')
-            rptext1(res, filename, title=title,
-                    doabsmax=doabsmax, numform=numform,
-                    perpage=perpage)
+            title = "{} - {} Extrema Results".format(mission, event)
+            filename = os.path.join(direc, name + ".ext")
+            rptext1(
+                res,
+                filename,
+                title=title,
+                doabsmax=doabsmax,
+                numform=numform,
+                perpage=perpage,
+            )
 
-    def rpttab(self, event=None, direc='tab', count_filter=1e-6,
-               excel=False):
+    def rpttab(self, event=None, direc="tab", count_filter=1e-6, excel=False):
         """
         Write results tables with bin count information.
 
@@ -1897,8 +1937,8 @@ class DR_Results(OrderedDict):
             os.mkdir(direc)
         if isinstance(excel, str):
             # create a single excel file
-            filename = os.path.join(direc, excel + '.xlsx')
-            opts = {'nan_inf_to_errors': True}
+            filename = os.path.join(direc, excel + ".xlsx")
+            opts = {"nan_inf_to_errors": True}
             workbook = xlsxwriter.Workbook(filename, opts)
             filename = workbook
         else:
@@ -1910,22 +1950,30 @@ class DR_Results(OrderedDict):
                 mission = res.mission
                 if event is None:
                     event = res.event
-                ttl = ('{} - {} Extrema Results and Bin Count Tables'
-                       .format(mission, event))
+                ttl = "{} - {} Extrema Results and Bin Count Tables".format(
+                    mission, event
+                )
                 if excel:
                     if not isinstance(excel, str):
-                        filename = os.path.join(direc, name + '.xlsx')
+                        filename = os.path.join(direc, name + ".xlsx")
                 else:
-                    filename = os.path.join(direc, name + '.tab')
-                rpttab1(res, filename, title=ttl,
-                        count_filter=count_filter, name=name)
+                    filename = os.path.join(direc, name + ".tab")
+                rpttab1(res, filename, title=ttl, count_filter=count_filter, name=name)
         finally:
             if workbook is not None:
                 workbook.close()
 
-    def rptpct(self, refres, names=('Self', 'Reference'),
-               event=None, drms=None, fileext='.cmp', direc='compare',
-               keyconv=None, **rptpct1_args):
+    def rptpct(
+        self,
+        refres,
+        names=("Self", "Reference"),
+        event=None,
+        drms=None,
+        fileext=".cmp",
+        direc="compare",
+        keyconv=None,
+        **rptpct1_args
+    ):
         """
         Write comparison files for all max/min data in results.
 
@@ -1995,22 +2043,40 @@ class DR_Results(OrderedDict):
                 mission = res.mission
                 if event is None:
                     event = res.event
-                title = ('{}, {} - {} vs. {}'
-                         .format(mission, event, *names))
+                title = "{}, {} - {} vs. {}".format(mission, event, *names)
                 filename = os.path.join(direc, drm + fileext)
-                rptpct1(res, refres[refdrm], filename, title=title,
-                        names=names, **rptpct1_args)
+                rptpct1(
+                    res,
+                    refres[refdrm],
+                    filename,
+                    title=title,
+                    names=names,
+                    **rptpct1_args
+                )
         if len(skipdrms) > 0:
             warnings.warn(
-                'Some comparisons were skipped (not found in'
-                ' `refres`):\n{}'
-                .format(str(skipdrms)), RuntimeWarning)
+                "Some comparisons were skipped (not found in"
+                " `refres`):\n{}".format(str(skipdrms)),
+                RuntimeWarning,
+            )
 
-    def srs_plots(self, event=None, Q='auto', drms=None,
-                  inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
-                  figsize=(11, 8.5), showall=None, showboth=False,
-                  direc='srs_plots', tight_layout_args=None,
-                  plot=plt.plot, show_figures=False):
+    def srs_plots(
+        self,
+        event=None,
+        Q="auto",
+        drms=None,
+        inc0rb=True,
+        fmt="pdf",
+        onepdf=True,
+        layout=(2, 3),
+        figsize=(11, 8.5),
+        showall=None,
+        showboth=False,
+        direc="srs_plots",
+        tight_layout_args=None,
+        plot=plt.plot,
+        show_figures=False,
+    ):
         """
         Make SRS plots with optional printing to .pdf or .png files.
 
@@ -2130,20 +2196,41 @@ class DR_Results(OrderedDict):
             # write png file(s) to 'png/':
             results.srs_plots(fmt='png', direc='png')
         """
-        return mk_plots(self, issrs=True, event=event, Q=Q, drms=drms,
-                        inc0rb=inc0rb, fmt=fmt, onepdf=onepdf,
-                        layout=layout, figsize=figsize,
-                        showall=showall, showboth=showboth,
-                        direc=direc,
-                        tight_layout_args=tight_layout_args,
-                        cases=None, plot=plot,
-                        show_figures=show_figures)
+        return mk_plots(
+            self,
+            issrs=True,
+            event=event,
+            Q=Q,
+            drms=drms,
+            inc0rb=inc0rb,
+            fmt=fmt,
+            onepdf=onepdf,
+            layout=layout,
+            figsize=figsize,
+            showall=showall,
+            showboth=showboth,
+            direc=direc,
+            tight_layout_args=tight_layout_args,
+            cases=None,
+            plot=plot,
+            show_figures=show_figures,
+        )
 
-    def resp_plots(self, event=None, drms=None, inc0rb=True,
-                   fmt='pdf', onepdf=True, layout=(2, 3),
-                   figsize=(11, 8.5), cases=None, direc='resp_plots',
-                   tight_layout_args=None, plot=plt.plot,
-                   show_figures=False):
+    def resp_plots(
+        self,
+        event=None,
+        drms=None,
+        inc0rb=True,
+        fmt="pdf",
+        onepdf=True,
+        layout=(2, 3),
+        figsize=(11, 8.5),
+        cases=None,
+        direc="resp_plots",
+        tight_layout_args=None,
+        plot=plt.plot,
+        show_figures=False,
+    ):
         """
         Make time or frequency domain responses plots.
 
@@ -2257,10 +2344,22 @@ class DR_Results(OrderedDict):
             results.resp_plots(fmt='png', direc='png')
 
         """
-        return mk_plots(self, issrs=False, event=event, drms=drms,
-                        inc0rb=inc0rb, fmt=fmt, onepdf=onepdf,
-                        layout=layout, figsize=figsize,
-                        cases=cases, direc=direc,
-                        tight_layout_args=tight_layout_args,
-                        Q='auto', showall=None, showboth=False,
-                        plot=plot, show_figures=show_figures)
+        return mk_plots(
+            self,
+            issrs=False,
+            event=event,
+            drms=drms,
+            inc0rb=inc0rb,
+            fmt=fmt,
+            onepdf=onepdf,
+            layout=layout,
+            figsize=figsize,
+            cases=cases,
+            direc=direc,
+            tight_layout_args=tight_layout_args,
+            Q="auto",
+            showall=None,
+            showboth=False,
+            plot=plot,
+            show_figures=show_figures,
+        )

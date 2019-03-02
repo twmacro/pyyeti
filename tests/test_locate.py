@@ -49,5 +49,4 @@ def test_locate_misc():
     assert np.all(np.array([0, 1, 2]) == pv2)
     pv = np.array([0, 3, 5])
     tf = locate.index2bool(pv, 8)
-    assert np.all(np.array([True, False, False, True, False, True,
-                            False, False]) == tf)
+    assert np.all(np.array([True, False, False, True, False, True, False, False]) == tf)

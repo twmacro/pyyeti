@@ -12,19 +12,18 @@ from pyyeti import dsp
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
 
 def _set_frange(frange, low, high):
-    s = frange[0] if frange[0] > 0. else low
+    s = frange[0] if frange[0] > 0.0 else low
     e = frange[1] if frange[1] <= high else high
     return s, e
 
 
-def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='outside',
-                 anchor=None):
+def get_freq_oct(n, frange=(1.0, 10000.0), exact=False, trim="outside", anchor=None):
     r"""
     Get frequency vector on an octave scale.
 
@@ -125,36 +124,36 @@ def get_freq_oct(n, frange=(1., 10000.), exact=False, trim='outside',
     array([ 0.7937,  0.8909,  1.    ,  1.1225,  1.2599,  1.4142,  1.5874,
             1.7818,  2.    ,  2.2449,  2.5198])
     """
-    s = frange[0] if frange[0] > 0. else 1.0
+    s = frange[0] if frange[0] > 0.0 else 1.0
     e = frange[-1]
     if exact:
         if not anchor:
-            anchor = 1000.
+            anchor = 1000.0
         var1 = np.floor(np.log2(s / anchor) * n)
         var2 = np.log2(e / anchor) * n + 1
         bands = np.arange(var1, var2)
-        F = anchor * 2**(bands / n)
-        factor = 2**(1 / (2 * n))
+        F = anchor * 2 ** (bands / n)
+        factor = 2 ** (1 / (2 * n))
     else:
         if not anchor:
-            anchor = 1.
+            anchor = 1.0
         var1 = np.floor(np.log10(s / anchor) * 10 * n / 3)
         var2 = np.log10(e / anchor) * 10 * n / 3 + 1
         bands = np.arange(var1, var2)
-        F = anchor * 10**(3 * bands / (10 * n))
-        factor = 10**(3 / (20 * n))
+        F = anchor * 10 ** (3 * bands / (10 * n))
+        factor = 10 ** (3 / (20 * n))
     FL, FU = F / factor, F * factor
-    if trim in ('outside', 'band'):
+    if trim in ("outside", "band"):
         Nmax = np.max(np.nonzero(FL <= e)[0]) + 1
         Nmin = np.min(np.nonzero(FU >= s)[0])
-    elif trim == 'center':
+    elif trim == "center":
         Nmax = np.max(np.nonzero(F <= e)[0]) + 1
         Nmin = np.min(np.nonzero(F >= s)[0])
-    elif trim == 'inside':
+    elif trim == "inside":
         Nmax = np.max(np.nonzero(FU <= e)[0]) + 1
         Nmin = np.min(np.nonzero(FL >= s)[0])
     else:
-        raise ValueError('input `trim` has invalid value')
+        raise ValueError("input `trim` has invalid value")
     F = F[Nmin:Nmax]
     FL = FL[Nmin:Nmax]
     FU = FU[Nmin:Nmax]
@@ -192,25 +191,26 @@ def proc_psd_spec(spec):
     """
     if isinstance(spec, np.ndarray):
         if spec.ndim != 2 or spec.shape[1] <= 1:
-            raise ValueError('incorrectly sized ndarray for '
-                             '`spec` input (must be 2d with more'
-                             ' than 1 column)')
+            raise ValueError(
+                "incorrectly sized ndarray for "
+                "`spec` input (must be 2d with more"
+                " than 1 column)"
+            )
         Freq = spec[:, 0]
         PSD = spec[:, 1:]
         npsds = PSD.shape[1]
     else:
         if len(spec) != 2:
-            msg = ('incorrectly sized `spec` input: for tuple/'
-                   'list input, must have length 2, not {}'
-                   .format(len(spec)))
+            msg = (
+                "incorrectly sized `spec` input: for tuple/"
+                "list input, must have length 2, not {}".format(len(spec))
+            )
             raise ValueError(msg)
         Freq, PSD = np.atleast_1d(*spec)
         if len(Freq) != PSD.shape[0]:
-            raise ValueError('Freq and PSD inputs in `spec` are'
-                             ' incompatibly sized')
+            raise ValueError("Freq and PSD inputs in `spec` are incompatibly sized")
         if PSD.ndim > 2:
-            raise ValueError('the PSD input in `spec` has more '
-                             'than 2 dimensions.')
+            raise ValueError("the PSD input in `spec` has more than 2 dimensions.")
         npsds = 1 if PSD.ndim == 1 else PSD.shape[1]
     # check for nans in Freq:
     pv = np.isnan(Freq)
@@ -442,22 +442,26 @@ def interp(spec, freq, linear=False):
     #    spec = np.atleast_2d(spec)
     freq = np.atleast_1d(freq)
     if linear:
-        ifunc = interp1d(Freq, PSD, axis=0,
-                         bounds_error=False, fill_value=0,
-                         assume_sorted=True)
+        ifunc = interp1d(
+            Freq, PSD, axis=0, bounds_error=False, fill_value=0, assume_sorted=True
+        )
         psdfull = ifunc(freq)
     else:
-        ifunc = interp1d(np.log(Freq), np.log(PSD), axis=0,
-                         bounds_error=False, fill_value=0,
-                         assume_sorted=True)
+        ifunc = interp1d(
+            np.log(Freq),
+            np.log(PSD),
+            axis=0,
+            bounds_error=False,
+            fill_value=0,
+            assume_sorted=True,
+        )
         psdfull = ifunc(np.log(freq))
         pv = (freq >= Freq[0]) & (freq <= Freq[-1])
         psdfull[pv] = np.exp(psdfull[pv])
     return psdfull
 
 
-def rescale(P, F, n_oct=3, freq=None, extendends=True,
-            frange=(25.0, np.inf)):
+def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=(25.0, np.inf)):
     """
     Convert PSD from one frequency scale to another.
 
@@ -612,8 +616,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
 
     if freq is None:
         frange = _set_frange(frange, 1.0, F[-1])
-        Wctr, FL, FU = get_freq_oct(n_oct, exact=True,
-                                    frange=frange)
+        Wctr, FL, FU = get_freq_oct(n_oct, exact=True, frange=frange)
     else:
         freq = np.atleast_1d(freq)
         FL, FU = _get_fl_fu(freq)
@@ -677,9 +680,18 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True,
     return psdoct, Wctr, msv, ms
 
 
-def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
-        timeslice=1.0, tsoverlap=0.5, fs=3, pref=2.9e-9,
-        frange=(25.0, np.inf)):
+def spl(
+    x,
+    sr,
+    nperseg=None,
+    overlap=0.5,
+    window="hanning",
+    timeslice=1.0,
+    tsoverlap=0.5,
+    fs=3,
+    pref=2.9e-9,
+    frange=(25.0, np.inf),
+):
     r"""
     Sound pressure level estimation using PSD.
 
@@ -768,9 +780,15 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
     if nperseg is None:
         nperseg = int(sr / 5)
     # compute psd
-    F, P = psdmod(x, sr, nperseg=nperseg, window=window,
-                  timeslice=timeslice, tsoverlap=tsoverlap,
-                  noverlap=int(overlap * nperseg))
+    F, P = psdmod(
+        x,
+        sr,
+        nperseg=nperseg,
+        window=window,
+        timeslice=timeslice,
+        tsoverlap=tsoverlap,
+        noverlap=int(overlap * nperseg),
+    )
     s, e = _set_frange(frange, 0.0, sr / 2)
     if fs != 0:
         _, F, _, P = rescale(P, F, n_oct=fs, frange=(s, e))
@@ -779,12 +797,13 @@ def spl(x, sr, nperseg=None, overlap=0.5, window='hanning',
         pv = (F >= s) & (F <= e)
         F = F[pv]
         P = P[pv]
-    v = P / pref**2
+    v = P / pref ** 2
     return F, 10 * np.log10(v), 10 * np.log10(np.sum(v))
 
 
-def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False,
-             expand_method='interp'):
+def psd2time(
+    fp, ppc, fstart, fstop, df, winends=None, gettime=False, expand_method="interp"
+):
     """
     Generate a 'random' time domain signal given a PSD specification.
 
@@ -904,14 +923,15 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False,
     freq = np.arange(fstart, fstop + df / 2, df)
 
     # generate amp(f) vector
-    if expand_method == 'interp':
+    if expand_method == "interp":
         speclevel = interp(fp, freq).ravel()
-    elif expand_method == 'rescale':
+    elif expand_method == "rescale":
         speclevel, *_ = rescale(fp[:, 1], fp[:, 0], freq=freq)
     else:
         raise ValueError(
             '`expand_method` must be either "interp" or "rescale", '
-            'not {!r}'.format(expand_method))
+            "not {!r}".format(expand_method)
+        )
 
     amp = np.sqrt(2 * speclevel * df)
 
@@ -930,7 +950,7 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False,
     phi = np.random.rand(m) * np.pi * 2  # random phase angle
 
     # force these terms to be pure cosine
-    phi[0] = 0.
+    phi[0] = 0.0
     if not odd:
         phi[m - 1] = 0
 
@@ -943,21 +963,23 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False,
         a2 = a[1:m] / 2
         b2 = b[1:m] / 2
         r = N * np.hstack((a[0], a2, a2[::-1]))  # real part
-        i = N * np.hstack((0, b2, -b2[::-1]))    # imag part
+        i = N * np.hstack((0, b2, -b2[::-1]))  # imag part
     else:
-        a2 = a[1:m - 1] / 2
-        b2 = b[1:m - 1] / 2
+        a2 = a[1 : m - 1] / 2
+        b2 = b[1 : m - 1] / 2
         r = N * np.hstack((a[0], a2, a[m - 1], a2[::-1]))  # real part
-        i = N * np.hstack((0, b2, 0, -b2[::-1]))         # imag part
+        i = N * np.hstack((0, b2, 0, -b2[::-1]))  # imag part
 
     F_time = np.fft.ifft(r + 1j * i)
     mxi = abs(F_time.imag).max()
     mxr = abs(F_time.real).max()
-    if mxi > 1e-7 * mxr:    # pragma: no cover
+    if mxi > 1e-7 * mxr:  # pragma: no cover
         # bug in the code if this ever happens
-        warn('method failed accuracy test; (max imag)/'
-             '(max real) = {}'.format(mxi / mxr),
-             RuntimeWarning)
+        warn(
+            "method failed accuracy test; (max imag)/"
+            "(max real) = {}".format(mxi / mxr),
+            RuntimeWarning,
+        )
 
     F_time = F_time.real
     if winends is not None:
@@ -967,8 +989,7 @@ def psd2time(fp, ppc, fstart, fstop, df, winends=None, gettime=False,
     return F_time, sr
 
 
-def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
-           getmap=False, **kwargs):
+def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5, getmap=False, **kwargs):
     """
     Modified method for PSD estimation via FFT.
 
@@ -1073,12 +1094,20 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5,
     ntimeslice = dsp._proc_timeslice(timeslice, sr, sig.size)[0]
     if nperseg > ntimeslice:
         raise ValueError(
-            '`nperseg` too big for current `timeslice` setting;'
-            ' either decrease `nperseg` or increase `timeslice`')
+            "`nperseg` too big for current `timeslice` setting;"
+            " either decrease `nperseg` or increase `timeslice`"
+        )
     welch_inputs = dict(fs=sr, nperseg=nperseg, **kwargs)
-    pmap, t, f = dsp.waterfall(sig, sr, timeslice, tsoverlap,
-                               signal.welch, which=1, freq=0,
-                               kwargs=welch_inputs)
+    pmap, t, f = dsp.waterfall(
+        sig,
+        sr,
+        timeslice,
+        tsoverlap,
+        signal.welch,
+        which=1,
+        freq=0,
+        kwargs=welch_inputs,
+    )
     p = pmap.max(axis=1)
     if getmap:
         return f, p, pmap, t

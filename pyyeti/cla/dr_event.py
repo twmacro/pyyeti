@@ -16,7 +16,7 @@ from ._utilities import _merge_uf_reds
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -100,10 +100,10 @@ class DR_Event:
     """
 
     def __repr__(self):
-        cats = ', '.join("'{}'".format(name) for name in self.Info)
-        return ('{} ({}) with {} categories: [{}]'
-                .format(type(self).__name__, hex(id(self)),
-                        len(self.Info), cats))
+        cats = ", ".join("'{}'".format(name) for name in self.Info)
+        return "{} ({}) with {} categories: [{}]".format(
+            type(self).__name__, hex(id(self)), len(self.Info), cats
+        )
 
     def __init__(self):
         """
@@ -116,7 +116,7 @@ class DR_Event:
         self.UF_reds = []
         self.Vars = {}
 
-    def add(self, nas, drdefs, uf_reds=None, method='replace'):
+    def add(self, nas, drdefs, uf_reds=None, method="replace"):
         """
         Add data recovery definitions for an event or set of modes.
 
@@ -211,20 +211,21 @@ class DR_Event:
             return
 
         for name, drminfo in drdefs.items():
-            if name == '_vars':
+            if name == "_vars":
                 continue
 
             try:
                 active = drminfo.active
             except AttributeError:
-                active = 'yes'
+                active = "yes"
 
-            if active != 'yes':
+            if active != "yes":
                 continue
 
             if name in self.Info:
-                raise ValueError('"{}" data recovery category already'
-                                 ' defined'.format(name))
+                raise ValueError(
+                    '"{}" data recovery category already' " defined".format(name)
+                )
 
             # variables for how to do data recovery:
             self.Info[name] = copy.copy(drdefs[name])
@@ -232,9 +233,8 @@ class DR_Event:
             # reset uf_reds if input:
             if uf_reds is not None:
                 self.Info[name].uf_reds = _merge_uf_reds(
-                    self.Info[name].uf_reds,
-                    uf_reds,
-                    method=method)
+                    self.Info[name].uf_reds, uf_reds, method=method
+                )
 
             # collect all sets of uncertainty factors together for the
             # apply_uf routine later:
@@ -244,25 +244,25 @@ class DR_Event:
 
         se_last = -2
         # apply ULVS to all drms and put in DR:
-        for se, dct in drdefs['_vars'].drms.items():
+        for se, dct in drdefs["_vars"].drms.items():
             if not dct:
                 continue
             if se not in self.Vars:
                 self.Vars[se] = {}
             if se not in (0, se_last):
-                ulvs = nas['ulvs'][se]
-                uset = nas['uset'][se]
+                ulvs = nas["ulvs"][se]
+                uset = nas["uset"][se]
                 # Want bset partition from aset. But note that in the
                 # .asm, .pch approach to SE's, it is valid in Nastran
                 # to just put all b-set & q-set in a generic a-set.
                 # If that's the case, find q-set by finding the
                 # spoints:
-                bset = n2p.mksetpv(uset, 'a', 'b')   # bool type
+                bset = n2p.mksetpv(uset, "a", "b")  # bool type
                 if bset.all():
                     # manually check for q-set in the a-set:
-                    aset = np.nonzero(n2p.mksetpv(uset, 'p', 'a'))[0]
-                    dof = uset.index.get_level_values('dof')[aset]
-                    qset = dof == 0   # spoints
+                    aset = np.nonzero(n2p.mksetpv(uset, "p", "a"))[0]
+                    dof = uset.index.get_level_values("dof")[aset]
+                    qset = dof == 0  # spoints
                     bset = ~qset
                 bset = np.nonzero(bset)[0]
                 Lb = len(bset)
@@ -270,8 +270,7 @@ class DR_Event:
 
             for name, mat in dct.items():
                 if name in self.Vars[se]:
-                    raise ValueError('"{}" is already in Vars[{}]'
-                                     .format(name, se))
+                    raise ValueError('"{}" is already in Vars[{}]'.format(name, se))
                 if se == 0:
                     self.Vars[se][name] = mat
                 elif mat.shape[1] > Lb:
@@ -280,13 +279,12 @@ class DR_Event:
                     self.Vars[se][name] = mat @ ulvs[bset]
 
         # put all nondrms in DR:
-        for se, dct in drdefs['_vars'].nondrms.items():
+        for se, dct in drdefs["_vars"].nondrms.items():
             if se not in self.Vars:
                 self.Vars[se] = {}
             for name, mat in dct.items():
                 if name in self.Vars[se]:
-                    raise ValueError('"{}" is already in Vars[{}]'
-                                     .format(name, se))
+                    raise ValueError('"{}" is already in Vars[{}]'.format(name, se))
                 self.Vars[se][name] = mat
 
     def set_dr_order(self, cats, where):
@@ -523,7 +521,7 @@ class DR_Event:
                 #   below
                 solout[item] = SimpleNamespace()
                 for name, value in vars(sol).items():
-                    if name == 'd':
+                    if name == "d":
                         continue
                     try:
                         valcopy = value.copy()
@@ -541,8 +539,8 @@ class DR_Event:
 
             # apply ufs:
             if nrb > 0:
-                SOL.a[:nrb] *= (ruf * suf)
-                SOL.v[:nrb] *= (ruf * suf)
+                SOL.a[:nrb] *= ruf * suf
+                SOL.v[:nrb] *= ruf * suf
                 SOL.d_static[:nrb] = 0.0
                 SOL.d_dynamic[:nrb] = 0.0
 
@@ -556,8 +554,8 @@ class DR_Event:
                 pass
 
             if nrb < n:
-                SOL.a[nrb:] *= (euf * duf)
-                SOL.v[nrb:] *= (euf * duf)
+                SOL.a[nrb:] *= euf * duf
+                SOL.v[nrb:] *= euf * duf
 
                 if m is None:
                     avterm = SOL.a[nrb:].copy()
@@ -567,9 +565,11 @@ class DR_Event:
                     avterm = m[nrb:, nrb:] @ SOL.a[nrb:]
 
                 if not use_velo:  # pragma: no cover
-                    msg = ('not including velocity term in mode-'
-                           'acceleration formulation for '
-                           'displacements.')
+                    msg = (
+                        "not including velocity term in mode-"
+                        "acceleration formulation for "
+                        "displacements."
+                    )
                     warnings.warn(msg, RuntimeWarning)
                 else:
                     if b.ndim == 1:
@@ -645,13 +645,13 @@ class DR_Event:
             ruf, euf, duf, suf = item
             solout[item] = copy.deepcopy(sol)
             SOL = solout[item]
-            SOL.a[:nrb] *= (ruf * suf)
-            SOL.v[:nrb] *= (ruf * suf)
-            SOL.d[:nrb] *= (ruf * suf)
-            SOL.a[nrb:] *= (euf * duf)
-            SOL.v[nrb:] *= (euf * duf)
-            SOL.d[nrb:] *= (euf * duf)
-            if 'pg' in SOL.__dict__:
+            SOL.a[:nrb] *= ruf * suf
+            SOL.v[:nrb] *= ruf * suf
+            SOL.d[:nrb] *= ruf * suf
+            SOL.a[nrb:] *= euf * duf
+            SOL.v[nrb:] *= euf * duf
+            SOL.d[nrb:] *= euf * duf
+            if "pg" in SOL.__dict__:
                 SOL.pg *= suf
         return solout
 

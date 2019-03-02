@@ -23,46 +23,46 @@ from pyyeti import guitools
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
 
 def _check_3d(ax, need3d):
-    if need3d and not hasattr(ax, 'get_zlim'):
-        raise ValueError(
-            'the axes object does not have a 3d projection')
+    if need3d and not hasattr(ax, "get_zlim"):
+        raise ValueError("the axes object does not have a 3d projection")
     return ax
 
 
-def _check_makeplot(makeplot, valid=('no', 'new', 'clear', 'add'),
-                    figsize=None, need3d=False):
+def _check_makeplot(
+    makeplot, valid=("no", "new", "clear", "add"), figsize=None, need3d=False
+):
     if makeplot not in valid:
         # makeplot must be an axes object if here ... check for 'plot'
         # attribute:
-        if hasattr(makeplot, 'plot'):
+        if hasattr(makeplot, "plot"):
             return _check_3d(makeplot, need3d)
         raise ValueError(
-            'invalid `makeplot` setting; must be in {} or be an '
-            'axes object'
-            .format(valid))
+            "invalid `makeplot` setting; must be in {} or be an "
+            "axes object".format(valid)
+        )
 
-    if makeplot != 'no':
-        if makeplot == 'new' or not plt.get_fignums():
+    if makeplot != "no":
+        if makeplot == "new" or not plt.get_fignums():
             plt.figure(figsize=figsize)
 
-        if makeplot == 'add':
+        if makeplot == "add":
             fig = plt.gcf()
             if not fig.get_axes() and need3d:
-                return plt.gca(projection='3d')
+                return plt.gca(projection="3d")
             ax = plt.gca()
             return _check_3d(ax, need3d)
 
-        if makeplot == 'clear':
+        if makeplot == "clear":
             plt.clf()
 
         if need3d:
-            return plt.gca(projection='3d')
+            return plt.gca(projection="3d")
 
         return plt.gca()
 
@@ -76,25 +76,26 @@ def _norm_vec(vec):
 def _initial_circle_fit(basic):
     # See fit_circle_3d for description. Does steps 1-8.
     # - basic is 2d ndarray, 3 x n
-    n = basic.shape[1]                 # step 1
+    n = basic.shape[1]  # step 1
     if n < 3:
-        raise ValueError('need at least 3 data points to fit circle,'
-                         ' only have {}'.format(n))
+        raise ValueError(
+            "need at least 3 data points to fit circle, only have {}".format(n)
+        )
     p1 = basic[:, 0]
     p2 = basic[:, n // 3]
     p3 = basic[:, 2 * n // 3]
 
-    v1 = p2 - p1                       # step 2
+    v1 = p2 - p1  # step 2
     v2 = p3 - p1
     z_l = _norm_vec(np.cross(v1, v2))  # step 3
-    x_l = _norm_vec(v1)                # step 4
-    y_l = np.cross(z_l, x_l)           # step 5
+    x_l = _norm_vec(v1)  # step 4
+    y_l = np.cross(z_l, x_l)  # step 5
     basic2local = np.vstack((x_l, y_l, z_l))
 
     # compute center by using chord bisectors:
-    b1 = np.cross(z_l, v1)             # step 6
+    b1 = np.cross(z_l, v1)  # step 6
     b2 = np.cross(z_l, v2)
-    mid1 = (p1 + p2) / 2               # step 7
+    mid1 = (p1 + p2) / 2  # step 7
     mid2 = (p1 + p3) / 2
     arr = np.column_stack((b1, -b2))
     ab = np.linalg.lstsq(arr, mid2 - mid1, rcond=None)[0]  # step 8
@@ -105,7 +106,7 @@ def _initial_circle_fit(basic):
     return basic2local, center, radius
 
 
-def fit_circle_2d(x, y, makeplot='no'):
+def fit_circle_2d(x, y, makeplot="no"):
     """
     Find radius and center point of x-y data points
 
@@ -156,8 +157,7 @@ def fit_circle_2d(x, y, makeplot='no'):
         array([  1.,  15.,  35.])
     """
     x, y = np.atleast_1d(x, y)
-    basic2local, center, radius = _initial_circle_fit(
-        np.vstack((x, y, 0 * x)))
+    basic2local, center, radius = _initial_circle_fit(np.vstack((x, y, 0 * x)))
     clx, cly = center[:2]
 
     # The optimization routine leastsq needs a function that returns
@@ -170,32 +170,30 @@ def fit_circle_2d(x, y, makeplot='no'):
         xc, yc, R = p
         n = len(d) // 2
         theta = np.arctan2(d[n:] - yc, d[:n] - xc)
-        return d - np.hstack((xc + R * np.cos(theta),
-                              yc + R * np.sin(theta)))
+        return d - np.hstack((xc + R * np.cos(theta), yc + R * np.sin(theta)))
 
     p0 = (clx, cly, radius)
     d = np.hstack((x, y))
     res = leastsq(circle_residuals, p0, args=(d,), full_output=1)
     sol = res[0]
     if res[-1] not in (1, 2, 3, 4):
-        raise ValueError(':func:`scipy.optimization.leastsq` failed: '
-                         '{}'.res[-2])
-    ssq = np.sum(res[2]['fvec']**2)
-    if ssq > .01:
-        msg = ('data points do not appear to form a good circle, sum '
-               'square of residuals = {}'.format(ssq))
+        raise ValueError(":func:`scipy.optimization.leastsq` failed: {}".res[-2])
+    ssq = np.sum(res[2]["fvec"] ** 2)
+    if ssq > 0.01:
+        msg = (
+            "data points do not appear to form a good circle, sum "
+            "square of residuals = {}".format(ssq)
+        )
         warnings.warn(msg, RuntimeWarning)
 
     ax = _check_makeplot(makeplot)
     if ax:
-        ax.scatter(x, y, c='r', marker='o', s=60,
-                   label='Input Points')
-        th = np.arange(0, 361) * np.pi / 180.
+        ax.scatter(x, y, c="r", marker="o", s=60, label="Input Points")
+        th = np.arange(0, 361) * np.pi / 180.0
         (x, y, radius) = sol
-        ax.plot(x + radius * np.cos(th),
-                y + radius * np.sin(th), label='Fit')
-        ax.axis('equal')
-        ax.legend(loc='best', scatterpoints=1)
+        ax.plot(x + radius * np.cos(th), y + radius * np.sin(th), label="Fit")
+        ax.axis("equal")
+        ax.legend(loc="best", scatterpoints=1)
 
     return sol
 
@@ -219,13 +217,12 @@ def axis_equal_3d(ax, buffer_space=10):
     work properly, you must call this routine after you've plotted all
     your data.
     """
-    extents = np.array([getattr(ax, 'get_{}lim'.format(dim))()
-                        for dim in 'xyz'])
+    extents = np.array([getattr(ax, "get_{}lim".format(dim))() for dim in "xyz"])
     max_dimension = max(abs(extents[:, 1] - extents[:, 0]))
     centers = np.mean(extents, axis=1)
     r = max_dimension / 2 * (1 + buffer_space / 100)
-    for ctr, dim in zip(centers, 'xyz'):
-        getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
+    for ctr, dim in zip(centers, "xyz"):
+        getattr(ax, "set_{}lim".format(dim))(ctr - r, ctr + r)
 
 
 def _circle_fit_residuals(p, basic2local, basic, circ_parms):
@@ -245,9 +242,7 @@ def _circle_fit_residuals(p, basic2local, basic, circ_parms):
     # t2 = np.array([[c2, 0, -s2], [0, 1, 0], [s2, 0, c2]])
     # trans = t2 @ t1
     # or, doing it by hand:
-    trans = np.array([[c2, s1 * s2, -s2 * c1],
-                      [0, c1, s1],
-                      [s2, -c2 * s1, c1 * c2]])
+    trans = np.array([[c2, s1 * s2, -s2 * c1], [0, c1, s1], [s2, -c2 * s1, c1 * c2]])
     new_basic2local = trans @ basic2local
     local = new_basic2local @ (basic - [[xc], [yc], [zc]])
     radii = np.linalg.norm(local[:2], axis=0)
@@ -260,7 +255,7 @@ def _circle_fit_residuals(p, basic2local, basic, circ_parms):
     return np.hstack((radii / radius - 1, local[2]))
 
 
-def fit_circle_3d(basic, makeplot='no'):
+def fit_circle_3d(basic, makeplot="no"):
     """
     Fit a circle through data points in 3D space
 
@@ -382,8 +377,9 @@ def fit_circle_3d(basic, makeplot='no'):
     """
     basic = np.atleast_2d(basic)
     if basic.shape[0] != 3:
-        raise ValueError('`basic` must have 3 rows (x, y, z), not {}'
-                         .format(basic.shape[0]))
+        raise ValueError(
+            "`basic` must have 3 rows (x, y, z), not {}".format(basic.shape[0])
+        )
 
     basic2local, center, radius = _initial_circle_fit(basic)
 
@@ -393,17 +389,20 @@ def fit_circle_3d(basic, makeplot='no'):
     # step 11: optimize solution:
     # - optimization parameters: [th, ph, xc, yc, zc]
     p0 = (0.0, 0.0, *center)
-    res = leastsq(_circle_fit_residuals, p0,
-                  args=(basic2local, basic, None),
-                  full_output=True)
+    res = leastsq(
+        _circle_fit_residuals, p0, args=(basic2local, basic, None), full_output=True
+    )
     sol = res[0]
     if res[-1] not in (1, 2, 3, 4):
-        raise ValueError(':func:`scipy.optimization.leastsq` failed: '
-                         '{}'.res[-2])
-    ssqerr = np.sum(res[2]['fvec']**2)
-    if ssqerr > .01:
-        msg = ('data points do not appear to form a good circle, sum '
-               'square of residuals = {}'.format(ssqerr))
+        raise ValueError(
+            ":func:`scipy.optimization.leastsq` failed: {}".format(res[-2])
+        )
+    ssqerr = np.sum(res[2]["fvec"] ** 2)
+    if ssqerr > 0.01:
+        msg = (
+            "data points do not appear to form a good circle, sum "
+            "square of residuals = {}".format(ssqerr)
+        )
         warnings.warn(msg, RuntimeWarning)
 
     # create output SimpleNamespace:
@@ -420,8 +419,7 @@ def fit_circle_3d(basic, makeplot='no'):
     circ_parms.start_parms = start_parms
 
     # reset the local x-axis to point to 1st node:
-    th = np.arctan2(circ_parms.local[1, 0],
-                    circ_parms.local[0, 0])
+    th = np.arctan2(circ_parms.local[1, 0], circ_parms.local[0, 0])
     s = np.sin(th)
     c = np.cos(th)
     trans = np.array([[c, s], [-s, c]])
@@ -432,12 +430,12 @@ def fit_circle_3d(basic, makeplot='no'):
 
     ax = _check_makeplot(makeplot, need3d=True)
     if ax:
-        for item in 'xyz':
-            get_func = getattr(ax, 'get_{}label'.format(item))
+        for item in "xyz":
+            get_func = getattr(ax, "get_{}label".format(item))
             if not get_func():
-                set_func = getattr(ax, 'set_{}label'.format(item))
+                set_func = getattr(ax, "set_{}label".format(item))
                 set_func(item.upper())
-        ax.plot(*basic, 'o', label='Data')
+        ax.plot(*basic, "o", label="Data")
 
         # compute new points on circle in local coordinates:
         th = np.deg2rad(np.arange(0.0, 360))
@@ -446,12 +444,12 @@ def fit_circle_3d(basic, makeplot='no'):
         z = 0 * x
 
         # transform to basic coordinates and plot:
-        circle_basic = (circ_parms.center +
-                        (np.column_stack((x, y, z)) @
-                           circ_parms.basic2local)).T
-        ax.plot(*circle_basic, label='Fit')
+        circle_basic = (
+            circ_parms.center + (np.column_stack((x, y, z)) @ circ_parms.basic2local)
+        ).T
+        ax.plot(*circle_basic, label="Fit")
         axis_equal_3d(ax)
-        ax.legend(loc='upper left', bbox_to_anchor=(1.0, 1.0))
+        ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0))
         ax.get_figure().tight_layout()
 
     return circ_parms
@@ -801,11 +799,13 @@ def mattype(A, mtype=None):
     posdef    :  4
     symmetric :  1
     """
-    mattypes = {'symmetric': 1,
-                'hermitian': 2,
-                'posdef': 4,
-                'diagonal': 8,
-                'identity': 16}
+    mattypes = {
+        "symmetric": 1,
+        "hermitian": 2,
+        "posdef": 4,
+        "diagonal": 8,
+        "identity": 16,
+    }
     if A is None:
         return mattypes
     Atype = 0
@@ -814,37 +814,37 @@ def mattype(A, mtype=None):
         if A.ndim != 2 or A.shape[0] != A.shape[1]:
             return Atype, mattypes
         if np.allclose(A, A.T):
-            Atype |= mattypes['symmetric']
+            Atype |= mattypes["symmetric"]
             if np.isrealobj(A):
                 try:
                     linalg.cholesky(A)
-                    Atype |= mattypes['posdef']
+                    Atype |= mattypes["posdef"]
                 except linalg.LinAlgError:
                     pass
         elif np.iscomplexobj(A) and np.allclose(A, A.T.conj()):
-            Atype |= mattypes['hermitian']
+            Atype |= mattypes["hermitian"]
             try:
                 linalg.cholesky(A)
-                Atype |= mattypes['posdef']
+                Atype |= mattypes["posdef"]
             except linalg.LinAlgError:
                 pass
         if isdiag(A):
-            Atype |= mattypes['diagonal']
+            Atype |= mattypes["diagonal"]
             d = np.diag(A)
             if np.allclose(1, d):
-                Atype |= mattypes['identity']
+                Atype |= mattypes["identity"]
         return Atype, mattypes
 
     if A.ndim != 2 or A.shape[0] != A.shape[1]:
         return False
 
-    if mtype == 'symmetric':
+    if mtype == "symmetric":
         return np.allclose(A, A.T)
 
-    if mtype == 'hermitian':
+    if mtype == "hermitian":
         return np.allclose(A, A.T.conj())
 
-    if mtype == 'posdef':
+    if mtype == "posdef":
         if np.isrealobj(A):
             if not np.allclose(A, A.T):
                 return False
@@ -857,16 +857,16 @@ def mattype(A, mtype=None):
         except linalg.LinAlgError:
             return False
 
-    if mtype in ('diagonal', 'identity'):
+    if mtype in ("diagonal", "identity"):
         if isdiag(A):
-            if mtype == 'diagonal':
+            if mtype == "diagonal":
                 return True
             d = np.diag(A)
             return np.allclose(1, d)
         else:
             return False
 
-    raise ValueError('invalid `mtype`')
+    raise ValueError("invalid `mtype`")
 
 
 def sturm(A, lam):
@@ -923,8 +923,8 @@ def sturm(A, lam):
     d = np.diag(h)
     s = np.diag(h, -1)
     abstol = np.finfo(float).eps
-    ssq = s**2
-    pivmin = max(1., np.max(s)) * abstol
+    ssq = s ** 2
+    pivmin = max(1.0, np.max(s)) * abstol
 
     try:
         minp = len(lam)
@@ -955,8 +955,9 @@ def sturm(A, lam):
     return count
 
 
-def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
-           pmax=None, maxiter=50, verbose=True):
+def eig_si(
+    K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6, pmax=None, maxiter=50, verbose=True
+):
     r"""
     Perform subspace iteration to calculate eigenvalues and eigenvectors.
 
@@ -1066,7 +1067,7 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
     n = np.size(K, 0)
     if f is not None:
         # use sturm sequence check to determine p:
-        lamk = (2 * np.pi * f)**2
+        lamk = (2 * np.pi * f) ** 2
         p = sturm(K - lamk * M, 0)[0]
 
     if mu != 0:
@@ -1088,16 +1089,16 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
         c = 0
     if c < q:
         if Xk is None:
-            Xk = np.random.rand(n, q) - .5
+            Xk = np.random.rand(n, q) - 0.5
         else:
-            Xk = np.hstack((Xk, np.random.rand(n, q - c) - .5))
+            Xk = np.hstack((Xk, np.random.rand(n, q - c) - 0.5))
     elif c > q:
         Xk = Xk[:, :q]
     lamk = np.ones(q)
     nconv = 0
     loops = 0
     tolc = 1
-    posdef = mattype(None)['posdef']
+    posdef = mattype(None)["posdef"]
     eps = np.finfo(float).eps
     while (tolc > tol or nconv < p) and loops < maxiter:
         loops += 1
@@ -1115,7 +1116,7 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
             while 1:
                 pc += 1
                 Mk += np.diag(np.diag(Mk) * factor)
-                factor *= 10.
+                factor *= 10.0
                 mtp = mattype(Mk)[0]
                 if mtp & posdef or pc > 5:
                     break
@@ -1127,8 +1128,10 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
             lamk, Qmod = linalg.eigh(Kkmod)
             Q = linalg.solve(Mkll.T, Qmod)
         else:
-            raise ValueError('subspace iteration failed, reduced mass'
-                             ' matrix not positive definite')
+            raise ValueError(
+                "subspace iteration failed, reduced mass"
+                " matrix not positive definite"
+            )
 
         dlam = np.abs(lamo - lamk)
         tolc = (dlam / np.abs(lamk))[:p]
@@ -1137,12 +1140,13 @@ def eig_si(K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6,
         tolc = np.max(tolc)
         if loops > 1:
             if verbose:
-                print('Convergence: {} of {}, tolerance range after {} '
-                      'iterations is [{}, {}]'.format(nconv, p, loops,
-                                                      mntolc, tolc))
+                print(
+                    "Convergence: {} of {}, tolerance range after {} "
+                    "iterations is [{}, {}]".format(nconv, p, loops, mntolc, tolc)
+                )
         else:
             if verbose:
-                print('Iteration 1 completed')
+                print("Iteration 1 completed")
             nconv = 0
         Xk = np.dot(Xkbar, Q)
     return lamk[:p] + mu, Xk[:, :p], Xk
@@ -1206,10 +1210,10 @@ def gensweep(ppc, fstart, fstop, rate):
         >>> _ = plt.tight_layout()
     """
     # make a unity sine sweep
-    rate = rate / 60.
-    dt = 1. / fstop / ppc
-    tstop = (np.log(fstop) - np.log(fstart)) / np.log(2.) / rate
-    t = np.arange(0., tstop + dt / 2, dt)
+    rate = rate / 60.0
+    dt = 1.0 / fstop / ppc
+    tstop = (np.log(fstop) - np.log(fstart)) / np.log(2.0) / rate
+    t = np.arange(0.0, tstop + dt / 2, dt)
     f = fstart * 2 ** (t * rate)
     sig = np.sin(2 * np.pi / np.log(2) / rate * (f - fstart))
     return sig, t, f
@@ -1257,14 +1261,16 @@ def read_text_file(rdfunc):
     >>> s
     'param = 45.300\n'
     """
+
     @wraps(rdfunc)
     def mod_func(f, *args, **kwargs):
         f = guitools.get_file_name(f, read=True)
         if isinstance(f, str):
-            with open(f, 'r') as fin:
+            with open(f, "r") as fin:
                 return rdfunc(fin, *args, **kwargs)
         else:
             return rdfunc(f, *args, **kwargs)
+
     return mod_func
 
 
@@ -1306,25 +1312,27 @@ def write_text_file(wtfunc):
     >>> dowrite(1, 'param', number=45.3)
     param = 45.300
     """
+
     @wraps(wtfunc)
     def mod_func(f, *args, **kwargs):
         f = guitools.get_file_name(f, read=False)
         if isinstance(f, str):
-            with open(f, 'w') as fout:
+            with open(f, "w") as fout:
                 return wtfunc(fout, *args, **kwargs)
         else:
             if f == 1:
                 f = sys.stdout
             return wtfunc(f, *args, **kwargs)
+
     return mod_func
 
 
 def _get_fopen(name, read=True):
     """Utility for save/load"""
     name = guitools.get_file_name(name, read)
-    if name.endswith('.pgz'):
+    if name.endswith(".pgz"):
         fopen = gzip.open
-    elif name.endswith('.pbz2'):
+    elif name.endswith(".pbz2"):
         fopen = bz2.open
     else:
         fopen = open
@@ -1348,7 +1356,7 @@ def save(name, obj):
         Any object to be pickled.
     """
     name, fopen = _get_fopen(name, read=False)
-    with fopen(name, 'wb') as f:
+    with fopen(name, "wb") as f:
         pickle.dump(obj, file=f, protocol=-1)
 
 
@@ -1370,7 +1378,7 @@ def load(name):
         The pickled object.
     """
     name, fopen = _get_fopen(name, read=True)
-    with fopen(name, 'rb') as f:
+    with fopen(name, "rb") as f:
         return pickle.load(f)
 
 
@@ -1425,6 +1433,7 @@ def reorder_dict(ordered_dict, keys, where):
     >>> reorder_dict(dct, ['three', 'two'], 'first')
     OrderedDict([('three', 3), ('two', 2), ('one', 1)])
     """
+
     def reorder_keys(all_keys, keys, where):
         all_keys = list(all_keys)
         keys = list(keys)
@@ -1432,26 +1441,21 @@ def reorder_dict(ordered_dict, keys, where):
         # ensure all keys are in all_keys:
         for k in keys:
             if k not in all_keys:
-                raise ValueError(
-                    'Key "{}" not found. Order unchanged.'
-                    .format(k))
+                raise ValueError('Key "{}" not found. Order unchanged.'.format(k))
 
-        if where == 'first':
+        if where == "first":
             new_keys = list(keys)
-            new_keys.extend(k for k in all_keys
-                            if k not in keys)
-        elif where == 'last':
-            new_keys = [k for k in all_keys
-                        if k not in keys]
+            new_keys.extend(k for k in all_keys if k not in keys)
+        elif where == "last":
+            new_keys = [k for k in all_keys if k not in keys]
             new_keys.extend(keys)
         else:
             raise ValueError(
-                "`where` must be 'first' or 'last', not {!r}"
-                .format(where))
+                "`where` must be 'first' or 'last', not {!r}".format(where)
+            )
 
         return new_keys
 
     return type(ordered_dict)(
-        (k, ordered_dict[k])
-        for k in reorder_keys(ordered_dict, keys, where)
+        (k, ordered_dict[k]) for k in reorder_keys(ordered_dict, keys, where)
     )

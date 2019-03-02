@@ -37,8 +37,7 @@ def _dofde(args):
     """Utility routine for parallel processing"""
     (j, (coeffunc, Q, dT, verbose)) = args
     if verbose:
-        print('Processing frequency {:8.2f} Hz'.
-              format(WN_[j] / 2 / np.pi), end='\r')
+        print("Processing frequency {:8.2f} Hz".format(WN_[j] / 2 / np.pi), end="\r")
     b, a = coeffunc(Q, dT, WN_[j])
     resphist = signal.lfilter(b, a, SIG_)
     ASV_[1, j] = abs(resphist).max()
@@ -48,8 +47,8 @@ def _dofde(args):
     ind = cyclecount.findap(resphist)
     rf = cyclecount.rainflow(resphist[ind])
 
-    amp = rf['amp']
-    count = rf['count']
+    amp = rf["amp"]
+    count = rf["count"]
     ASV_[0, j] = amp.max()
     BinAmps_[j] *= ASV_[0, j]
 
@@ -59,9 +58,22 @@ def _dofde(args):
         Count_[j, jj] = np.sum(count[pv])
 
 
-def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
-           winends='auto', nbins=300, T0=60., rolloff='lanczos',
-           ppc=12, parallel='auto', maxcpu=14, verbose=False):
+def fdepsd(
+    sig,
+    sr,
+    freq,
+    Q,
+    resp="absacce",
+    hpfilter=5.0,
+    winends="auto",
+    nbins=300,
+    T0=60.0,
+    rolloff="lanczos",
+    ppc=12,
+    parallel="auto",
+    maxcpu=14,
+    verbose=False,
+):
     r"""
     Compute a fatigue damage equivalent PSD from a signal.
 
@@ -440,17 +452,17 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
     """
     sig, freq = np.atleast_1d(sig, freq)
     if sig.ndim > 1 or freq.ndim > 1:
-        raise ValueError('`sig` and `freq` must both be 1d arrays')
-    if resp not in ('absacce', 'pvelo'):
+        raise ValueError("`sig` and `freq` must both be 1d arrays")
+    if resp not in ("absacce", "pvelo"):
         raise ValueError("`resp` must be 'absacce' or 'pvelo'")
-    (coeffunc, methfunc,
-     rollfunc, ptr) = srs._process_inputs(resp, 'abs',
-                                          rolloff, 'primary')
+    (coeffunc, methfunc, rollfunc, ptr) = srs._process_inputs(
+        resp, "abs", rolloff, "primary"
+    )
 
     if hpfilter is not None:
         if verbose:
-            print('High pass filtering @ {} Hz'.format(hpfilter))
-        b, a = signal.butter(3, hpfilter / (sr / 2), 'high')
+            print("High pass filtering @ {} Hz".format(hpfilter))
+        b, a = signal.butter(3, hpfilter / (sr / 2), "high")
         # to try to get rid of filter transient at the beginning:
         #  - put a 0.25 second buffer on the front (length from
         #    looking at impulse response)
@@ -462,36 +474,37 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         sig2[n:] = sig
         sig = signal.lfilter(b, a, sig2)[n:]
 
-    if winends == 'auto':
+    if winends == "auto":
         sig = dsp.windowends(sig, min(int(0.25 * sr), 50))
     elif winends is not None:
         sig = dsp.windowends(sig, **winends)
 
     mxfrq = freq.max()
     curppc = sr / mxfrq
-    if rolloff == 'prefilter':
+    if rolloff == "prefilter":
         sig, sr = rollfunc(sig, sr, ppc, mxfrq)
         rollfunc = None
 
     if curppc < ppc and rollfunc:
         if verbose:
-            print('Using {} method to increase sample rate (have '
-                  'only {} pts/cycle @ {} Hz'.
-                  format(rolloff, curppc, mxfrq))
+            print(
+                "Using {} method to increase sample rate (have "
+                "only {} pts/cycle @ {} Hz".format(rolloff, curppc, mxfrq)
+            )
         sig, sr = rollfunc(sig, sr, ppc, mxfrq)
         ppc = sr / mxfrq
         if verbose:
-            print('After interpolation, have {} pts/cycle @ {} Hz\n'.
-                  format(ppc, mxfrq))
+            print("After interpolation, have {} pts/cycle @ {} Hz\n".format(ppc, mxfrq))
 
     LF = freq.size
     dT = 1 / sr
     pi = np.pi
     Wn = 2 * pi * freq
-    parallel, ncpu = srs._process_parallel(parallel, LF, sig.size,
-                                           maxcpu, getresp=False)
+    parallel, ncpu = srs._process_parallel(
+        parallel, LF, sig.size, maxcpu, getresp=False
+    )
     # allocate RAM:
-    if parallel == 'yes':
+    if parallel == "yes":
         # global shared vars will be: WN, SIG, ASV, BinAmps, Count
         WN = (srs.copyToSharedArray(Wn), Wn.shape)
         SIG = (srs.copyToSharedArray(sig), sig.shape)
@@ -503,11 +516,10 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         args = (coeffunc, Q, dT, verbose)
         gvars = (WN, SIG, ASV, BinAmps, Count)
         func = _dofde
-        with mp.Pool(processes=ncpu,
-                     initializer=_mk_par_globals,
-                     initargs=gvars) as pool:
-            for _ in pool.imap_unordered(
-                    func, zip(range(LF), it.repeat(args, LF))):
+        with mp.Pool(
+            processes=ncpu, initializer=_mk_par_globals, initargs=gvars
+        ) as pool:
+            for _ in pool.imap_unordered(func, zip(range(LF), it.repeat(args, LF))):
                 pass
         ASV = _to_np_array(ASV)
         Amax = ASV[0]
@@ -527,8 +539,7 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         # cycles
         for j, wn in enumerate(Wn):
             if verbose:
-                print('Processing frequency {:8.2f} Hz'.
-                      format(wn / 2 / pi), end='\r')
+                print("Processing frequency {:8.2f} Hz".format(wn / 2 / pi), end="\r")
             b, a = coeffunc(Q, dT, wn)
             resphist = signal.lfilter(b, a, sig)
             SRSmax[j] = abs(resphist).max()
@@ -538,8 +549,8 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
             ind = cyclecount.findap(resphist)
             rf = cyclecount.rainflow(resphist[ind])
 
-            amp = rf['amp']
-            count = rf['count']
+            amp = rf["amp"]
+            count = rf["count"]
             Amax[j] = amp.max()
             BinAmps[j] *= Amax[j]
 
@@ -550,17 +561,17 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
 
     if verbose:
         print()
-        print('Computing outputs G1, G2, etc.')
+        print("Computing outputs G1, G2, etc.")
 
     # calculate non-cumulative counts per bin:
     BinCount = np.hstack((Count[:, :-1] - Count[:, 1:], Count[:, -1:]))
 
     # for calculating G2:
-    G2max = Amax**2
+    G2max = Amax ** 2
     for j in range(LF):
         pv = BinAmps[j] >= Amax[j] / 3  # ignore small amp cycles
         if np.any(pv):
-            x = BinAmps[j, pv]**2
+            x = BinAmps[j, pv] ** 2
             x2 = G2max[j]
             y = np.log(Count[j, pv])
             # y1 = np.log(max(Count[j, 0], freq[j]*T0))
@@ -594,42 +605,46 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
     Df8 = np.zeros(LF)
     Df12 = np.zeros(LF)
     for j in range(LF):
-        Df4[j] = (BinAmps[j]**b4).dot(BinCount[j])
-        Df8[j] = (BinAmps[j]**b8).dot(BinCount[j])
-        Df12[j] = (BinAmps[j]**b12).dot(BinCount[j])
+        Df4[j] = (BinAmps[j] ** b4).dot(BinCount[j])
+        Df8[j] = (BinAmps[j] ** b8).dot(BinCount[j])
+        Df12[j] = (BinAmps[j] ** b12).dot(BinCount[j])
 
     N0 = freq * T0
     lnN0 = np.log(N0)
-    if resp == 'absacce':
-        G1 = Amax**2 / (Q * pi * freq * lnN0)
+    if resp == "absacce":
+        G1 = Amax ** 2 / (Q * pi * freq * lnN0)
         G2 = G2max / (Q * pi * freq * lnN0)
 
         # calculate test-damage indicators for b = 4, 8 and 12:
         Abar = 2 * lnN0
-        Abar2 = Abar**2
+        Abar2 = Abar ** 2
         Dt4 = N0 * 8 - (Abar2 + 4 * Abar + 8)
         sig2_4 = np.sqrt(Df4 / Dt4)
         G4 = sig2_4 / ((Q * pi / 2) * freq)
 
         Abar3 = Abar2 * Abar
         Abar4 = Abar2 * Abar2
-        Dt8 = N0 * 384 - (Abar4 + 8 * Abar3 + 48 * Abar2 +
-                          192 * Abar + 384)
-        sig2_8 = (Df8 / Dt8)**(1 / 4)
+        Dt8 = N0 * 384 - (Abar4 + 8 * Abar3 + 48 * Abar2 + 192 * Abar + 384)
+        sig2_8 = (Df8 / Dt8) ** (1 / 4)
         G8 = sig2_8 / ((Q * pi / 2) * freq)
 
         Abar5 = Abar4 * Abar
         Abar6 = Abar4 * Abar2
-        Dt12 = N0 * 46080 - (Abar6 + 12 * Abar5 + 120 * Abar4 +
-                             960 * Abar3 + 5760 * Abar2 +
-                             23040 * Abar + 46080)
-        sig2_12 = (Df12 / Dt12)**(1 / 6)
+        Dt12 = N0 * 46080 - (
+            Abar6
+            + 12 * Abar5
+            + 120 * Abar4
+            + 960 * Abar3
+            + 5760 * Abar2
+            + 23040 * Abar
+            + 46080
+        )
+        sig2_12 = (Df12 / Dt12) ** (1 / 6)
         G12 = sig2_12 / ((Q * pi / 2) * freq)
 
-        Gmax = np.sqrt(np.vstack((G4, G8, G12)) *
-                       (Q * pi * freq * lnN0))
+        Gmax = np.sqrt(np.vstack((G4, G8, G12)) * (Q * pi * freq * lnN0))
     else:
-        G1 = (Amax**2 * 4 * pi * freq) / (Q * lnN0)
+        G1 = (Amax ** 2 * 4 * pi * freq) / (Q * lnN0)
         G2 = (G2max * 4 * pi * freq) / (Q * lnN0)
 
         Dt4 = 2 * N0
@@ -637,43 +652,41 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
         G4 = sig2_4 * ((4 * pi / Q) * freq)
 
         Dt8 = 24 * N0
-        sig2_8 = (Df8 / Dt8)**(1 / 4)
+        sig2_8 = (Df8 / Dt8) ** (1 / 4)
         G8 = sig2_8 * ((4 * pi / Q) * freq)
 
         Dt12 = 720 * N0
-        sig2_12 = (Df12 / Dt12)**(1 / 6)
+        sig2_12 = (Df12 / Dt12) ** (1 / 6)
         G12 = sig2_12 * ((4 * pi / Q) * freq)
 
-        Gmax = np.sqrt(np.vstack((G4, G8, G12)) *
-                       (Q * lnN0) / (4 * pi * freq))
+        Gmax = np.sqrt(np.vstack((G4, G8, G12)) * (Q * lnN0) / (4 * pi * freq))
 
         # for output, scale the damage indicators:
-        Dt4 *= 4    # 2 ** (b/2)
+        Dt4 *= 4  # 2 ** (b/2)
         Dt8 *= 16
         Dt12 *= 64
 
     # assemble outputs:
-    columns = ['G1', 'G2', 'G4', 'G8', 'G12']
+    columns = ["G1", "G2", "G4", "G8", "G12"]
     lcls = locals()
     dct = {k: lcls[k] for k in columns}
     Gpsd = pd.DataFrame(dct, columns=columns, index=freq)
-    Gpsd.index.name = 'Frequency'
+    Gpsd.index.name = "Frequency"
     index = Gpsd.index
 
     G2max = np.sqrt(G2max)
-    Gmax = pd.DataFrame(np.vstack((Amax, G2max, Gmax)).T,
-                        columns=columns, index=index)
+    Gmax = pd.DataFrame(np.vstack((Amax, G2max, Gmax)).T, columns=columns, index=index)
     BinAmps = pd.DataFrame(BinAmps, index=index)
     Count = pd.DataFrame(Count, index=index)
     BinCount = pd.DataFrame(BinCount, index=index)
     Var = pd.Series(Var, index=index)
     SRSmax = pd.Series(SRSmax, index=index)
-    di_sig = pd.DataFrame(np.column_stack((Df4, Df8, Df12)),
-                          columns=['b=4', 'b=8', 'b=12'],
-                          index=index)
-    di_test = pd.DataFrame(np.column_stack((Dt4, Dt8, Dt12)),
-                           columns=['b=4', 'b=8', 'b=12'],
-                           index=index)
+    di_sig = pd.DataFrame(
+        np.column_stack((Df4, Df8, Df12)), columns=["b=4", "b=8", "b=12"], index=index
+    )
+    di_test = pd.DataFrame(
+        np.column_stack((Dt4, Dt8, Dt12)), columns=["b=4", "b=8", "b=12"], index=index
+    )
     # df = pd.concat(
     #     objs=[Gpsd, Gmax, BinAmps, Count, pd.DataFrame(Var),
     #           pd.DataFrame(SRSmax)],
@@ -681,8 +694,18 @@ def fdepsd(sig, sr, freq, Q, resp='absacce', hpfilter=5.,
     #     axis=1,
     #     copy=False)
     return SimpleNamespace(
-        freq=freq, psd=Gpsd, peakamp=Gmax, binamps=BinAmps,
-        count=Count, bincount=BinCount, var=Var, srs=SRSmax,
-        parallel=parallel, ncpu=ncpu,
-        di_sig=di_sig, di_test=di_test,
-        resp=resp, sig=sig)
+        freq=freq,
+        psd=Gpsd,
+        peakamp=Gmax,
+        binamps=BinAmps,
+        count=Count,
+        bincount=BinCount,
+        var=Var,
+        srs=SRSmax,
+        parallel=parallel,
+        ncpu=ncpu,
+        di_sig=di_sig,
+        di_test=di_test,
+        resp=resp,
+        sig=sig,
+    )

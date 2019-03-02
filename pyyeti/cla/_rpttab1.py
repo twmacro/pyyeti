@@ -10,14 +10,12 @@ from pyyeti import ytools, writer
 from ._utilities import nan_absmax, _get_rpt_headers, _get_numform
 
 
-__all__ = [
-    'rpttab1',
-]
+__all__ = ["rpttab1"]
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -38,11 +36,11 @@ def _event_count(mat, j, filter_=1e-6):
 def _add_zero_case(mat, cases):
     pv = (mat == 0).all(axis=1).nonzero()[0]
     if cases is None:
-        new_cases = ['N/A'] * mat.shape[0]
+        new_cases = ["N/A"] * mat.shape[0]
     else:
         new_cases = copy.copy(cases)
     for i in pv:
-        new_cases[i] = 'zero row'
+        new_cases[i] = "zero row"
     return new_cases
 
 
@@ -59,97 +57,87 @@ def _get_absmax(res):
 
 
 def _add_max_plus_min(ec):
-    count = ec['Maximum'][0] + ec['Minimum'][0]
+    count = ec["Maximum"][0] + ec["Minimum"][0]
     sumcount = count.sum()
     if sumcount > 0:
         countperc = 100 * count / sumcount
     else:
         countperc = count
-    ec['Max+Min'] = {0: count, 1: countperc}
+    ec["Max+Min"] = {0: count, 1: countperc}
 
 
 def _rowlbls_table(lbl, ec, j):
-    rowlabels = ['Maxima ' + lbl,
-                 'Minima ' + lbl,
-                 'Max+Min ' + lbl,
-                 'Abs-Max ' + lbl]
-    table = np.vstack((ec['Maximum'][j],
-                       ec['Minimum'][j],
-                       ec['Max+Min'][j],
-                       ec['Abs-Max'][j]))
+    rowlabels = ["Maxima " + lbl, "Minima " + lbl, "Max+Min " + lbl, "Abs-Max " + lbl]
+    table = np.vstack(
+        (ec["Maximum"][j], ec["Minimum"][j], ec["Max+Min"][j], ec["Abs-Max"][j])
+    )
     return rowlabels, table
 
 
-def _wttab_eventcount(f, res, ec, count_filter,
-                      desclen, descfrm, caselen):
+def _wttab_eventcount(f, res, ec, count_filter, desclen, descfrm, caselen):
     # extrema count
     n = len(res.cases)
-    f.write('Extrema Count\nFilter: {}\n\n'
-            .format(count_filter))
+    f.write("Extrema Count\nFilter: {}\n\n".format(count_filter))
     widths = [desclen, *([caselen] * n)]
-    headers = ['Description', *res.cases]
-    for j, frm, lbl in zip((0, 1),
-                           ('{{:{}d}}'.format(caselen),
-                            '{{:{}.1f}}'.format(caselen)),
-                           ('Count', 'Percent')):
+    headers = ["Description", *res.cases]
+    for j, frm, lbl in zip(
+        (0, 1),
+        ("{{:{}d}}".format(caselen), "{{:{}.1f}}".format(caselen)),
+        ("Count", "Percent"),
+    ):
         formats = [descfrm, *([frm] * n)]
         hu_, frm_ = writer.formheader(
-            headers, widths, formats, sep=[7, 1],
-            just='c', ulchar='=')
+            headers, widths, formats, sep=[7, 1], just="c", ulchar="="
+        )
         f.write(hu_)
         rowlabels, table = _rowlbls_table(lbl, ec, j)
         writer.vecwrite(f, frm_, rowlabels, table)
         if j == 0:
-            f.write('\n')
+            f.write("\n")
 
 
-def _wtxlsx_eventcount(workbook, header, bold, hform, res, ec,
-                       name, count_filter):
+def _wtxlsx_eventcount(workbook, header, bold, hform, res, ec, name, count_filter):
     # extrema count
-    sheet = '{} Count'.format(name)
+    sheet = "{} Count".format(name)
     worksheet = workbook.add_worksheet(sheet)
 
-    title = header.split('\n')
+    title = header.split("\n")
     for i, ln in enumerate(title):
         worksheet.write(i, 0, ln, bold)
 
     n = len(title)
-    worksheet.write(n, 0, 'Extrema Count', bold)
-    worksheet.write(
-        n + 1, 0, 'Filter: {}'.format(count_filter), bold)
+    worksheet.write(n, 0, "Extrema Count", bold)
+    worksheet.write(n + 1, 0, "Filter: {}".format(count_filter), bold)
     worksheet.write(n + 1, 1, count_filter)
     n += 2
     ncases = len(res.cases)
-    headers = ['Description', *res.cases]
+    headers = ["Description", *res.cases]
     chart_positions = ((25, 0), (25, 8), (55, 0), (55, 8))
-    data_labels = {'category': True,
-                   'percentage': True,
-                   'separator': '\n'}
-    chart_opts = {'x_offset': 25, 'y_offset': 10}
-    chart_size = {'width': 600, 'height': 500}
+    data_labels = {"category": True, "percentage": True, "separator": "\n"}
+    chart_opts = {"x_offset": 25, "y_offset": 10}
+    chart_size = {"width": 600, "height": 500}
 
-    for j, frm, lbl in zip((0, 1),
-                           ('#,##', '#,##0.0'),
-                           ('Count', 'Percent')):
-        number = workbook.add_format({'num_format': frm})
+    for j, frm, lbl in zip((0, 1), ("#,##", "#,##0.0"), ("Count", "Percent")):
+        number = workbook.add_format({"num_format": frm})
         worksheet.write_row(n, 0, headers, hform)
         rowlabels, table = _rowlbls_table(lbl, ec, j)
 
         # write table and pie charts:
         n += 1
-        for i, (rowlbl, chpos) in enumerate(
-                zip(rowlabels, chart_positions)):
+        for i, (rowlbl, chpos) in enumerate(zip(rowlabels, chart_positions)):
             worksheet.write(n + i, 0, rowlbl)
             worksheet.write_row(n + i, 1, table[i], number)
             if j == 1:
-                chart = workbook.add_chart({'type': 'pie'})
+                chart = workbook.add_chart({"type": "pie"})
                 chart.add_series(
-                    {'name': rowlbl,
-                     'categories': [sheet, n - 1, 1, n - 1,
-                                    ncases],
-                     'values': [sheet, n + i, 1, n + i, ncases],
-                     'data_labels': data_labels})
-                chart.set_title({'name': rowlbl})
+                    {
+                        "name": rowlbl,
+                        "categories": [sheet, n - 1, 1, n - 1, ncases],
+                        "values": [sheet, n + i, 1, n + i, ncases],
+                        "data_labels": data_labels,
+                    }
+                )
+                chart.set_title({"name": rowlbl})
                 chart.set_size(chart_size)
                 worksheet.insert_chart(*chpos, chart, chart_opts)
         n += len(rowlabels) + 1
@@ -160,39 +148,35 @@ def _wtxlsx_eventcount(workbook, header, bold, hform, res, ec,
 
 
 @ytools.write_text_file
-def _wttab(f, header, hu, frm, res, loop_vars,
-           rows, count_filter, desclen, descfrm, caselen):
+def _wttab(
+    f, header, hu, frm, res, loop_vars, rows, count_filter, desclen, descfrm, caselen
+):
     f.write(header)
-    ec = {}   # event counter
+    ec = {}  # event counter
     for lbl, vals, case_pv, ext, extcases in loop_vars:
-        f.write('{} Responses\n\n'.format(lbl))
-        hu_ = hu.replace('Maximum', lbl)
+        f.write("{} Responses\n\n".format(lbl))
+        hu_ = hu.replace("Maximum", lbl)
         f.write(hu_)
         ec[lbl] = _event_count(vals, case_pv, count_filter)
         extcases = _add_zero_case(vals, extcases)
-        writer.vecwrite(f, frm, rows, res.drminfo.labels,
-                        vals, ext, extcases)
-        f.write('\n\n')
+        writer.vecwrite(f, frm, rows, res.drminfo.labels, vals, ext, extcases)
+        f.write("\n\n")
     _add_max_plus_min(ec)
-    _wttab_eventcount(f, res, ec, count_filter,
-                      desclen, descfrm, caselen)
+    _wttab_eventcount(f, res, ec, count_filter, desclen, descfrm, caselen)
 
 
-def _wtxlsx(workbook, header, headers, res, loop_vars, name,
-            rows, count_filter):
-    bold = workbook.add_format({'bold': True})
-    hform = workbook.add_format({'bold': True,
-                                 'align': 'center'})
+def _wtxlsx(workbook, header, headers, res, loop_vars, name, rows, count_filter):
+    bold = workbook.add_format({"bold": True})
+    hform = workbook.add_format({"bold": True, "align": "center"})
     frm = _get_numform(res.ext, excel=True)
-    number = workbook.add_format({'num_format': frm})
+    number = workbook.add_format({"num_format": frm})
     ec = {}
     for lbl, vals, case_pv, ext, extcases in loop_vars:
-        worksheet = workbook.add_worksheet(
-            '{} {}'.format(name, lbl))
-        title = header.split('\n')
+        worksheet = workbook.add_worksheet("{} {}".format(name, lbl))
+        title = header.split("\n")
         for i, ln in enumerate(title):
             worksheet.write(i, 0, ln, bold)
-        h = [i.replace('Maximum', lbl) for i in headers]
+        h = [i.replace("Maximum", lbl) for i in headers]
         worksheet.write_row(len(title), 0, h, hform)
 
         ec[lbl] = _event_count(vals, case_pv, count_filter)
@@ -205,12 +189,9 @@ def _wtxlsx(workbook, header, headers, res, loop_vars, name,
         for i, rw in enumerate(rows):
             worksheet.write(n + i, 0, rw)
             worksheet.write(n + i, 1, labels[i])
-            worksheet.write_row(
-                n + i, 2, vals[i], number)
-            worksheet.write(
-                n + i, 2 + ncases, ext[i], number)
-            worksheet.write(
-                n + i, 3 + ncases, extcases[i])
+            worksheet.write_row(n + i, 2, vals[i], number)
+            worksheet.write(n + i, 2 + ncases, ext[i], number)
+            worksheet.write(n + i, 3 + ncases, extcases[i])
 
         # adjust column widths and freeze row and col panes
         worksheet.set_column(1, 1, 20)  # description
@@ -218,8 +199,7 @@ def _wtxlsx(workbook, header, headers, res, loop_vars, name,
         worksheet.freeze_panes(n, 2)
 
     _add_max_plus_min(ec)
-    _wtxlsx_eventcount(workbook, header, bold, hform, res, ec,
-                       name, count_filter)
+    _wtxlsx_eventcount(workbook, header, bold, hform, res, ec, name, count_filter)
 
 
 def rpttab1(res, filename, title, count_filter=1e-6, name=None):
@@ -260,54 +240,62 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
     """
 
     if len(res.drminfo.labels) != res.mx.shape[0]:
-        raise ValueError('length of `labels` does not match number of'
-                         ' rows in `res.mx` (`desc` = {})'
-                         .format(res.drminfo.desc))
+        raise ValueError(
+            "length of `labels` does not match number of"
+            " rows in `res.mx` (`desc` = {})".format(res.drminfo.desc)
+        )
 
     rows = np.arange(res.mx.shape[0]) + 1
-    headers = ['Row', 'Description', *res.cases,
-               'Maximum', 'Case']
-    header = title + '\n\n' + _get_rpt_headers(res) + '\n'
+    headers = ["Row", "Description", *res.cases, "Maximum", "Case"]
+    header = title + "\n\n" + _get_rpt_headers(res) + "\n"
 
     amx, amxcase, aext = _get_absmax(res)
     # order of tables: max, min, abs-max with sign:
-    loop_vars = (('Maximum', res.mx, np.nanargmax(res.mx, axis=1),
-                  res.ext[:, 0], res.maxcase),
-                 ('Minimum', res.mn, np.nanargmin(res.mn, axis=1),
-                  res.ext[:, 1], res.mincase),
-                 ('Abs-Max', amx, np.nanargmax(abs(amx), axis=1),
-                  aext, amxcase))
+    loop_vars = (
+        ("Maximum", res.mx, np.nanargmax(res.mx, axis=1), res.ext[:, 0], res.maxcase),
+        ("Minimum", res.mn, np.nanargmin(res.mn, axis=1), res.ext[:, 1], res.mincase),
+        ("Abs-Max", amx, np.nanargmax(abs(amx), axis=1), aext, amxcase),
+    )
 
     if isinstance(filename, xlsxwriter.workbook.Workbook):
-        excel = 'old'
-    elif isinstance(filename, str) and filename.endswith('.xlsx'):
-        excel = 'new'
+        excel = "old"
+    elif isinstance(filename, str) and filename.endswith(".xlsx"):
+        excel = "new"
     else:
-        excel = ''
+        excel = ""
 
     if not excel:
         desclen = max(15, len(max(res.drminfo.labels, key=len)))
         caselen = max(13, len(max(res.cases, key=len)))
         n = len(res.cases)
         widths = [6, desclen, *([caselen] * n), caselen, caselen]
-        descfrm = '{{:{:d}}}'.format(desclen)
-        numform = '{{:{}.6e}}'.format(caselen)
-        formats = ['{:6d}', descfrm, *([numform] * n),
-                   numform, '{}']
+        descfrm = "{{:{:d}}}".format(desclen)
+        numform = "{{:{}.6e}}".format(caselen)
+        formats = ["{:6d}", descfrm, *([numform] * n), numform, "{}"]
         hu, frm = writer.formheader(
-            headers, widths, formats, sep=[0, 1],
-            just='c', ulchar='=')
-        _wttab(filename, header, hu, frm, res, loop_vars,
-               rows, count_filter, desclen, descfrm, caselen)
+            headers, widths, formats, sep=[0, 1], just="c", ulchar="="
+        )
+        _wttab(
+            filename,
+            header,
+            hu,
+            frm,
+            res,
+            loop_vars,
+            rows,
+            count_filter,
+            desclen,
+            descfrm,
+            caselen,
+        )
     else:
         if not name:
-            raise ValueError('`name` must be input when writing'
-                             ' ".xlsx" files')
-        if excel == 'new':
-            opts = {'nan_inf_to_errors': True}
+            raise ValueError("`name` must be input when writing" ' ".xlsx" files')
+        if excel == "new":
+            opts = {"nan_inf_to_errors": True}
             with xlsxwriter.Workbook(filename, opts) as workbook:
-                _wtxlsx(workbook, header, headers, res,
-                        loop_vars, name, rows, count_filter)
+                _wtxlsx(
+                    workbook, header, headers, res, loop_vars, name, rows, count_filter
+                )
         else:
-            _wtxlsx(filename, header, headers, res, loop_vars, name,
-                    rows, count_filter)
+            _wtxlsx(filename, header, headers, res, loop_vars, name, rows, count_filter)

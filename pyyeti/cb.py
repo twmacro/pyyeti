@@ -17,7 +17,7 @@ from pyyeti.nastran import n2p
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -198,10 +198,9 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         a = np.dot(a.reshape(-1, 1), np.ones((1, lenf)))
     r, c = a.shape
     if c != lenf:
-        raise ValueError('`a` is not compatibly sized with `freq`.')
+        raise ValueError("`a` is not compatibly sized with `freq`.")
     if r != len(bset):
-        raise ValueError('number of rows in `a` not compatible '
-                         'with `bset`.')
+        raise ValueError("number of rows in `a` not compatible with `bset`.")
     frc = np.zeros((r, lenf), dtype=complex)
     bset = np.atleast_1d(bset).ravel()
     lt = m.shape[0]
@@ -211,21 +210,21 @@ def cbtf(m, b, k, a, freq, bset, save=None):
     if qset.size == 0:
         accel = a.copy()
         displ = np.zeros(a.shape, dtype=complex)
-        displ[:, pvnz] = -accel[:, pvnz] / Omega[pvnz]**2
+        displ[:, pvnz] = -accel[:, pvnz] / Omega[pvnz] ** 2
         veloc = 1j * (Omega * displ)
         frc = m @ accel + b @ veloc + k @ displ
     else:
         tf = None
         if isinstance(save, abc.MutableMapping):
             try:
-                tf = save['tf']
+                tf = save["tf"]
             except KeyError:
                 pass
         if tf is None:
             qq = np.ix_(qset, qset)
             tf = ode.SolveUnc(m[qq], b[qq], k[qq], rb=[])
             if isinstance(save, abc.MutableMapping):
-                save['tf'] = tf
+                save["tf"] = tf
 
         bb = np.ix_(bset, bset)
         qb = np.ix_(qset, bset)
@@ -236,15 +235,13 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
         displ = np.zeros((lt, lenf), dtype=complex)
         accel = displ.copy()
-        displ[np.ix_(bset, pvnz)] = -a[:, pvnz] / Omega[pvnz]**2
+        displ[np.ix_(bset, pvnz)] = -a[:, pvnz] / Omega[pvnz] ** 2
         displ[qset] = sol.d
         veloc = 1j * (Omega * displ)
         accel[bset] = a
         accel[qset] = sol.a
-        frc = (m[bset] @ accel + b[bset] @ veloc +
-               k[bb] @ displ[bset])
-    return SimpleNamespace(frc=frc, a=accel, d=displ,
-                           v=veloc, freq=freq)
+        frc = m[bset] @ accel + b[bset] @ veloc + k[bb] @ displ[bset]
+    return SimpleNamespace(frc=frc, a=accel, d=displ, v=veloc, freq=freq)
 
 
 def cbreorder(M, b, drm=False, last=False):
@@ -337,14 +334,14 @@ def cbreorder(M, b, drm=False, last=False):
     """
     lt = np.size(M, 1)
     if not drm and lt != np.size(M, 0):
-        raise ValueError('`M` must be square when `drm` is false')
+        raise ValueError("`M` must be square when `drm` is false")
 
     b = np.atleast_1d(b).ravel()
     lb = len(b)
     lq = lt - lb
 
     if (lb // 6) * 6 != lb:
-        warn('b-set not a multiple of 6.', RuntimeWarning)
+        warn("b-set not a multiple of 6.", RuntimeWarning)
 
     if lq == 0:
         if drm:
@@ -365,10 +362,10 @@ def cbreorder(M, b, drm=False, last=False):
 
 
 def _get_conv_factors(conv):
-    if conv == 'm2e':
+    if conv == "m2e":
         lengthconv = 1 / 0.0254
         massconv = 0.005710147154735817
-    elif conv == 'e2m':
+    elif conv == "e2m":
         lengthconv = 0.0254
         massconv = 175.12683524637913
     else:
@@ -380,7 +377,7 @@ def _uset_convert(uset, uref, conv):
     lengthconv = _get_conv_factors(conv)[0]
     uset = uset.copy()
     # pv = uset[:, 1] == 1
-    dof = uset.index.get_level_values('dof')
+    dof = uset.index.get_level_values("dof")
     pv = dof == 1
     uset.iloc[pv, 1:] *= lengthconv
     pv = dof == 3
@@ -393,7 +390,7 @@ def _uset_convert(uset, uref, conv):
     return uset, uref
 
 
-def cbconvert(M, b, conv='m2e', drm=False):
+def cbconvert(M, b, conv="m2e", drm=False):
     r"""
     Apply unit conversion transform to either a Craig-Bampton mass or
     stiffness matrix, or a Craig-Bampton data recovery matrix.
@@ -552,14 +549,14 @@ def cbconvert(M, b, conv='m2e', drm=False):
     #    D converts F (F = K*u or M*u'') from IN to OUT
     lt = np.size(M, 1)
     if not drm and lt != np.size(M, 0):
-        raise ValueError('`M` must be square when `drm` is false')
+        raise ValueError("`M` must be square when `drm` is false")
 
     b = np.array(b).ravel()
     lb = len(b)
     lq = lt - lb
 
     if (lb // 6) * 6 != lb:
-        raise ValueError('b-set not a multiple of 6.')
+        raise ValueError("b-set not a multiple of 6.")
 
     lengthconv, massconv = _get_conv_factors(conv)
     C = np.ones(lt)
@@ -568,7 +565,7 @@ def cbconvert(M, b, conv='m2e', drm=False):
     rot = trn + 3
     C[b[trn]] = 1 / lengthconv
     D[b[trn]] = massconv * lengthconv
-    D[b[rot]] = massconv * lengthconv**2
+    D[b[rot]] = massconv * lengthconv ** 2
     if lq > 0:
         q = locate.flippv(b, lt)
         c = math.sqrt(massconv) * lengthconv
@@ -697,8 +694,8 @@ def cgmass(m, all6=False):
            [    0.    ,  2982.2045,     0.    ],
            [    0.    ,     0.    ,  3027.8643]])
     """
-    if not ytools.mattype(m, 'symmetric'):
-        raise ValueError('mass matrix is not symmetric')
+    if not ytools.mattype(m, "symmetric"):
+        raise ValueError("mass matrix is not symmetric")
 
     mx, my, mz = np.diag(m)[:3]
     dx = m[1, 5] / my
@@ -706,14 +703,17 @@ def cgmass(m, all6=False):
     dz = m[0, 4] / mx
 
     # compute mass terms that will be subtracted off:
-    Md = np.array([[0, mx * dz, -mx * dy],
-                   [-my * dz, 0, my * dx],
-                   [mz * dy, -mz * dx, 0]])
+    Md = np.array(
+        [[0, mx * dz, -mx * dy], [-my * dz, 0, my * dx], [mz * dy, -mz * dx, 0]]
+    )
 
     I = np.array(
-        [[mz * dy**2 + my * dz**2, -mz * dx * dy, -my * dx * dz],
-         [-mz * dx * dy, mz * dx**2 + mx * dz**2, -mx * dy * dz],
-         [-my * dx * dz, -mx * dy * dz, mx * dy**2 + my * dx**2]])
+        [
+            [mz * dy ** 2 + my * dz ** 2, -mz * dx * dy, -my * dx * dz],
+            [-mz * dx * dy, mz * dx ** 2 + mx * dz ** 2, -mx * dy * dz],
+            [-my * dx * dz, -mx * dy * dz, mx * dy ** 2 + my * dx ** 2],
+        ]
+    )
 
     mcg = m.astype(float, copy=True)
     mcg[:3, 3:] -= Md
@@ -755,13 +755,24 @@ def _get_Tlv2sc(sccoord):
         return T
 
     # get transform from l/v basic to s/c:
-    uset = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
+    uset = n2p.addgrid(None, 1, "b", sccoord, [0, 0, 0], sccoord)
     return n2p.rbgeom_uset(uset, 1)
 
 
-def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
-                ref=[0, 0, 0], sccoord=None, conv=None, reorder=True,
-                g=9.80665 / 0.0254, tau='g'):
+def mk_net_drms(
+    Mcb,
+    Kcb,
+    bset,
+    *,
+    bsubset=None,
+    uset=None,
+    ref=[0, 0, 0],
+    sccoord=None,
+    conv=None,
+    reorder=True,
+    g=9.80665 / 0.0254,
+    tau="g"
+):
     """
     Form common data recovery matrices for "net" interface responses.
 
@@ -1034,14 +1045,26 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         #   lat 1 (y) moment-based = +Zmoment/wh
         #   lat 2 (z) moment-based = -Ymoment/wh
         # After going through all 6 scenarios by hand:
-        s = np.sign(cg[ax])    # is axial up or down?
+        s = np.sign(cg[ax])  # is axial up or down?
         mom_signs = [s, -s] if np.diff(lat) == 1 else [-s, s]
         return np.array(mom_signs)[:, None]
 
-    def _get_cglf(cgatm_sc, ifltma_sc, ifltmd_sc,
-                  cgatm_lv, ifltma_lv, ifltmd_lv,
-                  cg_sc, scaxial_sc, weight_sc, height_sc,
-                  cg_lv, scaxial_lv, weight_lv, height_lv):
+    def _get_cglf(
+        cgatm_sc,
+        ifltma_sc,
+        ifltmd_sc,
+        cgatm_lv,
+        ifltma_lv,
+        ifltmd_lv,
+        cg_sc,
+        scaxial_sc,
+        weight_sc,
+        height_sc,
+        cg_lv,
+        scaxial_lv,
+        weight_lv,
+        height_lv,
+    ):
         wh_sc = weight_sc * height_sc
         wh_lv = weight_lv * height_lv
         n = cgatm_sc.shape[1]
@@ -1050,20 +1073,20 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         sign_sc = _moment_signs(cg_sc, scaxial_sc, lat_sc)
         sign_lv = _moment_signs(cg_lv, scaxial_lv, lat_lv)
 
-        cglfa = np.vstack((
-            # 5 s/c rows
-            cgatm_sc[scaxial_sc],
-            cgatm_sc[lat_sc],
-            sign_sc * ifltma_sc[lat_sc[::-1] + 3] / wh_sc,
-
-            # 5 l/v rows
-            cgatm_lv[scaxial_lv],
-            cgatm_lv[lat_lv],
-            sign_lv * ifltma_lv[lat_lv[::-1] + 3] / wh_lv,
-
-            # 4 RSS rows ... filled in during data recovery
-            np.zeros((4, n))
-        ))
+        cglfa = np.vstack(
+            (
+                # 5 s/c rows
+                cgatm_sc[scaxial_sc],
+                cgatm_sc[lat_sc],
+                sign_sc * ifltma_sc[lat_sc[::-1] + 3] / wh_sc,
+                # 5 l/v rows
+                cgatm_lv[scaxial_lv],
+                cgatm_lv[lat_lv],
+                sign_lv * ifltma_lv[lat_lv[::-1] + 3] / wh_lv,
+                # 4 RSS rows ... filled in during data recovery
+                np.zeros((4, n)),
+            )
+        )
 
         cglfd = np.zeros((14, ifltmd_sc.shape[1]))
         cglfd[3:5] = sign_sc * ifltmd_sc[lat_sc[::-1] + 3] / wh_sc
@@ -1077,51 +1100,60 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         return lbls
 
     def _get_labels(scaxial_sc, scaxial_lv, tau):
-        labels = ['I/F Lateral Frc FX {}',
-                  'I/F Lateral Frc FY {}',
-                  'I/F Lateral Frc FZ {}',
-                  'I/F Moment      MX {}',
-                  'I/F Moment      MY {}',
-                  'I/F Moment      MZ {}']
-        tr = 'Lateral Frc', 'Axial Frc  ', 'Moment ', 'Torsion'
-        ifltm_labels = (_putaxial(labels, scaxial_sc, ' sc', *tr) +
-                        _putaxial(labels, scaxial_lv, ' lv', *tr))
-        labels = ['I/F Lateral   X {} (g)',
-                  'I/F Lateral   Y {} (g)',
-                  'I/F Lateral   Z {} (g)',
-                  'I/F Rotation RX {} (r/s^2)',
-                  'I/F Rotation RY {} (r/s^2)',
-                  'I/F Rotation RZ {} (r/s^2)']
-        tr = 'Lateral', 'Axial  ', 'Rotation', 'Torsion '
-        ifatm_labels = (_putaxial(labels, scaxial_sc, ' sc', *tr) +
-                        _putaxial(labels, scaxial_lv, ' lv', *tr))
+        labels = [
+            "I/F Lateral Frc FX {}",
+            "I/F Lateral Frc FY {}",
+            "I/F Lateral Frc FZ {}",
+            "I/F Moment      MX {}",
+            "I/F Moment      MY {}",
+            "I/F Moment      MZ {}",
+        ]
+        tr = "Lateral Frc", "Axial Frc  ", "Moment ", "Torsion"
+        ifltm_labels = _putaxial(labels, scaxial_sc, " sc", *tr) + _putaxial(
+            labels, scaxial_lv, " lv", *tr
+        )
+        labels = [
+            "I/F Lateral   X {} (g)",
+            "I/F Lateral   Y {} (g)",
+            "I/F Lateral   Z {} (g)",
+            "I/F Rotation RX {} (r/s^2)",
+            "I/F Rotation RY {} (r/s^2)",
+            "I/F Rotation RZ {} (r/s^2)",
+        ]
+        tr = "Lateral", "Axial  ", "Rotation", "Torsion "
+        ifatm_labels = _putaxial(labels, scaxial_sc, " sc", *tr) + _putaxial(
+            labels, scaxial_lv, " lv", *tr
+        )
 
         # fix up translational acceleration units if needed:
         for tau_, rows in zip(tau, (range(3), range(6, 9))):
-            if tau_ != 'g':
+            if tau_ != "g":
                 for i in rows:
                     ifatm_labels[i] = ifatm_labels[i].replace(
-                        '(g)', '({}/s^2)'.format(tau_))
+                        "(g)", "({}/s^2)".format(tau_)
+                    )
 
-        cglf_labels = ['S/C CG Axial         sc',
-                       'S/C CG Shear Lat 1   sc',
-                       'S/C CG Shear Lat 2   sc',
-                       'S/C CG Mom. Lat 1    sc',
-                       'S/C CG Mom. Lat 2    sc',
-                       'S/C CG Axial         lv',
-                       'S/C CG Shear Lat 1   lv',
-                       'S/C CG Shear Lat 2   lv',
-                       'S/C CG Mom. Lat 1    lv',
-                       'S/C CG Mom. Lat 2    lv',
-                       'S/C CG Shear Lat RSS sc',
-                       'S/C CG Mom. Lat RSS  sc',
-                       'S/C CG Shear Lat RSS lv',
-                       'S/C CG Mom. Lat RSS  lv']
+        cglf_labels = [
+            "S/C CG Axial         sc",
+            "S/C CG Shear Lat 1   sc",
+            "S/C CG Shear Lat 2   sc",
+            "S/C CG Mom. Lat 1    sc",
+            "S/C CG Mom. Lat 2    sc",
+            "S/C CG Axial         lv",
+            "S/C CG Shear Lat 1   lv",
+            "S/C CG Shear Lat 2   lv",
+            "S/C CG Mom. Lat 1    lv",
+            "S/C CG Mom. Lat 2    lv",
+            "S/C CG Shear Lat RSS sc",
+            "S/C CG Mom. Lat RSS  sc",
+            "S/C CG Shear Lat RSS lv",
+            "S/C CG Mom. Lat RSS  lv",
+        ]
         return ifltm_labels, ifatm_labels, cglf_labels
 
     # main routine
     if uset is None:
-        uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+        uset = n2p.addgrid(None, 1, "b", 0, [0, 0, 0], 0)
 
     # ensure that tau is a 2-tuple:
     if isinstance(tau, str):
@@ -1153,9 +1185,11 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     bb = np.ix_(bset, bset)
     grfrc = Kcb[bb] @ rb_all
     if abs(grfrc).max() > abs(Kcb[bb]).max() * 1e-8:
-        warn('Rigid-body grounding forces need to be checked. '
-             'Correct `uset`?', RuntimeWarning)
-        print('max grounding forces =\n', abs(grfrc).max(axis=0))
+        warn(
+            "Rigid-body grounding forces need to be checked. Correct `uset`?",
+            RuntimeWarning,
+        )
+        print("max grounding forces =\n", abs(grfrc).max(axis=0))
 
     if conv is not None:
         # make s/c version of ifltm compatible with system
@@ -1188,10 +1222,10 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
 
     # add center point for RBE3
     if isinstance(ref, numbers.Integral):
-        ref = uset.loc[ref, 'x':'z']
-    grids = uset_if.index.get_level_values('id')[::6]
+        ref = uset.loc[ref, "x":"z"]
+    grids = uset_if.index.get_level_values("id")[::6]
     new_id = grids.max() + 1
-    uset2 = n2p.addgrid(uset_if, new_id, 'b', 0, ref, 0)
+    uset2 = n2p.addgrid(uset_if, new_id, "b", 0, ref, 0)
     rbe3 = n2p.formrbe3(uset2, new_id, 123456, [dof_indep, grids])
     ifatm_sc = np.zeros((6, Mcb.shape[1]))
     ifatm_sc[:, xyz] = rbe3
@@ -1225,13 +1259,25 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     cgatm_lv = Tsc2lv @ cgatm_sc
 
     # compute cglf:
-    cglfa, cglfd = _get_cglf(cgatm_sc, ifltma_sc, ifltmd_sc,
-                             cgatm_lv, ifltma_lv, ifltmd_lv,
-                             cg_sc, scaxial_sc, weight_sc, height_sc,
-                             cg_lv, scaxial_lv, weight_lv, height_lv)
+    cglfa, cglfd = _get_cglf(
+        cgatm_sc,
+        ifltma_sc,
+        ifltmd_sc,
+        cgatm_lv,
+        ifltma_lv,
+        ifltmd_lv,
+        cg_sc,
+        scaxial_sc,
+        weight_sc,
+        height_sc,
+        cg_lv,
+        scaxial_lv,
+        weight_lv,
+        height_lv,
+    )
 
     # check tau:
-    if tau[0] != 'g':
+    if tau[0] != "g":
         # convert output units of s/c back to the natural units:
         if conv is not None:
             # if conv is 'm2e', then lengthconv is 1/0.0254 in/m
@@ -1241,7 +1287,7 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
         ifatm_sc[:3] *= factor
         cgatm_sc[:3] *= factor
 
-    if tau[1] != 'g':
+    if tau[1] != "g":
         # convert output units of l/v back to the natural units:
         ifatm_lv[:3] *= g
         cgatm_lv[:3] *= g
@@ -1251,18 +1297,38 @@ def mk_net_drms(Mcb, Kcb, bset, *, bsubset=None, uset=None,
     ifltma = np.vstack((ifltma_sc, ifltma_lv))
     ifltmd = np.vstack((ifltmd_sc, ifltmd_lv))
     ifatm = np.vstack((ifatm_sc, ifatm_lv))
-    (ifltm_labels,
-     ifatm_labels,
-     cglf_labels) = _get_labels(scaxial_sc, scaxial_lv, tau)
+    (ifltm_labels, ifatm_labels, cglf_labels) = _get_labels(scaxial_sc, scaxial_lv, tau)
 
     # make output variable:
-    namelist = ['ifltma', 'ifltmd', 'ifatm', 'cglfa', 'cglfd',
-                'ifltm_labels', 'ifatm_labels', 'cglf_labels',
-                'ifltma_sc', 'ifltmd_sc', 'ifatm_sc', 'cgatm_sc',
-                'ifltma_lv', 'ifltmd_lv', 'ifatm_lv', 'cgatm_lv',
-                'weight_sc', 'height_sc', 'cg_sc', 'scaxial_sc',
-                'weight_lv', 'height_lv', 'cg_lv', 'scaxial_lv',
-                'Tsc2lv', 'rb', 'rb_all']
+    namelist = [
+        "ifltma",
+        "ifltmd",
+        "ifatm",
+        "cglfa",
+        "cglfd",
+        "ifltm_labels",
+        "ifatm_labels",
+        "cglf_labels",
+        "ifltma_sc",
+        "ifltmd_sc",
+        "ifatm_sc",
+        "cgatm_sc",
+        "ifltma_lv",
+        "ifltmd_lv",
+        "ifatm_lv",
+        "cgatm_lv",
+        "weight_sc",
+        "height_sc",
+        "cg_sc",
+        "scaxial_sc",
+        "weight_lv",
+        "height_lv",
+        "cg_lv",
+        "scaxial_lv",
+        "Tsc2lv",
+        "rb",
+        "rb_all",
+    ]
     dct = locals()
     s = SimpleNamespace()
     for name in namelist:
@@ -1276,9 +1342,9 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     Routine used by :func:`rbmultchk`. See documentation for
     :func:`rbmultchk`.
     """
-    fout.write('----------------------------------------------\n')
-    fout.write('Results for {} * RB\n'.format(name))
-    fout.write('----------------------------------------------\n')
+    fout.write("----------------------------------------------\n")
+    fout.write("Results for {} * RB\n".format(name))
+    fout.write("----------------------------------------------\n")
 
     n = np.size(drm, 0)
     rbr = np.size(rb, 0)
@@ -1288,14 +1354,15 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
         # assume rigid-body modes have only b-set DOF, so we need to
         # trim down the drm:
         if isinstance(bset, str):
-            if bset == 'first':
+            if bset == "first":
                 drm1 = drm[:, :rbr]
-            elif bset == 'last':
+            elif bset == "last":
                 drm1 = drm[:, -rbr:]
             else:
                 raise ValueError(
                     'invalid `bset` string: must be either "first" '
-                    'or "last" but is "{}"'.format(bset))
+                    'or "last" but is "{}"'.format(bset)
+                )
         else:
             drm1 = drm[:, bset]
     else:
@@ -1307,123 +1374,143 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     if 0:
         trips = n2p.find_xyz_triples(rb)
         if not trips.pv.any():
-            raise ValueError('failed to get scale of rb modes ...'
-                             ' check `rb`')
+            raise ValueError("failed to get scale of rb modes ... check `rb`")
         rbscale = trips.scales[trips.pv][0]
     else:
-        xrss = np.sqrt(rb[:-2, 0]**2 + rb[1:-1, 0]**2 + rb[2:, 0]**2)
+        xrss = np.sqrt(rb[:-2, 0] ** 2 + rb[1:-1, 0] ** 2 + rb[2:, 0] ** 2)
         rbscale = abs(xrss).max()
         if rbscale == 0.0:
-            raise ValueError('failed to get scale of rb modes ...'
-                             ' check `rb`')
+            raise ValueError("failed to get scale of rb modes ... check `rb`")
 
     # attempt to find xyz triples:
     trips = n2p.find_xyz_triples(drmrb)
     trips.scales[trips.pv] /= rbscale
 
-    fout.write('\nExtreme Coordinates from {}\n'.format(name))
-    headers = ['X', 'Y', 'Z']
+    fout.write("\nExtreme Coordinates from {}\n".format(name))
+    headers = ["X", "Y", "Z"]
     widths = [10, 10, 10]
-    formats = ['{:10.4f}'] * 3
-    hu, f = writer.formheader(headers, widths, formats,
-                              sep=2, just=0)
-    hu = ''.join([' ' * 11 + i + '\n'
-                  for i in hu.rstrip().split('\n')])
+    formats = ["{:10.4f}"] * 3
+    hu, f = writer.formheader(headers, widths, formats, sep=2, just=0)
+    hu = "".join([" " * 11 + i + "\n" for i in hu.rstrip().split("\n")])
     fout.write(hu)
     if np.all(np.isnan(trips.coords[:, 0])):
-        fout.write('             -- no coordinates detected --\n')
+        fout.write("             -- no coordinates detected --\n")
     else:
         mn = np.nanmin(trips.coords, axis=0).reshape((1, 3))
         mx = np.nanmax(trips.coords, axis=0).reshape((1, 3))
-        writer.vecwrite(fout, '  Minimums:' + f, mn)
-        writer.vecwrite(fout, '  Maximums:' + f, mx)
+        writer.vecwrite(fout, "  Minimums:" + f, mn)
+        writer.vecwrite(fout, "  Maximums:" + f, mx)
 
     def _pf(s):
-        return s.replace(' nan,        nan,        nan           nan',
-                         '    ,           ,                         ')
+        return s.replace(
+            " nan,        nan,        nan           nan",
+            "    ,           ,                         ",
+        )
 
     r = np.arange(1, n + 1)
-    nonnr = np.any(drm, axis=1)   # non null rows
-    nr = ~nonnr                   # null rows
+    nonnr = np.any(drm, axis=1)  # non null rows
+    nr = ~nonnr  # null rows
     snonnr = np.sum(nonnr)
     snr = np.sum(nr)
-    fout.write('\n{} has {} ({:.1f}%) non-NULL rows and {} ({:.1f}%) '
-               'NULL rows.\n'.
-               format(name, snonnr, snonnr / n * 100,
-                      snr, snr / n * 100))
+    fout.write(
+        "\n{} has {} ({:.1f}%) non-NULL rows and {} ({:.1f}%) "
+        "NULL rows.\n".format(name, snonnr, snonnr / n * 100, snr, snr / n * 100)
+    )
 
     if prtnullrows:
-        fout.write('\n{} * RB results:  '
-                   '(including NULL rows)\n'.format(name))
+        fout.write("\n{} * RB results:  (including NULL rows)\n".format(name))
     else:
-        fout.write('\n{} * RB results:  '
-                   '(NOT including NULL rows)\n'.format(name))
-    fout.write('  Note: "Unit Scale" is output/input, so is '
-               'independent of current rb scaling which is: {}'
-               '\n\n'.format(rbscale))
+        fout.write("\n{} * RB results:  (NOT including NULL rows)\n".format(name))
+    fout.write(
+        '  Note: "Unit Scale" is output/input, so is '
+        "independent of current rb scaling which is: {}"
+        "\n\n".format(rbscale)
+    )
     if labels is None:
-        labels = [''] * n
-        labform = '{:5s}'
+        labels = [""] * n
+        labform = "{:5s}"
         lablen = 5
 
     lablen = max(8, len(max(labels, key=len)))
-    headers = ['Row', 'Label', 'Coordinates (x, y, z)',
-               'Unit Scale',
-               name + ' * RB Responses (x, y, z, rx, ry, rz)']
+    headers = [
+        "Row",
+        "Label",
+        "Coordinates (x, y, z)",
+        "Unit Scale",
+        name + " * RB Responses (x, y, z, rx, ry, rz)",
+    ]
     widths = [6, lablen, 10 * 3 + 4, 12, 65]
-    labform = '{{:{}s}}'.format(lablen)
-    formats = ['{:6d}', labform,
-               '{:10.4f}, ' * 2 + '{:10.4f}',
-               '{:12.6}',
-               '{:10.3f} ' * 5 + '{:10.3f}']
+    labform = "{{:{}s}}".format(lablen)
+    formats = [
+        "{:6d}",
+        labform,
+        "{:10.4f}, " * 2 + "{:10.4f}",
+        "{:12.6}",
+        "{:10.3f} " * 5 + "{:10.3f}",
+    ]
     sep = [2, 2, 2, 2, 2]
-    hu, f = writer.formheader(headers, widths, formats,
-                              sep=sep, just=0)
+    hu, f = writer.formheader(headers, widths, formats, sep=sep, just=0)
     fout.write(hu)
     if prtnullrows or np.all(nonnr):
-        writer.vecwrite(fout, f, r, labels, trips.coords,
-                        trips.scales, drmrb, postfunc=_pf)
+        writer.vecwrite(
+            fout, f, r, labels, trips.coords, trips.scales, drmrb, postfunc=_pf
+        )
     else:
         if np.all(nr):
-            fout.write('All rows in {} are NULL.\n'.format(name))
+            fout.write("All rows in {} are NULL.\n".format(name))
         else:
             lbls = np.array(labels)
-            writer.vecwrite(fout, f, r[nonnr], lbls[nonnr],
-                            trips.coords[nonnr], trips.scales[nonnr],
-                            drmrb[nonnr], postfunc=_pf)
+            writer.vecwrite(
+                fout,
+                f,
+                r[nonnr],
+                lbls[nonnr],
+                trips.coords[nonnr],
+                trips.scales[nonnr],
+                drmrb[nonnr],
+                postfunc=_pf,
+            )
 
-    fout.write('\nAbsolute Maximums from {} * RB results:\n'.
-               format(name))
+    fout.write("\nAbsolute Maximums from {} * RB results:\n".format(name))
     j = np.argmax(np.abs(drmrb), axis=0)
 
-    headers = ['Row', 'Label', 'Coordinates (x, y, z)',
-               'Unit Scale',
-               'Maximum Responses on Diagonal'
-               ' (x, y, z, rx, ry, rz)']
-    hu, f = writer.formheader(headers, widths, formats,
-                              sep=sep, just=0)
+    headers = [
+        "Row",
+        "Label",
+        "Coordinates (x, y, z)",
+        "Unit Scale",
+        "Maximum Responses on Diagonal (x, y, z, rx, ry, rz)",
+    ]
+    hu, f = writer.formheader(headers, widths, formats, sep=sep, just=0)
     fout.write(hu)
     for k in range(6):
         jk = j[k]
         writer.vecwrite(
-            fout, f, r[jk], labels[jk],
-            trips.coords[jk:jk + 1], trips.scales[jk:jk + 1],
-            drmrb[jk:jk + 1], postfunc=_pf)
+            fout,
+            f,
+            r[jk],
+            labels[jk],
+            trips.coords[jk : jk + 1],
+            trips.scales[jk : jk + 1],
+            drmrb[jk : jk + 1],
+            postfunc=_pf,
+        )
 
     # null row check:
     nr = np.nonzero(nr)[0]
 
     def wrt_null_rows(fout, name, n, nr, labels, labform, lablen):
         if nr.size == 0:
-            fout.write('\nThere are no NULL rows in {}.\n'.
-                       format(name))
+            fout.write("\nThere are no NULL rows in {}.\n".format(name))
         else:
-            fout.write('\nThere are {} ({:.1f}%) NULL rows in {}:\n'.
-                       format(nr.size, nr.size / n * 100, name))
-            hu, f = writer.formheader(['Row', 'Label'],
-                                      [6, lablen],
-                                      ['{:6d}', labform],
-                                      sep=2, just=0)
+            fout.write(
+                "\nThere are {} ({:.1f}%) NULL rows in {}:\n".format(
+                    nr.size, nr.size / n * 100, name
+                )
+            )
+            hu, f = writer.formheader(
+                ["Row", "Label"], [6, lablen], ["{:6d}", labform], sep=2, just=0
+            )
             fout.write(hu)
             for i in nr:
                 fout.write(f.format(i + 1, labels[i]))
@@ -1431,33 +1518,37 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     wrt_null_rows(fout, name, n, nr, labels, labform, lablen)
     if drm2 is not None:
         if np.size(drm2, 0) != n:
-            fout.write('Error: incorrectly sized DRM2 (has {} rows'
-                       ' while DRM has {} rows)\n'.
-                       format(np.size(drm2, 0), n))
-            fout.write('Skipping check. Fix input and rerun.\n')
+            fout.write(
+                "Error: incorrectly sized DRM2 (has {} rows"
+                " while DRM has {} rows)\n".format(np.size(drm2, 0), n)
+            )
+            fout.write("Skipping check. Fix input and rerun.\n")
         else:
-            fout.write('\n')
+            fout.write("\n")
             nr2 = np.nonzero(~np.any(drm2, axis=1))[0]
             err = 0
             if nr2.size != nr.size:
-                fout.write(' !! Warning: companion matrix DRM2'
-                           ' has different set of NULL rows!!\n')
+                fout.write(
+                    " !! Warning: companion matrix DRM2"
+                    " has different set of NULL rows!!\n"
+                )
                 err = 1
             elif np.any(nr != nr2):
-                fout.write(' !! Warning: companion matrix DRM2'
-                           ' has different set of NULL rows!!\n')
+                fout.write(
+                    " !! Warning: companion matrix DRM2"
+                    " has different set of NULL rows!!\n"
+                )
                 err = 1
             if not err:
-                fout.write(' NULL rows in DRM2 match those in {}\n'.
-                           format(name))
+                fout.write(" NULL rows in DRM2 match those in {}\n".format(name))
             else:
-                wrt_null_rows(fout, 'DRM2', n, nr2, labels,
-                              labform, lablen)
+                wrt_null_rows(fout, "DRM2", n, nr2, labels, labform, lablen)
     return drmrb
 
 
-def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
-              prtnullrows=False, bset='first'):
+def rbmultchk(
+    f, drm, name, rb, labels=None, drm2=None, prtnullrows=False, bset="first"
+):
     """
     Rigid-body multiply check on a data recovery matrix.
 
@@ -1601,10 +1692,9 @@ def rbmultchk(f, drm, name, rb, labels=None, drm2=None,
     rb = np.atleast_2d(rb)
     c = np.shape(rb)[1]
     if c != 6:
-        raise ValueError('`rb` does not have 6 columns')
+        raise ValueError("`rb` does not have 6 columns")
 
-    return _rbmultchk(f, drm, name, rb, labels, drm2,
-                      prtnullrows, bset)
+    return _rbmultchk(f, drm, name, rb, labels, drm2, prtnullrows, bset)
 
 
 @ytools.write_text_file
@@ -1620,69 +1710,78 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
     maxerr = 0
     for j in range(n):
         row = j * 3
-        T = rbdisp[row:row + 3, :3]
-        rb = linalg.solve(T, rbdisp[row:row + 3, 3:])
+        T = rbdisp[row : row + 3, :3]
+        rb = linalg.solve(T, rbdisp[row : row + 3, 3:])
         deltax = rb[1, 2]
         deltay = rb[2, 0]
         deltaz = rb[0, 1]
         deltax2 = -rb[2, 1]
         deltay2 = -rb[0, 2]
         deltaz2 = -rb[1, 0]
-        err = max(abs(np.diag(rb)).max(),
-                  abs(deltax - deltax2),
-                  abs(deltay - deltay2),
-                  abs(deltaz - deltaz2))
+        err = max(
+            abs(np.diag(rb)).max(),
+            abs(deltax - deltax2),
+            abs(deltay - deltay2),
+            abs(deltaz - deltaz2),
+        )
         maxerr = max(maxerr, err)
         coords[j] = [deltax, deltay, deltaz]
         errs[j] = err
         mc = abs(coords[j]).max()
         if verbose and (err > mc * tol or np.isnan(err)):
             if grids is not None:
-                fout.write('Warning: deviation from standard pattern,'
-                           ' node ID = {} starting at row {}. '
-                           'Max deviation = {:.3g} units.\n'.
-                           format(grids[j], row + 1, err))
+                fout.write(
+                    "Warning: deviation from standard pattern,"
+                    " node ID = {} starting at row {}. "
+                    "Max deviation = {:.3g} units.\n".format(grids[j], row + 1, err)
+                )
             else:
-                fout.write('Warning: deviation from standard pattern,'
-                           ' node #{} starting at row {}. '
-                           '\tMax deviation = {:.3g} units.\n'.
-                           format(j + 1, row + 1, err))
-            fout.write('  Rigid-Body Rotations:\n')
-            writer.vecwrite(fout, '{:10.4f} {:10.4f} {:10.4f}\n', rb)
-            fout.write('\n')
+                fout.write(
+                    "Warning: deviation from standard pattern,"
+                    " node #{} starting at row {}. "
+                    "\tMax deviation = {:.3g} units.\n".format(j + 1, row + 1, err)
+                )
+            fout.write("  Rigid-Body Rotations:\n")
+            writer.vecwrite(fout, "{:10.4f} {:10.4f} {:10.4f}\n", rb)
+            fout.write("\n")
 
     if verbose:
         if ttl:
-            fout.write('\n{}\n'.format(ttl))
-        headers = ['Node']
+            fout.write("\n{}\n".format(ttl))
+        headers = ["Node"]
         widths = [6]
-        formats = ['{:6}']
+        formats = ["{:6}"]
         seps = [8]
         args = [np.arange(1, n + 1)]
         if grids is not None:
-            headers.append('ID')
+            headers.append("ID")
             widths.append(8)
-            formats.append('{:8}')
+            formats.append("{:8}")
             seps.append(2)
             args.append(grids)
-        headers.extend(['X', 'Y', 'Z', 'Error'])
+        headers.extend(["X", "Y", "Z", "Error"])
         widths.extend([8, 8, 8, 10])
-        formats.extend(['{:8.2f}', '{:8.2f}', '{:8.2f}', '{:10.4e}'])
+        formats.extend(["{:8.2f}", "{:8.2f}", "{:8.2f}", "{:10.4e}"])
         seps.extend([2, 2, 2, 3])
         args.extend([coords, errs])
-        hu, f = writer.formheader(headers, widths, formats,
-                                  sep=seps, just=0)
+        hu, f = writer.formheader(headers, widths, formats, sep=seps, just=0)
         fout.write(hu)
         writer.vecwrite(fout, f, *args)
-        fout.write('\nMaximum absolute coordinate location error:  '
-                   '{:3g} units\n\n'.format(maxerr))
+        fout.write(
+            "\nMaximum absolute coordinate location error:  "
+            "{:3g} units\n\n".format(maxerr)
+        )
     return coords, errs
 
 
-def rbdispchk(f, rbdisp, grids=None,
-              ttl='Coordinates Determined from '
-              'Rigid-Body Displacements:',
-              verbose=True, tol=1.e-4):
+def rbdispchk(
+    f,
+    rbdisp,
+    grids=None,
+    ttl="Coordinates Determined from Rigid-Body Displacements:",
+    verbose=True,
+    tol=1.0e-4,
+):
     """
     Rigid-body displacement check.
 
@@ -1794,17 +1893,15 @@ def rbdispchk(f, rbdisp, grids=None,
     """
     r, c = np.shape(rbdisp)
     if c != 6:
-        raise ValueError('`rbdisp` does not have 6 columns')
+        raise ValueError("`rbdisp` does not have 6 columns")
 
     if (r // 3) * 3 != r:
-        raise ValueError('number of rows in `rbdisp` must be '
-                         'a multiple of 3.')
+        raise ValueError("number of rows in `rbdisp` must be a multiple of 3.")
     return _rbdispchk(f, rbdisp, grids, ttl, verbose, tol)
 
 
 @ytools.write_text_file
-def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
-                verbose, rb_normalizer):
+def _cbcoordchk(fout, K, bset, refpoint, grids, ttl, verbose, rb_normalizer):
     """
     Routine used by :func:`cbcoordchk`. See documentation for
     :func:`cbcoordchk`.
@@ -1814,10 +1911,10 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
     lq = lt - lb
 
     if (lb // 6) * 6 != lb:
-        raise ValueError('b-set not a multiple of 6.')
+        raise ValueError("b-set not a multiple of 6.")
 
     if len(refpoint) != 6:
-        raise ValueError('reference point must have length of 6.')
+        raise ValueError("reference point must have length of 6.")
 
     # make refpoint be relative to b-set:
     refpoint = refpoint - np.min(bset)
@@ -1826,7 +1923,7 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
     o = locate.flippv(refpoint, lb)
     rbmodes = np.zeros((lb, 6))
     rbmodes[refpoint] = np.eye(6)
-    refpoint_chk = 'pass'
+    refpoint_chk = "pass"
 
     if o.size > 0:
         kor = kbb[np.ix_(o, refpoint)]
@@ -1842,61 +1939,54 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl,
         krr = kbb[np.ix_(refpoint, refpoint)]
         rhs = -kor.T @ rbmodes[o]
         if not np.allclose(krr, rhs, atol=abs(krr).max() * 1e-8):
-            refpoint_chk = 'fail'
+            refpoint_chk = "fail"
 
         if verbose:
             fout.write(
-                '\nChecking to see if reference DOF '
-                'properly restrain rigid-body motion.\n'
+                "\nChecking to see if reference DOF "
+                "properly restrain rigid-body motion.\n"
                 'Splitting "kbb" into the "r" (reference) and '
-                '"o" (other) sets, this should be zero:\n\n')
-            fout.write('\tkrr - kro @ inv(koo) @ kor\n\n')
-            fout.write('Check: ')
-            if refpoint_chk == 'pass':
-                fout.write(
-                    'PASS. Values printed below for reference.\n\n')
+                '"o" (other) sets, this should be zero:\n\n'
+            )
+            fout.write("\tkrr - kro @ inv(koo) @ kor\n\n")
+            fout.write("Check: ")
+            if refpoint_chk == "pass":
+                fout.write("PASS. Values printed below for reference.\n\n")
             else:
-                fout.write(
-                    'FAIL. Assess values below before running '
-                    'CLA.\n\n')
+                fout.write("FAIL. Assess values below before running CLA.\n\n")
 
             def _write_matrix(mat):
-                fout.write('\t' + str(mat).replace('\n ', '\n\t ') +
-                           '\n\n')
+                fout.write("\t" + str(mat).replace("\n ", "\n\t ") + "\n\n")
 
-            with ytools.np_printoptions(precision=2, suppress=0,
-                                        linewidth=140):
+            with ytools.np_printoptions(precision=2, suppress=0, linewidth=140):
                 fout.write('"krr" is:\n\n')
                 _write_matrix(krr)
                 fout.write('"kro @ inv(koo) @ kor" is:\n\n')
                 _write_matrix(rhs)
-                fout.write('and the difference is:\n\n')
+                fout.write("and the difference is:\n\n")
                 _write_matrix(krr - rhs)
 
-            with ytools.np_printoptions(precision=2, suppress=1,
-                                        linewidth=140):
-                fout.write('The percent difference is:\n\n')
+            with ytools.np_printoptions(precision=2, suppress=1, linewidth=140):
+                fout.write("The percent difference is:\n\n")
                 _write_matrix((rhs - krr) / krr * 100)
 
     if rb_normalizer is not None:
         rbmodes = rbmodes @ rb_normalizer
 
     xyz = ytools.mkpattvec([0, 1, 2], lb, 6).ravel()
-    coords, maxerr = rbdispchk(fout, rbmodes[xyz],
-                               grids, ttl, verbose)
+    coords, maxerr = rbdispchk(fout, rbmodes[xyz], grids, ttl, verbose)
     if lq > 0:
         rbmodes1 = rbmodes
         rbmodes = np.zeros((lt, 6))
         rbmodes[bset] = rbmodes1
     return SimpleNamespace(
-        coords=coords,
-        rbmodes=rbmodes,
-        maxerr=maxerr,
-        refpoint_chk=refpoint_chk)
+        coords=coords, rbmodes=rbmodes, maxerr=maxerr, refpoint_chk=refpoint_chk
+    )
 
 
-def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
-               verbose=True, outfile=1, rb_normalizer=None):
+def cbcoordchk(
+    K, bset, refpoint, grids=None, ttl=None, verbose=True, outfile=1, rb_normalizer=None
+):
     """
     Check interface coordinates of a Craig-Bampton stiffness matrix.
 
@@ -2013,8 +2103,7 @@ def cbcoordchk(K, bset, refpoint, grids=None, ttl=None,
     :func:`pyyeti.nastran.n2p.rbgeom`,
     :func:`pyyeti.nastran.n2p.rbgeom_uset`
     """
-    return _cbcoordchk(outfile, K, bset, refpoint,
-                       grids, ttl, verbose, rb_normalizer)
+    return _cbcoordchk(outfile, K, bset, refpoint, grids, ttl, verbose, rb_normalizer)
 
 
 def _solve_eig(fout, k, m, mtype, ktype, types):
@@ -2028,39 +2117,39 @@ def _solve_eig(fout, k, m, mtype, ktype, types):
     if z.any():
         # there are zero cols
         fout.write(
-            '\nTrimming out null columns (and corresponding '
-            'rows) for free-free eigen problem:\n')
-        fout.write('\tpv = ' + str(z.nonzero()[0]) + '\n\n')
+            "\nTrimming out null columns (and corresponding "
+            "rows) for free-free eigen problem:\n"
+        )
+        fout.write("\tpv = " + str(z.nonzero()[0]) + "\n\n")
         nz2 = np.ix_(nz, nz)
         m = m[nz2]
         k = k[nz2]
         mtype, types = ytools.mattype(m)
         ktype = ytools.mattype(k)[0]
 
-    if mtype & types['posdef'] and ktype & types['symmetric']:
-        fout.write('Solving hermitian eigen problem.\n')
+    if mtype & types["posdef"] and ktype & types["symmetric"]:
+        fout.write("Solving hermitian eigen problem.\n")
         w, v = linalg.eigh(k, m)
         w = np.abs(w)
         # due to trouble with low frequency accuracy in DSYEVR, use
         # subspace iteration for lower frequency modes (up to 50 Hz,
         # but limit to 350 modes)
         f = np.sqrt(w) / (2 * math.pi)
-        p = np.sum(f < 50.)
+        p = np.sum(f < 50.0)
         # num = max(6, min(10, n/10))
         if 0:
-            ws, vs = sp_la.eigsh(k, p, m, sigma=1., mode='normal')
+            ws, vs = sp_la.eigsh(k, p, m, sigma=1.0, mode="normal")
         else:
-            ws, vs, _ = ytools.eig_si(k, m, p=p,
-                                      mu=-10., Xk=v, pmax=350)
+            ws, vs, _ = ytools.eig_si(k, m, p=p, mu=-10.0, Xk=v, pmax=350)
         ws = np.abs(ws)
         if len(w) > len(ws):
-            w[:len(ws)] = ws
-            v[:, :len(ws)] = vs
+            w[: len(ws)] = ws
+            v[:, : len(ws)] = vs
         else:
             w = ws
             v = vs
     else:
-        fout.write('Solving generalized eigen problem.\n')
+        fout.write("Solving generalized eigen problem.\n")
         w, v = linalg.eig(k, m, right=True)
         if np.iscomplexobj(w):
             j = np.argsort(np.abs(w))
@@ -2078,9 +2167,19 @@ def _solve_eig(fout, k, m, mtype, ktype, types):
 
 
 @ytools.write_text_file
-def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
-            uref=(0, 0, 0), conv=None, em_filt=0, rb_norm=None,
-            reorder=True):
+def cbcheck(
+    f,
+    Mcb,
+    Kcb,
+    bseto,
+    bref,
+    uset=None,
+    uref=(0, 0, 0),
+    conv=None,
+    em_filt=0,
+    rb_norm=None,
+    reorder=True,
+):
     """
     Run model checks on Craig-Bampton mass and stiffness matrices.
 
@@ -2267,29 +2366,30 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     # check matrix properties:
     mtype, types = ytools.mattype(Mcb)
     ktype = ytools.mattype(Kcb)[0]
-    if mtype & types['symmetric']:
-        f.write('Mass matrix is symmetric.\n')
+    if mtype & types["symmetric"]:
+        f.write("Mass matrix is symmetric.\n")
     else:
-        f.write('Warning: mass matrix is not symmetric.\n')
-    if mtype & types['posdef']:
-        f.write('Mass matrix is positive definite.\n')
+        f.write("Warning: mass matrix is not symmetric.\n")
+    if mtype & types["posdef"]:
+        f.write("Mass matrix is positive definite.\n")
     else:
-        f.write('Warning: mass matrix is not positive definite.\n')
-    if ktype & types['symmetric']:
-        f.write('Stiffness matrix is symmetric.\n')
+        f.write("Warning: mass matrix is not positive definite.\n")
+    if ktype & types["symmetric"]:
+        f.write("Stiffness matrix is symmetric.\n")
     else:
-        f.write('Warning: stiffness matrix is not symmetric.\n')
+        f.write("Warning: stiffness matrix is not symmetric.\n")
 
     # some input checks:
     if uset is None:
-        uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
+        uset = n2p.addgrid(None, 1, "b", 0, [0, 0, 0], 0)
         uref = 1
 
     nb = len(bseto)
     if uset.shape[0] != nb:
-        raise ValueError('number of rows in `uset` is {}, but must '
-                         'equal len(b-set) ({})'.
-                         format(uset.shape[0], nb))
+        raise ValueError(
+            "number of rows in `uset` is {}, but must "
+            "equal len(b-set) ({})".format(uset.shape[0], nb)
+        )
 
     # convert units if necessary:
     if conv is not None:
@@ -2314,8 +2414,9 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     else:
         bset = np.sort(bseto)
         if not (bset == bseto).all():
-            raise ValueError('when `reorder` is False, `bseto` must'
-                             ' be in ascending order')
+            raise ValueError(
+                "when `reorder` is False, `bseto` must be in ascending order"
+            )
 
     # check for appropriate zeros:
     qset = locate.flippv(bset, n)
@@ -2330,64 +2431,86 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     error_flag = 0
     mattol = 1.0e-12
 
-    def _prt_chk_str(f, formstr, err, tol,
-                     good='Okay', bad='CHECK!', switch=False):
+    def _prt_chk_str(f, formstr, err, tol, good="Okay", bad="CHECK!", switch=False):
         if err > tol:
             flag = 1
             status = bad
         else:
             flag = 0
             status = good
-        formstr = formstr + ' {}\n'
+        formstr = formstr + " {}\n"
         if switch:
             err = tol
         f.write(formstr.format(err, status))
         return flag
 
-    f.write('\nMass values check:\n')
+    f.write("\nMass values check:\n")
     mxmqqerr = np.max(np.abs(np.diag(mqq) - 1.0))
     error_flag += _prt_chk_str(
-        f, ('\tMaximum value of diag(MQQ)-1.0    = {:11g}'
-            '  (should be zero)'), mxmqqerr, mattol)
+        f,
+        ("\tMaximum value of diag(MQQ)-1.0    = {:11g}  (should be zero)"),
+        mxmqqerr,
+        mattol,
+    )
     mxmqqerr = abs(mqq - np.diag(np.diag(mqq))).max()
     error_flag += _prt_chk_str(
-        f, ('\tMaximum off-diagonal value of MQQ = {:11g}'
-            '  (should be zero)'), mxmqqerr, mattol)
+        f,
+        ("\tMaximum off-diagonal value of MQQ = {:11g}  (should be zero)"),
+        mxmqqerr,
+        mattol,
+    )
 
     mnkqq = np.min(np.diag(kqq))
     mxkqqerr = np.max(np.abs(kqq - np.diag(np.diag(kqq))))
     mxkbb = np.max(np.abs(kbb))
     mxkbq = abs(k[bset][:, qset]).max()
-    f.write('\nStiffness values checks:\n')
+    f.write("\nStiffness values checks:\n")
     _prt_chk_str(
-        f, ('\tMaximum value of KBB              = {:11g}'
-            '  (should be zero only if statically-determinate)'),
-        mxkbb, mattol, good='check', bad='check')
+        f,
+        (
+            "\tMaximum value of KBB              = {:11g}"
+            "  (should be zero only if statically-determinate)"
+        ),
+        mxkbb,
+        mattol,
+        good="check",
+        bad="check",
+    )
     error_flag += _prt_chk_str(
-        f, ('\tMaximum value of KBQ              = {:11g}'
-            '  (should be zero)'), mxkbq, mattol)
+        f,
+        ("\tMaximum value of KBQ              = {:11g}  (should be zero)"),
+        mxkbq,
+        mattol,
+    )
     error_flag += _prt_chk_str(
-        f, ('\tMaximum off-diagonal value of KQQ = {:11g}'
-            '  (should be zero)'), mxkqqerr, mattol)
+        f,
+        ("\tMaximum off-diagonal value of KQQ = {:11g}  (should be zero)"),
+        mxkqqerr,
+        mattol,
+    )
 
     # print warning on frequencies less then 1/(2 pi):
     error_flag += _prt_chk_str(
-        f, ('\tMinimum diagonal value of KQQ     = {:11g}'
-            '  (should be > zero)'), 1.0, mnkqq, switch=True)
+        f,
+        ("\tMinimum diagonal value of KQQ     = {:11g}  (should be > zero)"),
+        1.0,
+        mnkqq,
+        switch=True,
+    )
 
     if error_flag > 0:
-        f.write('\n\nWARNING!: check mass and stiffness carefully'
-                ' (see above).\nAny failed checks need to be '
-                'resolved before CLA.\n')
+        f.write(
+            "\n\nWARNING!: check mass and stiffness carefully"
+            " (see above).\nAny failed checks need to be "
+            "resolved before CLA.\n"
+        )
 
     if nb == 6 and mxkbb > 0:
-        f.write('Echoing KBB for visual inspection since max(KBB)'
-                ' != 0:\n')
-        f.write('KBB =\n')
-        form = '\t' + ('{:7.4f}  ') * 5 + '{:7.4f}\n'
+        f.write("Echoing KBB for visual inspection since max(KBB) != 0:\n")
+        f.write("KBB =\n")
+        form = "\t" + ("{:7.4f}  ") * 5 + "{:7.4f}\n"
         writer.vecwrite(f, form, kbb)
-        f.write('\n\tNote: for comparison KQQ[0, 0] = {:.2f}.\n\n'.
-                format(kqq[0, 0]))
+        f.write("\n\tNote: for comparison KQQ[0, 0] = {:.2f}.\n\n".format(kqq[0, 0]))
 
     # Three types of rigid-body modes will be calculated:
     #
@@ -2407,21 +2530,31 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
 
     if rb_norm:
         rb_normalizer = rbg[bref]
-        ttl = ('Stiffness-based coordinates relative to `uref` '
-               'because of normalization (`rb_norm`):\n '
-               ' (Note: locations are in basic coordinate system.)\n')
+        ttl = (
+            "Stiffness-based coordinates relative to `uref` "
+            "because of normalization (`rb_norm`):\n "
+            " (Note: locations are in basic coordinate system.)\n"
+        )
     else:
         rb_normalizer = None
-        ttl = ('Stiffness-based coordinates relative to node starting'
-               ' at row/col {} (after any reordering):\n '
-               ' (Note: locations are in local coordinate system of '
-               'the reference node.)\n'.format(bref[0] + 1))
+        ttl = (
+            "Stiffness-based coordinates relative to node starting"
+            " at row/col {} (after any reordering):\n "
+            " (Note: locations are in local coordinate system of "
+            "the reference node.)\n".format(bref[0] + 1)
+        )
 
     # coordinates of boundary points according to stiffness:
     c_chk = cbcoordchk(
-        k, bset, bref,
-        uset.index.get_level_values('id')[::6],
-        ttl, True, f, rb_normalizer)
+        k,
+        bset,
+        bref,
+        uset.index.get_level_values("id")[::6],
+        ttl,
+        True,
+        f,
+        rb_normalizer,
+    )
     rbs = c_chk.rbmodes
 
     # calculate free-free modes:
@@ -2435,19 +2568,29 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     # distance of motion check:
     def _write_move_chk(ttl, rss_s, rss_g, rss_e, uset):
         f.write(
-            ttl + '\n'
-            '-- should all be 1.0s (can be 0.0 for DOF with zero '
-            'stiffness):\n\n')
-        f.write('\tNode          Stiffness-based      '
-                '  Geometry-based        Eigenvalue-based\n')
-        f.write('\t---------   -------------------    '
-                '-------------------    -------------------\n')
-        writer.vecwrite(f, '\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}'
-                        '    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  '
-                        '{:5.3f}  {:5.3f}\n',
-                        uset.index.get_level_values('id')[::6],
-                        rss_s, rss_g, rss_e)
-        f.write('\n\n')
+            ttl + "\n"
+            "-- should all be 1.0s (can be 0.0 for DOF with zero "
+            "stiffness):\n\n"
+        )
+        f.write(
+            "\tNode          Stiffness-based      "
+            "  Geometry-based        Eigenvalue-based\n"
+        )
+        f.write(
+            "\t---------   -------------------    "
+            "-------------------    -------------------\n"
+        )
+        writer.vecwrite(
+            f,
+            "\t{:8d}    {:5.3f}  {:5.3f}  {:5.3f}"
+            "    {:5.3f}  {:5.3f}  {:5.3f}    {:5.3f}  "
+            "{:5.3f}  {:5.3f}\n",
+            uset.index.get_level_values("id")[::6],
+            rss_s,
+            rss_g,
+            rss_e,
+        )
+        f.write("\n\n")
 
     rbs_b = rbs[bset]
     rbg_b = rbg
@@ -2458,24 +2601,22 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     rss_e = np.zeros((nb, 3))
     for i in range(nb):
         s = slice(i * 6, i * 6 + 3)
-        rss_s[i] = np.sqrt((rbs_b[s, :3]**2).sum(axis=0))
-        rss_g[i] = np.sqrt((rbg_b[s, :3]**2).sum(axis=0))
-        rss_e[i] = np.sqrt((rbe_b[s, :3]**2).sum(axis=0))
+        rss_s[i] = np.sqrt((rbs_b[s, :3] ** 2).sum(axis=0))
+        rss_g[i] = np.sqrt((rbg_b[s, :3] ** 2).sum(axis=0))
+        rss_e[i] = np.sqrt((rbe_b[s, :3] ** 2).sum(axis=0))
 
-    _write_move_chk('RB Translation Movement Check',
-                    rss_s, rss_g, rss_e, uset)
+    _write_move_chk("RB Translation Movement Check", rss_s, rss_g, rss_e, uset)
 
     rss_rot_s = np.zeros((nb, 3))
     rss_rot_g = np.zeros((nb, 3))
     rss_rot_e = np.zeros((nb, 3))
     for i in range(nb):
         s = slice(i * 6 + 3, i * 6 + 6)
-        rss_rot_s[i] = np.sqrt((rbs_b[s, 3:]**2).sum(axis=0))
-        rss_rot_g[i] = np.sqrt((rbg_b[s, 3:]**2).sum(axis=0))
-        rss_rot_e[i] = np.sqrt((rbe_b[s, 3:]**2).sum(axis=0))
+        rss_rot_s[i] = np.sqrt((rbs_b[s, 3:] ** 2).sum(axis=0))
+        rss_rot_g[i] = np.sqrt((rbg_b[s, 3:] ** 2).sum(axis=0))
+        rss_rot_e[i] = np.sqrt((rbe_b[s, 3:] ** 2).sum(axis=0))
 
-    _write_move_chk('RB Rotation Movement Check',
-                    rss_rot_s, rss_rot_g, rss_rot_e, uset)
+    _write_move_chk("RB Rotation Movement Check", rss_rot_s, rss_rot_g, rss_rot_e, uset)
 
     # get mass properties:
     ms = rbs.T @ m @ rbs
@@ -2487,134 +2628,154 @@ def cbcheck(f, Mcb, Kcb, bseto, bref, uset=None,
     (mcgg, dg, gyr_g, pgyr_g, I_g, Ip_g) = cgmass(mg, all6=True)
     (mcge, de, gyr_e, pgyr_e, I_e, Ip_e) = cgmass(me, all6=True)
 
-    f.write('MASS PROPERTIES CHECKS:\n\n')
+    f.write("MASS PROPERTIES CHECKS:\n\n")
 
     def _wrtmass(f, mass, rbtype):
-        f.write('6x6 mass matrix from {}-based rb modes:\n\n'.
-                format(rbtype))
+        f.write("6x6 mass matrix from {}-based rb modes:\n\n".format(rbtype))
         writer.vecwrite(
-            f, '\t{:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}'
-            '  {:12.4f}  {:12.4f}\n', mass)
-        f.write('\n\n')
-    _wrtmass(f, ms, 'stiffness')
-    _wrtmass(f, mg, 'geometry')
-    _wrtmass(f, me, 'eigensolution')
+            f, "\t{:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}\n", mass
+        )
+        f.write("\n\n")
 
-    f.write('Comparisons from mass properties:\n')
+    _wrtmass(f, ms, "stiffness")
+    _wrtmass(f, mg, "geometry")
+    _wrtmass(f, me, "eigensolution")
+
+    f.write("Comparisons from mass properties:\n")
 
     def _wrtdist(f, ds, dg, de, ttl, use123=False):
         f.write(ttl)
         if use123:
-            f.write('\t\tRB-Mode from                    1'
-                    '               2               3\n')
+            f.write(
+                "\t\tRB-Mode from                    1"
+                "               2               3\n"
+            )
         else:
-            f.write('\t\tRB-Mode from                    X'
-                    '               Y               Z\n')
-        f.write('\t\t------------              -----------------'
-                '----------------------------\n')
-        f.write('\t\t   Stiffness           {:14.6f}  '
-                '{:14.6f}  {:14.6f}\n'.format(*ds))
-        f.write('\t\t   Geometry            {:14.6f}  '
-                '{:14.6f}  {:14.6f}\n'.format(*dg))
-        f.write('\t\t   Eigensolution       {:14.6f}  '
-                '{:14.6f}  {:14.6f}\n'.format(*de))
-    ttl = ('\n\tDistance to CG location from relevant reference '
-           'point:\n\n')
+            f.write(
+                "\t\tRB-Mode from                    X"
+                "               Y               Z\n"
+            )
+        f.write(
+            "\t\t------------              -----------------"
+            "----------------------------\n"
+        )
+        f.write(
+            "\t\t   Stiffness           {:14.6f}  {:14.6f}  {:14.6f}\n".format(*ds)
+        )
+        f.write(
+            "\t\t   Geometry            {:14.6f}  {:14.6f}  {:14.6f}\n".format(*dg)
+        )
+        f.write(
+            "\t\t   Eigensolution       {:14.6f}  {:14.6f}  {:14.6f}\n".format(*de)
+        )
+
+    ttl = "\n\tDistance to CG location from relevant reference point:\n\n"
     _wrtdist(f, ds, dg, de, ttl)
-    ttl = ('\n\n\tRadius of gyration about X, Y, Z axes '
-           '(from CG):\n\n')
+    ttl = "\n\n\tRadius of gyration about X, Y, Z axes (from CG):\n\n"
     _wrtdist(f, gyr_s, gyr_g, gyr_e, ttl)
-    ttl = ('\n\tRadius of gyration about principal axes '
-           '(from CG):\n\n')
+    ttl = "\n\tRadius of gyration about principal axes (from CG):\n\n"
     _wrtdist(f, pgyr_s, pgyr_g, pgyr_e, ttl, use123=True)
-    f.write('\n\n')
+    f.write("\n\n")
 
     def _wrtinertia(f, I, Ip, rbtype):
-        f.write('{}-based Inertia Matrix @ CG about X,Y,Z:\n\n'.
-                format(rbtype.capitalize()))
-        writer.vecwrite(f, '\t\t{:12.4f}  {:12.4f}  {:12.4f}\n',
-                        I)
-        f.write('\n')
-        f.write('\tPrincipal Axis Moments of Inertia:\n\n')
-        f.write('\t\t{:12.4f}  {:12.4f}  {:12.4f}\n'.
-                format(*np.sort(np.diag(Ip))))
-        f.write('\n\n')
-    _wrtinertia(f, I_s, Ip_s, 'stiffness')
-    _wrtinertia(f, I_g, Ip_g, 'geometry')
-    _wrtinertia(f, I_e, Ip_e, 'eigensolution')
+        f.write(
+            "{}-based Inertia Matrix @ CG about X,Y,Z:\n\n".format(rbtype.capitalize())
+        )
+        writer.vecwrite(f, "\t\t{:12.4f}  {:12.4f}  {:12.4f}\n", I)
+        f.write("\n")
+        f.write("\tPrincipal Axis Moments of Inertia:\n\n")
+        f.write("\t\t{:12.4f}  {:12.4f}  {:12.4f}\n".format(*np.sort(np.diag(Ip))))
+        f.write("\n\n")
 
-    f.write('GROUNDING CHECKS:\n\n')
+    _wrtinertia(f, I_s, Ip_s, "stiffness")
+    _wrtinertia(f, I_g, Ip_g, "geometry")
+    _wrtinertia(f, I_e, Ip_e, "eigensolution")
+
+    f.write("GROUNDING CHECKS:\n\n")
 
     def _wrtground(f, uset, rbf, rbfsumm, rbtype):
-        f.write('                            K*RB using {}-'
-                'based rb modes:\n'.format(rbtype))
-        f.write('DOF                    X           Y           Z '
-                '          RX          RY          RZ\n')
-        f.write('-------------     -------------------------------'
-                '-------------------------------------\n')
+        f.write(
+            "                            K*RB using {}-"
+            "based rb modes:\n".format(rbtype)
+        )
+        f.write(
+            "DOF                    X           Y           Z "
+            "          RX          RY          RZ\n"
+        )
+        f.write(
+            "-------------     -------------------------------"
+            "-------------------------------------\n"
+        )
         nb = uset.shape[0]
         iddof = uset.iloc[:, :0].reset_index().values
         writer.vecwrite(
-            f, '{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}'
-            '  {:10.3f}  {:10.3f}  {:10.3f}\n',
-            iddof, rbf[:nb])
+            f,
+            "{:8d} {:3d}    {:10.3f}  {:10.3f}  {:10.3f}"
+            "  {:10.3f}  {:10.3f}  {:10.3f}\n",
+            iddof,
+            rbf[:nb],
+        )
         nq = rbf.shape[0] - nb
         if nq > 0:
             writer.vecwrite(
-                f, '  modal  {:4d}   {:10.3f}  {:10.3f}'
-                '  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n',
-                np.arange(nq) + 1, rbf[nb::])
-        f.write('\nSummation of {}-based rb-forces: '
-                'RB\'*K*RB:\n\n'.format(rbtype))
-        writer.vecwrite(f, '\t{:10.3f}  {:10.3f}  {:10.3f}  '
-                        '{:10.3f}  {:10.3f}  {:10.3f}\n', rbfsumm)
-        f.write('\n\n')
+                f,
+                "  modal  {:4d}   {:10.3f}  {:10.3f}"
+                "  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n",
+                np.arange(nq) + 1,
+                rbf[nb::],
+            )
+        f.write("\nSummation of {}-based rb-forces: RB'*K*RB:\n\n".format(rbtype))
+        writer.vecwrite(
+            f,
+            "\t{:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n",
+            rbfsumm,
+        )
+        f.write("\n\n")
 
     rbfs = k @ rbs
     rbfg = kbb @ rbg
     rbfe = k @ rbe
 
-    _wrtground(f, uset, rbfs, rbs.T @ rbfs, 'stiffness')
-    _wrtground(f, uset, rbfg, rbg.T @ rbfg, 'geometry')
-    _wrtground(f, uset, rbfe, rbe.T @ rbfe, 'eigensolution')
+    _wrtground(f, uset, rbfs, rbs.T @ rbfs, "stiffness")
+    _wrtground(f, uset, rbfg, rbg.T @ rbfg, "geometry")
+    _wrtground(f, uset, rbfe, rbe.T @ rbfe, "eigensolution")
 
     # free-free modes:
-    f.write('FREE-FREE MODES:\n\n')
-    f.write('\tMode   Frequency (Hz)\n')
-    f.write('\t----   --------------\n')
-    writer.vecwrite(f, '\t{:4d}  {:15.6f}\n',
-                    np.arange(len(w)) + 1, np.sqrt(w) / (2 * math.pi))
+    f.write("FREE-FREE MODES:\n\n")
+    f.write("\tMode   Frequency (Hz)\n")
+    f.write("\t----   --------------\n")
+    writer.vecwrite(
+        f, "\t{:4d}  {:15.6f}\n", np.arange(len(w)) + 1, np.sqrt(w) / (2 * math.pi)
+    )
 
     # compute modal-effective mass:
     if nq > 0:
         # effective mass in percent of total mass:
-        effmass = (m[QB] @ rbg)**2 * (100 / np.diag(mg))
+        effmass = (m[QB] @ rbg) ** 2 * (100 / np.diag(mg))
         num = np.arange(nq) + 1
         frq = np.sqrt(np.abs(np.diag(kqq))) / (2 * math.pi)
         summ = np.sum(effmass, axis=0)
-        f.write('\n\nFIXED-BASE MODES w/ Percent Modal Effective'
-                ' Mass:\n\n')
-        f.write('Using geometry-based rb modes for effective mass '
-                'calcs.\n')
+        f.write("\n\nFIXED-BASE MODES w/ Percent Modal Effective Mass:\n\n")
+        f.write("Using geometry-based rb modes for effective mass calcs.\n")
         if em_filt > 0:
-            f.write('\nPrinting only the modes with at least '
-                    '{:.1f}% effective mass.\n'
-                    'The sum includes all modes.\n'.
-                    format(em_filt))
+            f.write(
+                "\nPrinting only the modes with at least "
+                "{:.1f}% effective mass.\n"
+                "The sum includes all modes.\n".format(em_filt)
+            )
             pv = np.any(effmass > em_filt, axis=1)
             num = num[pv]
             frq = frq[pv]
             effmass = effmass[pv]
-        frm = '{:6d}     {:10.3f}    ' + '  {:6.2f}' * 6 + '\n'
-        dirstr = '    T1      T2      T3      R1      R2      R3\n'
-        linestr = '  ------  ------  ------  ------  ------  ------\n'
-        f.write('\nMode No.  Frequency (Hz) ' + dirstr)
-        f.write('--------  -------------- ' + linestr)
+        frm = "{:6d}     {:10.3f}    " + "  {:6.2f}" * 6 + "\n"
+        dirstr = "    T1      T2      T3      R1      R2      R3\n"
+        linestr = "  ------  ------  ------  ------  ------  ------\n"
+        f.write("\nMode No.  Frequency (Hz) " + dirstr)
+        f.write("--------  -------------- " + linestr)
         writer.vecwrite(f, frm, num, frq, effmass)
-        f.write(('\nTotal Effective Mass:'
-                 '    ' + '  {:6.2f}' * 6 + '\n').format(*summ))
+        f.write(
+            ("\nTotal Effective Mass:    " + "  {:6.2f}" * 6 + "\n").format(*summ)
+        )
     else:
-        f.write('\n\nThere are no modes for the modal-effective-'
-                'mass check.\n')
-    return SimpleNamespace(m=m, k=k, bset=bset, rbs=rbs, rbg=rbg,
-                           rbe=rbe, uset=uset)
+        f.write("\n\nThere are no modes for the modal-effective-mass check.\n")
+    return SimpleNamespace(m=m, k=k, bset=bset, rbs=rbs, rbg=rbg, rbe=rbe, uset=uset)

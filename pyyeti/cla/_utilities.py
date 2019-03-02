@@ -10,28 +10,28 @@ from pyyeti import locate
 
 
 __all__ = [
-    '_is_valid_identifier',
-    '_merge_uf_reds',
-    '_get_rpt_headers',
-    '_get_numform',
-    'get_marker_cycle',
-    '_proc_filterval',
-    'PrintCLAInfo',
-    'freq3_augment',
-    'maxmin',
-    'nan_argmax',
-    'nan_argmin',
-    'nan_absmax',
-    'extrema',
+    "_is_valid_identifier",
+    "_merge_uf_reds",
+    "_get_rpt_headers",
+    "_get_numform",
+    "get_marker_cycle",
+    "_proc_filterval",
+    "PrintCLAInfo",
+    "freq3_augment",
+    "maxmin",
+    "nan_argmax",
+    "nan_argmin",
+    "nan_absmax",
+    "extrema",
     #     'reorder',
-    '_calc_covariance_sine_cosine',
-    'PSD_consistent_rss',
+    "_calc_covariance_sine_cosine",
+    "PSD_consistent_rss",
 ]
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -41,39 +41,37 @@ def _is_valid_identifier(name):
     return name.isidentifier() and not iskeyword(name)
 
 
-def _merge_uf_reds(old, new, method='replace'):
-    if method == 'replace':
-        merged = (n if n is not None else o
-                  for o, n in zip(old, new))
-    elif method == 'multiply':
-        merged = (o * n if n is not None else o
-                  for o, n in zip(old, new))
+def _merge_uf_reds(old, new, method="replace"):
+    if method == "replace":
+        merged = (n if n is not None else o for o, n in zip(old, new))
+    elif method == "multiply":
+        merged = (o * n if n is not None else o for o, n in zip(old, new))
     elif callable(method):
-        merged = (method(o, n) if n is not None else o
-                  for o, n in zip(old, new))
+        merged = (method(o, n) if n is not None else o for o, n in zip(old, new))
     else:
         raise ValueError(
             '`method` value must be either "replace", '
-            '"multiply", or a function (a callable)')
+            '"multiply", or a function (a callable)'
+        )
     return tuple(merged)
 
 
-def _get_rpt_headers(res=None, desc=None, uf_reds=None,
-                     units=None, misc=''):
+def _get_rpt_headers(res=None, desc=None, uf_reds=None, units=None, misc=""):
     if res is not None:
         desc = res.drminfo.desc
         uf_reds = res.drminfo.uf_reds
         units = res.drminfo.units
-    descline = 'Description: {}\n'.format(desc)
+    descline = "Description: {}\n".format(desc)
     if uf_reds is None:
-        unceline = 'Uncertainty: Not specified\n'
+        unceline = "Uncertainty: Not specified\n"
     else:
-        unceline = ('Uncertainty: [Rigid, Elastic, Dynamic, Static] '
-                    '= [{}, {}, {}, {}]\n'
-                    .format(*uf_reds))
-    unitline = 'Units:       {}\n'.format(units)
-    currdate = datetime.date.today().strftime('%d-%b-%Y')
-    dateline = 'Date:        {}\n'.format(currdate)
+        unceline = (
+            "Uncertainty: [Rigid, Elastic, Dynamic, Static] "
+            "= [{}, {}, {}, {}]\n".format(*uf_reds)
+        )
+    unitline = "Units:       {}\n".format(units)
+    currdate = datetime.date.today().strftime("%d-%b-%Y")
+    dateline = "Date:        {}\n".format(currdate)
     return descline + unceline + unitline + misc + dateline
 
 
@@ -83,19 +81,19 @@ def _get_numform(mxmn1, excel=False):
     #   there ... the user can just change the format
     pv = (mxmn1 != 0.0) & np.isfinite(mxmn1)
     if not np.any(pv):
-        return '{:13.0f}' if not excel else '#,##0.'
+        return "{:13.0f}" if not excel else "#,##0."
     pmx = int(np.floor(np.log10(abs(mxmn1[pv]).max())))
     if excel:
-        numform = '#,##0.' + '0' * (5 - pmx)
+        numform = "#,##0." + "0" * (5 - pmx)
     else:
         pmn = int(np.floor(np.log10(abs(mxmn1[pv]).min())))
         if pmx - pmn < 6 and pmn > -3:
             if pmn < 5:
-                numform = '{{:13.{}f}}'.format(5 - pmn)
+                numform = "{{:13.{}f}}".format(5 - pmn)
             else:
-                numform = '{:13.0f}'
+                numform = "{:13.0f}"
         else:
-            numform = '{:13.6e}'
+            numform = "{:13.6e}"
     return numform
 
 
@@ -128,29 +126,31 @@ def get_marker_cycle():
         'd',          # thin_diamond
 
     """
-    return itertools.cycle([
-        'o',          # circle
-        'v',          # triangle_down
-        '^',          # triangle_up
-        '<',          # triangle_left
-        '>',          # triangle_right
-        '1',          # tri_down
-        '2',          # tri_up
-        '3',          # tri_left
-        '4',          # tri_right
-        '8',          # octagon
-        's',          # square
-        'p',          # pentagon
-        'P',          # plus (filled)
-        '*',          # star
-        'h',          # hexagon1
-        'H',          # hexagon2
-        '+',          # plus
-        'x',          # x
-        'X',          # x (filled)
-        'D',          # diamond
-        'd',          # thin_diamond
-    ])
+    return itertools.cycle(
+        [
+            "o",  # circle
+            "v",  # triangle_down
+            "^",  # triangle_up
+            "<",  # triangle_left
+            ">",  # triangle_right
+            "1",  # tri_down
+            "2",  # tri_up
+            "3",  # tri_left
+            "4",  # tri_right
+            "8",  # octagon
+            "s",  # square
+            "p",  # pentagon
+            "P",  # plus (filled)
+            "*",  # star
+            "h",  # hexagon1
+            "H",  # hexagon2
+            "+",  # plus
+            "x",  # x
+            "X",  # x (filled)
+            "D",  # diamond
+            "d",  # thin_diamond
+        ]
+    )
 
 
 def _proc_filterval(filterval, nrows):
@@ -158,23 +158,23 @@ def _proc_filterval(filterval, nrows):
         return None
     filterval = np.atleast_1d(filterval)
     if filterval.ndim > 1:
-        raise ValueError('`filterval` must be 1-D (is {}-D)'
-                         .format(filterval))
+        raise ValueError("`filterval` must be 1-D (is {}-D)".format(filterval))
     nfilt = len(filterval)
     if nfilt > 1 and nfilt != nrows:
-        raise ValueError('`filterval` has incorrect length:'
-                         ' expected {} elements, but got {}'
-                         .format(nrows, nfilt))
+        raise ValueError(
+            "`filterval` has incorrect length:"
+            " expected {} elements, but got {}".format(nrows, nfilt)
+        )
     return filterval
 
 
 def PrintCLAInfo(mission, event):
     "PrintCLAInfo Print CLA event info, typically for the log file"
-    print('Mission:  {}'.format(mission))
-    print('Event:    {}'.format(event))
+    print("Mission:  {}".format(mission))
+    print("Event:    {}".format(event))
 
 
-def freq3_augment(freq1, lam, tol=1.e-5):
+def freq3_augment(freq1, lam, tol=1.0e-5):
     """
     Mimic Nastran's FREQ3 augmentation of a frequency vector.
 
@@ -209,8 +209,7 @@ def freq3_augment(freq1, lam, tol=1.e-5):
     """
     freq1, lam = np.atleast_1d(freq1, lam)
     sysfreqs = np.sqrt(abs(lam)) / (2 * np.pi)
-    pv = np.nonzero(np.logical_and(sysfreqs > freq1[0],
-                                   sysfreqs < freq1[-1]))[0]
+    pv = np.nonzero(np.logical_and(sysfreqs > freq1[0], sysfreqs < freq1[-1]))[0]
     freq3 = sysfreqs[pv]
     freq = np.sort(np.hstack((freq1, freq3)))
     uniq = locate.find_unique(freq, tol * (freq[-1] - freq[0]))
@@ -236,16 +235,15 @@ def maxmin(response, x):
     """
     r, c = np.shape(response)
     if c != len(x):
-        raise ValueError('# of cols in `response` is not compatible '
-                         'with `x`.')
+        raise ValueError("# of cols in `response` is not compatible with `x`.")
     jx = np.nanargmax(response, axis=1)
     jn = np.nanargmin(response, axis=1)
     ind = np.arange(r)
     mx = response[ind, jx]
     mn = response[ind, jn]
     return SimpleNamespace(
-        ext=np.column_stack((mx, mn)),
-        ext_x=np.column_stack((x[jx], x[jn])))
+        ext=np.column_stack((mx, mn)), ext_x=np.column_stack((x[jx], x[jn]))
+    )
 
 
 def nan_argmax(v1, v2):
@@ -276,7 +274,7 @@ def nan_argmax(v1, v2):
     >>> cla.nan_argmin(v1, v2)
     array([ True,  True, False, False], dtype=bool)
     """
-    with np.errstate(invalid='ignore'):
+    with np.errstate(invalid="ignore"):
         return (v2 > v1) | (np.isnan(v1) & ~np.isnan(v2))
 
 
@@ -308,7 +306,7 @@ def nan_argmin(v1, v2):
     >>> cla.nan_argmin(v1, v2)
     array([ True,  True, False, False], dtype=bool)
     """
-    with np.errstate(invalid='ignore'):
+    with np.errstate(invalid="ignore"):
         return (v2 < v1) | (np.isnan(v1) & ~np.isnan(v2))
 
 
@@ -408,19 +406,19 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
     :func:`DR_Results.frf_data_recovery`, and
     :func:`DR_Results.psd_data_recovery`.
     """
+
     def _put_time(curext, mm, j, col_lhs, col_rhs):
         if mm.ext_x is not None:
             if curext.ext_x is None:
                 curext.ext_x = copy.copy(mm.ext_x)
             else:
                 curext.ext_x[j, col_lhs] = mm.ext_x[j, col_rhs]
-        elif curext.ext_x is not None:          # pragma: no cover
+        elif curext.ext_x is not None:  # pragma: no cover
             curext.ext_x[j, col_lhs] = np.nan
 
     r, c = mm.ext.shape
     if c not in [1, 2]:
-        raise ValueError('mm.ext has {} cols, but must have 1 or 2.'
-                         .format(c))
+        raise ValueError("mm.ext has {} cols, but must have 1 or 2.".format(c))
 
     # expand current case information to full size if necessary
     if isinstance(maxcase, str):
@@ -610,7 +608,7 @@ def _calc_covariance_sine_cosine(varx, vary, covar):
     if pv.any():
         # put in pi/2 where vary > varx, 0.0 for others:
         y_bigger = varx[pv] < vary[pv]
-        s[pv] = y_bigger      # where vary > varx: sin(pi/2) = 1
+        s[pv] = y_bigger  # where vary > varx: sin(pi/2) = 1
         c[pv] = 1 - y_bigger
 
     pv = ~pv  # where there is a non-zero covariance
@@ -631,7 +629,7 @@ def _calc_covariance_sine_cosine(varx, vary, covar):
         #       [(vary - varx + term) / (2 * covar)]
 
         # get angle to eigenvector: arctan2(x2, x1) = arctan(x2):
-        term = np.sqrt((vary - varx)**2 + 4 * covar**2)
+        term = np.sqrt((vary - varx) ** 2 + 4 * covar ** 2)
         theta = np.arctan((vary - varx + term) / (2 * covar))
         s[pv] = np.sin(theta)
         c[pv] = np.cos(theta)
@@ -639,8 +637,7 @@ def _calc_covariance_sine_cosine(varx, vary, covar):
     return s, c
 
 
-def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
-                       case, i):
+def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres, case, i):
     """
     Compute phase-consistent (time-correlated) root-sum-square (RSS)
     responses in a PSD analysis; each RSS is of two rows.
@@ -741,21 +738,18 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
     F = forcepsd[i]
     # normal, non-rss data recovery:
     if rr is not None:
-        drmres._psd[case] += F * abs(resp)**2
+        drmres._psd[case] += F * abs(resp) ** 2
     N = forcepsd.shape[0]
     if i == 0:
         drmres.tmp = SimpleNamespace(
-            varx=0,
-            vary=0,
-            covar=0,
-            xresp=[0] * N,
-            yresp=[0] * N)
+            varx=0, vary=0, covar=0, xresp=[0] * N, yresp=[0] * N
+        )
 
     x = resp[xr]
     y = resp[yr]
     tmp = drmres.tmp
-    tmp.varx += F * abs(x)**2
-    tmp.vary += F * abs(y)**2
+    tmp.varx += F * abs(x) ** 2
+    tmp.vary += F * abs(y) ** 2
     tmp.covar += F * np.real(x * np.conj(y))
     tmp.xresp[i] = x
     tmp.yresp[i] = y
@@ -770,9 +764,8 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres,
         # results:
         rss_resp = 0.0
         for j in range(N):
-            respxy = (c[:, None] * tmp.xresp[j] +
-                      s[:, None] * tmp.yresp[j])
-            rss_resp += forcepsd[j] * abs(respxy)**2
+            respxy = c[:, None] * tmp.xresp[j] + s[:, None] * tmp.yresp[j]
+            rss_resp += forcepsd[j] * abs(respxy) ** 2
 
         if rr is not None:
             drmres._psd[case][rr] = rss_resp

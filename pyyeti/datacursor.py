@@ -16,13 +16,12 @@ import matplotlib.offsetbox as offsetbox
 
 def form1(x, y, n, ind, ax, line):
     """Default annotation for plots with 1 line"""
-    return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
+    return "x: {x:0.2f}\ny: {y:0.2f}".format(x=x, y=y)
 
 
 def form2(x, y, n, ind, ax, line):
     """Default annotation for plots with more than 1 line"""
-    return ('x: {x:0.2f}\ny: {y:0.2f}\n{label}'
-            .format(x=x, y=y, label=line.get_label()))
+    return "x: {x:0.2f}\ny: {y:0.2f}\n{label}".format(x=x, y=y, label=line.get_label())
 
 
 def _ensure_iterable(a):
@@ -229,15 +228,19 @@ class DataCursor(object):
         DC.on()
     """
 
-    def __init__(self, ax=None, figs=None, hover=True,
-                 form1=form1, form2=form2,
-                 offsets=(-20, 20),
-                 bbox=dict(boxstyle='round,pad=0.5',
-                           fc='gray', alpha=0.5),
-                 arrowprops=dict(arrowstyle='->',
-                                 connectionstyle='arc3,rad=0'),
-                 followdot=dict(s=130, color='green', alpha=0.7),
-                 permdot=dict(s=130, color='red', alpha=0.4)):
+    def __init__(
+        self,
+        ax=None,
+        figs=None,
+        hover=True,
+        form1=form1,
+        form2=form2,
+        offsets=(-20, 20),
+        bbox=dict(boxstyle="round,pad=0.5", fc="gray", alpha=0.5),
+        arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=0"),
+        followdot=dict(s=130, color="green", alpha=0.7),
+        permdot=dict(s=130, color="red", alpha=0.4),
+    ):
         """
         Initialize the DataCursor.
 
@@ -290,25 +293,22 @@ class DataCursor(object):
     def _init_all(self, errout=False):
         if self._ax_input is None:
             if self._figs_input is None:
-                self._figs = [plt.figure(i)
-                              for i in plt.get_fignums()]
+                self._figs = [plt.figure(i) for i in plt.get_fignums()]
             else:
                 self._figs = _ensure_iterable(self._figs_input)
             if len(self._figs) == 0:
                 if errout:
-                    raise RuntimeError('no figures; '
-                                       'plot something first')
+                    raise RuntimeError("no figures; plot something first")
                 else:
                     self._ax = []
                     return
-            self._ax = [a for fig in self._figs
-                        for a in fig.get_axes()]
+            self._ax = [a for fig in self._figs for a in fig.get_axes()]
         else:
             self._ax = _ensure_iterable(self._ax_input)
             self._figs = [a.figure for a in self._ax]
         if len(self._ax) == 0:
             if errout:
-                raise RuntimeError('no axes; plot something first')
+                raise RuntimeError("no axes; plot something first")
             else:
                 return
         maxlines = 0
@@ -316,7 +316,7 @@ class DataCursor(object):
             if len(a.lines) > maxlines:
                 maxlines = len(a.lines)
         if maxlines == 0 and errout:
-            raise RuntimeError('no lines; plot something first')
+            raise RuntimeError("no lines; plot something first")
 
     def on(self, ax=-1, figs=-1, callbacks=True, reset=True):
         """
@@ -371,18 +371,16 @@ class DataCursor(object):
         if callbacks:
             for fig in self._figs:
                 cvs = fig.canvas
-                self._kid[fig] = cvs.mpl_connect(
-                    'key_press_event', self._key)
-                if callbacks != 'key_only':
+                self._kid[fig] = cvs.mpl_connect("key_press_event", self._key)
+                if callbacks != "key_only":
                     if self.hover:
                         self._mid[fig] = cvs.mpl_connect(
-                            'motion_notify_event', self._follow)
+                            "motion_notify_event", self._follow
+                        )
                     else:
                         self._mid[fig] = None
-                    self._bid[fig] = cvs.mpl_connect(
-                        'button_press_event', self._follow)
-                    self._aid[fig] = cvs.mpl_connect(
-                        'axes_leave_event', self._leave)
+                    self._bid[fig] = cvs.mpl_connect("button_press_event", self._follow)
+                    self._aid[fig] = cvs.mpl_connect("axes_leave_event", self._leave)
             self._is_on = True
         else:
             self._is_on = False
@@ -413,8 +411,7 @@ class DataCursor(object):
             for fig in self._figs:
                 if fig in self._kid:
                     fig.canvas.mpl_disconnect(self._kid[fig])
-                if (self.hover and fig in self._mid and
-                        self._mid[fig] is not None):
+                if self.hover and fig in self._mid and self._mid[fig] is not None:
                     fig.canvas.mpl_disconnect(self._mid[fig])
                 if fig in self._bid:
                     fig.canvas.mpl_disconnect(self._bid[fig])
@@ -489,9 +486,8 @@ class DataCursor(object):
         self.linenums.append(n)
         # if 3d, set visible to False (i don't know how to get proper
         # coordinates for the dot):
-        vis = False if hasattr(ax, 'get_proj') else True
-        self.pts.append(ax.scatter(x, y, **self.permdot,
-                                   visible=vis))
+        vis = False if hasattr(ax, "get_proj") else True
+        self.pts.append(ax.scatter(x, y, **self.permdot, visible=vis))
         self.notes.append(self._annotation[ax])
         # offsetbox.DraggableAnnotation(self._annotation)
         # make a new annotation box so current one is static
@@ -552,12 +548,12 @@ class DataCursor(object):
         """
         if not self._get_ax(event):
             return
-        if event.key == 't' or event.key == 'T':
+        if event.key == "t" or event.key == "T":
             if self._is_on:
                 self.off()
             else:
                 self.on()
-        elif event.key == 'D':
+        elif event.key == "D":
             self._del_point(delete_line=True)
             event.canvas.draw()
 
@@ -588,7 +584,7 @@ class DataCursor(object):
         else:
             annotation.set_text(self.form1(x, y, n, ind, ax, line))
         dot.set_offsets((x, y))
-        if event.name == 'button_press_event':
+        if event.name == "button_press_event":
             if event.button == 1:
                 # dot.set_visible(True)
                 annotation.set_visible(True)
@@ -596,20 +592,23 @@ class DataCursor(object):
             elif event.button == 3 and len(self.xypoints) > 0:
                 self._del_point(ax=ax)
         elif self.hover:
-            if not hasattr(ax, 'get_proj'):
+            if not hasattr(ax, "get_proj"):
                 dot.set_visible(True)
             annotation.set_visible(True)
         event.canvas.draw()
 
     def _new_annotation(self, ax, xy):
-        return ax.annotate('', xy=xy,
-                           ha='right',
-                           va='bottom',
-                           xytext=self.offsets,
-                           textcoords='offset points',
-                           bbox=self.bbox,
-                           arrowprops=self.arrowprops,
-                           visible=False)
+        return ax.annotate(
+            "",
+            xy=xy,
+            ha="right",
+            va="bottom",
+            xytext=self.offsets,
+            textcoords="offset points",
+            bbox=self.bbox,
+            arrowprops=self.arrowprops,
+            visible=False,
+        )
 
     def _setup_annotations(self):
         """Create the annotation boxes. The string value and the
@@ -623,8 +622,7 @@ class DataCursor(object):
             else:
                 xy = 0, 0
             self._annotation[ax] = self._new_annotation(ax, xy)
-            self._dot[ax] = ax.scatter(xy[0], xy[1], **self.followdot,
-                                       visible=False)
+            self._dot[ax] = ax.scatter(xy[0], xy[1], **self.followdot, visible=False)
 
     def _snap(self, ax, x, y):
         """Return the value in self._points closest to x, y."""
@@ -637,7 +635,7 @@ class DataCursor(object):
             dy = (ydata - y) / np.diff(ax.get_ylim())
             # dx = (xdata-x)
             # dy = (ydata-y)
-            d = np.sqrt(dx**2. + dy**2.)
+            d = np.sqrt(dx ** 2.0 + dy ** 2.0)
             ind = np.argmin(d)
             if d[ind] < dmin:
                 dmin = d[ind]
@@ -652,8 +650,7 @@ class DataCursor(object):
         """
         return
 
-    def getdata(self, maxpoints=-1,
-                msg='Select points, hit "t" inside axes when done'):
+    def getdata(self, maxpoints=-1, msg='Select points, hit "t" inside axes when done'):
         """
         Suspend python while user selects points up to `maxpoints`.
         If `maxpoints` is < 0, the loop will last until user hits 't'
@@ -679,7 +676,7 @@ class DataCursor(object):
         inside the axes to continue.
         """
         print(msg)
-        self.on(callbacks='key_only')
+        self.on(callbacks="key_only")
         self._in_loop = True
         self._figs[0].canvas.start_event_loop(timeout=-1)
 

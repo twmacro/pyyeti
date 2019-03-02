@@ -16,12 +16,14 @@ class FEM_2D:
 
         #  convert the nodes and elements to pandas DataFrames:
         self.nodes_df = (
-            pd.DataFrame(nodes, columns=('node', 'x', 'y'))
-            .astype({'node': np.int64}).set_index('node'))
-        cols = ('node1', 'node2', 'area', 'E', 'I', 'rho')
-        self.elements_df = (
-            pd.DataFrame(elements, columns=cols)
-            .astype({'node1': np.int64, 'node2': np.int64}))
+            pd.DataFrame(nodes, columns=("node", "x", "y"))
+            .astype({"node": np.int64})
+            .set_index("node")
+        )
+        cols = ("node1", "node2", "area", "E", "I", "rho")
+        self.elements_df = pd.DataFrame(elements, columns=cols).astype(
+            {"node1": np.int64, "node2": np.int64}
+        )
 
         self.model = self._form_mk()
 
@@ -45,12 +47,16 @@ class FEM_2D:
         """
         c = np.cos(th)
         s = np.sin(th)
-        trans = np.array([[c,  s,  0,  0,  0,  0],
-                          [-s,  c,  0,  0,  0,  0],
-                          [0,  0,  1,  0,  0,  0],
-                          [0,  0,  0,  c,  s,  0],
-                          [0,  0,  0, -s,  c,  0],
-                          [0,  0,  0,  0,  0,  1]])
+        trans = np.array(
+            [
+                [c, s, 0, 0, 0, 0],
+                [-s, c, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0],
+                [0, 0, 0, c, s, 0],
+                [0, 0, 0, -s, c, 0],
+                [0, 0, 0, 0, 0, 1],
+            ]
+        )
         return trans.T @ mat @ trans
 
     def _form_mk(self):
@@ -91,19 +97,19 @@ class FEM_2D:
         nodes, elements = np.atleast_2d(self.nodes, self.elements)
         if nodes.shape[1] != 3:  # Checks how many columns there are
             raise ValueError(
-                "'nodes' is incorrectly sized (must have 3"
-                " columns)")  # Raises your own error
+                "'nodes' is incorrectly sized (must have 3 columns)"
+            )  # Raises your own error
         re, ce = elements.shape
         if ce != 5 and ce != 6:
             raise ValueError(
-                "'elements' is incorrectly sized (must have"
-                " 5 or 6 columns)")
+                "'elements' is incorrectly sized (must have 5 or 6 columns)"
+            )
         rn = nodes.shape[0]  # Number of rows in nodes array.
         i = np.argsort(nodes[:, 0])  # Sorts the nodes
         nodes = nodes[i]  # Create the sorted nodes array
         ids = nodes[:, 0].astype(int)  # ids are first column of nodes
 
-        DOF = 3 * rn     # DOF = total degrees of freedom.
+        DOF = 3 * rn  # DOF = total degrees of freedom.
         K = np.zeros((DOF, DOF))  # K is a square matrix DOFxDOF
 
         if ce == 6:
@@ -120,19 +126,22 @@ class FEM_2D:
         N2 = elements[:, 1].astype(int)  # Node 2 IDs
 
         for n, (n1, n2, (a, e, I), rho) in enumerate(
-                zip(N1, N2, elements[:, 2:5], rho)):
+            zip(N1, N2, elements[:, 2:5], rho)
+        ):
 
             p1 = (ids == n1).nonzero()[0]
             p2 = (ids == n2).nonzero()[0]
 
             if p1.size == 0:  # node1 is undefined
-                raise ValueError(('elements[{}] references undefined '
-                                  'node: {}').format(n, n1))
+                raise ValueError(
+                    ("elements[{}] references undefined node: {}").format(n, n1)
+                )
             else:
                 p1 = p1[0]  # node1 is defined
             if p2.size == 0:
-                raise ValueError(('elements[{}] references undefined '
-                                  'node: {}').format(n, n2))
+                raise ValueError(
+                    ("elements[{}] references undefined node: {}").format(n, n2)
+                )
             else:
                 p2 = p2[0]
 
@@ -140,30 +149,40 @@ class FEM_2D:
 
             xy2 = nodes[p2, 1:]
             l1 = xy2 - xy1  # element length (array)
-            L = elen[n] = np.hypot(*l1)                # length
+            L = elen[n] = np.hypot(*l1)  # length
             angle = etheta[n] = np.arctan2(l1[1], l1[0])
 
             # Element (local) Bernoulli-Euler Mass Matrix
             bk = a * e / L
-            fk = e * I / (L**3)
+            fk = e * I / (L ** 3)
             k_t = np.array(
-                [[bk,      0,         0, -bk,       0,         0],
-                 [0,  12 * fk,    6 * L * fk,   0,  -12 * fk,    6 * L * fk],
-                 [0, 6 * L * fk, 4 * L**2 * fk,   0, -6 * L * fk, 2 * L**2 * fk],
-                 [-bk,      0,         0,  bk,       0,         0],
-                 [0, -12 * fk,   -6 * L * fk,   0,   12 * fk,   -6 * L * fk],
-                 [0, 6 * L * fk, 2 * L**2 * fk,   0, -6 * L * fk, 4 * L**2 * fk]])
+                [
+                    [bk, 0, 0, -bk, 0, 0],
+                    [0, 12 * fk, 6 * L * fk, 0, -12 * fk, 6 * L * fk],
+                    [0, 6 * L * fk, 4 * L ** 2 * fk, 0, -6 * L * fk, 2 * L ** 2 * fk],
+                    [-bk, 0, 0, bk, 0, 0],
+                    [0, -12 * fk, -6 * L * fk, 0, 12 * fk, -6 * L * fk],
+                    [0, 6 * L * fk, 2 * L ** 2 * fk, 0, -6 * L * fk, 4 * L ** 2 * fk],
+                ]
+            )
 
             # Element (local) Bernoulli-Euler Mass Matrix
             if ce == 6:
                 m_e = rho * a * L
-                m_t = m_e / 420 * np.array(
-                    [[140,     0,       0,  70,     0,       0],
-                     [0,   156,    22 * L,   0,    54,   -13 * L],
-                     [0,  22 * L,  4 * L**2,   0,  13 * L, -3 * L**2],
-                     [70,     0,       0, 140,     0,       0],
-                     [0,    54,    13 * L,   0,   156,   -22 * L],
-                     [0, -13 * L, -3 * L**2,   0, -22 * L,  4 * L**2]])
+                m_t = (
+                    m_e
+                    / 420
+                    * np.array(
+                        [
+                            [140, 0, 0, 70, 0, 0],
+                            [0, 156, 22 * L, 0, 54, -13 * L],
+                            [0, 22 * L, 4 * L ** 2, 0, 13 * L, -3 * L ** 2],
+                            [70, 0, 0, 140, 0, 0],
+                            [0, 54, 13 * L, 0, 156, -22 * L],
+                            [0, -13 * L, -3 * L ** 2, 0, -22 * L, 4 * L ** 2],
+                        ]
+                    )
+                )
 
             if angle != 0.0:
                 k_t = self._rot(k_t, angle)
@@ -179,8 +198,9 @@ class FEM_2D:
             if ce == 6:  # if given a density, calculate mass
                 M[v] += m_t
 
-        return SimpleNamespace(K=K, M=M, elen=elen, etheta=etheta,
-                               nodes=nodes, elements=elements)
+        return SimpleNamespace(
+            K=K, M=M, elen=elen, etheta=etheta, nodes=nodes, elements=elements
+        )
 
     def apply_constraints(self, bcs):
         """
@@ -214,8 +234,8 @@ class FEM_2D:
         r, c = bcs.shape  # r = Num of rows, c = Num of columns
         if c > 0 and c != 4:  # Checks that there are 4 columns
             raise ValueError(
-                "'consts' is incorrectly sized (must have 4"
-                " columns)")  # Prints/raises this error if !=4
+                "'consts' is incorrectly sized (must have 4 columns)"
+            )  # Prints/raises this error if !=4
         fixed = np.zeros(self.model.K.shape[0], bool)
         # Returns an array of bool values that is the size/length of
         # the num of rows of model.K. Since, np.zeroes returns all 0s,
@@ -233,8 +253,8 @@ class FEM_2D:
                 # elements and saves them in a 2d array
                 if p1.size == 0:
                     raise ValueError(
-                        ('consts[{}] references undefined '
-                         'node: {}').format(n, bc[0]))
+                        ("consts[{}] references undefined node: {}").format(n, bc[0])
+                    )
                 else:
                     p1 = p1[0]  # Takes the integer in the array
                 p1 *= 3
@@ -250,7 +270,7 @@ class FEM_2D:
         Ensures that :func:`apply_constraints` has been called (so that
         `model.free` and `model.fixed` exist.
         """
-        if getattr(self.model, 'free', None) is None:
+        if getattr(self.model, "free", None) is None:
             self.apply_constraints([])
 
     def solveig(self):
@@ -290,8 +310,8 @@ class FEM_2D:
         model.phi_full[model.free] = model.phi
 
         ind = pd.MultiIndex.from_product(
-            [self.nodes_df.index, ['x', 'y', 'rz']],
-            names=['node', 'dof'])
+            [self.nodes_df.index, ["x", "y", "rz"]], names=["node", "dof"]
+        )
         model.phi_full_df = pd.DataFrame(model.phi_full, index=ind)
         model.fhz = np.sqrt(abs(w)) / (2 * np.pi)  # the nat freqs in Hz
 
@@ -303,7 +323,7 @@ def test_ntfl_rbdamp():
     INC_RB_DAMPING = True
     # INC_RB_DAMPING = False
 
-    TRY_SU_SOLVER = True   # only used if INC_RB_DAMPING is True
+    TRY_SU_SOLVER = True  # only used if INC_RB_DAMPING is True
     # TRY_SU_SOLVER = False   # only used if INC_RB_DAMPING is True
 
     USE_PRE_EIG = False  # only used if SolveUnc is used
@@ -335,6 +355,7 @@ def test_ntfl_rbdamp():
             # Bmodal = P.T  B  P
             iP = la.inv(P)
             model.B = iP.T @ b @ iP
+
     else:
         if TRY_SU_SOLVER:
             Solver = ode.SolveUnc
@@ -350,7 +371,7 @@ def test_ntfl_rbdamp():
             Solver = ode.FreqDirect
             FrcLim = frclim
             opts = dict()
-        factor = 5.e-3
+        factor = 5.0e-3
 
         def insert_damping(model, factor):
             b = np.random.randn(*model.K.shape)
@@ -366,35 +387,34 @@ def test_ntfl_rbdamp():
     #        O========O========O
     #     |--Source---|- Load -|
 
-    nodes = np.array([[1,  0., 3.],
-                      [2,  3., 0.],
-                      [3,  8., 0.],
-                      [4, 13., 0.]])
+    nodes = np.array([[1, 0.0, 3.0], [2, 3.0, 0.0], [3, 8.0, 0.0], [4, 13.0, 0.0]])
 
     # node1 node2 area E I rho
-    elements = np.array([[1, 2, .005,  1e5, .01,  1.3],
-                         [2, 3, .005,  1e5, .01,  1.3],
-                         [3, 4, .005,  1e5, .01,  1.3]])
+    elements = np.array(
+        [
+            [1, 2, 0.005, 1e5, 0.01, 1.3],
+            [2, 3, 0.005, 1e5, 0.01, 1.3],
+            [3, 4, 0.005, 1e5, 0.01, 1.3],
+        ]
+    )
     sys = FEM_2D(nodes, elements)
     sys.solveig()
 
     # Source:
-    source_nodes = np.array([[1,  0., 3.],
-                             [2,  3., 0.],
-                             [3,  8., 0.]])
+    source_nodes = np.array([[1, 0.0, 3.0], [2, 3.0, 0.0], [3, 8.0, 0.0]])
 
     # node1 node2 area E I rho
-    source_elements = np.array([[1, 2, .005,  1e5, .01,  1.3],
-                                [2, 3, .005,  1e5, .01,  1.3]])
+    source_elements = np.array(
+        [[1, 2, 0.005, 1e5, 0.01, 1.3], [2, 3, 0.005, 1e5, 0.01, 1.3]]
+    )
     source = FEM_2D(source_nodes, source_elements)
     source.solveig()
 
     # Load:
-    load_nodes = np.array([[3,  8., 0.],
-                           [4, 13., 0.]])
+    load_nodes = np.array([[3, 8.0, 0.0], [4, 13.0, 0.0]])
 
     # node1 node2 area E I rho
-    load_elements = np.array([[3, 4, .005,  1e5, .01,  1.3]])
+    load_elements = np.array([[3, 4, 0.005, 1e5, 0.01, 1.3]])
     load = FEM_2D(load_nodes, load_elements)
     load.solveig()
 
@@ -432,9 +452,8 @@ def test_ntfl_rbdamp():
     # store damping in 'sys':
     sys.model.B = bsys
 
-    if not (np.allclose(msys, sys.model.M) or
-            np.allclose(ksys, sys.model.K)):
-        raise RuntimeError('bad system assembly')
+    if not (np.allclose(msys, sys.model.M) or np.allclose(ksys, sys.model.K)):
+        raise RuntimeError("bad system assembly")
 
     # run an analysis on 'sys', then use NT to duplicate it
     # (hopefully)
@@ -445,12 +464,14 @@ def test_ntfl_rbdamp():
     su_sys = Solver(sys.model.M, sys.model.B, sys.model.K, **opts)
     sol_sys = su_sys.fsolve(Fsys, freq)
     # compute i/f force on load:
-    iff_sys = (load.model.M[:3] @ sol_sys.a[2 * 3:] +
-               load.model.B[:3] @ sol_sys.v[2 * 3:] +
-               load.model.K[:3] @ sol_sys.d[2 * 3:])
+    iff_sys = (
+        load.model.M[:3] @ sol_sys.a[2 * 3 :]
+        + load.model.B[:3] @ sol_sys.v[2 * 3 :]
+        + load.model.K[:3] @ sol_sys.d[2 * 3 :]
+    )
 
     # extract i/f accel of load:
-    ifa_sys = sol_sys.a[2 * 3:3 * 3]
+    ifa_sys = sol_sys.a[2 * 3 : 3 * 3]
 
     # Norton-Thevenin run:
     # 1. compute free accel
@@ -460,10 +481,9 @@ def test_ntfl_rbdamp():
     #    - return i/f force & accel
 
     # 1. compute free accel:
-    su_source = Solver(source.model.M, source.model.B,
-                       source.model.K, **opts)
-    sol_source = su_source.fsolve(Fsys[:source.model.M.shape[0]], freq)
-    free_accel = sol_source.a[2 * 3:]
+    su_source = Solver(source.model.M, source.model.B, source.model.K, **opts)
+    sol_source = su_source.fsolve(Fsys[: source.model.M.shape[0]], freq)
+    free_accel = sol_source.a[2 * 3 :]
 
     # setup source and load for ntfl:
     # - need recovery matrix for bdof of source and load:

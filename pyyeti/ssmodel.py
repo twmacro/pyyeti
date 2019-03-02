@@ -69,16 +69,18 @@ class SSModel(object):
 
     def __repr__(self):
         """Return representation of the :class:`SSModel` system."""
-        return ('{0}(\nA={1},\nB={2},\nC={3},\nD={4},\nh={5},\n'
-                'method={6},\nprewarp={7}\n)').format(
-                    self.__class__.__name__,
-                    repr(self.A),
-                    repr(self.B),
-                    repr(self.C),
-                    repr(self.D),
-                    repr(self.h),
-                    repr(self.method),
-                    repr(self.prewarp)
+        return (
+            "{0}(\nA={1},\nB={2},\nC={3},\nD={4},\nh={5},\n"
+            "method={6},\nprewarp={7}\n)"
+        ).format(
+            self.__class__.__name__,
+            repr(self.A),
+            repr(self.B),
+            repr(self.C),
+            repr(self.D),
+            repr(self.h),
+            repr(self.method),
+            repr(self.prewarp),
         )
 
     def getlti(self):
@@ -92,7 +94,7 @@ class SSModel(object):
             return signal.lti(c.A, c.B, c.C, c.D)
         return signal.lti(self.A, self.B, self.C, self.D)
 
-    def d2c(self, method='foh', prewarp=0):
+    def d2c(self, method="foh", prewarp=0):
         """
         Compute a continuous state-space model (s-plane) from discrete
         state-space model (z-plane).
@@ -183,7 +185,7 @@ class SSModel(object):
             # raise ValueError('model is already continuous??')
 
         h = self.h
-        if method == 'tustin':
+        if method == "tustin":
             if prewarp is None or prewarp == 0:
                 k = 2 / h
             else:
@@ -201,32 +203,32 @@ class SSModel(object):
         lam, phi = la.eig(self.A)
         A = (la.solve(phi.T, (phi * (np.log(lam) / h)).T).T).real
 
-        if method == 'foh':
+        if method == "foh":
             E, P, Q = expmint.getEPQ(A, h, 1)
             B = la.solve(P + self.A.dot(Q), self.B)
             C = self.C.copy()
             D = self.D - C.dot(Q.dot(B))
             return SSModel(A, B, C, D, method=method)
 
-        if method == 'zoh':
+        if method == "zoh":
             I = np.eye(self.A.shape[0])
             B = la.solve(self.A - I, A.dot(self.B))
             C = self.C.copy()
             D = self.D.copy()
             return SSModel(A, B, C, D, method=method)
 
-        if method == 'zoha':
+        if method == "zoha":
             E, P, Q = expmint.getEPQ(A, h, 0)
-            P /= 2.
+            P /= 2.0
             Q = P
             B = la.solve(P + self.A.dot(Q), self.B)
             C = self.C.copy()
             D = self.D - C.dot(Q.dot(B))
             return SSModel(A, B, C, D, method=method)
 
-        raise ValueError('invalid `method` argument')
+        raise ValueError("invalid `method` argument")
 
-    def c2d(self, h, method='foh', prewarp=0):
+    def c2d(self, h, method="foh", prewarp=0):
         """
         Compute a discrete state-space model (z-plane) from continuous
         state-space model (s-plane).
@@ -319,29 +321,29 @@ class SSModel(object):
             return self
             # raise ValueError('model is already discrete??')
 
-        if method == 'zoh':
+        if method == "zoh":
             A, B, Q = expmint.getEPQ(self.A, h, 0, B=self.B)
             C = self.C.copy()
             D = self.D.copy()
             return SSModel(A, B, C, D, h, method)
 
-        if method == 'zoha':
+        if method == "zoha":
             A, P, Q = expmint.getEPQ(self.A, h, 0, B=self.B)
-            P /= 2.
+            P /= 2.0
             Q = P
             B = P + A.dot(Q)
             C = self.C.copy()
             D = self.C.dot(Q) + self.D
             return SSModel(A, B, C, D, h, method)
 
-        if method == 'foh':
+        if method == "foh":
             A, P, Q = expmint.getEPQ(self.A, h, 1, B=self.B)
             B = P + A.dot(Q)
             C = self.C.copy()
             D = self.C.dot(Q) + self.D
             return SSModel(A, B, C, D, h, method)
 
-        if method == 'tustin':
+        if method == "tustin":
             if prewarp is None or prewarp == 0:
                 k = 2 / h
             else:
@@ -355,4 +357,4 @@ class SSModel(object):
             D = self.C.dot(QB) + self.D
             return SSModel(A, B, C, D, h, method, prewarp)
 
-        raise ValueError('invalid `method` argument')
+        raise ValueError("invalid `method` argument")

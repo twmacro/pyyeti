@@ -23,13 +23,40 @@ from pyyeti.nastran import n2p, op4, op2
 
 
 __all__ = [
-    'nas_sscanf', 'fsearch', 'rdgpwg', 'rdcards', 'rddmig',
-    'mkcomment', 'wtdmig', 'rdgrids', 'wtgrids', 'rdtabled1',
-    'wttabled1', 'bulk2uset', 'rdwtbulk', 'rdeigen', 'wtnasints',
-    'rdcsupers', 'rdextrn', 'wtcsuper', 'wtspc1', 'wtxset1',
-    'wtqcset', 'wtrbe2', 'wtrbe3', 'wtseset', 'wtset', 'wtrspline',
-    'wtrspline_rings', 'wtvcomp', 'wtcoordcards', 'wtextrn',
-    'wtextseout', 'mknast', 'rddtipch']
+    "nas_sscanf",
+    "fsearch",
+    "rdgpwg",
+    "rdcards",
+    "rddmig",
+    "mkcomment",
+    "wtdmig",
+    "rdgrids",
+    "wtgrids",
+    "rdtabled1",
+    "wttabled1",
+    "bulk2uset",
+    "rdwtbulk",
+    "rdeigen",
+    "wtnasints",
+    "rdcsupers",
+    "rdextrn",
+    "wtcsuper",
+    "wtspc1",
+    "wtxset1",
+    "wtqcset",
+    "wtrbe2",
+    "wtrbe3",
+    "wtseset",
+    "wtset",
+    "wtrspline",
+    "wtrspline_rings",
+    "wtvcomp",
+    "wtcoordcards",
+    "wtextrn",
+    "wtextseout",
+    "mknast",
+    "rddtipch",
+]
 
 
 def nas_sscanf(s, keep_string=False):
@@ -81,11 +108,11 @@ def nas_sscanf(s, keep_string=False):
             S = s = s.strip()
             if len(s) == 0:
                 return None
-            s = s.lower().replace('d', 'e')
+            s = s.lower().replace("d", "e")
             try:
                 return float(s)
             except ValueError:
-                s = s[0] + s[1:].replace('+', 'e+').replace('-', 'e-')
+                s = s[0] + s[1:].replace("+", "e+").replace("-", "e-")
                 try:
                     return float(s)
                 except ValueError:
@@ -192,11 +219,11 @@ def rdgpwg(f, search_strings=None):
             else:
                 return default
 
-    line, p = fsearch(f, 'W E I G H T')
+    line, p = fsearch(f, "W E I G H T")
     if line is None:
         return default
-    line, p = fsearch(f, 'REFERENCE POINT =')
-    refpt = int(line[p + 17:])
+    line, p = fsearch(f, "REFERENCE POINT =")
+    refpt = int(line[p + 17 :])
 
     f.readline()
     mass = []
@@ -204,7 +231,7 @@ def rdgpwg(f, search_strings=None):
         line = f.readline().strip()
         mass.append([float(item) for item in line[1:-1].split()])
     mass = np.array(mass)
-    line, p = fsearch(f, 'MASS AXIS SYSTEM')
+    line, p = fsearch(f, "MASS AXIS SYSTEM")
 
     cg = []
     for _ in range(3):
@@ -230,7 +257,7 @@ def _get_line(fiter, s=None, trim=True):
     s = s.expandtabs()
     if trim:
         s = s[:72]
-    p = s.find('$')
+    p = s.find("$")
     if p > -1:
         s = s[:p]
     s = s.rstrip()
@@ -265,7 +292,7 @@ def _rdfixed(fiter, s, n, conchar, blank, tolist):
         j = 8
         while j <= maxstart and length > j:
             i += 1
-            v = nas_sscanf(s[j:j + n], tolist)
+            v = nas_sscanf(s[j : j + n], tolist)
             if v is not None:
                 vals.append(v)
             else:
@@ -301,7 +328,7 @@ def _rdcomma(fiter, s, conchar, blank, tolist):
         for i in range(i, I):
             vals.append(blank)
         i = I
-        tok = s.split(',')
+        tok = s.split(",")
         lentok = min(len(tok), 9)
         for j in range(1, lentok):
             i += 1
@@ -320,8 +347,9 @@ def _rdcomma(fiter, s, conchar, blank, tolist):
 
 
 @ytools.read_text_file
-def rdcards(f, name, blank=0, return_var='array', dtype=float,
-            no_data_return=None, regex=False):
+def rdcards(
+    f, name, blank=0, return_var="array", dtype=float, no_data_return=None, regex=False
+):
     """
     Read Nastran cards (lines) into a matrix, dictionary, or list.
 
@@ -455,18 +483,18 @@ def rdcards(f, name, blank=0, return_var='array', dtype=float,
         name = name.lower()
     else:
         prog = re.compile(name, re.IGNORECASE)
-    if return_var not in ('array', 'list', 'dict'):
+    if return_var not in ("array", "list", "dict"):
         raise ValueError(
-            'invalid `return_var` setting; must be one of:'
-            ' ("array", "list", "dict")')
+            "invalid `return_var` setting; must be one of:" ' ("array", "list", "dict")'
+        )
 
-    if return_var == 'dict':
+    if return_var == "dict":
         Vals = {}
         todict = True
         tolist = False
     else:
         todict = False
-        tolist = return_var == 'list'
+        tolist = return_var == "list"
         Vals = []
     mxlen = 0
     f.seek(0, 0)
@@ -491,16 +519,16 @@ def rdcards(f, name, blank=0, return_var='array', dtype=float,
         if s is None:
             break
         s = _get_line(it, s, trim=False)
-        p = s.find(',')
+        p = s.find(",")
         if p > -1:
-            vals, s = _rdcomma(it, s, ' +,', blank, tolist)
+            vals, s = _rdcomma(it, s, " +,", blank, tolist)
         else:
             s = s[:72].rstrip()
-            p = s[:8].find('*')
+            p = s[:8].find("*")
             if p > -1:
-                vals, s = _rdfixed(it, s, 16, '*', blank, tolist)
+                vals, s = _rdfixed(it, s, 16, "*", blank, tolist)
             else:
-                vals, s = _rdfixed(it, s, 8, ' +', blank, tolist)
+                vals, s = _rdfixed(it, s, 8, " +", blank, tolist)
         if tolist:
             Vals.append(vals)
         else:
@@ -517,7 +545,7 @@ def rdcards(f, name, blank=0, return_var='array', dtype=float,
             npVals = np.empty((len(Vals), mxlen), dtype=dtype)
             npVals[:] = blank
             for i, vals in enumerate(Vals):
-                npVals[i, :len(vals)] = vals
+                npVals[i, : len(vals)] = vals
             Vals = npVals
         return Vals
     return no_data_return
@@ -658,10 +686,9 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
     def _mk_index(iddof):
         iddof = sorted(iddof, key=lambda x: 10 * x[0] + x[1])
-        return pd.MultiIndex.from_tuples(iddof, names=['ID', 'DOF'])
+        return pd.MultiIndex.from_tuples(iddof, names=["ID", "DOF"])
 
-    def _prep_dataframe(mtype, form, row_ids, row_iddof, col_iddof,
-                        ncol):
+    def _prep_dataframe(mtype, form, row_ids, row_iddof, col_iddof, ncol):
         # create dataframe:
         dtype = float if mtype < 3 else complex
         if form != 9:
@@ -729,7 +756,8 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
             # create dataframe:
             mat, rowindex, colindex = _prep_dataframe(
-                mtype, form, row_ids, row_iddof, col_iddof, ncol)
+                mtype, form, row_ids, row_iddof, col_iddof, ncol
+            )
 
             j = i + 1
             # put data into dataframe:
@@ -756,8 +784,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                             mat[ci, ri] = real
                 else:
                     imags = c[j][7::4]
-                    for nid, dof, real, imag in zip(rowids, rowdofs,
-                                                    reals, imags):
+                    for nid, dof, real, imag in zip(rowids, rowdofs, reals, imags):
                         val = real + 1j * imag
                         ri = np.searchsorted(r_id_dof, nid * 10 + dof)
                         mat[ri, ci] = val
@@ -765,8 +792,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                             mat[ci, ri] = val
                 j += 1
             i = j
-            dct[name] = pd.DataFrame(
-                mat, index=rowindex, columns=colindex)
+            dct[name] = pd.DataFrame(mat, index=rowindex, columns=colindex)
         return dct
 
     def _read_op2_dmig(o2, dmig_names):
@@ -775,8 +801,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         name, trailer, dbtype = o2.rdop2nt()
         while name is not None:
             # print(f'op2: found {name}')
-            if (dmig_names is not None
-                    and name.lower() not in dmig_names):
+            if dmig_names is not None and name.lower() not in dmig_names:
                 o2.skipop2table()
             else:
                 rec = o2.rdop2record()
@@ -818,12 +843,12 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
             # 12 & 13 4-byte integers are 1st col id, dof pair
             j = 12
             while j < len(rec) - 2:
-                nid, dof = rec[j:j + 2]
+                nid, dof = rec[j : j + 2]
                 add_iddof(col_ids, col_iddof, nid, dof)
 
                 j += 2
                 rowids = rec[j::step]
-                rowdofs = rec[j + 1::step]
+                rowdofs = rec[j + 1 :: step]
                 for i, (nid, dof) in enumerate(zip(rowids, rowdofs)):
                     if nid == -1:
                         j += step * i + 2
@@ -832,7 +857,8 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
             # create dataframe:
             mat, rowindex, colindex = _prep_dataframe(
-                mtype, form, row_ids, row_iddof, col_iddof, ncol)
+                mtype, form, row_ids, row_iddof, col_iddof, ncol
+            )
 
             # put data into dataframe:
             # df = dct[name]
@@ -843,7 +869,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                 c_id_dof = colindex
             j = 12
             while j < len(rec) - 2:
-                nid, dof = rec[j:j + 2]
+                nid, dof = rec[j : j + 2]
                 if form != 9:
                     nid = nid * 10 + dof
                 ci = np.searchsorted(c_id_dof, nid)
@@ -853,7 +879,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                 while nid != -1:
                     dof = rec[j + 1]
                     j += 2
-                    val = rec[j:j + ints_per_number]
+                    val = rec[j : j + ints_per_number]
                     val.dtype = dtype
                     j += ints_per_number
                     ri = np.searchsorted(r_id_dof, nid * 10 + dof)
@@ -862,8 +888,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
                         mat[ci, ri] = val
                     nid = rec[j]
                 j += 2
-            dct[name] = pd.DataFrame(
-                mat, index=rowindex, columns=colindex)
+            dct[name] = pd.DataFrame(mat, index=rowindex, columns=colindex)
         return dct
 
     # MAIN routine
@@ -881,7 +906,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
     if f is not None and not isinstance(f, str):
         # assume file handle, assume punch
-        cards = rdcards(f, name='dmig', return_var='list', blank='')
+        cards = rdcards(f, name="dmig", return_var="list", blank="")
         return _cards_to_df(cards, dmig_names)
 
     # read op2 or punch ... try op2, if that fails, assume punch:
@@ -889,8 +914,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     try:
         o2 = op2.OP2(dmigfile)
     except ValueError:
-        cards = rdcards(dmigfile, name='dmig',
-                        return_var='list', blank='')
+        cards = rdcards(dmigfile, name="dmig", return_var="list", blank="")
         dct = _cards_to_df(cards, dmig_names)
     else:
         o2dct = _read_op2_dmig(o2, dmig_names)
@@ -899,7 +923,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     return dct
 
 
-def mkcomment(comment, width=72, start='$ ', surround=True):
+def mkcomment(comment, width=72, start="$ ", surround=True):
     r"""
     Formats a string into a Nastran comment with wrapping.
 
@@ -943,11 +967,14 @@ def mkcomment(comment, width=72, start='$ ', surround=True):
     $ each line is "$ ", but that can be changed as well.
     $
     """
-    s = textwrap.fill(
-        comment, width=width, initial_indent=start,
-        subsequent_indent=start) + '\n'
+    s = (
+        textwrap.fill(
+            comment, width=width, initial_indent=start, subsequent_indent=start
+        )
+        + "\n"
+    )
     if surround:
-        s = '$\n' + s + '$\n'
+        s = "$\n" + s + "$\n"
     return s
 
 
@@ -1055,13 +1082,16 @@ def wtdmig(f, dct):
         # row index must be 2-level MultiIndex:
         if rowids.nlevels != 2:
             raise ValueError(
-                '"{}" must have a 2-level row index but has {} levels'
-                .format(name, rowids.nlevels))
+                '"{}" must have a 2-level row index but has {} levels'.format(
+                    name, rowids.nlevels
+                )
+            )
 
         if colids.nlevels > 2:
             raise ValueError(
                 '"{}" must have a 1 or 2-level column index but has '
-                '{} levels'.format(name, colids.nlevels))
+                "{} levels".format(name, colids.nlevels)
+            )
 
         m = value.values
         ncol = value.shape[1]
@@ -1089,9 +1119,11 @@ def wtdmig(f, dct):
         tout = 0
 
         #        DMIG  NAME  0    IFO  TIN  TOUT POLAR     NCOL
-        f.write('{:<8s}{:<8s}{:8d}{:8d}{:8d}{:8d}{:8d}{:8s}{:8d}\n'
-                .format('DMIG', name, 0, form, mtype,
-                        tout, polar, '', ncol))
+        f.write(
+            "{:<8s}{:<8s}{:8d}{:8d}{:8d}{:8d}{:8d}{:8s}{:8d}\n".format(
+                "DMIG", name, 0, form, mtype, tout, polar, "", ncol
+            )
+        )
 
         # write a column at a time:
         for col in range(m.shape[1]):
@@ -1102,21 +1134,18 @@ def wtdmig(f, dct):
                 else:
                     gj = colids[col]
                     cj = 0
-                f.write('{:<8s}{:<16s}{:16d}{:16d}\n'
-                        .format('DMIG*', name, gj, cj))
+                f.write("{:<8s}{:<16s}{:16d}{:16d}\n".format("DMIG*", name, gj, cj))
                 for row in range(start_row, m.shape[0]):
                     num = m[row, col]
                     if num != 0.0:
                         gi, ci = rowids[row]
-                        if mtype < 3:   # real
-                            num_str = '{:16.9E}'.format(num)
-                        else:           # complex
-                            num_str = ('{:16.9E}{:16.9E}'
-                                       .format(num.real, num.imag))
-                        if mtype & 1 == 0:   # if even
-                            num_str = num_str.replace('E', 'D')
-                        f.write('{:<8s}{:16d}{:16d}{:s}\n'
-                                .format('*', gi, ci, num_str))
+                        if mtype < 3:  # real
+                            num_str = "{:16.9E}".format(num)
+                        else:  # complex
+                            num_str = "{:16.9E}{:16.9E}".format(num.real, num.imag)
+                        if mtype & 1 == 0:  # if even
+                            num_str = num_str.replace("E", "D")
+                        f.write("{:<8s}{:16d}{:16d}{:s}\n".format("*", gi, ci, num_str))
 
 
 def rdgrids(f):
@@ -1160,7 +1189,7 @@ def rdgrids(f):
     0  100  0  0.1  0.2  0.3  10  0  0
     1  200  0  1.1  1.2  1.3  10  0  0
     """
-    v = rdcards(f, 'grid')
+    v = rdcards(f, "grid")
     if v is not None:
         c = np.size(v, 1)
         if c < 8:
@@ -1168,8 +1197,16 @@ def rdgrids(f):
         return v
 
 
-def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
-            cd=0, ps="", seid="", form="{:16.8f}"):
+def wtgrids(
+    f,
+    grids,
+    cp=0,
+    xyz=np.array([[0.0, 0.0, 0.0]]),
+    cd=0,
+    ps="",
+    seid="",
+    form="{:16.8f}",
+):
     """
     Writes Nastran GRID cards to a file.
 
@@ -1222,32 +1259,37 @@ def wtgrids(f, grids, cp=0, xyz=np.array([[0., 0., 0.]]),
     """
     grids = np.atleast_1d(grids).ravel()
     xyz = np.atleast_2d(xyz)
-    teststr = form.format(1.)
+    teststr = form.format(1.0)
     length = len(teststr)
     if length != 8 and length != 16:
-        raise ValueError("`form` produces a {} length string. It"
-                         " must be 8 or 16.\n", length)
+        raise ValueError(
+            "`form` produces a {} length string. It must be 8 or 16.\n", length
+        )
     if ps == seid == "":
         if len(teststr) > 8:
-            string = ("GRID*   {:16d}{:16d}" + form * 2
-                      + "\n*       " + form + "{:16d}\n")
+            string = (
+                "GRID*   {:16d}{:16d}" + form * 2 + "\n*       " + form + "{:16d}\n"
+            )
         else:
-            string = ("GRID    {:8d}{:8d}" + form * 3 + "{:8d}\n")
-        writer.vecwrite(f, string, grids, cp, xyz[:, 0], xyz[:, 1],
-                        xyz[:, 2], cd)
+            string = "GRID    {:8d}{:8d}" + form * 3 + "{:8d}\n"
+        writer.vecwrite(f, string, grids, cp, xyz[:, 0], xyz[:, 1], xyz[:, 2], cd)
     else:
         if len(teststr) > 8:
-            string = ("GRID*   {:16d}{:16d}" + form * 2
-                      + "\n*       " + form
-                      + "{:16d}{:>16}{:>16}\n")
+            string = (
+                "GRID*   {:16d}{:16d}"
+                + form * 2
+                + "\n*       "
+                + form
+                + "{:16d}{:>16}{:>16}\n"
+            )
         else:
-            string = ("GRID    {:8d}{:8d}" + form * 3
-                      + "{:8d}{:>8}{:>8}\n")
-        writer.vecwrite(f, string, grids, cp, xyz[:, 0], xyz[:, 1],
-                        xyz[:, 2], cd, ps, seid)
+            string = "GRID    {:8d}{:8d}" + form * 3 + "{:8d}{:>8}{:>8}\n"
+        writer.vecwrite(
+            f, string, grids, cp, xyz[:, 0], xyz[:, 1], xyz[:, 2], cd, ps, seid
+        )
 
 
-def rdtabled1(f, name='tabled1'):
+def rdtabled1(f, name="tabled1"):
     """
     Read Nastran TABLED1 or other identically formatted cards from a
     Nastran bulk file.
@@ -1297,7 +1339,7 @@ def rdtabled1(f, name='tabled1'):
     >>> np.allclose(d, dct[4000][:, 1])
     True
     """
-    d = rdcards(f, name, return_var='dict')
+    d = rdcards(f, name, return_var="dict")
     for tid in d:
         vec = d[tid]
         d[tid] = np.vstack([vec[8:-1:2], vec[9:-1:2]]).T
@@ -1305,8 +1347,7 @@ def rdtabled1(f, name='tabled1'):
 
 
 @ytools.write_text_file
-def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
-              tablestr="TABLED1"):
+def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLED1"):
     """
     Writes a Nastran TABLED1 (or similar) card to a file.
 
@@ -1374,37 +1415,47 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}",
     d = d.ravel()
     npts = len(t)
     if len(d) != npts:
-        raise ValueError('len(d) is {} but len(t) is {}'.
-                         format(len(d), npts))
+        raise ValueError("len(d) is {} but len(t) is {}".format(len(d), npts))
 
     # determine if using single or double field:
     n = len(form.format(1, 1))
     if n != 16 and n != 32:
-        raise ValueError('`form` produces a {} length string. It '
-                         'must be 16 or 32.'.format(n))
+        raise ValueError(
+            "`form` produces a {} length string. It must be 16 or 32.".format(n)
+        )
     if title:
-        f.write('$ {:s}\n'.format(title))
+        f.write("$ {:s}\n".format(title))
     if n == 32:
-        tablestr = tablestr + '*'
-        f.write('{:<8s}{:16d}\n*\n'.format(tablestr, tid))
+        tablestr = tablestr + "*"
+        f.write("{:<8s}{:16d}\n*\n".format(tablestr, tid))
         rows = npts // 2
         r = rows * 2
-        writer.vecwrite(f, '*       ' + form * 2 + '\n',
-                        t[:r:2], d[:r:2], t[1:r:2], d[1:r:2])
-        f.write('*       ')
+        writer.vecwrite(
+            f, "*       " + form * 2 + "\n", t[:r:2], d[:r:2], t[1:r:2], d[1:r:2]
+        )
+        f.write("*       ")
         for j in range(r, npts):
             f.write(form.format(t[j], d[j]))
     else:
-        f.write('{:<8s}{:8d}\n'.format(tablestr, tid))
+        f.write("{:<8s}{:8d}\n".format(tablestr, tid))
         rows = npts // 4
         r = rows * 4
-        writer.vecwrite(f, '        ' + form * 4 + '\n',
-                        t[:r:4], d[:r:4], t[1:r:4], d[1:r:4],
-                        t[2:r:4], d[2:r:4], t[3:r:4], d[3:r:4])
-        f.write('        ')
+        writer.vecwrite(
+            f,
+            "        " + form * 4 + "\n",
+            t[:r:4],
+            d[:r:4],
+            t[1:r:4],
+            d[1:r:4],
+            t[2:r:4],
+            d[2:r:4],
+            t[3:r:4],
+            d[3:r:4],
+        )
+        f.write("        ")
         for j in range(r, npts):
             f.write(form.format(t[j], d[j]))
-    f.write('ENDT\n')
+    f.write("ENDT\n")
 
 
 def bulk2uset(*args):
@@ -1451,12 +1502,9 @@ def bulk2uset(*args):
         args = [None]
     for f in args:
         f = guitools.get_file_name(f, read=True)
-        cord2r = np.vstack((cord2r, rdcards(f, 'cord2r',
-                                            no_data_return=no_data)))
-        cord2c = np.vstack((cord2c, rdcards(f, 'cord2c',
-                                            no_data_return=no_data)))
-        cord2s = np.vstack((cord2s, rdcards(f, 'cord2s',
-                                            no_data_return=no_data)))
+        cord2r = np.vstack((cord2r, rdcards(f, "cord2r", no_data_return=no_data)))
+        cord2c = np.vstack((cord2c, rdcards(f, "cord2c", no_data_return=no_data)))
+        cord2s = np.vstack((cord2s, rdcards(f, "cord2s", no_data_return=no_data)))
         g = rdgrids(f)
         if g is not None:
             grids = np.vstack((grids, g))
@@ -1469,18 +1517,24 @@ def bulk2uset(*args):
             return cord
         return np.zeros((0, 12))
 
-    cord2r = _expand_cords(cord2r, 1.)
-    cord2c = _expand_cords(cord2c, 2.)
-    cord2s = _expand_cords(cord2s, 3.)
+    cord2r = _expand_cords(cord2r, 1.0)
+    cord2c = _expand_cords(cord2c, 2.0)
+    cord2s = _expand_cords(cord2s, 3.0)
     # each cord matrix is 12 columns:
     #   [id, type, ref, a1, a2, a3, b1, b2, b3, c1, c2, c3]
     cords = np.vstack((cord2r, cord2c, cord2s))
     coordref = n2p.build_coords(cords)
     i = np.argsort(grids[:, 0])
     grids = grids[i, :]
-    uset = n2p.addgrid(None, grids[:, 0].astype(np.int64), 'b',
-                       grids[:, 1], grids[:, 2:5], grids[:, 5],
-                       coordref)
+    uset = n2p.addgrid(
+        None,
+        grids[:, 0].astype(np.int64),
+        "b",
+        grids[:, 1],
+        grids[:, 2:5],
+        grids[:, 5],
+        coordref,
+    )
     return uset, coordref
 
 
@@ -1517,25 +1571,25 @@ def rdwtbulk(fin, fout):
         from pyyeti import nastran
         nastran.rdwtbulk('meco1.out', 'meco1.blk')
     """
+
     @ytools.read_text_file
     def _rdbulk(f):
         fsearch(f, "COUNT        .   1  ..   2  ..   3")
         s = []
-        prog = re.compile(r'[ ]{13}[ 0-9]{8}-[ ]{8}(.{72})')
+        prog = re.compile(r"[ ]{13}[ 0-9]{8}-[ ]{8}(.{72})")
         for line in f:
-            if line.startswith(
-                    '                              ENDDATA'):
+            if line.startswith("                              ENDDATA"):
                 break
             m = prog.match(line)
             if m:
                 match = m.group(1).strip()
-                if match[0] == '+' or match[0] == '*':
+                if match[0] == "+" or match[0] == "*":
                     if len(match) > 8:
-                        match = match[0] + '       ' + match[8:]
+                        match = match[0] + "       " + match[8:]
                     else:
                         match = match[0]
                 s.append(match)
-        return '\n'.join(s) + '\n'
+        return "\n".join(s) + "\n"
 
     @ytools.write_text_file
     def _wtbulk(f, blk):
@@ -1580,8 +1634,8 @@ def rdeigen(f, use_pandas=True):
     """
 
     def _find_eigen(f):
-        SE = 'SUPERELEMENT '
-        EIG = 'R E A L   E I G E N V A L U E S'
+        SE = "SUPERELEMENT "
+        EIG = "R E A L   E I G E N V A L U E S"
         se = 0
         for line in f:
             if len(line) > 116 and line[104:].startswith(SE):
@@ -1593,7 +1647,7 @@ def rdeigen(f, use_pandas=True):
     def _rd_eigen_table(f):
         """Eigenvalue table found, read it."""
         for line in f:
-            if line.startswith('    NO.'):
+            if line.startswith("    NO."):
                 break
         table = []
         continued = True
@@ -1607,10 +1661,10 @@ def rdeigen(f, use_pandas=True):
                     table.append(row)
             for _ in range(8):
                 line = f.readline()
-                if line.startswith('1 '):
+                if line.startswith("1 "):
                     continued = False
                     break
-                if line.startswith('    NO.'):
+                if line.startswith("    NO."):
                     break
             else:
                 break
@@ -1625,8 +1679,15 @@ def rdeigen(f, use_pandas=True):
         table = _rd_eigen_table(f)
         if use_pandas:
             i = table[:, 0].astype(int)
-            c = ['mode #', 'ext #', 'eigenvalue', 'radians',
-                 'cycles', 'genmass', 'genstif']
+            c = [
+                "mode #",
+                "ext #",
+                "eigenvalue",
+                "radians",
+                "cycles",
+                "genmass",
+                "genstif",
+            ]
             table = pd.DataFrame(table, index=i, columns=c)
         dct[se] = table
 
@@ -1665,17 +1726,15 @@ def wtnasints(f, start, ints):
     firstline = 10 - start
     if n >= firstline:
         i = firstline
-        f.write(('{:8d}' * i + '\n').format(*ints[:i]))
+        f.write(("{:8d}" * i + "\n").format(*ints[:i]))
         while n >= i + 8:
-            f.write(('{:8s}' + '{:8d}' * 8 + '\n').
-                    format('', *ints[i:i + 8]))
+            f.write(("{:8s}" + "{:8d}" * 8 + "\n").format("", *ints[i : i + 8]))
             i += 8
         if n > i:
             n -= i
-            f.write(('{:8s}' + '{:8d}' * n + '\n').
-                    format('', *ints[i:]))
+            f.write(("{:8s}" + "{:8d}" * n + "\n").format("", *ints[i:]))
     else:
-        f.write(('{:8d}' * n + '\n').format(*ints))
+        f.write(("{:8d}" * n + "\n").format(*ints))
 
 
 def rdcsupers(f):
@@ -1715,8 +1774,7 @@ def rdcsupers(f):
     {101: array([    101,       0,       3,      11,      19,      27,
            1995001, 1995002, 1995003,      -1, 1995010]...)}
     """
-    return rdcards(f, 'csuper', return_var='dict',
-                   dtype=np.int64, blank=-1)
+    return rdcards(f, "csuper", return_var="dict", dtype=np.int64, blank=-1)
 
 
 def rdextrn(f, expand=True):
@@ -1783,7 +1841,7 @@ def rdextrn(f, expand=True):
            [      3,       6],
            [2995001,       0]]...)
     """
-    extrn = rdcards(f, 'extrn', dtype=np.int64).reshape(-1, 2)
+    extrn = rdcards(f, "extrn", dtype=np.int64).reshape(-1, 2)
     if expand:
         extrn = n2p.expanddof(extrn)
     return extrn
@@ -1818,12 +1876,12 @@ def wtcsuper(f, superid, grids):
     CSUPER       100       0       1       2       3       4       5       6
                    7       8       9
     """
-    f.write('CSUPER  {:8d}{:8d}'.format(superid, 0))
+    f.write("CSUPER  {:8d}{:8d}".format(superid, 0))
     wtnasints(f, 4, grids)
 
 
 @ytools.write_text_file
-def wtspc1(f, eid, dof, grids, name='SPC1'):
+def wtspc1(f, eid, dof, grids, name="SPC1"):
     """
     Writes a Nastran SPC1 (or similar) card to a file.
 
@@ -1862,7 +1920,7 @@ def wtspc1(f, eid, dof, grids, name='SPC1'):
                 2015    2016    2017    2018    2019    2020    2021    2022
                 2023    2024    2025    2026    2027    2028    2029    2030
     """
-    f.write('{:<8s}{:8d}{:8d}'.format(name, eid, dof))
+    f.write("{:<8s}{:8d}{:8d}".format(name, eid, dof))
     wtnasints(f, 4, grids)
 
 
@@ -1901,7 +1959,7 @@ def wtxset1(f, dof, grids, name="BSET1"):
     QSET1          0    2001    2002    2003    2004    2005    2006    2007
                 2008    2009    2010    2011    2012
     """
-    f.write('{:<8s}{:8d}'.format(name, dof))
+    f.write("{:<8s}{:8d}".format(name, dof))
     wtnasints(f, 3, grids)
 
 
@@ -1941,29 +1999,29 @@ def wtqcset(f, startgrid, nq):
     ngrids = (nq + 5) // 6
     endgrid = startgrid + ngrids - 1
     xdof = nq - 6 * (ngrids - 1)
-    xdofs = '123456'[:xdof]
-    cdofs = '123456'[xdof:]
+    xdofs = "123456"[:xdof]
+    cdofs = "123456"[xdof:]
     # write qset and cset cards:
     if xdof == 6:
         if ngrids > 1:
-            f.write('{:<8s}{:8d}{:8d}{:<8s}{:8d}\n'.
-                    format('QSET1', 123456,
-                           startgrid, ' THRU ', endgrid))
+            f.write(
+                "{:<8s}{:8d}{:8d}{:<8s}{:8d}\n".format(
+                    "QSET1", 123456, startgrid, " THRU ", endgrid
+                )
+            )
         else:
-            f.write('{:<8s}{:8d}{:8d}\n'.
-                    format('QSET1', 123456, startgrid))
+            f.write("{:<8s}{:8d}{:8d}\n".format("QSET1", 123456, startgrid))
     else:
         if ngrids > 2:
-            f.write('{:<8s}{:8d}{:8d}{:<8s}{:8d}\n'.
-                    format('QSET1', 123456,
-                           startgrid, ' THRU ', endgrid - 1))
+            f.write(
+                "{:<8s}{:8d}{:8d}{:<8s}{:8d}\n".format(
+                    "QSET1", 123456, startgrid, " THRU ", endgrid - 1
+                )
+            )
         elif ngrids == 2:
-            f.write('{:<8s}{:8d}{:8d}\n'.
-                    format('QSET1', 123456, startgrid))
-        f.write('{:<8s}{:>8s}{:8d}\n'.
-                format('QSET1', xdofs, endgrid))
-        f.write('{:<8s}{:>8s}{:8d}\n'.
-                format('CSET1', cdofs, endgrid))
+            f.write("{:<8s}{:8d}{:8d}\n".format("QSET1", 123456, startgrid))
+        f.write("{:<8s}{:>8s}{:8d}\n".format("QSET1", xdofs, endgrid))
+        f.write("{:<8s}{:>8s}{:8d}\n".format("CSET1", cdofs, endgrid))
 
 
 @ytools.write_text_file
@@ -1999,13 +2057,12 @@ def wtrbe2(f, eid, indep, dof, dep):
     RBE2           1     100  123456     101     102     103     104     105
                  106     107     108     109     110
     """
-    f.write('RBE2    {:8d}{:8d}{:8d}'.format(eid, indep, dof))
+    f.write("RBE2    {:8d}{:8d}{:8d}".format(eid, indep, dof))
     wtnasints(f, 5, dep)
 
 
 @ytools.write_text_file
-def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
-           UM_List=None, alpha=None):
+def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
     """
     Writes a Nastran RBE3 card to a file.
 
@@ -2075,17 +2132,17 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
             ALPHA     6.5e-6
     """
     if len(Ind_List) & 1:
-        raise ValueError('`Ind_List` must have even length '
-                         '(it is {})'.format(len(Ind_List)))
+        raise ValueError(
+            "`Ind_List` must have even length (it is {})".format(len(Ind_List))
+        )
 
-    f.write('RBE3    {:8d}        {:8d}{:8d}'.
-            format(eid, GRID_dep, DOF_dep))
+    f.write("RBE3    {:8d}        {:8d}{:8d}".format(eid, GRID_dep, DOF_dep))
     field = 5
 
     def _Inc_Field(f, field):
         field += 1
         if field == 10:
-            f.write('\n        ')
+            f.write("\n        ")
             field = 2
         return field
 
@@ -2099,31 +2156,31 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List,
         else:
             wt = 1.0
         field = _Inc_Field(f, field)
-        f.write('{:8.3f}'.format(wt))
+        f.write("{:8.3f}".format(wt))
         field = _Inc_Field(f, field)
-        f.write('{:8d}'.format(dof))
+        f.write("{:8d}".format(dof))
         for g in GRIDS_ind:
             field = _Inc_Field(f, field)
-            f.write('{:8d}'.format(g))
-    f.write('\n')
+            f.write("{:8d}".format(g))
+    f.write("\n")
 
     def _Inc_UM_Field(f, field):
         field += 1
         if field == 9:
-            f.write('\n                ')
+            f.write("\n                ")
             field = 3
         return field
 
     if UM_List is not None:
-        f.write('        UM      ')
+        f.write("        UM      ")
         field = 2
         for j in UM_List:
             field = _Inc_UM_Field(f, field)
-            f.write('{:8d}'.format(j))
-        f.write('\n')
+            f.write("{:8d}".format(j))
+        f.write("\n")
 
     if alpha is not None:
-        f.write('        ALPHA   {:>8s}\n'.format(alpha))
+        f.write("        ALPHA   {:>8s}\n".format(alpha))
 
 
 @ytools.write_text_file
@@ -2159,13 +2216,13 @@ def wtseset(f, superid, grids):
     """
     n = len(grids)
     # 7 grids per SESET:
-    frm = 'SESET   {:8d}' + '{:8d}' * 7 + '\n'
+    frm = "SESET   {:8d}" + "{:8d}" * 7 + "\n"
     i = 0
     while i + 7 <= n:
-        f.write(frm.format(superid, *grids[i:i + 7]))
+        f.write(frm.format(superid, *grids[i : i + 7]))
         i += 7
     if i < n:
-        frm = 'SESET   {:8d}' + '{:8d}' * (n - i) + '\n'
+        frm = "SESET   {:8d}" + "{:8d}" * (n - i) + "\n"
         f.write(frm.format(superid, *grids[i:]))
 
 
@@ -2200,20 +2257,20 @@ def wtset(f, setid, ids):
      15, 16, 17, 18, 19, 20, 21,
      22, 23, 24, 25
     """
-    f.write('SET {:d} ='.format(setid))
+    f.write("SET {:d} =".format(setid))
     n = len(ids)
     # 7 ids per line:
-    frm = ' {:d},' * 7 + '\n'
+    frm = " {:d}," * 7 + "\n"
     i = 0
     while i + 7 < n:
-        f.write(frm.format(*ids[i:i + 7]))
+        f.write(frm.format(*ids[i : i + 7]))
         i += 7
-    frm = ' {:d},' * (n - i - 1) + ' {:d}\n'
+    frm = " {:d}," * (n - i - 1) + " {:d}\n"
     f.write(frm.format(*ids[i:]))
 
 
 @ytools.write_text_file
-def wtrspline(f, rid, ids, DoL='0.1'):
+def wtrspline(f, rid, ids, DoL="0.1"):
     """
     Write Nastran RSPLINE card(s).
 
@@ -2285,15 +2342,14 @@ def wtrspline(f, rid, ids, DoL='0.1'):
     ids = np.atleast_2d(ids).astype(np.int64)
     N = ids.shape[0]
     if N < 3:
-        raise ValueError('not enough grids for RSPLINE')
+        raise ValueError("not enough grids for RSPLINE")
 
     ids, ind = ids.T
     if ind.all():
-        raise ValueError('there are no dependent DOF for RSPLINE')
+        raise ValueError("there are no dependent DOF for RSPLINE")
 
     if not ind[0] == ind[-1] == 1:
-        raise ValueError(
-            'the first and last grids must be independent')
+        raise ValueError("the first and last grids must be independent")
 
     # find indices of all dependents:
     deps = (ind == 0).nonzero()[0]
@@ -2309,22 +2365,22 @@ def wtrspline(f, rid, ids, DoL='0.1'):
 
     # write one RSPLINE per series of dependents:
     for d0, d1 in zip(firsts, lasts):
-        f.write('RSPLINE {:8}{:>8}{:8}'.format(rid, DoL, ids[d0 - 1]))
+        f.write("RSPLINE {:8}{:>8}{:8}".format(rid, DoL, ids[d0 - 1]))
         rid += 1
         field = 5  # next nastran field (1 to 10)
 
         # write all but last grid of current segment:
         for j in range(d0, d1 + 1):
-            f.write('{:8}'.format(ids[j]))
+            f.write("{:8}".format(ids[j]))
             field += 1
             if field == 10:
-                f.write('\n        ')
+                f.write("\n        ")
                 field = 2
-            f.write('  123456')
+            f.write("  123456")
             field += 1
 
         # write closing independent:
-        f.write('{:8}\n'.format(ids[d1 + 1]))
+        f.write("{:8}\n".format(ids[d1 + 1]))
 
 
 def _intersect(circA, circB, xyA, draw=False):
@@ -2374,19 +2430,19 @@ def _intersect(circA, circB, xyA, draw=False):
         m = (y2 - y1) / (x2 - x1)
         b = (x2 * y1 - x1 * y2) / (x2 - x1)
         # (mx+b-y3)**2 + (x-x3)**2 = R3**2
-        a2 = (m * m + 1)
+        a2 = m * m + 1
         a1 = 2 * (m * (b - y3) - x3) / a2
-        a0 = ((b - y3)**2 + x3**2 - R3**2) / a2
-        x1 = -a1 / 2 + np.sqrt((a1 / 2)**2 - a0)
-        x2 = -a1 / 2 - np.sqrt((a1 / 2)**2 - a0)
+        a0 = ((b - y3) ** 2 + x3 ** 2 - R3 ** 2) / a2
+        x1 = -a1 / 2 + np.sqrt((a1 / 2) ** 2 - a0)
+        x2 = -a1 / 2 - np.sqrt((a1 / 2) ** 2 - a0)
         y1 = m * x1 + b
         y2 = m * x2 + b
     else:
         # line is vertical (x1 & x2 are unchanged)
         #    (y-y3)**2 + (x1-x3)**2 = R3**2
         #    y-y3 = +- np.sqrt(R3**2 - (x1-x3)**2)
-        y1 = y3 + np.sqrt(R3**2 - (x1 - x3)**2)
-        y2 = y3 - np.sqrt(R3**2 - (x1 - x3)**2)
+        y1 = y3 + np.sqrt(R3 ** 2 - (x1 - x3) ** 2)
+        y2 = y3 - np.sqrt(R3 ** 2 - (x1 - x3) ** 2)
     err1 = abs(xyA[0] - x1) + abs(xyA[1] - y1)
     err2 = abs(xyA[0] - x2) + abs(xyA[1] - y2)
     if err1 < err2:
@@ -2394,20 +2450,16 @@ def _intersect(circA, circB, xyA, draw=False):
     else:
         pt = np.array([x2, y2])
     if draw:
-        plt.figure('intersect')
+        plt.figure("intersect")
         plt.clf()
-        th = np.arange(0, 361) * np.pi / 180.
+        th = np.arange(0, 361) * np.pi / 180.0
         (x1, y1, R1) = circA
-        plt.plot(x1 + R1 * np.cos(th),
-                 y1 + R1 * np.sin(th), label='CircA')
-        plt.plot(x3 + R3 * np.cos(th),
-                 y3 + R3 * np.sin(th), label='CircB')
-        plt.scatter(*xyA, c='g', marker='o', s=60,
-                    label='xyA')
-        plt.scatter(*pt, c='b', marker='v', s=60,
-                    label='intersection on CircB')
-        plt.axis('equal')
-        plt.legend(loc='best', scatterpoints=1)
+        plt.plot(x1 + R1 * np.cos(th), y1 + R1 * np.sin(th), label="CircA")
+        plt.plot(x3 + R3 * np.cos(th), y3 + R3 * np.sin(th), label="CircB")
+        plt.scatter(*xyA, c="g", marker="o", s=60, label="xyA")
+        plt.scatter(*pt, c="b", marker="v", s=60, label="intersection on CircB")
+        plt.axis("equal")
+        plt.legend(loc="best", scatterpoints=1)
     return pt
 
 
@@ -2421,37 +2473,43 @@ def _check_z_alignment(circ_parms, tol):
     # these are unit vectors; no need to divide by magnitudes:
     cosine = z1.dot(z2)
     if abs(cosine) < tol:
-        raise ValueError('perpendicular directions of `r1grids` and '
-                         '`r2grids` do not match: {} vs. {}; the '
-                         'cosine of the angle between them is {}'.
-                         format(z1, z2, cosine))
+        raise ValueError(
+            "perpendicular directions of `r1grids` and "
+            "`r2grids` do not match: {} vs. {}; the "
+            "cosine of the angle between them is {}".format(z1, z2, cosine)
+        )
 
 
-def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0,
-                      names):
+def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0, names):
     ref_cord_id = 0
     dist = max(1.0, np.linalg.norm(center))
     p = 10 ** np.floor(np.log10(dist))
     dist = round(dist / p) * p
     local_cord = {
-        cord_id: ['CORD2R', np.vstack((
-            [cord_id, 1, ref_cord_id],
-            center,
-            center + dist * basic2local[2],
-            center + dist * basic2local[0]
-        ))]
+        cord_id: [
+            "CORD2R",
+            np.vstack(
+                (
+                    [cord_id, 1, ref_cord_id],
+                    center,
+                    center + dist * basic2local[2],
+                    center + dist * basic2local[0],
+                )
+            ),
+        ]
     }
     comment = (
-        'Origin of local CORD2R {} is at center of {}; z is '
-        'perpendicular to plane of circle, and x is aligned with '
-        'node {} (and new node {}).'
-        .format(cord_id, names[0], node0, node_id0))
+        "Origin of local CORD2R {} is at center of {}; z is "
+        "perpendicular to plane of circle, and x is aligned with "
+        "node {} (and new node {}).".format(cord_id, names[0], node0, node_id0)
+    )
     f.write(mkcomment(comment))
     wtcoordcards(f, local_cord)
 
 
-def _wtgrids_rbe2s(f, circ_parms, center, basic2local, cord_id,
-                   node_id0, rbe2_id0, ring1_ids, names):
+def _wtgrids_rbe2s(
+    f, circ_parms, center, basic2local, cord_id, node_id0, rbe2_id0, ring1_ids, names
+):
     n1 = circ_parms[0].local.shape[1]
     newpts = np.zeros((n1, 3))
 
@@ -2465,29 +2523,34 @@ def _wtgrids_rbe2s(f, circ_parms, center, basic2local, cord_id,
         newpts[j, :2] = _intersect(
             [0.0, 0.0, radius],
             [center2[0], center2[1], circ_parms[1].radius],
-            circ_parms[0].local[:2, j])
+            circ_parms[0].local[:2, j],
+        )
 
     # write new grids
-    comment = ('Grids to RBE2 to the {} grids. These grids line '
-               'up with the {} circle so that the RSPLINE (which '
-               'ties together these new grids and the {} grids) will '
-               'be smooth.').format(names[0], names[1], names[1])
+    comment = (
+        "Grids to RBE2 to the {} grids. These grids line "
+        "up with the {} circle so that the RSPLINE (which "
+        "ties together these new grids and the {} grids) will "
+        "be smooth."
+    ).format(names[0], names[1], names[1])
     f.write(mkcomment(comment))
     vec = np.arange(n1)
     newids = node_id0 + vec
     rbe2ids = rbe2_id0 + vec
     wtgrids(f, newids, xyz=newpts, cp=cord_id)
 
-    comment = ('RBE2 the {} nodes to new nodes created above '
-               '(the new nodes are independent):').format(names[0])
+    comment = (
+        "RBE2 the {} nodes to new nodes created above "
+        "(the new nodes are independent):"
+    ).format(names[0])
     f.write(mkcomment(comment))
-    writer.vecwrite(f, 'RBE2,{},{},123456,{}\n',
-                    rbe2ids, newids, ring1_ids)
+    writer.vecwrite(f, "RBE2,{},{},123456,{}\n", rbe2ids, newids, ring1_ids)
     return newpts, newids
 
 
-def _sort_n_write(f, independent, circ_parms, newpts, newids,
-                  ring2_ids, rspline_id0, DoL, names):
+def _sort_n_write(
+    f, independent, circ_parms, newpts, newids, ring2_ids, rspline_id0, DoL, names
+):
     n1 = circ_parms[0].local.shape[1]
     n2 = circ_parms[1].local.shape[1]
 
@@ -2501,15 +2564,17 @@ def _sort_n_write(f, independent, circ_parms, newpts, newids,
     ids_1 = np.column_stack((newids, np.zeros(n1, np.int64)))
     ids_2 = np.column_stack((ring2_ids, np.zeros(n2, np.int64)))
 
-    if independent == 'ring1':
-        comment = (('RSPLINE the {} nodes to the new nodes created '
-                    'above, with the new nodes being independent.')
-                   .format(names[1]))
+    if independent == "ring1":
+        comment = (
+            "RSPLINE the {} nodes to the new nodes created "
+            "above, with the new nodes being independent."
+        ).format(names[1])
         ids_1[:, 1] = 1
     else:
-        comment = (('RSPLINE the new nodes created above to the {} '
-                    'nodes, with the {} nodes being independent.')
-                   .format(names[1], names[1]))
+        comment = (
+            "RSPLINE the new nodes created above to the {} "
+            "nodes, with the {} nodes being independent."
+        ).format(names[1], names[1])
         ids_2[:, 1] = 1
 
     f.write(mkcomment(comment))
@@ -2527,30 +2592,44 @@ def _sort_n_write(f, independent, circ_parms, newpts, newids,
     return ids
 
 
-def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
-                  center, rspline_nodes, ring2_ids, names):
-    for item in 'xyz':
-        get_func = getattr(ax, 'get_{}label'.format(item))
+def _plot_rspline(
+    ax,
+    circ_parms,
+    xyz,
+    newpts,
+    newids,
+    basic2local,
+    center,
+    rspline_nodes,
+    ring2_ids,
+    names,
+):
+    for item in "xyz":
+        get_func = getattr(ax, "get_{}label".format(item))
         if not get_func():
-            set_func = getattr(ax, 'set_{}label'.format(item))
+            set_func = getattr(ax, "set_{}label".format(item))
             set_func(item.upper())
 
     # draw the fit for circles:
     th = np.deg2rad(np.arange(0.0, 361))
-    for num, (parms, line) in enumerate(zip(circ_parms,
-                                            ('+', 'x'))):
+    for num, (parms, line) in enumerate(zip(circ_parms, ("+", "x"))):
         x = parms.radius * np.cos(th)
         y = parms.radius * np.sin(th)
         z = 0 * x
         # transform to basic coordinates and plot:
-        circle_basic = (parms.center
-                        + (np.column_stack((x, y, z)) @
-                         parms.basic2local)).T
-        h = ax.plot(*xyz[num].T, line, markersize=8.0,
-                    markeredgewidth=2.0,
-                    label='{} nodes'.format(names[num]))[0]
-        ax.plot(*circle_basic, h.get_color(),
-                label='{} best-fit circle'.format(names[num]))
+        circle_basic = (
+            parms.center + (np.column_stack((x, y, z)) @ parms.basic2local)
+        ).T
+        h = ax.plot(
+            *xyz[num].T,
+            line,
+            markersize=8.0,
+            markeredgewidth=2.0,
+            label="{} nodes".format(names[num])
+        )[0]
+        ax.plot(
+            *circle_basic, h.get_color(), label="{} best-fit circle".format(names[num])
+        )
 
     # get basic coordinates of newpts:
     newpts_basic = newpts @ basic2local + center
@@ -2560,31 +2639,44 @@ def _plot_rspline(ax, circ_parms, xyz, newpts, newids, basic2local,
     segments[1::3] = xyz[0]
     segments[2::3] = np.nan
 
-    h = ax.plot(*newpts_basic.T, 'o', markersize=5.0,
-                markeredgewidth=2.0,
-                label=('New {} nodes\n'
-                       ' - should be on {} circle').format(*names))[0]
-    ax.plot(*segments.T,
-            '-', color=h.get_color(),
-            label='RBE2s - should be {} radial'.format(names[0]))
+    h = ax.plot(
+        *newpts_basic.T,
+        "o",
+        markersize=5.0,
+        markeredgewidth=2.0,
+        label=("New {} nodes\n - should be on {} circle").format(*names)
+    )[0]
+    ax.plot(
+        *segments.T,
+        "-",
+        color=h.get_color(),
+        label="RBE2s - should be {} radial".format(names[0])
+    )
 
     # plot the rspline:
     unsorted_rspline_nodes = np.hstack((newids, ring2_ids))
-    pv = locate.mat_intersect(
-        unsorted_rspline_nodes, rspline_nodes[:, 0], 2)
+    pv = locate.mat_intersect(unsorted_rspline_nodes, rspline_nodes[:, 0], 2)
 
     rspline_xyz = np.vstack((newpts_basic, xyz[1]))[pv[0]]
-    ax.plot(*rspline_xyz.T, '--', alpha=0.7, linewidth=3.0,
-            label='Final RSPLINE')
+    ax.plot(*rspline_xyz.T, "--", alpha=0.7, linewidth=3.0, label="Final RSPLINE")
 
     ytools.axis_equal_3d(ax)
-    ax.legend(loc='upper left', bbox_to_anchor=(1.0, 1.0))
+    ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0))
     ax.get_figure().tight_layout()
 
 
-def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
-                    rbe2_id0=None, cord_id=None, makeplot='new',
-                    DoL='0.1', independent='ring1'):
+def wtrspline_rings(
+    f,
+    r1grids,
+    r2grids,
+    node_id0,
+    rspline_id0,
+    rbe2_id0=None,
+    cord_id=None,
+    makeplot="new",
+    DoL="0.1",
+    independent="ring1",
+):
     """
     Creates a smooth RSPLINE to connect two rings of grids.
 
@@ -2792,25 +2884,26 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
         RSPLINE     2004     0.1    1004     106  123456    1005
         RSPLINE     2005     0.1    1005     107  123456    1001
     """
+
     def _check_grids(grids, name):
         if isinstance(grids, tuple) and len(grids) == 2:
             return grids
         return name, grids
 
     def _despace(s):
-        return (''.join(s.split())).lower()
+        return ("".join(s.split())).lower()
 
-    r1name, r1grids = _check_grids(r1grids, 'Ring 1')
-    r2name, r2grids = _check_grids(r2grids, 'Ring 2')
+    r1name, r1grids = _check_grids(r1grids, "Ring 1")
+    r2name, r2grids = _check_grids(r2grids, "Ring 2")
 
     # ensure that independent is either 'ring1' or 'ring2':
     independent = _despace(independent)
     if independent == _despace(r1name):
-        independent = 'ring1'
+        independent = "ring1"
     elif independent == _despace(r2name):
-        independent = 'ring2'
-    if independent not in ('ring1', 'ring2'):
-        raise ValueError('invalid `independent` option')
+        independent = "ring2"
+    if independent not in ("ring1", "ring2"):
+        raise ValueError("invalid `independent` option")
 
     if rbe2_id0 is None:
         rbe2_id0 = node_id0
@@ -2820,15 +2913,15 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     names = (r1name, r2name)
     IDs = []
     xyz = []
-    for ring, name in ((r1grids, 'r1grids'),
-                       (r2grids, 'r2grids')):
+    for ring, name in ((r1grids, "r1grids"), (r2grids, "r2grids")):
         if isinstance(ring, pd.DataFrame):
             r = ring.shape[0]
             if (r // 6) * 6 != r:
-                raise ValueError('number of rows `{}` is not '
-                                 'multiple of 6 for USET input'.
-                                 format(name))
-            IDs.append(ring.index.get_level_values('id')[::6])
+                raise ValueError(
+                    "number of rows `{}` is not "
+                    "multiple of 6 for USET input".format(name)
+                )
+            IDs.append(ring.index.get_level_values("id")[::6])
             xyz.append(ring.iloc[::6, 1:].values)
         else:
             ring = np.atleast_2d(ring)
@@ -2857,21 +2950,28 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     @ytools.write_text_file
     def _write_file(f):
         # write local coordinate system to file:
-        _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0],
-                          node_id0, names)
+        _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0], node_id0, names)
 
         # create new nodes that will be RBE2'd to ring 1 nodes, but
         # located on ring 2 circle
         # - these nodes will be defined in the local system but output
         #   in basic
         newpts, newids = _wtgrids_rbe2s(
-            f, circ_parms, center, basic2local, cord_id,
-            node_id0, rbe2_id0, IDs[0], names)
+            f,
+            circ_parms,
+            center,
+            basic2local,
+            cord_id,
+            node_id0,
+            rbe2_id0,
+            IDs[0],
+            names,
+        )
 
         # rspline will tie the 'newpts' and the ring 2 nodes together:
         rspline_nodes = _sort_n_write(
-            f, independent, circ_parms, newpts, newids,
-            IDs[1], rspline_id0, DoL, names)
+            f, independent, circ_parms, newpts, newids, IDs[1], rspline_id0, DoL, names
+        )
 
         return newpts, newids, rspline_nodes
 
@@ -2881,8 +2981,17 @@ def wtrspline_rings(f, r1grids, r2grids, node_id0, rspline_id0,
     ax = ytools._check_makeplot(makeplot, figsize=[8, 6], need3d=True)
     if ax:
         _plot_rspline(
-            ax, circ_parms, xyz, newpts, newids, basic2local, center,
-            rspline_nodes, IDs[1], names)
+            ax,
+            circ_parms,
+            xyz,
+            newpts,
+            newids,
+            basic2local,
+            center,
+            rspline_nodes,
+            IDs[1],
+            names,
+        )
 
 
 def wtvcomp(f, baa, kaa, bset, spoint1):
@@ -2946,13 +3055,19 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
 
     @ytools.write_text_file
     def _wtvcomp(f, zeta, spoint1):
-        f.write('$ Critical damping ratios:\n')
-        f.write('DMIG    VCOMP          0       9       1'
-                '       1                       1\n')
-        f.write('DMIG*   VCOMP                          1'
-                '               0\n')
-        writer.vecwrite(f, '*       {:16d}{:16d}{:16.10g}\n',
-                        spoint1 + np.arange(len(zeta)), 0, zeta)
+        f.write("$ Critical damping ratios:\n")
+        f.write(
+            "DMIG    VCOMP          0       9       1"
+            "       1                       1\n"
+        )
+        f.write("DMIG*   VCOMP                          1               0\n")
+        writer.vecwrite(
+            f,
+            "*       {:16d}{:16d}{:16.10g}\n",
+            spoint1 + np.arange(len(zeta)),
+            0,
+            zeta,
+        )
 
     _wtvcomp(f, zeta, spoint1)
 
@@ -3005,14 +3120,14 @@ def wtcoordcards(f, ci):
             coord = data[1]
             abc = +coord[1:]
             abc[abs(abc) < abs(abc).max() * 1e-15] = 0.0
-            f.write('$ Coordinate {:d}:\n'.format(k))
-            f.write('{:<8s}{:16d}{:16d}{:16.8e}{:16.8e}*\n'.
-                    format(data[0] + '*', k, int(coord[0, 2]),
-                           *abc[0, :2]))
-            f.write(('{:<8s}' + '{:16.8e}' * 4 + '*\n').
-                    format('*', abc[0, 2], *abc[1]))
-            f.write(('{:<8s}' + '{:16.8e}' * 3 + '\n').
-                    format('*', *abc[2]))
+            f.write("$ Coordinate {:d}:\n".format(k))
+            f.write(
+                "{:<8s}{:16d}{:16d}{:16.8e}{:16.8e}*\n".format(
+                    data[0] + "*", k, int(coord[0, 2]), *abc[0, :2]
+                )
+            )
+            f.write(("{:<8s}" + "{:16.8e}" * 4 + "*\n").format("*", abc[0, 2], *abc[1]))
+            f.write(("{:<8s}" + "{:16.8e}" * 3 + "\n").format("*", *abc[2]))
 
     _wtcoords(f, ci)
 
@@ -3050,15 +3165,16 @@ def wtextrn(f, ids, dof):
     EXTRN        999  123456   10001       0   10002       0   10003       0
                10004       0   10005       0
     """
-    f.write('EXTRN   ')
+    f.write("EXTRN   ")
     ints = np.zeros(len(ids) * 2, dtype=int)
     ints[::2] = ids
     ints[1::2] = dof
     wtnasints(f, 2, ints)
 
 
-def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
-               sedn=0, bh=False, **kwargs):
+def wtextseout(
+    name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, bh=False, **kwargs
+):
     """
     Write .op4, .asm, .pch and possibly the damping DMIG file for an
     external SE.
@@ -3119,115 +3235,153 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1,
 
     if bh:
         # write damping to DMIG VCOMP card for the BH method:
-        wtvcomp(name + '.baa_dmig', baa, kaa, bset, spoint1)
+        wtvcomp(name + ".baa_dmig", baa, kaa, bset, spoint1)
         baa = np.zeros_like(baa)
 
     # prepare standard Nastran op4 file:
-    k4xx = 0.
+    k4xx = 0.0
     pa = np.zeros((n, 1))
-    gpxx = 0.
-    gdxx = 0.
+    gpxx = 0.0
+    gdxx = 0.0
     va = np.ones((n, 1))
-    mug1 = 0.
-    mug1o = 0.
-    mes1 = 0.
-    mes1o = 0.
-    mee1 = 0.
-    mee1o = 0.
-    mgpf = 0.
-    mgpfo = 0.
-    mef1 = 0.
-    mef1o = 0.
-    mqg1 = 0.
-    mqg1o = 0.
-    mqmg1 = 0.
-    mqmg1o = 0.
-    namelist = ['kaa', 'maa', 'baa', 'k4xx', 'pa', 'gpxx', 'gdxx',
-                'va', 'mug1', 'mug1o', 'mes1', 'mes1o', 'mee1',
-                'mee1o', 'mgpf', 'mgpfo', 'mef1', 'mef1o', 'mqg1',
-                'mqg1o', 'mqmg1', 'mqmg1o']
+    mug1 = 0.0
+    mug1o = 0.0
+    mes1 = 0.0
+    mes1o = 0.0
+    mee1 = 0.0
+    mee1o = 0.0
+    mgpf = 0.0
+    mgpfo = 0.0
+    mef1 = 0.0
+    mef1o = 0.0
+    mqg1 = 0.0
+    mqg1o = 0.0
+    mqmg1 = 0.0
+    mqmg1o = 0.0
+    namelist = [
+        "kaa",
+        "maa",
+        "baa",
+        "k4xx",
+        "pa",
+        "gpxx",
+        "gdxx",
+        "va",
+        "mug1",
+        "mug1o",
+        "mes1",
+        "mes1o",
+        "mee1",
+        "mee1o",
+        "mgpf",
+        "mgpfo",
+        "mef1",
+        "mef1o",
+        "mqg1",
+        "mqg1o",
+        "mqmg1",
+        "mqmg1o",
+    ]
     dct = {**locals(), **kwargs}
     varlist = [dct[i] for i in namelist]
-    op4.write(name + '.op4', namelist, varlist)
+    op4.write(name + ".op4", namelist, varlist)
 
     # Get some data from the uset table:
     ci = n2p.mkcordcardinfo(uset)
-    grids = uset.index.get_level_values('id')
-    dof = uset.index.get_level_values('dof')
+    grids = uset.index.get_level_values("id")
+    dof = uset.index.get_level_values("dof")
     pv = dof == 1
     grids = grids[pv]
-    xyz = uset.loc[pv, 'x':'z'].values
+    xyz = uset.loc[pv, "x":"z"].values
     pv = dof == 2
-    cd = uset.loc[pv, 'x'].values.astype(int)
+    cd = uset.loc[pv, "x"].values.astype(int)
 
     # Write out ASM file
     unit = se
     spointn = spoint1 + nq - 1
-    with open(name + '.asm', 'w') as f:
-        f.write(('$ {:s} ASSEMBLY FILE FOR RESIDUAL RUN...INCLUDE '
-                 'IN BULK DATA\n').format(name.upper()))
-        f.write('$\n')
-        f.write(('SEBULK  {:8d}  EXTOP4          MANUAL'
-                 '                {:8d}\n').format(se, unit))
-        f.write('SECONCT {:8d}{:8d}              NO\n'.
-                format(se, sedn))
-        f.write('        ')
+    with open(name + ".asm", "w") as f:
+        f.write(
+            (
+                "$ {:s} ASSEMBLY FILE FOR RESIDUAL RUN...INCLUDE IN BULK DATA\n"
+            ).format(name.upper())
+        )
+        f.write("$\n")
+        f.write(
+            ("SEBULK  {:8d}  EXTOP4          MANUAL                {:8d}\n").format(
+                se, unit
+            )
+        )
+        f.write("SECONCT {:8d}{:8d}              NO\n".format(se, sedn))
+        f.write("        ")
         gids = np.vstack((grids, grids)).T
         wtnasints(f, 2, gids.ravel())
 
         # Write coordinate system cards if needed:
-        f.write('$\n')
-        f.write('$ COORDINATE SYSTEM DATA\n$\n')
+        f.write("$\n")
+        f.write("$ COORDINATE SYSTEM DATA\n$\n")
         wtcoordcards(f, ci)
 
         # Write Grid data:
-        f.write('$\n')
-        f.write('$ BOUNDARY GRID DATA\n')
-        f.write('$\n')
+        f.write("$\n")
+        f.write("$ BOUNDARY GRID DATA\n")
+        f.write("$\n")
         wtgrids(f, grids, 0, xyz, cd)
         if spointn >= spoint1:
-            f.write('$\n')
-            f.write('SECONCT {:8d}{:8d}              NO\n'.
-                    format(se, sedn))
-            f.write('        {:8d}    THRU{:8d}{:8d}    THRU{:8d}\n'.
-                    format(spoint1, spointn, spoint1, spointn))
-            f.write('$\n')
-            f.write('SPOINT  {:8d}    THRU{:8d}\n'.
-                    format(spoint1, spointn))
+            f.write("$\n")
+            f.write("SECONCT {:8d}{:8d}              NO\n".format(se, sedn))
+            f.write(
+                "        {:8d}    THRU{:8d}{:8d}    THRU{:8d}\n".format(
+                    spoint1, spointn, spoint1, spointn
+                )
+            )
+            f.write("$\n")
+            f.write("SPOINT  {:8d}    THRU{:8d}\n".format(spoint1, spointn))
 
     # Write out PCH file
-    with open(name + '.pch', 'w') as f:
-        f.write(('$ {:s} PUNCH FILE FOR RESIDUAL RUN...INCLUDE '
-                 'AT END\n').format(name.upper()))
-        f.write('$\n')
-        f.write('BEGIN SUPER{:8d}\n$\n'.format(se))
+    with open(name + ".pch", "w") as f:
+        f.write(
+            ("$ {:s} PUNCH FILE FOR RESIDUAL RUN...INCLUDE AT END\n").format(
+                name.upper()
+            )
+        )
+        f.write("$\n")
+        f.write("BEGIN SUPER{:8d}\n$\n".format(se))
         ids = np.hstack((grids, spoint1 + np.arange(nq)))
         dof = np.zeros_like(ids, dtype=int)
-        dof[:len(grids)] = 123456
+        dof[: len(grids)] = 123456
         wtextrn(f, ids, dof)
-        f.write('$\n')
-        f.write('$ COORDINATE SYSTEM DATA\n$\n')
+        f.write("$\n")
+        f.write("$ COORDINATE SYSTEM DATA\n$\n")
         wtcoordcards(f, ci)
-        f.write('$\n$ BOUNDARY GRID DATA\n$\n')
+        f.write("$\n$ BOUNDARY GRID DATA\n$\n")
         wtgrids(f, grids, 0, xyz, cd)
-        f.write('$\n')
+        f.write("$\n")
 
-        f.write('$ BSET\n$\n')
-        f.write('ASET1   {:8d}'.format(123456))
+        f.write("$ BSET\n$\n")
+        f.write("ASET1   {:8d}".format(123456))
         wtnasints(f, 3, grids)
         if spointn >= spoint1:
-            f.write('$\n')
-            f.write('$ QSET\n$\n')
-            f.write('QSET1   {:8d}{:8d}    THRU{:8d}\n'.
-                    format(0, spoint1, spointn))
-            f.write('$\n')
-            f.write('SPOINT  {:8d}    THRU{:8d}\n'.
-                    format(spoint1, spointn))
+            f.write("$\n")
+            f.write("$ QSET\n$\n")
+            f.write("QSET1   {:8d}{:8d}    THRU{:8d}\n".format(0, spoint1, spointn))
+            f.write("$\n")
+            f.write("SPOINT  {:8d}    THRU{:8d}\n".format(spoint1, spointn))
 
 
-def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
-           ext='out', stoponfatal=False, shell='/bin/sh', files=None,
-           before='', after='', top='', bottom=''):
+def mknast(
+    script=None,
+    *,
+    nascom="nast9p1",
+    nasopt="batch=no",
+    ext="out",
+    stoponfatal=False,
+    shell="/bin/sh",
+    files=None,
+    before="",
+    after="",
+    top="",
+    bottom=""
+):
     """
     Create shell script to run chain of nastran (or other) runs.
 
@@ -3280,18 +3434,18 @@ def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
     """
     # Name of script to create:
     if script is None:
-        script = input('Name of shell script to create (doruns.sh): ')
+        script = input("Name of shell script to create (doruns.sh): ")
         if not script:
-            script = 'doruns.sh'
+            script = "doruns.sh"
 
     # initialize shell script
     GREP = "grep -l '[*^][*^][*^].*FATAL'"
-    with open(script, 'w') as f:
-        f.write('#!{:s}\n'.format(shell))
+    with open(script, "w") as f:
+        f.write("#!{:s}\n".format(shell))
         curdir = os.getcwd()
-        f.write('cd {:s}\n\n'.format(curdir))
+        f.write("cd {:s}\n\n".format(curdir))
         if top:
-            f.write('{:s}\n'.format(top))
+            f.write("{:s}\n".format(top))
 
         i = -1
         while 1:  # loop over file names
@@ -3302,55 +3456,51 @@ def mknast(script=None, *, nascom='nast9p1', nasopt='batch=no',
                 else:
                     nasfile = files[i]
             else:
-                p = 'File #{:2d} (blank to quit): '.format(i + 1)
+                p = "File #{:2d} (blank to quit): ".format(i + 1)
                 nasfile = input(p)
                 if not nasfile:
                     break
 
             if not os.path.exists(nasfile):
-                print("Warning:  file '{:s}' not found.\n".
-                      format(nasfile))
+                print("Warning:  file '{:s}' not found.\n".format(nasfile))
 
-            f.write('\n# ******** File {:s} ********\n'.
-                    format(nasfile))
-            p = nasfile.rfind('/')
+            f.write("\n# ******** File {:s} ********\n".format(nasfile))
+            p = nasfile.rfind("/")
             if p > -1:
                 filepath = nasfile[:p]
-                filename = nasfile[p + 1:]
-                f.write('  cd {:s}\n'.format(filepath))
+                filename = nasfile[p + 1 :]
+                f.write("  cd {:s}\n".format(filepath))
                 docd = 1
             else:
                 filename = nasfile
                 docd = 0
 
             if before:
-                f.write('{:s}\n'.format(before))
-            f.write("  {:s} '{:s}' '{:s}'\n".
-                    format(nascom, nasopt, filename))
+                f.write("{:s}\n".format(before))
+            f.write("  {:s} '{:s}' '{:s}'\n".format(nascom, nasopt, filename))
 
             if stoponfatal:
-                p = filename.rfind('.')
+                p = filename.rfind(".")
                 if p > -1:
-                    f06file = filename[:p + 1] + ext
+                    f06file = filename[: p + 1] + ext
                 else:
-                    f06file = filename + '.' + ext
+                    f06file = filename + "." + ext
 
-                f.write("  if [ X != X`{:s} {:s}` ] ; then\n".
-                        format(GREP, f06file))
+                f.write("  if [ X != X`{:s} {:s}` ] ; then\n".format(GREP, f06file))
                 f.write("    exit\n")
                 f.write("  fi\n")
             if after:
-                f.write('{:s}\n'.format(after))
+                f.write("{:s}\n".format(after))
 
             if docd:
-                f.write('  cd {:s}\n'.format(curdir))
+                f.write("  cd {:s}\n".format(curdir))
 
         if bottom:
-            f.write('{:s}\n'.format(bottom))
+            f.write("{:s}\n".format(bottom))
     os.system("chmod a+rx '{:s}'".format(script))
 
 
-def rddtipch(f, name='TUG1'):
+def rddtipch(f, name="TUG1"):
     """
     Read the 2nd record of specific DTIs from a .pch file.
 
@@ -3390,7 +3540,7 @@ def rddtipch(f, name='TUG1'):
         row = locate.find_rows(tug1, [100, 4])
         drm = mug1[row, :]
     """
-    string = 'DTI     {:<8s}2'.format(name)
+    string = "DTI     {:<8s}2".format(name)
     c = rdcards(f, string)
     c = c[0, 16:-1].reshape(-1, 4).astype(np.int64)
     m = c[:, 1:]

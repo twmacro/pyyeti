@@ -124,13 +124,14 @@ def _getr(n, prob, tol):
         lhi = sn + rold
         llo = sn - rold
         num = norm.cdf(lhi) - norm.cdf(llo) - prob
-        den = spi * (np.exp(-(lhi**2) / 2) + np.exp(-(llo**2) / 2))
+        den = spi * (np.exp(-(lhi ** 2) / 2) + np.exp(-(llo ** 2) / 2))
         r = rold - num / den
         loops += 1
-    if loops == MAXLOOPS:   # pragma: no cover
-        warnings.warn('maximum number of loops exceeded. '
-                      'Solution will likely be inaccurate.',
-                      RuntimeWarning)
+    if loops == MAXLOOPS:  # pragma: no cover
+        warnings.warn(
+            "maximum number of loops exceeded. Solution will likely be inaccurate.",
+            RuntimeWarning,
+        )
     return r
 
 
@@ -347,11 +348,11 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
     11      306      675     1538     5704    11410
     12      330      727     1658     6145    12293
     """
-    if which == 'c':
+    if which == "c":
         r = np.asarray(r)
         p = np.asarray(p)
         return binom.sf(r - 1, n, 1 - p)
-    elif which == 'r':
+    elif which == "r":
         # c = np.asarray(c)
         # p = np.asarray(p)
         # return binom.ppf(1-c, n, 1-p)  # gets 'value too deep error'
@@ -361,7 +362,8 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
         if r.ndim == 0:
             return int(r[()])
         return r.astype(int)
-    elif which == 'n':
+    elif which == "n":
+
         def _func(n, p, s, pr):
             return p - (1 - betainc(s + 1, n - s, pr))
 
@@ -380,14 +382,15 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
         n = np.empty(b.shape)
         n.flat = [_run_brentq(c, r, p) for (c, r, p) in b]
         return np.ceil(n).astype(int)
-    elif which == 'p':
+    elif which == "p":
+
         def _func(pr, p, s, n):
             return p - binom.cdf(s, n, pr)
+
         b = np.broadcast(c, r, n)
         n = np.empty(b.shape)
-        n.flat = [1 - brentq(_func, 0, 1, args=(1 - c, r - 1, n))
-                  for (c, r, n) in b]
+        n.flat = [1 - brentq(_func, 0, 1, args=(1 - c, r - 1, n)) for (c, r, n) in b]
         if n.ndim == 0:
             return n[()]
         return n
-    raise ValueError('invalid `which` setting')
+    raise ValueError("invalid `which` setting")

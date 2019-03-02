@@ -23,8 +23,14 @@ import numpy as np
 from pyyeti import guitools
 from pyyeti.nastran import op4, n2p
 
-__all__ = ['rdmats', 'rdnas2cam', 'procdrm12', 'rdpostop2', 'OP2',
-           'nastran_dr_descriptions']
+__all__ = [
+    "rdmats",
+    "rdnas2cam",
+    "procdrm12",
+    "rdpostop2",
+    "OP2",
+    "nastran_dr_descriptions",
+]
 
 #  Notes on the op2 format.
 #
@@ -162,6 +168,7 @@ class OP2:
     def CodeFuncs(self):
         """See :func:`_check_code`."""
         if self._CodeFuncs is None:
+
             def _func1(item_code):
                 if item_code // 1000 in [2, 3, 6]:
                     return 2
@@ -195,9 +202,16 @@ class OP2:
             def _funcbig(func_code, item_code):
                 return item_code & (func_code & 65535)
 
-            self._CodeFuncs = {1: _func1, 2: _func2, 3: _func3,
-                               4: _func4, 5: _func5, 6: _func6,
-                               7: _func7, 'big': _funcbig}
+            self._CodeFuncs = {
+                1: _func1,
+                2: _func2,
+                3: _func3,
+                4: _func4,
+                5: _func5,
+                6: _func6,
+                7: _func7,
+                "big": _funcbig,
+            }
         return self._CodeFuncs
 
     def _op2open(self, filename):
@@ -249,12 +263,12 @@ class OP2:
         File is positioned after the header label (at
         `postheaderpos`).
         """
-        self._fileh = open(filename, 'rb')
+        self._fileh = open(filename, "rb")
         self.dbnames = []
         self.dblist = []
         self.dbstarts = None
         self.dbstop2 = None
-        reclen = struct.unpack('i', self._fileh.read(4))[0]
+        reclen = struct.unpack("i", self._fileh.read(4))[0]
         self._fileh.seek(0)
 
         reclen = np.array(reclen, dtype=np.int32)
@@ -264,41 +278,42 @@ class OP2:
             if not np.any(reclen == [4, 8]):
                 self._fileh.close()
                 self._fileh = None
-                raise ValueError('Could not decipher file. First '
-                                 '4-byte integer should be 4 or 8.')
-            if sys.byteorder == 'little':
-                self._endian = '>'
+                raise ValueError(
+                    "Could not decipher file. First 4-byte integer should be 4 or 8."
+                )
+            if sys.byteorder == "little":
+                self._endian = ">"
             else:
-                self._endian = '<'
+                self._endian = "<"
         else:
             self._swap = False
-            self._endian = '='
+            self._endian = "="
 
-        self._Str4 = struct.Struct(self._endian + 'i')
+        self._Str4 = struct.Struct(self._endian + "i")
         if reclen == 4:
             self._ibytes = 4
-            self._intstr = self._endian + 'i4'
-            self._intstru = self._endian + '%di'
-            self._i = 'i'
+            self._intstr = self._endian + "i4"
+            self._intstru = self._endian + "%di"
+            self._i = "i"
             self._Str = self._Str4
-            self._rfrmu = self._endian + '%df'
-            self._rfrm = self._endian + 'f4'
-            self._f = 'f'
+            self._rfrmu = self._endian + "%df"
+            self._rfrm = self._endian + "f4"
+            self._f = "f"
             self._fbytes = 4
         else:
             self._ibytes = 8
-            self._intstr = self._endian + 'i8'
-            self._intstru = self._endian + '%dq'
-            self._i = 'q'
-            self._Str = struct.Struct(self._endian + 'q')
-            self._rfrmu = self._endian + '%dd'
-            self._rfrm = self._endian + 'f8'
-            self._f = 'd'
+            self._intstr = self._endian + "i8"
+            self._intstru = self._endian + "%dq"
+            self._i = "q"
+            self._Str = struct.Struct(self._endian + "q")
+            self._rfrmu = self._endian + "%dd"
+            self._rfrm = self._endian + "f8"
+            self._f = "d"
             self._fbytes = 8
 
         self._rowsCutoff = 3000
-        self._int32str = self._endian + 'i4'
-        self._int32stru = self._endian + '%di'
+        self._int32str = self._endian + "i4"
+        self._int32stru = self._endian + "%di"
         self.rdop2header()
         self._postheaderpos = self._fileh.tell()
         self.directory(verbose=False)
@@ -383,8 +398,7 @@ class OP2:
         self._getkey()
 
         reclen = self._Str4.unpack(self._fileh.read(4))[0]
-        self._label = self._fileh.read(reclen).decode().\
-            strip().replace(' ', '')
+        self._label = self._fileh.read(reclen).decode().strip().replace(" ", "")
         self._fileh.read(4)  # endrec
         self._skipkey(2)
 
@@ -392,8 +406,11 @@ class OP2:
         """
         Returns a valid variable name from the byte string `bstr`.
         """
-        return ''.join(chr(c) for c in bstr if (
-            47 < c < 58 or 64 < c < 91 or c == 95 or 96 < c < 123))
+        return "".join(
+            chr(c)
+            for c in bstr
+            if (47 < c < 58 or 64 < c < 91 or c == 95 or 96 < c < 123)
+        )
 
     def rdop2eot(self):
         """
@@ -473,18 +490,18 @@ class OP2:
         dtype = 1
         rows = trailer[2]
         mtype = trailer[4]
-        if mtype > 2:   # complex
+        if mtype > 2:  # complex
             rows *= 2
-        if mtype & 1:   # single precision
-            frm = self._endian + 'f4'
-            frmu = self._endian + '%df'
+        if mtype & 1:  # single precision
+            frm = self._endian + "f4"
+            frmu = self._endian + "%df"
             bytes_per = 4
         else:
-            frm = self._endian + 'f8'
-            frmu = self._endian + '%dd'
+            frm = self._endian + "f8"
+            frmu = self._endian + "%dd"
             bytes_per = 8
 
-        matrix = np.zeros((rows, trailer[1]), order='F')
+        matrix = np.zeros((rows, trailer[1]), order="F")
         intsize = self._ibytes
         col = 0
         while dtype > 0:  # read in matrix columns
@@ -499,11 +516,11 @@ class OP2:
                     r *= 2
                 n = (reclen - intsize) // bytes_per
                 if n < self._rowsCutoff:
-                    matrix[r:r + n, col] = struct.unpack(
-                        frmu % n, self._fileh.read(n * bytes_per))
+                    matrix[r : r + n, col] = struct.unpack(
+                        frmu % n, self._fileh.read(n * bytes_per)
+                    )
                 else:
-                    matrix[r:r + n, col] = np.fromfile(self._fileh,
-                                                       frm, n)
+                    matrix[r : r + n, col] = np.fromfile(self._fileh, frm, n)
                 self._fileh.read(4)  # endrec
                 key = self._getkey()
             col += 1
@@ -549,8 +566,7 @@ class OP2:
             while key > 0:
                 reclen = self._Str4.unpack(self._fileh.read(4))[0]
                 self._fileh.seek(8 + reclen, 1)
-                key = self._Str.unpack(
-                    self._fileh.read(self._ibytes))[0]
+                key = self._Str.unpack(self._fileh.read(self._ibytes))[0]
                 self._fileh.read(4)  # endrec
             self._skipkey(2)
             eot, key = self.rdop2eot()
@@ -659,8 +675,7 @@ class OP2:
         if len(self.dbnames) > 0 and not redo:
             if verbose:
                 self.prtdir()
-            return (self.dbnames, self.dblist,
-                    self.dbstarts, self.dbstops)
+            return (self.dbnames, self.dblist, self.dbstarts, self.dbstops)
         dbnames = {}
         dblist = []
         dbstarts = []
@@ -674,17 +689,15 @@ class OP2:
             if dbtype > 0:
                 self.skipop2matrix(trailer)
                 size = [trailer[2], trailer[1]]
-                s = 'Matrix {:8}'.format(name)
+                s = "Matrix {:8}".format(name)
             else:
                 self.skipop2table()
                 size = [0, 0]
-                s = 'Table  {:8}'.format(name)
+                s = "Table  {:8}".format(name)
             cur = self._fileh.tell()
-            s += (', bytes = {:10} [{:10} to {:10}]'.
-                  format(cur - pos - 1, pos, cur))
+            s += ", bytes = {:10} [{:10} to {:10}]".format(cur - pos - 1, pos, cur)
             if size != [0, 0]:
-                s += (', {:6} x {:<}'.
-                      format(size[0], size[1]))
+                s += ", {:6} x {:<}".format(size[0], size[1])
             if name not in dbnames:
                 dbnames[name] = []
             dbnames[name].append([[pos, cur], cur - pos - 1, size])
@@ -721,11 +734,10 @@ class OP2:
                     if key < self._rowsCutoff:
                         bytes = (key - 3) * self._ibytes
                         ndata = struct.unpack(
-                            self._intstru % (key - 3),
-                            self._fileh.read(bytes))
+                            self._intstru % (key - 3), self._fileh.read(bytes)
+                        )
                     else:
-                        ndata = np.fromfile(self._fileh,
-                                            self._intstr, key - 3)
+                        ndata = np.fromfile(self._fileh, self._intstr, key - 3)
                     data = np.hstack((data, ndata))
                 else:
                     self._fileh.seek((key - 3) * self._ibytes, 1)
@@ -745,24 +757,30 @@ class OP2:
             #   2. exciteid's are all > 0
             #   3. tableid's are all > 0
             for i, r in enumerate(rows):
-                if (L == r * (L // r) and
-                        data[::r].min() > 0 and
-                        np.diff(data[::r]).min() > 0 and
-                        data[1::r].min() > 0 and
-                        data[4::r].min() > 0):
+                if (
+                    L == r * (L // r)
+                    and data[::r].min() > 0
+                    and np.diff(data[::r]).min() > 0
+                    and data[1::r].min() > 0
+                    and data[4::r].min() > 0
+                ):
                     match[i] = 1
             if sum(match) > 1:
-                err = ('Could not determine rows for TLOADs! '
-                       'More than one of 5, 6, or 8 matches. '
-                       'Routine needs updating.')
+                err = (
+                    "Could not determine rows for TLOADs! "
+                    "More than one of 5, 6, or 8 matches. "
+                    "Routine needs updating."
+                )
                 raise ValueError(err)
             if sum(match) < 1:
-                err = ('Could not determine rows for TLOADs! '
-                       'None of 5, 6, or 8 matches. '
-                       'Routine needs updating.')
+                err = (
+                    "Could not determine rows for TLOADs! "
+                    "None of 5, 6, or 8 matches. "
+                    "Routine needs updating."
+                )
                 raise ValueError(err)
             rows = rows[match.index(1)]
-            data = np.reshape(data, (rows, -1), order='F')
+            data = np.reshape(data, (rows, -1), order="F")
         return data
 
     def rdop2tload(self):
@@ -772,7 +790,7 @@ class OP2:
         This routine scans the op2 file for the DYNAMICS datablock and
         then calls :func:`rdop2dynamics` to read the data.
         """
-        fpos = self.dbnames['DYNAMICS'][0][0][0]
+        fpos = self.dbnames["DYNAMICS"][0][0][0]
         self._fileh.seek(fpos)
         name, trailer, dbtype = self.rdop2nt()
         return self.rdop2dynamics()
@@ -812,23 +830,23 @@ class OP2:
         if key == 0:
             return None
         f = self._fileh
-        if not form or form == 'int':
+        if not form or form == "int":
             frm = self._intstr
             frmu = self._intstru
             bytes_per = self._ibytes
-        elif form == 'uint':
-            frm = self._intstr.replace('i', 'u')
-            frmu = self._intstru.replace('i', 'I')
+        elif form == "uint":
+            frm = self._intstr.replace("i", "u")
+            frmu = self._intstru.replace("i", "I")
             bytes_per = self._ibytes
-        elif form == 'double':
-            frm = self._endian + 'f8'
-            frmu = self._endian + '%dd'
+        elif form == "double":
+            frm = self._endian + "f8"
+            frmu = self._endian + "%dd"
             bytes_per = 8
-        elif form == 'single':
-            frm = self._endian + 'f4'
-            frmu = self._endian + '%df'
+        elif form == "single":
+            frm = self._endian + "f4"
+            frmu = self._endian + "%df"
             bytes_per = 4
-        elif form == 'bytes':
+        elif form == "bytes":
             data = []
             while key > 0:
                 reclen = self._Str4.unpack(f.read(4))[0]
@@ -836,11 +854,13 @@ class OP2:
                 f.read(4)  # endrec
                 key = self._getkey()
             self._skipkey(2)
-            data = b''.join(data)
+            data = b"".join(data)
             return data
         else:
-            raise ValueError("form must be one of:  None, 'int', "
-                             "'uint', 'double', 'single' or 'bytes'")
+            raise ValueError(
+                "form must be one of:  None, 'int', "
+                "'uint', 'double', 'single' or 'bytes'"
+            )
         if N:
             data = np.empty(N, dtype=frm)
             i = 0
@@ -850,9 +870,9 @@ class OP2:
                 n = reclen // bytes_per
                 if n < self._rowsCutoff:
                     b = n * bytes_per
-                    data[i:i + n] = struct.unpack(frmu % n, f.read(b))
+                    data[i : i + n] = struct.unpack(frmu % n, f.read(b))
                 else:
-                    data[i:i + n] = np.fromfile(f, frm, n)
+                    data[i : i + n] = np.fromfile(f, frm, n)
                 i += n
                 f.read(4)  # endrec
                 key = self._getkey()
@@ -974,23 +994,24 @@ class OP2:
         it by 10.  So, if ACODE is 22, ACODE,4 is 2.
         """
         if len(funcs) != len(vals):
-            raise ValueError('len(funcs) != len(vals)!')
+            raise ValueError("len(funcs) != len(vals)!")
         for func, val in zip(funcs, vals):
             if 1 <= func <= 7:
                 if self.CodeFuncs[func](item_code) not in val:
-                    warnings.warn('{} value {} not acceptable'.
-                                  format(name, item_code),
-                                  RuntimeWarning)
+                    warnings.warn(
+                        "{} value {} not acceptable".format(name, item_code),
+                        RuntimeWarning,
+                    )
                     return False
             elif func > 65535:
-                if self.CodeFuncs['big'](func, item_code) not in val:
-                    warnings.warn('{} value {} not acceptable'.
-                                  format(name, item_code),
-                                  RuntimeWarning)
+                if self.CodeFuncs["big"](func, item_code) not in val:
+                    warnings.warn(
+                        "{} value {} not acceptable".format(name, item_code),
+                        RuntimeWarning,
+                    )
                     return False
             else:
-                raise ValueError('Unknown function code: {}'.
-                                 format(func))
+                raise ValueError("Unknown function code: {}".format(func))
         return True
 
     def _get_block_bytes(self, name, pos):
@@ -1062,8 +1083,8 @@ class OP2:
         Can currently only read a real eigenvalue table (ACODE,4 = 2,
         TCODE,1 = 1, TCODE,2 = 7, and TCODE,7 in [0, 2]).
         """
-        float2_Str = struct.Struct(self._endian + 'ff')
-        iif6_int = np.dtype(self._endian + 'i4')
+        float2_Str = struct.Struct(self._endian + "ff")
+        iif6_int = np.dtype(self._endian + "i4")
         iif6_bytes = 32
         i4_Str = struct.Struct(self._endian + self._i * 4)
         i4_bytes = 4 * self._ibytes
@@ -1084,17 +1105,15 @@ class OP2:
                 lam = np.empty(nmodes, float)
                 lam[0] = keep
                 keep = ougv1
-                ougv1 = np.empty((keep.shape[0], nmodes), float,
-                                 order='F')
+                ougv1 = np.empty((keep.shape[0], nmodes), float, order="F")
                 ougv1[:, 0] = keep[:, 0]
 
             # IDENT record:
             reclen = self._Str4.unpack(self._fileh.read(4))[0]
             header = i4_Str.unpack(self._fileh.read(i4_bytes))
             # header = (ACODE, TCODE, ...)
-            achk = self._check_code(header[0], [4], [[2]], 'ACODE')
-            tchk = self._check_code(header[1], [1, 2, 7],
-                                    [[1], [7], [0, 2]], 'TCODE')
+            achk = self._check_code(header[0], [4], [[2]], "ACODE")
+            tchk = self._check_code(header[1], [1, 2, 7], [[1], [7], [0, 2]], "TCODE")
             if not (achk and tchk):
                 self._fileh.seek(pos)
                 self.skipop2table()
@@ -1112,7 +1131,7 @@ class OP2:
                 # - process DOF information on first column only
                 # - there are 8 elements per node:
                 #   id*10, type, x, y, z, rx, ry, rz
-                data = self.rdop2record('bytes')  # 1st column
+                data = self.rdop2record("bytes")  # 1st column
                 n = len(data) // iif6_bytes
                 data = np.fromstring(data, iif6_int)
                 data1 = (data.reshape(n, 8))[:, :2]
@@ -1120,18 +1139,18 @@ class OP2:
                 dof = _expanddof(data1[:, 0] // 10, pvgrids)
                 # form partition vector for modeshape data:
                 V = np.zeros((n, 8), bool)
-                V[:, 2] = True          # all nodes have 'x'
-                V[pvgrids, 3:] = True   # only grids have all 6
+                V[:, 2] = True  # all nodes have 'x'
+                V[pvgrids, 3:] = True  # only grids have all 6
                 V = V.ravel()
                 # initialize ougv1 with first mode shape:
                 data.dtype = np.float32  # reinterpret as floats
                 ougv1 = data[V].reshape(-1, 1)
             else:
-                data = self.rdop2record('single', V.shape[0])
+                data = self.rdop2record("single", V.shape[0])
                 ougv1[:, J] = data[V]
             J += 1
             eot, key = self.rdop2eot()
-        return {'ougv1': ougv1, 'lambda': lam, 'dof': dof}
+        return {"ougv1": ougv1, "lambda": lam, "dof": dof}
 
     def _rdop2emap(self, nas, nse, trailer):
         """
@@ -1155,19 +1174,20 @@ class OP2:
         words4bits = trailer[4]
         data1 = self.rdop2record()
         # [se bitpos proc_order dnse bitpos_dnse prim_se se_type]
-        data1 = np.reshape(data1[:7 * nse], (-1, 7))
+        data1 = np.reshape(data1[: 7 * nse], (-1, 7))
 
         # read 2nd record:
         key = self._getkey()
-        data2 = np.empty(0, dtype='u4')
-        frm = self._endian + 'u4'
-        frmu = self._endian + '%dI'
+        data2 = np.empty(0, dtype="u4")
+        frm = self._endian + "u4"
+        frmu = self._endian + "%dI"
         mult = self._ibytes // 4
         while key > 0:
             self._fileh.read(4)  # reclen
             if mult * key < self._rowsCutoff:
-                cur = struct.unpack(frmu % (mult * key),
-                                    self._fileh.read(4 * mult * key))
+                cur = struct.unpack(
+                    frmu % (mult * key), self._fileh.read(4 * mult * key)
+                )
             else:
                 cur = np.fromfile(self._fileh, frm, mult * key)
             data2 = np.hstack((data2, cur))
@@ -1190,10 +1210,10 @@ class OP2:
             bitdn = 1 << bitpos_dn[j]
             bitup = 1 << bitpos_up[j]
             connected = np.logical_and(
-                data2[:, word4bit_dn[j]] & bitdn,
-                data2[:, word4bit_up[j]] & bitup)
+                data2[:, word4bit_dn[j]] & bitdn, data2[:, word4bit_up[j]] & bitup
+            )
             grids = data2[connected, 0]
-            nas['dnids'][se] = grids
+            nas["dnids"][se] = grids
         for j in range(nse):  # = 1 to nse:
             self.skipop2record()
         self._getkey()
@@ -1220,13 +1240,13 @@ class OP2:
         See :func:`rdn2cop2`.
         """
         nbytes = self._ibytes * 6 + 24
-        dtype = np.dtype([('ints', (self._intstr, 6)),
-                          ('xyz', (self._endian + 'f8', 3))])
-        data = self.rdop2record('bytes')
+        dtype = np.dtype(
+            [("ints", (self._intstr, 6)), ("xyz", (self._endian + "f8", 3))]
+        )
+        data = self.rdop2record("bytes")
         n = len(data) // nbytes
         if n * nbytes != len(data):
-            raise ValueError("incorrect record length for"
-                             " _rdop2bgpdt")
+            raise ValueError("incorrect record length for _rdop2bgpdt")
         data = np.fromstring(data, dtype=dtype)
         return data
 
@@ -1245,13 +1265,11 @@ class OP2:
         The x, y, z values are the grid location in basic.
         """
         nbytes = self._ibytes + 3 * self._fbytes
-        dtype = np.dtype([('ints', (self._intstr, 1)),
-                          ('xyz', (self._rfrm, 3))])
-        data = self.rdop2record('bytes')
+        dtype = np.dtype([("ints", (self._intstr, 1)), ("xyz", (self._rfrm, 3))])
+        data = self.rdop2record("bytes")
         n = len(data) // nbytes
         if n * nbytes != len(data):
-            raise ValueError("incorrect record length for"
-                             " _rdop2bgpdt68")
+            raise ValueError("incorrect record length for _rdop2bgpdt68")
         self.skipop2table()
         data = np.fromstring(data, dtype=dtype)
         return data
@@ -1273,9 +1291,8 @@ class OP2:
 
         See :func:`rdn2cop2`.
         """
-        cstm_rec1 = (self.rdop2record()
-                     if data_rec1 is None else data_rec1)
-        cstm_rec2 = self.rdop2record('double')
+        cstm_rec1 = self.rdop2record() if data_rec1 is None else data_rec1
+        cstm_rec2 = self.rdop2record("double")
         self.rdop2eot()
 
         # assemble coordinate system table
@@ -1304,18 +1321,16 @@ class OP2:
         system.
         """
         nbytes = 2 * self._ibytes + 12 * self._fbytes
-        dtype = np.dtype([('idtype', (self._intstr, 2)),
-                          ('xyzT', (self._rfrm, 12))])
-        data = self.rdop2record('bytes')
+        dtype = np.dtype([("idtype", (self._intstr, 2)), ("xyzT", (self._rfrm, 12))])
+        data = self.rdop2record("bytes")
         # n = len(data) // nbytes
         if not self.near_db_end():  # n*nbytes != len(data):
-            return self._rdop2cstm(
-                np.fromstring(data, np.dtype(self._intstr)))
+            return self._rdop2cstm(np.fromstring(data, np.dtype(self._intstr)))
             # raise ValueError("incorrect record length for"
             #                  " _rdop2cstm68")
         self.rdop2eot()
         data = np.fromstring(data, dtype=dtype)  # .reshape((-1, 14))
-        return np.hstack((data['idtype'], data['xyzT']))
+        return np.hstack((data["idtype"], data["xyzT"]))
 
     def _rdop2geom1cord2(self):
         e = self._endian
@@ -1324,9 +1339,9 @@ class OP2:
         f = self._f
         fb = self._fbytes
         header_Str = struct.Struct(e + i * 3)
-        cord2_Str = struct.Struct(e + '4' + i + '9' + f)
-        sebulk_Str = struct.Struct(e + '4' + i + f + '3' + i)
-        seload_Str = struct.Struct(e + '3' + i)
+        cord2_Str = struct.Struct(e + "4" + i + "9" + f)
+        sebulk_Str = struct.Struct(e + "4" + i + f + "3" + i)
+        seload_Str = struct.Struct(e + "3" + i)
         hbytes = 3 * ib
         cbytes = 4 * ib + 9 * fb
         bbytes = 7 * ib + fb
@@ -1357,39 +1372,34 @@ class OP2:
                     n = (key - 3) // 13
                     data = np.empty((n, 13))
                     for i in range(n):
-                        data[i] = cord2_Str.unpack(
-                            self._fileh.read(cbytes))
+                        data[i] = cord2_Str.unpack(self._fileh.read(cbytes))
                     cord2 = np.vstack((cord2, data))
                 elif head == SEBULK:
                     n = (key - 3) // 8
                     sebulk = np.empty((n, 8))
                     for i in range(n):
-                        sebulk[i] = sebulk_Str.unpack(
-                            self._fileh.read(bbytes))
+                        sebulk[i] = sebulk_Str.unpack(self._fileh.read(bbytes))
                 elif head == SECONCT:
                     n = key - 3
                     if n < self._rowsCutoff:
                         nbytes = n * ib
                         seconct = np.empty(n, int)
                         seconct[:] = struct.unpack(
-                            self._intstru % n,
-                            self._fileh.read(nbytes))
+                            self._intstru % n, self._fileh.read(nbytes)
+                        )
                     else:
-                        seconct = np.fromfile(
-                            self._fileh, self._intstr, n)
+                        seconct = np.fromfile(self._fileh, self._intstr, n)
                     pv = np.nonzero(seconct == -1)[0][1:-2:2] + 1
                     pv = np.hstack((0, pv))
                     u = np.unique(seconct[pv], return_index=True)[1]
                     pv = pv[u]
-                    selist = np.vstack(
-                        (seconct[pv], seconct[pv + 1])).T
+                    selist = np.vstack((seconct[pv], seconct[pv + 1])).T
                     selist = np.vstack((selist, [0, 0]))
                 elif head == SELOAD:
                     n = (key - 3) // 3
                     seload = np.empty((n, 3), dtype=np.int64)
                     for i in range(n):
-                        seload[i] = seload_Str.unpack(
-                            self._fileh.read(lbytes))
+                        seload[i] = seload_Str.unpack(self._fileh.read(lbytes))
                 else:
                     self._fileh.seek((key - 3) * ib, 1)
                 self._fileh.read(4)  # endrec
@@ -1397,8 +1407,7 @@ class OP2:
             self._skipkey(2)
             eot, key = self.rdop2eot()
         cord2 = np.delete(cord2, 2, axis=1)
-        return (n2p.build_coords(cord2), sebulk, selist,
-                seload, seconct)
+        return (n2p.build_coords(cord2), sebulk, selist, seload, seconct)
 
     def _rdop2selist(self):
         """
@@ -1423,12 +1432,11 @@ class OP2:
                                                genmass, genstiff]
         """
         self.skipop2record()
-        data = self.rdop2record(form='bytes')
+        data = self.rdop2record(form="bytes")
         self.rdop2eot()
-        dtype = np.dtype([('ints', (self._intstr, 2)),
-                          ('reals', (self._rfrm, 5))])
+        dtype = np.dtype([("ints", (self._intstr, 2)), ("reals", (self._rfrm, 5))])
         data = np.fromstring(data, dtype=dtype)
-        return np.hstack((data['ints'], data['reals']))
+        return np.hstack((data["ints"], data["reals"]))
 
     def _rdop2uset(self):
         """
@@ -1438,7 +1446,7 @@ class OP2:
 
         See :func:`rdn2cop2`.
         """
-        uset = self.rdop2record('uint')
+        uset = self.rdop2record("uint")
         # clear the 2nd bit for all S-set:
         sset = (uset & n2p.mkusetmask("s")) != 0
         if any(sset):
@@ -1475,11 +1483,11 @@ class OP2:
             self.rdop2record()
             self.skipop2table()
 
-        xyz = bgpdt_rec1['xyz']
+        xyz = bgpdt_rec1["xyz"]
         if ver68:
-            cid = bgpdt_rec1['ints']
+            cid = bgpdt_rec1["ints"]
         else:
-            cid = bgpdt_rec1['ints'][:, 0]
+            cid = bgpdt_rec1["ints"][:, 0]
 
         # assemble dof table:
         dof = eqexin[1::2] // 10
@@ -1494,11 +1502,10 @@ class OP2:
         if ver68:
             upids = None
         else:
-            upids = bgpdt_rec1['ints'][:, 5]
+            upids = bgpdt_rec1["ints"][:, 5]
         return xyz, cid, dof, doftype, nid, upids
 
-    def _buildUset(self, se, dof, doftype, nid, uset, xyz, cid,
-                   cstm=None, cstm2=None):
+    def _buildUset(self, se, dof, doftype, nid, uset, xyz, cid, cstm=None, cstm2=None):
         """
         Builds the 6-column uset table for :func:`rdn2cop2` and
         :func:`rdpostop2`.
@@ -1514,11 +1521,12 @@ class OP2:
         rb = len(cid)
         if rd != rb:
             raise ValueError(
-                'RDOP2USET:  BGPDTS incompatible with '
-                'EQEXINS for superelement {}.\n'
-                '  Guess:  residual run clobbered EQEXINS\n'
+                "RDOP2USET:  BGPDTS incompatible with "
+                "EQEXINS for superelement {}.\n"
+                "  Guess:  residual run clobbered EQEXINS\n"
                 '    Fix:  add the "fxphase0" alter to your '
-                'residual run'.format(se))
+                "residual run".format(se)
+            )
         coordinfo = np.zeros((rd, 18))
         coordinfo[:, :3] = xyz
         if cstm is None:
@@ -1544,8 +1552,7 @@ class OP2:
         if nongrids > 0:
             doflist[~grids, 0] = 0
         doflist = doflist.ravel()
-        idlist = np.dot(nid.reshape(-1, 1),
-                        np.ones((1, 6), nid.dtype)).ravel()
+        idlist = np.dot(nid.reshape(-1, 1), np.ones((1, 6), nid.dtype)).ravel()
         coordinfo = coordinfo.reshape((rd * 6, 3))
 
         # partition out -1s:
@@ -1554,12 +1561,13 @@ class OP2:
         idlist = idlist[pv]
         coordinfo = coordinfo[pv, :]
         if uset is None:
-            warnings.warn('uset information not found. Putting all '
-                          'DOF in b-set.', RuntimeWarning)
-            b = n2p.mkusetmask('b')
+            warnings.warn(
+                "uset information not found. Putting all DOF in b-set.",
+                RuntimeWarning,
+            )
+            b = n2p.mkusetmask("b")
             uset = np.zeros(len(doflist), int) + b
-        uset = n2p.make_uset(np.column_stack((idlist, doflist)),
-                             uset, coordinfo)
+        uset = n2p.make_uset(np.column_stack((idlist, doflist)), uset, coordinfo)
 
         # make sure cstm2 has everything:
         cstm3 = {}
@@ -1579,7 +1587,7 @@ class OP2:
         """
         Reads and returns the MAPS information for :func:`rdn2cop2`.
         """
-        id_Str = struct.Struct(self._endian + self._i + 'd')
+        id_Str = struct.Struct(self._endian + self._i + "d")
         id_bytes = self._ibytes + 8
         key = 1
         maps = np.zeros((0, 2))
@@ -1625,7 +1633,7 @@ class OP2:
             nrows = len(eids)
             ncols = (e - s) // bytes_per_col
             dtype = np.int32 if ibytes == 4 else np.int64
-            drm = np.empty((nrows, ncols), dtype, order='F')
+            drm = np.empty((nrows, ncols), dtype, order="F")
             elem_info = np.column_stack((eids, etypes))
             elem_info[:, 0] //= 10
             return drm, elem_info
@@ -1636,11 +1644,10 @@ class OP2:
         # read first IDENT above loop & check ACODE/TCODE:
         ident = self.rdop2record()
         n_ident = len(ident)
-        achk = self._check_code(ident[0], [4], [[2]], 'ACODE')
-        tchk = self._check_code(ident[1], [1, 7], [[1], [0, 2]],
-                                'TCODE')
+        achk = self._check_code(ident[0], [4], [[2]], "ACODE")
+        tchk = self._check_code(ident[1], [1, 7], [[1], [0, 2]], "TCODE")
         if not (achk and tchk):
-            raise ValueError('invalid ACODE and/or TCODE value')
+            raise ValueError("invalid ACODE and/or TCODE value")
 
         eids = []
         etypes = []
@@ -1661,19 +1668,17 @@ class OP2:
                 pos = self._fileh.tell()
                 z = np.zeros((nwords - 1, 1), data.dtype)
                 eids.extend((data[0] + z).T.ravel())
-                etypes.extend(
-                    [elemtype] * data.shape[1] * (nwords - 1))
+                etypes.extend([elemtype] * data.shape[1] * (nwords - 1))
                 column.extend(data[1:].T.ravel())
             else:
                 # DATA record:
                 data = self.rdop2record(N=n_data[j])
                 data = data.reshape(-1, nwords).T
                 if drm is None:
-                    drm, elem_info = _getdrm(
-                        pos, e, s, eids, etypes, self._ibytes)
+                    drm, elem_info = _getdrm(pos, e, s, eids, etypes, self._ibytes)
                     drm[:, mode - 2] = column
                 n = (nwords - 1) * data.shape[1]
-                drm[r:r + n, mode - 1] = data[1:].T.ravel()
+                drm[r : r + n, mode - 1] = data[1:].T.ravel()
                 j += 1
                 r += n
                 if r == drm.shape[0]:
@@ -1684,8 +1689,7 @@ class OP2:
             ident = self.rdop2record(N=n_ident)
 
         if drm is None:
-            drm, elem_info = _getdrm(
-                pos, e, s, eids, etypes, self._ibytes)
+            drm, elem_info = _getdrm(pos, e, s, eids, etypes, self._ibytes)
             drm[:, mode - 1] = column
         drm.dtype = np.float32 if self._ibytes == 4 else np.float64
         return drm, elem_info
@@ -1733,7 +1737,7 @@ class OP2:
                 if verbose:
                     print("Skipping matrix {}...".format(name))
                 self.skipop2matrix(trailer)
-            elif len(name) > 2 and name.find('TO') == 0:
+            elif len(name) > 2 and name.find("TO") == 0:
                 if verbose:
                     print("Reading {}...".format(name))
                 # skip record 1
@@ -1743,13 +1747,13 @@ class OP2:
                 info = self.rdop2record()[10:]
                 drmkeys[name.lower()] = (info.reshape(-1, 5).T)[:-1]
                 self.rdop2eot()
-            elif len(name) > 4 and name[:4] == 'XYCD':
+            elif len(name) > 4 and name[:4] == "XYCD":
                 if verbose:
                     print("Reading {}...".format(name))
                 # record 1 contains order of request info
-                drmkeys['dr'] = self.rdop2record()
+                drmkeys["dr"] = self.rdop2record()
                 # record 2 contains sorted list
-                drmkeys['drs'] = self.rdop2record().reshape(-1, 6).T
+                drmkeys["drs"] = self.rdop2record().reshape(-1, 6).T
                 self.rdop2eot()
             else:
                 if verbose:
@@ -1945,14 +1949,20 @@ class OP2:
         :func:`rdnas2cam`, :mod:`pyyeti.nastran`.
         """
         # setup basic coordinate system info and a dummy for spoints:
-        bc = np.array([[+0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-                       [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        nas = {'uset': {},
-               'cstm': {},
-               'cstm2': {},
-               'maps': {},
-               'dnids': {},
-               'upids': {}}
+        bc = np.array(
+            [
+                [+0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+                [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
+        nas = {
+            "uset": {},
+            "cstm": {},
+            "cstm2": {},
+            "maps": {},
+            "dnids": {},
+            "upids": {},
+        }
         self._fileh.seek(self._postheaderpos)
         # read datablock (slist) header record:
         name, trailer, dbtype = self.rdop2nt()
@@ -1981,22 +1991,21 @@ class OP2:
                 name, trailer, dbtype = self.rdop2nt()
             else:
                 cstm = bc
-            (xyz, cid, dof,
-             doftype, nid, upids) = self._proc_bgpdt(eqexin1, eqexin)
-            nas['upids'][se] = upids
+            (xyz, cid, dof, doftype, nid, upids) = self._proc_bgpdt(eqexin1, eqexin)
+            nas["upids"][se] = upids
             Uset, cstm, cstm2 = self._buildUset(
-                se, dof, doftype, nid,
-                uset, xyz, cid, cstm, None)
-            nas['uset'][se] = Uset
-            nas['cstm'][se] = cstm
-            nas['cstm2'][se] = cstm2
+                se, dof, doftype, nid, uset, xyz, cid, cstm, None
+            )
+            nas["uset"][se] = Uset
+            nas["cstm"][se] = cstm
+            nas["cstm2"][se] = cstm2
             name, trailer, dbtype = self.rdop2nt()
             if name == "MAPS":
-                nas['maps'][se] = self._rdop2maps()
+                nas["maps"][se] = self._rdop2maps()
                 name, trailer, dbtype = self.rdop2nt()
             else:
-                nas['maps'][se] = []
-        nas['selist'] = selist
+                nas["maps"][se] = []
+        nas["selist"] = selist
         return nas
 
 
@@ -2033,16 +2042,16 @@ def rdmats(filename=None, names=None):
 
 
 def _get_op2_op4(op2file, op4file):
-    if op2file is None:        # pragma: no cover
+    if op2file is None:  # pragma: no cover
         op2file = guitools.get_file_name(None, read=True)
     elif not os.path.exists(op2file):
-        op2file = op2file + '.op2'
+        op2file = op2file + ".op2"
     if not op4file:
-        op4file = op2file.replace('.op2', '.op4')
+        op4file = op2file.replace(".op2", ".op4")
     return op2file, op4file
 
 
-def rdnas2cam(op2file='nas2cam', op4file=None):
+def rdnas2cam(op2file="nas2cam", op4file=None):
     """
     Read op2/op4 data written by the DMAP NAS2CAM.
 
@@ -2130,15 +2139,17 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
         nas = o2.rdn2cop2()
 
     # read op4 file:
-    op4names, op4vars = op4.load(op4file, into='list')[:2]
+    op4names, op4vars = op4.load(op4file, into="list")[:2]
 
     # loop over superelements:
     j = 0
-    for se in nas['selist'][:, 0]:
+    for se in nas["selist"][:, 0]:
         if op4names[j] != "se_start":
-            raise ValueError("matrices are not in understandable"
-                             " order. Expected 'se_start', got "
-                             "'{}'".format(op4names[j]))
+            raise ValueError(
+                "matrices are not in understandable"
+                " order. Expected 'se_start', got "
+                "'{}'".format(op4names[j])
+            )
         # read all matrices for this se
         j += 1
         while 1:
@@ -2150,12 +2161,12 @@ def rdnas2cam(op2file='nas2cam', op4file=None):
                 nas[name] = {}
             if se == 0 and name == "lambda":
                 # count number of rigid body modes
-                nrb = sum(op4vars[j] < .005)[0]
-                nas['nrb'] = nrb
-                nas['lambda'][0] = abs(op4vars[j].ravel())
-            elif name == 'lambda':
+                nrb = sum(op4vars[j] < 0.005)[0]
+                nas["nrb"] = nrb
+                nas["lambda"][0] = abs(op4vars[j].ravel())
+            elif name == "lambda":
                 nas[name][se] = op4vars[j].ravel()
-            elif name == 'rfmodes':
+            elif name == "rfmodes":
                 nas[name][se] = np.nonzero(op4vars[j])[0]
             else:
                 nas[name][se] = op4vars[j]
@@ -2212,404 +2223,407 @@ def nastran_dr_descriptions():
     force = {}
 
     #  CBAR Recovery Items (element 34):                Item code
-    stress[34] = ["CBAR Bending Stress 1 - End A",         # 2
-                  "CBAR Bending Stress 2 - End A",         # 3
-                  "CBAR Bending Stress 3 - End A",         # 4
-                  "CBAR Bending Stress 4 - End A",         # 5
-                  "CBAR Axial Stress",                     # 6
-                  "CBAR Max. Bend. Stress -End A",         # 7
-                  "CBAR Min. Bend. Stress -End A",         # 8
-                  "CBAR M.S. Tension",                     # 9
-                  "CBAR Bending Stress 1 - End B",         # 10
-                  "CBAR Bending Stress 2 - End B",         # 11
-                  "CBAR Bending Stress 3 - End B",         # 12
-                  "CBAR Bending Stress 4 - End B",         # 13
-                  "CBAR Max. Bend. Stress -End B",         # 14
-                  "CBAR Min. Bend. Stress -End B",         # 15
-                  "CBAR M.S. Compression"]                 # 16
+    stress[34] = [
+        "CBAR Bending Stress 1 - End A",  # 2
+        "CBAR Bending Stress 2 - End A",  # 3
+        "CBAR Bending Stress 3 - End A",  # 4
+        "CBAR Bending Stress 4 - End A",  # 5
+        "CBAR Axial Stress",  # 6
+        "CBAR Max. Bend. Stress -End A",  # 7
+        "CBAR Min. Bend. Stress -End A",  # 8
+        "CBAR M.S. Tension",  # 9
+        "CBAR Bending Stress 1 - End B",  # 10
+        "CBAR Bending Stress 2 - End B",  # 11
+        "CBAR Bending Stress 3 - End B",  # 12
+        "CBAR Bending Stress 4 - End B",  # 13
+        "CBAR Max. Bend. Stress -End B",  # 14
+        "CBAR Min. Bend. Stress -End B",  # 15
+        "CBAR M.S. Compression",
+    ]  # 16
 
-    force[34] = ["CBAR Bending Moment 1 - End A",         # 2
-                 "CBAR Bending Moment 2 - End A",         # 3
-                 "CBAR Bending Moment 1 - End B",         # 4
-                 "CBAR Bending Moment 2 - End B",         # 5
-                 "CBAR Shear 1",                          # 6
-                 "CBAR Shear 2",                          # 7
-                 "CBAR Axial Force",                      # 8
-                 "CBAR Torque"]                           # 9
+    force[34] = [
+        "CBAR Bending Moment 1 - End A",  # 2
+        "CBAR Bending Moment 2 - End A",  # 3
+        "CBAR Bending Moment 1 - End B",  # 4
+        "CBAR Bending Moment 2 - End B",  # 5
+        "CBAR Shear 1",  # 6
+        "CBAR Shear 2",  # 7
+        "CBAR Axial Force",  # 8
+        "CBAR Torque",
+    ]  # 9
 
     #   CBEAM Recovery Items (element 2):               Item code
-    stress2_main = ["CBEAM External grid pt. ID",          # 2
-                    "CBEAM Station dist./length",          # 3
-                    "CBEAM Long. Stress at Pt. C",         # 4
-                    "CBEAM Long. Stress at Pt. D",         # 5
-                    "CBEAM Long. Stress at Pt. E",         # 6
-                    "CBEAM Long. Stress at Pt. F",         # 7
-                    "CBEAM Maximum stress",                # 8
-                    "CBEAM Minimum stress",                # 9
-                    "CBEAM M.S. Tension",                  # 10
-                    "CBEAM M.S. Compression"]              # 11
+    stress2_main = [
+        "CBEAM External grid pt. ID",  # 2
+        "CBEAM Station dist./length",  # 3
+        "CBEAM Long. Stress at Pt. C",  # 4
+        "CBEAM Long. Stress at Pt. D",  # 5
+        "CBEAM Long. Stress at Pt. E",  # 6
+        "CBEAM Long. Stress at Pt. F",  # 7
+        "CBEAM Maximum stress",  # 8
+        "CBEAM Minimum stress",  # 9
+        "CBEAM M.S. Tension",  # 10
+        "CBEAM M.S. Compression",
+    ]  # 11
 
     # expand and append station id for all 11 stations:
-    stress2 = [i + ' End-A' for i in stress2_main]
+    stress2 = [i + " End-A" for i in stress2_main]
     for K in range(2, 11):
-        id_string = ' K={:2}'.format(K)
+        id_string = " K={:2}".format(K)
         stress2 += [i + id_string for i in stress2_main]
-    stress2 += [i + ' End-B' for i in stress2_main]
+    stress2 += [i + " End-B" for i in stress2_main]
     stress[2] = stress2
 
-    force2_main = ["CBEAM External grid pt. ID",             # 2
-                   "CBEAM Station dist./length",             # 3
-                   "CBEAM Bending moment plane 1",           # 4
-                   "CBEAM Bending moment plane 2",           # 5
-                   "CBEAM Web shear plane 1",                # 6
-                   "CBEAM Web shear plane 2",                # 7
-                   "CBEAM Axial force",                      # 8
-                   "CBEAM Total torque",                     # 9
-                   "CBEAM Warping torque"]                   # 10
+    force2_main = [
+        "CBEAM External grid pt. ID",  # 2
+        "CBEAM Station dist./length",  # 3
+        "CBEAM Bending moment plane 1",  # 4
+        "CBEAM Bending moment plane 2",  # 5
+        "CBEAM Web shear plane 1",  # 6
+        "CBEAM Web shear plane 2",  # 7
+        "CBEAM Axial force",  # 8
+        "CBEAM Total torque",  # 9
+        "CBEAM Warping torque",
+    ]  # 10
 
     # expand and append station id for all 11 stations:
-    force2 = [i + ' End-A' for i in force2_main]
+    force2 = [i + " End-A" for i in force2_main]
     for K in range(2, 11):
-        id_string = ' K={:2}'.format(K)
+        id_string = " K={:2}".format(K)
         force2 += [i + id_string for i in force2_main]
-    force2 += [i + ' End-B' for i in force2_main]
+    force2 += [i + " End-B" for i in force2_main]
     force[2] = force2
 
     #   CBUSH Recovery Items (element 102):             Item code
-    stress[102] = ["CBUSH Translation-x",         # 2
-                   "CBUSH Translation-y",         # 3
-                   "CBUSH Translation-z",         # 4
-                   "CBUSH Rotation-x",            # 5
-                   "CBUSH Rotation-y",            # 6
-                   "CBUSH Rotation-z"]            # 7
+    stress[102] = [
+        "CBUSH Translation-x",  # 2
+        "CBUSH Translation-y",  # 3
+        "CBUSH Translation-z",  # 4
+        "CBUSH Rotation-x",  # 5
+        "CBUSH Rotation-y",  # 6
+        "CBUSH Rotation-z",
+    ]  # 7
 
-    force[102] = ["CBUSH Force-x",          # 2
-                  "CBUSH Force-y",          # 3
-                  "CBUSH Force-z",          # 4
-                  "CBUSH Moment-x",         # 5
-                  "CBUSH Moment-y",         # 6
-                  "CBUSH Moment-z"]         # 7
+    force[102] = [
+        "CBUSH Force-x",  # 2
+        "CBUSH Force-y",  # 3
+        "CBUSH Force-z",  # 4
+        "CBUSH Moment-x",  # 5
+        "CBUSH Moment-y",  # 6
+        "CBUSH Moment-z",
+    ]  # 7
 
     #   CROD Recovery Items (element 10=CONROD, 1=CROD):
-    stress1 = ["Axial Stress",              # 2
-               "M.S. Axial Stress",         # 3
-               "Torsional Stress",          # 4
-               "M.S. Torsional Stress"]     # 5
-    force1 = ["Axial Force",        # 2
-              "Torque"]             # 3
-    stress[1] = ['CROD ' + i + '  ' for i in stress1]
-    force[1] = ['CROD ' + i + '  ' for i in force1]
-    stress[10] = ['CONROD ' + i for i in stress1]
-    force[10] = ['CONROD ' + i for i in force1]
+    stress1 = [
+        "Axial Stress",  # 2
+        "M.S. Axial Stress",  # 3
+        "Torsional Stress",  # 4
+        "M.S. Torsional Stress",
+    ]  # 5
+    force1 = ["Axial Force", "Torque"]  # 2  # 3
+    stress[1] = ["CROD " + i + "  " for i in stress1]
+    force[1] = ["CROD " + i + "  " for i in force1]
+    stress[10] = ["CONROD " + i for i in stress1]
+    force[10] = ["CONROD " + i for i in force1]
 
     #   CELAS1, 2, 3 Recovery Items (elements 11, 12, 13):
-    stress[11] = 'CELAS1 Stress'
-    stress[12] = 'CELAS2 Stress'
-    stress[13] = 'CELAS3 Stress'
-    force[11] = 'CELAS1 Force'
-    force[12] = 'CELAS2 Force'
-    force[13] = 'CELAS3 Force'
+    stress[11] = "CELAS1 Stress"
+    stress[12] = "CELAS2 Stress"
+    stress[13] = "CELAS3 Stress"
+    force[11] = "CELAS1 Force"
+    force[12] = "CELAS2 Force"
+    force[13] = "CELAS3 Force"
 
     #   CQUAD4 Recovery Items (element 33):
-    stress[33] = ["CQUAD4 Fiber distance Z1",           # 2
-                  "CQUAD4 Z1 Normal x",                 # 3
-                  "CQUAD4 Z1 Normal y",                 # 4
-                  "CQUAD4 Z1 Shear xy",                 # 5
-                  "CQUAD4 Z1 Shear angle",              # 6
-                  "CQUAD4 Z1 Major principal",          # 7
-                  "CQUAD4 Z1 Minor principal",          # 8
-                  "CQUAD4 Z1 von Mises or max shear",   # 9
-                  "CQUAD4 Fiber distance Z2",           # 10
-                  "CQUAD4 Z2 Normal x",                 # 11
-                  "CQUAD4 Z2 Normal y",                 # 12
-                  "CQUAD4 Z2 Shear xy",                 # 13
-                  "CQUAD4 Z2 Shear angle",              # 14
-                  "CQUAD4 Z2 Major principal",          # 15
-                  "CQUAD4 Z2 Minor principal",          # 16
-                  "CQUAD4 Z2 von Mises or max shear"]   # 17
+    stress[33] = [
+        "CQUAD4 Fiber distance Z1",  # 2
+        "CQUAD4 Z1 Normal x",  # 3
+        "CQUAD4 Z1 Normal y",  # 4
+        "CQUAD4 Z1 Shear xy",  # 5
+        "CQUAD4 Z1 Shear angle",  # 6
+        "CQUAD4 Z1 Major principal",  # 7
+        "CQUAD4 Z1 Minor principal",  # 8
+        "CQUAD4 Z1 von Mises or max shear",  # 9
+        "CQUAD4 Fiber distance Z2",  # 10
+        "CQUAD4 Z2 Normal x",  # 11
+        "CQUAD4 Z2 Normal y",  # 12
+        "CQUAD4 Z2 Shear xy",  # 13
+        "CQUAD4 Z2 Shear angle",  # 14
+        "CQUAD4 Z2 Major principal",  # 15
+        "CQUAD4 Z2 Minor principal",  # 16
+        "CQUAD4 Z2 von Mises or max shear",
+    ]  # 17
 
-    force[33] = ["CQUAD4 Membrane force x",         # 2
-                 "CQUAD4 Membrane force y",         # 3
-                 "CQUAD4 Membrane force xy",        # 4
-                 "CQUAD4 Bending moment x",         # 5
-                 "CQUAD4 Bending moment y",         # 6
-                 "CQUAD4 Bending moment xy",        # 7
-                 "CQUAD4 Shear x",                  # 8
-                 "CQUAD4 Shear y"]                  # 9
+    force[33] = [
+        "CQUAD4 Membrane force x",  # 2
+        "CQUAD4 Membrane force y",  # 3
+        "CQUAD4 Membrane force xy",  # 4
+        "CQUAD4 Bending moment x",  # 5
+        "CQUAD4 Bending moment y",  # 6
+        "CQUAD4 Bending moment xy",  # 7
+        "CQUAD4 Shear x",  # 8
+        "CQUAD4 Shear y",
+    ]  # 9
 
     #   CQUADR Recovery Items (element 82, and CQUAD8-64):
-    stress[82] = ["CQUADR EID                         ",      # 1
-                  "CQUADR CEN/                        ",      # 2
-                  "CQUADR 4                           ",      # 3
-                  "CQUADR Fiber distance Z1           ",      # 4
-                  "CQUADR Z1 Normal x                 ",      # 5
-                  "CQUADR Z1 Normal y                 ",      # 6
-                  "CQUADR Z1 Shear xy                 ",      # 7
-                  "CQUADR Z1 Shear angle              ",      # 8
-                  "CQUADR Z1 Major principal          ",      # 9
-                  "CQUADR Z1 Minor principal          ",      # 10
-                  "CQUADR Z1 von Mises or max shear   ",      # 11
-                  "CQUADR Fiber distance Z2           ",      # 12
-                  "CQUADR Z2 Normal x                 ",      # 13
-                  "CQUADR Z2 Normal y                 ",      # 14
-                  "CQUADR Z2 Shear xy                 ",      # 15
-                  "CQUADR Z2 Shear angle              ",      # 16
-                  "CQUADR Z2 Major principal          ",      # 17
-                  "CQUADR Z2 Minor principal          ",      # 18
-                  "CQUADR Z2 von Mises or max shear   ",      # 19
+    stress[82] = [
+        "CQUADR EID                         ",  # 1
+        "CQUADR CEN/                        ",  # 2
+        "CQUADR 4                           ",  # 3
+        "CQUADR Fiber distance Z1           ",  # 4
+        "CQUADR Z1 Normal x                 ",  # 5
+        "CQUADR Z1 Normal y                 ",  # 6
+        "CQUADR Z1 Shear xy                 ",  # 7
+        "CQUADR Z1 Shear angle              ",  # 8
+        "CQUADR Z1 Major principal          ",  # 9
+        "CQUADR Z1 Minor principal          ",  # 10
+        "CQUADR Z1 von Mises or max shear   ",  # 11
+        "CQUADR Fiber distance Z2           ",  # 12
+        "CQUADR Z2 Normal x                 ",  # 13
+        "CQUADR Z2 Normal y                 ",  # 14
+        "CQUADR Z2 Shear xy                 ",  # 15
+        "CQUADR Z2 Shear angle              ",  # 16
+        "CQUADR Z2 Major principal          ",  # 17
+        "CQUADR Z2 Minor principal          ",  # 18
+        "CQUADR Z2 von Mises or max shear   ",  # 19
+        "CQUADR Grid 1                      ",  # 20
+        "CQUADR Fiber distance Z1         c1",  # 21
+        "CQUADR Z1 Normal x               c1",  # 22
+        "CQUADR Z1 Normal y               c1",  # 23
+        "CQUADR Z1 Shear xy               c1",  # 24
+        "CQUADR Z1 Shear angle            c1",  # 25
+        "CQUADR Z1 Major principal        c1",  # 26
+        "CQUADR Z1 Minor principal        c1",  # 27
+        "CQUADR Z1 von Mises or max shear c1",  # 28
+        "CQUADR Fiber distance Z2         c1",  # 29
+        "CQUADR Z2 Normal x               c1",  # 30
+        "CQUADR Z2 Normal y               c1",  # 31
+        "CQUADR Z2 Shear xy               c1",  # 32
+        "CQUADR Z2 Shear angle            c1",  # 33
+        "CQUADR Z2 Major principal        c1",  # 34
+        "CQUADR Z2 Minor principal        c1",  # 35
+        "CQUADR Z2 von Mises or max shear c1",  # 36
+        "CQUADR Grid 2                      ",  # 37
+        "CQUADR Fiber distance Z1         c2",  # 38
+        "CQUADR Z1 Normal x               c2",  # 39
+        "CQUADR Z1 Normal y               c2",  # 40
+        "CQUADR Z1 Shear xy               c2",  # 41
+        "CQUADR Z1 Shear angle            c2",  # 42
+        "CQUADR Z1 Major principal        c2",  # 43
+        "CQUADR Z1 Minor principal        c2",  # 44
+        "CQUADR Z1 von Mises or max shear c2",  # 45
+        "CQUADR Fiber distance Z2         c2",  # 46
+        "CQUADR Z2 Normal x               c2",  # 47
+        "CQUADR Z2 Normal y               c2",  # 48
+        "CQUADR Z2 Shear xy               c2",  # 49
+        "CQUADR Z2 Shear angle            c2",  # 50
+        "CQUADR Z2 Major principal        c2",  # 51
+        "CQUADR Z2 Minor principal        c2",  # 52
+        "CQUADR Z2 von Mises or max shear c2",  # 53
+        "CQUADR Grid 3                      ",  # 54
+        "CQUADR Fiber distance Z1         c3",  # 55
+        "CQUADR Z1 Normal x               c3",  # 56
+        "CQUADR Z1 Normal y               c3",  # 57
+        "CQUADR Z1 Shear xy               c3",  # 58
+        "CQUADR Z1 Shear angle            c3",  # 59
+        "CQUADR Z1 Major principal        c3",  # 60
+        "CQUADR Z1 Minor principal        c3",  # 61
+        "CQUADR Z1 von Mises or max shear c3",  # 62
+        "CQUADR Fiber distance Z2         c3",  # 63
+        "CQUADR Z2 Normal x               c3",  # 64
+        "CQUADR Z2 Normal y               c3",  # 65
+        "CQUADR Z2 Shear xy               c3",  # 66
+        "CQUADR Z2 Shear angle            c3",  # 67
+        "CQUADR Z2 Major principal        c3",  # 68
+        "CQUADR Z2 Minor principal        c3",  # 69
+        "CQUADR Z2 von Mises or max shear c3",  # 70
+        "CQUADR Grid 4                      ",  # 71
+        "CQUADR Fiber distance Z1         c4",  # 72
+        "CQUADR Z1 Normal x               c4",  # 73
+        "CQUADR Z1 Normal y               c4",  # 74
+        "CQUADR Z1 Shear xy               c4",  # 75
+        "CQUADR Z1 Shear angle            c4",  # 76
+        "CQUADR Z1 Major principal        c4",  # 77
+        "CQUADR Z1 Minor principal        c4",  # 78
+        "CQUADR Z1 von Mises or max shear c4",  # 79
+        "CQUADR Fiber distance Z2         c4",  # 80
+        "CQUADR Z2 Normal x               c4",  # 81
+        "CQUADR Z2 Normal y               c4",  # 82
+        "CQUADR Z2 Shear xy               c4",  # 83
+        "CQUADR Z2 Shear angle            c4",  # 84
+        "CQUADR Z2 Major principal        c4",  # 85
+        "CQUADR Z2 Minor principal        c4",  # 86
+        "CQUADR Z2 von Mises or max shear c4",
+    ]  # 87
 
-                  "CQUADR Grid 1                      ",      # 20
-                  "CQUADR Fiber distance Z1         c1",      # 21
-                  "CQUADR Z1 Normal x               c1",      # 22
-                  "CQUADR Z1 Normal y               c1",      # 23
-                  "CQUADR Z1 Shear xy               c1",      # 24
-                  "CQUADR Z1 Shear angle            c1",      # 25
-                  "CQUADR Z1 Major principal        c1",      # 26
-                  "CQUADR Z1 Minor principal        c1",      # 27
-                  "CQUADR Z1 von Mises or max shear c1",      # 28
-                  "CQUADR Fiber distance Z2         c1",      # 29
-                  "CQUADR Z2 Normal x               c1",      # 30
-                  "CQUADR Z2 Normal y               c1",      # 31
-                  "CQUADR Z2 Shear xy               c1",      # 32
-                  "CQUADR Z2 Shear angle            c1",      # 33
-                  "CQUADR Z2 Major principal        c1",      # 34
-                  "CQUADR Z2 Minor principal        c1",      # 35
-                  "CQUADR Z2 von Mises or max shear c1",      # 36
-
-                  "CQUADR Grid 2                      ",      # 37
-                  "CQUADR Fiber distance Z1         c2",      # 38
-                  "CQUADR Z1 Normal x               c2",      # 39
-                  "CQUADR Z1 Normal y               c2",      # 40
-                  "CQUADR Z1 Shear xy               c2",      # 41
-                  "CQUADR Z1 Shear angle            c2",      # 42
-                  "CQUADR Z1 Major principal        c2",      # 43
-                  "CQUADR Z1 Minor principal        c2",      # 44
-                  "CQUADR Z1 von Mises or max shear c2",      # 45
-                  "CQUADR Fiber distance Z2         c2",      # 46
-                  "CQUADR Z2 Normal x               c2",      # 47
-                  "CQUADR Z2 Normal y               c2",      # 48
-                  "CQUADR Z2 Shear xy               c2",      # 49
-                  "CQUADR Z2 Shear angle            c2",      # 50
-                  "CQUADR Z2 Major principal        c2",      # 51
-                  "CQUADR Z2 Minor principal        c2",      # 52
-                  "CQUADR Z2 von Mises or max shear c2",      # 53
-
-                  "CQUADR Grid 3                      ",      # 54
-                  "CQUADR Fiber distance Z1         c3",      # 55
-                  "CQUADR Z1 Normal x               c3",      # 56
-                  "CQUADR Z1 Normal y               c3",      # 57
-                  "CQUADR Z1 Shear xy               c3",      # 58
-                  "CQUADR Z1 Shear angle            c3",      # 59
-                  "CQUADR Z1 Major principal        c3",      # 60
-                  "CQUADR Z1 Minor principal        c3",      # 61
-                  "CQUADR Z1 von Mises or max shear c3",      # 62
-                  "CQUADR Fiber distance Z2         c3",      # 63
-                  "CQUADR Z2 Normal x               c3",      # 64
-                  "CQUADR Z2 Normal y               c3",      # 65
-                  "CQUADR Z2 Shear xy               c3",      # 66
-                  "CQUADR Z2 Shear angle            c3",      # 67
-                  "CQUADR Z2 Major principal        c3",      # 68
-                  "CQUADR Z2 Minor principal        c3",      # 69
-                  "CQUADR Z2 von Mises or max shear c3",      # 70
-
-                  "CQUADR Grid 4                      ",      # 71
-                  "CQUADR Fiber distance Z1         c4",      # 72
-                  "CQUADR Z1 Normal x               c4",      # 73
-                  "CQUADR Z1 Normal y               c4",      # 74
-                  "CQUADR Z1 Shear xy               c4",      # 75
-                  "CQUADR Z1 Shear angle            c4",      # 76
-                  "CQUADR Z1 Major principal        c4",      # 77
-                  "CQUADR Z1 Minor principal        c4",      # 78
-                  "CQUADR Z1 von Mises or max shear c4",      # 79
-                  "CQUADR Fiber distance Z2         c4",      # 80
-                  "CQUADR Z2 Normal x               c4",      # 81
-                  "CQUADR Z2 Normal y               c4",      # 82
-                  "CQUADR Z2 Shear xy               c4",      # 83
-                  "CQUADR Z2 Shear angle            c4",      # 84
-                  "CQUADR Z2 Major principal        c4",      # 85
-                  "CQUADR Z2 Minor principal        c4",      # 86
-                  "CQUADR Z2 von Mises or max shear c4"]      # 87
-
-    force[82] = ["CQUADR Membrane force x            ",      # 4
-                 "CQUADR Membrane force y            ",      # 5
-                 "CQUADR Membrane force xy           ",      # 6
-                 "CQUADR Bending moment x            ",      # 7
-                 "CQUADR Bending moment y            ",      # 8
-                 "CQUADR Bending moment xy           ",      # 9
-                 "CQUADR Shear x                     ",      # 10
-                 "CQUADR Shear y                     ",      # 11
-
-                 "CQUADR   (non-documented item)     ",      # 12
-
-                 "CQUADR Membrane force x          c1",      # 13
-                 "CQUADR Membrane force y          c1",      # 14
-                 "CQUADR Membrane force xy         c1",      # 15
-                 "CQUADR Bending moment x          c1",      # 16
-                 "CQUADR Bending moment y          c1",      # 17
-                 "CQUADR Bending moment xy         c1",      # 18
-                 "CQUADR Shear x                   c1",      # 19
-                 "CQUADR Shear y                   c1",      # 20
-
-                 "CQUADR   (non-documented item)     ",      # 21
-
-                 "CQUADR Membrane force x          c2",      # 22
-                 "CQUADR Membrane force y          c2",      # 23
-                 "CQUADR Membrane force xy         c2",      # 24
-                 "CQUADR Bending moment x          c2",      # 25
-                 "CQUADR Bending moment y          c2",      # 26
-                 "CQUADR Bending moment xy         c2",      # 27
-                 "CQUADR Shear x                   c2",      # 28
-                 "CQUADR Shear y                   c2",      # 29
-
-                 "CQUADR   (non-documented item)     ",      # 30
-
-                 "CQUADR Membrane force x          c3",      # 31
-                 "CQUADR Membrane force y          c3",      # 32
-                 "CQUADR Membrane force xy         c3",      # 33
-                 "CQUADR Bending moment x          c3",      # 34
-                 "CQUADR Bending moment y          c3",      # 35
-                 "CQUADR Bending moment xy         c3",      # 36
-                 "CQUADR Shear x                   c3",      # 37
-                 "CQUADR Shear y                   c3",      # 38
-
-                 "CQUADR   (non-documented item)     ",      # 39
-
-                 "CQUADR Membrane force x          c4",      # 40
-                 "CQUADR Membrane force y          c4",      # 41
-                 "CQUADR Membrane force xy         c4",      # 42
-                 "CQUADR Bending moment x          c4",      # 43
-                 "CQUADR Bending moment y          c4",      # 44
-                 "CQUADR Bending moment xy         c4",      # 45
-                 "CQUADR Shear x                   c4",      # 46
-                 "CQUADR Shear y                   c4"]      # 47
-    stress[64] = [i.replace('CQUADR', 'CQ8-64') for i in stress[82]]
-    force[64] = [i.replace('CQUADR', 'CQ8-64') for i in force[82]]
+    force[82] = [
+        "CQUADR Membrane force x            ",  # 4
+        "CQUADR Membrane force y            ",  # 5
+        "CQUADR Membrane force xy           ",  # 6
+        "CQUADR Bending moment x            ",  # 7
+        "CQUADR Bending moment y            ",  # 8
+        "CQUADR Bending moment xy           ",  # 9
+        "CQUADR Shear x                     ",  # 10
+        "CQUADR Shear y                     ",  # 11
+        "CQUADR   (non-documented item)     ",  # 12
+        "CQUADR Membrane force x          c1",  # 13
+        "CQUADR Membrane force y          c1",  # 14
+        "CQUADR Membrane force xy         c1",  # 15
+        "CQUADR Bending moment x          c1",  # 16
+        "CQUADR Bending moment y          c1",  # 17
+        "CQUADR Bending moment xy         c1",  # 18
+        "CQUADR Shear x                   c1",  # 19
+        "CQUADR Shear y                   c1",  # 20
+        "CQUADR   (non-documented item)     ",  # 21
+        "CQUADR Membrane force x          c2",  # 22
+        "CQUADR Membrane force y          c2",  # 23
+        "CQUADR Membrane force xy         c2",  # 24
+        "CQUADR Bending moment x          c2",  # 25
+        "CQUADR Bending moment y          c2",  # 26
+        "CQUADR Bending moment xy         c2",  # 27
+        "CQUADR Shear x                   c2",  # 28
+        "CQUADR Shear y                   c2",  # 29
+        "CQUADR   (non-documented item)     ",  # 30
+        "CQUADR Membrane force x          c3",  # 31
+        "CQUADR Membrane force y          c3",  # 32
+        "CQUADR Membrane force xy         c3",  # 33
+        "CQUADR Bending moment x          c3",  # 34
+        "CQUADR Bending moment y          c3",  # 35
+        "CQUADR Bending moment xy         c3",  # 36
+        "CQUADR Shear x                   c3",  # 37
+        "CQUADR Shear y                   c3",  # 38
+        "CQUADR   (non-documented item)     ",  # 39
+        "CQUADR Membrane force x          c4",  # 40
+        "CQUADR Membrane force y          c4",  # 41
+        "CQUADR Membrane force xy         c4",  # 42
+        "CQUADR Bending moment x          c4",  # 43
+        "CQUADR Bending moment y          c4",  # 44
+        "CQUADR Bending moment xy         c4",  # 45
+        "CQUADR Shear x                   c4",  # 46
+        "CQUADR Shear y                   c4",
+    ]  # 47
+    stress[64] = [i.replace("CQUADR", "CQ8-64") for i in stress[82]]
+    force[64] = [i.replace("CQUADR", "CQ8-64") for i in force[82]]
 
     #   CTRIAR Recovery Items (element 70, and CTRIA6-75):
-    stress[70] = ["CTRIAR Z1 Normal x                 ",       # 5
-                  "CTRIAR Z1 Normal y                 ",       # 6
-                  "CTRIAR Z1 Shear xy                 ",       # 7
-                  "CTRIAR Z1 Q shear angle            ",       # 8
-                  "CTRIAR Z1 Major principal          ",       # 9
-                  "CTRIAR Z1 Minor principal          ",       # 10
-                  "CTRIAR Z1 von Mises or max shear   ",       # 11
-                  "CTRIAR   (non-documented item)     ",       # 12
-                  "CTRIAR Z2 Normal x                 ",       # 13
-                  "CTRIAR Z2 Normal y                 ",       # 14
-                  "CTRIAR Z2 Shear xy                 ",       # 15
-                  "CTRIAR Z2 Q shear angle            ",       # 16
-                  "CTRIAR Z2 Major principal          ",       # 17
-                  "CTRIAR Z2 Minor principal          ",       # 18
-                  "CTRIAR Z2 von Mises or max shear   ",       # 19
+    stress[70] = [
+        "CTRIAR Z1 Normal x                 ",  # 5
+        "CTRIAR Z1 Normal y                 ",  # 6
+        "CTRIAR Z1 Shear xy                 ",  # 7
+        "CTRIAR Z1 Q shear angle            ",  # 8
+        "CTRIAR Z1 Major principal          ",  # 9
+        "CTRIAR Z1 Minor principal          ",  # 10
+        "CTRIAR Z1 von Mises or max shear   ",  # 11
+        "CTRIAR   (non-documented item)     ",  # 12
+        "CTRIAR Z2 Normal x                 ",  # 13
+        "CTRIAR Z2 Normal y                 ",  # 14
+        "CTRIAR Z2 Shear xy                 ",  # 15
+        "CTRIAR Z2 Q shear angle            ",  # 16
+        "CTRIAR Z2 Major principal          ",  # 17
+        "CTRIAR Z2 Minor principal          ",  # 18
+        "CTRIAR Z2 von Mises or max shear   ",  # 19
+        "CTRIAR   (non-documented item)     ",  # 20
+        "CTRIAR   (non-documented item)     ",  # 21
+        "CTRIAR Z1 Normal x               c1",  # 22
+        "CTRIAR Z1 Normal y               c1",  # 23
+        "CTRIAR Z1 Shear xy               c1",  # 24
+        "CTRIAR Z1 Q shear angle          c1",  # 25
+        "CTRIAR Z1 Major principal        c1",  # 26
+        "CTRIAR Z1 Minor principal        c1",  # 27
+        "CTRIAR Z1 von Mises or max shear c1",  # 28
+        "CTRIAR   (non-documented item)   c1",  # 29
+        "CTRIAR Z2 Normal x               c1",  # 30
+        "CTRIAR Z2 Normal y               c1",  # 31
+        "CTRIAR Z2 Shear xy               c1",  # 32
+        "CTRIAR Z2 Q shear angle          c1",  # 33
+        "CTRIAR Z2 Major principal        c1",  # 34
+        "CTRIAR Z2 Minor principal        c1",  # 35
+        "CTRIAR Z2 von Mises or max shear c1",  # 36
+        "CTRIAR   (non-documented item)     ",  # 37
+        "CTRIAR   (non-documented item)     ",  # 38
+        "CTRIAR Z1 Normal x               c2",  # 39
+        "CTRIAR Z1 Normal y               c2",  # 40
+        "CTRIAR Z1 Shear xy               c2",  # 41
+        "CTRIAR Z1 Q shear angle          c2",  # 42
+        "CTRIAR Z1 Major principal        c2",  # 43
+        "CTRIAR Z1 Minor principal        c2",  # 44
+        "CTRIAR Z1 von Mises or max shear c2",  # 45
+        "CTRIAR   (non-documented item)   c2",  # 46
+        "CTRIAR Z2 Normal x               c2",  # 47
+        "CTRIAR Z2 Normal y               c2",  # 48
+        "CTRIAR Z2 Shear xy               c2",  # 49
+        "CTRIAR Z2 Q shear angle          c2",  # 50
+        "CTRIAR Z2 Major principal        c2",  # 51
+        "CTRIAR Z2 Minor principal        c2",  # 52
+        "CTRIAR Z2 von Mises or max shear c2",  # 53
+        "CTRIAR   (non-documented item)     ",  # 54
+        "CTRIAR   (non-documented item)     ",  # 55
+        "CTRIAR Z1 Normal x               c3",  # 56
+        "CTRIAR Z1 Normal y               c3",  # 57
+        "CTRIAR Z1 Shear xy               c3",  # 58
+        "CTRIAR Z1 Q shear angle          c3",  # 59
+        "CTRIAR Z1 Major principal        c3",  # 60
+        "CTRIAR Z1 Minor principal        c3",  # 61
+        "CTRIAR Z1 von Mises or max shear c3",  # 62
+        "CTRIAR   (non-documented item)   c3",  # 63
+        "CTRIAR Z2 Normal x               c3",  # 64
+        "CTRIAR Z2 Normal y               c3",  # 65
+        "CTRIAR Z2 Shear xy               c3",  # 66
+        "CTRIAR Z2 Q shear angle          c3",  # 67
+        "CTRIAR Z2 Major principal        c3",  # 68
+        "CTRIAR Z2 Minor principal        c3",  # 69
+        "CTRIAR Z2 von Mises or max shear c3",
+    ]  # 70
 
-                  "CTRIAR   (non-documented item)     ",       # 20
-                  "CTRIAR   (non-documented item)     ",       # 21
+    force[70] = [
+        "CTRIAR Membrane force x            ",  # 4
+        "CTRIAR Membrane force y            ",  # 5
+        "CTRIAR Membrane force xy           ",  # 6
+        "CTRIAR Bending moment x            ",  # 7
+        "CTRIAR Bending moment y            ",  # 8
+        "CTRIAR Bending moment xy           ",  # 9
+        "CTRIAR Shear x                     ",  # 10
+        "CTRIAR Shear y                     ",  # 11
+        "CTRIAR   (non-documented item)     ",  # 12
+        "CTRIAR Membrane force x          c1",  # 13
+        "CTRIAR Membrane force y          c1",  # 14
+        "CTRIAR Membrane force xy         c1",  # 15
+        "CTRIAR Bending moment x          c1",  # 16
+        "CTRIAR Bending moment y          c1",  # 17
+        "CTRIAR Bending moment xy         c1",  # 18
+        "CTRIAR Shear x                   c1",  # 19
+        "CTRIAR Shear y                   c1",  # 20
+        "CTRIAR   (non-documented item)     ",  # 21
+        "CTRIAR Membrane force x          c2",  # 22
+        "CTRIAR Membrane force y          c2",  # 23
+        "CTRIAR Membrane force xy         c2",  # 24
+        "CTRIAR Bending moment x          c2",  # 25
+        "CTRIAR Bending moment y          c2",  # 26
+        "CTRIAR Bending moment xy         c2",  # 27
+        "CTRIAR Shear x                   c2",  # 28
+        "CTRIAR Shear y                   c2",  # 29
+        "CTRIAR   (non-documented item)     ",  # 30
+        "CTRIAR Membrane force x          c3",  # 31
+        "CTRIAR Membrane force y          c3",  # 32
+        "CTRIAR Membrane force xy         c3",  # 33
+        "CTRIAR Bending moment x          c3",  # 34
+        "CTRIAR Bending moment y          c3",  # 35
+        "CTRIAR Bending moment xy         c3",  # 36
+        "CTRIAR Shear x                   c3",  # 37
+        "CTRIAR Shear y                   c3",
+    ]  # 38
 
-                  "CTRIAR Z1 Normal x               c1",       # 22
-                  "CTRIAR Z1 Normal y               c1",       # 23
-                  "CTRIAR Z1 Shear xy               c1",       # 24
-                  "CTRIAR Z1 Q shear angle          c1",       # 25
-                  "CTRIAR Z1 Major principal        c1",       # 26
-                  "CTRIAR Z1 Minor principal        c1",       # 27
-                  "CTRIAR Z1 von Mises or max shear c1",       # 28
-                  "CTRIAR   (non-documented item)   c1",       # 29
-                  "CTRIAR Z2 Normal x               c1",       # 30
-                  "CTRIAR Z2 Normal y               c1",       # 31
-                  "CTRIAR Z2 Shear xy               c1",       # 32
-                  "CTRIAR Z2 Q shear angle          c1",       # 33
-                  "CTRIAR Z2 Major principal        c1",       # 34
-                  "CTRIAR Z2 Minor principal        c1",       # 35
-                  "CTRIAR Z2 von Mises or max shear c1",       # 36
-
-                  "CTRIAR   (non-documented item)     ",       # 37
-                  "CTRIAR   (non-documented item)     ",       # 38
-
-                  "CTRIAR Z1 Normal x               c2",       # 39
-                  "CTRIAR Z1 Normal y               c2",       # 40
-                  "CTRIAR Z1 Shear xy               c2",       # 41
-                  "CTRIAR Z1 Q shear angle          c2",       # 42
-                  "CTRIAR Z1 Major principal        c2",       # 43
-                  "CTRIAR Z1 Minor principal        c2",       # 44
-                  "CTRIAR Z1 von Mises or max shear c2",       # 45
-                  "CTRIAR   (non-documented item)   c2",       # 46
-                  "CTRIAR Z2 Normal x               c2",       # 47
-                  "CTRIAR Z2 Normal y               c2",       # 48
-                  "CTRIAR Z2 Shear xy               c2",       # 49
-                  "CTRIAR Z2 Q shear angle          c2",       # 50
-                  "CTRIAR Z2 Major principal        c2",       # 51
-                  "CTRIAR Z2 Minor principal        c2",       # 52
-                  "CTRIAR Z2 von Mises or max shear c2",       # 53
-
-                  "CTRIAR   (non-documented item)     ",       # 54
-                  "CTRIAR   (non-documented item)     ",       # 55
-
-                  "CTRIAR Z1 Normal x               c3",       # 56
-                  "CTRIAR Z1 Normal y               c3",       # 57
-                  "CTRIAR Z1 Shear xy               c3",       # 58
-                  "CTRIAR Z1 Q shear angle          c3",       # 59
-                  "CTRIAR Z1 Major principal        c3",       # 60
-                  "CTRIAR Z1 Minor principal        c3",       # 61
-                  "CTRIAR Z1 von Mises or max shear c3",       # 62
-                  "CTRIAR   (non-documented item)   c3",       # 63
-                  "CTRIAR Z2 Normal x               c3",       # 64
-                  "CTRIAR Z2 Normal y               c3",       # 65
-                  "CTRIAR Z2 Shear xy               c3",       # 66
-                  "CTRIAR Z2 Q shear angle          c3",       # 67
-                  "CTRIAR Z2 Major principal        c3",       # 68
-                  "CTRIAR Z2 Minor principal        c3",       # 69
-                  "CTRIAR Z2 von Mises or max shear c3"]       # 70
-
-    force[70] = ["CTRIAR Membrane force x            ",      # 4
-                 "CTRIAR Membrane force y            ",      # 5
-                 "CTRIAR Membrane force xy           ",      # 6
-                 "CTRIAR Bending moment x            ",      # 7
-                 "CTRIAR Bending moment y            ",      # 8
-                 "CTRIAR Bending moment xy           ",      # 9
-                 "CTRIAR Shear x                     ",      # 10
-                 "CTRIAR Shear y                     ",      # 11
-
-                 "CTRIAR   (non-documented item)     ",      # 12
-
-                 "CTRIAR Membrane force x          c1",      # 13
-                 "CTRIAR Membrane force y          c1",      # 14
-                 "CTRIAR Membrane force xy         c1",      # 15
-                 "CTRIAR Bending moment x          c1",      # 16
-                 "CTRIAR Bending moment y          c1",      # 17
-                 "CTRIAR Bending moment xy         c1",      # 18
-                 "CTRIAR Shear x                   c1",      # 19
-                 "CTRIAR Shear y                   c1",      # 20
-
-                 "CTRIAR   (non-documented item)     ",      # 21
-
-                 "CTRIAR Membrane force x          c2",      # 22
-                 "CTRIAR Membrane force y          c2",      # 23
-                 "CTRIAR Membrane force xy         c2",      # 24
-                 "CTRIAR Bending moment x          c2",      # 25
-                 "CTRIAR Bending moment y          c2",      # 26
-                 "CTRIAR Bending moment xy         c2",      # 27
-                 "CTRIAR Shear x                   c2",      # 28
-                 "CTRIAR Shear y                   c2",      # 29
-
-                 "CTRIAR   (non-documented item)     ",      # 30
-
-                 "CTRIAR Membrane force x          c3",      # 31
-                 "CTRIAR Membrane force y          c3",      # 32
-                 "CTRIAR Membrane force xy         c3",      # 33
-                 "CTRIAR Bending moment x          c3",      # 34
-                 "CTRIAR Bending moment y          c3",      # 35
-                 "CTRIAR Bending moment xy         c3",      # 36
-                 "CTRIAR Shear x                   c3",      # 37
-                 "CTRIAR Shear y                   c3"]      # 38
-
-    stress[75] = [i.replace('CTRIAR', 'CT6-75') for i in stress[70]]
-    force[75] = [i.replace('CTRIAR', 'CT6-75') for i in force[70]]
+    stress[75] = [i.replace("CTRIAR", "CT6-75") for i in stress[70]]
+    force[75] = [i.replace("CTRIAR", "CT6-75") for i in force[70]]
     for i in stress:
         stress[i] = np.array(stress[i])
         force[i] = np.array(force[i])
-    return {'acce': np.array(accedesc),
-            'spcf': np.array(spcfdesc),
-            'stress': stress,
-            'force': force}
+    return {
+        "acce": np.array(accedesc),
+        "spcf": np.array(spcfdesc),
+        "stress": stress,
+        "force": force,
+    }
 
 
 def _get_tinr(iddof, idj):
@@ -2687,33 +2701,33 @@ def _get_drm(drminfo, otm, drms, drmkeys, dr, desc):
     ID = dr[1, :]
     DOF = dr[2, :]
     nm, nasnm, desci = drminfo
-    otm[nm + '_id_dof'] = np.vstack((ID, DOF)).T
+    otm[nm + "_id_dof"] = np.vstack((ID, DOF)).T
 
     # arg offset is for translating between Nastran argument to
     # matrix index; eg 'x' recovery for a grid is arg 3, so offset
     # is 3
-    if nasnm.find('oug') > -1 or nasnm.find('oqg') > -1:
+    if nasnm.find("oug") > -1 or nasnm.find("oqg") > -1:
         offset = 3
-        otm[nm + '_id_dof'][:, 1] -= 2
+        otm[nm + "_id_dof"][:, 1] -= 2
     else:
         offset = 2
 
     if not isinstance(desc[desci], dict):
-        otm[nm + '_desc'] = desc[desci][DOF - offset]
+        otm[nm + "_desc"] = desc[desci][DOF - offset]
         getdesc = False
     else:
         getdesc = True
-        _desc = nm + '_desc'
-        otm[_desc] = [''] * drc
+        _desc = nm + "_desc"
+        otm[_desc] = [""] * drc
         _dct = desc[desci]
         _name = desci.capitalize()
 
-    if len(nasnm) == 3 and 'm' + nasnm + 'd1' in drms:
-        d1 = drms['m' + nasnm + 'd1']
-        s1 = drms['m' + nasnm + 's1']
-        iddof = drmkeys['t' + nasnm + 'd1']
-        acce = nm + 'A'
-        disp = nm + 'D'
+    if len(nasnm) == 3 and "m" + nasnm + "d1" in drms:
+        d1 = drms["m" + nasnm + "d1"]
+        s1 = drms["m" + nasnm + "s1"]
+        iddof = drmkeys["t" + nasnm + "d1"]
+        acce = nm + "A"
+        disp = nm + "D"
         otm[acce] = np.zeros((drc, d1.shape[1]))
         otm[disp] = np.zeros((drc, s1.shape[1]))
         lastid = -1
@@ -2728,16 +2742,16 @@ def _get_drm(drminfo, otm, drms, drmkeys, dr, desc):
                 if eltype in _dct:
                     otm[_desc][j] = _dct[eltype][DOF[j] - offset]
                 else:
-                    otm[_desc][j] = (('EL-{}, El. Type {:3}, '
-                                      'Code {:3}  ')
-                                     .format(_name, eltype, DOF[j]))
+                    otm[_desc][j] = ("EL-{}, El. Type {:3}, Code {:3}  ").format(
+                        _name, eltype, DOF[j]
+                    )
     else:
         if len(nasnm) == 3:
-            matname = 'm' + nasnm + 'x1'
-            tabname = 't' + nasnm + 'x1'
+            matname = "m" + nasnm + "x1"
+            tabname = "t" + nasnm + "x1"
         else:
-            matname = 'm' + nasnm
-            tabname = 't' + nasnm
+            matname = "m" + nasnm
+            tabname = "t" + nasnm
         x1 = drms[matname]
         iddof = drmkeys[tabname]
         otm[nm] = np.zeros((drc, x1.shape[1]))
@@ -2752,9 +2766,9 @@ def _get_drm(drminfo, otm, drms, drmkeys, dr, desc):
                 if eltype in _dct:
                     otm[_desc][j] = _dct[eltype][DOF[j] - offset]
                 else:
-                    otm[_desc][j] = (('EL-{}, El. Type {:3}, '
-                                      'Code {:3}  ')
-                                     .format(_name, eltype, DOF[j]))
+                    otm[_desc][j] = ("EL-{}, El. Type {:3}, Code {:3}  ").format(
+                        _name, eltype, DOF[j]
+                    )
 
 
 def procdrm12(op2file=None, op4file=None, dosort=True):
@@ -2838,7 +2852,7 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
 
     with OP2(op2file) as o2:
         drmkeys = o2.rddrm2op2()
-    N = drmkeys['drs'].shape[1]
+    N = drmkeys["drs"].shape[1]
 
     # drs format:
     # 6 elements per recovery item:
@@ -2850,18 +2864,20 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
     #    6  -  Destination code
 
     # Vector request type:
-    Vreq = ["Displacement",     # 1
-            "Velocity",         # 2
-            "Acceleration",     # 3
-            "SPC Force",        # 4
-            "Load",             # 5
-            "Stress",           # 6
-            "Element Force",    # 7
-            "SDisplacement",    # 8
-            "SVelocity",        # 9
-            "SAcceleration",    # 10
-            "Nonlinear Force",  # 11
-            "Total"]            # 12
+    Vreq = [
+        "Displacement",  # 1
+        "Velocity",  # 2
+        "Acceleration",  # 3
+        "SPC Force",  # 4
+        "Load",  # 5
+        "Stress",  # 6
+        "Element Force",  # 7
+        "SDisplacement",  # 8
+        "SVelocity",  # 9
+        "SAcceleration",  # 10
+        "Nonlinear Force",  # 11
+        "Total",
+    ]  # 12
 
     #   XY output type:
     #      1 = Response
@@ -2880,7 +2896,7 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
 
     if not dosort:
         # reshape dr:
-        dr = drmkeys['dr']
+        dr = drmkeys["dr"]
         r = np.nonzero(dr == dr[0])[0]
         r = np.hstack((r, len(dr)))
         n = len(r) - 1
@@ -2909,32 +2925,35 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
                     J += 3
                 J += 4  # jump over [-1,-1,-1,#]
     else:
-        DR = drmkeys['drs'][1:4]  # use sorted version
+        DR = drmkeys["drs"][1:4]  # use sorted version
 
     desc = nastran_dr_descriptions()
-    drminfo = {1: ('DTM', 'oug', 'acce'),
-               3: ('ATM', 'ougv1', 'acce'),
-               4: ('SPCF', 'oqg', 'spcf'),
-               6: ('STM', 'oes', 'stress'),
-               7: ('LTM', 'oef', 'force')}
+    drminfo = {
+        1: ("DTM", "oug", "acce"),
+        3: ("ATM", "ougv1", "acce"),
+        4: ("SPCF", "oqg", "spcf"),
+        6: ("STM", "oes", "stress"),
+        7: ("LTM", "oef", "force"),
+    }
     otm = {}
     types = np.array([1, 3, 4, 6, 7])
     for drtype in range(1, 13):
         pv = np.nonzero(DR[0] == drtype)[0]
         if pv.size > 0:
             if np.any(drtype == types):
-                print('Processing "{}" requests...'.
-                      format(Vreq[drtype - 1]))
-                _get_drm(drminfo[drtype], otm, drms,
-                         drmkeys, DR[:, pv], desc)
+                print('Processing "{}" requests...'.format(Vreq[drtype - 1]))
+                _get_drm(drminfo[drtype], otm, drms, drmkeys, DR[:, pv], desc)
             else:
-                print('Skipping "{}" requests. Needs to be added '
-                      'to procdrm12().'.format(Vreq[drtype - 1]))
+                print(
+                    'Skipping "{}" requests. Needs to be added '
+                    "to procdrm12().".format(Vreq[drtype - 1])
+                )
     return otm
 
 
-def rdpostop2(op2file=None, verbose=False, getougv1=False,
-              getoef1=False, getoes1=False):
+def rdpostop2(
+    op2file=None, verbose=False, getougv1=False, getoef1=False, getoes1=False
+):
     """
     Reads PARAM,POST,-1 op2 file and returns dictionary of data.
 
@@ -3005,35 +3024,40 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
                     mats[name] = []
                 mats[name] += [o2.rdop2matrix(trailer)]
             else:
-                if name.find('BGPDT') == 0:
+                if name.find("BGPDT") == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
                     bgpdt_rec1 = o2._rdop2bgpdt68()
                     # o2.skipop2table()
                     continue
 
-                if name.find('CSTM') == 0:
+                if name.find("CSTM") == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
                     cstm = o2._rdop2cstm68()
-                    bc = np.array([[+0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
-                                    0, 0, 0, 1],
-                                   [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                    0, 0, 0, 0]])
+                    bc = np.array(
+                        [
+                            [+0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+                            [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        ]
+                    )
                     cstm = np.vstack((bc, cstm))
                     continue
 
-                if name.find('GEOM1') == 0:
+                if name.find("GEOM1") == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
-                    (cords, sebulk, selist,
-                     seload, seconct) = o2._rdop2geom1cord2()
+                    (cords, sebulk, selist, seload, seconct) = o2._rdop2geom1cord2()
                     if 0 not in cords:
-                        cords[0] = np.array([[0., 1., 0.],
-                                             [0., 0., 0.],
-                                             [1., 0., 0.],
-                                             [0., 1., 0.],
-                                             [0., 0., 1.]])
+                        cords[0] = np.array(
+                            [
+                                [0.0, 1.0, 0.0],
+                                [0.0, 0.0, 0.0],
+                                [1.0, 0.0, 0.0],
+                                [0.0, 1.0, 0.0],
+                                [0.0, 0.0, 1.0],
+                            ]
+                        )
                     if -1 not in cords:
                         # dummy for spoints
                         cords[-1] = np.zeros((5, 3))
@@ -3041,63 +3065,62 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
                     cstm2 = cords
                     continue
 
-                if name.find('DYNAMIC') == 0:
+                if name.find("DYNAMIC") == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
-                    mats['tload'] = o2.rdop2dynamics()
+                    mats["tload"] = o2.rdop2dynamics()
                     continue
 
-                if name.find('EQEXIN') == 0:
+                if name.find("EQEXIN") == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
                     eqexin1, eqexin = o2._rdop2eqexin()
                     continue
 
-                if name.find('USET') == 0:
+                if name.find("USET") == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
                     uset = o2._rdop2uset()
                     continue
 
-                if getougv1 and (name.find('OUGV1') == 0 or
-                                 name.find('BOPHIG') == 0):
+                if getougv1 and (name.find("OUGV1") == 0 or name.find("BOPHIG") == 0):
                     if verbose:
                         print("Reading table {}...".format(name))
                     try:
-                        mo = mats['ougv1']
+                        mo = mats["ougv1"]
                     except KeyError:
-                        mo = mats['ougv1'] = []
+                        mo = mats["ougv1"] = []
                     mo += [o2._rdop2ougv1(name)]
                     continue
 
-                if getoef1 and name.startswith('OEF1'):
+                if getoef1 and name.startswith("OEF1"):
                     if verbose:
                         print("Reading table {}...".format(name))
                     try:
-                        mo = mats['oef1']
+                        mo = mats["oef1"]
                     except KeyError:
-                        mo = mats['oef1'] = []
+                        mo = mats["oef1"] = []
                     # mo += [o2._rdop2drm_old()]
                     mo += [o2._rdop2drm(name)]
                     continue
 
-                if getoes1 and name.startswith('OES1'):
+                if getoes1 and name.startswith("OES1"):
                     if verbose:
                         print("Reading table {}...".format(name))
                     try:
-                        mo = mats['oes1']
+                        mo = mats["oes1"]
                     except KeyError:
-                        mo = mats['oes1'] = []
+                        mo = mats["oes1"] = []
                     mo += [o2._rdop2drm(name)]
                     continue
 
-                if name.find('LAMA') == 0:
+                if name.find("LAMA") == 0:
                     if verbose:
                         print("Reading table {}...".format(name))
                     try:
-                        mo = mats['lama']
+                        mo = mats["lama"]
                     except KeyError:
-                        mo = mats['lama'] = []
+                        mo = mats["lama"] = []
                     mo += [o2._rdop2lama()]
                     continue
 
@@ -3105,19 +3128,21 @@ def rdpostop2(op2file=None, verbose=False, getougv1=False,
                     print("Skipping table {}...".format(name))
                 o2.skipop2table()
 
-        if (eqexin1 is not None and eqexin is not None and
-                bgpdt_rec1 is not None):
-            (xyz, cid, dof,
-             doftype, nid, upids) = o2._proc_bgpdt(
-                 eqexin1, eqexin, True, bgpdt_rec1)
+        if eqexin1 is not None and eqexin is not None and bgpdt_rec1 is not None:
+            (xyz, cid, dof, doftype, nid, upids) = o2._proc_bgpdt(
+                eqexin1, eqexin, True, bgpdt_rec1
+            )
             Uset, cstm, cstm2 = o2._buildUset(
-                se, dof, doftype, nid, uset, xyz, cid, cstm, cstm2)
+                se, dof, doftype, nid, uset, xyz, cid, cstm, cstm2
+            )
 
-    return {'uset': Uset,
-            'cstm': cstm,
-            'cstm2': cstm2,
-            'mats': mats,
-            'selist': selist,
-            'sebulk': sebulk,
-            'seload': seload,
-            'seconct': seconct}
+    return {
+        "uset": Uset,
+        "cstm": cstm,
+        "cstm2": cstm2,
+        "mats": mats,
+        "selist": selist,
+        "sebulk": sebulk,
+        "seload": seload,
+        "seconct": seconct,
+    }

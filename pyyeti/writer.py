@@ -161,17 +161,23 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
      5, ======short string======= :     1.1     1.2     1.30
      5, ===a bit longer string=== :    10.1    10.2    10.30
     """
-    def _get_scalar(a, i): return [a]
 
-    def _get_scalar1(a, i): return [a[0]]
+    def _get_scalar(a, i):
+        return [a]
 
-    def _get_itemi(a, i): return [a[i]]
+    def _get_scalar1(a, i):
+        return [a[0]]
 
-    def _get_matrow(a, i): return a[i]
+    def _get_itemi(a, i):
+        return [a[i]]
+
+    def _get_matrow(a, i):
+        return a[i]
+
     length = 1
     fncs = []
     for i, arg in enumerate(args):
-        if not isinstance(arg, str) and hasattr(arg, '__len__'):
+        if not isinstance(arg, str) and hasattr(arg, "__len__"):
             if np.ndim(arg) == 2:
                 fncs.append(_get_matrow)
                 curlen = np.size(arg, 0)
@@ -185,14 +191,17 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
                 if length > 1:
                     if so is not None:
                         if range(curlen)[so] != range(length)[so]:
-                            msg = ('length mismatch with slice object:'
-                                   ' arg # {} is incompatible with '
-                                   'previous args'.format(i + 1))
+                            msg = (
+                                "length mismatch with slice object:"
+                                " arg # {} is incompatible with "
+                                "previous args".format(i + 1)
+                            )
                             raise ValueError(msg)
                     elif curlen != length:
-                        msg = ('length mismatch:  arg # {} has '
-                               'length {}; expected {} or 1.'.
-                               format(i + 1, curlen, length))
+                        msg = (
+                            "length mismatch:  arg # {} has "
+                            "length {}; expected {} or 1.".format(i + 1, curlen, length)
+                        )
                         raise ValueError(msg)
                 length = curlen
         else:
@@ -200,8 +209,7 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
     _vecwrite(f, string, length, args, fncs, postfunc, pfargs, so)
 
 
-def formheader(headers, widths, formats,
-               sep=(0, 2), just=-1, ulchar='-'):
+def formheader(headers, widths, formats, sep=(0, 2), just=-1, ulchar="-"):
     """
     Form a nice table header for formatted output via f.write().
 
@@ -282,8 +290,10 @@ def formheader(headers, widths, formats,
         mxlengths = np.array([len(s) for s in headers[0]])
         for j in range(1, nheaders):
             if len(headers[j]) != length:
-                raise ValueError('headers[{}] != length of previous '
-                                 'headers'.format(len(headers[j])))
+                raise ValueError(
+                    "headers[{}] != length of previous "
+                    "headers".format(len(headers[j]))
+                )
             for k in range(length):
                 mxlengths[k] = max(mxlengths[k], len(headers[j][k]))
     else:
@@ -292,31 +302,33 @@ def formheader(headers, widths, formats,
         length = len(headers)
 
     if not length == len(formats) == len(widths):
-        s = ''
+        s = ""
         if isinstance(headers[0], (list, tuple)):
-            s = '[*]'
-        raise ValueError('this check failed: ``len(headers{}) == '
-                         'len(formats) == len(widths)``'.format(s))
+            s = "[*]"
+        raise ValueError(
+            "this check failed: ``len(headers{}) == "
+            "len(formats) == len(widths)``".format(s)
+        )
 
     def strexp(string, width, just):
-        if just == -1 or just == 'l':
+        if just == -1 or just == "l":
             return string.ljust(width)
-        if just == 0 or just == 'c':
+        if just == 0 or just == "c":
             return string.center(width)
         return string.rjust(width)
 
     if isinstance(just, (str, int)):
         just = [just]
     if isinstance(sep, int):
-        sep = ' ' * sep
+        sep = " " * sep
     if isinstance(sep, str):
         sep = [sep]
 
     if nheaders > 0:
-        h = [''] * nheaders
+        h = [""] * nheaders
     else:
-        h = ''
-    u, f = '', ''
+        h = ""
+    u, f = "", ""
     for j in range(length):
         if j >= len(just):
             cj = just[-1]
@@ -327,7 +339,7 @@ def formheader(headers, widths, formats,
         else:
             csep = sep[j]
         if isinstance(csep, int):
-            csep = ' ' * csep
+            csep = " " * csep
         w = max(widths[j], mxlengths[j])
         if nheaders > 0:
             for k in range(nheaders):
@@ -338,9 +350,9 @@ def formheader(headers, widths, formats,
         f += csep + formats[j]
 
     if nheaders > 0:
-        h = [hj.rstrip() + '\n' for hj in h]
+        h = [hj.rstrip() + "\n" for hj in h]
     else:
-        h = h.rstrip() + '\n'
-    u = u.rstrip() + '\n'
-    f = f.rstrip() + '\n'
-    return ''.join(h) + u, f
+        h = h.rstrip() + "\n"
+    u = u.rstrip() + "\n"
+    f = f.rstrip() + "\n"
+    return "".join(h) + u, f

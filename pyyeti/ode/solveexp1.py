@@ -152,8 +152,9 @@ class SolveExp1(object):
         force = np.atleast_2d(force)
         if force.shape[0] != self.n:
             raise ValueError(
-                'Force matrix has {} rows; {} rows are '
-                'expected'.format(force.shape[0], self.n))
+                "Force matrix has {} rows; {} rows are "
+                "expected".format(force.shape[0], self.n)
+            )
         nt = force.shape[1]
         d = np.zeros((self.n, nt))  # , float, order='F')
         if d0 is not None:
@@ -162,8 +163,7 @@ class SolveExp1(object):
             d0 = np.zeros(self.n, float)
         if nt > 1:
             if not self.h:
-                raise RuntimeError(
-                    'instantiate the class with a valid time step.')
+                raise RuntimeError("instantiate the class with a valid time step.")
             # calc force term outside loop:
             if self.order == 1:
                 PQF = self.P @ force[:, :-1] + self.Q @ force[:, 1:]
@@ -175,5 +175,4 @@ class SolveExp1(object):
             t = self.h * np.arange(nt)
         else:
             t = np.array([0.0])
-        return SimpleNamespace(d=d, v=force + self.A @ d,
-                               h=self.h, t=t)
+        return SimpleNamespace(d=d, v=force + self.A @ d, h=self.h, t=t)

@@ -14,10 +14,12 @@ import tkinter.ttk as ttk
 LASTOPENDIR = None
 LASTSAVEDIR = None
 
-__all__ = ['get_file_name',
-           'askopenfilename',
-           'asksaveasfilename',
-           'MultiColumnListbox']
+__all__ = [
+    "get_file_name",
+    "askopenfilename",
+    "asksaveasfilename",
+    "MultiColumnListbox",
+]
 
 
 def get_file_name(f, read):
@@ -45,7 +47,7 @@ def get_file_name(f, read):
         f = None
     else:
         initialdir = None
-    if f is None:          # pragma: no cover
+    if f is None:  # pragma: no cover
         if read:
             return askopenfilename(initialdir=initialdir)
         else:
@@ -53,9 +55,7 @@ def get_file_name(f, read):
     return f
 
 
-def askopenfilename(title=None,
-                    filetypes=None,
-                    initialdir=None):              # pragma: no cover
+def askopenfilename(title=None, filetypes=None, initialdir=None):  # pragma: no cover
     """
     Use GUI to select file for reading
 
@@ -98,19 +98,16 @@ def askopenfilename(title=None,
         filetypes = []
     if initialdir is None:
         initialdir = LASTOPENDIR
-    filename = filedialog.askopenfilename(parent=root,
-                                          filetypes=filetypes,
-                                          initialdir=initialdir,
-                                          title=title)
+    filename = filedialog.askopenfilename(
+        parent=root, filetypes=filetypes, initialdir=initialdir, title=title
+    )
     root.destroy()
     if filename:
         LASTOPENDIR = os.path.dirname(filename)
     return filename
 
 
-def asksaveasfilename(title=None,
-                      filetypes=None,
-                      initialdir=None):          # pragma: no cover
+def asksaveasfilename(title=None, filetypes=None, initialdir=None):  # pragma: no cover
     """
     Use GUI to select file for writing
 
@@ -153,10 +150,9 @@ def asksaveasfilename(title=None,
         filetypes = []
     if initialdir is None:
         initialdir = LASTSAVEDIR
-    filename = filedialog.asksaveasfilename(parent=root,
-                                            filetypes=filetypes,
-                                            initialdir=initialdir,
-                                            title=title)
+    filename = filedialog.asksaveasfilename(
+        parent=root, filetypes=filetypes, initialdir=initialdir, title=title
+    )
     # self.root.after_idle(self._quit)
     root.destroy()
     if filename:
@@ -164,7 +160,7 @@ def asksaveasfilename(title=None,
     return filename
 
 
-class MultiColumnListbox(object):                 # pragma: no cover
+class MultiColumnListbox(object):  # pragma: no cover
     """
     Use a ttk.TreeView to build a linked, multicolumn listbox.
 
@@ -209,10 +205,16 @@ class MultiColumnListbox(object):                 # pragma: no cover
 
     """
 
-    def __init__(self, title, headers, lists,
-                 topstring=(
-                     'Click on header to sort by that column;\n'
-                     'Drag boundary to change width of column')):
+    def __init__(
+        self,
+        title,
+        headers,
+        lists,
+        topstring=(
+            "Click on header to sort by that column;\n"
+            "Drag boundary to change width of column"
+        ),
+    ):
         """
         Initialize a :class:`MultiColumnListbox` instance.
 
@@ -243,68 +245,64 @@ class MultiColumnListbox(object):                 # pragma: no cover
         self.root.mainloop()
 
     def _setup_widgets(self):
-        msg = tk.Text(wrap='word', height=2, font='TkDefaultFont')
-        msg.insert('1.0', self.topstring)  # line 1, column 0
-        msg.configure(bg=self.root.cget('bg'), relief='flat',
-                      state='disabled')
-        msg.pack(fill='x')
+        msg = tk.Text(wrap="word", height=2, font="TkDefaultFont")
+        msg.insert("1.0", self.topstring)  # line 1, column 0
+        msg.configure(bg=self.root.cget("bg"), relief="flat", state="disabled")
+        msg.pack(fill="x")
         self._add_filter_boxes()
         container = ttk.Frame()
-        container.pack(fill='both', expand=True)
+        container.pack(fill="both", expand=True)
         # create a treeview with dual scrollbars
-        self.tree = ttk.Treeview(height=min(25, len(self.lists[0])),
-                                 columns=self.headers,
-                                 show="headings")
-        vsb = ttk.Scrollbar(orient="vertical",
-                            command=self.tree.yview)
-        hsb = ttk.Scrollbar(orient="horizontal",
-                            command=self.tree.xview)
-        self.tree.configure(yscrollcommand=vsb.set,
-                            xscrollcommand=hsb.set)
-        self.tree.grid(column=0, row=0, sticky='nsew', in_=container)
-        vsb.grid(column=1, row=0, sticky='ns', in_=container)
-        hsb.grid(column=0, row=1, sticky='ew', in_=container)
+        self.tree = ttk.Treeview(
+            height=min(25, len(self.lists[0])), columns=self.headers, show="headings"
+        )
+        vsb = ttk.Scrollbar(orient="vertical", command=self.tree.yview)
+        hsb = ttk.Scrollbar(orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        self.tree.grid(column=0, row=0, sticky="nsew", in_=container)
+        vsb.grid(column=1, row=0, sticky="ns", in_=container)
+        hsb.grid(column=0, row=1, sticky="ew", in_=container)
         container.grid_columnconfigure(0, weight=1)
         container.grid_rowconfigure(0, weight=1)
         # add a done button:
-        button = ttk.Button(text='Done', command=self._get_selection)
+        button = ttk.Button(text="Done", command=self._get_selection)
         button.pack()
 
     def _add_filter_boxes(self):
         container = ttk.Frame()
-        container.pack(fill='x')
-        msg = ttk.Label(container,
-                        text='Filters:',
-                        # background='gray',
-                        borderwidth=5)
+        container.pack(fill="x")
+        msg = ttk.Label(
+            container,
+            text="Filters:",
+            # background='gray',
+            borderwidth=5,
+        )
         # msg.grid(row=0, rowspan=2, column=0, padx=10)
         msg.grid(row=0, column=0, padx=10)
 
         self.casesen = tk.IntVar()
         self.casesen.set(0)
         cbutton = ttk.Checkbutton(
-            container, text="Case Sensitive",
-            variable=self.casesen)  # command=self._checkbutton_action)
+            container, text="Case Sensitive", variable=self.casesen
+        )  # command=self._checkbutton_action)
         cbutton.grid(row=1, column=0)
 
         self.filter_var = []
         # add an Entry widget for all columns except "Index":
         for i, header in enumerate(self.headers):
             filter_var = tk.StringVar()
-            filter_entry = ttk.Entry(container,
-                                     textvariable=filter_var)
-            filter_var.set('')
-            filter_entry.bind('<Key-Return>', self._apply_filters)
+            filter_entry = ttk.Entry(container, textvariable=filter_var)
+            filter_var.set("")
+            filter_entry.bind("<Key-Return>", self._apply_filters)
             # filter_entry.pack(side='left', padx=10, expand=True)
-            ttk.Label(container, text=header).grid(
-                row=0, column=i + 1, sticky='w')
-            filter_entry.grid(row=1, column=i + 1, sticky='w')
+            ttk.Label(container, text=header).grid(row=0, column=i + 1, sticky="w")
+            filter_entry.grid(row=1, column=i + 1, sticky="w")
             # container.grid_columnconfigure(i+1, weight=1)
             self.filter_var.append(filter_var)
 
     def _apply_filters(self, event=None):
         # detach all items remaining:
-        for item in self.tree.get_children(''):
+        for item in self.tree.get_children(""):
             i = int(item[1:], 16) - 1
             self.detached_items[i] = item
             self.tree.detach(item)
@@ -314,6 +312,7 @@ class MultiColumnListbox(object):                 # pragma: no cover
 
             def _do_find(value, sub):
                 return value.find(sub) > -1
+
         else:
             filtervars = [v.get().lower() for v in self.filter_var]
 
@@ -321,14 +320,13 @@ class MultiColumnListbox(object):                 # pragma: no cover
                 return value.lower().find(sub) > -1
 
         for i in range(len(self.lists[0])):
-            for string, curlist in zip(filtervars,
-                                       self.lists):
+            for string, curlist in zip(filtervars, self.lists):
                 if string and not _do_find(curlist[i], string):
                     break
             else:
                 # only here if the 'break' was not executed ...
                 # when all filters pass:
-                self.tree.move(self.detached_items[i], '', i)
+                self.tree.move(self.detached_items[i], "", i)
                 self.detached_items[i] = 0
 
     def _quit(self):
@@ -350,21 +348,20 @@ class MultiColumnListbox(object):                 # pragma: no cover
         self._store_selection(self.tree.selection())
 
     def _double_click(self, event):
-        item = self.tree.identify('item', event.x, event.y)
+        item = self.tree.identify("item", event.x, event.y)
         self._store_selection((item,))
 
     def _build_tree(self):
         for col in self.headers:
-            self.tree.heading(col, text=col.title(),
-                              command=lambda c=col:
-                              _sortby(self.tree, c, 0))
+            self.tree.heading(
+                col, text=col.title(), command=lambda c=col: _sortby(self.tree, c, 0)
+            )
             # adjust the column's width to the header string
             # - add 15 pixels for a little buffer
-            self.tree.column(
-                col, width=tkFont.Font().measure(col.title()) + 15)
+            self.tree.column(col, width=tkFont.Font().measure(col.title()) + 15)
 
         for item in zip(*self.lists):
-            self.tree.insert('', 'end', values=item)
+            self.tree.insert("", "end", values=item)
 
         # adjust each column's width by maximum length string:
         for i, col in enumerate(self.headers):
@@ -379,20 +376,18 @@ class MultiColumnListbox(object):                 # pragma: no cover
         self.tree.bind("<Double-1>", self._double_click)
 
 
-def _sortby(tree, col, descending):          # pragma: no cover
+def _sortby(tree, col, descending):  # pragma: no cover
     """sort tree contents when a column header is clicked on"""
     # grab values to sort
-    data = [(tree.set(child, col), child)
-            for child in tree.get_children('')]
+    data = [(tree.set(child, col), child) for child in tree.get_children("")]
 
     # print(data)
     data.sort(reverse=descending)
     for ix, item in enumerate(data):
-        tree.move(item[1], '', ix)
+        tree.move(item[1], "", ix)
 
     # to make first of any current selection visible:
     tree.see(tree.selection()[:1])
 
     # switch the heading so it will sort in the opposite direction
-    tree.heading(col, command=lambda col=col:
-                 _sortby(tree, col, int(not descending)))
+    tree.heading(col, command=lambda col=col: _sortby(tree, col, int(not descending)))

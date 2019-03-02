@@ -9,19 +9,16 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from pyyeti import ytools, locate, writer
-from ._utilities import (_get_rpt_headers, _get_numform,
-                         _proc_filterval)
+from ._utilities import _get_rpt_headers, _get_numform, _proc_filterval
 from ._magpct import magpct
 
 
-__all__ = [
-    'rptpct1',
-]
+__all__ = ["rptpct1"]
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -37,73 +34,62 @@ def _apply_pv(value, pv):
 
 
 def _align_mxmn(mxmn1, mxmn2, labels2, row_number, infodct):
-    if infodct['labels'] and infodct['labels'] != labels2:
-        pv1, pv2 = locate.list_intersect(
-            infodct['labels'], labels2)
+    if infodct["labels"] and infodct["labels"] != labels2:
+        pv1, pv2 = locate.list_intersect(infodct["labels"], labels2)
         mxmn1 = mxmn1[pv1]
         mxmn2 = mxmn2[pv2]
-        infodct['labels'] = [infodct['labels'][i] for i in pv1]
+        infodct["labels"] = [infodct["labels"][i] for i in pv1]
         row_number = row_number[pv1]
-        infodct['filterval'] = _apply_pv(
-            infodct['filterval'], pv1)
-        infodct['ignorepv'] = _apply_pv(infodct['ignorepv'], pv1)
+        infodct["filterval"] = _apply_pv(infodct["filterval"], pv1)
+        infodct["ignorepv"] = _apply_pv(infodct["ignorepv"], pv1)
     return mxmn1, mxmn2, row_number
 
 
 def _get_filtline(filterval):
     if len(filterval) > 1:
-        filtline = 'Filter:      <defined row-by-row>\n'
+        filtline = "Filter:      <defined row-by-row>\n"
     else:
-        filtline = 'Filter:      {}\n'.format(filterval[0])
+        filtline = "Filter:      {}\n".format(filterval[0])
     return filtline
 
 
 def _get_noteline(use_range, names, prtbads, flagbads):
-    noteline = 'Notes:       '
-    tab = '             '
+    noteline = "Notes:       "
+    tab = "             "
     if not use_range:
-        noteline += ('% Diff = +/- abs(({0}-{1})/'
-                     '{1})*100\n'.format(*names))
+        noteline += "% Diff = +/- abs(({0}-{1})/{1})*100\n".format(*names)
     else:
-        noteline += ('% Diff = +/- abs({0}-{1})/'
-                     'max(abs({1}(max,min)))*100\n'
-                     .format(*names))
+        noteline += "% Diff = +/- abs({0}-{1})/max(abs({1}(max,min)))*100\n".format(
+            *names
+        )
 
-    noteline += (tab + 'Sign set such that positive % '
-                 'differences indicate exceedances\n')
+    noteline += tab + "Sign set such that positive % differences indicate exceedances\n"
     prtbad, prtbadh, prtbadl = prtbads
     flagbad, flagbadh, flagbadl = flagbads
-    if (prtbad is not None or prtbadh is not None or
-            prtbadl is not None):
+    if prtbad is not None or prtbadh is not None or prtbadl is not None:
         if prtbad is not None:
             prtbad = abs(prtbad)
-            noteline += (tab + 'Printing rows where abs(% Diff)'
-                         ' > {}%\n'.format(prtbad))
+            noteline += tab + "Printing rows where abs(% Diff) > {}%\n".format(prtbad)
         elif prtbadh is not None:
-            noteline += (tab + 'Printing rows where % Diff > '
-                         '{}%\n'.format(prtbadh))
+            noteline += tab + "Printing rows where % Diff > {}%\n".format(prtbadh)
         else:
-            noteline += (tab + 'Printing rows where % Diff < '
-                         '{}%\n'.format(prtbadl))
+            noteline += tab + "Printing rows where % Diff < {}%\n".format(prtbadl)
 
-    if (flagbad is not None or flagbadh is not None or
-            flagbadl is not None):
+    if flagbad is not None or flagbadh is not None or flagbadl is not None:
         if flagbad is not None:
             flagbad = abs(flagbad)
-            noteline += (tab + 'Flagging (*) rows where '
-                         'abs(% Diff) > {}%\n'.format(flagbad))
+            noteline += tab + "Flagging (*) rows where abs(% Diff) > {}%\n".format(
+                flagbad
+            )
         elif flagbadh is not None:
-            noteline += (tab + 'Flagging (*) rows where '
-                         '% Diff > {}%\n'.format(flagbadh))
+            noteline += tab + "Flagging (*) rows where % Diff > {}%\n".format(flagbadh)
         else:
-            noteline += (tab + 'Flagging (*) rows where '
-                         '% Diff < {}%\n'.format(flagbadl))
+            noteline += tab + "Flagging (*) rows where % Diff < {}%\n".format(flagbadl)
     return noteline
 
 
 def _get_badpv(pct, pv, bad, badh, badl, defaultpv=False):
-    if (bad is not None or badh is not None or
-            badl is not None):
+    if bad is not None or badh is not None or badl is not None:
         badpv = pv.copy()
         if bad is not None:
             badpv &= abs(pct) > bad
@@ -117,8 +103,7 @@ def _get_badpv(pct, pv, bad, badh, badl, defaultpv=False):
     return badpv
 
 
-def _get_pct_diff(a, b, filt, pv, nastring, mxmn_b=None, ismax=True,
-                  flagbads=None):
+def _get_pct_diff(a, b, filt, pv, nastring, mxmn_b=None, ismax=True, flagbads=None):
     # either can pass filter to be kept:
     pv &= (abs(a) > filt) | (abs(b) > filt)
 
@@ -136,7 +121,7 @@ def _get_pct_diff(a, b, filt, pv, nastring, mxmn_b=None, ismax=True,
     z = denom == 0.0
     denom[z] = 1.0
     pct = 100 * abs(a - b) / denom
-    pct[z] = 100.0    # np.inf
+    pct[z] = 100.0  # np.inf
 
     # make less extreme values negative
     neg = a < b if ismax else a > b
@@ -146,10 +131,10 @@ def _get_pct_diff(a, b, filt, pv, nastring, mxmn_b=None, ismax=True,
     pct[~pv] = np.nan
 
     # make 7 char version:
-    spct = ['{:7.2f}'.format(p) for p in pct]
+    spct = ["{:7.2f}".format(p) for p in pct]
     badpv = _get_badpv(pct, pv, *flagbads, False)
     for j in badpv.nonzero()[0]:
-        spct[j] += '*'
+        spct[j] += "*"
     for j in (~pv).nonzero()[0]:
         spct[j] = nastring
 
@@ -157,91 +142,109 @@ def _get_pct_diff(a, b, filt, pv, nastring, mxmn_b=None, ismax=True,
 
 
 def _get_histogram_str(desc, hdr, pctinfo):
-    pctcount = pctinfo['hsto']
-    s = [('\n\n    {} - {} Comparison Histogram\n\n'
-          .format(desc, hdr)),
-         ('      % Diff      Count    Percent\n'
-          '     --------   --------   -------\n')]
+    pctcount = pctinfo["hsto"]
+    s = [
+        ("\n\n    {} - {} Comparison Histogram\n\n".format(desc, hdr)),
+        ("      % Diff      Count    Percent\n     --------   --------   -------\n"),
+    ]
     with StringIO() as f:
-        writer.vecwrite(f, '     {:8.2f}   {:8.0f}   {:7.2f}\n',
-                        pctcount)
+        writer.vecwrite(f, "     {:8.2f}   {:8.0f}   {:7.2f}\n", pctcount)
         s.append(f.getvalue())
-        s.append('\n')
+        s.append("\n")
 
     last = -1.0
     for pdiff in [1, 2, 5, 10, 15, 20, 25, 50, 100, 500]:
         pvdiff = abs(pctcount[:, 0]) <= pdiff
         num = pctcount[pvdiff, 2].sum()
         if num > last:
-            s.append('    {:.1f}% of values are within {:d}%\n'
-                     .format(num, pdiff))
+            s.append("    {:.1f}% of values are within {:d}%\n".format(num, pdiff))
         if np.round(num * 10) == 1000:
             break
         last = num
 
-    pct = pctinfo['pct']
+    pct = pctinfo["pct"]
     n = len(pct)
     stddev = 0.0 if n <= 1 else pct.std(ddof=1)
-    s.append('\n    % Diff Statistics: [Min, Max, Mean, StdDev]'
-             ' = [{:.2f}, {:.2f}, {:.4f}, {:.4f}]\n'
-             .format(pct.min(), pct.max(), pct.mean(), stddev))
-    return ''.join(s)
+    s.append(
+        "\n    % Diff Statistics: [Min, Max, Mean, StdDev]"
+        " = [{:.2f}, {:.2f}, {:.4f}, {:.4f}]\n".format(
+            pct.min(), pct.max(), pct.mean(), stddev
+        )
+    )
+    return "".join(s)
 
 
-def _proc_pct(ext1, ext2, filterval, *, names, mxmn1,
-              comppv, mxmn_b, ismax, histogram_inc,
-              prtbads, flagbads, numform, valhdr, maxhdr,
-              minhdr, absmhdr, pdhdr, nastring, doabsmax,
-              shortabsmax, print_info):
+def _proc_pct(
+    ext1,
+    ext2,
+    filterval,
+    *,
+    names,
+    mxmn1,
+    comppv,
+    mxmn_b,
+    ismax,
+    histogram_inc,
+    prtbads,
+    flagbads,
+    numform,
+    valhdr,
+    maxhdr,
+    minhdr,
+    absmhdr,
+    pdhdr,
+    nastring,
+    doabsmax,
+    shortabsmax,
+    print_info
+):
     pv = comppv.copy()
     mag = ext1[comppv], ext2[comppv]  # good here?
-    pct, spct = _get_pct_diff(ext1, ext2, filterval, pv, nastring,
-                              mxmn_b=mxmn_b, ismax=ismax,
-                              flagbads=flagbads)
+    pct, spct = _get_pct_diff(
+        ext1,
+        ext2,
+        filterval,
+        pv,
+        nastring,
+        mxmn_b=mxmn_b,
+        ismax=ismax,
+        flagbads=flagbads,
+    )
     pct_ret = pct[pv]
     hsto = ytools.histogram(pct_ret, histogram_inc)
 
     # for trimming down if prtbad set:
     prtpv = _get_badpv(pct, pv, *prtbads, True)
-    pctlen = max(len(pdhdr),
-                 len(max(spct, key=len)))
-    sformatpd = '{{:{}}}'.format(pctlen)
+    pctlen = max(len(pdhdr), len(max(spct, key=len)))
+    sformatpd = "{{:{}}}".format(pctlen)
 
     # for writer.formheader:
-    numlen = max(13,
-                 len(max(names, key=len)),
-                 len(numform.format(np.pi)))
+    numlen = max(13, len(max(names, key=len)), len(numform.format(np.pi)))
     if not doabsmax:
-        print_info.headers1.extend([*names, ''])
+        print_info.headers1.extend([*names, ""])
         print_info.headers2.extend([valhdr, valhdr, pdhdr])
         print_info.formats.extend([numform, numform, sformatpd])
         print_info.printargs.extend([ext1, ext2, spct])
         print_info.widths.extend([numlen, numlen, pctlen])
         print_info.seps.extend([4, 2, 2])
-        print_info.justs.extend(['c', 'c', 'c'])
+        print_info.justs.extend(["c", "c", "c"])
     elif shortabsmax:
-        print_info.headers1.extend([*names, ''])
+        print_info.headers1.extend([*names, ""])
         print_info.headers2.extend([absmhdr, absmhdr, pdhdr])
         print_info.formats.extend([numform, numform, sformatpd])
         print_info.printargs.extend([ext1, ext2, spct])
         print_info.widths.extend([numlen, numlen, pctlen])
         print_info.seps.extend([4, 2, 2])
-        print_info.justs.extend(['c', 'c', 'c'])
+        print_info.justs.extend(["c", "c", "c"])
     else:
-        print_info.headers1.extend([names[0], names[0],
-                                    names[0], names[1], ''])
-        print_info.headers2.extend([maxhdr, minhdr, absmhdr,
-                                    absmhdr, pdhdr])
-        print_info.formats.extend([numform, numform, numform,
-                                   numform, sformatpd])
-        print_info.printargs.extend([mxmn1[:, 0], mxmn1[:, 1],
-                                     ext1, ext2, spct])
-        print_info.widths.extend([numlen, numlen, numlen,
-                                  numlen, pctlen])
+        print_info.headers1.extend([names[0], names[0], names[0], names[1], ""])
+        print_info.headers2.extend([maxhdr, minhdr, absmhdr, absmhdr, pdhdr])
+        print_info.formats.extend([numform, numform, numform, numform, sformatpd])
+        print_info.printargs.extend([mxmn1[:, 0], mxmn1[:, 1], ext1, ext2, spct])
+        print_info.widths.extend([numlen, numlen, numlen, numlen, pctlen])
         print_info.seps.extend([4, 2, 2, 2, 2])
-        print_info.justs.extend(['c', 'c', 'c', 'c', 'c'])
-    return dict(pct=pct_ret, spct=spct, hsto=hsto,
-                prtpv=prtpv, mag=mag)
+        print_info.justs.extend(["c", "c", "c", "c", "c"])
+    return dict(pct=pct_ret, spct=spct, hsto=hsto, prtpv=prtpv, mag=mag)
 
 
 def _figure_on(name, doabsmax, show_figures):
@@ -261,7 +264,7 @@ def _figure_off(show_figures):
 
 
 def _prep_subplot(pctinfo, sp):
-    if 'mx' in pctinfo:
+    if "mx" in pctinfo:
         # if not just doing absmax
         if sp > 311:
             plt.subplot(sp, sharex=plt.gca())
@@ -269,67 +272,92 @@ def _prep_subplot(pctinfo, sp):
             plt.subplot(sp)
 
 
-def _plot_magpct(pctinfo, names, desc, doabsmax, filename,
-                 magpct_filterval, magpct_symlog, use_range,
-                 maxhdr, minhdr, absmhdr, show_figures,
-                 tight_layout_args):
-    ptitle = '{} - {{}} Comparison vs Magnitude'.format(desc)
-    xl = '{} Magnitude'.format(names[1])
-    yl = '% Diff of {} vs {}'.format(*names)
-    _figure_on('Magpct - ' + desc, doabsmax, show_figures)
+def _plot_magpct(
+    pctinfo,
+    names,
+    desc,
+    doabsmax,
+    filename,
+    magpct_filterval,
+    magpct_symlog,
+    use_range,
+    maxhdr,
+    minhdr,
+    absmhdr,
+    show_figures,
+    tight_layout_args,
+):
+    ptitle = "{} - {{}} Comparison vs Magnitude".format(desc)
+    xl = "{} Magnitude".format(names[1])
+    yl = "% Diff of {} vs {}".format(*names)
+    _figure_on("Magpct - " + desc, doabsmax, show_figures)
     try:
-        for lbl, hdr, sp, ismax in (('mx', maxhdr, 311, True),
-                                    ('mn', minhdr, 312, False),
-                                    ('amx', absmhdr, 313, True)):
+        for lbl, hdr, sp, ismax in (
+            ("mx", maxhdr, 311, True),
+            ("mn", minhdr, 312, False),
+            ("amx", absmhdr, 313, True),
+        ):
             _prep_subplot(pctinfo, sp)
             if lbl in pctinfo:
                 if use_range:
-                    ref = pctinfo['amx']['mag'][1]
+                    ref = pctinfo["amx"]["mag"][1]
                 else:
                     ref = None
-                magpct(pctinfo[lbl]['mag'][0],
-                       pctinfo[lbl]['mag'][1],
-                       Ref=ref,
-                       ismax=ismax,
-                       filterval=magpct_filterval,
-                       symlog=magpct_symlog)
+                magpct(
+                    pctinfo[lbl]["mag"][0],
+                    pctinfo[lbl]["mag"][1],
+                    Ref=ref,
+                    ismax=ismax,
+                    filterval=magpct_filterval,
+                    symlog=magpct_symlog,
+                )
                 plt.title(ptitle.format(hdr))
                 plt.xlabel(xl)
                 plt.ylabel(yl)
             plt.grid(True)
         plt.tight_layout(**tight_layout_args)
         if isinstance(filename, str):
-            plt.savefig(filename + '.magpct.png')
+            plt.savefig(filename + ".magpct.png")
     finally:
         _figure_off(show_figures)
 
 
-def _plot_histogram(pctinfo, names, desc, doabsmax, filename,
-                    histogram_inc, maxhdr, minhdr, absmhdr,
-                    show_figures, tight_layout_args):
-    ptitle = '{} - {{}} Comparison Histogram'.format(desc)
-    xl = '% Diff of {} vs {}'.format(*names)
-    yl = 'Percent Occurrence (%)'
-    _figure_on('Histogram - ' + desc, doabsmax, show_figures)
+def _plot_histogram(
+    pctinfo,
+    names,
+    desc,
+    doabsmax,
+    filename,
+    histogram_inc,
+    maxhdr,
+    minhdr,
+    absmhdr,
+    show_figures,
+    tight_layout_args,
+):
+    ptitle = "{} - {{}} Comparison Histogram".format(desc)
+    xl = "% Diff of {} vs {}".format(*names)
+    yl = "Percent Occurrence (%)"
+    _figure_on("Histogram - " + desc, doabsmax, show_figures)
     try:
-        for lbl, hdr, sp in (('mx', maxhdr, 311),
-                             ('mn', minhdr, 312),
-                             ('amx', absmhdr, 313)):
+        for lbl, hdr, sp in (
+            ("mx", maxhdr, 311),
+            ("mn", minhdr, 312),
+            ("amx", absmhdr, 313),
+        ):
             _prep_subplot(pctinfo, sp)
             if lbl in pctinfo:
                 width = histogram_inc
-                x = pctinfo[lbl]['hsto'][:, 0]
-                y = pctinfo[lbl]['hsto'][:, 2]
-                colors = ['b'] * len(x)
+                x = pctinfo[lbl]["hsto"][:, 0]
+                y = pctinfo[lbl]["hsto"][:, 2]
+                colors = ["b"] * len(x)
                 ax = abs(x)
                 pv1 = ((ax > 5) & (ax <= 10)).nonzero()[0]
                 pv2 = (ax > 10).nonzero()[0]
-                for pv, c in ((pv1, 'm'),
-                              (pv2, 'r')):
+                for pv, c in ((pv1, "m"), (pv2, "r")):
                     for i in pv:
                         colors[i] = c
-                plt.bar(x, y, width=width, color=colors,
-                        align='center')
+                plt.bar(x, y, width=width, color=colors, align="center")
                 plt.title(ptitle.format(hdr))
                 plt.xlabel(xl)
                 plt.ylabel(yl)
@@ -339,25 +367,49 @@ def _plot_histogram(pctinfo, names, desc, doabsmax, filename,
             plt.grid(True)
         plt.tight_layout(**tight_layout_args)
         if isinstance(filename, str):
-            plt.savefig(filename + '.histogram.png')
+            plt.savefig(filename + ".histogram.png")
     finally:
         _figure_off(show_figures)
 
 
-def rptpct1(mxmn1, mxmn2, filename, *,
-            title='PERCENT DIFFERENCE REPORT',
-            names=('Self', 'Reference'),
-            desc=None, filterval=None, labels=None,
-            units=None, ignorepv=None, uf_reds=None,
-            use_range=True, numform=None,
-            prtbad=None, prtbadh=None, prtbadl=None,
-            flagbad=None, flagbadh=None, flagbadl=None,
-            dohistogram=True, histogram_inc=1.0,
-            domagpct=True, magpct_filterval='filterval',
-            magpct_symlog=True, doabsmax=False, shortabsmax=False,
-            roundvals=-1, rowhdr='Row', deschdr='Description',
-            maxhdr='Maximum', minhdr='Minimum', absmhdr='Abs-Max',
-            perpage=-1, tight_layout_args=None, show_figures=False):
+def rptpct1(
+    mxmn1,
+    mxmn2,
+    filename,
+    *,
+    title="PERCENT DIFFERENCE REPORT",
+    names=("Self", "Reference"),
+    desc=None,
+    filterval=None,
+    labels=None,
+    units=None,
+    ignorepv=None,
+    uf_reds=None,
+    use_range=True,
+    numform=None,
+    prtbad=None,
+    prtbadh=None,
+    prtbadl=None,
+    flagbad=None,
+    flagbadh=None,
+    flagbadl=None,
+    dohistogram=True,
+    histogram_inc=1.0,
+    domagpct=True,
+    magpct_filterval="filterval",
+    magpct_symlog=True,
+    doabsmax=False,
+    shortabsmax=False,
+    roundvals=-1,
+    rowhdr="Row",
+    deschdr="Description",
+    maxhdr="Maximum",
+    minhdr="Minimum",
+    absmhdr="Abs-Max",
+    perpage=-1,
+    tight_layout_args=None,
+    show_figures=False
+):
     """
     Write a percent difference report between 2 sets of max/min data.
 
@@ -675,9 +727,8 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         % Diff Statistics: [Min, Max, Mean, StdDev] = [-4.00, 4.35,...
     """
     if tight_layout_args is None:
-        tight_layout_args = {'pad': 3.0}
-    infovars = ('desc', 'filterval', 'labels',
-                'units', 'ignorepv', 'uf_reds')
+        tight_layout_args = {"pad": 3.0}
+    infovars = ("desc", "filterval", "labels", "units", "ignorepv", "uf_reds")
     dct = locals()
     infodct = {n: dct[n] for n in infovars}
     del dct
@@ -695,67 +746,69 @@ def rptpct1(mxmn1, mxmn2, filename, *,
     row_number = np.arange(1, mxmn1.shape[0] + 1)
 
     # check mxmn2:
-    if (isinstance(mxmn2, SimpleNamespace) and
-            getattr(mxmn2, 'drminfo', None)):
+    if isinstance(mxmn2, SimpleNamespace) and getattr(mxmn2, "drminfo", None):
         labels2 = mxmn2.drminfo.labels
         mxmn2 = mxmn2.ext
         # use labels and labels2 to align data; this is in case
         # the two sets of results recover some of the same items,
         # but not all
         mxmn1, mxmn2, row_number = _align_mxmn(
-            mxmn1, mxmn2, labels2, row_number, infodct)
+            mxmn1, mxmn2, labels2, row_number, infodct
+        )
     else:
         mxmn2 = np.atleast_2d(mxmn2)
 
-    desc = infodct['desc']
-    filterval = infodct['filterval']
-    labels = infodct['labels']
-    units = infodct['units']
-    ignorepv = infodct['ignorepv']
-    uf_reds = infodct['uf_reds']
+    desc = infodct["desc"]
+    filterval = infodct["filterval"]
+    labels = infodct["labels"]
+    units = infodct["units"]
+    ignorepv = infodct["ignorepv"]
+    uf_reds = infodct["uf_reds"]
 
     R = mxmn1.shape[0]
     if R != mxmn2.shape[0]:
-        raise ValueError('`mxmn1` and `mxmn2` have a different'
-                         ' number of rows (`desc` = {})'.format(desc))
+        raise ValueError(
+            "`mxmn1` and `mxmn2` have a different"
+            " number of rows (`desc` = {})".format(desc)
+        )
     if desc is None:
-        desc = 'No description provided'
+        desc = "No description provided"
 
     if filterval is None:
-        filterval = 1.e-6
+        filterval = 1.0e-6
     filterval = _proc_filterval(filterval, R)
 
     if labels is None:
-        labels = ['Row {:6d}'.format(i + 1)
-                  for i in range(R)]
+        labels = ["Row {:6d}".format(i + 1) for i in range(R)]
     elif len(labels) != R:
-        raise ValueError('length of `labels` does not match number'
-                         ' of rows in `mxmn1` (`desc` = {})'
-                         .format(desc))
+        raise ValueError(
+            "length of `labels` does not match number"
+            " of rows in `mxmn1` (`desc` = {})".format(desc)
+        )
     if units is None:
-        units = 'Not specified'
+        units = "Not specified"
     if numform is None:
         numform = _get_numform(mxmn1)
 
-    pdhdr = '% Diff'
-    nastring = 'n/a '
+    pdhdr = "% Diff"
+    nastring = "n/a "
     comppv = np.ones(R, bool)
     if ignorepv is not None:
         comppv[ignorepv] = False
 
     # for row labels:
     w = max(11, len(max(labels, key=len)))
-    frm = '{{:{:d}}}'.format(w)
+    frm = "{{:{:d}}}".format(w)
 
     # start preparing for writer.formheader:
     print_info = SimpleNamespace(
-        headers1=['', ''],
+        headers1=["", ""],
         headers2=[rowhdr, deschdr],
-        formats=['{:7d}', frm],
+        formats=["{:7d}", frm],
         printargs=[row_number, labels],
         widths=[7, w],
         seps=[0, 2],
-        justs=['c', 'l'],
+        justs=["c", "l"],
     )
 
     if shortabsmax:
@@ -771,15 +824,25 @@ def rptpct1(mxmn1, mxmn2, filename, *,
 
     # compute percent differences
     pctinfo = {}
-    kwargs = dict(names=names, mxmn1=mxmn1, comppv=comppv,
-                  histogram_inc=histogram_inc, numform=numform,
-                  prtbads=prtbads, flagbads=flagbads,
-                  maxhdr=maxhdr, minhdr=minhdr, absmhdr=absmhdr,
-                  pdhdr=pdhdr, nastring=nastring, doabsmax=doabsmax,
-                  shortabsmax=shortabsmax, print_info=print_info)
+    kwargs = dict(
+        names=names,
+        mxmn1=mxmn1,
+        comppv=comppv,
+        histogram_inc=histogram_inc,
+        numform=numform,
+        prtbads=prtbads,
+        flagbads=flagbads,
+        maxhdr=maxhdr,
+        minhdr=minhdr,
+        absmhdr=absmhdr,
+        pdhdr=pdhdr,
+        nastring=nastring,
+        doabsmax=doabsmax,
+        shortabsmax=shortabsmax,
+        print_info=print_info,
+    )
     with warnings.catch_warnings():
-        warnings.filterwarnings(
-            'ignore', r'All-NaN (slice|axis) encountered')
+        warnings.filterwarnings("ignore", r"All-NaN (slice|axis) encountered")
         mx1 = np.nanmax(abs(mxmn1), axis=1)
         mx2 = np.nanmax(abs(mxmn2), axis=1)
     if not doabsmax:
@@ -787,60 +850,89 @@ def rptpct1(mxmn1, mxmn2, filename, *,
         max2, min2 = mxmn2[:, 0], mxmn2[:, 1]
         mxmn_b = mxmn2 if use_range else None
         prtpv = np.zeros(R, bool)
-        for i in zip(('mx', 'mn', 'amx'),
-                     (max1, min1, mx1),
-                     (max2, min2, mx2),
-                     (True, False, True),
-                     (maxhdr, minhdr, absmhdr)):
+        for i in zip(
+            ("mx", "mn", "amx"),
+            (max1, min1, mx1),
+            (max2, min2, mx2),
+            (True, False, True),
+            (maxhdr, minhdr, absmhdr),
+        ):
             lbl, ext1, ext2, ismax, valhdr = i
-            pctinfo[lbl] = _proc_pct(ext1, ext2, filterval,
-                                     mxmn_b=mxmn_b, ismax=ismax,
-                                     valhdr=valhdr, **kwargs)
-            prtpv |= pctinfo[lbl]['prtpv']
+            pctinfo[lbl] = _proc_pct(
+                ext1,
+                ext2,
+                filterval,
+                mxmn_b=mxmn_b,
+                ismax=ismax,
+                valhdr=valhdr,
+                **kwargs
+            )
+            prtpv |= pctinfo[lbl]["prtpv"]
         prtpv &= comppv
     else:
-        pctinfo['amx'] = _proc_pct(mx1, mx2, filterval,
-                                   mxmn_b=None, ismax=True,
-                                   valhdr=absmhdr, **kwargs)
-        prtpv = pctinfo['amx']['prtpv']
+        pctinfo["amx"] = _proc_pct(
+            mx1, mx2, filterval, mxmn_b=None, ismax=True, valhdr=absmhdr, **kwargs
+        )
+        prtpv = pctinfo["amx"]["prtpv"]
     hu, frm = writer.formheader(
         [print_info.headers1, print_info.headers2],
-        print_info.widths, print_info.formats,
-        sep=print_info.seps, just=print_info.justs)
+        print_info.widths,
+        print_info.formats,
+        sep=print_info.seps,
+        just=print_info.justs,
+    )
 
     # format page header:
-    misc = (_get_filtline(filterval) +
-            _get_noteline(use_range, names, prtbads, flagbads))
-    hdrs = _get_rpt_headers(desc=desc, uf_reds=uf_reds,
-                            units=units, misc=misc)
-    header = (title + '\n\n' + hdrs + '\n')
+    misc = _get_filtline(filterval) + _get_noteline(use_range, names, prtbads, flagbads)
+    hdrs = _get_rpt_headers(desc=desc, uf_reds=uf_reds, units=units, misc=misc)
+    header = title + "\n\n" + hdrs + "\n"
 
     imode = plt.isinteractive()
     plt.interactive(show_figures)
     try:
         if domagpct:
             if isinstance(magpct_filterval, str):
-                if magpct_filterval != 'filterval':
+                if magpct_filterval != "filterval":
                     raise ValueError(
-                        '`magpct_filterval` is an invalid string: '
-                        '"{}" (can only be "filterval")'
-                        .format(magpct_filterval))
+                        "`magpct_filterval` is an invalid string: "
+                        '"{}" (can only be "filterval")'.format(magpct_filterval)
+                    )
                 magpct_filterval = filterval
-            _plot_magpct(pctinfo, names, desc, doabsmax, filename,
-                         magpct_filterval, magpct_symlog, use_range,
-                         maxhdr, minhdr, absmhdr, show_figures,
-                         tight_layout_args)
+            _plot_magpct(
+                pctinfo,
+                names,
+                desc,
+                doabsmax,
+                filename,
+                magpct_filterval,
+                magpct_symlog,
+                use_range,
+                maxhdr,
+                minhdr,
+                absmhdr,
+                show_figures,
+                tight_layout_args,
+            )
         if dohistogram:
-            _plot_histogram(pctinfo, names, desc, doabsmax, filename,
-                            histogram_inc, maxhdr, minhdr, absmhdr,
-                            show_figures, tight_layout_args)
+            _plot_histogram(
+                pctinfo,
+                names,
+                desc,
+                doabsmax,
+                filename,
+                histogram_inc,
+                maxhdr,
+                minhdr,
+                absmhdr,
+                show_figures,
+                tight_layout_args,
+            )
     finally:
         plt.interactive(imode)
 
     # write results
     @ytools.write_text_file
-    def _wtcmp(f, header, hu, frm, printargs, perpage,
-               prtpv, pctinfo, desc):
+    def _wtcmp(f, header, hu, frm, printargs, perpage, prtpv, pctinfo, desc):
         prtpv = prtpv.nonzero()[0]
         if perpage < 1:
             # one additional in case size is zero
@@ -850,7 +942,7 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             for i, item in enumerate(printargs):
                 printargs[i] = [item[j] for j in prtpv]
         tabhead = header + hu
-        pager = '\n'  # + chr(12)
+        pager = "\n"  # + chr(12)
         for p in range(pages):
             if p > 0:
                 f.write(pager)
@@ -859,12 +951,11 @@ def rptpct1(mxmn1, mxmn2, filename, *,
             e = b + perpage
             writer.vecwrite(f, frm, *printargs, so=slice(b, e))
         f.write(pager)
-        for lbl, hdr in zip(('mx', 'mn', 'amx'),
-                            (maxhdr, minhdr, absmhdr)):
+        for lbl, hdr in zip(("mx", "mn", "amx"), (maxhdr, minhdr, absmhdr)):
             if lbl in pctinfo:
-                f.write(_get_histogram_str(
-                    desc, hdr, pctinfo[lbl]))
+                f.write(_get_histogram_str(desc, hdr, pctinfo[lbl]))
 
-    _wtcmp(filename, header, hu, frm, print_info.printargs, perpage,
-           prtpv, pctinfo, desc)
+    _wtcmp(
+        filename, header, hu, frm, print_info.printargs, perpage, prtpv, pctinfo, desc
+    )
     return pctinfo

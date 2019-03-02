@@ -8,7 +8,7 @@ from ._utilities import get_su_coef, eigss, addconj, delconj
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -189,8 +189,18 @@ class SolveUnc(_BaseODE):
         >>> plt.tight_layout()
     """
 
-    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
-                 pre_eig=False, cd_as_force=False):
+    def __init__(
+        self,
+        m,
+        b,
+        k,
+        h=None,
+        rb=None,
+        rf=None,
+        order=1,
+        pre_eig=False,
+        cd_as_force=False,
+    ):
         """
         Instantiates a :class:`SolveUnc` solver.
 
@@ -339,13 +349,11 @@ class SolveUnc(_BaseODE):
         The mass, damping and stiffness may be real or complex since
         this solver is also used for frequency domain problems.
         """
-        self._common_precalcs(m, b, k, h, rb, rf, pre_eig,
-                              cd_as_force)
+        self._common_precalcs(m, b, k, h, rb, rf, pre_eig, cd_as_force)
         if self.ksize:
             if self.unc and self.systype is float:
                 self._inv_m()
-                self.pc = get_su_coef(self.m, self.b, self.k,
-                                      h, self.rb)
+                self.pc = get_su_coef(self.m, self.b, self.k, h, self.rb)
                 if self.cdforces and self.pc:
                     # add ``alpha = bo (I + Bp bo)^-1`` to pc:
                     Bp = self.pc.Bp[:, None]
@@ -393,8 +401,7 @@ class SolveUnc(_BaseODE):
             Time vector: np.arange(d.shape[1])*h
         """
         force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(force, d0, v0,
-                                        static_ic)
+        d, v, a, force = self._init_dva(force, d0, v0, static_ic)
         if self.nonrfsz:
             if self.unc and self.systype is float:
                 # for uncoupled, m, b, k have rb+el (all nonrf)
@@ -550,17 +557,16 @@ class SolveUnc(_BaseODE):
         """
         if not self.slices:
             raise NotImplementedError(
-                'generator not yet implemented for the case when'
-                ' different types of equations are interspersed (eg,'
-                ' a res-flex DOF in the middle of the elastic DOFs)')
-        d, v, a, force = self._init_dva_part(
-            nt, F0, d0, v0, static_ic)
+                "generator not yet implemented for the case when"
+                " different types of equations are interspersed (eg,"
+                " a res-flex DOF in the middle of the elastic DOFs)"
+            )
+        d, v, a, force = self._init_dva_part(nt, F0, d0, v0, static_ic)
         self._d, self._v, self._a, self._force = d, v, a, force
         if self.unc and self.systype is float:
             # for uncoupled, m, b, k have rb+el (all nonrf)
             if self.cdforces:
-                generator = self._solve_real_unc_generator_cdforces(
-                    d, v, F0)
+                generator = self._solve_real_unc_generator_cdforces(d, v, F0)
             else:
                 generator = self._solve_real_unc_generator(d, v, F0)
             next(generator)
@@ -663,8 +669,8 @@ class SolveUnc(_BaseODE):
         """
         if self.systype is not float:
             raise NotImplementedError(
-                ':func:`get_f2x` can only handle real equations of'
-                ' motion')
+                ":func:`get_f2x` can only handle real equations of motion"
+            )
         if self.order == 0:
             flex = 0.0
         else:
@@ -776,16 +782,16 @@ class SolveUnc(_BaseODE):
             >>> plt.tight_layout()
         """
         force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(
-            force, None, None, False, istime=False)
+        d, v, a, force = self._init_dva(force, None, None, False, istime=False)
         freq = np.atleast_1d(freq)
         self._force_freq_compat_chk(force, freq)
         if self.nonrfsz:
             if self.unc:
                 if self.cdforces:
                     raise NotImplementedError(
-                        'off-diagonal damping as forces is not '
-                        'implemented for the frequency domain')
+                        "off-diagonal damping as forces is not "
+                        "implemented for the frequency domain"
+                    )
                 # for uncoupled, m, b, k have rb+el (all nonrf)
                 self._solve_freq_unc(d, v, a, force, freq, incrb)
             else:
@@ -817,10 +823,8 @@ class SolveUnc(_BaseODE):
         D = d[kdof]
         V = v[kdof]
         if self.order == 1:
-            ABF = (A[:, None] * force[kdof, :-1] +
-                   B[:, None] * force[kdof, 1:])
-            ABFp = (Ap[:, None] * force[kdof, :-1] +
-                    Bp[:, None] * force[kdof, 1:])
+            ABF = A[:, None] * force[kdof, :-1] + B[:, None] * force[kdof, 1:]
+            ABFp = Ap[:, None] * force[kdof, :-1] + Bp[:, None] * force[kdof, 1:]
         else:
             ABF = (A + B)[:, None] * force[kdof, :-1]
             ABFp = (Ap + Bp)[:, None] * force[kdof, :-1]
@@ -861,10 +865,8 @@ class SolveUnc(_BaseODE):
         D = d[kdof]
         V = v[kdof]
         if self.order == 1:
-            ABF = (A[:, None] * force[kdof, :-1] +
-                   B[:, None] * force[kdof, 1:])
-            ABFp = (Ap[:, None] * force[kdof, :-1] +
-                    Bp[:, None] * force[kdof, 1:])
+            ABF = A[:, None] * force[kdof, :-1] + B[:, None] * force[kdof, 1:]
+            ABFp = Ap[:, None] * force[kdof, :-1] + Bp[:, None] * force[kdof, 1:]
         else:
             ABF = (A + B)[:, None] * force[kdof, :-1]
             ABFp = (Ap + Bp)[:, None] * force[kdof, :-1]
@@ -876,8 +878,7 @@ class SolveUnc(_BaseODE):
         for i in range(nt - 1):
             v_part = Fp * di + Gp * vi + ABFp[:, i] - Ap * dmpfrc0
             dmpfrc1 = alpha @ v_part
-            D[:, i + 1] = di = (F * di + G * vi +
-                                ABF[:, i] - A * dmpfrc0 - B * dmpfrc1)
+            D[:, i + 1] = di = F * di + G * vi + ABF[:, i] - A * dmpfrc0 - B * dmpfrc1
             V[:, i + 1] = vi = v_part - Bp * dmpfrc1
             dmpfrc0 = dmpfrc1
 
@@ -952,8 +953,7 @@ class SolveUnc(_BaseODE):
                         di = D[:, i - 1]
                         vi = V[:, i - 1]
                         D[:, i] = F * di + G * vi + A * F0k + B * F1k
-                        V[:, i] = (Fp * di + Gp * vi + Ap * F0k +
-                                   Bp * F1k)
+                        V[:, i] = Fp * di + Gp * vi + Ap * F0k + Bp * F1k
                         # rf:
                         drf[:, i] = ikrf * F1[rf]
             else:
@@ -973,8 +973,7 @@ class SolveUnc(_BaseODE):
                         di = d[:, i - 1]
                         vi = v[:, i - 1]
                         d[:, i] = F * di + G * vi + A * F0 + B * F1
-                        v[:, i] = (Fp * di + Gp * vi + Ap * F0 +
-                                   Bp * F1)
+                        v[:, i] = Fp * di + Gp * vi + Ap * F0 + Bp * F1
         else:
             # order == 0
             AB = A + B
@@ -1091,15 +1090,12 @@ class SolveUnc(_BaseODE):
                         di = D[:, i - 1]
                         vi = V[:, i - 1]
 
-                        dmpfrc0 = (dmpfrc1 if i_last == i - 1
-                                   else bo @ vi)
+                        dmpfrc0 = dmpfrc1 if i_last == i - 1 else bo @ vi
                         i_last = i
                         _f0 = F0k - dmpfrc0
-                        v_part = (Fp * di + Gp * vi +
-                                  Ap * _f0 + Bp * F1k)
+                        v_part = Fp * di + Gp * vi + Ap * _f0 + Bp * F1k
                         dmpfrc1 = alpha @ v_part
-                        D[:, i] = (F * di + G * vi +
-                                   A * _f0 + B * (F1k - dmpfrc1))
+                        D[:, i] = F * di + G * vi + A * _f0 + B * (F1k - dmpfrc1)
                         V[:, i] = v_part - Bp * dmpfrc1
 
                         # rf:
@@ -1125,15 +1121,12 @@ class SolveUnc(_BaseODE):
                         F0 = Force[:, i - 1]
                         di = d[:, i - 1]
                         vi = v[:, i - 1]
-                        dmpfrc0 = (dmpfrc1 if i_last == i - 1
-                                   else bo @ vi)
+                        dmpfrc0 = dmpfrc1 if i_last == i - 1 else bo @ vi
                         i_last = i
                         _f0 = F0 - dmpfrc0
-                        v_part = (Fp * di + Gp * vi +
-                                  Ap * _f0 + Bp * F1)
+                        v_part = Fp * di + Gp * vi + Ap * _f0 + Bp * F1
                         dmpfrc1 = alpha @ v_part
-                        d[:, i] = (F * di + G * vi +
-                                   A * _f0 + B * (F1 - dmpfrc1))
+                        d[:, i] = F * di + G * vi + A * _f0 + B * (F1 - dmpfrc1)
                         v[:, i] = v_part - Bp * dmpfrc1
         else:
             # order == 0
@@ -1162,14 +1155,11 @@ class SolveUnc(_BaseODE):
                         di = D[:, i - 1]
                         vi = V[:, i - 1]
 
-                        dmpfrc0 = (dmpfrc1 if i_last == i - 1
-                                   else bo @ vi)
+                        dmpfrc0 = dmpfrc1 if i_last == i - 1 else bo @ vi
                         i_last = i
-                        v_part = (Fp * di + Gp * vi +
-                                  ABp * F0k - Ap * dmpfrc0)
+                        v_part = Fp * di + Gp * vi + ABp * F0k - Ap * dmpfrc0
                         dmpfrc1 = alpha @ v_part
-                        D[:, i] = (F * di + G * vi + AB * F0k -
-                                   A * dmpfrc0 - B * dmpfrc1)
+                        D[:, i] = F * di + G * vi + AB * F0k - A * dmpfrc0 - B * dmpfrc1
                         V[:, i] = v_part - Bp * dmpfrc1
 
                         # rf:
@@ -1190,14 +1180,11 @@ class SolveUnc(_BaseODE):
                         di = d[:, i - 1]
                         vi = v[:, i - 1]
 
-                        dmpfrc0 = (dmpfrc1 if i_last == i - 1
-                                   else bo @ vi)
+                        dmpfrc0 = dmpfrc1 if i_last == i - 1 else bo @ vi
                         i_last = i
-                        v_part = (Fp * di + Gp * vi +
-                                  ABp * F0 - Ap * dmpfrc0)
+                        v_part = Fp * di + Gp * vi + ABp * F0 - Ap * dmpfrc0
                         dmpfrc1 = alpha @ v_part
-                        d[:, i] = (F * di + G * vi + AB * F0 -
-                                   A * dmpfrc0 - B * dmpfrc1)
+                        d[:, i] = F * di + G * vi + AB * F0 - A * dmpfrc0 - B * dmpfrc1
                         v[:, i] = v_part - Bp * dmpfrc1
 
     def _get_f2x_real_unc(self, phi, velo):
@@ -1241,8 +1228,7 @@ class SolveUnc(_BaseODE):
                 if self.unc:
                     rbforce = self.imrb * force[rb]
                 else:
-                    rbforce = la.lu_solve(self.imrb, force[rb],
-                                          check_finite=False)
+                    rbforce = la.lu_solve(self.imrb, force[rb], check_finite=False)
             else:
                 rbforce = force[rb]
             if nt > 1:
@@ -1289,20 +1275,17 @@ class SolveUnc(_BaseODE):
                 if self.unc:
                     imf = self.invm * force[kdof]
                 else:
-                    imf = la.lu_solve(self.invm, force[kdof],
-                                      check_finite=False)
+                    imf = la.lu_solve(self.invm, force[kdof], check_finite=False)
             else:
                 imf = force[kdof]
             w = ur_inv_v @ imf
             if self.order == 1:
-                ABF = (Ae[:, None] * w[:, :-1] +
-                       Be[:, None] * w[:, 1:])
+                ABF = Ae[:, None] * w[:, :-1] + Be[:, None] * w[:, 1:]
             else:
                 ABF = (Ae + Be)[:, None] * w[:, :-1]
 
-            y = np.empty((ur_inv_v.shape[0], nt), complex, order='F')
-            di = y[:, 0] = (ur_inv_v @ v[kdof, 0] +
-                            ur_inv_d @ d[kdof, 0])
+            y = np.empty((ur_inv_v.shape[0], nt), complex, order="F")
+            di = y[:, 0] = ur_inv_v @ v[kdof, 0] + ur_inv_d @ d[kdof, 0]
             for i in range(nt - 1):
                 di = y[:, i + 1] = Fe * di + ABF[:, i]
             if self.systype is float:
@@ -1338,8 +1321,7 @@ class SolveUnc(_BaseODE):
                     imrb = imrb.ravel()
                     rbforce = imrb * F0[rb]
                 else:
-                    imrb = la.lu_solve(imrb, np.eye(rbsize),
-                                       check_finite=False)
+                    imrb = la.lu_solve(imrb, np.eye(rbsize), check_finite=False)
                     rbforce = imrb @ F0[rb]
             else:
                 rbforce = F0[rb]
@@ -1387,8 +1369,7 @@ class SolveUnc(_BaseODE):
                 if self.unc:
                     invm = invm.ravel()
                 else:
-                    invm = la.lu_solve(invm, np.eye(ksize),
-                                       check_finite=False)
+                    invm = la.lu_solve(invm, np.eye(ksize), check_finite=False)
             D = d[kdof]
             V = v[kdof]
 
@@ -1398,8 +1379,7 @@ class SolveUnc(_BaseODE):
             if unc:
                 ikrf = ikrf.ravel()
             else:
-                ikrf = la.lu_solve(ikrf, np.eye(rfsize),
-                                   check_finite=False)
+                ikrf = la.lu_solve(ikrf, np.eye(rfsize), check_finite=False)
             drf = d[rf]
 
         while True:
@@ -1498,8 +1478,7 @@ class SolveUnc(_BaseODE):
                     # [V; D] = ur @ y
                     # y = ur_inv @ [V; D] =
                     #  [ur_inv_v, ur_inv_d] @ [V; D]
-                    y = (ur_inv_v @ V[:, i - 1] +
-                         ur_inv_d @ D[:, i - 1])
+                    y = ur_inv_v @ V[:, i - 1] + ur_inv_d @ D[:, i - 1]
                     yn = Fe * y + ABF
                     if systype is float:
                         # Can do real math for recovery. Note that the
@@ -1549,8 +1528,7 @@ class SolveUnc(_BaseODE):
                 if unc:
                     flexe = invm.ravel()[:, None] * flexe
                 else:
-                    flexe = la.lu_solve(invm, flexe,
-                                        check_finite=False)
+                    flexe = la.lu_solve(invm, flexe, check_finite=False)
             flexe = Be[:, None] * (ur_inv_v @ flexe)
             if velo:
                 flexe = rur_v @ flexe.real - iur_v @ flexe.imag
@@ -1567,8 +1545,7 @@ class SolveUnc(_BaseODE):
                 if unc:
                     flexr = imrb.ravel()[:, None] * flexr
                 else:
-                    flexr = la.lu_solve(imrb, flexr,
-                                        check_finite=False)
+                    flexr = la.lu_solve(imrb, flexr, check_finite=False)
             if velo:
                 flexr = pc.Ap * flexr
             else:
@@ -1675,7 +1652,7 @@ class SolveUnc(_BaseODE):
         # check for rb modes (5.e-5 determined by trial and
         #  error comparing against matrix exponential solver)
         abslam = abs(lam)
-        rb = abslam < 5.e-5
+        rb = abslam < 5.0e-5
         el = ~rb
         Fe = np.exp(lam * h)
         Ae = np.empty_like(Fe)
@@ -1685,9 +1662,9 @@ class SolveUnc(_BaseODE):
         Ae[el] = ilamh + Fe[el] * (ilam - ilamh)
         Be[el] = Fe[el] * ilamh - ilam - ilamh
         if rb.any():
-            Fe[rb] = 1.
-            Ae[rb] = h / 2.
-            Be[rb] = h / 2.
+            Fe[rb] = 1.0
+            Ae[rb] = h / 2.0
+            Be[rb] = h / 2.0
         pc.Fe = Fe
         pc.Ae = Ae
         pc.Be = Be
@@ -1723,8 +1700,7 @@ class SolveUnc(_BaseODE):
                 self._get_complex_su_coefs(pc, lam, self.h)
             self._add_partition_copies(pc, lam, ur, ur_inv)
 
-    def _solve_freq_rb(self, d, v, a, force, freqw, freqw2, incrb,
-                       unc):
+    def _solve_freq_rb(self, d, v, a, force, freqw, freqw2, incrb, unc):
         """Solve the rigid-body equations for
         :func:`SolveUnc.fsolve`"""
         if self.rbsize and incrb:
@@ -1733,28 +1709,26 @@ class SolveUnc(_BaseODE):
                 if unc:
                     a[rb] = self.invm[self._rb] * force[rb]
                 else:
-                    a[rb] = la.lu_solve(self.imrb, force[rb],
-                                        check_finite=False)
+                    a[rb] = la.lu_solve(self.imrb, force[rb], check_finite=False)
             else:
                 a[rb] = force[rb]
             pvnz = freqw != 0
             v[rb, pvnz] = (-1j / freqw[pvnz]) * a[rb, pvnz]
             if incrb == 2:
-                d[rb, pvnz] = (-1. / freqw2[pvnz]) * a[rb, pvnz]
+                d[rb, pvnz] = (-1.0 / freqw2[pvnz]) * a[rb, pvnz]
 
     def _solve_freq_unc(self, d, v, a, force, freq, incrb):
         """Solve the uncoupled equations for
         :func:`SolveUnc.fsolve`"""
         # convert frequency in Hz to radian/sec:
         freqw = 2 * np.pi * freq
-        freqw2 = freqw**2
+        freqw2 = freqw ** 2
 
         # solve rigid-body and elastic parts separately
         # - res-flex part was already solved in _init_dva
 
         # solve rigid-body part:
-        self._solve_freq_rb(d, v, a, force, freqw, freqw2, incrb,
-                            True)
+        self._solve_freq_rb(d, v, a, force, freqw, freqw2, incrb, True)
 
         # solve elastic part:
         if self.elsize:
@@ -1763,14 +1737,15 @@ class SolveUnc(_BaseODE):
             fw = freqw[None, :]
             fw2 = freqw2[None, :]
             if self.m is None:
-                d[el] = (force[el] /
-                         (1j * (self.b[_el][:, None] @ fw) +
-                          self.k[_el][:, None] - fw2))
+                d[el] = force[el] / (
+                    1j * (self.b[_el][:, None] @ fw) + self.k[_el][:, None] - fw2
+                )
             else:
-                d[el] = (force[el] /
-                         (1j * (self.b[_el][:, None] @ fw) +
-                            self.k[_el][:, None] -
-                          self.m[_el][:, None] @ fw2))
+                d[el] = force[el] / (
+                    1j * (self.b[_el][:, None] @ fw)
+                    + self.k[_el][:, None]
+                    - self.m[_el][:, None] @ fw2
+                )
             a[el] = d[el] * -(freqw2)
             v[el] = d[el] * (1j * freqw)
 
@@ -1778,14 +1753,13 @@ class SolveUnc(_BaseODE):
         """Solve the coupled equations for :func:`SolveUnc.fsolve`"""
         # convert frequency in Hz to radian/sec:
         freqw = 2 * np.pi * freq
-        freqw2 = freqw**2
+        freqw2 = freqw ** 2
 
         # solve rigid-body and elastic parts separately
         # - res-flex part was already solved in _init_dva
 
         # solve rigid-body part:
-        self._solve_freq_rb(d, v, a, force, freqw, freqw2, incrb,
-                            False)
+        self._solve_freq_rb(d, v, a, force, freqw, freqw2, incrb, False)
 
         # solve elastic part:
         if self.ksize:
@@ -1794,14 +1768,12 @@ class SolveUnc(_BaseODE):
             kdof = self.kdof
             # form complex state-space generalized force:
             if self.m is not None:
-                imf = la.lu_solve(self.invm, force[kdof],
-                                  check_finite=False)
+                imf = la.lu_solve(self.invm, force[kdof], check_finite=False)
             else:
                 imf = force[kdof]
             w = pc.ur_inv_v @ imf
             n = w.shape[0]
-            H = (np.ones((n, 1)) @ (1.0j * freqw[None, :]) -
-                 pc.lam[:, None])
+            H = np.ones((n, 1)) @ (1.0j * freqw[None, :]) - pc.lam[:, None]
             d[kdof] = pc.ur_d @ (w / H)
             a[kdof] = d[kdof] * -(freqw2)
             v[kdof] = d[kdof] * (1j * freqw)

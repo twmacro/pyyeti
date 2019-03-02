@@ -9,15 +9,12 @@ from pyyeti import locate
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
 
-__all__ = [
-    'get_su_coef', 'eigss', 'delconj', 'addconj', 'make_A',
-    'solvepsd',
-]
+__all__ = ["get_su_coef", "eigss", "delconj", "addconj", "make_A", "solvepsd"]
 
 
 def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
@@ -93,7 +90,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     else:
         wo2 = k / m
         C = (b / m) / 2
-    w2 = wo2 - C**2
+    w2 = wo2 - C ** 2
 
     if rbmodes is None:
         pvrb = (wo2 < 0.005).astype(int)
@@ -128,20 +125,17 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
         pvcrit = np.zeros(n, bool)
         pvundr = np.zeros(n, bool)
         rat = w2[pvel] / wo2[pvel]
-        pvundr[pvel] = rat >= 1.e-8
-        pvcrit[pvel] = abs(rat) < 1.e-8
+        pvundr[pvel] = rat >= 1.0e-8
+        pvcrit[pvel] = abs(rat) < 1.0e-8
         pvover[pvel] = rat <= -1e-8
 
-        if not np.all(rfmodes2 + pvrb + pvundr
-                      + pvover + pvcrit == 1):
-            badrows = np.nonzero(rfmodes2 + pvrb + pvundr
-                                 + pvover + pvcrit != 1)[0]
+        if not np.all(rfmodes2 + pvrb + pvundr + pvover + pvcrit == 1):
+            badrows = np.nonzero(rfmodes2 + pvrb + pvundr + pvover + pvcrit != 1)[0]
     elif not np.all(rfmodes2 + pvrb == 1):
         badrows = np.nonzero(rfmodes2 + pvrb != 1)[0]
 
     if badrows is not None:
-        msg = ('Partitioning problem. Check '
-               'settings for mode number(s):\n{}')
+        msg = "Partitioning problem. Check settings for mode number(s):\n{}"
         raise ValueError(msg.format(badrows))
 
     w2 = abs(w2)
@@ -162,8 +156,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
 
     if np.any(pvrb_damped):
         pvvelo = pvrb_damped.nonzero()[0]
-        pvdisp = ((abs(C[pvvelo]) > 10 * (1e-10 / h)**(1 / 3))
-                  .nonzero()[0])
+        pvdisp = (abs(C[pvvelo]) > 10 * (1e-10 / h) ** (1 / 3)).nonzero()[0]
         # F & Fp are correct already
         beta = C[pvvelo] * 2
         ibm = 1 / beta if m is None else 1 / (beta * m[pvvelo])
@@ -176,10 +169,8 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
             # coefficients are more accurate)
             pv = pvvelo[pvdisp]
             G[pv] = ((1 - ex) / beta)[pvdisp]
-            A[pv] = (ibm * ((1 / beta + ibbh) * ex
-                            + h / 2 - ibbh))[pvdisp]
-            B[pv] = (ibm * (h / 2 - 1 / beta
-                            + (1 - ex) * ibbh))[pvdisp]
+            A[pv] = (ibm * ((1 / beta + ibbh) * ex + h / 2 - ibbh))[pvdisp]
+            B[pv] = (ibm * (h / 2 - 1 / beta + (1 - ex) * ibbh))[pvdisp]
         Gp[pvvelo] = ex
         Ap[pvvelo] = ibm * (ibh - (1 + ibh) * ex)
         Bp[pvvelo] = ibm * (1 + ibh * (ex - 1))
@@ -201,15 +192,13 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
             t0 = 1 / (h * _k * w)
             t1 = (_w2 - beta * beta) / _wo2
             t2 = (2 * w * beta) / _wo2
-            A[pvundr] = t0 * (ex * ((t1 - h * beta) * sn
-                                    - (t2 + h * w) * cs) + t2)
+            A[pvundr] = t0 * (ex * ((t1 - h * beta) * sn - (t2 + h * w) * cs) + t2)
             B[pvundr] = t0 * (ex * (-t1 * sn + t2 * cs) + w * h - t2)
 
             # for velocity:
             Fp[pvundr] = -(_wo2 / w) * ex * sn
             Gp[pvundr] = ex * (cs - (beta / w) * sn)
-            Ap[pvundr] = t0 * (ex * ((beta + h * _wo2) * sn
-                                     + w * cs) - w)
+            Ap[pvundr] = t0 * (ex * ((beta + h * _wo2) * sn + w * cs) - w)
             Bp[pvundr] = t0 * (-ex * (beta * sn + w * cs) + w)
 
         if np.any(pvcrit):
@@ -223,8 +212,9 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
             F[pvcrit] = ex * (1 + hbeta)
             G[pvcrit] = h * ex
             t0 = 1 / (h * _k)
-            A[pvcrit] = t0 * (2 / beta - (1 / beta) * ex
-                              * (2 + 2 * hbeta + (hbeta * hbeta)))
+            A[pvcrit] = t0 * (
+                2 / beta - (1 / beta) * ex * (2 + 2 * hbeta + (hbeta * hbeta))
+            )
             B[pvcrit] = (t0 / beta) * (hbeta - 2 + ex * (2 + hbeta))
 
             # for velocity:
@@ -249,33 +239,40 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
             t0 = 1 / (h * _k * w)
             t1 = (_w2 + beta * beta) / _wo2
             t2 = (2 * w * beta) / _wo2
-            A[pvover] = t0 * (ex * (-(t1 + h * beta) * sn
-                                    - (t2 + h * w) * cs) + t2)
+            A[pvover] = t0 * (ex * (-(t1 + h * beta) * sn - (t2 + h * w) * cs) + t2)
             B[pvover] = t0 * (ex * (t1 * sn + t2 * cs) + w * h - t2)
 
             # for velocity:
             Fp[pvover] = -(_wo2 / w) * ex * sn
             Gp[pvover] = ex * (cs - (beta / w) * sn)
-            Ap[pvover] = t0 * (ex * ((beta + h * _wo2) * sn
-                                     + w * cs) - w)
+            Ap[pvover] = t0 * (ex * ((beta + h * _wo2) * sn + w * cs) - w)
             Bp[pvover] = t0 * (-ex * (beta * sn + w * cs) + w)
 
     if rfmodes is not None:
-        F[rfmodes] = 0.
-        G[rfmodes] = 0.
-        A[rfmodes] = 0.
-        B[rfmodes] = 1. / k[rfmodes]    # from k q = force
-        Fp[rfmodes] = 0.
-        Gp[rfmodes] = 0.
-        Ap[rfmodes] = 0.
-        Bp[rfmodes] = 0.
+        F[rfmodes] = 0.0
+        G[rfmodes] = 0.0
+        A[rfmodes] = 0.0
+        B[rfmodes] = 1.0 / k[rfmodes]  # from k q = force
+        Fp[rfmodes] = 0.0
+        Gp[rfmodes] = 0.0
+        Ap[rfmodes] = 0.0
+        Bp[rfmodes] = 0.0
 
-    return SimpleNamespace(F=F, G=G, A=A, B=B,
-                           Fp=Fp, Gp=Gp, Ap=Ap, Bp=Bp,
-                           pvrb=pvrb, pvrb_damped=pvrb_damped)
+    return SimpleNamespace(
+        F=F,
+        G=G,
+        A=A,
+        B=B,
+        Fp=Fp,
+        Gp=Gp,
+        Ap=Ap,
+        Bp=Bp,
+        pvrb=pvrb,
+        pvrb_damped=pvrb_damped,
+    )
 
 
-def _eigc_dups(lam, tol=1.e-10):
+def _eigc_dups(lam, tol=1.0e-10):
     """
     Find duplicate complex eigenvalues from state-space formulation.
 
@@ -315,7 +312,7 @@ def _eigc_dups(lam, tol=1.e-10):
 
     This routine is normally called by :func:`eigss`.
     """
-    i = np.argsort(abs(lam.imag), kind='mergesort')
+    i = np.argsort(abs(lam.imag), kind="mergesort")
     lams = lam[i]  # order: real then complex w/ conjugates adjacent
     # find repeated roots:
     dups = np.nonzero(locate.find_duplicates(lams, tol))[0]
@@ -399,17 +396,19 @@ def eigss(A, delcc):
     --------
     :func:`make_A`, :class:`SolveUnc`.
     """
-    msg = ('in :func:`eigss`, the eigenvectors for the state-'
-           'space formulation are poorly conditioned (cond={:.3e}). '
-           'Solution will likely be inaccurate.\n'
-           'Possible causes/solutions:\n'
-           '\tThe partition vector for the rigid-body modes is '
-           'incorrect or not set\n'
-           '\tThe equations are not in modal space, and the '
-           'rigid-body modes cannot be detected -- use the '
-           '`pre_eig` option\n'
-           '\tUse :class:`SolveExp2` instead for time domain, or\n'
-           '\tUse :class:`FreqDirect` instead for frequency domain\n')
+    msg = (
+        "in :func:`eigss`, the eigenvectors for the state-"
+        "space formulation are poorly conditioned (cond={:.3e}). "
+        "Solution will likely be inaccurate.\n"
+        "Possible causes/solutions:\n"
+        "\tThe partition vector for the rigid-body modes is "
+        "incorrect or not set\n"
+        "\tThe equations are not in modal space, and the "
+        "rigid-body modes cannot be detected -- use the "
+        "`pre_eig` option\n"
+        "\tUse :class:`SolveExp2` instead for time domain, or\n"
+        "\tUse :class:`FreqDirect` instead for frequency domain\n"
+    )
     lam, ur = la.eig(A)
     c = np.linalg.cond(ur)
     if c > 1 / np.finfo(float).eps:
@@ -464,14 +463,16 @@ def delconj(lam, ur, ur_inv, dups):
     deleted. In this case, outputs will be the same as the inputs.
     """
     # delete the negatives (imaginary part) of each comp-conj pair:
-    neg = lam.imag < 0.
+    neg = lam.imag < 0.0
     if np.any(neg):
         # see if lambda's are all comp-conj pairs; if not, do nothing
-        posi = np.nonzero(lam.imag > 0.)[0]
+        posi = np.nonzero(lam.imag > 0.0)[0]
         negi = np.nonzero(neg)[0]
-        if (posi.size == negi.size
-                and np.all(abs(posi - negi) == 1)
-                and np.all(lam[posi] == np.conj(lam[negi]))):
+        if (
+            posi.size == negi.size
+            and np.all(abs(posi - negi) == 1)
+            and np.all(lam[posi] == np.conj(lam[negi]))
+        ):
             # so, keep reals and positives of each complex conj. pair:
             keep = np.logical_not(neg)
             lam = lam[keep]
@@ -487,9 +488,9 @@ def delconj(lam, ur, ur_inv, dups):
                 dups = np.nonzero(temp)[0]
             # put factor of 2 in ur for recovery (because only one of
             # the complex conjugate pairs were solved for)
-            pv = lam.imag > 0.
+            pv = lam.imag > 0.0
             if np.any(pv):
-                ur[:, pv] *= 2.
+                ur[:, pv] *= 2.0
     return lam, ur, ur_inv, dups
 
 
@@ -542,22 +543,24 @@ def addconj(lam, ur, ur_inv):
     --------
     :func:`eigss`, :class:`SolveUnc`, :class:`SolveExp2`
     """
-    conj2 = np.nonzero(lam.imag > 0.)[0]
+    conj2 = np.nonzero(lam.imag > 0.0)[0]
     if ur.shape[0] > ur.shape[1] and conj2.size > 0:
-        if np.any(lam.imag < 0.):
+        if np.any(lam.imag < 0.0):
             return lam, ur, ur_inv
         two = ur_inv[conj2[0]] @ ur[:, conj2[0]]
-        if abs(two - 2.) > 1e-13:
-            raise ValueError('factor of 2.0 seems to be missing: '
-                             'error on first underdamped mode = {}'.
-                             format(abs(two - 2.)))
+        if abs(two - 2.0) > 1e-13:
+            raise ValueError(
+                "factor of 2.0 seems to be missing: "
+                "error on first underdamped mode = {}".format(abs(two - 2.0))
+            )
         n = len(lam) + len(conj2)
         if n != ur_inv.shape[1] or n != ur.shape[0]:
-            raise ValueError('ur and/or ur_inv will not be square '
-                             'after adding missing modes')
-        reals = np.nonzero(lam.imag == 0.)[0]
+            raise ValueError(
+                "ur and/or ur_inv will not be square after adding missing modes"
+            )
+        reals = np.nonzero(lam.imag == 0.0)[0]
         if len(reals) > 0 and np.max(reals) > np.min(conj2):
-            raise ValueError('not all underdamped are last')
+            raise ValueError("not all underdamped are last")
         conj2_new = conj2 + np.arange(1, len(conj2) + 1)
         conj1_new = conj2_new - 1
         lam1 = np.zeros(n, complex)
@@ -569,8 +572,8 @@ def addconj(lam, ur, ur_inv):
             ur_inv1[reals] = ur_inv[reals]
         lam1[conj1_new] = lam[conj2]
         lam1[conj2_new] = np.conj(lam[conj2])
-        ur1[:, conj1_new] = ur[:, conj2] / 2.
-        ur1[:, conj2_new] = np.conj(ur[:, conj2]) / 2.
+        ur1[:, conj1_new] = ur[:, conj2] / 2.0
+        ur1[:, conj2_new] = np.conj(ur[:, conj2]) / 2.0
         ur_inv1[conj1_new] = ur_inv[conj2]
         ur_inv1[conj2_new] = np.conj(ur_inv[conj2])
         return lam1, ur1, ur_inv1
@@ -635,8 +638,7 @@ def make_A(M, B, K):
             Atype = complex
     else:
         M, B, K = np.atleast_1d(M, B, K)
-        if (np.iscomplexobj(M) or np.iscomplexobj(B)
-                or np.iscomplexobj(K)):
+        if np.iscomplexobj(M) or np.iscomplexobj(B) or np.iscomplexobj(K):
             Atype = complex
     n = K.shape[0]
     A = np.zeros((2 * n, 2 * n), Atype)
@@ -650,17 +652,18 @@ def make_A(M, B, K):
         A[:n, n:] = -K
     else:
         A[v1, v2] = -K
-    A[v2, v1] = 1.
+    A[v2, v1] = 1.0
     if M is not None:
         if M.ndim == 1:
-            A[:n] = (1. / M).reshape(-1, 1) * A[:n]
+            A[:n] = (1.0 / M).reshape(-1, 1) * A[:n]
         else:
             A[:n] = la.solve(M, A[:n])
     return A
 
 
-def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2,
-             forcephi=None, rbduf=1.0, elduf=1.0):
+def solvepsd(
+    fs, forcepsd, t_frc, freq, drmlist, incrb=2, forcephi=None, rbduf=1.0, elduf=1.0
+):
     """
     Solve equations of motion in frequency domain with uncorrelated
     PSD forces.
@@ -791,12 +794,12 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2,
     freq = np.atleast_1d(freq)
     rpsd, cpsd = forcepsd.shape
     unitforce = np.ones((1, cpsd))
-    psd = [0.] * ndrms
-    rms = [0.] * ndrms
+    psd = [0.0] * ndrms
+    rms = [0.0] * ndrms
 
     for i in range(rpsd):
         # solve for unit frequency response function for i'th force:
-        genforce = t_frc[i:i + 1].T @ unitforce
+        genforce = t_frc[i : i + 1].T @ unitforce
         sol = fs.fsolve(genforce, freq, incrb)
         if rbduf != 1.0:
             sol.a[fs.rb] *= rbduf
@@ -809,14 +812,14 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2,
         for j, drmpair in enumerate(drmlist):
             atm = drmpair[0]
             dtm = drmpair[1]
-            frf = 0.
+            frf = 0.0
             if atm is not None:
                 frf += atm @ sol.a
             if dtm is not None:
                 frf += dtm @ sol.d
             if forcephi is not None:
-                frf -= forcephi[:, i:i + 1] @ unitforce
-            psd[j] += forcepsd[i] * abs(frf)**2
+                frf -= forcephi[:, i : i + 1] @ unitforce
+            psd[j] += forcepsd[i] * abs(frf) ** 2
 
     # compute area under curve:
     freqstep = np.diff(freq)

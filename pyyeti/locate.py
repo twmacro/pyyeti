@@ -7,7 +7,7 @@ import numpy as np
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -54,7 +54,7 @@ def find_vals(m, v):
     """
     m = np.atleast_1d(m)
     v = np.atleast_1d(v)
-    m = m.ravel(order='F')
+    m = m.ravel(order="F")
     v = v.ravel()
     pv = np.zeros(len(m), dtype=bool)
     for i in v:
@@ -62,7 +62,7 @@ def find_vals(m, v):
     return pv
 
 
-def find_duplicates(v, tol=0.):
+def find_duplicates(v, tol=0.0):
     """
     Find duplicate values in a vector (or within a tolerance).
 
@@ -135,8 +135,7 @@ def find_subseq(seq, subseq):
     seq = np.asarray(seq).reshape(-1)
     subseq = np.asarray(subseq).reshape(-1)
     target = np.dot(subseq, subseq)
-    candidates = np.where(np.correlate(seq, subseq,
-                                       mode='valid') == target)[0]
+    candidates = np.where(np.correlate(seq, subseq, mode="valid") == target)[0]
     # some of the candidates entries may be false positives; check:
     check = candidates[:, np.newaxis] + np.arange(len(subseq))
     mask = np.all((np.take(seq, check) == subseq), axis=-1)

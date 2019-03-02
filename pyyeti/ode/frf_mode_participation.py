@@ -4,13 +4,22 @@ import numpy as np
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
 
-def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
-                ylog=False, auto=None, idlabel='', frf_ttl=''):
+def getmodepart(
+    h_or_frq,
+    sols,
+    mfreq,
+    factor=2 / 3,
+    helpmsg=True,
+    ylog=False,
+    auto=None,
+    idlabel="",
+    frf_ttl="",
+):
     """
     Get modal participation from frequency response plots.
 
@@ -184,34 +193,38 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
     >>> print('freqs =', freqs)                     # doctest: +SKIP
     """
     # check sols:
-    if (not isinstance(sols, (list, tuple)) or
-            not isinstance(sols[0], (list, tuple))):
-        raise ValueError('`sols` must be list/tuple of lists/tuples')
+    if not isinstance(sols, (list, tuple)) or not isinstance(sols[0], (list, tuple)):
+        raise ValueError("`sols` must be list/tuple of lists/tuples")
 
     for j, s in enumerate(sols):
         if len(s) != 3:
-            raise ValueError('sols[{}] must have 3 elements: '
-                             '[Trecover, accel, labels]'.format(j))
+            raise ValueError(
+                "sols[{}] must have 3 elements: [Trecover, accel, labels]".format(j)
+            )
         Trec = np.atleast_2d(s[0])
         acce = np.atleast_2d(s[1])
         labels = s[2]
         if Trec.shape[0] == 1:
             if isinstance(labels, (list, tuple)) and len(labels) != 1:
-                raise ValueError('in sols[{}], Trecover has 1 row, '
-                                 'but labels is length {}'.
-                                 format(j, len(labels)))
+                raise ValueError(
+                    "in sols[{}], Trecover has 1 row, "
+                    "but labels is length {}".format(j, len(labels))
+                )
         else:
             if not isinstance(labels, (list, tuple)):
-                raise ValueError('in sols[{}], labels must be a '
-                                 'list/tuple because Trecover has '
-                                 'more than 1 row'.format(j))
+                raise ValueError(
+                    "in sols[{}], labels must be a "
+                    "list/tuple because Trecover has "
+                    "more than 1 row".format(j)
+                )
             if Trec.shape[0] != len(labels):
-                raise ValueError('in sols[{}], len(labels) != '
-                                 'Trecover.shape[0]'.format(j))
+                raise ValueError(
+                    "in sols[{}], len(labels) != Trecover.shape[0]".format(j)
+                )
         if Trec.shape[1] != acce.shape[0]:
             raise ValueError(
-                'in sols[{}], Trecover is not compatibly '
-                'sized with accel'.format(j))
+                "in sols[{}], Trecover is not compatibly sized with accel".format(j)
+            )
 
     def _getmds(modepart):
         # find largest contributor mode:
@@ -223,8 +236,10 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
         i = np.argsort(modepart[pv])[::-1]
         mds = pv[i]
         for m in mds:
-            print("\tSelected mode index (0-offset) {}, "
-                  "frequency {:.4f}".format(m, mfreq[m]))
+            print(
+                "\tSelected mode index (0-offset) {}, "
+                "frequency {:.4f}".format(m, mfreq[m])
+            )
         return mds
 
     mfreq = np.atleast_1d(mfreq)
@@ -233,10 +248,10 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
     else:
         freq = h_or_frq[0].get_xdata()
 
-    if getattr(auto, '__len__', None):
+    if getattr(auto, "__len__", None):
         s = sols[auto[0]]
         r = auto[1]
-        Trcv = np.atleast_2d(s[0])[r:r + 1]
+        Trcv = np.atleast_2d(s[0])[r : r + 1]
         resp = abs(Trcv @ s[1])
         # find which frequency index gave peak response:
         i = np.argmax(resp)
@@ -265,6 +280,7 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
 
     import matplotlib.pyplot as plt
     from pyyeti.datacursor import DC
+
     if isinstance(h_or_frq, np.ndarray):
         freq = h_or_frq
         h = []
@@ -277,28 +293,27 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
             if isinstance(curlabels, str):
                 curlabels = [curlabels]
             for j in range(Trec.shape[0]):
-                resp = abs(Trec[j:j + 1] @ acce).ravel()
-                h += plt.plot(freq, resp,
-                              label=curlabels[j])
+                resp = abs(Trec[j : j + 1] @ acce).ravel()
+                h += plt.plot(freq, resp, label=curlabels[j])
         if ylog:
-            plt.yscale('log')
+            plt.yscale("log")
         if frf_ttl:
             plt.title(frf_ttl)
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("FRF")
-        plt.legend(loc='best')
+        plt.legend(loc="best")
     else:
         h = h_or_frq
 
     plt.figure(mpname)
     plt.clf()
 
-    modes = []    # list to store modes
+    modes = []  # list to store modes
     primary = []  # flag to help delete plot objects logically
 
     def _addpoint(x, y, n, i, axes, ln):
         if ln not in h:
-            print('invalid curve ... ignoring')
+            print("invalid curve ... ignoring")
             return
 
         # find n'th (zero offset) Trec, acce, label:
@@ -327,15 +342,14 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
         plt.clf()
         # pv = np.nonzero((mfreq >= freq[0]) & (mfreq <= freq[-1]))[0]
         # plt.bar(mfreq[pv], modepart[pv], align='center')
-        plt.bar(mfreq, modepart, align='center')
+        plt.bar(mfreq, modepart, align="center")
         plt.title(label)
         plt.xlabel("Frequency (Hz)")
         plt.ylabel("Mode Participation")
         ax = plt.gca()
         for i, m in enumerate(mds):
-            barlabel = '{:.4f} Hz'.format(mfreq[m])
-            ax.text(mfreq[m], modepart[m], barlabel,
-                    ha='center', va='bottom')
+            barlabel = "{:.4f} Hz".format(mfreq[m])
+            ax.text(mfreq[m], modepart[m], barlabel, ha="center", va="bottom")
             modes.append(m)
             primary.append(i == 0)
         fig.canvas.draw()
@@ -363,9 +377,20 @@ def getmodepart(h_or_frq, sols, mfreq, factor=2 / 3, helpmsg=True,
     return modes, freqs
 
 
-def modeselect(name, fs, force, freq, Trcv, labelrcv, mfreq,
-               factor=2 / 3, helpmsg=True, ylog=False, auto=None,
-               idlabel=''):
+def modeselect(
+    name,
+    fs,
+    force,
+    freq,
+    Trcv,
+    labelrcv,
+    mfreq,
+    factor=2 / 3,
+    helpmsg=True,
+    ylog=False,
+    auto=None,
+    idlabel="",
+):
     """
     Select modes based on mode participation in graphically chosen
     responses.
@@ -468,6 +493,7 @@ def modeselect(name, fs, force, freq, Trcv, labelrcv, mfreq,
     sols = [[Trcv, sol.a, labelrcv]]
     if isinstance(auto, int):
         auto = [0, auto]
-    modes, freqs = getmodepart(freq, sols, mfreq, factor, helpmsg,
-                               ylog, auto, idlabel, frf_ttl=name)
+    modes, freqs = getmodepart(
+        freq, sols, mfreq, factor, helpmsg, ylog, auto, idlabel, frf_ttl=name
+    )
     return modes, freqs, Trcv @ sol.a

@@ -11,14 +11,16 @@ from pyyeti import locate
 try:
     import pyyeti.rainflow.c_rain as rain
 except ImportError:
-    warnings.warn('Compiled C version of rainflow algorithm failed to '
-                  'import. Using MUCH slower plain Python version.',
-                  RuntimeWarning)
+    warnings.warn(
+        "Compiled C version of rainflow algorithm failed to "
+        "import. Using MUCH slower plain Python version.",
+        RuntimeWarning,
+    )
     import pyyeti.rainflow.py_rain as rain
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -110,12 +112,12 @@ def rainflow(peaks, getoffsets=False):
     """
     if getoffsets:
         rf, os = rain.rainflow(peaks, getoffsets)
-        rf = pd.DataFrame(rf, columns=['amp', 'mean', 'count'])
-        os = pd.DataFrame(os, columns=['start', 'stop'])
+        rf = pd.DataFrame(rf, columns=["amp", "mean", "count"])
+        os = pd.DataFrame(os, columns=["start", "stop"])
         return rf, os
 
     rf = rain.rainflow(peaks, getoffsets)
-    return pd.DataFrame(rf, columns=['amp', 'mean', 'count'])
+    return pd.DataFrame(rf, columns=["amp", "mean", "count"])
 
 
 def findap(y, tol=1e-6):
@@ -258,7 +260,7 @@ def getbins(bins, mx, mn, right=True):
     if mx < mn:
         mx, mn = mn, mx
     elif mx == mn:
-        raise ValueError('`mx` and `mn` must not be equal')
+        raise ValueError("`mx` and `mn` must not be equal")
     if bins.size == 1:
         bins = int(bins)
         bb = np.linspace(mn, mx, bins + 1)
@@ -269,14 +271,15 @@ def getbins(bins, mx, mn, right=True):
             bb[-1] += p
     elif bins.ndim == 1:
         if np.any(np.diff(bins) <= 0):
-            raise ValueError('when `bins` is input as a vector, it '
-                             'must be monotonically increasing')
+            raise ValueError(
+                "when `bins` is input as a vector, it "
+                "must be monotonically increasing"
+            )
         bb = bins
     return bb
 
 
-def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
-            retbins=False):
+def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3, retbins=False):
     """
     Summarize cycle count results (as from :func:`rainflow`) into
     bins.
@@ -366,45 +369,46 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3,
     [-1.000, 0.000)            1.0            0.0            0.0
     [0.000, 1.002)             1.0            0.5            1.5
     """
-    ampb = getbins(ampbins, rf['amp'].max(),
-                   rf['amp'].min(), right)
-    aveb = getbins(meanbins, rf['mean'].max(),
-                   rf['mean'].min(), right)
+    ampb = getbins(ampbins, rf["amp"].max(), rf["amp"].min(), right)
+    aveb = getbins(meanbins, rf["mean"].max(), rf["mean"].min(), right)
     table = np.zeros((len(aveb) - 1, len(ampb) - 1))
-    f = '{:.' + str(precision) + 'f}'
-    f = f + ', ' + f
+    f = "{:." + str(precision) + "f}"
+    f = f + ", " + f
     if right:
+
         def _inbin(v, low, upp):
             return np.logical_and(v > low, v <= upp)
-        form = '(' + f + ']'
+
+        form = "(" + f + "]"
     else:
+
         def _inbin(v, low, upp):
             return np.logical_and(v >= low, v < upp)
-        form = '[' + f + ')'
+
+        form = "[" + f + ")"
     for i in range(len(aveb) - 1):
-        rows = _inbin(rf['mean'], aveb[i], aveb[i + 1])
+        rows = _inbin(rf["mean"], aveb[i], aveb[i + 1])
         if np.any(rows):
             rfrows = rf[rows]
             for j in range(len(ampb) - 1):
-                pv = _inbin(rfrows['amp'], ampb[j], ampb[j + 1])
+                pv = _inbin(rfrows["amp"], ampb[j], ampb[j + 1])
                 if np.any(pv):
-                    table[i, j] = np.sum(rfrows['count'][pv])
+                    table[i, j] = np.sum(rfrows["count"][pv])
 
     def _getlabels(bins):
-        return [form.format(i, j)
-                for i, j in zip(bins[:-1], bins[1:])]
+        return [form.format(i, j) for i, j in zip(bins[:-1], bins[1:])]
+
     index = _getlabels(aveb)
     columns = _getlabels(ampb)
     df = pd.DataFrame(table, index=index, columns=columns)
-    df.columns.name = 'Amp'
-    df.index.name = 'Mean'
+    df.columns.name = "Amp"
+    df.index.name = "Mean"
     if retbins:
         return df, ampb, aveb
     return df
 
 
-def sigcount(sig, ampbins=10, meanbins=1, right=True, precision=3,
-             retbins=False):
+def sigcount(sig, ampbins=10, meanbins=1, right=True, precision=3, retbins=False):
     """Do rainflow cycle counting on a signal.
 
     Parameters

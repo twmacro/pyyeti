@@ -17,7 +17,7 @@ from pyyeti import dsp, psd
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -135,13 +135,13 @@ def absacce(Q, dT, wn):
     B = dT * wd
     C = E * cos(B)
     if wn == 0:
-        b = np.array([0., 0., 0.])
+        b = np.array([0.0, 0.0, 0.0])
     else:
         S = E * sin(B)
         Sb = S / B
-        beta0 = (1 - Sb)
+        beta0 = 1 - Sb
         beta1 = 2 * (Sb - C)
-        beta2 = (E2 - Sb)
+        beta2 = E2 - Sb
         b = np.array([beta0, beta1, beta2])
     a = np.array([1, -2 * C, E2])
     return b, a
@@ -160,8 +160,8 @@ def relacce(Q, dT, wn):
     E2 = E * E
     B = dT * wd
     C = E * cos(B)
-    b = np.array([-1., 2., -1.])
-    if wn != 0.:
+    b = np.array([-1.0, 2.0, -1.0])
+    if wn != 0.0:
         b *= (E * sin(B)) / B
     a = np.array([1, -2 * C, E2])
     return b, a
@@ -182,7 +182,7 @@ def reldisp(Q, dT, wn):
     C = E * cos(B)
     if wn == 0:
         # See notes above for the derivation of these coefficients:
-        b = np.array([-1., -4., -1.]) * dT**2 / 6
+        b = np.array([-1.0, -4.0, -1.0]) * dT ** 2 / 6
     else:
         S = E * sin(B)
         f = dT * wn * wn * wn
@@ -209,7 +209,7 @@ def pvelo(Q, dT, wn):
     B = dT * wd
     C = E * cos(B)
     if wn == 0:
-        b = np.array([0., 0., 0.])
+        b = np.array([0.0, 0.0, 0.0])
     else:
         S = E * sin(B)
         f = dT * wn * wn
@@ -236,7 +236,7 @@ def pacce(Q, dT, wn):
     B = dT * wd
     C = E * cos(B)
     if wn == 0:
-        b = np.array([0., 0., 0.])
+        b = np.array([0.0, 0.0, 0.0])
     else:
         S = E * sin(B)
         f = dT * wn
@@ -255,9 +255,9 @@ def relvelo(Q, dT, wn):
     digital filter coefficients. Returns (b, a) for use in
     :func:`scipy.signal.lfilter`.
     """
-    if wn == 0.:
-        b = np.array([-1., -1.]) * dT / 2
-        a = np.array([1., -1.])
+    if wn == 0.0:
+        b = np.array([-1.0, -1.0]) * dT / 2
+        a = np.array([1.0, -1.0])
     else:
         zeta = 1 / 2 / Q
         sqz = sqrt(1 - zeta * zeta)
@@ -298,7 +298,7 @@ def _negsmeth(resp):
 
 
 def _rmsmeth(resp):
-    return np.sqrt((resp**2).mean(axis=0))
+    return np.sqrt((resp ** 2).mean(axis=0))
 
 
 def fftroll(sig, sr, ppc, frq):
@@ -340,8 +340,7 @@ def fftroll(sig, sr, ppc, frq):
         curppc = sr / frq
         factor = int(np.ceil(ppc / curppc))
         if N & 1:
-            sig = signal.resample(sig[:-1], factor * (N - 1),
-                                  axis=0)
+            sig = signal.resample(sig[:-1], factor * (N - 1), axis=0)
         else:
             sig = signal.resample(sig, factor * N, axis=0)
         sr *= factor
@@ -420,8 +419,8 @@ def preroll(sig, sr, ppc, frq):
             Improvement of the Smallwood Algorithm",
             http://www.vibrationdata.com/tutorials/Ahlin_SRS.pdf
     """
-    b = np.array([.8767, 1.7533, .8767])
-    a = np.array([1, 1.6296, .8111, .0659])
+    b = np.array([0.8767, 1.7533, 0.8767])
+    a = np.array([1, 1.6296, 0.8111, 0.0659])
     sig = signal.filtfilt(b, a, sig, axis=0)
     return sig, sr
 
@@ -459,7 +458,7 @@ def linroll(sig, sr, ppc, frq):
         factor = int(np.ceil(ppc / curppc))
         told = np.arange(N) / sr
         sr *= factor
-        tnew = np.linspace(0., told[-1], N * factor - 1)
+        tnew = np.linspace(0.0, told[-1], N * factor - 1)
         ifunc = interp.interp1d(told, sig, axis=0)
         sig = ifunc(tnew)
     return sig, sr
@@ -509,9 +508,9 @@ def _dosrs_nohist_ic(args):
     (j, (coeffunc, Q, dT, methfunc, S, stype)) = args
     b, a = coeffunc(Q, dT, WN_[j])
     resphist = signal.lfilter(b, a, SIG_, axis=0)
-    if stype == 'reldisp':
-        resphist += ICVALS_ / WN_[j]**2
-    elif stype == 'pvelo':
+    if stype == "reldisp":
+        resphist += ICVALS_ / WN_[j] ** 2
+    elif stype == "pvelo":
         resphist += ICVALS_ / WN_[j]
     else:
         # stype == 'pacce' or 'absacce'
@@ -525,9 +524,9 @@ def _dosrs_ic(args):
     (j, (coeffunc, Q, dT, methfunc, S, stype)) = args
     b, a = coeffunc(Q, dT, WN_[j])
     resphist = signal.lfilter(b, a, SIG_, axis=0)
-    if stype == 'reldisp':
-        resphist += ICVALS_ / WN_[j]**2
-    elif stype == 'pvelo':
+    if stype == "reldisp":
+        resphist += ICVALS_ / WN_[j] ** 2
+    elif stype == "pvelo":
         resphist += ICVALS_ / WN_[j]
     else:
         # stype == 'pacce' or 'absacce'
@@ -544,7 +543,7 @@ def _process_inputs(stype, peak, rolloff, time):
         "reldisp": reldisp,
         "relvelo": relvelo,
         "pvelo": pvelo,
-        "pacce": pacce
+        "pacce": pacce,
     }
     meth = {
         "pos": _posmeth,
@@ -552,20 +551,16 @@ def _process_inputs(stype, peak, rolloff, time):
         "abs": _absmeth,
         "rms": _rmsmeth,
         "poss": _possmeth,
-        "negs": _negsmeth
+        "negs": _negsmeth,
     }
     roll = {
         "fft": fftroll,
         "lanczos": lanroll,
         "prefilter": preroll,
         "linear": linroll,
-        "none": None
+        "none": None,
     }
-    ptr = {
-        "primary": 0,
-        "total": 1,
-        "residual": 2
-    }
+    ptr = {"primary": 0, "total": 1, "residual": 2}
     coeffunc = coefs[stype]
     if isinstance(peak, str):
         methfunc = meth[peak]
@@ -581,18 +576,22 @@ def _process_inputs(stype, peak, rolloff, time):
 
 def _process_parallel(parallel, LF, size, maxcpu, getresp):
     """Utility routine for srs"""
-    if parallel not in ['auto', 'yes', 'no']:
-        raise ValueError('invalid parallel option')
-    if parallel != 'no':
+    if parallel not in ["auto", "yes", "no"]:
+        raise ValueError("invalid parallel option")
+    if parallel != "no":
         ncpu = mp.cpu_count()
-    if parallel == 'auto':
-        if (LF > 1 and size > 50000 and
-                not getresp and ncpu > 1 and
-                not os.sys.platform.startswith('win')):
-            parallel = 'yes'
+    if parallel == "auto":
+        if (
+            LF > 1
+            and size > 50000
+            and not getresp
+            and ncpu > 1
+            and not os.sys.platform.startswith("win")
+        ):
+            parallel = "yes"
         else:
-            parallel = 'no'
-    if parallel == 'yes':
+            parallel = "no"
+    if parallel == "yes":
         if maxcpu and ncpu > maxcpu:
             ncpu = maxcpu
         elif ncpu > 4:
@@ -607,16 +606,16 @@ def _process_ic(sig, ic, stype):
     doic = 0
     icvals = None
     s1 = sig[0]
-    if ic == 'shift':
+    if ic == "shift":
         sig = sig - s1
-    elif ic == 'mshift':
+    elif ic == "mshift":
         sig = sig - sig.mean(axis=0)
-    elif ic == 'steady':
+    elif ic == "steady":
         sig = sig - s1
-        if stype == 'absacce':
+        if stype == "absacce":
             icvals = s1
             doic = 1
-        elif stype == 'relacce' or stype == 'relvelo':
+        elif stype == "relacce" or stype == "relvelo":
             pass
         else:
             # 'reldisp', 'pvelo' or 'pacce'
@@ -634,16 +633,29 @@ def _add_one_cycle(sig, freq, sr, H, ic, s1):
         minf = freq[pv].min()
         nzeros = int(np.ceil(sr / minf))
         z = np.zeros((nzeros, H))
-        if ic == 'steady':
+        if ic == "steady":
             sig = np.vstack((sig, z - s1))
         else:
             sig = np.vstack((sig, z))
     return sig, sig.shape[0]
 
 
-def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
-        ppc=12, rolloff='lanczos', eqsine=False, time='primary',
-        getresp=False, parallel='auto', maxcpu=14):
+def srs(
+    sig,
+    sr,
+    freq,
+    Q,
+    ic="zero",
+    stype="absacce",
+    peak="abs",
+    ppc=12,
+    rolloff="lanczos",
+    eqsine=False,
+    time="primary",
+    getresp=False,
+    parallel="auto",
+    maxcpu=14,
+):
     r"""
     Shock response spectrum - response of single DOF systems to base
     excitation(s).
@@ -972,8 +984,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
         >>> _ = plt.title(ttl)
         >>> _ = plt.grid(True)
     """
-    (coeffunc, methfunc,
-     rollfunc, ptr) = _process_inputs(stype, peak, rolloff, time)
+    (coeffunc, methfunc, rollfunc, ptr) = _process_inputs(stype, peak, rolloff, time)
     freq = np.atleast_1d(freq)
     wn = 2 * pi * freq
     LF = len(freq)
@@ -987,15 +998,16 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     H = sig.shape[1]  # number of histories
 
     if sr is None:
-        if N > 1 or ic == 'zero':
-            raise ValueError("`sr` can only be None if signal(s) are "
-                             "length 1 AND `ic` is not 'zero'")
-        sr = 1.0   # can be anything, just needed for calculations
+        if N > 1 or ic == "zero":
+            raise ValueError(
+                "`sr` can only be None if signal(s) are "
+                "length 1 AND `ic` is not 'zero'"
+            )
+        sr = 1.0  # can be anything, just needed for calculations
 
-    parallel, ncpu = _process_parallel(parallel, LF, N * H,
-                                       maxcpu, getresp)
+    parallel, ncpu = _process_parallel(parallel, LF, N * H, maxcpu, getresp)
 
-    if parallel == 'yes':
+    if parallel == "yes":
         # global shared vars will be:
         # SRSmax_, WN_, HIST_, SIG_, ICVALS_
         SRSmax = (createSharedArray((LF, H)), (LF, H))
@@ -1007,7 +1019,7 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
     sig, s1, doic, icvals = _process_ic(sig, ic, stype)
 
     mf = np.max(freq)
-    if rolloff == 'prefilter':
+    if rolloff == "prefilter":
         sig, sr = rollfunc(sig, sr, ppc, mf)
         rollfunc = None  # rolloff = 'none'
 
@@ -1022,75 +1034,72 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
 
     if getresp:
         resp = {}
-        resp['sr'] = sr
+        resp["sr"] = sr
         # hist is:  len(time) x nsignals x len(freq)
         if ptr == 2:
             # residual
-            resp['t'] = np.arange(M, N) / sr
-            if parallel == 'yes':
-                HIST = (createSharedArray((N - M, H, LF)),
-                        (N - M, H, LF))
+            resp["t"] = np.arange(M, N) / sr
+            if parallel == "yes":
+                HIST = (createSharedArray((N - M, H, LF)), (N - M, H, LF))
             else:
-                resp['hist'] = np.empty((N - M, H, LF))
+                resp["hist"] = np.empty((N - M, H, LF))
         else:
-            resp['t'] = np.arange(N) / sr
-            if parallel == 'yes':
+            resp["t"] = np.arange(N) / sr
+            if parallel == "yes":
                 HIST = (createSharedArray((N, H, LF)), (N, H, LF))
             else:
-                resp['hist'] = np.empty((N, H, LF))
+                resp["hist"] = np.empty((N, H, LF))
 
     # S is starting time for calcs; only non-zero if residual only:
     S = M if ptr == 2 else 0
 
     if doic:
-        if parallel == 'yes':
+        if parallel == "yes":
             SIG = (copyToSharedArray(sig), sig.shape)
             ICVALS = (copyToSharedArray(icvals), icvals.shape)
             args = (coeffunc, Q, 1 / sr, methfunc, S, stype)
             gvars = (WN, SIG, ICVALS, SRSmax, HIST)
             func = _dosrs_ic if getresp else _dosrs_nohist_ic
-            with mp.Pool(processes=ncpu,
-                         initializer=_mk_par_globals_ic,
-                         initargs=gvars) as pool:
-                for _ in pool.imap_unordered(
-                        func, zip(range(LF), it.repeat(args, LF))):
+            with mp.Pool(
+                processes=ncpu, initializer=_mk_par_globals_ic, initargs=gvars
+            ) as pool:
+                for _ in pool.imap_unordered(func, zip(range(LF), it.repeat(args, LF))):
                     pass
             SRSmax = np.frombuffer(SRSmax[0]).reshape(SRSmax[1])
             if getresp:
                 HIST = np.frombuffer(HIST[0]).reshape(HIST[1])
-                resp['hist'] = HIST
+                resp["hist"] = HIST
         else:
             dT = 1 / sr
             for j in range(LF):
                 b, a = coeffunc(Q, dT, wn[j])
                 resphist = signal.lfilter(b, a, sig, axis=0)
-                if stype == 'reldisp':
-                    resphist += icvals / wn[j]**2
-                elif stype == 'pvelo':
+                if stype == "reldisp":
+                    resphist += icvals / wn[j] ** 2
+                elif stype == "pvelo":
                     resphist += icvals / wn[j]
                 else:
                     # stype == 'pacce' or 'absacce'
                     resphist += icvals
                 SRSmax[j] = methfunc(resphist[S:])
                 if getresp:
-                    resp['hist'][:, :, j] = resphist[S:]
+                    resp["hist"][:, :, j] = resphist[S:]
     else:
         # no initial conditions to worry about:
-        if parallel == 'yes':
+        if parallel == "yes":
             SIG = (copyToSharedArray(sig), sig.shape)
             args = (coeffunc, Q, 1 / sr, methfunc, S)
             gvars = (WN, SIG, SRSmax, HIST)
             func = _dosrs if getresp else _dosrs_nohist
-            with mp.Pool(processes=ncpu,
-                         initializer=_mk_par_globals,
-                         initargs=gvars) as pool:
-                for _ in pool.imap_unordered(
-                        func, zip(range(LF), it.repeat(args, LF))):
+            with mp.Pool(
+                processes=ncpu, initializer=_mk_par_globals, initargs=gvars
+            ) as pool:
+                for _ in pool.imap_unordered(func, zip(range(LF), it.repeat(args, LF))):
                     pass
             SRSmax = np.frombuffer(SRSmax[0]).reshape(SRSmax[1])
             if getresp:
                 HIST = np.frombuffer(HIST[0]).reshape(HIST[1])
-                resp['hist'] = HIST
+                resp["hist"] = HIST
         else:
             dT = 1 / sr
             for j in range(LF):
@@ -1098,21 +1107,20 @@ def srs(sig, sr, freq, Q, ic='zero', stype='absacce', peak='abs',
                 resphist = signal.lfilter(b, a, sig, axis=0)
                 SRSmax[j] = methfunc(resphist[S:])
                 if getresp:
-                    resp['hist'][:, :, j] = resphist[S:]
+                    resp["hist"][:, :, j] = resphist[S:]
     if oneD:
         SRSmax = SRSmax.ravel()
     if getresp:
         if eqsine:
             SRSmax /= Q
-            resp['hist'] /= Q
+            resp["hist"] /= Q
         return SRSmax, resp
     if eqsine:
         SRSmax /= Q
     return SRSmax
 
 
-def vrs(spec, freq, Q, linear, Fn=None,
-        getmiles=False, getresp=False):
+def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     r"""
     Vibration response specturm - RMS response of single DOF systems
     to base PSD(s).
@@ -1285,9 +1293,8 @@ def vrs(spec, freq, Q, linear, Fn=None,
     Freq, PSD, npsds = psd.proc_psd_spec(spec)
     freq = np.atleast_1d(freq)
     rf = len(freq)
-    if Q <= .5:
-        raise ValueError('Q must be > 0.5 since VRS assumes'
-                         ' underdamped equations.')
+    if Q <= 0.5:
+        raise ValueError("Q must be > 0.5 since VRS assumes underdamped equations.")
     # expand PSD:
     psdfull = psd.interp((Freq, PSD), freq, linear)
     if PSD.ndim == 1:
@@ -1309,9 +1316,14 @@ def vrs(spec, freq, Q, linear, Fn=None,
     # Compute Miles' equation
     if getresp or getmiles:
         if do_interp:
-            ifunc = interp.interp1d(freq, psdfull, axis=0,
-                                    bounds_error=False, fill_value=0,
-                                    assume_sorted=True)
+            ifunc = interp.interp1d(
+                freq,
+                psdfull,
+                axis=0,
+                bounds_error=False,
+                fill_value=0,
+                assume_sorted=True,
+            )
             psdf2 = ifunc(Fn)
             z_miles = np.sqrt((np.pi / 2 * Fn * Q) * psdf2.T).T
         else:
@@ -1325,22 +1337,25 @@ def vrs(spec, freq, Q, linear, Fn=None,
     if getresp:
         psd_vrs = np.empty((len(Fn), npsds, len(freq)))
         for i, fn in enumerate(Fn):
-            t = ((1 + (2 * zeta * freq / fn)**2) /
-                 ((1 - (freq / fn)**2)**2 +
-                  (2 * zeta * freq / fn)**2)) * psdfull.T
-            psd_vrs[i] = t   # npsds x len(freq)
+            t = (
+                (1 + (2 * zeta * freq / fn) ** 2)
+                / ((1 - (freq / fn) ** 2) ** 2 + (2 * zeta * freq / fn) ** 2)
+            ) * psdfull.T
+            psd_vrs[i] = t  # npsds x len(freq)
             z_vrs[i] = np.sqrt(np.sum(df * t, axis=1))
         resp = {}
-        resp['f'] = freq
-        resp['psd'] = psd_vrs
+        resp["f"] = freq
+        resp["psd"] = psd_vrs
         if PSD.ndim == 1:
             z_vrs = z_vrs.ravel()
         return z_vrs, z_miles, resp
 
     for i, fn in enumerate(Fn):
-        t = ((1 + (2 * zeta * freq / fn)**2) /
-             ((1 - (freq / fn)**2)**2 +
-              (2 * zeta * freq / fn)**2) * df) * psdfull.T
+        t = (
+            (1 + (2 * zeta * freq / fn) ** 2)
+            / ((1 - (freq / fn) ** 2) ** 2 + (2 * zeta * freq / fn) ** 2)
+            * df
+        ) * psdfull.T
         z_vrs[i] = np.sqrt(np.sum(t, axis=1))
     if PSD.ndim == 1:
         z_vrs = z_vrs.ravel()
@@ -1398,11 +1413,11 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
     True
     """
     srs_frq = np.asarray(srs_frq)
-    ws = 2. * np.pi * srs_frq
+    ws = 2.0 * np.pi * srs_frq
     n = len(ws)
     ms = np.ones(n, float)
     bs = 1 / Q * ws
-    ks = ws**2
+    ks = ws ** 2
 
     frf_frq = np.asarray(frf_frq)
     frf = np.asarray(frf)
@@ -1415,7 +1430,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
     ffreq = np.sort(np.hstack((frf_frq, srs_frq)))
     df = np.diff(ffreq)
     pv = np.ones(len(ffreq), bool)
-    pv[1:] = df > 1.e-5
+    pv[1:] = df > 1.0e-5
     ffreq = ffreq[pv]
     nf = len(ffreq)
     if len(frf_frq) == 1:
@@ -1426,12 +1441,12 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
         newfrf[i] = frf
         frf = newfrf
     else:
-        ifunc = interp.interp1d(frf_frq, frf, axis=0,
-                                bounds_error=False, fill_value=0,
-                                assume_sorted=True)
+        ifunc = interp.interp1d(
+            frf_frq, frf, axis=0, bounds_error=False, fill_value=0, assume_sorted=True
+        )
         frf = ifunc(ffreq)
     shk = np.empty((n, nfrf), float)
-    pvrb = ks < .005  # ks/ms < .005 ... since ms == 1
+    pvrb = ks < 0.005  # ks/ms < .005 ... since ms == 1
     pvel = np.logical_not(pvrb)
     rb = np.any(pvrb)
     el = np.any(pvel)
@@ -1440,18 +1455,20 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
     freqw = 2 * np.pi * ffreq
     if el:
         fw = freqw.reshape(1, -1)
-        H = (ks[pvel].reshape(-1, 1) -
-             ms[pvel].reshape(-1, 1) @ fw**2 +
-             1j * (bs[pvel].reshape(-1, 1) @ fw))
+        H = (
+            ks[pvel].reshape(-1, 1)
+            - ms[pvel].reshape(-1, 1) @ fw ** 2
+            + 1j * (bs[pvel].reshape(-1, 1) @ fw)
+        )
     a = np.empty((n, nf), complex)
     for j in range(nfrf):
         # compute relative response, then absolute (see eqns in srs)
-        a[:] = 0.
+        a[:] = 0.0
         fs = frf[:, j]  # len(frf)
         if rb:
             a[pvrb] = -fs  # / ms ... since ms == 1
         if el:
-            a[pvel] = (fs * freqw**2) / H
+            a[pvel] = (fs * freqw ** 2) / H
         shk[:, j] = abs(a + fs).max(axis=1)
     return shk
 
@@ -1564,9 +1581,15 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> _ = ax.set_zlabel('Amplitude')
         >>> _ = plt.title(ttl)
     """
-    return dsp.waterfall(sig, sr, timeslice, tsoverlap, srs,
-                         which=None, freq=freq,
-                         kwargs=dict(sr=sr, freq=freq,
-                                     Q=Q, **srsargs),
-                         slicefunc=dsp.windowends,
-                         slicekwargs=dict(portion=wep))
+    return dsp.waterfall(
+        sig,
+        sr,
+        timeslice,
+        tsoverlap,
+        srs,
+        which=None,
+        freq=freq,
+        kwargs=dict(sr=sr, freq=freq, Q=Q, **srsargs),
+        slicefunc=dsp.windowends,
+        slicekwargs=dict(portion=wep),
+    )

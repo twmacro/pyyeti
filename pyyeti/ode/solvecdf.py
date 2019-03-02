@@ -213,8 +213,7 @@ class SolveCDF(SolveUnc):
         >>> plt.tight_layout()
     """
 
-    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1,
-                 pre_eig=False):
+    def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1, pre_eig=False):
         """
         Instantiates a :class:`SolveCDF` solver.
 
@@ -222,8 +221,7 @@ class SolveCDF(SolveUnc):
         `cd_as_force` option set to True; see that function for more
         information.
         """
-        super().__init__(m, b, k, h, rb, rf, order, pre_eig,
-                         cd_as_force=True)
+        super().__init__(m, b, k, h, rb, rf, order, pre_eig, cd_as_force=True)
 
     def generator(self, nt, F0, d0=None, v0=None, static_ic=False):
         """

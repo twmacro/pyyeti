@@ -6,7 +6,7 @@ from ._base_ode_class import _BaseODE
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -296,17 +296,26 @@ class SolveNewmark(_BaseODE):
             if self.nonlin_terms == 0:
                 if self.unc:
                     for j in range(2, nt):
-                        D[:, j] = (F[:, j] + F[:, j - 1] +
-                                   F[:, j - 2] + A1 * D[:, j - 1] +
-                                   A0 * D[:, j - 2])
+                        D[:, j] = (
+                            F[:, j]
+                            + F[:, j - 1]
+                            + F[:, j - 2]
+                            + A1 * D[:, j - 1]
+                            + A0 * D[:, j - 2]
+                        )
                     De = 3 * F[:, -1] + A1 * D[:, -1] + A0 * D[:, -2]
                 else:
                     for j in range(2, nt):
-                        D[:, j] = (F[:, j] + F[:, j - 1]
-                                   + F[:, j - 2] + A1 @ D[:, j - 1]
-                                   + A0 @ D[:, j - 2])
+                        D[:, j] = (
+                            F[:, j]
+                            + F[:, j - 1]
+                            + F[:, j - 2]
+                            + A1 @ D[:, j - 1]
+                            + A0 @ D[:, j - 2]
+                        )
                     De = 3 * F[:, -1] + A1 @ D[:, -1] + A0 @ D[:, -2]
             else:
+
                 def _get_nonlin(j):
                     N = 0.0
                     for key, (func, T, args) in self.nl_dct.items():
@@ -317,18 +326,36 @@ class SolveNewmark(_BaseODE):
 
                 if self.unc:
                     for j in range(2, nt):
-                        D[:, j] = (F[:, j] + F[:, j - 1] +
-                                   F[:, j - 2] + _get_nonlin(j - 1) +
-                                   A1 * D[:, j - 1] + A0 * D[:, j - 2])
-                    De = (3 * F[:, -1] + _get_nonlin(nt - 1) +
-                          A1 * D[:, -1] + A0 * D[:, -2])
+                        D[:, j] = (
+                            F[:, j]
+                            + F[:, j - 1]
+                            + F[:, j - 2]
+                            + _get_nonlin(j - 1)
+                            + A1 * D[:, j - 1]
+                            + A0 * D[:, j - 2]
+                        )
+                    De = (
+                        3 * F[:, -1]
+                        + _get_nonlin(nt - 1)
+                        + A1 * D[:, -1]
+                        + A0 * D[:, -2]
+                    )
                 else:
                     for j in range(2, nt):
-                        D[:, j] = (F[:, j] + F[:, j - 1] +
-                                   F[:, j - 2] + _get_nonlin(j - 1) +
-                                   A1 @ D[:, j - 1] + A0 @ D[:, j - 2])
-                    De = (3 * F[:, -1] + _get_nonlin(nt - 1) +
-                          A1 @ D[:, -1] + A0 @ D[:, -2])
+                        D[:, j] = (
+                            F[:, j]
+                            + F[:, j - 1]
+                            + F[:, j - 2]
+                            + _get_nonlin(j - 1)
+                            + A1 @ D[:, j - 1]
+                            + A0 @ D[:, j - 2]
+                        )
+                    De = (
+                        3 * F[:, -1]
+                        + _get_nonlin(nt - 1)
+                        + A1 @ D[:, -1]
+                        + A0 @ D[:, -2]
+                    )
 
             # calculate velocity and acceleration
             V[:, 1:-1] = (D[:, 2:] - D[:, :-2]) / h2
@@ -614,9 +641,10 @@ class SolveNewmark(_BaseODE):
         Newmark Beta version of _init_dva
         """
         if force.shape[0] != self.n:
-            raise ValueError('Force matrix has {} rows; {} rows are '
-                             'expected'
-                             .format(force.shape[0], self.n))
+            raise ValueError(
+                "Force matrix has {} rows; {} rows are "
+                "expected".format(force.shape[0], self.n)
+            )
 
         d0, v0 = self._set_initial_cond(d0, v0)
         nt = force.shape[1]
@@ -665,21 +693,23 @@ class SolveNewmark(_BaseODE):
 
             # because of the - 1 subscript, do first step outside of
             # the loop:
-            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 + N +
-                                self.A1 * d0 + self.A0 * u_1)
+            d[self.nonrf, 1] = (
+                force[:, 1] + force[:, 0] + F_1 + N + self.A1 * d0 + self.A0 * u_1
+            )
         else:
             force[:, 0] = (self.k @ d0 + self.b @ v0) / 3.0
             # force[:, 0] = (3 * force[:, 0] + self.k @ d0 +
             #                self.b @ v0) / 6.0
             force = la.lu_solve(self.Ad, force, overwrite_b=True)
             F_1 = la.lu_solve(
-                self.Ad, (self.k @ u_1 + self.b @ v0) / 3,
-                overwrite_b=True)
+                self.Ad, (self.k @ u_1 + self.b @ v0) / 3, overwrite_b=True
+            )
 
             # because of the - 1 subscript, do first step outside of
             # the loop:
-            d[self.nonrf, 1] = (force[:, 1] + force[:, 0] + F_1 + N +
-                                self.A1 @ d0 + self.A0 @ u_1)
+            d[self.nonrf, 1] = (
+                force[:, 1] + force[:, 0] + F_1 + N + self.A1 @ d0 + self.A0 @ u_1
+            )
 
         a[self.nonrf, 0] = (d[self.nonrf, 1] - 2 * d0 + u_1) / (h * h)
         return d, v, a, force

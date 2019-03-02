@@ -85,8 +85,7 @@ def rainflow(peaks, getoffsets=False):
     peaks = np.atleast_1d(peaks)
     L = peaks.size if peaks.ndim == 1 else 0
     if L < 2:
-        raise ValueError("`peaks` must be a real vector with "
-                         "length >= 2")
+        raise ValueError("`peaks` must be a real vector with length >= 2")
     if getoffsets:
         return _rainflow2(peaks, L)
 
@@ -139,7 +138,7 @@ def rainflow(peaks, getoffsets=False):
         rf[n, 2] = 0.5
         A = B
 
-    return rf[:L - fullcyclesp1]
+    return rf[: L - fullcyclesp1]
 
 
 def _rainflow2(peaks, L):
@@ -204,4 +203,4 @@ def _rainflow2(peaks, L):
         os[n, 1] = cycle_index[k + 1]
         A = B
 
-    return rf[:L - fullcyclesp1], os[:L - fullcyclesp1]
+    return rf[: L - fullcyclesp1], os[: L - fullcyclesp1]

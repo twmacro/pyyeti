@@ -32,17 +32,36 @@ from pyyeti import locate
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
 
-__all__ = ['addgrid', 'addulvs', 'build_coords', 'mkcordcardinfo',
-           'expanddof', 'find_xyz_triples', 'formdrm', 'formrbe3',
-           'formtran', 'formulvs', 'getcoordinates', 'make_uset',
-           'mkdofpv', 'mksetpv', 'mkusetcoordinfo', 'mkusetmask',
-           'rbcoords', 'rbgeom', 'rbgeom_uset', 'rbmove', 'upasetpv',
-           'upqsetpv', 'usetprt']
+__all__ = [
+    "addgrid",
+    "addulvs",
+    "build_coords",
+    "mkcordcardinfo",
+    "expanddof",
+    "find_xyz_triples",
+    "formdrm",
+    "formrbe3",
+    "formtran",
+    "formulvs",
+    "getcoordinates",
+    "make_uset",
+    "mkdofpv",
+    "mksetpv",
+    "mkusetcoordinfo",
+    "mkusetmask",
+    "rbcoords",
+    "rbgeom",
+    "rbgeom_uset",
+    "rbmove",
+    "upasetpv",
+    "upqsetpv",
+    "usetprt",
+]
 
 
 def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
@@ -101,7 +120,7 @@ def rbgeom(grids, refpoint=np.array([[0, 0, 0]])):
     rbmodes[::6, 5] = -grids[:, 1]
     rbmodes[1::6, 5] = grids[:, 0]
     for i in range(6):
-        rbmodes[i::6, i] = 1.
+        rbmodes[i::6, i] = 1.0
     return rbmodes
 
 
@@ -174,8 +193,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     """
     # find the grids (ignore spoints and epoints)
     r = uset.shape[0]
-    grids = uset.index.get_level_values('id')
-    dof = uset.index.get_level_values('dof')
+    grids = uset.index.get_level_values("id")
+    dof = uset.index.get_level_values("dof")
     grid_rows = dof != 0
     # get the q-set and the left-over c-set:
     qset = mksetpv(uset, "p", "q")
@@ -183,7 +202,7 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
         qdof1 = dof[qset] == 1
         qgrids = grids[qset][qdof1]
         if qgrids.any():
-            pvq = mkdofpv(uset, 'p', qgrids)[0]
+            pvq = mkdofpv(uset, "p", qgrids)[0]
             grid_rows[pvq] = False
 
     rbmodes = np.zeros((r, 6))
@@ -196,24 +215,24 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     uset_dof1 = uset.iloc[::6, :]
     if np.size(refpoint) == 1:
         refpoint = uset_dof1.index.get_loc((refpoint, 1))
-    xyz = uset_dof1.loc[:, 'x':'z'].values
+    xyz = uset_dof1.loc[:, "x":"z"].values
     rb = rbgeom(xyz, refpoint)
 
     # treat as rectangular here; fix cylindrical & spherical below
     rb2 = np.zeros((np.shape(rb)))
     for j in range(ngrids):
         i = 6 * j
-        t = uset.iloc[i + 3:i + 6, 1:].values.T
-        rb2[i:i + 3] = t @ rb[i:i + 3]
-        rb2[i + 3:i + 6] = t @ rb[i + 3:i + 6]
+        t = uset.iloc[i + 3 : i + 6, 1:].values.T
+        rb2[i : i + 3] = t @ rb[i : i + 3]
+        rb2[i + 3 : i + 6] = t @ rb[i + 3 : i + 6]
 
     # fix up cylindrical:
     grid_loc = np.arange(0, uset.shape[0], 6)
-    cyl = (uset.loc[(slice(None), 2), 'y'] == 2).values
+    cyl = (uset.loc[(slice(None), 2), "y"] == 2).values
     if cyl.any():
         grid_loc_cyl = grid_loc[cyl]
         for i in grid_loc_cyl:
-            t = uset.iloc[i + 3:i + 6, 1:].values.T
+            t = uset.iloc[i + 3 : i + 6, 1:].values.T
             loc = uset.iloc[i, 1:]
             loc2 = t @ (loc - uset.iloc[i + 2, 1:]).values
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
@@ -221,15 +240,15 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
                 c = math.cos(th)
                 s = math.sin(th)
                 t = np.array([[c, s], [-s, c]])
-                rb2[i:i + 2] = t @ rb2[i:i + 2]
-                rb2[i + 3:i + 5] = t @ rb2[i + 3:i + 5]
+                rb2[i : i + 2] = t @ rb2[i : i + 2]
+                rb2[i + 3 : i + 5] = t @ rb2[i + 3 : i + 5]
 
     # fix up spherical:
-    sph = (uset.loc[(slice(None), 2), 'y'] == 3).values
+    sph = (uset.loc[(slice(None), 2), "y"] == 3).values
     if sph.any():
         grid_loc_sph = grid_loc[sph]
         for i in grid_loc_sph:
-            t = uset.iloc[i + 3:i + 6, 1:].values.T
+            t = uset.iloc[i + 3 : i + 6, 1:].values.T
             loc = uset.iloc[i, 1:]
             loc2 = t @ (loc - uset.iloc[i + 2, 1:]).values
             if abs(loc2[1]) + abs(loc2[0]) > 1e-8:
@@ -237,8 +256,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
                 c = math.cos(phi)
                 s = math.sin(phi)
                 t = np.array([[c, s], [-s, c]])
-                rb2[i:i + 2] = t @ rb2[i:i + 2]
-                rb2[i + 3:i + 5] = t @ rb2[i + 3:i + 5]
+                rb2[i : i + 2] = t @ rb2[i : i + 2]
+                rb2[i + 3 : i + 5] = t @ rb2[i + 3 : i + 5]
                 loc2[:2] = t @ loc2[:2]
             if abs(loc2[2]) + abs(loc2[0]) > 1e-8:
                 th = math.atan2(loc2[0], loc2[2])
@@ -247,8 +266,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
             c = math.cos(th)
             s = math.sin(th)
             t = np.array([[s, 0, c], [c, 0, -s], [0, 1, 0]])
-            rb2[i:i + 3] = t @ rb2[i:i + 3]
-            rb2[i + 3:i + 6] = t @ rb2[i + 3:i + 6]
+            rb2[i : i + 3] = t @ rb2[i : i + 3]
+            rb2[i + 3 : i + 6] = t @ rb2[i + 3 : i + 6]
 
     # prepare final output:
     rbmodes[grid_rows] = rb2
@@ -404,8 +423,8 @@ def rbcoords(rb, verbose=2):
     haderr = 0
     for j in range(n):
         row = j * 6
-        T = rb[row:row + 3, :3]
-        R = linalg.lstsq(T, rb[row:row + 3, 3:])[0]
+        T = rb[row : row + 3, :3]
+        R = linalg.lstsq(T, rb[row : row + 3, 3:])[0]
         deltax = R[1, 2]
         deltay = R[2, 0]
         deltaz = R[0, 1]
@@ -413,40 +432,50 @@ def rbcoords(rb, verbose=2):
         deltax2 = -R[2, 1]
         deltay2 = -R[0, 2]
         deltaz2 = -R[1, 0]
-        dev = np.max(np.vstack((np.max(np.abs(np.diag(R))),
-                                np.abs(deltax - deltax2),
-                                np.abs(deltay - deltay2),
-                                np.abs(deltaz - deltaz2))))
+        dev = np.max(
+            np.vstack(
+                (
+                    np.max(np.abs(np.diag(R))),
+                    np.abs(deltax - deltax2),
+                    np.abs(deltay - deltay2),
+                    np.abs(deltaz - deltaz2),
+                )
+            )
+        )
         coords[j] = [deltax, deltay, deltaz]
         mc = np.max(np.abs(coords[j]))
         if mc > np.finfo(float).eps:
-            err = dev / mc * 100.
+            err = dev / mc * 100.0
         else:
-            err = dev / np.finfo(float).eps * 100.
+            err = dev / np.finfo(float).eps * 100.0
         maxdev = max([maxdev, dev])
         maxerr = max([maxerr, err])
-        if verbose > 0 and (dev > mc * 1.e-6 or math.isnan(dev)):
+        if verbose > 0 and (dev > mc * 1.0e-6 or math.isnan(dev)):
             if verbose > 1:
-                print("Warning:  deviation from standard pattern, "
-                      "node #{} starting at index {}:".
-                      format(j + 1, row))
+                print(
+                    "Warning:  deviation from standard pattern, "
+                    "node #{} starting at index {}:".format(j + 1, row)
+                )
                 print("  Max deviation = {:.3g} units.".format(dev))
                 print("  Max % error   = {:.3g}%.".format(err))
                 print("  Rigid-Body Rotations:")
                 for k in range(3):
-                    print("         {:10.4f} {:10.4f} {:10.4f}"
-                          .format(R[k, 0], R[k, 1], R[k, 2]))
+                    print(
+                        "         {:10.4f} {:10.4f} {:10.4f}".format(
+                            R[k, 0], R[k, 1], R[k, 2]
+                        )
+                    )
                 print("")
             haderr = 1
     if verbose > 0 and haderr:
-        print("Maximum absolute coordinate location error: "
-              "{:.3g} units".format(maxdev))
+        print(
+            "Maximum absolute coordinate location error: {:.3g} units".format(maxdev)
+        )
         print("Maximum % error: {:.3g}%.".format(maxerr))
     return coords, maxdev, maxerr
 
 
-def find_xyz_triples(drmrb, get_trans=False, mats=None,
-                     inplace=False):
+def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
     """
     Find x, y, z triples in rigid-body motion matrix.
 
@@ -629,19 +658,18 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None,
         else:
             mx = abs(T1).max()
             good = np.allclose(
-                csqr * T2, T1.T,
-                rtol=0.001, atol=max(0.001 * mx, 1.e-5))
+                csqr * T2, T1.T, rtol=0.001, atol=max(0.001 * mx, 1.0e-5)
+            )
         if good:
             rbrot = T2 @ drmrb[pv, 3:]
             x = rbrot[1, 2]
             y = rbrot[2, 0]
             z = rbrot[0, 1]
-            rbrot_ideal = np.array([[0, z, -y],
-                                    [-z, 0, x],
-                                    [y, -x, 0]])
+            rbrot_ideal = np.array([[0, z, -y], [-z, 0, x], [y, -x, 0]])
             mx = abs(rbrot_ideal).max()
-            if np.allclose(rbrot, rbrot_ideal,
-                           rtol=0.001, atol=max(0.001 * mx, 1.e-5)):
+            if np.allclose(
+                rbrot, rbrot_ideal, rtol=0.001, atol=max(0.001 * mx, 1.0e-5)
+            ):
                 coords[pv, 0] = x
                 coords[pv, 1] = y
                 coords[pv, 2] = z
@@ -657,9 +685,7 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None,
         else:
             j += 1
     pv = ~np.isnan(coords[:, 0])
-    s = SimpleNamespace(pv=pv,
-                        coords=coords,
-                        scales=scales)
+    s = SimpleNamespace(pv=pv, coords=coords, scales=scales)
     if get_trans:
         s.Ts = Ts
     if outmats:
@@ -713,14 +739,10 @@ def expanddof(dof):
     """
     dof = np.atleast_1d(dof).astype(np.int64)
     if dof.ndim < 2 or dof.shape[1] == 1:
-        return np.array([[n, i]
-                         for n in dof.ravel()
-                         for i in range(1, 7)])
+        return np.array([[n, i] for n in dof.ravel() for i in range(1, 7)])
     elif dof[:, 1].max() <= 6:
         return dof
-    return np.array([[node, int(i)]
-                     for node, arg in dof
-                     for i in str(arg)])
+    return np.array([[node, int(i)] for node, arg in dof for i in str(arg)])
 
 
 def mkusetmask(nasset=None):
@@ -802,32 +824,34 @@ def mkusetmask(nasset=None):
     n = f | s
     g = n | m
     p = g | e
-    usetmask = {'m': m,
-                'b': b,
-                'o': o,
-                'r': r,
-                's': s,
-                'q': q,
-                'c': c,
-                'e': e,
-                'a': a,
-                'l': l,
-                't': t,
-                'f': f,
-                'n': n,
-                'g': g,
-                'p': p,
-                'fe': f | e,
-                'd': e | a,
-                'ne': n | e,
-                'u1': 1 << 31,
-                'u2': 1 << 30,
-                'u3': 1 << 29,
-                'u4': 1 << 28,
-                'u5': 1 << 27,
-                'u6': 1 << 26}
+    usetmask = {
+        "m": m,
+        "b": b,
+        "o": o,
+        "r": r,
+        "s": s,
+        "q": q,
+        "c": c,
+        "e": e,
+        "a": a,
+        "l": l,
+        "t": t,
+        "f": f,
+        "n": n,
+        "g": g,
+        "p": p,
+        "fe": f | e,
+        "d": e | a,
+        "ne": n | e,
+        "u1": 1 << 31,
+        "u2": 1 << 30,
+        "u3": 1 << 29,
+        "u4": 1 << 28,
+        "u5": 1 << 27,
+        "u6": 1 << 26,
+    }
     if isinstance(nasset, str):
-        sets = nasset.split('+')
+        sets = nasset.split("+")
         usetmask1 = 0
         for set_ in sets:
             usetmask1 = usetmask1 | usetmask[set_]
@@ -967,9 +991,19 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
     """
     usetmask = mkusetmask()
     nasset = uset.iloc[:, 0].values
-    allsets = (list('MSOQRCBELTADF')
-               + ['FE', 'N', 'NE', 'G', 'P', 'U1',
-                'U2', 'U3', 'U4', 'U5', 'U6'])
+    allsets = list("MSOQRCBELTADF") + [
+        "FE",
+        "N",
+        "NE",
+        "G",
+        "P",
+        "U1",
+        "U2",
+        "U3",
+        "U4",
+        "U5",
+        "U6",
+    ]
     table = []
     for _set in allsets:
         table.append((nasset & usetmask[_set.lower()]) != 0)
@@ -982,10 +1016,10 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
     for i in range(c):
         pv = table[:, i].astype(bool)
         table[pv, i] = 1 + np.arange(n[i])
-    if printsets == '*':
+    if printsets == "*":
         printsets = allsets
     else:
-        printsets = (''.join(printsets.split())).upper().split(',')
+        printsets = ("".join(printsets.split())).upper().split(",")
     # keep only columns in table that are printed:
     printpv, pv2 = locate.list_intersect(allsets, printsets)
     # make sure printsets is in order of table:
@@ -996,13 +1030,10 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
     if pv.any():
         # make a dataframe:
         uset_index = uset.index
-        ind = [uset_index.get_level_values(i)
-               for i in range(uset_index.nlevels)]
+        ind = [uset_index.get_level_values(i) for i in range(uset_index.nlevels)]
         ind.append(1 + np.arange(r))
-        ind = pd.MultiIndex.from_arrays(
-            ind, names=[*uset_index.names, 'dof#'])
-        return_table = pd.DataFrame(
-            table, index=ind, columns=printsets)
+        ind = pd.MultiIndex.from_arrays(ind, names=[*uset_index.names, "dof#"])
+        return_table = pd.DataFrame(table, index=ind, columns=printsets)
         return_table = return_table.loc[pv]
     else:
         return_table = None
@@ -1018,10 +1049,12 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
         f = file
 
     nsets = len(printsets)
-    colheader = ("     "
-                 "        -1-        -2-        -3-        -4-"
-                 "        -5-        -6-        -7-        -8-"
-                 "        -9-       -10-")
+    colheader = (
+        "     "
+        "        -1-        -2-        -3-        -4-"
+        "        -5-        -6-        -7-        -8-"
+        "        -9-       -10-"
+    )
     printed = np.zeros((nsets), dtype=np.int64)
 
     s = 0
@@ -1052,22 +1085,19 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
             rem = pv.size - 10 * full_rows
             count = 1
             if full_rows:
-                usetfr = uset_mod[:full_rows * 10]
+                usetfr = uset_mod[: full_rows * 10]
                 for j in range(full_rows):
-                    f.write('{:6d}='.format(count))
+                    f.write("{:6d}=".format(count))
                     for k in range(10):
                         r = j * 10 + k
-                        f.write(
-                            ' {:8d}-{:1d}'.format(usetfr[r, 0],
-                                                  usetfr[r, 1]))
-                    f.write(' ={:6d}\n'.format(count + 9))
+                        f.write(" {:8d}-{:1d}".format(usetfr[r, 0], usetfr[r, 1]))
+                    f.write(" ={:6d}\n".format(count + 9))
                     count += 10
             if rem:
                 uset_rem = uset_mod[-rem:].astype(np.int64)
-                f.write('{:6d}='.format(count))
+                f.write("{:6d}=".format(count))
                 for j in range(rem):
-                    f.write(' {:8d}-{:1d}'.format(uset_rem[j, 0],
-                                                  uset_rem[j, 1]))
+                    f.write(" {:8d}-{:1d}".format(uset_rem[j, 0], uset_rem[j, 1]))
                 f.write("\n")
             f.write("\n")
         else:
@@ -1161,12 +1191,11 @@ def mksetpv(uset, major, minor):
         major = mkusetmask(major)
     if isinstance(minor, str):
         minor = mkusetmask(minor)
-    uset_set = uset['nasset'].values
+    uset_set = uset["nasset"].values
     pvmajor = (uset_set & major) != 0
     pvminor = (uset_set & minor) != 0
     if np.any(~pvmajor & pvminor):
-        raise ValueError("`minorset` is not completely contained"
-                         "in `majorset`")
+        raise ValueError("`minorset` is not completely containedin `majorset`")
     pv = pvminor[pvmajor]
     return pv
 
@@ -1255,18 +1284,19 @@ def mkdofpv(uset, nasset, dof, strict=True):
            [100,   3]]...))
     """
     if isinstance(uset, pd.DataFrame):
-        if nasset != 'p':
+        if nasset != "p":
             setpv = mksetpv(uset, "p", nasset)
             uset = uset.loc[setpv]
-        uset_set = (uset.index.get_level_values('id') * 10
-                    + uset.index.get_level_values('dof'))
+        uset_set = uset.index.get_level_values("id") * 10 + uset.index.get_level_values(
+            "dof"
+        )
     else:
-        if nasset == 'p':
+        if nasset == "p":
             uset_set = (uset[:, 0] * 10 + uset[:, 1]).astype(np.int64)
         else:
             raise ValueError(
-                '`nasset` must be "p" if `uset` is not a '
-                'pandas DataFrame')
+                '`nasset` must be "p" if `uset` is not a ' "pandas DataFrame"
+            )
 
     dof = expanddof(dof)
     dof = dof[:, 0] * 10 + dof[:, 1]
@@ -1279,12 +1309,13 @@ def mkdofpv(uset, nasset, dof, strict=True):
     chk = uset_set[pv] != dof
     if chk.any():
         if strict:
-            ids = (dof[chk] // 10)
+            ids = dof[chk] // 10
             dof = dof[chk] - 10 * ids
             missing_dof = np.column_stack((ids, dof))
-            msg = ("set '{}' does not contain all of the dof in "
-                   "`dof`. These are missing:\n{!s}"
-                   .format(nasset, missing_dof))
+            msg = (
+                "set '{}' does not contain all of the dof in "
+                "`dof`. These are missing:\n{!s}".format(nasset, missing_dof)
+            )
             raise ValueError(msg)
         else:
             chk = ~chk
@@ -1396,17 +1427,16 @@ def mkcordcardinfo(uset, cid=None):
     True
     """
     if cid == 0:
-        return ['CORD2R', np.array([[0, 1, 0],
-                                    [0., 0., 0.],
-                                    [0., 0., 1.],
-                                    [1., 0., 0.]])]
+        return [
+            "CORD2R",
+            np.array([[0, 1, 0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]),
+        ]
 
-    dof = uset.index.get_level_values('dof').values
+    dof = uset.index.get_level_values("dof").values
     pv = (dof == 2).nonzero()[0]
     if pv.size == 0:
         if cid is not None:
-            raise ValueError('{} not found ... USET table '
-                             'has no grids?'.format(cid))
+            raise ValueError("{} not found ... USET table has no grids?".format(cid))
         return {}
 
     def _getlist(coordinfo):
@@ -1417,17 +1447,16 @@ def mkcordcardinfo(uset, cid=None):
         B = A + T[2]
         C = A + T[0]
         typ = int(coordinfo[0, 1])
-        name = ['CORD2R', 'CORD2C', 'CORD2S'][typ - 1]
+        name = ["CORD2R", "CORD2C", "CORD2S"][typ - 1]
         return [name, np.vstack(([cid, typ, 0], A, B, C))]
 
     if cid is not None:
         pv2 = (uset.iloc[pv, 1] == cid).values.nonzero()[0]
         if pv2.size == 0:
-            raise ValueError('{} not found in USET table.'.
-                             format(cid))
+            raise ValueError("{} not found in USET table.".format(cid))
         pv2 = pv2[0]
         r = pv[pv2]
-        coordinfo = uset.iloc[r:r + 5, 1:]
+        coordinfo = uset.iloc[r : r + 5, 1:]
         return _getlist(coordinfo)
 
     CI = {}
@@ -1439,7 +1468,7 @@ def mkcordcardinfo(uset, cid=None):
     for cid in ids:
         pv2 = (uset.iloc[pv, 1] == cid).values.nonzero()[0][0]
         r = pv[pv2]
-        coordinfo = uset.iloc[r:r + 5, 1:]
+        coordinfo = uset.iloc[r : r + 5, 1:]
         CI[cid] = _getlist(coordinfo)
     return CI
 
@@ -1465,18 +1494,16 @@ def _mkusetcoordinfo_byid(refid, uset):
     See :func:`mkusetcoordinfo` for more information.
     """
     if refid == 0:
-        return np.vstack((np.array([[0, 1, 0], [0., 0., 0.]]),
-                          np.eye(3)))
+        return np.vstack((np.array([[0, 1, 0], [0.0, 0.0, 0.0]]), np.eye(3)))
     if uset is not None:
-        dof = uset.index.get_level_values('dof').values
+        dof = uset.index.get_level_values("dof").values
         pv = (dof == 2).nonzero()[0]
         if pv.size > 0:
             pos = (uset.iloc[pv, 1] == refid).values.nonzero()[0]
             if pos.size > 0:
                 i = pv[pos[0]]
-                return uset.iloc[i:i + 5, 1:].values
-    raise ValueError('reference coordinate id {} not '
-                     'found in `uset`.'.format(refid))
+                return uset.iloc[i : i + 5, 1:].values
+    raise ValueError("reference coordinate id {} not found in `uset`.".format(refid))
 
 
 def mkusetcoordinfo(cord, uset, coordref):
@@ -1553,7 +1580,7 @@ def mkusetcoordinfo(cord, uset, coordref):
             return ci
     cord = np.atleast_2d(cord)
     if cord.shape != (4, 3):
-        raise ValueError('incorrectly sized `cord` input')
+        raise ValueError("incorrectly sized `cord` input")
     cid, ctype = cord[0, :2].astype(np.int64)
 
     try:
@@ -1576,30 +1603,24 @@ def mkusetcoordinfo(cord, uset, coordref):
     a = cord[1]
     b = cord[2]
     c = cord[3]
-    a2r = math.pi / 180.
-    if refinfo[0, 1] == 2:   # cylindrical
-        a = np.hstack((a[0] * math.cos(a[1] * a2r),
-                       a[0] * math.sin(a[1] * a2r),
-                       a[2]))
-        b = np.hstack((b[0] * math.cos(b[1] * a2r),
-                       b[0] * math.sin(b[1] * a2r),
-                       b[2]))
-        c = np.hstack((c[0] * math.cos(c[1] * a2r),
-                       c[0] * math.sin(c[1] * a2r),
-                       c[2]))
-    if refinfo[0, 1] == 3:   # spherical
+    a2r = math.pi / 180.0
+    if refinfo[0, 1] == 2:  # cylindrical
+        a = np.hstack((a[0] * math.cos(a[1] * a2r), a[0] * math.sin(a[1] * a2r), a[2]))
+        b = np.hstack((b[0] * math.cos(b[1] * a2r), b[0] * math.sin(b[1] * a2r), b[2]))
+        c = np.hstack((c[0] * math.cos(c[1] * a2r), c[0] * math.sin(c[1] * a2r), c[2]))
+    if refinfo[0, 1] == 3:  # spherical
         s = math.sin(a[1] * a2r)
-        a = a[0] * np.hstack((s * math.cos(a[2] * a2r),
-                              s * math.sin(a[2] * a2r),
-                              math.cos(a[1] * a2r)))
+        a = a[0] * np.hstack(
+            (s * math.cos(a[2] * a2r), s * math.sin(a[2] * a2r), math.cos(a[1] * a2r))
+        )
         s = math.sin(b[1] * a2r)
-        b = b[0] * np.hstack((s * math.cos(b[2] * a2r),
-                              s * math.sin(b[2] * a2r),
-                              math.cos(b[1] * a2r)))
+        b = b[0] * np.hstack(
+            (s * math.cos(b[2] * a2r), s * math.sin(b[2] * a2r), math.cos(b[1] * a2r))
+        )
         s = math.sin(c[1] * a2r)
-        c = c[0] * np.hstack((s * math.cos(c[2] * a2r),
-                              s * math.sin(c[2] * a2r),
-                              math.cos(c[1] * a2r)))
+        c = c[0] * np.hstack(
+            (s * math.cos(c[2] * a2r), s * math.sin(c[2] * a2r), math.cos(c[1] * a2r))
+        )
     ab = b - a
     ac = c - a
     z = ab / linalg.norm(ab)
@@ -1673,9 +1694,11 @@ def build_coords(cords):
                 if np.all(cords[i] == cords[i + 1]):
                     delrows.append(i + 1)
                 else:
-                    raise RuntimeError('duplicate but unequal '
-                                       'coordinate systems detected.'
-                                       ' cid = {}'.format(cids[i]))
+                    raise RuntimeError(
+                        "duplicate but unequal "
+                        "coordinate systems detected."
+                        " cid = {}".format(cids[i])
+                    )
             cords = np.delete(cords, delrows, axis=0)
             cids = cords[:, 0]
         # make a uset table for the cord cards ...
@@ -1687,17 +1710,18 @@ def build_coords(cords):
         while np.any(selected == 0):
             pv = locate.find_vals(cords[:, 2], ref_ids).nonzero()[0]
             if pv.size == 0:
-                msg = ('Could not resolve coordinate systems. Need '
-                       'these coordinate cards:\n{!s}'
-                       .format(ref_ids))
+                msg = (
+                    "Could not resolve coordinate systems. Need "
+                    "these coordinate cards:\n{!s}".format(ref_ids)
+                )
                 raise RuntimeError(msg)
             selected[pv] = loop
             loop += 1
             ref_ids = cords[pv, 0]
         J = np.argsort(selected)
         for j in range(n):
-            cs = np.reshape(cords[J[j], :], (4, 3))   # , order='C')
-            addgrid(None, j + 1, 'b', 0, [0, 0, 0], cs, coordref)
+            cs = np.reshape(cords[J[j], :], (4, 3))  # , order='C')
+            addgrid(None, j + 1, "b", 0, [0, 0, 0], cs, coordref)
     return coordref
 
 
@@ -1913,7 +1937,7 @@ def getcoordinates(uset, gid, csys, coordref=None):
     array([ 0.,  0.,  0.])
     """
     if np.size(gid) == 1:
-        xyz_basic = uset.loc[(gid, 1), 'x':'z'].values
+        xyz_basic = uset.loc[(gid, 1), "x":"z"].values
     else:
         xyz_basic = np.asarray(gid).ravel()
     if np.size(csys) == 1 and csys == 0:
@@ -1923,7 +1947,7 @@ def getcoordinates(uset, gid, csys, coordref=None):
         coordref = {}
     coordinfo = mkusetcoordinfo(csys, uset, coordref)
     xyz_coord = coordinfo[1]
-    T = coordinfo[2:]   # transform to basic for coordinate system
+    T = coordinfo[2:]  # transform to basic for coordinate system
     g = T.T @ (xyz_basic - xyz_coord)
     ctype = coordinfo[0, 1].astype(np.int64)
     if ctype == 1:
@@ -1956,16 +1980,20 @@ def _get_loc_a_basic(coordinfo, a):
     if coordinfo[0, 1] == 1:
         location = coordloc + Tg @ a
     else:
-        a2r = math.pi / 180.
-        if coordinfo[0, 1] == 2:   # cylindrical
-            vec = np.array([a[0] * math.cos(a[1] * a2r),
-                            a[0] * math.sin(a[1] * a2r),
-                            a[2]])
-        else:                     # spherical
+        a2r = math.pi / 180.0
+        if coordinfo[0, 1] == 2:  # cylindrical
+            vec = np.array(
+                [a[0] * math.cos(a[1] * a2r), a[0] * math.sin(a[1] * a2r), a[2]]
+            )
+        else:  # spherical
             s = math.sin(a[1] * a2r)
-            vec = a[0] * np.array([s * math.cos(a[2] * a2r),
-                                   s * math.sin(a[2] * a2r),
-                                   math.cos(a[1] * a2r)])
+            vec = a[0] * np.array(
+                [
+                    s * math.cos(a[2] * a2r),
+                    s * math.sin(a[2] * a2r),
+                    math.cos(a[1] * a2r),
+                ]
+            )
         location = coordloc + Tg @ vec
     return location
 
@@ -2055,16 +2083,20 @@ def make_uset(dof, nasset=0, xyz=None):
         xyz = np.atleast_2d(xyz)
         if xyz.shape[0] != dof.shape[0]:
             raise ValueError(
-                'number of rows in `xyz` ({}) '
-                'must match number of rows in `dof` ({})'
-                .format(xyz.shape[0], dof.shape[0]))
+                "number of rows in `xyz` ({}) "
+                "must match number of rows in `dof` ({})".format(
+                    xyz.shape[0], dof.shape[0]
+                )
+            )
 
     nasset = np.atleast_1d(nasset).astype(int)
     if nasset.shape[0] not in (1, dof.shape[0]):
         raise ValueError(
-            'number of rows in `nasset` ({}) '
-            'must either be 1 or match number of rows in `dof` ({})'
-            .format(nasset.shape[0], dof.shape[0]))
+            "number of rows in `nasset` ({}) "
+            "must either be 1 or match number of rows in `dof` ({})".format(
+                nasset.shape[0], dof.shape[0]
+            )
+        )
 
     edof = expanddof(dof)
     # ensure that each grid has the full 6 rows:
@@ -2075,42 +2107,38 @@ def make_uset(dof, nasset=0, xyz=None):
     if gdof.shape[0] > 0:
         # there are grids
         n = gdof.shape[0] // 6
-        if (n * 6 != gdof.shape[0]
-                or not np.all(gdof == np.tile(np.arange(1, 7), n))):
-            raise ValueError(
-                'each GRID must have all DOF 1-6 specified')
-    ind = pd.MultiIndex.from_arrays([edof[:, 0], edof[:, 1]],
-                                    names=['id', 'dof'])
-    usetdf = (pd.DataFrame(dict(nasset=0, x=np.nan,
-                                y=np.nan, z=np.nan),
-                           index=ind,
-                           columns=['nasset', *'xyz'])
-              .astype({c: float for c in 'xyz'}))
+        if n * 6 != gdof.shape[0] or not np.all(gdof == np.tile(np.arange(1, 7), n)):
+            raise ValueError("each GRID must have all DOF 1-6 specified")
+    ind = pd.MultiIndex.from_arrays([edof[:, 0], edof[:, 1]], names=["id", "dof"])
+    usetdf = pd.DataFrame(
+        dict(nasset=0, x=np.nan, y=np.nan, z=np.nan),
+        index=ind,
+        columns=["nasset", *"xyz"],
+    ).astype({c: float for c in "xyz"})
 
     def _ensure_2cols(dof):
         # ensure dof has two # commentlumns
         if dof.ndim < 2:
-            dof = dof[:, None]   # make 2d
-            dof = np.column_stack(
-                (dof, 123456 * np.ones(dof.shape[0], int)))
+            dof = dof[:, None]  # make 2d
+            dof = np.column_stack((dof, 123456 * np.ones(dof.shape[0], int)))
         return dof
 
     if nasset.shape[0] == 1 or edof.shape[0] == dof.shape[0]:
         # nasset doesn't need expanding either, so just put it in:
         if nasset.shape[0] == 1:
             nasset = nasset[0]
-        usetdf.loc[:, 'nasset'] = nasset
+        usetdf.loc[:, "nasset"] = nasset
     else:
         # loop over each id to put in the nastran set information:
         dof = _ensure_2cols(dof)
         jdof = juset = 0
         while jdof < dof.shape[0]:
             if dof[jdof, 1] == 123456:
-                usetdf.iloc[juset:juset + 6, 0] = nasset[jdof]
+                usetdf.iloc[juset : juset + 6, 0] = nasset[jdof]
                 jdof += 1
                 juset += 6
             elif dof[jdof, 1] == 1:
-                usetdf.iloc[juset:juset + 6, 0] = nasset[jdof:jdof + 6]
+                usetdf.iloc[juset : juset + 6, 0] = nasset[jdof : jdof + 6]
                 jdof += 6
                 juset += 6
             else:
@@ -2123,15 +2151,18 @@ def make_uset(dof, nasset=0, xyz=None):
         return usetdf
 
     if edof.shape[0] == dof.shape[0]:
-        usetdf.loc[:, 'x':'z'] = xyz
+        usetdf.loc[:, "x":"z"] = xyz
     else:
         # define default coord info data for xyz columns:
-        basic = np.array([
-            [0.0, 1.0, 0.0],     # coord system info
-            [0.0, 0.0, 0.0],     # coord system origin
-            [1.0, 0.0, 0.0],     # | transform to basic
-            [0.0, 1.0, 0.0],     # | for coord system
-            [0.0, 0.0, 1.0]])    # |
+        basic = np.array(
+            [
+                [0.0, 1.0, 0.0],  # coord system info
+                [0.0, 0.0, 0.0],  # coord system origin
+                [1.0, 0.0, 0.0],  # | transform to basic
+                [0.0, 1.0, 0.0],  # | for coord system
+                [0.0, 0.0, 1.0],
+            ]
+        )  # |
 
         # loop over each id to put in the coordinate system
         # information:
@@ -2141,12 +2172,12 @@ def make_uset(dof, nasset=0, xyz=None):
             if dof[jdof, 1] == 123456:
                 # plug in default coord info:
                 usetdf.iloc[juset, 1:] = xyz[jdof]
-                usetdf.iloc[juset + 1:juset + 6, 1:] = basic
+                usetdf.iloc[juset + 1 : juset + 6, 1:] = basic
                 jdof += 1
                 juset += 6
             elif dof[jdof, 1] == 1:
                 # coord info provided in xyz:
-                usetdf.iloc[juset:juset + 6, 1:] = xyz[jdof:jdof + 6]
+                usetdf.iloc[juset : juset + 6, 1:] = xyz[jdof : jdof + 6]
                 jdof += 6
                 juset += 6
             else:
@@ -2186,12 +2217,14 @@ def _addgrid_get_uset(nasset, mask, smap):
         uset = smap[sid]
     except KeyError:
         if len(nasset) == 6:
-            uset = [mask[nasset[0]],
-                    mask[nasset[1]],
-                    mask[nasset[2]],
-                    mask[nasset[3]],
-                    mask[nasset[4]],
-                    mask[nasset[5]]]
+            uset = [
+                mask[nasset[0]],
+                mask[nasset[1]],
+                mask[nasset[2]],
+                mask[nasset[3]],
+                mask[nasset[4]],
+                mask[nasset[5]],
+            ]
         else:
             uset = mask[nasset]
         smap[sid] = uset
@@ -2353,20 +2386,17 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         pv = curgids.isin(gid)
         if pv.any():
             raise ValueError(
-                "these grid ids are already in `uset` table: {}".
-                format([*curgids[pv]]))
+                "these grid ids are already in `uset` table: {}".format([*curgids[pv]])
+            )
 
     # ensure basic coordinate system is present:
     if coordref is None:
-        coordref = {0: np.vstack((np.array([[0, 1, 0], [0., 0., 0.]]),
-                                  np.eye(3)))}
+        coordref = {0: np.vstack((np.array([[0, 1, 0], [0.0, 0.0, 0.0]]), np.eye(3)))}
     else:
         try:
             coordref[0]
         except KeyError:
-            coordref[0] = np.vstack((np.array([[0, 1, 0],
-                                               [0., 0., 0.]]),
-                                     np.eye(3)))
+            coordref[0] = np.vstack((np.array([[0, 1, 0], [0.0, 0.0, 0.0]]), np.eye(3)))
 
     mask = mkusetmask()
 
@@ -2400,9 +2430,9 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         _cout = mkusetcoordinfo(_cout, uset, coordref)
 
         # put in dataframe:
-        nd_nasset[i:i + 6] = _uset
+        nd_nasset[i : i + 6] = _uset
         nd_xyz[i] = loc
-        nd_xyz[i + 1:i + 6] = _cout
+        nd_xyz[i + 1 : i + 6] = _cout
         i += 6
 
     # turn back into dataframe:
@@ -2420,9 +2450,11 @@ def _solve(a, b):
     check on `a`. Call by :func:`formrbe3`."""
     c = np.linalg.cond(a)
     if c > 1 / np.finfo(float).eps:
-        warnings.warn('matrix is poorly conditioned (cond={:.3e}). '
-                      'Solution will likely be inaccurate.'.format(c),
-                      RuntimeWarning)
+        warnings.warn(
+            "matrix is poorly conditioned (cond={:.3e}). "
+            "Solution will likely be inaccurate.".format(c),
+            RuntimeWarning,
+        )
     return linalg.solve(a, b)
 
 
@@ -2602,13 +2634,16 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     wtdof = wtdof[pv]
 
     if UM_List is not None:
-        mdof = expanddof([[UM_List[j], UM_List[j + 1]]
-                          for j in range(0, len(UM_List), 2)])
+        mdof = expanddof(
+            [[UM_List[j], UM_List[j + 1]] for j in range(0, len(UM_List), 2)]
+        )
         if np.size(mdof, 0) != np.size(ddof, 0):
-            raise ValueError("incorrect size of M-set DOF ({}): "
-                             "must equal size of Dep DOF ({})."
-                             .format(np.size(mdof, 0),
-                                     np.size(ddof, 0)))
+            raise ValueError(
+                "incorrect size of M-set DOF ({}): "
+                "must equal size of Dep DOF ({}).".format(
+                    np.size(mdof, 0), np.size(ddof, 0)
+                )
+            )
         # The rest of the code uses 'mdof' to sort rows of the output
         # matrix. We could leave it as input, or sort it according to
         # the uset table. For now, sort it according to uset:
@@ -2635,7 +2670,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         n = uset.shape[0] // 6
         delta = uset.iloc[::6, 1:] - deploc
         Lc = np.sum(np.sqrt(np.sum(delta * delta, axis=1))) / (n - 1)
-        if Lc > 1.e-12:
+        if Lc > 1.0e-12:
             wtdof[rot] = wtdof[rot] * (Lc * Lc)
 
     # form rigid-body modes relative to GRID_dep
@@ -2703,7 +2738,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
     A = rbe3[np.ix_(dpv_mzo, ipv_mzo)]
     B = rbe3[np.ix_(dpv_mzo, notipv_m)]
-    C = rbe3[np.ix_(notdpv_m, ipv_mzo)]      # must be square
+    C = rbe3[np.ix_(notdpv_m, ipv_mzo)]  # must be square
     D = rbe3[np.ix_(notdpv_m, notipv_m)]
 
     n = np.size(C, 0)
@@ -2741,17 +2776,18 @@ def _findse(nas, se):
     r : index
         Rows index to where `se` is.
     """
-    r = np.nonzero(nas['selist'][:, 0] == se)[0]
+    r = np.nonzero(nas["selist"][:, 0] == se)[0]
     if r.size == 0:
-        msg = ("superelement {} not found. Current `selist` is:\n{!s}"
-               .format(se, nas['selist']))
+        msg = "superelement {} not found. Current `selist` is:\n{!s}".format(
+            se, nas["selist"]
+        )
         raise ValueError(msg)
     return r[0]
 
 
 def _get_node_ids(uset):
-    ids = uset.index.get_level_values('id')
-    dof = uset.index.get_level_values('dof')
+    ids = uset.index.get_level_values("id")
+    dof = uset.index.get_level_values("dof")
     return ids[dof <= 1]
 
 
@@ -2794,10 +2830,10 @@ def upasetpv(nas, seup):
     :func:`formulvs`, :func:`upqsetpv`.
     """
     r = _findse(nas, seup)
-    sedn = nas['selist'][r, 1]
-    usetdn = nas['uset'][sedn]
-    dnids = nas['dnids'][seup]
-    maps = nas['maps'][seup]
+    sedn = nas["selist"][r, 1]
+    usetdn = nas["uset"][sedn]
+    dnids = nas["dnids"][seup]
+    maps = nas["maps"][seup]
 
     # number of rows in pv should equal size of upstream a-set
     pv = usetdn.index.isin(dnids, level=0).nonzero()[0]
@@ -2805,19 +2841,19 @@ def upasetpv(nas, seup):
         # must be an external se, but non-csuper type (the extseout,
         # seconct, etc, type)
         # - see additional comments in upqsetpv
-        upids = nas['upids'][sedn]
+        upids = nas["upids"][sedn]
         pv = locate.find_vals(upids, dnids)
         ids = _get_node_ids(usetdn)
 
         # number of rows should equal size of upstream a-set
-        pv = usetdn.index.isin(ids[pv], level='id').nonzero()[0]
-        if len(pv) < len(dnids):   # pragma: no cover
-            raise ValueError('not all upstream DOF could'
-                             ' be found in downstream')
+        pv = usetdn.index.isin(ids[pv], level="id").nonzero()[0]
+        if len(pv) < len(dnids):  # pragma: no cover
+            raise ValueError("not all upstream DOF could be found in downstream")
     if len(maps) > 0:
-        if not np.all(maps[:, 1] == 1):   # pragma: no cover
-            raise ValueError('column 2 of MAPS for {} is not all 1.'
-                             '  Stopping.'.format(seup))
+        if not np.all(maps[:, 1] == 1):  # pragma: no cover
+            raise ValueError(
+                "column 2 of MAPS for {} is not all 1.  Stopping.".format(seup)
+            )
         # definition of maps:  dn = up(maps) ... want up = dn(maps2)
         # example:
         # maps = [ 2, 0, 1 ]
@@ -2871,43 +2907,44 @@ def upqsetpv(nas, sedn=0):
     :func:`mksetpv`, :func:`pyyeti.nastran.op2.rdnas2cam`,
     :func:`formulvs`, :func:`upasetpv`.
     """
-    selist = nas['selist']
+    selist = nas["selist"]
     rows = (selist[:, 1] == sedn).nonzero()[0]
     if rows.size == 0:
-        msg = ('downstream superelement {} not found in 2nd '
-               'column of `selist`. Current `selist` is:\n{!s}'
-               .format(sedn, nas['selist']))
+        msg = (
+            "downstream superelement {} not found in 2nd "
+            "column of `selist`. Current `selist` is:\n{!s}".format(sedn, nas["selist"])
+        )
         raise ValueError(msg)
 
-    usetdn = nas['uset'][sedn]
+    usetdn = nas["uset"][sedn]
     pv = np.zeros(usetdn.shape[0], bool)
 
     for r in rows:
         seup = selist[r, 0]
         if seup == sedn:
             continue
-        usetup = nas['uset'][seup]
-        dnids = nas['dnids'][seup]
-        maps = nas['maps'][seup]
+        usetup = nas["uset"][seup]
+        dnids = nas["dnids"][seup]
+        maps = nas["maps"][seup]
 
-        qup = mksetpv(usetup, 'a', 'q')
+        qup = mksetpv(usetup, "a", "q")
         if not qup.any():
             # assume any a-set spoints are q-set
-            dof = usetup.index.get_level_values('dof')
-            qup = dof[mksetpv(usetup, 'p', 'a')] == 0
+            dof = usetup.index.get_level_values("dof")
+            qup = dof[mksetpv(usetup, "p", "a")] == 0
             # qup = usetup[mksetpv(usetup, 'p', 'a'), 1] == 0
 
         # check to see if the upstream se has upstreams;
         # if so, include its qup:
         if (selist[:, 1] == seup).any():
             qup2 = upqsetpv(nas, seup)
-            qup = qup | qup2[mksetpv(usetup, 'p', 'a')]
+            qup = qup | qup2[mksetpv(usetup, "p", "a")]
 
         if qup.any():
             # expand downstream ids to include all dof:
             # number of rows in pv1 should equal size of
             # upstream a-set
-            pv1 = usetdn.index.isin(dnids, level='id')
+            pv1 = usetdn.index.isin(dnids, level="id")
 
             if np.count_nonzero(pv1) < dnids.size:
                 # must be an external se, but non-csuper type (the
@@ -2921,22 +2958,24 @@ def upqsetpv(nas, sedn=0):
                 # occurs in "upids", we're actually finding where
                 # "dnids" occurs in the p-set of the downstream ...
                 # just what we want.
-                upids = nas['upids'][sedn]
+                upids = nas["upids"][sedn]
                 pv1 = locate.find_vals(upids, dnids)
                 ids = _get_node_ids(usetdn)
 
                 # length of pv1 should equal size of upstream a-set
-                pv1 = usetdn.index.isin(ids[pv1], level='id')
+                pv1 = usetdn.index.isin(ids[pv1], level="id")
                 cnt = np.count_nonzero(pv1)
-                if cnt < dnids.size:   # pragma: no cover
-                    raise ValueError('not all upstream DOF could'
-                                     ' be found in downstream')
+                if cnt < dnids.size:  # pragma: no cover
+                    raise ValueError(
+                        "not all upstream DOF could be found in downstream"
+                    )
 
             if len(maps) > 0:
-                if not np.all(maps[:, 1] == 1):   # pragma: no cover
+                if not np.all(maps[:, 1] == 1):  # pragma: no cover
                     raise ValueError(
-                        'column 2 of MAPS for {} is not all 1.'
-                        ' Stopping.'.format(seup))
+                        "column 2 of MAPS for {} is not all 1."
+                        " Stopping.".format(seup)
+                    )
                 pv[pv1] = qup[maps[:, 0].astype(np.int64)]
             else:
                 pv[pv1] = qup
@@ -2952,7 +2991,7 @@ def _proc_mset(nas, se, dof):
     """
     # see if any of the DOF are in the m-set
     hasm = 0
-    uset = nas['uset'][se]
+    uset = nas["uset"][se]
     m = np.nonzero(mksetpv(uset, "g", "m"))[0]
     pvdofm = gm = None
     if m.size > 0:
@@ -2963,7 +3002,7 @@ def _proc_mset(nas, se, dof):
             hasm = 1
             m = m[pvdofm]
             # need gm
-            gm = nas['gm'][se]
+            gm = nas["gm"][se]
             gm = gm[pvdofm]
     return hasm, m, pvdofm, gm
 
@@ -2973,30 +3012,29 @@ def _formtran_0(nas, dof, gset):
     Utility routine called by :func:`formtran` when se == 0. See that
     routine for more information.
     """
-    uset = nas['uset'][0]
+    uset = nas["uset"][0]
     pvdof, dof = mkdofpv(uset, "g", dof)
 
     if gset:
-        ngset = np.count_nonzero(mksetpv(uset, 'p', 'g'))
+        ngset = np.count_nonzero(mksetpv(uset, "p", "g"))
         tran = np.zeros((len(pvdof), ngset))
         tran[:, pvdof] = np.eye(len(pvdof))
         return tran, dof
 
-    if 'phg' in nas and 0 in nas['phg']:
-        return nas['phg'][0][pvdof], dof
+    if "phg" in nas and 0 in nas["phg"]:
+        return nas["phg"][0][pvdof], dof
 
-    if 'pha' not in nas or 0 not in nas['pha']:
-        raise RuntimeError("neither nas['phg'][0] nor "
-                           "nas['pha'][0] are available.")
+    if "pha" not in nas or 0 not in nas["pha"]:
+        raise RuntimeError("neither nas['phg'][0] nor nas['pha'][0] are available.")
 
     o = np.nonzero(mksetpv(uset, "g", "o"))[0]
     iddof = uset.iloc[:, :0].reset_index().values
-    if o.size > 0:   # pragma: no cover
+    if o.size > 0:  # pragma: no cover
         v = locate.mat_intersect(iddof[o], dof)[0]
         if v.size > 0:
-            raise RuntimeError("some of the DOF of SE 0 go to the"
-                               " O-set. Routine not set up for"
-                               " this.")
+            raise RuntimeError(
+                "some of the DOF of SE 0 go to the O-set. Routine not set up for this."
+            )
 
     a = np.nonzero(mksetpv(uset, "g", "a"))[0]
     pvdofa = locate.mat_intersect(iddof[a], dof)[0]
@@ -3013,9 +3051,11 @@ def _formtran_0(nas, dof, gset):
         o_n = mksetpv(uset, "n", "o")
         if np.any(o_n):
             if np.any(gm[:, o_n]):
-                raise RuntimeError('M-set for residual is dependent'
-                                   ' on O-set (through GM). '
-                                   'Routine not set up for this.')
+                raise RuntimeError(
+                    "M-set for residual is dependent"
+                    " on O-set (through GM). "
+                    "Routine not set up for this."
+                )
         sets = np.hstack((sets, m))
 
     # see if any of the DOF are in the s-set
@@ -3033,25 +3073,26 @@ def _formtran_0(nas, dof, gset):
 
     if len(pv2) != len(pvdof):
         notpv2 = locate.flippv(pv2, len(pvdof))
-        msg = ("bug in :func:`_formtran_0` since dof in "
-               "recovery set does not contain all of the "
-               "dof in `dof`. These dof are missing:\n{!s}"
-               .format(dof[notpv2]))
+        msg = (
+            "bug in :func:`_formtran_0` since dof in "
+            "recovery set does not contain all of the "
+            "dof in `dof`. These dof are missing:\n{!s}".format(dof[notpv2])
+        )
         raise RuntimeError(msg)
     # sets = [ a, m, s ]
-    cols = nas['pha'][0].shape[1]
+    cols = nas["pha"][0].shape[1]
     tran = np.zeros((len(pv), cols))
     R = len(a)
-    tran[:R] = nas['pha'][0][pvdofa]
+    tran[:R] = nas["pha"][0][pvdofa]
 
     if hasm:
         a_n = np.nonzero(mksetpv(uset, "n", "a"))[0]
-        tran[R:R + len(m)] = gm[:, a_n] @ nas['pha'][0]
+        tran[R : R + len(m)] = gm[:, a_n] @ nas["pha"][0]
         R += len(m)
 
     if hass:
         cu = tran.shape[1]
-        tran[R:R + len(s)] = np.zeros((len(s), cu))
+        tran[R : R + len(s)] = np.zeros((len(s), cu))
 
     # order DOF as requested:
     tran = tran[pv]
@@ -3119,7 +3160,7 @@ def formtran(nas, se, dof, gset=False):
     if se == 0:
         return _formtran_0(nas, dof, gset)
 
-    uset = nas['uset'][se]
+    uset = nas["uset"][se]
     pvdof, dof = mkdofpv(uset, "g", dof)
     t_a = np.nonzero(mksetpv(uset, "a", "t"))[0]
     q_a = np.nonzero(mksetpv(uset, "a", "q"))[0]
@@ -3150,30 +3191,34 @@ def formtran(nas, se, dof, gset=False):
         o = o[pvdofo]
         sets = np.hstack((sets, o))
 
-    if 'goq' in nas and se in nas['goq']:
-        goq = nas['goq'][se]
+    if "goq" in nas and se in nas["goq"]:
+        goq = nas["goq"][se]
     else:
         q1 = sum(mksetpv(uset, "g", "q"))
         if q1 > 0:
-            warnings.warn("nas['goq'][{}] not found, but q-set do"
-                          " exist. Assuming it is all zeros. "
-                          "This can happen when q-set DOF are "
-                          "defined but modes are not calculated.".
-                          format(se), RuntimeWarning)
+            warnings.warn(
+                "nas['goq'][{}] not found, but q-set do"
+                " exist. Assuming it is all zeros. "
+                "This can happen when q-set DOF are "
+                "defined but modes are not calculated.".format(se),
+                RuntimeWarning,
+            )
             o1 = sum(mksetpv(uset, "g", "o"))
             goq = np.zeros((o1, q1))
         else:
             goq = np.array([[]])
 
-    if 'got' in nas and se in nas['got']:
-        got = nas['got'][se]
+    if "got" in nas and se in nas["got"]:
+        got = nas["got"][se]
     else:
-        warnings.warn("nas['got'][{}] not found. Assuming it is "
-                      "all zeros. This can happen for a Benfield"
-                      "-Hruda collector superelement since all "
-                      "b-set (really upstream q-set) are not "
-                      "connected to other DOF in the stiffness.".
-                      format(se), RuntimeWarning)
+        warnings.warn(
+            "nas['got'][{}] not found. Assuming it is "
+            "all zeros. This can happen for a Benfield"
+            "-Hruda collector superelement since all "
+            "b-set (really upstream q-set) are not "
+            "connected to other DOF in the stiffness.".format(se),
+            RuntimeWarning,
+        )
         o1 = sum(mksetpv(uset, "g", "o"))
         t1 = sum(mksetpv(uset, "g", "t"))
         got = np.zeros((o1, t1))
@@ -3212,10 +3257,11 @@ def formtran(nas, se, dof, gset=False):
 
     if len(pv2) != len(pvdof):
         notpv2 = locate.flippv(pv2, len(pvdof))
-        msg = ("bug in :func:`formtran` since dof in "
-               "recovery set does not contain all of the "
-               "dof in `dof`. These dof are missing:\n{!s}"
-               .format(dof[notpv2]))
+        msg = (
+            "bug in :func:`formtran` since dof in "
+            "recovery set does not contain all of the "
+            "dof in `dof`. These dof are missing:\n{!s}".format(dof[notpv2])
+        )
         raise RuntimeError(msg)
 
     # sets = [ t, o, m, q, s ]
@@ -3226,9 +3272,9 @@ def formtran(nas, se, dof, gset=False):
         tran[:R, t_a] = np.eye(ct)[pvdoft]
 
     if haso:
-        tran[R:R + len(o), t_a] = got[pvdofo]
+        tran[R : R + len(o), t_a] = got[pvdofo]
         if cq:
-            tran[R:R + len(o), q_a] = goq[pvdofo]
+            tran[R : R + len(o), q_a] = goq[pvdofo]
         R += len(o)
 
     if hasm:
@@ -3245,24 +3291,23 @@ def formtran(nas, se, dof, gset=False):
         if cq:
             # m-set dependent on q-set (via MPC maybe)
             ulvsm[:, q_a] += gm[:, q_n]
-        tran[R:R + len(m)] = ulvsm
+        tran[R : R + len(m)] = ulvsm
         R += len(m)
 
     if hasq:
-        tran[R:R + len(q), q_a] = np.eye(cq)[pvdofq]
+        tran[R : R + len(q), q_a] = np.eye(cq)[pvdofq]
         R += len(q)
 
     if hass:
         cu = tran.shape[1]
-        tran[R:R + len(s)] = np.zeros((len(s), cu))
+        tran[R : R + len(s)] = np.zeros((len(s), cu))
 
     # order DOF as requested:
     tran = tran[pv]
     return tran, dof
 
 
-def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
-             gset=False):
+def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True, gset=False):
     """
     Form ULVS for an upstream SE relative to a given downstream SE.
 
@@ -3327,16 +3372,15 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
     """
     # work from up to down:
     r = _findse(nas, seup)
-    sedown = nas['selist'][r, 1]
+    sedown = nas["selist"][r, 1]
     if sedown == seup or sedn == seup:
         return 1.0
-    if (shortcut and sedn == 0 and not gset
-            and 'ulvs' in nas and seup in nas['ulvs']):
-        return nas['ulvs'][seup]
+    if shortcut and sedn == 0 and not gset and "ulvs" in nas and seup in nas["ulvs"]:
+        return nas["ulvs"][seup]
     ulvs = 1.0
     while True:
-        usetup = nas['uset'][seup]
-        usetdn = nas['uset'][sedown]
+        usetup = nas["uset"][seup]
+        usetdn = nas["uset"][sedown]
         tqup = upasetpv(nas, seup)
         iddof = usetdn.iloc[tqup, :0].reset_index().values
         ulvs1 = formtran(nas, sedown, iddof, gset)[0]
@@ -3353,7 +3397,7 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True,
             return ulvs
         seup = sedown
         r = _findse(nas, seup)
-        sedown = nas['selist'][r, 1]
+        sedown = nas["selist"][r, 1]
 
 
 def formdrm(nas, seup, dof, sedn=0, gset=False):
@@ -3426,8 +3470,7 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
     :func:`formulvs`, :func:`formtran`
     """
     t, outdof = formtran(nas, seup, dof, gset=gset)
-    u = formulvs(nas, seup, sedn, keepcset=True,
-                 shortcut=True, gset=gset)
+    u = formulvs(nas, seup, sedn, keepcset=True, shortcut=True, gset=gset)
     if np.size(u) > 1:
         # check for null c-sets (extra cols in t):
         c = t.shape[1]
@@ -3457,8 +3500,8 @@ def addulvs(nas, *ses, **kwargs):
 
         addulvs(nas, 100, 200, 300)
     """
-    if 'ulvs' not in nas:
-        nas['ulvs'] = {}
+    if "ulvs" not in nas:
+        nas["ulvs"] = {}
 
     for se in ses:
-        nas['ulvs'][se] = formulvs(nas, se, **kwargs)
+        nas["ulvs"][se] = formulvs(nas, se, **kwargs)

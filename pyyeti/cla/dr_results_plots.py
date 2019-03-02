@@ -16,7 +16,7 @@ def _get_Qs(Q, res, name, showall):
     except AttributeError:
         return None
     srsQs = list(srsQs)
-    if Q == 'auto':
+    if Q == "auto":
         Qs = srsQs
     else:
         Q_in = n2p._ensure_iter(Q)
@@ -25,14 +25,12 @@ def _get_Qs(Q, res, name, showall):
             if q in srsQs:
                 Qs.append(q)
             else:
-                warnings.warn('no Q={} SRS data for {}'.
-                              format(q, name), RuntimeWarning)
+                warnings.warn("no Q={} SRS data for {}".format(q, name), RuntimeWarning)
         if len(Qs) == 0:
             return None
     Qs = n2p._ensure_iter(Qs)
     if len(Qs) > 1 and showall:
-        raise ValueError('`Q` must be a scalar if `showall` '
-                         'is true')
+        raise ValueError("`Q` must be a scalar if `showall` is true")
     return Qs
 
 
@@ -47,15 +45,15 @@ def _set_vars(issrs, res, name, event, showall, showboth, cases):
         if showall:
             cases = curres.cases
             if showboth:
-                lbl = lbl + '_all_env'
+                lbl = lbl + "_all_env"
             else:
-                lbl = lbl + '_all'
+                lbl = lbl + "_all"
         else:
             cases = None
     else:
         labels = curres.drminfo.histlabels
         rowpv = curres.drminfo.histpv
-        lbl = 'resp'
+        lbl = "resp"
         srstype = None
         units = curres.drminfo.histunits
         if cases is None:
@@ -63,8 +61,7 @@ def _set_vars(issrs, res, name, event, showall, showboth, cases):
         else:
             for case in cases:
                 if case not in curres.cases:
-                    raise ValueError('case {} not found for'
-                                     ' {}'.format(case, name))
+                    raise ValueError("case {} not found for {}".format(case, name))
 
     if isinstance(rowpv, slice):
         rowpv = np.arange(len(curres.drminfo.labels))[rowpv]
@@ -74,35 +71,46 @@ def _set_vars(issrs, res, name, event, showall, showboth, cases):
     else:
         sname = curres.event
 
-    return (labels, rowpv, maxlen, sname,
-            srstype, lbl, units, cases)
+    return (labels, rowpv, maxlen, sname, srstype, lbl, units, cases)
 
 
-def _get_figname(nplots, perpage, fmt, onepdf,
-                 name, lbl, sname, filenum):
+def _get_figname(nplots, perpage, fmt, onepdf, name, lbl, sname, filenum):
     if nplots > perpage:
-        if fmt == 'pdf' and onepdf:
-            prefix = '{}_{}'.format(name, lbl)
-            figname = '{} {}_{}'.format(sname, prefix,
-                                        filenum)
+        if fmt == "pdf" and onepdf:
+            prefix = "{}_{}".format(name, lbl)
+            figname = "{} {}_{}".format(sname, prefix, filenum)
         else:
-            prefix = '{}_{}_{}'.format(name, lbl, filenum)
-            figname = '{} {}'.format(sname, prefix)
+            prefix = "{}_{}_{}".format(name, lbl, filenum)
+            figname = "{} {}".format(sname, prefix)
     else:
-        prefix = '{}_{}'.format(name, lbl)
-        figname = '{} {}'.format(sname, prefix)
+        prefix = "{}_{}".format(name, lbl)
+        figname = "{} {}".format(sname, prefix)
     return prefix, figname
 
 
-def _prep_subplot(rows, cols, sub, perpage, filenum, nplots,
-                  fmt, name, lbl, sname, figsize, prefix,
-                  onepdf, show_figures, cur_fig):
+def _prep_subplot(
+    rows,
+    cols,
+    sub,
+    perpage,
+    filenum,
+    nplots,
+    fmt,
+    name,
+    lbl,
+    sname,
+    figsize,
+    prefix,
+    onepdf,
+    show_figures,
+    cur_fig,
+):
     sub += 1
     if sub > perpage:
         sub = 1
         prefix, figname = _get_figname(
-            nplots, perpage, fmt, onepdf, name,
-            lbl, sname, filenum)
+            nplots, perpage, fmt, onepdf, name, lbl, sname, filenum
+        )
         filenum += 1
         if show_figures:
             plt.figure(figname, figsize=figsize)
@@ -110,42 +118,44 @@ def _prep_subplot(rows, cols, sub, perpage, filenum, nplots,
         else:
             cur_fig = plt.figure(figsize=figsize)
     ax = plt.subplot(rows, cols, sub)
-    ax.ticklabel_format(useOffset=False,
-                        style='sci', scilimits=(-3, 4))
+    ax.ticklabel_format(useOffset=False, style="sci", scilimits=(-3, 4))
     txt = ax.get_yaxis().get_offset_text()
     txt.set_x(-0.22)
-    txt.set_va('bottom')
+    txt.set_va("bottom")
     plt.grid(True)
     return sub, filenum, prefix, cur_fig
 
 
-def _add_title(name, label, maxlen, sname, row, cols,
-               q=None):
+def _add_title(name, label, maxlen, sname, row, cols, q=None):
     def _add_q(ttl, q):
         if q is not None:
-            ttl = '{}, Q={}'.format(ttl, q)
+            ttl = "{}, Q={}".format(ttl, q)
         return ttl
 
     if cols == 1:
-        small = 'medium'
-        big = 'large'
+        small = "medium"
+        big = "large"
     elif cols == 2:
         small = 10
-        big = 'large'
+        big = "large"
     else:
         small = 8
         big = 12
 
     if maxlen > 35:
-        ttl = '{} {}\nRow {}'.format(name, sname, row)
-        plt.annotate(label, xy=(0, 1),
-                     xycoords='axes fraction',
-                     fontsize=small,
-                     xytext=(3, -3),
-                     textcoords='offset points',
-                     ha='left', va='top')
+        ttl = "{} {}\nRow {}".format(name, sname, row)
+        plt.annotate(
+            label,
+            xy=(0, 1),
+            xycoords="axes fraction",
+            fontsize=small,
+            xytext=(3, -3),
+            textcoords="offset points",
+            ha="left",
+            va="top",
+        )
     else:
-        ttl = '{} {}\n{}'.format(name, sname, label)
+        ttl = "{} {}\n{}".format(name, sname, label)
     ttl = _add_q(ttl, q)
     plt.title(ttl, fontsize=big)
 
@@ -154,26 +164,28 @@ def _add_legend(leg_info, figsize, tight_layout_args):
     ax = plt.gca()
     fig = plt.gcf()
     handles, labels = ax.get_legend_handles_labels()
-    if 'rect' in tight_layout_args:
-        lx = tight_layout_args['rect'][2]
-        ly = tight_layout_args['rect'][3]
+    if "rect" in tight_layout_args:
+        lx = tight_layout_args["rect"][2]
+        ly = tight_layout_args["rect"][3]
     else:
         lx = 1.0 - 0.3 / figsize[0]
         ly = 1.0 - 0.3 / figsize[1]
     leg = fig.legend(
         handles,
         labels,
-        loc='upper right',
+        loc="upper right",
         bbox_to_anchor=(lx, ly),
-        fontsize='small',
+        fontsize="small",
         framealpha=0.5,
         # fancybox=True,
         # borderaxespad=0.,
         # labelspacing=legspace*.9,
     )
-    legwidth = (leg.get_tightbbox(fig.canvas.get_renderer())
-                .inverse_transformed(fig.transFigure)
-                .width)
+    legwidth = (
+        leg.get_tightbbox(fig.canvas.get_renderer())
+        .inverse_transformed(fig.transFigure)
+        .width
+    )
     leg_info[0] = leg
     leg_info[1] = legwidth
 
@@ -181,14 +193,15 @@ def _add_legend(leg_info, figsize, tight_layout_args):
 def _legend_layout(leg_info, tight_layout_args):
     tla = tight_layout_args.copy()
     if leg_info[0]:
-        if 'rect' in tla:
-            tla['rect'] = (
-                tla['rect'][0],
-                tla['rect'][1],
-                tla['rect'][2] - leg_info[1],
-                tla['rect'][3])
+        if "rect" in tla:
+            tla["rect"] = (
+                tla["rect"][0],
+                tla["rect"][1],
+                tla["rect"][2] - leg_info[1],
+                tla["rect"][3],
+            )
         else:
-            tla['rect'] = (0, 0, 1 - leg_info[1], 1)
+            tla["rect"] = (0, 0, 1 - leg_info[1], 1)
 
     # if the legend belongs to an axes object, don't include it in
     # the tight_layout calculations:
@@ -201,13 +214,31 @@ def _legend_layout(leg_info, tight_layout_args):
 
 def _mark_srs(plot, x, y, line, marker, label, **kwargs):
     me = signal.argrelextrema(y, np.greater)[0]
-    return plot(x, y, line, marker=marker,
-                markevery=list(me), label=label, **kwargs)
+    return plot(x, y, line, marker=marker, markevery=list(me), label=label, **kwargs)
 
 
-def _plot_all(issrs, plot, curres, q, x, hist, showboth, cases,
-              sub, cols, maxcol, name, label, maxlen, sname, rowpv, j,
-              leg_info, figsize, tight_layout_args):
+def _plot_all(
+    issrs,
+    plot,
+    curres,
+    q,
+    x,
+    hist,
+    showboth,
+    cases,
+    sub,
+    cols,
+    maxcol,
+    name,
+    label,
+    maxlen,
+    sname,
+    rowpv,
+    j,
+    leg_info,
+    figsize,
+    tight_layout_args,
+):
     # legspace = matplotlib.rcParams['legend.labelspacing']
     if issrs:
         srsall = curres.srs.srs[q]
@@ -217,45 +248,48 @@ def _plot_all(issrs, plot, curres, q, x, hist, showboth, cases,
         h = []
         marker = get_marker_cycle()
         for n, case in enumerate(cases):
-            h += _mark_srs(
-                plot, x, srsall[n, j], '-',
-                marker=next(marker), label=case)
+            h += _mark_srs(plot, x, srsall[n, j], "-", marker=next(marker), label=case)
         if showboth:
             # set zorder=-1 ?
-            h.insert(0,
-                     _mark_srs(
-                         plot, x, srsext[j], 'k-',
-                         lw=2, alpha=0.5, marker=next(marker),
-                         label=curres.event)[0])
+            h.insert(
+                0,
+                _mark_srs(
+                    plot,
+                    x,
+                    srsext[j],
+                    "k-",
+                    lw=2,
+                    alpha=0.5,
+                    marker=next(marker),
+                    label=curres.event,
+                )[0],
+            )
     else:
         # hist (cases x rows x time | freq)
         h = []
         for n, case in enumerate(cases):
-            h += plot(x, hist[n, j], linestyle='-', label=case)
+            h += plot(x, hist[n, j], linestyle="-", label=case)
 
     if sub == maxcol:
         _add_legend(leg_info, figsize, tight_layout_args)
-    _add_title(name, label, maxlen, sname,
-               rowpv[j] + 1, cols, q)
+    _add_title(name, label, maxlen, sname, rowpv[j] + 1, cols, q)
 
 
-def _plot_ext(plot, curres, q, Qs, frq, sub, cols, maxcol, name,
-              label, maxlen, sname, rowpv, j):
+def _plot_ext(
+    plot, curres, q, Qs, frq, sub, cols, maxcol, name, label, maxlen, sname, rowpv, j
+):
     srsext = curres.srs.ext[q]
     # srsext (each rows x freq)
     if sub == maxcol:
-        plot(frq, srsext[j], label='Q={}'.format(q))
-        plt.legend(loc='best', fontsize='small',
-                   fancybox=True, framealpha=0.5)
+        plot(frq, srsext[j], label="Q={}".format(q))
+        plt.legend(loc="best", fontsize="small", fancybox=True, framealpha=0.5)
     else:
         plot(frq, srsext[j])
     if q == Qs[0]:
-        _add_title(name, label, maxlen, sname,
-                   rowpv[j] + 1, cols)
+        _add_title(name, label, maxlen, sname, rowpv[j] + 1, cols)
 
 
-def _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub,
-                   srstype):
+def _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub, srstype):
     if isinstance(units, str):
         u = units
     else:
@@ -264,32 +298,46 @@ def _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub,
         u = units[uj]
         if len(units) < nplots:
             if sub == 1 or sub == 4:
-                uj += 1   # each label goes to 3 rows
+                uj += 1  # each label goes to 3 rows
         else:
             uj += 1
     if issrs:
-        if srstype == 'eqsine':
-            plt.ylabel('EQ-Sine ({})'.format(u))
+        if srstype == "eqsine":
+            plt.ylabel("EQ-Sine ({})".format(u))
         else:
-            plt.ylabel('SRS ({})'.format(u))
+            plt.ylabel("SRS ({})".format(u))
     else:
-        if ylab.startswith('PSD'):
+        if ylab.startswith("PSD"):
             if len(u) == 1:
-                uu = ' ({}$^2$/Hz)'.format(u)
+                uu = " ({}$^2$/Hz)".format(u)
             else:
-                uu = ' ({})$^2$/Hz'.format(u)
+                uu = " ({})$^2$/Hz".format(u)
             plt.ylabel(ylab + uu)
         else:
-            plt.ylabel(ylab + ' ({})'.format(u))
+            plt.ylabel(ylab + " ({})".format(u))
     plt.xlabel(xlab)
     return uj
 
 
-def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
-             inc0rb=True, fmt='pdf', onepdf=True, layout=(2, 3),
-             figsize=(11, 8.5), showall=None, showboth=False,
-             cases=None, direc='srs_plots', tight_layout_args=None,
-             plot=plt.plot, show_figures=False):
+def mk_plots(
+    res,
+    event=None,
+    issrs=True,
+    Q="auto",
+    drms=None,
+    inc0rb=True,
+    fmt="pdf",
+    onepdf=True,
+    layout=(2, 3),
+    figsize=(11, 8.5),
+    showall=None,
+    showboth=False,
+    cases=None,
+    direc="srs_plots",
+    tight_layout_args=None,
+    plot=plt.plot,
+    show_figures=False,
+):
     """
     Make SRS or response history plots
 
@@ -412,13 +460,16 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
 
     if tight_layout_args is None:
         tight_layout_args = {
-            'pad': 3.0,
-            'w_pad': 2.0,
-            'h_pad': 2.0,
-            'rect': (0.3 / figsize[0],
-                     0.3 / figsize[1],
-                     1.0 - 0.3 / figsize[0],
-                     1.0 - 0.3 / figsize[1])}
+            "pad": 3.0,
+            "w_pad": 2.0,
+            "h_pad": 2.0,
+            "rect": (
+                0.3 / figsize[0],
+                0.3 / figsize[1],
+                1.0 - 0.3 / figsize[0],
+                1.0 - 0.3 / figsize[1],
+            ),
+        }
 
     if showboth and showall is None:
         showall = True
@@ -429,8 +480,7 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     rows = layout[0]
     cols = layout[1]
     perpage = rows * cols
-    orientation = ('landscape' if figsize[0] > figsize[1]
-                   else 'portrait')
+    orientation = "landscape" if figsize[0] > figsize[1] else "portrait"
 
     if drms is None:
         alldrms = sorted(res)
@@ -438,8 +488,8 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
         alldrms = copy.copy(drms)
         if inc0rb:
             for name in drms:
-                if name + '_0rb' in res:
-                    alldrms.append(name + '_0rb')
+                if name + "_0rb" in res:
+                    alldrms.append(name + "_0rb")
 
     pdffile = None
     imode = plt.isinteractive()
@@ -449,65 +499,61 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
     try:
         for name in alldrms:
             if name not in res:
-                raise ValueError('category {} does not exist.'
-                                 .format(name))
+                raise ValueError("category {} does not exist.".format(name))
             if issrs:
-                if 'srs' not in res[name].__dict__:
+                if "srs" not in res[name].__dict__:
                     if drms and name in drms:
-                        warnings.warn(
-                            'no SRS data for {}'.format(name),
-                            RuntimeWarning)
+                        warnings.warn("no SRS data for {}".format(name), RuntimeWarning)
                     continue
                 Qs = _get_Qs(Q, res, name, showall)
                 if Qs is None:
                     continue
                 x = res[name].srs.frq
                 y = None
-                xlab = 'Frequency (Hz)'
+                xlab = "Frequency (Hz)"
                 ylab = None
-                ptype = 'srs'
+                ptype = "srs"
             else:
-                if 'hist' in res[name].__dict__:
+                if "hist" in res[name].__dict__:
                     x = res[name].time
                     y = res[name].hist
-                    xlab = 'Time (s)'
-                    ylab = 'Response'
-                    ptype = 'hist'
-                elif 'psd' in res[name].__dict__:
+                    xlab = "Time (s)"
+                    ylab = "Response"
+                    ptype = "hist"
+                elif "psd" in res[name].__dict__:
                     x = res[name].freq
                     y = res[name].psd
-                    xlab = 'Frequency (Hz)'
-                    ylab = 'PSD'
-                    ptype = 'psd'
-                elif 'frf' in res[name].__dict__:
+                    xlab = "Frequency (Hz)"
+                    ylab = "PSD"
+                    ptype = "psd"
+                elif "frf" in res[name].__dict__:
                     x = res[name].freq
                     y = abs(res[name].frf)
-                    xlab = 'Frequency (Hz)'
-                    ylab = 'FRF'
-                    ptype = 'frf'
+                    xlab = "Frequency (Hz)"
+                    ylab = "FRF"
+                    ptype = "frf"
                 else:
                     if drms and name in drms:
-                        warnings.warn('no response data for {}'.
-                                      format(name), RuntimeWarning)
+                        warnings.warn(
+                            "no response data for {}".format(name), RuntimeWarning
+                        )
                     continue
 
-            (labels, rowpv, maxlen,
-             sname, srstype, lbl,
-             units, _cases) = _set_vars(
-                 issrs, res, name, event, showall, showboth, cases)
+            (labels, rowpv, maxlen, sname, srstype, lbl, units, _cases) = _set_vars(
+                issrs, res, name, event, showall, showboth, cases
+            )
 
-            if fmt == 'pdf' and onepdf and pdffile is None:
+            if fmt == "pdf" and onepdf and pdffile is None:
                 if isinstance(onepdf, str):
                     fname = os.path.join(direc, onepdf)
-                    if not fname.endswith('.pdf'):
-                        fname = fname + '.pdf'
+                    if not fname.endswith(".pdf"):
+                        fname = fname + ".pdf"
                 else:
-                    fname = os.path.join(
-                        direc, '{}_{}.pdf'.format(sname, ptype))
+                    fname = os.path.join(direc, "{}_{}.pdf".format(sname, ptype))
                 pdffile = PdfPages(fname)
 
             filenum = 0
-            uj = 0   # units index
+            uj = 0  # units index
             nplots = len(rowpv)
             maxcol = cols if nplots > cols else nplots
             sub = perpage
@@ -515,49 +561,104 @@ def mk_plots(res, event=None, issrs=True, Q='auto', drms=None,
             leg_info = [None, 0.0]
             for j in range(nplots):
                 sub, filenum, prefix, cur_fig = _prep_subplot(
-                    rows, cols, sub, perpage, filenum, nplots,
-                    fmt, name, lbl, sname, figsize, prefix,
-                    onepdf, show_figures, cur_fig)
-                label = ' '.join(labels[j].split())
+                    rows,
+                    cols,
+                    sub,
+                    perpage,
+                    filenum,
+                    nplots,
+                    fmt,
+                    name,
+                    lbl,
+                    sname,
+                    figsize,
+                    prefix,
+                    onepdf,
+                    show_figures,
+                    cur_fig,
+                )
+                label = " ".join(labels[j].split())
                 if issrs:
                     for q in Qs:
                         if showall:
                             _plot_all(
-                                issrs, plot, res[name], q, x,
-                                y, showboth, _cases, sub, cols,
-                                maxcol, name, label, maxlen, sname,
-                                rowpv, j, leg_info, figsize,
-                                tight_layout_args)
+                                issrs,
+                                plot,
+                                res[name],
+                                q,
+                                x,
+                                y,
+                                showboth,
+                                _cases,
+                                sub,
+                                cols,
+                                maxcol,
+                                name,
+                                label,
+                                maxlen,
+                                sname,
+                                rowpv,
+                                j,
+                                leg_info,
+                                figsize,
+                                tight_layout_args,
+                            )
                         else:
                             _plot_ext(
-                                plot, res[name], q, Qs, x, sub, cols,
-                                maxcol, name, label, maxlen, sname,
-                                rowpv, j)
+                                plot,
+                                res[name],
+                                q,
+                                Qs,
+                                x,
+                                sub,
+                                cols,
+                                maxcol,
+                                name,
+                                label,
+                                maxlen,
+                                sname,
+                                rowpv,
+                                j,
+                            )
                 else:
                     _plot_all(
-                        issrs, plot, res[name], None, x,
-                        y, showboth, _cases, sub, cols,
-                        maxcol, name, label, maxlen, sname,
-                        rowpv, j, leg_info, figsize,
-                        tight_layout_args)
+                        issrs,
+                        plot,
+                        res[name],
+                        None,
+                        x,
+                        y,
+                        showboth,
+                        _cases,
+                        sub,
+                        cols,
+                        maxcol,
+                        name,
+                        label,
+                        maxlen,
+                        sname,
+                        rowpv,
+                        j,
+                        leg_info,
+                        figsize,
+                        tight_layout_args,
+                    )
 
-                _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub,
-                               srstype)
+                _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub, srstype)
 
                 if j + 1 == nplots or (j + 1) % perpage == 0:
                     _legend_layout(leg_info, tight_layout_args)
 
-                    if fmt == 'pdf' and onepdf:
+                    if fmt == "pdf" and onepdf:
                         pdffile.savefig()
                         # orientation=orientation,
                         # papertype='letter')
                     elif fmt:
-                        fname = os.path.join(direc,
-                                             prefix + '.' + fmt)
-                        if fmt != 'pdf':
+                        fname = os.path.join(direc, prefix + "." + fmt)
+                        if fmt != "pdf":
                             kwargs = dict(
-                                orientation=orientation,
-                                dpi=200, bbox_inches='tight')
+                                orientation=orientation, dpi=200, bbox_inches="tight"
+                            )
                         else:
                             kwargs = {}
                         plt.savefig(fname, format=fmt, **kwargs)

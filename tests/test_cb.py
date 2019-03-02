@@ -12,16 +12,15 @@ from nose.tools import *
 
 def test_cbreorder():
     drm = np.arange(1, 16).reshape(3, 5)
-    assert_raises(ValueError, cb.cbreorder, drm, [0, 1, 2, 3],
-                  drm=False, last=True)
+    assert_raises(ValueError, cb.cbreorder, drm, [0, 1, 2, 3], drm=False, last=True)
 
 
 def test_cbconvert():
     b = np.arange(6)
     drm = np.ones((1, 8))
-    assert_raises(ValueError, cb.cbconvert, drm, b, 'm2e')
+    assert_raises(ValueError, cb.cbconvert, drm, b, "m2e")
     b = np.arange(5)
-    assert_raises(ValueError, cb.cbconvert, drm, b, 'm2e', drm=True)
+    assert_raises(ValueError, cb.cbconvert, drm, b, "m2e", drm=True)
 
 
 def test_cbconvert_2():
@@ -29,27 +28,27 @@ def test_cbconvert_2():
     nb = 12
     mass = np.random.randn(n, n)
     b = np.arange(n - nb, n)
-    m1_1 = cb.cbconvert(mass, b, 'm2e')
+    m1_1 = cb.cbconvert(mass, b, "m2e")
     m1_2 = cb.cbreorder(m1_1, b)
 
     m2_1 = cb.cbreorder(mass, b)
     bnew = np.arange(nb)
-    m2_2 = cb.cbconvert(m2_1, bnew, 'm2e')
+    m2_2 = cb.cbconvert(m2_1, bnew, "m2e")
     assert np.allclose(m1_2, m2_2)
     assert np.allclose(mass[n - nb, n - nb] * 0.005710147154735817, m1_2[0, 0])
 
 
 def test_cbtf():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
-    maa = nas['maa'][102]
-    kaa = nas['kaa'][102]
-    uset = nas['uset'][102]
-    b = n2p.mksetpv(uset, 'a', 'b')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    maa = nas["maa"][102]
+    kaa = nas["kaa"][102]
+    uset = nas["uset"][102]
+    b = n2p.mksetpv(uset, "a", "b")
     q = ~b
     b = np.nonzero(b)[0]
 
     rb = n2p.rbgeom_uset(uset.iloc[b], 3)
-    freq = np.arange(1., 80., 1.)
+    freq = np.arange(1.0, 80.0, 1.0)
     a = rb[:, :1]
     a2 = a.dot(np.ones((1, len(freq))))
     a3 = rb[:, 0]
@@ -60,8 +59,8 @@ def test_cbtf():
     maa = maa[pv]
     kaa = kaa[pv]
     baa1 = np.zeros_like(maa)
-    baa1[q, q] = 2 * .05 * np.sqrt(kaa[q, q])
-    baa2 = .1 * np.random.randn(*maa.shape)
+    baa1[q, q] = 2 * 0.05 * np.sqrt(kaa[q, q])
+    baa2 = 0.1 * np.random.randn(*maa.shape)
     baa2 = baa2.dot(baa2.T)
 
     bb = np.ix_(b, b)
@@ -114,16 +113,13 @@ def test_cbtf():
             if not delq:
                 assert np.allclose(f[q], 0)
 
-    assert_raises(ValueError, cb.cbtf, maa, baa1, kaa,
-                  a2[:, :3], freq, b)
+    assert_raises(ValueError, cb.cbtf, maa, baa1, kaa, a2[:, :3], freq, b)
 
-    assert_raises(ValueError, cb.cbtf, maa, baa1, kaa,
-                  a2[:3, :], freq, b)
+    assert_raises(ValueError, cb.cbtf, maa, baa1, kaa, a2[:3, :], freq, b)
 
 
 def test_cbreorder_m():
-    m = np.dot(np.arange(1, 9).reshape(-1, 1),
-               np.arange(2, 10).reshape(1, -1))
+    m = np.dot(np.arange(1, 9).reshape(-1, 1), np.arange(2, 10).reshape(1, -1))
     # array([[ 2,  3,  4,  5,  6,  7,  8,  9],
     #        [ 4,  6,  8, 10, 12, 14, 16, 18],
     #        [ 6,  9, 12, 15, 18, 21, 24, 27],
@@ -134,14 +130,18 @@ def test_cbreorder_m():
     #        [16, 24, 32, 40, 48, 56, 64, 72]])
 
     mnew = cb.cbreorder(m, np.arange(7, 1, -1))
-    sbe = np.array([[72, 64, 56, 48, 40, 32, 16, 24],
-                    [63, 56, 49, 42, 35, 28, 14, 21],
-                    [54, 48, 42, 36, 30, 24, 12, 18],
-                    [45, 40, 35, 30, 25, 20, 10, 15],
-                    [36, 32, 28, 24, 20, 16, 8, 12],
-                    [27, 24, 21, 18, 15, 12, 6, 9],
-                    [9, 8, 7, 6, 5, 4, 2, 3],
-                    [18, 16, 14, 12, 10, 8, 4, 6]])
+    sbe = np.array(
+        [
+            [72, 64, 56, 48, 40, 32, 16, 24],
+            [63, 56, 49, 42, 35, 28, 14, 21],
+            [54, 48, 42, 36, 30, 24, 12, 18],
+            [45, 40, 35, 30, 25, 20, 10, 15],
+            [36, 32, 28, 24, 20, 16, 8, 12],
+            [27, 24, 21, 18, 15, 12, 6, 9],
+            [9, 8, 7, 6, 5, 4, 2, 3],
+            [18, 16, 14, 12, 10, 8, 4, 6],
+        ]
+    )
     assert np.all(mnew == sbe)
 
     # without the following, when pandas is imported, we get:
@@ -158,26 +158,30 @@ def test_cbreorder_m():
     #
     # Reported here: https://github.com/pytest-dev/pytest/issues/1288
     import sys
+
     for v in list(sys.modules.values()):
-        if getattr(v, '__warningregistry__', None):
+        if getattr(v, "__warningregistry__", None):
             v.__warningregistry__ = {}
 
     with assert_warns(RuntimeWarning):
         mnew = cb.cbreorder(m, np.arange(7, -1, -1))
-    sbe = np.array([[72, 64, 56, 48, 40, 32, 24, 16],
-                    [63, 56, 49, 42, 35, 28, 21, 14],
-                    [54, 48, 42, 36, 30, 24, 18, 12],
-                    [45, 40, 35, 30, 25, 20, 15, 10],
-                    [36, 32, 28, 24, 20, 16, 12, 8],
-                    [27, 24, 21, 18, 15, 12, 9, 6],
-                    [18, 16, 14, 12, 10, 8, 6, 4],
-                    [9, 8, 7, 6, 5, 4, 3, 2]])
+    sbe = np.array(
+        [
+            [72, 64, 56, 48, 40, 32, 24, 16],
+            [63, 56, 49, 42, 35, 28, 21, 14],
+            [54, 48, 42, 36, 30, 24, 18, 12],
+            [45, 40, 35, 30, 25, 20, 15, 10],
+            [36, 32, 28, 24, 20, 16, 12, 8],
+            [27, 24, 21, 18, 15, 12, 9, 6],
+            [18, 16, 14, 12, 10, 8, 6, 4],
+            [9, 8, 7, 6, 5, 4, 3, 2],
+        ]
+    )
     assert np.all(mnew == sbe)
 
 
 def test_cbreorder_drm():
-    drm = np.dot(np.arange(1, 7).reshape(-1, 1),
-                 np.arange(2, 10).reshape(1, -1))
+    drm = np.dot(np.arange(1, 7).reshape(-1, 1), np.arange(2, 10).reshape(1, -1))
     # array([[ 2,  3,  4,  5,  6,  7,  8,  9],
     #        [ 4,  6,  8, 10, 12, 14, 16, 18],
     #        [ 6,  9, 12, 15, 18, 21, 24, 27],
@@ -186,16 +190,19 @@ def test_cbreorder_drm():
     #        [12, 18, 24, 30, 36, 42, 48, 54]])
 
     dnew = cb.cbreorder(drm, np.arange(7, 1, -1), drm=True)
-    sbe = np.array([[9, 8, 7, 6, 5, 4, 2, 3],
-                    [18, 16, 14, 12, 10, 8, 4, 6],
-                    [27, 24, 21, 18, 15, 12, 6, 9],
-                    [36, 32, 28, 24, 20, 16, 8, 12],
-                    [45, 40, 35, 30, 25, 20, 10, 15],
-                    [54, 48, 42, 36, 30, 24, 12, 18]])
+    sbe = np.array(
+        [
+            [9, 8, 7, 6, 5, 4, 2, 3],
+            [18, 16, 14, 12, 10, 8, 4, 6],
+            [27, 24, 21, 18, 15, 12, 6, 9],
+            [36, 32, 28, 24, 20, 16, 8, 12],
+            [45, 40, 35, 30, 25, 20, 10, 15],
+            [54, 48, 42, 36, 30, 24, 12, 18],
+        ]
+    )
     assert np.all(dnew == sbe)
 
-    assert_raises(ValueError, cb.cbreorder, drm,
-                  np.arange(7, 1, -1))
+    assert_raises(ValueError, cb.cbreorder, drm, np.arange(7, 1, -1))
 
     with assert_warns(RuntimeWarning):
         dnew = cb.cbreorder(drm, np.arange(7, -1, -1), drm=True)
@@ -207,28 +214,34 @@ def test_cbreorder_drm():
     #        [11, 12, 13, 14, 15]])
     with assert_warns(RuntimeWarning):
         dnew = cb.cbreorder(drm, [0, 1, 2, 3], drm=True, last=True)
-    sbe = np.array([[5, 1, 2, 3, 4],
-                    [10, 6, 7, 8, 9],
-                    [15, 11, 12, 13, 14]])
+    sbe = np.array([[5, 1, 2, 3, 4], [10, 6, 7, 8, 9], [15, 11, 12, 13, 14]])
     assert np.all(dnew == sbe)
 
 
 def test_cgmass():
-    mass = np.array([[3, 0, 0, 0, 0, 0],
-                     [0, 3, 0, 0, 0, 120],
-                     [0, 0, 3, 0, -120, 0],
-                     [0, 0, 0, 1020, -60, 22],
-                     [0, 0, -120, -60, 7808, 23],
-                     [0, 120, 0, 22, 23, 7800]])
+    mass = np.array(
+        [
+            [3, 0, 0, 0, 0, 0],
+            [0, 3, 0, 0, 0, 120],
+            [0, 0, 3, 0, -120, 0],
+            [0, 0, 0, 1020, -60, 22],
+            [0, 0, -120, -60, 7808, 23],
+            [0, 120, 0, 22, 23, 7800],
+        ]
+    )
     mcg1, dcg1 = cb.cgmass(mass)
-    sbe = np.array([[3., 0., 0., 0., 0., 0.],
-                    [0., 3., 0., 0., 0., 0.],
-                    [0., 0., 3., 0., 0., 0.],
-                    [0., 0., 0., 1020., -60., 22.],
-                    [0., 0., 0., -60., 3008., 23.],
-                    [0., 0., 0., 22., 23., 3000.]])
+    sbe = np.array(
+        [
+            [3.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 3.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 3.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 1020.0, -60.0, 22.0],
+            [0.0, 0.0, 0.0, -60.0, 3008.0, 23.0],
+            [0.0, 0.0, 0.0, 22.0, 23.0, 3000.0],
+        ]
+    )
     assert np.allclose(mcg1, sbe)
-    assert np.allclose(dcg1, [40., 0., 0.])
+    assert np.allclose(dcg1, [40.0, 0.0, 0.0])
 
     mcg, dcg, gyr, pgyr, I, pI = cb.cgmass(mass, all6=True)
     assert np.all(mcg == mcg1)
@@ -236,16 +249,14 @@ def test_cgmass():
     assert np.all(abs(gyr - [18.4391, 31.6649, 31.6228]) < 1e-3)
     assert np.all(abs(pgyr - [18.4204, 31.5288, 31.7693]) < 1e-3)
 
-    sbe = np.array([[1020., -60., 22.],
-                    [-60., 3008., 23.],
-                    [22., 23., 3000.]])
+    sbe = np.array([[1020.0, -60.0, 22.0], [-60.0, 3008.0, 23.0], [22.0, 23.0, 3000.0]])
     assert np.allclose(I, sbe)
-    sbe = np.array([[1017.9312, 0., 0.],
-                    [0., 2982.2045, 0.],
-                    [0., 0., 3027.8643]])
+    sbe = np.array(
+        [[1017.9312, 0.0, 0.0], [0.0, 2982.2045, 0.0], [0.0, 0.0, 3027.8643]]
+    )
     assert np.all(abs(pI - sbe) < 1e-3)
 
-    mass[1, 0] = 4.
+    mass[1, 0] = 4.0
     assert_raises(ValueError, cb.cgmass, mass)
 
 
@@ -259,7 +270,7 @@ def gettable(lines, j, col=0, label=None, skip=0):
         line = line.rstrip()
         if len(line) == 0:
             break
-        line = line.replace(',', ' ')
+        line = line.replace(",", " ")
         table.append([float(item) for item in line[col:].split()])
     return np.array(table), j + len(table)
 
@@ -277,62 +288,61 @@ def comptable(s1, s2, j1, j2, col=0, label=None, skip=0, sort2=0):
 def compare_cbcheck_output(s, sy):
     j = [15]
     jy = [15]
-    assert comptable(s, sy, j, jy, label=' ID ', skip=2)
-    assert comptable(s, sy, j, jy, label='----------', skip=1)
-    assert comptable(s, sy, j, jy, label='----------', skip=1)
-    assert comptable(s, sy, j, jy, label='6x6 ', skip=2)
-    assert comptable(s, sy, j, jy, label='6x6 ', skip=2)
-    assert comptable(s, sy, j, jy, label='6x6 ', skip=2)
+    assert comptable(s, sy, j, jy, label=" ID ", skip=2)
+    assert comptable(s, sy, j, jy, label="----------", skip=1)
+    assert comptable(s, sy, j, jy, label="----------", skip=1)
+    assert comptable(s, sy, j, jy, label="6x6 ", skip=2)
+    assert comptable(s, sy, j, jy, label="6x6 ", skip=2)
+    assert comptable(s, sy, j, jy, label="6x6 ", skip=2)
 
-    assert comptable(s, sy, j, jy, label='Distance to CG', skip=4, col=23)
-    assert comptable(s, sy, j, jy, label=' gyration', skip=4, col=23)
-    assert comptable(s, sy, j, jy, label=' gyration', skip=4, col=23,
-                     sort2=True)
+    assert comptable(s, sy, j, jy, label="Distance to CG", skip=4, col=23)
+    assert comptable(s, sy, j, jy, label=" gyration", skip=4, col=23)
+    assert comptable(s, sy, j, jy, label=" gyration", skip=4, col=23, sort2=True)
 
-    assert comptable(s, sy, j, jy, label='Inertia ', skip=2)
-    assert comptable(s, sy, j, jy, label='Principal ', skip=2)
+    assert comptable(s, sy, j, jy, label="Inertia ", skip=2)
+    assert comptable(s, sy, j, jy, label="Principal ", skip=2)
 
-    assert comptable(s, sy, j, jy, label='Inertia ', skip=2)
-    assert comptable(s, sy, j, jy, label='Principal ', skip=2)
+    assert comptable(s, sy, j, jy, label="Inertia ", skip=2)
+    assert comptable(s, sy, j, jy, label="Principal ", skip=2)
 
-    assert comptable(s, sy, j, jy, label='Inertia ', skip=2)
-    assert comptable(s, sy, j, jy, label='Principal ', skip=2)
+    assert comptable(s, sy, j, jy, label="Inertia ", skip=2)
+    assert comptable(s, sy, j, jy, label="Principal ", skip=2)
 
-    assert comptable(s, sy, j, jy, label='-----------', skip=1, col=8)
-    assert comptable(s, sy, j, jy, label='Summation', skip=2, col=8)
+    assert comptable(s, sy, j, jy, label="-----------", skip=1, col=8)
+    assert comptable(s, sy, j, jy, label="Summation", skip=2, col=8)
 
-    assert comptable(s, sy, j, jy, label='-----------', skip=1, col=8)
-    assert comptable(s, sy, j, jy, label='Summation', skip=2, col=8)
+    assert comptable(s, sy, j, jy, label="-----------", skip=1, col=8)
+    assert comptable(s, sy, j, jy, label="Summation", skip=2, col=8)
 
-    assert comptable(s, sy, j, jy, label='-----------', skip=1, col=8)
-    assert comptable(s, sy, j, jy, label='Summation', skip=2, col=8)
+    assert comptable(s, sy, j, jy, label="-----------", skip=1, col=8)
+    assert comptable(s, sy, j, jy, label="Summation", skip=2, col=8)
 
-    assert comptable(s, sy, j, jy, label='Mode', skip=2, col=8)
+    assert comptable(s, sy, j, jy, label="Mode", skip=2, col=8)
 
-    mef1 = gettable(s, j[0], label='Mode No.', skip=2)[0]
-    mef2 = gettable(sy, jy[0], label='Mode No.', skip=2)[0]
+    mef1 = gettable(s, j[0], label="Mode No.", skip=2)[0]
+    mef2 = gettable(sy, jy[0], label="Mode No.", skip=2)[0]
     # trim mef2 down:
     pv = np.any(mef2[:, 2:] >= 2.0, axis=1)
     mef2 = mef2[pv]
     assert np.allclose(mef1, mef2)
 
-    assert comptable(s, sy, j, jy, label='Total Eff', skip=0, col=21)
+    assert comptable(s, sy, j, jy, label="Total Eff", skip=0, col=21)
 
 
 def test_cbcheck_indeterminate():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
-    maa = nas['maa'][se]
-    kaa = nas['kaa'][se]
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
     pv = np.any(maa, axis=0)
     pv = np.ix_(pv, pv)
     maa = maa[pv]
     kaa = kaa[pv]
 
-    uset = nas['uset'][se]
-    bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se].iloc[bset]
-    b = n2p.mksetpv(uset, 'a', 'b')
+    uset = nas["uset"][se]
+    bset = n2p.mksetpv(uset, "p", "b")
+    usetb = nas["uset"][se].iloc[bset]
+    b = n2p.mksetpv(uset, "a", "b")
     q = ~b
     b = np.nonzero(b)[0]
 
@@ -341,8 +351,7 @@ def test_cbcheck_indeterminate():
     name = f.name
     f.close()
     # m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
-    out = cb.cbcheck(
-        name, maa, kaa, b, b[:6], usetb, em_filt=2)
+    out = cb.cbcheck(name, maa, kaa, b, b[:6], usetb, em_filt=2)
     with open(name) as f:
         sfile = f.read()
     os.remove(name)
@@ -352,59 +361,55 @@ def test_cbcheck_indeterminate():
 
     rbg = n2p.rbgeom_uset(out.uset)
     assert np.allclose(rbg, out.rbg)
-    rbg_s = np.vstack((la.solve(rbg[:6].T, rbg.T).T,
-                       np.zeros((q[q].size, 6))))
+    rbg_s = np.vstack((la.solve(rbg[:6].T, rbg.T).T, np.zeros((q[q].size, 6))))
     assert abs(out.rbs - rbg_s).max() < 1e-5
     assert abs(out.rbe - rbg_s).max() < 1e-5
 
     # write to a string:
     with StringIO() as f:
-        out = cb.cbcheck(
-            f, maa, kaa, b, b[:6], usetb, em_filt=2)
+        out = cb.cbcheck(f, maa, kaa, b, b[:6], usetb, em_filt=2)
         s = f.getvalue()
 
     assert sfile == s
     s = s.splitlines()
 
-    with open('tests/nas2cam_csuper/yeti_outputs/'
-              'cbcheck_yeti_101.out') as f:
+    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101.out") as f:
         sy = f.read().splitlines()
 
-    assert s[0] == 'Mass matrix is symmetric.'
-    assert s[1] == 'Mass matrix is positive definite.'
-    assert s[2] == 'Stiffness matrix is symmetric.'
+    assert s[0] == "Mass matrix is symmetric."
+    assert s[1] == "Mass matrix is positive definite."
+    assert s[2] == "Stiffness matrix is symmetric."
 
     compare_cbcheck_output(s, sy)
 
     with StringIO() as f:
-        out = cb.cbcheck(
-            f, maa, kaa, b, b[:6], usetb, em_filt=2, conv='e2m')
-        out2 = cb.cbcheck(
-            f, out.m, out.k, b, b[:6], out.uset, em_filt=2, conv='m2e')
+        out = cb.cbcheck(f, maa, kaa, b, b[:6], usetb, em_filt=2, conv="e2m")
+        out2 = cb.cbcheck(f, out.m, out.k, b, b[:6], out.uset, em_filt=2, conv="m2e")
         assert np.allclose(out2.uset, usetb)
         assert np.allclose(maa, out2.m)
         assert np.allclose(kaa, out2.k)
 
     # check for error catches:
     with StringIO() as f:
-        assert_raises(ValueError, cb.cbcheck, f, maa, kaa, b, b[:6],
-                      usetb.iloc[:-6], em_filt=2)
+        assert_raises(
+            ValueError, cb.cbcheck, f, maa, kaa, b, b[:6], usetb.iloc[:-6], em_filt=2
+        )
 
 
 def test_cbcheck_determinate():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
-    maa = nas['maa'][se]
-    kaa = nas['kaa'][se]
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
     pv = np.any(maa, axis=0)
     pv = np.ix_(pv, pv)
     maa = maa[pv]
     kaa = kaa[pv]
 
-    uset = nas['uset'][se]
-    bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se].iloc[bset]
-    b = n2p.mksetpv(uset, 'a', 'b')
+    uset = nas["uset"][se]
+    bset = n2p.mksetpv(uset, "p", "b")
+    usetb = nas["uset"][se].iloc[bset]
+    b = n2p.mksetpv(uset, "a", "b")
 
     q = ~b
     b = np.nonzero(b)[0]
@@ -417,8 +422,8 @@ def test_cbcheck_determinate():
     # [b, q]_old = T*[b, q]_new
     #            = [[rb, 0], [0, I]] * [b, q]_new
     T = np.zeros((len(b) + len(q), 6 + len(q)))
-    T[:len(b), :6] = rb
-    T[len(b):, 6:] = np.eye(len(q))
+    T[: len(b), :6] = rb
+    T[len(b) :, 6:] = np.eye(len(q))
 
     kaa = T.T @ kaa @ T
     maa = T.T @ maa @ T
@@ -426,39 +431,37 @@ def test_cbcheck_determinate():
 
     # write to a string:
     with StringIO() as f:
-        out = cb.cbcheck(
-            f, maa, kaa, b, b[:6], em_filt=2)
+        out = cb.cbcheck(f, maa, kaa, b, b[:6], em_filt=2)
         s = f.getvalue()
 
     s = s.splitlines()
-    with open('tests/nas2cam_csuper/yeti_outputs/'
-              'cbcheck_yeti_101_single.out') as f:
+    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_single.out") as f:
         sy = f.read().splitlines()
 
-    assert s[0] == 'Mass matrix is symmetric.'
-    assert s[1] == 'Mass matrix is positive definite.'
-    assert s[2] == 'Warning: stiffness matrix is not symmetric.'
+    assert s[0] == "Mass matrix is symmetric."
+    assert s[1] == "Mass matrix is positive definite."
+    assert s[2] == "Warning: stiffness matrix is not symmetric."
 
     j = [10]
     jy = [10]
-    assert comptable(s, sy, j, jy, label='KBB =', skip=1)
+    assert comptable(s, sy, j, jy, label="KBB =", skip=1)
     compare_cbcheck_output(s, sy)
 
 
 def test_cbcheck_unit_convert():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
-    maa = nas['maa'][se]
-    kaa = nas['kaa'][se]
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
     pv = np.any(maa, axis=0)
     pv = np.ix_(pv, pv)
     maa = maa[pv]
     kaa = kaa[pv]
 
-    uset = nas['uset'][se]
-    bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se].iloc[bset]
-    b = n2p.mksetpv(uset, 'a', 'b')
+    uset = nas["uset"][se]
+    bset = n2p.mksetpv(uset, "p", "b")
+    usetb = nas["uset"][se].iloc[bset]
+    b = n2p.mksetpv(uset, "a", "b")
 
     q = ~b
     b = np.nonzero(b)[0]
@@ -467,36 +470,45 @@ def test_cbcheck_unit_convert():
     # write to a string:
     with StringIO() as f:
         out = cb.cbcheck(
-            f, maa, kaa, b, b[:6], uset=usetb, em_filt=2,
+            f,
+            maa,
+            kaa,
+            b,
+            b[:6],
+            uset=usetb,
+            em_filt=2,
             conv=[1 / 25.4, 0.005710147154735817],
-            uref=[600, 150, 150], rb_norm=False)
+            uref=[600, 150, 150],
+            rb_norm=False,
+        )
         s = f.getvalue()
 
     s = s.splitlines()
-    with open('tests/nas2cam_csuper/yeti_outputs/'
-              'cbcheck_yeti_101_unitconv.out') as f:
+    with open(
+        "tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_unitconv.out"
+    ) as f:
         sy = f.read().splitlines()
 
-    assert s[0] == 'Mass matrix is symmetric.'
-    assert s[1] == 'Mass matrix is positive definite.'
-    assert s[2] == 'Stiffness matrix is symmetric.'
+    assert s[0] == "Mass matrix is symmetric."
+    assert s[1] == "Mass matrix is positive definite."
+    assert s[2] == "Stiffness matrix is symmetric."
     compare_cbcheck_output(s, sy)
 
 
 def test_cbcheck_reorder():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
-    maa = nas['maa'][se]
-    kaa = nas['kaa'][se]
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
     pv = np.any(maa, axis=0)
     pv = np.ix_(pv, pv)
     maa = maa[pv]
     kaa = kaa[pv]
 
-    uset = nas['uset'][se]
-    bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se].iloc[bset]
-    b = np.nonzero(n2p.mksetpv(uset, 'a', 'b'))[0]
+    uset = nas["uset"][se]
+    bset = n2p.mksetpv(uset, "p", "b")
+    usetb = nas["uset"][se].iloc[bset]
+    b = np.nonzero(n2p.mksetpv(uset, "a", "b"))[0]
 
     maa = cb.cbreorder(maa, b, last=True)
     kaa = cb.cbreorder(kaa, b, last=True)
@@ -504,114 +516,106 @@ def test_cbcheck_reorder():
 
     # write to a string:
     with StringIO() as f:
-        out = cb.cbcheck(
-            f, maa, kaa, b, b[:6], usetb, em_filt=2)
+        out = cb.cbcheck(f, maa, kaa, b, b[:6], usetb, em_filt=2)
         s = f.getvalue()
     s = s.splitlines()
-    with open('tests/nas2cam_csuper/yeti_outputs/'
-              'cbcheck_yeti_101.out') as f:
+    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101.out") as f:
         sy = f.read().splitlines()
 
-    assert s[0] == 'Mass matrix is symmetric.'
-    assert s[1] == 'Mass matrix is positive definite.'
-    assert s[2] == 'Stiffness matrix is symmetric.'
+    assert s[0] == "Mass matrix is symmetric."
+    assert s[1] == "Mass matrix is positive definite."
+    assert s[2] == "Stiffness matrix is symmetric."
     compare_cbcheck_output(s, sy)
 
 
 def test_cbcheck_indeterminate_rb_norm():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
-    maa = nas['maa'][se]
-    kaa = nas['kaa'][se]
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
     pv = np.any(maa, axis=0)
     pv = np.ix_(pv, pv)
     maa = maa[pv]
     kaa = kaa[pv]
 
-    uset = nas['uset'][se]
-    bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se].iloc[bset]
-    b = n2p.mksetpv(uset, 'a', 'b')
+    uset = nas["uset"][se]
+    bset = n2p.mksetpv(uset, "p", "b")
+    usetb = nas["uset"][se].iloc[bset]
+    b = n2p.mksetpv(uset, "a", "b")
     q = ~b
     b = np.nonzero(b)[0]
 
-    bref = n2p.mkdofpv(usetb, 'b', [[3, 12356], [19, 3]])[0]
+    bref = n2p.mkdofpv(usetb, "b", [[3, 12356], [19, 3]])[0]
 
     # write to a string:
     with StringIO() as f:
-        out = cb.cbcheck(
-            f, maa, kaa, b, bref, usetb, em_filt=2)
+        out = cb.cbcheck(f, maa, kaa, b, bref, usetb, em_filt=2)
         s = f.getvalue()
     s = s.splitlines()
 
-    with open('tests/nas2cam_csuper/yeti_outputs/'
-              'cbcheck_yeti_101_rbnorm.out') as f:
+    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_rbnorm.out") as f:
         sy = f.read().splitlines()
 
-    assert s[0] == 'Mass matrix is symmetric.'
-    assert s[1] == 'Mass matrix is positive definite.'
-    assert s[2] == 'Stiffness matrix is symmetric.'
+    assert s[0] == "Mass matrix is symmetric."
+    assert s[1] == "Mass matrix is positive definite."
+    assert s[2] == "Stiffness matrix is symmetric."
 
     compare_cbcheck_output(s, sy)
 
 
 def test_cbcheck_indeterminate_rb_norm2():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 102
-    maa = nas['maa'][se]
-    kaa = nas['kaa'][se]
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
     pv = np.any(maa, axis=0)
     pv = np.ix_(pv, pv)
     maa = maa[pv]
     kaa = kaa[pv]
 
-    uset = nas['uset'][se]
-    bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se].iloc[bset]
-    b = n2p.mksetpv(uset, 'a', 'b')
+    uset = nas["uset"][se]
+    bset = n2p.mksetpv(uset, "p", "b")
+    usetb = nas["uset"][se].iloc[bset]
+    b = n2p.mksetpv(uset, "a", "b")
     q = ~b
     b = np.nonzero(b)[0]
 
-    bref = n2p.mkdofpv(usetb, 'b', [[3, 12356], [19, 3]])[0]
+    bref = n2p.mkdofpv(usetb, "b", [[3, 12356], [19, 3]])[0]
 
     # write to a string:
     with StringIO() as f:
-        out = cb.cbcheck(
-            f, maa, kaa, b, bref, usetb, em_filt=2, rb_norm=True)
+        out = cb.cbcheck(f, maa, kaa, b, bref, usetb, em_filt=2, rb_norm=True)
         s = f.getvalue()
     s = s.splitlines()
 
-    with open('tests/nas2cam_csuper/yeti_outputs/'
-              'cbcheck_yeti_102_rbnorm.out') as f:
+    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_102_rbnorm.out") as f:
         sy = f.read().splitlines()
 
-    assert s[0] == 'Mass matrix is symmetric.'
-    assert s[1] == 'Warning: mass matrix is not positive definite.'
-    assert s[2] == 'Warning: stiffness matrix is not symmetric.'
+    assert s[0] == "Mass matrix is symmetric."
+    assert s[1] == "Warning: mass matrix is not positive definite."
+    assert s[2] == "Warning: stiffness matrix is not symmetric."
 
     compare_cbcheck_output(s, sy)
 
 
 def test_rbmultchk():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
-    maa = nas['maa'][se]
-    kaa = nas['kaa'][se]
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
     pv = np.any(maa, axis=0)
     pv = np.ix_(pv, pv)
     maa = maa[pv]
     kaa = kaa[pv]
 
-    uset = nas['uset'][se]
-    bset = n2p.mksetpv(uset, 'p', 'b')
-    usetb = nas['uset'][se].iloc[bset]
-    b = n2p.mksetpv(uset, 'a', 'b')
+    uset = nas["uset"][se]
+    bset = n2p.mksetpv(uset, "p", "b")
+    usetb = nas["uset"][se].iloc[bset]
+    b = n2p.mksetpv(uset, "a", "b")
     q = ~b
     b = np.nonzero(b)[0]
 
-    grids = [[11, 123456],
-             [45, 123456],
-             [60, 123456]]
+    grids = [[11, 123456], [45, 123456], [60, 123456]]
     drm101, dof101 = n2p.formtran(nas, 101, grids)
 
     # write and read a file:
@@ -620,34 +624,37 @@ def test_rbmultchk():
     f.close()
 
     rb = n2p.rbgeom_uset(usetb)
-    cb.rbmultchk(name, drm101, 'DRM101', rb)
+    cb.rbmultchk(name, drm101, "DRM101", rb)
     with open(name) as f:
         sfile = f.read()
     os.remove(name)
 
     # test rbscale and unit scale:
     with StringIO() as f:
-        cb.rbmultchk(f, 0.00259 * drm101, 'DRM101', 100 * rb)
+        cb.rbmultchk(f, 0.00259 * drm101, "DRM101", 100 * rb)
         s = f.getvalue()
 
-    pos = s.find(' which is: ')
-    pos2 = s[pos:].find('\n')
-    assert math.isclose(float(s[pos + 10:pos + pos2]), 100)
+    pos = s.find(" which is: ")
+    pos2 = s[pos:].find("\n")
+    assert math.isclose(float(s[pos + 10 : pos + pos2]), 100)
     s = s.splitlines()
-    table, nj1 = gettable(s, 15, 0, 'Absolute Maximums', 3)
-    sbe = np.array([
-        [600, 300, 300, 0.00259],
-        [600, 300, 300, 0.00259],
-        [600, 300, 300, 0.00259],
-        [150, -930, 150, 0.00259],
-        [600, 300, 300, 0.00259],
-        [150, -930, 150, 0.00259]])
+    table, nj1 = gettable(s, 15, 0, "Absolute Maximums", 3)
+    sbe = np.array(
+        [
+            [600, 300, 300, 0.00259],
+            [600, 300, 300, 0.00259],
+            [600, 300, 300, 0.00259],
+            [150, -930, 150, 0.00259],
+            [600, 300, 300, 0.00259],
+            [150, -930, 150, 0.00259],
+        ]
+    )
 
     assert np.allclose(table[:, 1:5], sbe)
 
     # write to a string:
     with StringIO() as f:
-        cb.rbmultchk(f, drm101, 'DRM101', rb)
+        cb.rbmultchk(f, drm101, "DRM101", rb)
         s = f.getvalue()
     assert sfile == s
 
@@ -655,105 +662,108 @@ def test_rbmultchk():
     nq = np.count_nonzero(q)
     rb2 = np.vstack((rb, np.zeros((nq, 6))))
     with StringIO() as f:
-        cb.rbmultchk(f, drm101, 'DRM101', rb2)
+        cb.rbmultchk(f, drm101, "DRM101", rb2)
         s2 = f.getvalue()
     assert s2 == s
 
     # check results when b-set are last:
     drm101_last = np.hstack((drm101[:, q], drm101[:, b]))
     with StringIO() as f:
-        cb.rbmultchk(f, drm101_last, 'DRM101', rb, bset='last')
+        cb.rbmultchk(f, drm101_last, "DRM101", rb, bset="last")
         s2 = f.getvalue()
     assert s2 == s
 
     # check results when b-set are last ... using pv:
     with StringIO() as f:
         bsetpv = np.zeros((len(b) + nq), bool)
-        bsetpv[-len(b):] = True
-        cb.rbmultchk(f, drm101_last, 'DRM101', rb, bset=bsetpv)
+        bsetpv[-len(b) :] = True
+        cb.rbmultchk(f, drm101_last, "DRM101", rb, bset=bsetpv)
         s2 = f.getvalue()
     assert s2 == s
 
     with StringIO() as f:
-        assert_raises(ValueError, cb.rbmultchk, f, drm101, 'asdf', rb,
-                      bset='bad string')
+        assert_raises(
+            ValueError, cb.rbmultchk, f, drm101, "asdf", rb, bset="bad string"
+        )
 
     # trim q-set columns out of drm:
-    labels = [str(i[0]) + '  ' + str(i[1]) for i in dof101]
+    labels = [str(i[0]) + "  " + str(i[1]) for i in dof101]
     with StringIO() as f:
-        cb.rbmultchk(f, drm101[:, b], 'DRM101', rb,
-                     drm2=drm101[:, b], prtnullrows=True,
-                     labels=labels)
+        cb.rbmultchk(
+            f,
+            drm101[:, b],
+            "DRM101",
+            rb,
+            drm2=drm101[:, b],
+            prtnullrows=True,
+            labels=labels,
+        )
         s2 = f.getvalue()
 
     # row 16 is now all zeros ... not comparable
     drm2 = drm101.copy()
     drm2[15] = 0
     with StringIO() as f:
-        cb.rbmultchk(f, drm2, 'DRM101', rb,
-                     drm2=drm2, prtnullrows=True,
-                     labels=labels)
+        cb.rbmultchk(f, drm2, "DRM101", rb, drm2=drm2, prtnullrows=True, labels=labels)
         s3 = f.getvalue()
     assert s2 == s3
 
     s = s.splitlines()
-    with open('tests/nas2cam_csuper/yeti_outputs/'
-              'rbmultchk_yeti_101.out') as f:
+    with open("tests/nas2cam_csuper/yeti_outputs/rbmultchk_yeti_101.out") as f:
         sy = f.read().splitlines()
 
     j = [2]
     jy = [2]
-    assert comptable(s, sy, j, jy, label='Extreme ', skip=3, col=11)
-    assert comptable(s, sy, j, jy, label=' Row ', skip=2, col=68)
-    assert comptable(s, sy, j, jy, label=' Row ', skip=2)
-    assert comptable(s, sy, j, jy, label=' Row ', skip=2)
+    assert comptable(s, sy, j, jy, label="Extreme ", skip=3, col=11)
+    assert comptable(s, sy, j, jy, label=" Row ", skip=2, col=68)
+    assert comptable(s, sy, j, jy, label=" Row ", skip=2)
+    assert comptable(s, sy, j, jy, label=" Row ", skip=2)
 
 
 def test_rbmultchk2():
     # write to a string:
     with StringIO() as f:
-        cb.rbmultchk(f, np.zeros((15, 6)), 'DRM', np.eye(6),
-                     drm2=np.random.randn(15, 6))
+        cb.rbmultchk(
+            f, np.zeros((15, 6)), "DRM", np.eye(6), drm2=np.random.randn(15, 6)
+        )
         s = f.getvalue()
-    assert s.find(' -- no coordinates detected --') > -1
-    assert s.find('All rows in DRM are NULL') > -1
-    assert s.find('There are no NULL rows in DRM2.') > -1
+    assert s.find(" -- no coordinates detected --") > -1
+    assert s.find("All rows in DRM are NULL") > -1
+    assert s.find("There are no NULL rows in DRM2.") > -1
 
     with StringIO() as f:
-        cb.rbmultchk(f, np.zeros((15, 6)), 'DRM', np.eye(6),
-                     drm2=np.random.randn(14, 6))
+        cb.rbmultchk(
+            f, np.zeros((15, 6)), "DRM", np.eye(6), drm2=np.random.randn(14, 6)
+        )
         s = f.getvalue()
-    assert s.find('Error: incorrectly sized DRM2') > -1
-
-    drm = np.random.randn(14, 6)
-    drm2 = np.random.randn(14, 6)
-    drm[::3] = 0.
-    drm2[1::3] = 0.
-    with StringIO() as f:
-        cb.rbmultchk(f, drm, 'DRM', np.eye(6), drm2=drm2)
-        s = f.getvalue()
-    assert s.find('different set of NULL rows') > -1
+    assert s.find("Error: incorrectly sized DRM2") > -1
 
     drm = np.random.randn(14, 6)
     drm2 = np.random.randn(14, 6)
-    drm[::3] = 0.
-    drm2[2::3] = 0.
+    drm[::3] = 0.0
+    drm2[1::3] = 0.0
     with StringIO() as f:
-        cb.rbmultchk(f, drm, 'DRM', np.eye(6), drm2=drm2)
+        cb.rbmultchk(f, drm, "DRM", np.eye(6), drm2=drm2)
         s = f.getvalue()
-    assert s.find('different set of NULL rows') > -1
+    assert s.find("different set of NULL rows") > -1
+
+    drm = np.random.randn(14, 6)
+    drm2 = np.random.randn(14, 6)
+    drm[::3] = 0.0
+    drm2[2::3] = 0.0
+    with StringIO() as f:
+        cb.rbmultchk(f, drm, "DRM", np.eye(6), drm2=drm2)
+        s = f.getvalue()
+    assert s.find("different set of NULL rows") > -1
 
     with StringIO() as f:
-        assert_raises(ValueError, cb.rbmultchk, f, drm, 'drm', 1)
+        assert_raises(ValueError, cb.rbmultchk, f, drm, "drm", 1)
     with StringIO() as f:
-        assert_raises(ValueError, cb.rbmultchk, f, drm, 'drm',
-                      np.zeros((6, 6)))
+        assert_raises(ValueError, cb.rbmultchk, f, drm, "drm", np.zeros((6, 6)))
 
 
 def test_rbdispchk():
-    coords = np.array([[0, 0, 0],
-                       [1, 2, 3],
-                       [4, -5, 25]])
+    coords = np.array([[0, 0, 0], [1, 2, 3], [4, -5, 25]])
     rb = n2p.rbgeom(coords)
     xyz_pv = ytools.mkpattvec([0, 1, 2], 3 * 6, 6).ravel()
     rbtrimmed = rb[xyz_pv]
@@ -771,38 +781,41 @@ def test_rbdispchk():
         coords_out, maxerr = cb.rbdispchk(f, rbtrimmed)
         s = f.getvalue()
 
-    sbe = ['',
-           'Coordinates Determined from Rigid-Body Displacements:',
-           '         Node      X         Y         Z         Error',
-           '        ------  --------  --------  --------   ----------',
-           '             1      0.00      0.00      0.00   0.0000e+00',
-           '             2      1.00      2.00      3.00   0.0000e+00',
-           '             3      4.00     -5.00     25.00   0.0000e+00',
-           '',
-           'Maximum absolute coordinate location error:    0 units',
-           '',
-           '']
+    sbe = [
+        "",
+        "Coordinates Determined from Rigid-Body Displacements:",
+        "         Node      X         Y         Z         Error",
+        "        ------  --------  --------  --------   ----------",
+        "             1      0.00      0.00      0.00   0.0000e+00",
+        "             2      1.00      2.00      3.00   0.0000e+00",
+        "             3      4.00     -5.00     25.00   0.0000e+00",
+        "",
+        "Maximum absolute coordinate location error:    0 units",
+        "",
+        "",
+    ]
 
-    assert s == '\n'.join(sbe)
+    assert s == "\n".join(sbe)
 
     with StringIO() as f:
-        coords_out, maxerr = cb.rbdispchk(f, rbtrimmed,
-                                          grids=[100, 200, 300])
+        coords_out, maxerr = cb.rbdispchk(f, rbtrimmed, grids=[100, 200, 300])
         s = f.getvalue()
 
-    sbe = ['',
-           'Coordinates Determined from Rigid-Body Displacements:',
-           '         Node      ID        X         Y         Z         Error',
-           '        ------  --------  --------  --------  --------   ----------',
-           '             1       100      0.00      0.00      0.00   0.0000e+00',
-           '             2       200      1.00      2.00      3.00   0.0000e+00',
-           '             3       300      4.00     -5.00     25.00   0.0000e+00',
-           '',
-           'Maximum absolute coordinate location error:    0 units',
-           '',
-           '']
+    sbe = [
+        "",
+        "Coordinates Determined from Rigid-Body Displacements:",
+        "         Node      ID        X         Y         Z         Error",
+        "        ------  --------  --------  --------  --------   ----------",
+        "             1       100      0.00      0.00      0.00   0.0000e+00",
+        "             2       200      1.00      2.00      3.00   0.0000e+00",
+        "             3       300      4.00     -5.00     25.00   0.0000e+00",
+        "",
+        "Maximum absolute coordinate location error:    0 units",
+        "",
+        "",
+    ]
 
-    assert s == '\n'.join(sbe)
+    assert s == "\n".join(sbe)
 
     # add a little error:
     # array([[  1.,   0.,   0.,   0.,   0.,   0.],
@@ -819,59 +832,61 @@ def test_rbdispchk():
         coords_out, maxerr = cb.rbdispchk(f, rbtrimmed)
         s = f.getvalue()
 
-    sbe = ['Warning: deviation from standard pattern, node #3 '
-           'starting at row 7. \tMax deviation = 0.006 units.',
-           '  Rigid-Body Rotations:',
-           '    0.0000    25.0000     5.0000',
-           '  -25.0060     0.0000     4.0000',
-           '   -5.0000    -4.0000     0.0000',
-           '',
-           '',
-           'Coordinates Determined from Rigid-Body Displacements:',
-           '         Node      X         Y         Z         Error',
-           '        ------  --------  --------  --------   ----------',
-           '             1      0.00      0.00      0.00   0.0000e+00',
-           '             2      1.00      2.00      3.00   0.0000e+00',
-           '             3      4.00     -5.00     25.00   6.0000e-03',
-           '',
-           'Maximum absolute coordinate location error:  0.006 units',
-           '',
-           '']
+    sbe = [
+        "Warning: deviation from standard pattern, node #3 "
+        "starting at row 7. \tMax deviation = 0.006 units.",
+        "  Rigid-Body Rotations:",
+        "    0.0000    25.0000     5.0000",
+        "  -25.0060     0.0000     4.0000",
+        "   -5.0000    -4.0000     0.0000",
+        "",
+        "",
+        "Coordinates Determined from Rigid-Body Displacements:",
+        "         Node      X         Y         Z         Error",
+        "        ------  --------  --------  --------   ----------",
+        "             1      0.00      0.00      0.00   0.0000e+00",
+        "             2      1.00      2.00      3.00   0.0000e+00",
+        "             3      4.00     -5.00     25.00   6.0000e-03",
+        "",
+        "Maximum absolute coordinate location error:  0.006 units",
+        "",
+        "",
+    ]
 
-    assert s == '\n'.join(sbe)
+    assert s == "\n".join(sbe)
 
     with StringIO() as f:
-        coords_out, maxerr = cb.rbdispchk(f, rbtrimmed,
-                                          grids=[100, 200, 300])
+        coords_out, maxerr = cb.rbdispchk(f, rbtrimmed, grids=[100, 200, 300])
         s = f.getvalue()
 
-    sbe = ['Warning: deviation from standard pattern, node ID = 300 '
-           'starting at row 7. Max deviation = 0.006 units.',
-           '  Rigid-Body Rotations:',
-           '    0.0000    25.0000     5.0000',
-           '  -25.0060     0.0000     4.0000',
-           '   -5.0000    -4.0000     0.0000',
-           '',
-           '',
-           'Coordinates Determined from Rigid-Body Displacements:',
-           '         Node      ID        X         Y         Z         Error',
-           '        ------  --------  --------  --------  --------   ----------',
-           '             1       100      0.00      0.00      0.00   0.0000e+00',
-           '             2       200      1.00      2.00      3.00   0.0000e+00',
-           '             3       300      4.00     -5.00     25.00   6.0000e-03',
-           '',
-           'Maximum absolute coordinate location error:  0.006 units',
-           '',
-           '']
+    sbe = [
+        "Warning: deviation from standard pattern, node ID = 300 "
+        "starting at row 7. Max deviation = 0.006 units.",
+        "  Rigid-Body Rotations:",
+        "    0.0000    25.0000     5.0000",
+        "  -25.0060     0.0000     4.0000",
+        "   -5.0000    -4.0000     0.0000",
+        "",
+        "",
+        "Coordinates Determined from Rigid-Body Displacements:",
+        "         Node      ID        X         Y         Z         Error",
+        "        ------  --------  --------  --------  --------   ----------",
+        "             1       100      0.00      0.00      0.00   0.0000e+00",
+        "             2       200      1.00      2.00      3.00   0.0000e+00",
+        "             3       300      4.00     -5.00     25.00   6.0000e-03",
+        "",
+        "Maximum absolute coordinate location error:  0.006 units",
+        "",
+        "",
+    ]
 
-    assert s == '\n'.join(sbe)
+    assert s == "\n".join(sbe)
 
     f = tempfile.NamedTemporaryFile(delete=False)
     name = f.name
     f.close()
 
-    coords_out, maxerr = cb.rbdispchk(name, rbtrimmed,
-                                      grids=[100, 200, 300])
+    coords_out, maxerr = cb.rbdispchk(name, rbtrimmed, grids=[100, 200, 300])
     with open(name) as f:
         s2 = f.read()
     os.remove(name)
@@ -893,20 +908,19 @@ def test_cbcoordchk():
 
 
 def test_cbcoordchk2():
-    nas = op2.rdnas2cam('tests/nas2cam_csuper/nas2cam')
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
-    maa = nas['maa'][se]
-    kaa = nas['kaa'][se]
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
     pv = np.any(maa, axis=0)
     pv = np.ix_(pv, pv)
     kaa = kaa[pv]
 
-    uset = nas['uset'][se]
-    b = n2p.mksetpv(uset, 'a', 'b')
+    uset = nas["uset"][se]
+    b = n2p.mksetpv(uset, "a", "b")
     b = np.nonzero(b)[0]
 
-    chk0 = cb.cbcoordchk(
-        kaa, b, b[-6:], verbose=False)
+    chk0 = cb.cbcoordchk(kaa, b, b[-6:], verbose=False)
     rbmodes0 = chk0.rbmodes[b]
 
     # maa = cb.cbreorder(maa, b, last=True)
@@ -914,20 +928,18 @@ def test_cbcoordchk2():
     b += kaa.shape[0] - len(b)
     bref = b[-6:]
 
-    chk1 = cb.cbcoordchk(
-        kaa, b, bref, verbose=False)
+    chk1 = cb.cbcoordchk(kaa, b, bref, verbose=False)
     rbmodes1 = chk1.rbmodes[b]
 
     assert np.allclose(chk1.coords, chk0.coords)
     assert np.allclose(rbmodes1, rbmodes0)
     assert np.allclose(chk1.maxerr, chk0.maxerr)
-    assert chk0.refpoint_chk == chk1.refpoint_chk == 'pass'
+    assert chk0.refpoint_chk == chk1.refpoint_chk == "pass"
     assert abs(chk0.maxerr).max() < 1e-5
 
     # a case where the refpoint_chk should be 'fail':
-    chk2 = cb.cbcoordchk(
-        kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
-    assert chk2.refpoint_chk == 'fail'
+    chk2 = cb.cbcoordchk(kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
+    assert chk2.refpoint_chk == "fail"
 
 
 def compare_nets(net, net2):
@@ -940,15 +952,15 @@ def compare_nets(net, net2):
 
 def test_mk_net_drms():
     pth = os.path.dirname(inspect.getfile(cb))
-    pth = os.path.join(pth, '..')
-    pth = os.path.join(pth, 'tests')
-    pth = os.path.join(pth, 'nas2cam_csuper')
+    pth = os.path.join(pth, "..")
+    pth = os.path.join(pth, "tests")
+    pth = os.path.join(pth, "nas2cam_csuper")
 
     # Load the mass and stiffness from the .op4 file
     # This loads the data into a dict:
-    mk = op4.load(os.path.join(pth, 'inboard.op4'))
-    maa = mk['mxx'][0]
-    kaa = mk['kxx'][0]
+    mk = op4.load(os.path.join(pth, "inboard.op4"))
+    maa = mk["mxx"][0]
+    kaa = mk["kxx"][0]
 
     # Get the USET table The USET table has the boundary DOF
     # information (id, location, coordinate system). This is needed
@@ -956,7 +968,7 @@ def test_mk_net_drms():
     # module has the function bulk2uset which is handy for forming the
     # USET table from bulk data.
 
-    uset, coords = nastran.bulk2uset(os.path.join(pth, 'inboard.asm'))
+    uset, coords = nastran.bulk2uset(os.path.join(pth, "inboard.asm"))
 
     # uset[::6, [0, 3, 4, 5]]
     # array([[   3.,  600.,    0.,  300.],
@@ -973,12 +985,14 @@ def test_mk_net_drms():
     #  <------
     # x l/v
 
-    sccoord = [[900, 1, 0],
-               [0, 0, 0],
-               [1, 1, 0],   # z is 45 deg between x & y of l/v
-               [0, 0, -1]]  # x is -z l/v
+    sccoord = [
+        [900, 1, 0],
+        [0, 0, 0],
+        [1, 1, 0],  # z is 45 deg between x & y of l/v
+        [0, 0, -1],
+    ]  # x is -z l/v
     c = np.cos(45 / 180 * np.pi)
-    Tl2s = np.array([[0, 0, -1.], [-c, c, 0], [c, c, 0]])
+    Tl2s = np.array([[0, 0, -1.0], [-c, c, 0], [c, c, 0]])
 
     # Form b-set partition vector into a-set
     # In this case, we already know the b-set are first:
@@ -991,20 +1005,20 @@ def test_mk_net_drms():
 
     # convert s/c from mm, kg --> m, kg
     ref = [600, 150, 150]
-    conv = (0.001, 1.)
+    conv = (0.001, 1.0)
     g = 9.80665
 
-    u = n2p.addgrid(None, 1, 'b', sccoord, [0, 0, 0], sccoord)
+    u = n2p.addgrid(None, 1, "b", sccoord, [0, 0, 0], sccoord)
     Tsc2lv = np.zeros((6, 6))
     T = u.iloc[3:, 1:]
     Tsc2lv[:3, :3] = T
     Tsc2lv[3:, 3:] = T
     assert np.allclose(Tl2s.T, Tsc2lv[:3, :3])
 
-    net = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
-                         sccoord=sccoord, conv=conv, g=g)
-    net2 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
-                          sccoord=Tl2s, conv=conv, g=g)
+    net = cb.mk_net_drms(
+        maa, kaa, b, uset=uset, ref=ref, sccoord=sccoord, conv=conv, g=g
+    )
+    net2 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref, sccoord=Tl2s, conv=conv, g=g)
 
     # rb modes in system units:
     uset2, ref2 = cb._uset_convert(uset, ref, conv)
@@ -1028,46 +1042,44 @@ def test_mk_net_drms():
     #   matrix at the reference point ... which, conveniently,
     #   is provided in the cbtf tutorial:
     mass = np.array(
-        [[1.755, 0., -0., 0., 0., 0.],
-         [0., 1.755, -0., -0., 0., 772.22],
-         [-0., -0., 1.755, 0., -772.22, -0.],
-         [0., -0., 0., 35905.202, -0., -0.],
-         [0., 0., -772.22, -0., 707976.725, 109.558],
-         [0., 772.22, -0., -0., 109.558, 707976.725]])
+        [
+            [1.755, 0.0, -0.0, 0.0, 0.0, 0.0],
+            [0.0, 1.755, -0.0, -0.0, 0.0, 772.22],
+            [-0.0, -0.0, 1.755, 0.0, -772.22, -0.0],
+            [0.0, -0.0, 0.0, 35905.202, -0.0, -0.0],
+            [0.0, 0.0, -772.22, -0.0, 707976.725, 109.558],
+            [0.0, 772.22, -0.0, -0.0, 109.558, 707976.725],
+        ]
+    )
     sbe = mass
     sbe[:, :3] *= 1000  # scale up translations
-    assert abs(sbe - l_sc).max() < .5
+    assert abs(sbe - l_sc).max() < 0.5
 
     assert np.allclose(Tsc2lv @ a_sc, a_lv)
     assert np.allclose(Tsc2lv @ c_sc, c_lv)
     assert abs(l_scd).max() < 1e-6 * abs(l_sc).max()
     assert abs(l_lvd).max() < 1e-6 * abs(l_lv).max()
-    scale = np.array([[1000],
-                      [1000],
-                      [1000],
-                      [1000000],
-                      [1000000],
-                      [1000000]])
+    scale = np.array([[1000], [1000], [1000], [1000000], [1000000], [1000000]])
     assert np.allclose((1 / scale) * (Tsc2lv @ l_sc), l_lv)
 
     # height and mass values from cbcheck tutorial (and then refined):
     m_kg = 1.75505183
     h_m = 1.039998351 - 0.6
-    assert abs(net.height_lv - h_m) < .000001
-    assert abs(net.weight_lv - m_kg * g) < .000001
-    assert abs(net.height_sc - 1000 * h_m) < .000001 * 1000
-    assert abs(net.weight_sc - 1000 * m_kg * g) < .000001 * 1000
+    assert abs(net.height_lv - h_m) < 0.000001
+    assert abs(net.weight_lv - m_kg * g) < 0.000001
+    assert abs(net.height_sc - 1000 * h_m) < 0.000001 * 1000
+    assert abs(net.weight_sc - 1000 * m_kg * g) < 0.000001 * 1000
     assert net.scaxial_sc == 0
     assert net.scaxial_lv == 2
 
     compare_nets(net, net2)
 
     # check the natural unit output:
-    net3 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
-                          sccoord=Tl2s, conv=conv, g=g,
-                          tau=('mm', 'm'))
-    for drm in ('ifatm', 'cgatm'):
-        if drm == 'ifatm':
+    net3 = cb.mk_net_drms(
+        maa, kaa, b, uset=uset, ref=ref, sccoord=Tl2s, conv=conv, g=g, tau=("mm", "m")
+    )
+    for drm in ("ifatm", "cgatm"):
+        if drm == "ifatm":
             # only ifatm has 12 rows
             drm1 = getattr(net, drm)
             drm3 = getattr(net3, drm)
@@ -1075,22 +1087,22 @@ def test_mk_net_drms():
             assert np.allclose(drm3[3:6], drm1[3:6])
             assert np.allclose(drm3[6:9], drm1[6:9] * g)
             assert np.allclose(drm3[9:], drm1[9:])
-        for ext, factor in (('_sc', 1000), ('_lv', 1)):
+        for ext, factor in (("_sc", 1000), ("_lv", 1)):
             drm1 = getattr(net, drm + ext)
             drm3 = getattr(net3, drm + ext)
             assert np.allclose(drm3[:3], drm1[:3] * g * factor)
             assert np.allclose(drm3[3:], drm1[3:])
 
-    labels3 = (
-        [i.replace('g', 'mm/s^2') for i in net.ifatm_labels[:6]] +
-        [i.replace('g', 'm/s^2') for i in net.ifatm_labels[6:]])
+    labels3 = [i.replace("g", "mm/s^2") for i in net.ifatm_labels[:6]] + [
+        i.replace("g", "m/s^2") for i in net.ifatm_labels[6:]
+    ]
     assert labels3 == net3.ifatm_labels
 
-    net4 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref,
-                          sccoord=Tl2s, conv=conv, g=g,
-                          tau=('g', 'm'))
-    for drm in ('ifatm', 'cgatm'):
-        if drm == 'ifatm':
+    net4 = cb.mk_net_drms(
+        maa, kaa, b, uset=uset, ref=ref, sccoord=Tl2s, conv=conv, g=g, tau=("g", "m")
+    )
+    for drm in ("ifatm", "cgatm"):
+        if drm == "ifatm":
             # only ifatm has 12 rows
             drm1 = getattr(net, drm)
             drm3 = getattr(net3, drm)
@@ -1099,7 +1111,7 @@ def test_mk_net_drms():
             assert np.allclose(drm4[3:6], drm1[3:6])
             assert np.allclose(drm4[6:9], drm3[6:9])
             assert np.allclose(drm4[9:], drm3[9:])
-        for ext, net_ in (('_sc', net), ('_lv', net3)):
+        for ext, net_ in (("_sc", net), ("_lv", net3)):
             drm1 = getattr(net_, drm + ext)
             drm4 = getattr(net4, drm + ext)
             assert np.allclose(drm4[:3], drm1[:3])
@@ -1112,13 +1124,13 @@ def test_mk_net_drms():
 def test_mk_net_drms_6dof():
     # same as above, but reduced to single point interface
     pth = os.path.dirname(inspect.getfile(cb))
-    pth = os.path.join(pth, '..')
-    pth = os.path.join(pth, 'tests')
-    pth = os.path.join(pth, 'nas2cam_csuper')
-    mk = op4.load(os.path.join(pth, 'inboard.op4'))
-    maa = mk['mxx'][0]
-    kaa = mk['kxx'][0]
-    uset, coords = nastran.bulk2uset(os.path.join(pth, 'inboard.asm'))
+    pth = os.path.join(pth, "..")
+    pth = os.path.join(pth, "tests")
+    pth = os.path.join(pth, "nas2cam_csuper")
+    mk = op4.load(os.path.join(pth, "inboard.op4"))
+    maa = mk["mxx"][0]
+    kaa = mk["kxx"][0]
+    uset, coords = nastran.bulk2uset(os.path.join(pth, "inboard.asm"))
     n = uset.shape[0]
     b = np.arange(n)
     q = np.arange(n, maa.shape[0])
@@ -1154,14 +1166,17 @@ def test_mk_net_drms_6dof():
     sbe[:3] *= 1 / g
     assert np.allclose(a_sc, sbe)
     mass = np.array(
-        [[1.755, 0., -0., 0., 0., 0.],
-         [0., 1.755, -0., -0., 0., 772.22],
-         [-0., -0., 1.755, 0., -772.22, -0.],
-         [0., -0., 0., 35905.202, -0., -0.],
-         [0., 0., -772.22, -0., 707976.725, 109.558],
-         [0., 772.22, -0., -0., 109.558, 707976.725]])
+        [
+            [1.755, 0.0, -0.0, 0.0, 0.0, 0.0],
+            [0.0, 1.755, -0.0, -0.0, 0.0, 772.22],
+            [-0.0, -0.0, 1.755, 0.0, -772.22, -0.0],
+            [0.0, -0.0, 0.0, 35905.202, -0.0, -0.0],
+            [0.0, 0.0, -772.22, -0.0, 707976.725, 109.558],
+            [0.0, 772.22, -0.0, -0.0, 109.558, 707976.725],
+        ]
+    )
     sbe = mass
-    assert abs(sbe - l_sc).max() < .0005
+    assert abs(sbe - l_sc).max() < 0.0005
 
     Tsc2lv = np.eye(6)
     assert np.allclose(Tsc2lv @ a_sc, a_lv)
@@ -1173,10 +1188,10 @@ def test_mk_net_drms_6dof():
     # height and mass values from cbcheck tutorial (and then refined):
     m_kg = 1.75505183
     h_m = 1039.998351 - 600
-    assert abs(net.height_lv - h_m) < .0001
-    assert abs(net.weight_lv - m_kg * g) < .0001
-    assert abs(net.height_sc - h_m) < .0001
-    assert abs(net.weight_sc - m_kg * g) < .0001
+    assert abs(net.height_lv - h_m) < 0.0001
+    assert abs(net.weight_lv - m_kg * g) < 0.0001
+    assert abs(net.height_sc - h_m) < 0.0001
+    assert abs(net.weight_sc - m_kg * g) < 0.0001
     assert net.scaxial_sc == 0
     assert net.scaxial_lv == 0
 
@@ -1185,28 +1200,31 @@ def test_mk_net_drms_6dof():
 
 def test_cglf_moment_signs():
     pth = os.path.dirname(inspect.getfile(cb))
-    pth = os.path.join(pth, '..')
-    pth = os.path.join(pth, 'tests')
-    pth = os.path.join(pth, 'cla_test_data')
+    pth = os.path.join(pth, "..")
+    pth = os.path.join(pth, "tests")
+    pth = os.path.join(pth, "cla_test_data")
 
     se = 101
-    uset, coords = nastran.bulk2uset(os.path.join(pth, 'outboard.asm'))
-    dct = op4.read(os.path.join(pth, 'outboard.op4'))
-    maa = dct['mxx']
-    kaa = dct['kxx']
-    atm = dct['mug1']
-    ltm = dct['mef1']
-    pch = os.path.join(pth, 'outboard.pch')
-    atm_labels = ['Grid {:4d}-{:1d}'.format(grid, dof)
-                  for grid, dof in nastran.rddtipch(pch)]
-    ltm_labels = ['CBAR {:4d}-{:1d}'.format(cbar, arg)
-                  for cbar, arg in nastran.rddtipch(pch, 'tef1')]
+    uset, coords = nastran.bulk2uset(os.path.join(pth, "outboard.asm"))
+    dct = op4.read(os.path.join(pth, "outboard.op4"))
+    maa = dct["mxx"]
+    kaa = dct["kxx"]
+    atm = dct["mug1"]
+    ltm = dct["mef1"]
+    pch = os.path.join(pth, "outboard.pch")
+    atm_labels = [
+        "Grid {:4d}-{:1d}".format(grid, dof) for grid, dof in nastran.rddtipch(pch)
+    ]
+    ltm_labels = [
+        "CBAR {:4d}-{:1d}".format(cbar, arg)
+        for cbar, arg in nastran.rddtipch(pch, "tef1")
+    ]
 
     nb = uset.shape[0]
     nq = maa.shape[0] - nb
     bset = np.arange(nb)
     qset = np.arange(nq) + nb
-    ref = [600., 150., 150.]
+    ref = [600.0, 150.0, 150.0]
     g = 9806.65
 
     # use addgrid to get coordinate transformations from lv to sc:
@@ -1215,13 +1233,12 @@ def test_cglf_moment_signs():
     # define sc in terms of lv coords:
     # (all drawn out by hand)
     BC = [
-        [[0, 0, 1.], [1., 0, 0]],      # lv x is up
-        [[0, 0, -1.], [0, 1., 0]],     # lv y is up
-        [[-1., 0, 0.], [0, 0, 1.]],    # lv z is up
-
-        [[0, 0, -1.], [-1., 0, 0]],    # lv x is down
-        [[0, 0, 1.], [0, -1., 0]],     # lv y is down
-        [[0, -1., 0], [0, 0, -1.]],    # lv z is down
+        [[0, 0, 1.0], [1.0, 0, 0]],  # lv x is up
+        [[0, 0, -1.0], [0, 1.0, 0]],  # lv y is up
+        [[-1.0, 0, 0.0], [0, 0, 1.0]],  # lv z is up
+        [[0, 0, -1.0], [-1.0, 0, 0]],  # lv x is down
+        [[0, 0, 1.0], [0, -1.0, 0]],  # lv y is down
+        [[0, -1.0, 0], [0, 0, -1.0]],  # lv z is down
     ]
     Ts = []
     nets = []
@@ -1231,8 +1248,7 @@ def test_cglf_moment_signs():
         CI = n2p.mkusetcoordinfo([cid, A, *bc], None, {})
         T = CI[2:]
         Ts.append(T)
-        net = cb.mk_net_drms(maa, kaa, bset, uset=uset, ref=ref, g=g,
-                             sccoord=T)
+        net = cb.mk_net_drms(maa, kaa, bset, uset=uset, ref=ref, g=g, sccoord=T)
         nets.append(net)
         rba = net.cglfa[:, :24] @ rb
         rbcglfa.append(rba)
@@ -1247,18 +1263,18 @@ def test_cglf_moment_signs():
     wh_lv = nets[0].weight_lv * nets[0].height_lv
     n = nets[0].cgatm_sc.shape[1]
     # x is down:
-    cgdrm = np.vstack((
-        # 5 s/c rows
-        nets[0].cgatm_sc[:3],
-        -nets[0].ifltma_sc[5] / wh_sc,
-        nets[0].ifltma_sc[4] / wh_sc,
-
-        # 5 l/v rows
-        nets[0].cgatm_lv[:3],
-        -nets[0].ifltma_lv[5] / wh_lv,
-        nets[0].ifltma_lv[4] / wh_lv,
-
-        # 4 RSS rows ... filled in during data recovery
-        np.zeros((4, n))
-    ))
+    cgdrm = np.vstack(
+        (
+            # 5 s/c rows
+            nets[0].cgatm_sc[:3],
+            -nets[0].ifltma_sc[5] / wh_sc,
+            nets[0].ifltma_sc[4] / wh_sc,
+            # 5 l/v rows
+            nets[0].cgatm_lv[:3],
+            -nets[0].ifltma_lv[5] / wh_lv,
+            nets[0].ifltma_lv[4] / wh_lv,
+            # 4 RSS rows ... filled in during data recovery
+            np.zeros((4, n)),
+        )
+    )
     assert np.allclose(cgdrm, nets[0].cglfa)

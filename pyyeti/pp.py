@@ -10,7 +10,7 @@ import pandas as pd
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -20,8 +20,9 @@ class PP(object):
     A simple class for pretty printing data structures.
     """
 
-    def __init__(self, var=None, depth=1, tab=4,
-                 keylen=40, strlen=80, show_hidden=False):
+    def __init__(
+        self, var=None, depth=1, tab=4, keylen=40, strlen=80, show_hidden=False
+    ):
         """
         Initializer for `PP`.
 
@@ -144,7 +145,7 @@ class PP(object):
             self.pp(var)
 
     def _lead_string(self, level):
-        return ' ' * self._tab * level
+        return " " * self._tab * level
 
     def _key_string(self, val, isns):
         if isinstance(val, str):
@@ -155,30 +156,30 @@ class PP(object):
         else:
             s = str(val)
         if len(s) > self._keylen:
-            s = s[:self._keylen - 4] + ' ...'
+            s = s[: self._keylen - 4] + " ..."
         return s
 
     def _lst_tup_string(self, lst, list_level):
-        s = ['[n={}]: '.format(len(lst))]
-        be = '[]' if isinstance(lst, list) else '()'
+        s = ["[n={}]: ".format(len(lst))]
+        be = "[]" if isinstance(lst, list) else "()"
         s.append(be[0])
         if list_level > self._depth:
-            s.append('...' + be[1])
+            s.append("..." + be[1])
             return s
         list_level += 1
         for i, item in enumerate(lst):
             if i > self._strlen // 3:
                 # each entry is at least 3 chars: "1, "
-                s.append(' ...')
+                s.append(" ...")
                 break
             if isinstance(item, np.ndarray):
                 s.extend(self._shortarrhdr(item))
             else:
                 s.extend(self._value_string(item, list_level))
-            s.append(', ')
-        if s[-1] == ', ':
+            s.append(", ")
+        if s[-1] == ", ":
             if len(lst) == 1 and isinstance(lst, tuple):
-                s[-1] = ','
+                s[-1] = ","
             else:
                 s = s[:-1]
         s.append(be[1])
@@ -190,54 +191,53 @@ class PP(object):
         elif isinstance(val, (list, tuple)):
             s = self._lst_tup_string(val, list_level)
         else:
-            s = [str(val).replace('\n', ' ')]
-        s = ''.join(s)
+            s = [str(val).replace("\n", " ")]
+        s = "".join(s)
         if len(s) > self._strlen:
             #            s = s[:self._strlen-4] + ' ...'
             n = self._strlen // 2 - 3
-            s = (s[:n] + ' ... ' + s[-n:])
+            s = s[:n] + " ... " + s[-n:]
         return [s]
 
     def _shortarrhdr(self, arr):
-        return [str(arr.dtype) + ' ndarray: ' + str(arr.shape)]
+        return [str(arr.dtype) + " ndarray: " + str(arr.shape)]
 
     def _getarrhdr(self, arr):
-        s = [str(arr.dtype) + ' ndarray ']
-        s.append(str(arr.size) + ' elems: ' + str(arr.shape))
+        s = [str(arr.dtype) + " ndarray "]
+        s.append(str(arr.size) + " elems: " + str(arr.shape))
         return s
 
     def _getarrstr(self, arr):
-        s = ' ' + str(arr).replace('\n', '')
+        s = " " + str(arr).replace("\n", "")
         if len(s) > 4 * (self._strlen // 5):
             n = self._strlen // 3
-            s = s[:n - 3] + ' <...> ' + s[-(n + 3):]
+            s = s[: n - 3] + " <...> " + s[-(n + 3) :]
         return [s]
 
     def _array_string(self, arr, level):
         s = self._getarrhdr(arr)
         if arr.size <= 10:
             s.extend(self._getarrstr(arr))
-        s.append('\n')
+        s.append("\n")
         return s
 
     def _h5data_string(self, arr, level):
-        s = ['H5 ']
+        s = ["H5 "]
         s.extend(self._getarrhdr(arr))
         if arr.size <= 10:
             s.extend(self._getarrstr(arr[...]))
-        s.append('\n')
+        s.append("\n")
         return s
 
     def _get_keys(self, dct, showhidden):
         if not showhidden:
-            keys = [k for k in dct if k[0] != '_']
+            keys = [k for k in dct if k[0] != "_"]
         else:
             keys = list(dct.keys())
         return keys
 
-    def _dict_string(self, dct, level, typename, isns=False,
-                     showhidden=True):
-        s = ['{}[n={}]\n'.format(typename, len(dct))]
+    def _dict_string(self, dct, level, typename, isns=False, showhidden=True):
+        s = ["{}[n={}]\n".format(typename, len(dct))]
         if level < self._depth:
             keys = self._get_keys(dct, showhidden)
             level += 1
@@ -245,7 +245,7 @@ class PP(object):
             n = 0
             for k in keys:
                 n = max(n, len(self._key_string(k, isns)))
-            frm = '{:<' + str(n) + 's}: '
+            frm = "{:<" + str(n) + "s}: "
             for k in keys:
                 s.append(self._lead_string(level))
                 s.append(frm.format(self._key_string(k, isns)))
@@ -253,8 +253,7 @@ class PP(object):
         return s
 
     def _pandas_string(self, var, level, typename):
-        s = ['pandas ' + var.__class__.__name__ + ': ' +
-             str(var.shape) + '\n']
+        s = ["pandas " + var.__class__.__name__ + ": " + str(var.shape) + "\n"]
         return s
 
     def _print_var(self, var, level):
@@ -270,14 +269,17 @@ class PP(object):
                 s = self._dict_string(var, level, typename=typename)
             elif isinstance(var, pd.core.base.PandasObject):
                 s = self._pandas_string(var, level, typename=typename)
-            elif (hasattr(var, '__dict__') and
-                  not hasattr(var, 'keys')):
-                s = self._dict_string(var.__dict__, level,
-                                      typename=typename, isns=True,
-                                      showhidden=self._show_hidden)
+            elif hasattr(var, "__dict__") and not hasattr(var, "keys"):
+                s = self._dict_string(
+                    var.__dict__,
+                    level,
+                    typename=typename,
+                    isns=True,
+                    showhidden=self._show_hidden,
+                )
             else:
                 s = self._value_string(var, 0)
-                s.append('\n')
+                s.append("\n")
         return s
 
     def pp(self, var):
@@ -286,7 +288,7 @@ class PP(object):
         """
         s = self._print_var(var, 0)
         self.s = s
-        self.output = ''.join(s)
+        self.output = "".join(s)
         # print(self.output)
-        for line in self.output.split('\n'):
+        for line in self.output.split("\n"):
             print(repr(line)[1:-1])

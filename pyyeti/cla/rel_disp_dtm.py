@@ -9,7 +9,7 @@ from pyyeti.nastran import n2p
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -148,20 +148,16 @@ def relative_displacement_dtm(nas, node_pairs):
         When Node1 and Node2 of any node pair are coincident.
     """
     # to get locations in basic, need rb modes relative to origin:
-    rbg = n2p.rbgeom_uset(nas['uset'][0])
+    rbg = n2p.rbgeom_uset(nas["uset"][0])
 
     # call formdrm only once per superelement:
     node_pairs = np.atleast_2d(node_pairs)
     nrel = node_pairs.shape[0]
-    dtmq = np.empty((nrel * 6,
-                     nas['lambda'][0].shape[0]))
+    dtmq = np.empty((nrel * 6, nas["lambda"][0].shape[0]))
     dtmg = np.empty((nrel * 6, 6))
 
-    senodes = np.vstack((node_pairs[:, :2],
-                         node_pairs[:, 2:]))
-    senodesdof = np.array([[se, n, i]
-                           for se, n in senodes
-                           for i in range(1, 4)])
+    senodes = np.vstack((node_pairs[:, :2], node_pairs[:, 2:]))
+    senodesdof = np.array([[se, n, i] for se, n in senodes for i in range(1, 4)])
 
     for se in set(senodes[:, 0]):
         pvd = senodesdof[:, 0] == se
@@ -171,13 +167,13 @@ def relative_displacement_dtm(nas, node_pairs):
             tx = n2p.formdrm(nas, se, dof, gset=True)[0]
         except ValueError:
             u1x = n2p.formulvs(nas, se, gset=True)
-            pv = n2p.mkdofpv(nas['tug1'][se], 'p', dof)[0]
-            tq = nas['extse'][se]['mug1'][pv] @ nas['ulvs'][se]
-            tx = nas['extse'][se]['mug1'][pv] @ u1x
+            pv = n2p.mkdofpv(nas["tug1"][se], "p", dof)[0]
+            tq = nas["extse"][se]["mug1"][pv] @ nas["ulvs"][se]
+            tx = nas["extse"][se]["mug1"][pv] @ u1x
         dtmq[pvd] = tq
         dtmg[pvd] = tx @ rbg
 
-    mats = {'dtmq': dtmq}
+    mats = {"dtmq": dtmq}
     xyz = n2p.find_xyz_triples(dtmg, mats=mats, inplace=True)
 
     reldtm = np.empty((nrel, dtmq.shape[1]))
@@ -195,8 +191,9 @@ def relative_displacement_dtm(nas, node_pairs):
         # check for coincident nodes:
         if la.norm((b - a) / ext_coords) < 1e-5:
             raise ValueError(
-                'coincident nodes detected at index {} of '
-                '`node_pairs`: {}'.format(i, node_pairs[i]))
+                "coincident nodes detected at index {} of "
+                "`node_pairs`: {}".format(i, node_pairs[i])
+            )
 
         c = a + (b - a)[[1, 2, 0]]
         C = np.array([[1, 1, 0], a, b, c])
@@ -208,6 +205,7 @@ def relative_displacement_dtm(nas, node_pairs):
         reldtm[i] = dtm2[2] - dtm1[2]
         dist[i] = la.norm(b - a)
 
-    labels = ['SE{},{} - SE{},{}'.format(se2, n2, se1, n1)
-              for se1, n1, se2, n2 in node_pairs]
+    labels = [
+        "SE{},{} - SE{},{}".format(se2, n2, se1, n1) for se1, n1, se2, n2 in node_pairs
+    ]
     return reldtm, dist, labels

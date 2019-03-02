@@ -107,8 +107,7 @@ class _BaseODE:
         # if pv.size == pv[-1]+1 - pv[0]:
         if np.all(np.diff(pv) == 1):
             return slice(pv[0], pv[-1] + 1)
-        raise ValueError('invalid partition vector for conversion '
-                         'to slice')
+        raise ValueError("invalid partition vector for conversion to slice")
 
     def _mk_slices(self, dorbel):
         """Convert index partition vectors to slice objects and sets
@@ -140,8 +139,7 @@ class _BaseODE:
         cdforces = False
 
         unc = 0
-        if (m is None or m.ndim == 1 or
-                (m.ndim == 2 and ytools.isdiag(m))):
+        if m is None or m.ndim == 1 or (m.ndim == 2 and ytools.isdiag(m)):
             unc += 1
 
         if b.ndim == 1 or (b.ndim == 2 and ytools.isdiag(b)):
@@ -162,7 +160,7 @@ class _BaseODE:
                 if cdforces:
                     bo = b.copy()
                     i = np.arange(bo.shape[0])
-                    bo[i, i] = 0.0    # off diagonal damping
+                    bo[i, i] = 0.0  # off diagonal damping
                 b = bd
             if k.ndim == 2:
                 k = np.diag(k).copy()
@@ -205,31 +203,35 @@ class _BaseODE:
         if self.rfsize:
             krf = self.krf
             if self.unc:
-                ikrf = (1. / krf).reshape(-1, 1)
+                ikrf = (1.0 / krf).reshape(-1, 1)
                 c = abs(krf).max() / abs(krf).min()
             else:
                 ikrf = la.lu_factor(krf)
                 c = np.linalg.cond(krf)
             if c > 1 / np.finfo(float).eps:
-                msg = ('the residual-flexibility part of the '
-                       'stiffness is poorly conditioned '
-                       '(cond={:.3e}). Displacements will likely '
-                       'be inaccurate.').format(c)
+                msg = (
+                    "the residual-flexibility part of the "
+                    "stiffness is poorly conditioned "
+                    "(cond={:.3e}). Displacements will likely "
+                    "be inaccurate."
+                ).format(c)
                 warnings.warn(msg, RuntimeWarning)
             self.ikrf = ikrf
 
     def _get_inv_m(self, m):
         """Decompose the mass matrix"""
         if self.unc:
-            invm = (1. / m).reshape(-1, 1)
+            invm = (1.0 / m).reshape(-1, 1)
             c = abs(m).max() / abs(m).min()
         else:
             invm = la.lu_factor(m)
             c = np.linalg.cond(m)
         if c > 1 / np.finfo(float).eps:
-            msg = ('the mass matrix is poorly conditioned '
-                   '(cond={:.3e}). Solution will likely be '
-                   'inaccurate.').format(c)
+            msg = (
+                "the mass matrix is poorly conditioned "
+                "(cond={:.3e}). Solution will likely be "
+                "inaccurate."
+            ).format(c)
             warnings.warn(msg, RuntimeWarning)
         return invm
 
@@ -249,30 +251,32 @@ class _BaseODE:
 
     def _assert_square(self, n, m, b, k):
         if m is not None:
-            name = ('mass', 'damping', 'stiffness')
+            name = ("mass", "damping", "stiffness")
             mats = (m, b, k)
         else:
-            name = ('damping', 'stiffness')
+            name = ("damping", "stiffness")
             mats = (b, k)
         any_2d = False
         for i, mat in enumerate(mats):
             if mat.ndim == 2:
                 any_2d = True
                 if mat.shape[0] != mat.shape[1]:
-                    raise ValueError("{} matrix is non-square!".
-                                     format(name[i]))
+                    raise ValueError("{} matrix is non-square!".format(name[i]))
                 if mat.shape[0] != n:
-                    raise ValueError("{} matrix has a different "
-                                     "number of rows than the "
-                                     "stiffness!".format(name[i]))
+                    raise ValueError(
+                        "{} matrix has a different "
+                        "number of rows than the "
+                        "stiffness!".format(name[i])
+                    )
             elif mat.ndim == 1:
                 if mat.shape[0] != n:
-                    raise ValueError("length of {} diagonal is "
-                                     "not compatible with the "
-                                     "stiffness!".format(name[i]))
+                    raise ValueError(
+                        "length of {} diagonal is "
+                        "not compatible with the "
+                        "stiffness!".format(name[i])
+                    )
             else:
-                raise ValueError("{} has more than 2 dimensions!".
-                                 format(name[i]))
+                raise ValueError("{} has more than 2 dimensions!".format(name[i]))
         return any_2d
 
     def _do_pre_eig(self, m, b, k):
@@ -294,11 +298,13 @@ class _BaseODE:
             if not ytools.isdiag(kdiag) or not ytools.isdiag(mdiag):
                 err = True
         if err:
-            raise ValueError('`pre_eig` option failed to '
-                             'diagonlized the mass and/or '
-                             'stiffness. Check '
-                             'for symmetric/hermitian stiffness '
-                             'and positive-definite mass')
+            raise ValueError(
+                "`pre_eig` option failed to "
+                "diagonlized the mass and/or "
+                "stiffness. Check "
+                "for symmetric/hermitian stiffness "
+                "and positive-definite mass"
+            )
         self.pre_eig = True
         self.phi = u
         if m is not None:
@@ -307,9 +313,7 @@ class _BaseODE:
         b = u.T @ b @ u
         return m, b, k
 
-    def _common_precalcs(
-            self, m, b, k, h, rb, rf,
-            pre_eig=False, cd_as_force=False):
+    def _common_precalcs(self, m, b, k, h, rb, rf, pre_eig=False, cd_as_force=False):
         systype = float
         self.mid = id(m)
         self.bid = id(b)
@@ -320,8 +324,7 @@ class _BaseODE:
                 systype = complex
         else:
             m, b, k = np.atleast_1d(m, b, k)
-            if (np.iscomplexobj(m) or np.iscomplexobj(b) or
-                    np.iscomplexobj(k)):
+            if np.iscomplexobj(m) or np.iscomplexobj(b) or np.iscomplexobj(k):
                 systype = complex
         n = k.shape[0]
         any_2d = self._assert_square(n, m, b, k)
@@ -357,10 +360,11 @@ class _BaseODE:
                     _rb = np.nonzero(abs(self.k) < tol)[0]
                 else:
                     _rb = (
-                        (abs(self.k).max(axis=0) < tol) &
-                        (abs(self.k).max(axis=1) < tol) &
-                        (abs(self.b).max(axis=0) < tol) &
-                        (abs(self.b).max(axis=1) < tol)).nonzero()[0]
+                        (abs(self.k).max(axis=0) < tol)
+                        & (abs(self.k).max(axis=1) < tol)
+                        & (abs(self.b).max(axis=0) < tol)
+                        & (abs(self.b).max(axis=1) < tol)
+                    ).nonzero()[0]
                 rb = np.zeros(self.n, bool)
                 rb[self.nonrf[_rb]] = True
                 rb = np.nonzero(rb)[0]
@@ -397,23 +401,22 @@ class _BaseODE:
         else:
             A[:n, :n] = -self.b
             A[:n, n:] = -self.k
-        A[v2, v1] = 1.
+        A[v2, v1] = 1.0
         if self.m is not None:
             if self.unc:
                 A[:n] *= self.invm
             else:
-                A[:n] = la.lu_solve(self.invm, A[:n],
-                                    check_finite=False)
+                A[:n] = la.lu_solve(self.invm, A[:n], check_finite=False)
         return A
 
     def _alloc_dva(self, nt, istime):
-        ORDER = 'F'
+        ORDER = "F"
         n = self.ksize
         if istime:
             if nt > 1 and n > 0 and not self.pc:
                 raise RuntimeError(
-                    'rerun `{}` with a valid time step.'
-                    .format(type(self).__name__))
+                    "rerun `{}` with a valid time step.".format(type(self).__name__)
+                )
             d = np.zeros((self.n, nt), self.systype, order=ORDER)
             v = np.zeros((self.n, nt), self.systype, order=ORDER)
             a = np.zeros((self.n, nt), self.systype, order=ORDER)
@@ -428,8 +431,7 @@ class _BaseODE:
             d[self.nonrf, 0] = d0[self.nonrf]
         elif static_ic and self.elsize:
             if self.unc:
-                d0 = la.lstsq(np.diag(self.k[self._el]),
-                              F0[self.el])
+                d0 = la.lstsq(np.diag(self.k[self._el]), F0[self.el])
                 d[self.el, 0] = d0[0]
             else:
                 d0 = la.lstsq(self.k, F0[self.kdof])
@@ -442,36 +444,36 @@ class _BaseODE:
         v0 = None if v0 is None else np.atleast_1d(v0)
         return d0, v0
 
-    def _init_dva_part(self, nt, F0, d0, v0, static_ic,
-                       istime=True):
+    def _init_dva_part(self, nt, F0, d0, v0, static_ic, istime=True):
         if F0.shape[0] != self.n:
-            raise ValueError('Initial force vector has {} elements;'
-                             ' {} elements are expected'
-                             .format(F0.shape[0], self.n))
+            raise ValueError(
+                "Initial force vector has {} elements;"
+                " {} elements are expected".format(F0.shape[0], self.n)
+            )
         if self.pre_eig:
             raise NotImplementedError(
-                '{} generator not yet implemented '
-                'using the `pre_eig` option'
-                .format(type(self).__name__))
+                "{} generator not yet implemented "
+                "using the `pre_eig` option".format(type(self).__name__)
+            )
 
         d0, v0 = self._set_initial_cond(d0, v0)
         d, v, a = self._alloc_dva(nt, istime)
-        f = np.copy(a)   # not a.copy because of `order` default
+        f = np.copy(a)  # not a.copy because of `order` default
         f[:, 0] = F0
         self._init_dv(d, v, d0, v0, F0, static_ic)
         if self.rfsize:
             if self.unc:
                 d[self.rf, 0] = self.ikrf.ravel() * F0[self.rf]
             else:
-                d[self.rf, 0] = la.lu_solve(self.ikrf, F0[self.rf],
-                                            check_finite=False)
+                d[self.rf, 0] = la.lu_solve(self.ikrf, F0[self.rf], check_finite=False)
         return d, v, a, f
 
     def _init_dva(self, force, d0, v0, static_ic, istime=True):
         if force.shape[0] != self.n:
-            raise ValueError('Force matrix has {} rows; {} rows are '
-                             'expected'
-                             .format(force.shape[0], self.n))
+            raise ValueError(
+                "Force matrix has {} rows; {} rows are "
+                "expected".format(force.shape[0], self.n)
+            )
 
         d0, v0 = self._set_initial_cond(d0, v0)
         d, v, a = self._alloc_dva(force.shape[1], istime)
@@ -485,8 +487,7 @@ class _BaseODE:
             if self.unc:
                 d[self.rf] = self.ikrf * force[self.rf]
             else:
-                d[self.rf] = la.lu_solve(self.ikrf, force[self.rf],
-                                         check_finite=False)
+                d[self.rf] = la.lu_solve(self.ikrf, force[self.rf], check_finite=False)
         return d, v, a, force
 
     def _calc_acce_kdof(self, d, v, a, force):
@@ -498,7 +499,7 @@ class _BaseODE:
                 if self.cdforces:
                     b = self.bo.copy()
                     i = np.arange(self.ksize)
-                    b[i, i] = self.b    # full damping
+                    b[i, i] = self.b  # full damping
                     B = b @ v[kdof]
                 else:
                     B = self.b[:, None] * v[kdof]
@@ -511,8 +512,7 @@ class _BaseODE:
                 B = self.b @ v[kdof]
                 K = self.k @ d[kdof]
                 if self.m is not None:
-                    a[kdof] = la.lu_solve(self.invm, F - B - K,
-                                          check_finite=False)
+                    a[kdof] = la.lu_solve(self.invm, F - B - K, check_finite=False)
                 else:
                     a[kdof] = F - B - K
 
@@ -524,8 +524,7 @@ class _BaseODE:
             if unc:
                 flexrf = ikrf.ravel()[:, None] * phirf.T
             else:
-                flexrf = la.lu_solve(ikrf, phirf.T,
-                                     check_finite=False)
+                flexrf = la.lu_solve(ikrf, phirf.T, check_finite=False)
             flex = flex + phirf @ flexrf
         return flex
 
@@ -538,6 +537,7 @@ class _BaseODE:
     def _force_freq_compat_chk(self, force, freq):
         """Check compatibility between force matrix and freq vector"""
         if force.shape[1] != len(freq):
-            raise ValueError('Number of columns `force` ({}) does '
-                             'not equal length of `freq` ({})'.
-                             format(force.shape[1], len(freq)))
+            raise ValueError(
+                "Number of columns `force` ({}) does "
+                "not equal length of `freq` ({})".format(force.shape[1], len(freq))
+            )

@@ -6,7 +6,7 @@ from ._base_ode_class import _BaseODE
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -188,7 +188,8 @@ class FreqDirect(_BaseODE):
         """
         force = np.atleast_2d(force)
         d, v, a, force = self._init_dva(
-            force, d0=None, v0=None, static_ic=False, istime=False)
+            force, d0=None, v0=None, static_ic=False, istime=False
+        )
         freq = np.atleast_1d(freq)
 
         if self.ksize == 0:
@@ -202,11 +203,9 @@ class FreqDirect(_BaseODE):
             # equations are uncoupled, solve everything in one step:
             Omega = 2 * np.pi * freq[None, :]
             if m is None:
-                H = (((1j * b)[:, None] @ Omega +
-                      k[:, None]) - Omega**2)
+                H = ((1j * b)[:, None] @ Omega + k[:, None]) - Omega ** 2
             else:
-                H = ((1j * b)[:, None] @ Omega +
-                     k[:, None] - m[:, None] @ Omega**2)
+                H = (1j * b)[:, None] @ Omega + k[:, None] - m[:, None] @ Omega ** 2
             d[kdof] = force / H
         else:
             # equations are coupled, use a loop:
@@ -214,9 +213,9 @@ class FreqDirect(_BaseODE):
             if m is None:
                 m = np.eye(self.ksize)
             for i, O in enumerate(Omega):
-                Hi = 1j * b * O + k - m * O**2
+                Hi = 1j * b * O + k - m * O ** 2
                 d[kdof, i] = la.solve(Hi, force[:, i])
-        a[kdof] = -Omega**2 * d[kdof]
+        a[kdof] = -Omega ** 2 * d[kdof]
         v[kdof] = 1j * Omega * d[kdof]
 
         if incrb < 2:

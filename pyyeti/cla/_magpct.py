@@ -6,8 +6,9 @@ import matplotlib.transforms as transforms
 from ._utilities import _proc_filterval, get_marker_cycle
 
 
-def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
-           filterval=None, symlog=True, ax=None):
+def magpct(
+    M1, M2, Ref=None, ismax=None, symbols=None, filterval=None, symlog=True, ax=None
+):
     """
     Plot percent differences in two sets of values vs magnitude.
 
@@ -105,16 +106,14 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
         M1, M2, Ref = np.atleast_1d(M1, M2, Ref)
 
     if M1.shape != M2.shape or M1.shape != Ref.shape:
-        raise ValueError('`M1`, `M2` and `Ref` must all have the'
-                         ' same shape')
+        raise ValueError("`M1`, `M2` and `Ref` must all have the same shape")
 
     filterval = _proc_filterval(filterval, M1.shape[0])
 
     def _get_next_pds(M1, M2, Ref, ismax):
         def _getpds(m1, m2, ref, ismax):
             if not symlog and filterval is not None:
-                pv = ((ref != 0) & (abs(m1) > filterval) &
-                      (abs(m2) > filterval))
+                pv = (ref != 0) & (abs(m1) > filterval) & (abs(m2) > filterval)
             else:
                 pv = ref != 0.0
             if not np.any(pv):
@@ -131,8 +130,7 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
                     filt = filterval[pv]
                 else:
                     filt = filterval
-                pvf = ((abs(a) > filt) &
-                       (abs(b) > filt))
+                pvf = (abs(a) > filt) & (abs(b) > filt)
                 if pvf.any():
                     max_linear_pdiff = abs(pdiff[pvf]).max()
                 else:
@@ -163,9 +161,11 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
         if curpd is not None:
             apd = abs(curpd)
             _marker = next(marker)
-            for pv, c in [(apd <= 5, 'b'),
-                          ((apd > 5) & (apd <= 10), 'm'),
-                          (apd > 10, 'r')]:
+            for pv, c in [
+                (apd <= 5, "b"),
+                ((apd > 5) & (apd <= 10), "m"),
+                (apd > 10, "r"),
+            ]:
                 ax.plot(ref[pv], curpd[pv], c + _marker)
         if mlp is not None:
             logthreshy = max(logthreshy, abs(curpd).max())
@@ -175,19 +175,27 @@ def magpct(M1, M2, Ref=None, ismax=None, symbols=None,
         lty = linthreshy
         # linthreshy = np.ceil(linthreshy)
         # linthreshy = 10 * np.ceil(linthreshy / 10)
-        ax.set_yscale('symlog', linthreshy=linthreshy, linscaley=3,
-                      subsy=[2, 3, 4, 5, 6, 7, 8, 9])
-        ax.set_facecolor('lightgray')
+        ax.set_yscale(
+            "symlog", linthreshy=linthreshy, linscaley=3, subsy=[2, 3, 4, 5, 6, 7, 8, 9]
+        )
+        ax.set_facecolor("lightgray")
         if len(filterval) == 1:
-            ax.axvline(filterval, color='gray', linestyle='--',
-                       linewidth=2.0, zorder=-1)
-        ax.axhspan(-lty, lty, facecolor='white', zorder=-2)
-        trans = transforms.blended_transform_factory(
-            ax.transAxes, ax.transData)
-        ax.text(0.98, 0.98 * lty, 'Filtered region', va='top',
-                ha='right', transform=trans, fontstyle='italic')
+            ax.axvline(
+                filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
+            )
+        ax.axhspan(-lty, lty, facecolor="white", zorder=-2)
+        trans = transforms.blended_transform_factory(ax.transAxes, ax.transData)
+        ax.text(
+            0.98,
+            0.98 * lty,
+            "Filtered region",
+            va="top",
+            ha="right",
+            transform=trans,
+            fontstyle="italic",
+        )
 
     if apd is not None:
-        ax.set_xlabel('Reference Magnitude')
-        ax.set_ylabel('% Difference')
+        ax.set_xlabel("Reference Magnitude")
+        ax.set_ylabel("% Difference")
     return pds

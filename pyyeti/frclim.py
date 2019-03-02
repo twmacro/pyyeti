@@ -12,7 +12,7 @@ from pyyeti import cb, ode
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -69,21 +69,21 @@ def calcAM(S, freq):
     k = S[2]
     bdof = np.atleast_1d(S[3])
 
-    if bdof.ndim == 2:   # bdof is treated as a drm
+    if bdof.ndim == 2:  # bdof is treated as a drm
         r = bdof.shape[0]
         T = bdof
         Frc = np.zeros((r, lf))
         Acc = np.empty((r, lf, r), dtype=complex)
         fs = ode.SolveUnc(m, b, k, pre_eig=True)
         for direc in range(r):
-            Frc[direc, :] = 1.
+            Frc[direc, :] = 1.0
             sol = fs.fsolve(T.T @ Frc, freq)
             Acc[:, :, direc] = T @ sol.a
-            Frc[direc, :] = 0.
+            Frc[direc, :] = 0.0
         AM = np.empty((r, lf, r), dtype=complex)
         for j in range(lf):
             AM[:, j, :] = la.inv(Acc[:, j, :])
-    else:    # bdof treated as a partition vector for CB model
+    else:  # bdof treated as a partition vector for CB model
         r = len(bdof)
         acce = np.eye(r)
         # Perform Baseshake
@@ -409,9 +409,10 @@ def ntfl(Source, Load, As, freq):
     As = np.atleast_2d(As)
     if not len(freq) == As.shape[1] == SAM.shape[1] == LAM.shape[1]:
         raise ValueError(
-            'incompatible sizes: ensure that `Source`, '
-            '`Load`, and `As` all use the same frequency '
-            'vector `freq`')
+            "incompatible sizes: ensure that `Source`, "
+            "`Load`, and `As` all use the same frequency "
+            "vector `freq`"
+        )
 
     TAM = SAM + LAM
 
@@ -427,8 +428,7 @@ def ntfl(Source, Load, As, freq):
         R[:, j] = np.diag(Mr)
         A[:, j] = Mr @ As[:, j]
         F[:, j] = Ml @ A[:, j]
-    return SimpleNamespace(R=R, F=F, A=A, LAM=LAM, SAM=SAM,
-                           TAM=TAM, freq=freq)
+    return SimpleNamespace(R=R, F=F, A=A, LAM=LAM, SAM=SAM, TAM=TAM, freq=freq)
 
 
 def sefl(c, f, f0):
@@ -588,8 +588,8 @@ def stdfs(mr, Q):
     """
     m2 = 0.1
     M = 1e6
-    w1 = 1.
-    w2 = 1.
+    w1 = 1.0
+    w2 = 1.0
     Q = np.atleast_1d(Q)
     if len(Q) == 1:
         zeta1 = zeta2 = 1 / 2 / Q[0]
@@ -599,8 +599,8 @@ def stdfs(mr, Q):
     m1 = m2 / mr
     c1 = 2 * zeta1 * w1 * m1
     c2 = 2 * zeta2 * w2 * m2
-    k1 = w1**2 * m1
-    k2 = w2**2 * m2
+    k1 = w1 ** 2 * m1
+    k2 = w2 ** 2 * m2
 
     # setup system equations of motion:
     mass = np.array([[M, 0, 0], [0, m1, 0], [0, 0, m2]])
@@ -739,8 +739,8 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     >>> frclim.sefl(1.5, 75, faf) * msc * spec
     9745.4
     """
-    M1 = 1.
-    w1 = 1.
+    M1 = 1.0
+    w1 = 1.0
     Q = np.atleast_1d(Q)
     if len(Q) == 1:
         zeta1 = zeta2 = 1 / 2 / Q[0]
@@ -758,7 +758,7 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         m1 = 1e-5
 
     c1 = 2 * zeta1 * w1 * m1
-    k1 = w1**2 * m1
+    k1 = w1 ** 2 * m1
     fl = wr[0]  # low bound
     fh = wr[1]  # high bound
 
@@ -770,7 +770,7 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     J = 0
     last = 0
     F = np.zeros((3, 2))
-    F[0] = 1.
+    F[0] = 1.0
 
     mass = np.array([[m1, 0, 0], [0, M1 + M2, 0], [0, 0, m2]])
     while True:
@@ -778,15 +778,11 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         pknfl = np.zeros_like(wrange)
         for j, w2 in enumerate(wrange * w1):  # tuning loop
             c2 = 2 * zeta2 * w2 * m2
-            k2 = w2**2 * m2
+            k2 = w2 ** 2 * m2
 
             # solve equations of motion at eigenvalues
-            damp = np.array([[c1, -c1, 0],
-                             [-c1, c1 + c2, -c2],
-                             [0, -c2, c2]])
-            stif = np.array([[k1, -k1, 0],
-                             [-k1, k1 + k2, -k2],
-                             [0, -k2, k2]])
+            damp = np.array([[c1, -c1, 0], [-c1, c1 + c2, -c2], [0, -c2, c2]])
+            stif = np.array([[k1, -k1, 0], [-k1, k1 + k2, -k2], [0, -k2, k2]])
             w = la.eigh(stif, mass, eigvals_only=True)
             lam = np.sqrt(abs(w))
             fq2 = lam[1] / 2 / np.pi
@@ -939,8 +935,8 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     >>> frclim.sefl(1.5, 75, faf) * msc * spec
     9745.4
     """
-    M1 = 1.
-    w1 = 1.
+    M1 = 1.0
+    w1 = 1.0
     Q = np.atleast_1d(Q)
     if len(Q) == 1:
         zeta1 = zeta2 = 1 / 2 / Q[0]
@@ -958,7 +954,7 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         m1 = 1e-5
 
     c1 = 2 * zeta1 * w1 * m1
-    k1 = w1**2 * m1
+    k1 = w1 ** 2 * m1
 
     def get_neg_pknfl(nw2):
         """
@@ -967,15 +963,11 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         """
         w2 = nw2 * w1
         c2 = 2 * zeta2 * w2 * m2
-        k2 = w2**2 * m2
+        k2 = w2 ** 2 * m2
 
         # solve equations of motion at eigenvalues
-        damp = np.array([[c1, -c1, 0],
-                         [-c1, c1 + c2, -c2],
-                         [0, -c2, c2]])
-        stif = np.array([[k1, -k1, 0],
-                         [-k1, k1 + k2, -k2],
-                         [0, -k2, k2]])
+        damp = np.array([[c1, -c1, 0], [-c1, c1 + c2, -c2], [0, -c2, c2]])
+        stif = np.array([[k1, -k1, 0], [-k1, k1 + k2, -k2], [0, -k2, k2]])
         w = la.eigh(stif, mass, eigvals_only=True)
         lam = np.sqrt(abs(w))
         fq2 = lam[1] / 2 / np.pi
@@ -995,13 +987,15 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         return -max(ifforce) / max(ifaccel) / M2
 
     F = np.zeros((3, 2))
-    F[0] = 1.
+    F[0] = 1.0
     mass = np.array([[m1, 0, 0], [0, M1 + M2, 0], [0, 0, m2]])
     res = minimize_scalar(get_neg_pknfl, bracket=wr)
-    if 'message' in res:
-        raise RuntimeError('routine '
-                           ':func:`scipy.optimize.minimize_scalar` '
-                           'failed: {}'.format(res.message))
+    if "message" in res:
+        raise RuntimeError(
+            "routine "
+            ":func:`scipy.optimize.minimize_scalar` "
+            "failed: {}".format(res.message)
+        )
     nw2 = res.x
     nfl = -res.fun
     return nfl, nw2

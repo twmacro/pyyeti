@@ -20,7 +20,7 @@ from ._utilities import _merge_uf_reds, _is_valid_identifier
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -138,6 +138,7 @@ class DR_Def(OrderedDict):
             .nondrms: <class 'dict'>[n=1]
                 500: <class 'dict'>[n=0]
     """
+
     # static variable:
     ncats = 0
 
@@ -164,8 +165,10 @@ class DR_Def(OrderedDict):
         nc = DR_Def.ncats
         func()
         if DR_Def.ncats <= nc:
-            msg = ('function must call the `DR_Def.add` '
-                   'method (eg: ``drdefs.add(**locals())``)')
+            msg = (
+                "function must call the `DR_Def.add` "
+                "method (eg: ``drdefs.add(**locals())``)"
+            )
             raise RuntimeError(msg)
 
     def __init__(self, defaults=None):
@@ -177,14 +180,14 @@ class DR_Def(OrderedDict):
         """
         super().__init__()
         self.defaults = {} if defaults is None else defaults
-        self['_vars'] = SimpleNamespace(drms={}, nondrms={})
+        self["_vars"] = SimpleNamespace(drms={}, nondrms={})
         self._drfilemap = {}
 
     def __repr__(self):
-        cats = ', '.join("'{}'".format(name) for name in self)
-        return ('{} ({}) with {} categories: [{}]'
-                .format(type(self).__name__, hex(id(self)),
-                        len(self) - 1, cats))
+        cats = ", ".join("'{}'".format(name) for name in self)
+        return "{} ({}) with {} categories: [{}]".format(
+            type(self).__name__, hex(id(self)), len(self) - 1, cats
+        )
 
     # add drms and nondrms to self:
     def _add_vars(self, name, drms, nondrms):
@@ -192,48 +195,49 @@ class DR_Def(OrderedDict):
             for key in d2:
                 if key in d1:
                     # print warning or error out:
-                    msg = ('"{}" already included for a previously '
-                           'defined data recovery matrix'
-                           .format(key))
+                    msg = (
+                        '"{}" already included for a previously '
+                        "defined data recovery matrix".format(key)
+                    )
                     if d1[key] is d2[key]:
                         warnings.warn(msg, RuntimeWarning)
                     else:
-                        raise ValueError('A different ' + msg)
+                        raise ValueError("A different " + msg)
                 else:
                     d1[key] = d2[key]
 
-        _vars = self['_vars']
+        _vars = self["_vars"]
         se = self[name].se
-        for curdrms, newdrms in ((_vars.drms, drms),
-                                 (_vars.nondrms, nondrms)):
+        for curdrms, newdrms in ((_vars.drms, drms), (_vars.nondrms, nondrms)):
             if se not in curdrms:
                 curdrms[se] = {}
             _add_drms(curdrms[se], newdrms)
 
     def _check_for_drfunc(self, filename, funcname):
         def _get_msg():
-            s0 = ('When checking for the data recovery '
-                  'function "{}",'.format(funcname))
-            s1 = ('This can be safely ignored if you plan to '
-                  'implement the data recovery functions later.')
+            s0 = "When checking for the data recovery " 'function "{}",'.format(
+                funcname
+            )
+            s1 = (
+                "This can be safely ignored if you plan to "
+                "implement the data recovery functions later."
+            )
             return s0, s1
 
         modpath, modfile = os.path.split(filename)
-        if modfile.endswith('.py'):
+        if modfile.endswith(".py"):
             modfile = modfile[:-3]
         sys.path.insert(0, modpath)
         try:
             drmod = importlib.import_module(modfile)
         except ImportError:
             s0, s1 = _get_msg()
-            msg = ('{} import of "{}" failed. {}'
-                   .format(s0, modfile, s1))
+            msg = '{} import of "{}" failed. {}'.format(s0, modfile, s1)
             warnings.warn(msg, RuntimeWarning)
         else:
             if funcname not in dir(drmod):
                 s0, s1 = _get_msg()
-                msg = ('{} "{}" not found in: {}. {}'
-                       .format(s0, funcname, filename, s1))
+                msg = '{} "{}" not found in: {}. {}'.format(s0, funcname, filename, s1)
                 warnings.warn(msg, RuntimeWarning)
         finally:
             sys.path.pop(0)
@@ -249,24 +253,24 @@ class DR_Def(OrderedDict):
         if ns.drfile is None:
             # this is set to defaults only if it is in defaults,
             # otherwise, leave it None
-            if 'drfile' in self.defaults:
+            if "drfile" in self.defaults:
                 ns.drfile = self.defaults
 
         if ns.se is None:
-            if 'se' in self.defaults:
+            if "se" in self.defaults:
                 ns.se = self.defaults
             else:
                 ns.se = 0
 
         if ns.uf_reds is None:
-            if 'uf_reds' in self.defaults:
+            if "uf_reds" in self.defaults:
                 ns.uf_reds = self.defaults
             else:
                 ns.uf_reds = (1, 1, 1, 1)
 
         if ns.srsQs is None:
             for k, v in ns.__dict__.items():
-                if k.startswith('srs') and v is not None:
+                if k.startswith("srs") and v is not None:
                     ns.srsQs = self.defaults
                     break
 
@@ -279,11 +283,13 @@ class DR_Def(OrderedDict):
                 try:
                     dct[key] = self.defaults[key]
                 except KeyError:
-                    msg = ('{} set to `defaults` but is not found in'
-                           ' `defaults`!'.format(key))
+                    msg = (
+                        "{} set to `defaults` but is not found in"
+                        " `defaults`!".format(key)
+                    )
                     raise ValueError(msg)
 
-        if ns.drfile == '.':
+        if ns.drfile == ".":
             ns.drfile = None
 
         # add path to `drfile` if needed:
@@ -309,8 +315,7 @@ class DR_Def(OrderedDict):
             ns.desc = name
 
         if isinstance(ns.labels, numbers.Integral):
-            ns.labels = ['Row {:6d}'.format(i + 1)
-                         for i in range(ns.labels)]
+            ns.labels = ["Row {:6d}".format(i + 1) for i in range(ns.labels)]
 
         # check filter value:
         try:
@@ -319,42 +324,45 @@ class DR_Def(OrderedDict):
             pass
         else:
             if nf != len(ns.labels):
-                raise ValueError('length of `filterval` ({}) does '
-                                 'not match length of labels ({})'
-                                 .format(nf, len(ns.labels)))
+                raise ValueError(
+                    "length of `filterval` ({}) does "
+                    "not match length of labels ({})".format(nf, len(ns.labels))
+                )
             ns.filterval = np.atleast_1d(ns.filterval)
 
         def _get_pv(pv, name, length):
             if pv is None:
                 return pv
-            if isinstance(pv, str) and pv == 'all':
+            if isinstance(pv, str) and pv == "all":
                 return slice(length)
             if isinstance(pv, slice):
                 return pv
-            if (not isinstance(pv, str) and
-                    isinstance(pv, (abc.Sequence, numbers.Integral))):
+            if not isinstance(pv, str) and isinstance(
+                pv, (abc.Sequence, numbers.Integral)
+            ):
                 pv = np.atleast_1d(pv)
             if isinstance(pv, np.ndarray):
                 pv = pv.ravel()
                 if pv.dtype == bool:
                     if len(pv) != length:
-                        msg = ('length of `{}` ({}) does not '
-                               'match length of labels ({})'
-                               .format(name, len(pv), length))
+                        msg = (
+                            "length of `{}` ({}) does not "
+                            "match length of labels ({})".format(name, len(pv), length)
+                        )
                         raise ValueError(msg)
                     return pv.nonzero()[0]
                 elif issubclass(pv.dtype.type, np.integer):
                     if pv.max() >= length or pv.min() < 0:
-                        msg = ('values in `{}` range from [{}, {}], '
-                               'but should be in range [0, {}] for '
-                               'this category'
-                               .format(name, pv.min(), pv.max(),
-                                       length))
+                        msg = (
+                            "values in `{}` range from [{}, {}], "
+                            "but should be in range [0, {}] for "
+                            "this category".format(name, pv.min(), pv.max(), length)
+                        )
                         raise ValueError(msg)
                     return pv
-            raise TypeError('`{}` input not understood'.format(name))
+            raise TypeError("`{}` input not understood".format(name))
 
-        ns.ignorepv = _get_pv(ns.ignorepv, 'ignorepv', len(ns.labels))
+        ns.ignorepv = _get_pv(ns.ignorepv, "ignorepv", len(ns.labels))
 
         if ns.srsconv is None:
             ns.srsconv = 1.0
@@ -373,30 +381,52 @@ class DR_Def(OrderedDict):
             return [labels[i] for i in pv]
 
         # fill in hist-labels/units and srs-labels/units if needed:
-        for i in ('hist', 'srs'):
-            pv = i + 'pv'
+        for i in ("hist", "srs"):
+            pv = i + "pv"
             dct[pv] = _get_pv(dct[pv], pv, len(ns.labels))
             if dct[pv] is not None:
-                lbl = i + 'labels'
-                unt = i + 'units'
+                lbl = i + "labels"
+                unt = i + "units"
                 if dct[lbl] is None:
                     dct[lbl] = _get_labels(dct[pv], ns.labels)
                 if dct[unt] is None:
                     dct[unt] = ns.units
 
         # ensure that the labels are lists (or None):
-        for i in ('', 'hist', 'srs'):
-            lbl = i + 'labels'
+        for i in ("", "hist", "srs"):
+            lbl = i + "labels"
             if not isinstance(dct[lbl], (list, type(None))):
                 dct[lbl] = list(dct[lbl])
 
-    def add(self, *, name, labels, active='yes', drms=None,
-            drfunc=None, drfile=None, se=None, desc=None,
-            units='Not specified', uf_reds=None, filterval=1.e-6,
-            histlabels=None, histpv=None, histunits=None, misc=None,
-            ignorepv=None, nondrms=None, srsQs=None, srsfrq=None,
-            srsconv=None, srslabels=None, srsopts=None, srspv=None,
-            srsunits=None, **kwargs):
+    def add(
+        self,
+        *,
+        name,
+        labels,
+        active="yes",
+        drms=None,
+        drfunc=None,
+        drfile=None,
+        se=None,
+        desc=None,
+        units="Not specified",
+        uf_reds=None,
+        filterval=1.0e-6,
+        histlabels=None,
+        histpv=None,
+        histunits=None,
+        misc=None,
+        ignorepv=None,
+        nondrms=None,
+        srsQs=None,
+        srsfrq=None,
+        srsconv=None,
+        srslabels=None,
+        srsopts=None,
+        srspv=None,
+        srsunits=None,
+        **kwargs
+    ):
         """
         Adds a data recovery category.
 
@@ -744,12 +774,13 @@ class DR_Def(OrderedDict):
         nargs = co.co_argcount + co.co_kwonlyargcount
         args = co.co_varnames[:nargs]
         values = frame.f_locals
-        dr_def_args = {i: values[i] for i in args
-                       if i not in ('self', 'name', 'drms',
-                                    'nondrms', 'kwargs')}
+        dr_def_args = {
+            i: values[i]
+            for i in args
+            if i not in ("self", "name", "drms", "nondrms", "kwargs")
+        }
         if name in self:
-            raise ValueError('data recovery for "{}" already defined'
-                             .format(name))
+            raise ValueError('data recovery for "{}" already defined'.format(name))
 
         if drms is None:
             drms = {}
@@ -760,8 +791,10 @@ class DR_Def(OrderedDict):
         # check for overlapping keys in drms and nondrms:
         overlapping_names = set(nondrms) & set(drms)
         if overlapping_names:
-            raise ValueError('`drms` and `nondrms` have overlapping '
-                             'names: {}'.format(overlapping_names))
+            raise ValueError(
+                "`drms` and `nondrms` have overlapping "
+                "names: {}".format(overlapping_names)
+            )
 
         # define self[name] entry:
         self[name] = SimpleNamespace(**dr_def_args)
@@ -837,13 +870,13 @@ class DR_Def(OrderedDict):
 
         for name in categories:
             if name not in self:
-                raise ValueError('{} not found'
-                                 .format(name))
+                raise ValueError("{} not found".format(name))
 
         for key in kwargs:
             if key not in self[categories[0]].__dict__:
-                raise ValueError('{} not found in `self["{}"]`'
-                                 .format(key, categories[0]))
+                raise ValueError(
+                    '{} not found in `self["{}"]`'.format(key, categories[0])
+                )
 
         for i, name in enumerate(categories):
             if isinstance(name_addon, str):
@@ -851,14 +884,12 @@ class DR_Def(OrderedDict):
             else:
                 new_name = name_addon[i]
             if new_name in self:
-                raise ValueError('"{}" category already defined'
-                                 .format(new_name))
+                raise ValueError('"{}" category already defined'.format(new_name))
             self[new_name] = copy.copy(self[name])
             cat = self[new_name]
             for key, value in kwargs.items():
-                if key == 'uf_reds':
-                    cat.__dict__[key] = _merge_uf_reds(
-                        self[name].uf_reds, value)
+                if key == "uf_reds":
+                    cat.__dict__[key] = _merge_uf_reds(self[name].uf_reds, value)
                 else:
                     cat.__dict__[key] = value
 
@@ -891,13 +922,11 @@ class DR_Def(OrderedDict):
         """
         for arg in args:
             if arg not in self:
-                raise ValueError('{} not found'
-                                 .format(arg))
-            desc = self[arg].desc + ' w/o RB'
-            self.copycat(arg, '_0rb', uf_reds=(0, None, None, None),
-                         desc=desc)
+                raise ValueError("{} not found".format(arg))
+            desc = self[arg].desc + " w/o RB"
+            self.copycat(arg, "_0rb", uf_reds=(0, None, None, None), desc=desc)
 
-    def excel_summary(self, excel_file='dr_summary.xlsx'):
+    def excel_summary(self, excel_file="dr_summary.xlsx"):
         """
         Make excel file with summary of data recovery information.
 
@@ -915,10 +944,9 @@ class DR_Def(OrderedDict):
             The columns are the categories (eg: 'SC_atm', 'SC_ltm',
             etc).
         """
-        cats = sorted([i for i in self
-                       if not i.startswith('_')])
+        cats = sorted([i for i in self if not i.startswith("_")])
         if not cats:
-            raise RuntimeError('add data recovery categories first')
+            raise RuntimeError("add data recovery categories first")
         vals = sorted(self[cats[0]].__dict__)
         df = pd.DataFrame(index=vals, columns=cats)
 
@@ -933,7 +961,7 @@ class DR_Def(OrderedDict):
                 return (new == old).all()
             return new == old
 
-        fill_char = '-'
+        fill_char = "-"
         # fill in DataFrame, use `fill_char` for "same as previous"
         for i, cat in enumerate(cats):
             for val in vals:
@@ -947,26 +975,24 @@ class DR_Def(OrderedDict):
                 if s is None:
                     s = str(new)
                     if len(s) > 80:
-                        s = s[:35] + ' ... ' + s[-35:]
+                        s = s[:35] + " ... " + s[-35:]
                     if not isinstance(new, str):
                         try:
                             slen = len(new)
                         except TypeError:
                             pass
                         else:
-                            s = '{:d}: {:s}'.format(slen, s)
+                            s = "{:d}: {:s}".format(slen, s)
                 df[cat].loc[val] = s
 
         if excel_file is not None:
             with xlsxwriter.Workbook(excel_file) as workbook:
-                hform = workbook.add_format({'bold': True,
-                                             'align': 'center',
-                                             'valign': 'vcenter',
-                                             'border': 1})
-                tform = workbook.add_format({'border': 1,
-                                             'text_wrap': True})
-                worksheet = workbook.add_worksheet('DR_Def')
-                worksheet.set_column('A:A', 10)
+                hform = workbook.add_format(
+                    {"bold": True, "align": "center", "valign": "vcenter", "border": 1}
+                )
+                tform = workbook.add_format({"border": 1, "text_wrap": True})
+                worksheet = workbook.add_worksheet("DR_Def")
+                worksheet.set_column("A:A", 10)
                 worksheet.set_column(1, len(cats), 25)
                 # worksheet.set_default_row(20)
                 # write header:
@@ -978,16 +1004,17 @@ class DR_Def(OrderedDict):
                 # write table:
                 for i, cat in enumerate(df.columns):
                     for j, lbl in enumerate(df.index):
-                        worksheet.write(
-                            j + 1, i + 1, df[cat].loc[lbl], tform)
+                        worksheet.write(j + 1, i + 1, df[cat].loc[lbl], tform)
                 # write notes at bottom:
-                bold = workbook.add_format({'bold': True})
-                worksheet.write(df.shape[0] + 2, 1, 'Notes:', bold)
-                tab = '    '
-                msg = fill_char + ' = same as previous category'
+                bold = workbook.add_format({"bold": True})
+                worksheet.write(df.shape[0] + 2, 1, "Notes:", bold)
+                tab = "    "
+                msg = fill_char + " = same as previous category"
                 worksheet.write(df.shape[0] + 3, 1, tab + msg)
-                msg = ('The partition vector variables (*pv) '
-                       'use 0-offset (or are slices)')
+                msg = (
+                    "The partition vector variables (*pv) "
+                    "use 0-offset (or are slices)"
+                )
                 worksheet.write(df.shape[0] + 4, 1, tab + msg)
                 # freeze row 0 and column 0:
                 worksheet.freeze_panes(1, 1)
@@ -1075,26 +1102,29 @@ class DR_Def(OrderedDict):
         """
         # to check for duplicate category names, use a set:
         cats = set(first)
-        cats.remove('_vars')
+        cats.remove("_vars")
         duplicate_cats = set()
         for arg in args:
             newcats = set(arg)
-            newcats.remove('_vars')
+            newcats.remove("_vars")
             duplicate_cats |= cats.intersection(newcats)
             cats |= newcats
 
         # were there any duplicate categories?:
         if duplicate_cats:
-            raise ValueError('there were duplicate categories:\n\t{!r}'
-                             .format(sorted(duplicate_cats)))
+            raise ValueError(
+                "there were duplicate categories:\n\t{!r}".format(
+                    sorted(duplicate_cats)
+                )
+            )
 
         # category names are unique, need to check drms & nondrms:
         data = {}
-        for attr_name in ('drms', 'nondrms'):
+        for attr_name in ("drms", "nondrms"):
             duplicate_drms = {}
-            drms = getattr(first['_vars'], attr_name).copy()
+            drms = getattr(first["_vars"], attr_name).copy()
             for arg in args:
-                new_drms = getattr(arg['_vars'], attr_name)
+                new_drms = getattr(arg["_vars"], attr_name)
                 for se, drm_dict in new_drms.items():
                     if se in drms:
                         # check for duplicate drm names:
@@ -1108,14 +1138,18 @@ class DR_Def(OrderedDict):
                         drms[se] = drm_dict.copy()
 
             # were there any duplicate drm names?:
-            dup_names = ''.join('{}: {}\n'.format(se, sorted(dups))
-                                for se, dups in duplicate_drms.items()
-                                if dups)
+            dup_names = "".join(
+                "{}: {}\n".format(se, sorted(dups))
+                for se, dups in duplicate_drms.items()
+                if dups
+            )
 
             if dup_names:
                 raise ValueError(
-                    'there were duplicate "{}" names. By SE:\n{}'
-                    .format(attr_name, dup_names))
+                    'there were duplicate "{}" names. By SE:\n{}'.format(
+                        attr_name, dup_names
+                    )
+                )
 
             data[attr_name] = drms
 
@@ -1124,8 +1158,7 @@ class DR_Def(OrderedDict):
         drdefs.update(first)
         for arg in args:
             drdefs.update(arg)
-        drdefs['_vars'] = SimpleNamespace(drms=data['drms'],
-                                          nondrms=data['nondrms'])
+        drdefs["_vars"] = SimpleNamespace(drms=data["drms"], nondrms=data["nondrms"])
         return drdefs
 
     def __add__(self, other):

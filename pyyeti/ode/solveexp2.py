@@ -7,7 +7,7 @@ from ._base_ode_class import _BaseODE
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
-    np.set_printoptions(legacy='1.13')
+    np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
 
@@ -153,8 +153,7 @@ class SolveExp2(_BaseODE):
         >>> plt.tight_layout()
     """
 
-    def __init__(self, m, b, k, h, rb=None, rf=None, order=1,
-                 pre_eig=False):
+    def __init__(self, m, b, k, h, rb=None, rf=None, order=1, pre_eig=False):
         """
         Instantiates a :class:`SolveExp2` solver.
 
@@ -341,8 +340,7 @@ class SolveExp2(_BaseODE):
             Time vector: np.arange(d.shape[1])*h
         """
         force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(force, d0, v0,
-                                        static_ic)
+        d, v, a, force = self._init_dva(force, d0, v0, static_ic)
         ksize = self.ksize
         if ksize > 0:
             nt = force.shape[1]
@@ -354,8 +352,7 @@ class SolveExp2(_BaseODE):
                     if self.unc:
                         imf = self.invm * force[kdof]
                     else:
-                        imf = la.lu_solve(self.invm, force[kdof],
-                                          check_finite=False)
+                        imf = la.lu_solve(self.invm, force[kdof], check_finite=False)
                 else:
                     imf = force[kdof]
                 if self.order == 1:
@@ -369,10 +366,8 @@ class SolveExp2(_BaseODE):
                 for i in range(nt - 1):
                     d0 = D[:, i]
                     v0 = V[:, i]
-                    D[:, i + 1] = (E_dd @ d0 + E_dv @ v0 +
-                                   PQF[ksize:, i])
-                    V[:, i + 1] = (E_vd @ d0 + E_vv @ v0 +
-                                   PQF[:ksize, i])
+                    D[:, i + 1] = E_dd @ d0 + E_dv @ v0 + PQF[ksize:, i]
+                    V[:, i + 1] = E_vd @ d0 + E_vv @ v0 + PQF[:ksize, i]
                 if not self.slices:
                     d[kdof] = D
                     v[kdof] = V
@@ -521,12 +516,12 @@ class SolveExp2(_BaseODE):
         """
         if not self.slices:
             raise NotImplementedError(
-                'generator not yet implemented for the case'
-                ' when different types of equations are interspersed'
-                ' (eg, a res-flex DOF in the middle of the elastic'
-                ' DOFs)')
-        d, v, a, force = self._init_dva_part(
-            nt, F0, d0, v0, static_ic)
+                "generator not yet implemented for the case"
+                " when different types of equations are interspersed"
+                " (eg, a res-flex DOF in the middle of the elastic"
+                " DOFs)"
+            )
+        d, v, a, force = self._init_dva_part(nt, F0, d0, v0, static_ic)
         self._d, self._v, self._a, self._force = d, v, a, force
         generator = self._solve_se2_generator(d, v, F0)
         next(generator)
@@ -546,8 +541,7 @@ class SolveExp2(_BaseODE):
             if unc:
                 ikrf = ikrf.ravel()
             else:
-                ikrf = la.lu_solve(ikrf, np.eye(rfsize),
-                                   check_finite=False)
+                ikrf = la.lu_solve(ikrf, np.eye(rfsize), check_finite=False)
             drf = d[rf]
 
         ksize = self.ksize
@@ -589,11 +583,9 @@ class SolveExp2(_BaseODE):
                     Q = Q * invm
             else:
                 # P @ invm = (invm.T @ P.T).T
-                P = la.lu_solve(self.invm, P.T, trans=1,
-                                check_finite=False).T
+                P = la.lu_solve(self.invm, P.T, trans=1, check_finite=False).T
                 if order == 1:
-                    Q = la.lu_solve(self.invm, Q.T, trans=1,
-                                    check_finite=False).T
+                    Q = la.lu_solve(self.invm, Q.T, trans=1, check_finite=False).T
         E_dd = self.E_dd
         E_dv = self.E_dv
         E_vd = self.E_vd
@@ -722,8 +714,8 @@ class SolveExp2(_BaseODE):
         """
         if self.systype is not float:
             raise NotImplementedError(
-                ':func:`get_f2x` can only handle real equations of'
-                ' motion')
+                ":func:`get_f2x` can only handle real equations of motion"
+            )
 
         flex = 0.0
         unc = self.unc
@@ -738,8 +730,7 @@ class SolveExp2(_BaseODE):
                         invm = self.invm.ravel()
                         Q = Q * invm
                     else:
-                        Q = la.lu_solve(self.invm, Q.T, trans=1,
-                                        check_finite=False).T
+                        Q = la.lu_solve(self.invm, Q.T, trans=1, check_finite=False).T
                 n = self.nonrfsz
                 if velo:
                     flex = phik @ Q[:n] @ phik.T
