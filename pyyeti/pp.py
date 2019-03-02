@@ -160,7 +160,7 @@ class PP(object):
         return s
 
     def _lst_tup_string(self, lst, list_level):
-        s = ["[n={}]: ".format(len(lst))]
+        s = [f"[n={len(lst)}]: "]
         be = "[]" if isinstance(lst, list) else "()"
         s.append(be[0])
         if list_level > self._depth:
@@ -237,7 +237,7 @@ class PP(object):
         return keys
 
     def _dict_string(self, dct, level, typename, isns=False, showhidden=True):
-        s = ["{}[n={}]\n".format(typename, len(dct))]
+        s = [f"{typename}[n={len(dct)}]\n"]
         if level < self._depth:
             keys = self._get_keys(dct, showhidden)
             level += 1
@@ -262,7 +262,7 @@ class PP(object):
         except KeyError:
             cls = type(var)
             if cls is type:
-                typename = "<class '{}'>".format(var.__name__)
+                typename = f"<class '{var.__name__}'>"
             else:
                 typename = str(cls)
             if isinstance(var, collections.Mapping):

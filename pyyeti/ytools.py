@@ -43,8 +43,7 @@ def _check_makeplot(
         if hasattr(makeplot, "plot"):
             return _check_3d(makeplot, need3d)
         raise ValueError(
-            "invalid `makeplot` setting; must be in {} or be an "
-            "axes object".format(valid)
+            f"invalid `makeplot` setting; must be in {valid} or be an axes object"
         )
 
     if makeplot != "no":
@@ -78,9 +77,7 @@ def _initial_circle_fit(basic):
     # - basic is 2d ndarray, 3 x n
     n = basic.shape[1]  # step 1
     if n < 3:
-        raise ValueError(
-            "need at least 3 data points to fit circle, only have {}".format(n)
-        )
+        raise ValueError(f"need at least 3 data points to fit circle, only have {n}")
     p1 = basic[:, 0]
     p2 = basic[:, n // 3]
     p3 = basic[:, 2 * n // 3]
@@ -182,7 +179,7 @@ def fit_circle_2d(x, y, makeplot="no"):
     if ssq > 0.01:
         msg = (
             "data points do not appear to form a good circle, sum "
-            "square of residuals = {}".format(ssq)
+            f"square of residuals = {ssq}"
         )
         warnings.warn(msg, RuntimeWarning)
 
@@ -217,12 +214,12 @@ def axis_equal_3d(ax, buffer_space=10):
     work properly, you must call this routine after you've plotted all
     your data.
     """
-    extents = np.array([getattr(ax, "get_{}lim".format(dim))() for dim in "xyz"])
+    extents = np.array([getattr(ax, f"get_{dim}lim")() for dim in "xyz"])
     max_dimension = max(abs(extents[:, 1] - extents[:, 0]))
     centers = np.mean(extents, axis=1)
     r = max_dimension / 2 * (1 + buffer_space / 100)
     for ctr, dim in zip(centers, "xyz"):
-        getattr(ax, "set_{}lim".format(dim))(ctr - r, ctr + r)
+        getattr(ax, f"set_{dim}lim")(ctr - r, ctr + r)
 
 
 def _circle_fit_residuals(p, basic2local, basic, circ_parms):
@@ -377,9 +374,7 @@ def fit_circle_3d(basic, makeplot="no"):
     """
     basic = np.atleast_2d(basic)
     if basic.shape[0] != 3:
-        raise ValueError(
-            "`basic` must have 3 rows (x, y, z), not {}".format(basic.shape[0])
-        )
+        raise ValueError(f"`basic` must have 3 rows (x, y, z), not {basic.shape[0]}")
 
     basic2local, center, radius = _initial_circle_fit(basic)
 
@@ -394,14 +389,12 @@ def fit_circle_3d(basic, makeplot="no"):
     )
     sol = res[0]
     if res[-1] not in (1, 2, 3, 4):
-        raise ValueError(
-            ":func:`scipy.optimization.leastsq` failed: {}".format(res[-2])
-        )
+        raise ValueError(f":func:`scipy.optimization.leastsq` failed: {res[-2]}")
     ssqerr = np.sum(res[2]["fvec"] ** 2)
     if ssqerr > 0.01:
         msg = (
             "data points do not appear to form a good circle, sum "
-            "square of residuals = {}".format(ssqerr)
+            f"square of residuals = {ssqerr}"
         )
         warnings.warn(msg, RuntimeWarning)
 
@@ -431,9 +424,9 @@ def fit_circle_3d(basic, makeplot="no"):
     ax = _check_makeplot(makeplot, need3d=True)
     if ax:
         for item in "xyz":
-            get_func = getattr(ax, "get_{}label".format(item))
+            get_func = getattr(ax, f"get_{item}label")
             if not get_func():
-                set_func = getattr(ax, "set_{}label".format(item))
+                set_func = getattr(ax, f"set_{item}label")
                 set_func(item.upper())
         ax.plot(*basic, "o", label="Data")
 
@@ -784,7 +777,7 @@ def mattype(A, mtype=None):
     ...     print('A is identity')
     A is identity
     >>> for i in sorted(mattypes):
-    ...     print('{:10s}: {:2}'.format(i, mattypes[i]))
+    ...     print(f'{i:10s}: {mattypes[i]:2}')
     diagonal  :  8
     hermitian :  2
     identity  : 16
@@ -792,7 +785,7 @@ def mattype(A, mtype=None):
     symmetric :  1
     >>> mattypes = ytools.mattype(None)
     >>> for i in sorted(mattypes):
-    ...     print('{:10s}: {:2}'.format(i, mattypes[i]))
+    ...     print(f'{i:10s}: {mattypes[i]:2}')
     diagonal  :  8
     hermitian :  2
     identity  : 16
@@ -1141,8 +1134,8 @@ def eig_si(
         if loops > 1:
             if verbose:
                 print(
-                    "Convergence: {} of {}, tolerance range after {} "
-                    "iterations is [{}, {}]".format(nconv, p, loops, mntolc, tolc)
+                    f"Convergence: {nconv} of {p}, tolerance range after {loops} "
+                    f"iterations is [{mntolc}, {tolc}]"
                 )
         else:
             if verbose:
@@ -1253,7 +1246,7 @@ def read_text_file(rdfunc):
     ...     return f.readline()
     >>> @write_text_file
     ... def dowrite(f, string, number):
-    ...     f.write('{:s} = {:.3f}\n'.format(string, number))
+    ...     f.write(f'{string:s} = {number:.3f}\n')
     >>> with StringIO() as f:
     ...     dowrite(f, 'param', number=45.3)
     ...     _ = f.seek(0, 0)
@@ -1308,7 +1301,7 @@ def write_text_file(wtfunc):
     >>> from pyyeti.ytools import write_text_file
     >>> @write_text_file
     ... def dowrite(f, string, number):
-    ...     f.write('{:s} = {:.3f}\n'.format(string, number))
+    ...     f.write(f'{string:s} = {number:.3f}\n')
     >>> dowrite(1, 'param', number=45.3)
     param = 45.300
     """
@@ -1441,7 +1434,7 @@ def reorder_dict(ordered_dict, keys, where):
         # ensure all keys are in all_keys:
         for k in keys:
             if k not in all_keys:
-                raise ValueError('Key "{}" not found. Order unchanged.'.format(k))
+                raise ValueError(f'Key "{k}" not found. Order unchanged.')
 
         if where == "first":
             new_keys = list(keys)
@@ -1450,9 +1443,7 @@ def reorder_dict(ordered_dict, keys, where):
             new_keys = [k for k in all_keys if k not in keys]
             new_keys.extend(keys)
         else:
-            raise ValueError(
-                "`where` must be 'first' or 'last', not {!r}".format(where)
-            )
+            raise ValueError(f"`where` must be 'first' or 'last', not {where!r}")
 
         return new_keys
 

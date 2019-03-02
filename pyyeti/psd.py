@@ -203,7 +203,7 @@ def proc_psd_spec(spec):
         if len(spec) != 2:
             msg = (
                 "incorrectly sized `spec` input: for tuple/"
-                "list input, must have length 2, not {}".format(len(spec))
+                f"list input, must have length 2, not {len(spec)}"
             )
             raise ValueError(msg)
         Freq, PSD = np.atleast_1d(*spec)
@@ -930,7 +930,7 @@ def psd2time(
     else:
         raise ValueError(
             '`expand_method` must be either "interp" or "rescale", '
-            "not {!r}".format(expand_method)
+            f"not {expand_method!r}"
         )
 
     amp = np.sqrt(2 * speclevel * df)
@@ -976,8 +976,7 @@ def psd2time(
     if mxi > 1e-7 * mxr:  # pragma: no cover
         # bug in the code if this ever happens
         warn(
-            "method failed accuracy test; (max imag)/"
-            "(max real) = {}".format(mxi / mxr),
+            f"method failed accuracy test; (max imag)/(max real) = {mxi / mxr}",
             RuntimeWarning,
         )
 

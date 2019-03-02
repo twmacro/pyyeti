@@ -137,7 +137,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         >>> for pts, m in zip([2, 3, 5],
         ...                   ['^', 'v', '<']):
         ...     res[pts], up2 = dsp.resample(data, p, q, pts=pts, t=x)
-        ...     lab = 'Resample, pts={}'.format(pts)
+        ...     lab = f'Resample, pts={pts}'
         ...     _ = plt.plot(upx, res[pts], '-', label=lab, marker=m)
         >>> resfft = signal.resample(data, p*n)
         >>> _ = plt.plot(upx, resfft, '-D', label='scipy.signal.resample')
@@ -604,7 +604,7 @@ def despike(
         ...     _ = plt.plot(x)
         ...     _ = plt.plot(s.hilim, 'k--')
         ...     _ = plt.plot(s.lolim, 'k--')
-        ...     _ = plt.title('Iteration {}'.format(i+1))
+        ...     _ = plt.title(f'Iteration {i+1}')
         ...     x = s.x
         >>> plt.tight_layout()
         >>> s.x
@@ -1335,18 +1335,17 @@ def fixtime(
             npos = difft.size - nneg
             if npos == 0:
                 raise ValueError(
-                    "there are no positive steps in the "
-                    "entire time vector. Cannot fix "
-                    "this."
+                    "there are no positive steps in the entire time vector. "
+                    "Cannot fix this."
                 )
             if negmethod == "stop":
                 raise ValueError(
-                    "There are {:d} negative time steps. Stopping.".format(nneg)
+                    f"There are {nneg:d} negative time steps. Stopping."
                 )
             if negmethod == "sort":
                 warn(
-                    "there are {:d} negative time steps. "
-                    "Sorting the data. {:s}".format(nneg, POOR),
+                    f"there are {nneg:d} negative time steps. "
+                    "Sorting the data. {POOR:s}",
                     RuntimeWarning,
                 )
                 j = t.argsort()
@@ -1418,18 +1417,16 @@ def fixtime(
         if pv.any():
             if delouttimes:
                 warn(
-                    "there are {:d} outlier times being deleted."
-                    " These are times more than 3-sigma away "
-                    "from the mean. {:s}".format(pv.sum(), POOR),
+                    f"there are {pv.sum():d} outlier times being deleted. These are"
+                    f" times more than 3-sigma away from the mean. {POOR:s}",
                     RuntimeWarning,
                 )
                 keep = keep[~pv]
             else:
                 warn(
-                    "there are {:d} outlier times that are NOT "
-                    "being deleted because `delouttimes` is "
-                    "False. These are times more than 3-sigma "
-                    "away from the mean.".format(pv.sum()),
+                    f"there are {pv.sum():d} outlier times that are NOT being deleted"
+                    " because `delouttimes` is False. These are times more than "
+                    "3-sigma away from the mean.",
                     RuntimeWarning,
                 )
         return keep, outtimes
@@ -1466,14 +1463,13 @@ def fixtime(
         if verbose:
             print("==> Info: [min, max, ave, count (% occurrence)] time step:")
             print(
-                "==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]".format(
-                    min_ts, max_ts, ave_ts, cnt_ts, mx
-                )
+                f"==>           [{min_ts:g}, {max_ts:g}, {ave_ts:g}, "
+                f"{cnt_ts:g} ({mx:.1f}%)]"
             )
             print("==>       Corresponding sample rates:")
             print("==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]".format(*sr_stats))
-            print('==>       Note: "count" shows most frequent ' "sample rate to")
-            print("          nearest {} samples/sec.".format(dsr))
+            print('==>       Note: "count" shows most frequent sample rate to')
+            print(f"          nearest {dsr} samples/sec.")
 
         if mx > 90 or abs(cnt_sr - ave_sr) < dsr:
             defsr = round(cnt_sr / dsr) * dsr
@@ -1482,13 +1478,13 @@ def fixtime(
         if sr == "auto":
             sr = defsr
         elif not sr:  # pragma: no cover
-            ssr = input("==> Enter desired sample rate [{:g}]: ".format(defsr))
+            ssr = input(f"==> Enter desired sample rate [{defsr:g}]: ")
             if not ssr:
                 sr = defsr
             else:
                 sr = float(ssr)
         if verbose:
-            print("==> Using sample rate = {:g}".format(sr))
+            print(f"==> Using sample rate = {sr:g}")
         return sr, sr_stats
 
     def _prep_delspikes(delspikes):
@@ -1546,7 +1542,7 @@ def fixtime(
         elif method == "simple":
             return _simple_filter(olddata, keep, delspikes)
         else:
-            raise ValueError("unknown `method` ({})".format(method))
+            raise ValueError(f"unknown `method` ({method})")
 
     def _get_alldrops(
         told, olddata, sortvec, dropouts, outtimes, spikes, despike_info, delouttimes
@@ -1593,11 +1589,9 @@ def fixtime(
         for n, s1, s2 in zip((nsmall, nlarge), ("smaller", "larger"), ("low", "high")):
             if n > 0.01:
                 warn(
-                    "there are a large ({:.2f}%) number of time "
-                    "steps {:s} than {:g} by more than 7%. Double "
-                    "check the sample rate; it might be too {:s}.".format(
-                        n * 100, s1, dt, s2
-                    ),
+                    f"there are a large ({n * 100:.2f}%) number of time "
+                    f"steps {s1:s} than {dt:g} by more than 7%. Double "
+                    f"check the sample rate; it might be too {s2:s}.",
                     RuntimeWarning,
                 )
 
@@ -1630,11 +1624,11 @@ def fixtime(
             align = False
             p = (len(tp) - 2) / len(told) * 100
             msg = (
-                "there are too many turning points ({:.2f}%) to "
+                f"there are too many turning points ({p:.2f}%) to "
                 "account for drift or align the largest section. "
                 "Skipping steps 11 and 12."
             )
-            warn(msg.format(p), RuntimeWarning)
+            warn(msg, RuntimeWarning)
         else:
             align = True
         return tp, align
@@ -1825,7 +1819,7 @@ def aligntime(dct, channels=None, mode="truncate", value=0):
         for item in channels:
             if item not in dct:
                 err = 1
-                print("Channel {} not found in `dct`.".format(item))
+                print(f"Channel {item} not found in `dct`.")
         if err:
             raise ValueError(
                 "`dct` does not contain all requested channels. See above."
@@ -1847,7 +1841,7 @@ def aligntime(dct, channels=None, mode="truncate", value=0):
             if t[0] > tmax or t[-1] < tmin:
                 raise ValueError("not all inputs overlap in time.")
             if not np.allclose(np.diff(t), dt):
-                raise ValueError("not all time steps in {} match {}".format(key, dt))
+                raise ValueError(f"not all time steps in {key} match {dt}")
             tmin = max(tmin, t[0])
             tmax = min(tmax, t[-1])
 
@@ -1869,7 +1863,7 @@ def aligntime(dct, channels=None, mode="truncate", value=0):
         for key in parms:
             t, d, isarr = _get_timedata(dct[key])
             if not np.allclose(np.diff(t), dt):
-                raise ValueError("not all time steps in {} match {}".format(key, dt))
+                raise ValueError(f"not all time steps in {key} match {dt}")
             tmin = min(tmin, t[0])
             tmax = max(tmax, t[-1])
 
@@ -2167,7 +2161,7 @@ def waterfall(
     if isinstance(tsoverlap, str):
         ntsoverlap = int(tsoverlap)
         if not 0 <= ntsoverlap < ntimeslice:
-            raise ValueError("`tsoverlap` must be in [0, {})".format(ntimeslice))
+            raise ValueError(f"`tsoverlap` must be in [0, {ntimeslice})")
     else:
         if not 0 <= tsoverlap < 1:
             raise ValueError("`tsoverlap` must be in [0, 1)")
@@ -2439,7 +2433,7 @@ def calcenv(
 
     ax = _check_makeplot(makeplot)
     if ax:
-        envlabel = r"$\pm${}% envelope".format(p)
+        envlabel = fr"$\pm${p}% envelope"
         ln = ax.plot(x, y, label=label)[0]
         p = mpatches.Patch(color=polycolor, label=envlabel)
         if base is None:
@@ -2605,9 +2599,9 @@ def _make_h(freq, w, bw, pass_zero, mag, nyq):
             # previous, error out:
             raise ValueError(
                 "filter function could not be formed to satisfy "
-                "requirements as defined; stopped on w={}. Using "
+                f"requirements as defined; stopped on w={_w}. Using "
                 "a narrower bandwidth might help (currently using"
-                " bw={})".format(_w, _bw)
+                f" bw={_bw})"
             )
         H[I : j - i] = ramp[0]
         I = j - i + n
@@ -2879,8 +2873,7 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
         window = np.atleast_1d(window)
         if len(window) != n:
             raise ValueError(
-                "window size is {}; expected {} to "
-                "match signal".format(len(window), n)
+                f"window size is {len(window)}; expected {n} to match signal"
             )
     scale = n / window.sum()
     window *= scale

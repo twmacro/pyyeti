@@ -963,7 +963,7 @@ def srs(
         >>> Q = 20
         >>> frq = [10, 15, 20]
         >>> sh = srs.srs(sig, sr, frq, Q)
-        >>> print('{:.1f}'.format(sh[1]))
+        >>> print(f'{sh[1]:.1f}')
         20.0
 
         Compare the upsampling/rolloff methods:

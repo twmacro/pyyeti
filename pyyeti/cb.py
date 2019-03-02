@@ -1129,9 +1129,7 @@ def mk_net_drms(
         for tau_, rows in zip(tau, (range(3), range(6, 9))):
             if tau_ != "g":
                 for i in rows:
-                    ifatm_labels[i] = ifatm_labels[i].replace(
-                        "(g)", "({}/s^2)".format(tau_)
-                    )
+                    ifatm_labels[i] = ifatm_labels[i].replace("(g)", f"({tau_}/s^2)")
 
         cglf_labels = [
             "S/C CG Axial         sc",
@@ -1343,7 +1341,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     :func:`rbmultchk`.
     """
     fout.write("----------------------------------------------\n")
-    fout.write("Results for {} * RB\n".format(name))
+    fout.write(f"Results for {name} * RB\n")
     fout.write("----------------------------------------------\n")
 
     n = np.size(drm, 0)
@@ -1361,7 +1359,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
             else:
                 raise ValueError(
                     'invalid `bset` string: must be either "first" '
-                    'or "last" but is "{}"'.format(bset)
+                    f'or "last" but is "{bset}"'
                 )
         else:
             drm1 = drm[:, bset]
@@ -1386,7 +1384,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     trips = n2p.find_xyz_triples(drmrb)
     trips.scales[trips.pv] /= rbscale
 
-    fout.write("\nExtreme Coordinates from {}\n".format(name))
+    fout.write(f"\nExtreme Coordinates from {name}\n")
     headers = ["X", "Y", "Z"]
     widths = [10, 10, 10]
     formats = ["{:10.4f}"] * 3
@@ -1413,18 +1411,17 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     snonnr = np.sum(nonnr)
     snr = np.sum(nr)
     fout.write(
-        "\n{} has {} ({:.1f}%) non-NULL rows and {} ({:.1f}%) "
-        "NULL rows.\n".format(name, snonnr, snonnr / n * 100, snr, snr / n * 100)
+        f"\n{name} has {snonnr} ({snonnr / n * 100:.1f}%) non-NULL rows "
+        f"and {snr} ({snr / n * 100:.1f}%) NULL rows.\n"
     )
 
     if prtnullrows:
-        fout.write("\n{} * RB results:  (including NULL rows)\n".format(name))
+        fout.write(f"\n{name} * RB results:  (including NULL rows)\n")
     else:
-        fout.write("\n{} * RB results:  (NOT including NULL rows)\n".format(name))
+        fout.write(f"\n{name} * RB results:  (NOT including NULL rows)\n")
     fout.write(
-        '  Note: "Unit Scale" is output/input, so is '
-        "independent of current rb scaling which is: {}"
-        "\n\n".format(rbscale)
+        '  Note: "Unit Scale" is output/input, so is independent of current'
+        f" rb scaling which is: {rbscale}\n\n"
     )
     if labels is None:
         labels = [""] * n
@@ -1440,7 +1437,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
         name + " * RB Responses (x, y, z, rx, ry, rz)",
     ]
     widths = [6, lablen, 10 * 3 + 4, 12, 65]
-    labform = "{{:{}s}}".format(lablen)
+    labform = f"{{:{lablen}s}}"
     formats = [
         "{:6d}",
         labform,
@@ -1457,7 +1454,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
         )
     else:
         if np.all(nr):
-            fout.write("All rows in {} are NULL.\n".format(name))
+            fout.write(f"All rows in {name} are NULL.\n")
         else:
             lbls = np.array(labels)
             writer.vecwrite(
@@ -1471,7 +1468,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
                 postfunc=_pf,
             )
 
-    fout.write("\nAbsolute Maximums from {} * RB results:\n".format(name))
+    fout.write(f"\nAbsolute Maximums from {name} * RB results:\n")
     j = np.argmax(np.abs(drmrb), axis=0)
 
     headers = [
@@ -1501,12 +1498,11 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
 
     def wrt_null_rows(fout, name, n, nr, labels, labform, lablen):
         if nr.size == 0:
-            fout.write("\nThere are no NULL rows in {}.\n".format(name))
+            fout.write(f"\nThere are no NULL rows in {name}.\n")
         else:
             fout.write(
-                "\nThere are {} ({:.1f}%) NULL rows in {}:\n".format(
-                    nr.size, nr.size / n * 100, name
-                )
+                f"\nThere are {nr.size} ({nr.size / n * 100:.1f}%) "
+                f"NULL rows in {name}:\n"
             )
             hu, f = writer.formheader(
                 ["Row", "Label"], [6, lablen], ["{:6d}", labform], sep=2, just=0
@@ -1519,8 +1515,8 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     if drm2 is not None:
         if np.size(drm2, 0) != n:
             fout.write(
-                "Error: incorrectly sized DRM2 (has {} rows"
-                " while DRM has {} rows)\n".format(np.size(drm2, 0), n)
+                f"Error: incorrectly sized DRM2 (has {np.size(drm2, 0)} rows"
+                f" while DRM has {n} rows)\n"
             )
             fout.write("Skipping check. Fix input and rerun.\n")
         else:
@@ -1540,7 +1536,7 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
                 )
                 err = 1
             if not err:
-                fout.write(" NULL rows in DRM2 match those in {}\n".format(name))
+                fout.write(f" NULL rows in DRM2 match those in {name}\n")
             else:
                 wrt_null_rows(fout, "DRM2", n, nr2, labels, labform, lablen)
     return drmrb
@@ -1732,14 +1728,14 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
             if grids is not None:
                 fout.write(
                     "Warning: deviation from standard pattern,"
-                    " node ID = {} starting at row {}. "
-                    "Max deviation = {:.3g} units.\n".format(grids[j], row + 1, err)
+                    f" node ID = {grids[j]} starting at row {row + 1}. "
+                    f"Max deviation = {err:.3g} units.\n"
                 )
             else:
                 fout.write(
                     "Warning: deviation from standard pattern,"
-                    " node #{} starting at row {}. "
-                    "\tMax deviation = {:.3g} units.\n".format(j + 1, row + 1, err)
+                    f" node #{j + 1} starting at row {row + 1}. "
+                    f"\tMax deviation = {err:.3g} units.\n"
                 )
             fout.write("  Rigid-Body Rotations:\n")
             writer.vecwrite(fout, "{:10.4f} {:10.4f} {:10.4f}\n", rb)
@@ -1747,7 +1743,7 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
 
     if verbose:
         if ttl:
-            fout.write("\n{}\n".format(ttl))
+            fout.write(f"\n{ttl}\n")
         headers = ["Node"]
         widths = [6]
         formats = ["{:6}"]
@@ -1768,8 +1764,7 @@ def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
         fout.write(hu)
         writer.vecwrite(fout, f, *args)
         fout.write(
-            "\nMaximum absolute coordinate location error:  "
-            "{:3g} units\n\n".format(maxerr)
+            f"\nMaximum absolute coordinate location error:  {maxerr:3g} units\n\n"
         )
     return coords, errs
 
@@ -2387,8 +2382,8 @@ def cbcheck(
     nb = len(bseto)
     if uset.shape[0] != nb:
         raise ValueError(
-            "number of rows in `uset` is {}, but must "
-            "equal len(b-set) ({})".format(uset.shape[0], nb)
+            f"number of rows in `uset` is {uset.shape[0]}, but must "
+            f"equal len(b-set) ({nb})"
         )
 
     # convert units if necessary:
@@ -2510,7 +2505,7 @@ def cbcheck(
         f.write("KBB =\n")
         form = "\t" + ("{:7.4f}  ") * 5 + "{:7.4f}\n"
         writer.vecwrite(f, form, kbb)
-        f.write("\n\tNote: for comparison KQQ[0, 0] = {:.2f}.\n\n".format(kqq[0, 0]))
+        f.write(f"\n\tNote: for comparison KQQ[0, 0] = {kqq[0, 0]:.2f}.\n\n")
 
     # Three types of rigid-body modes will be calculated:
     #
@@ -2539,9 +2534,9 @@ def cbcheck(
         rb_normalizer = None
         ttl = (
             "Stiffness-based coordinates relative to node starting"
-            " at row/col {} (after any reordering):\n "
+            f" at row/col {bref[0] + 1} (after any reordering):\n "
             " (Note: locations are in local coordinate system of "
-            "the reference node.)\n".format(bref[0] + 1)
+            "the reference node.)\n"
         )
 
     # coordinates of boundary points according to stiffness:
@@ -2631,7 +2626,7 @@ def cbcheck(
     f.write("MASS PROPERTIES CHECKS:\n\n")
 
     def _wrtmass(f, mass, rbtype):
-        f.write("6x6 mass matrix from {}-based rb modes:\n\n".format(rbtype))
+        f.write(f"6x6 mass matrix from {rbtype}-based rb modes:\n\n")
         writer.vecwrite(
             f, "\t{:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}  {:12.4f}\n", mass
         )
@@ -2659,15 +2654,9 @@ def cbcheck(
             "\t\t------------              -----------------"
             "----------------------------\n"
         )
-        f.write(
-            "\t\t   Stiffness           {:14.6f}  {:14.6f}  {:14.6f}\n".format(*ds)
-        )
-        f.write(
-            "\t\t   Geometry            {:14.6f}  {:14.6f}  {:14.6f}\n".format(*dg)
-        )
-        f.write(
-            "\t\t   Eigensolution       {:14.6f}  {:14.6f}  {:14.6f}\n".format(*de)
-        )
+        f.write("\t\t   Stiffness           {:14.6f}  {:14.6f}  {:14.6f}\n".format(*ds))
+        f.write("\t\t   Geometry            {:14.6f}  {:14.6f}  {:14.6f}\n".format(*dg))
+        f.write("\t\t   Eigensolution       {:14.6f}  {:14.6f}  {:14.6f}\n".format(*de))
 
     ttl = "\n\tDistance to CG location from relevant reference point:\n\n"
     _wrtdist(f, ds, dg, de, ttl)
@@ -2678,9 +2667,7 @@ def cbcheck(
     f.write("\n\n")
 
     def _wrtinertia(f, I, Ip, rbtype):
-        f.write(
-            "{}-based Inertia Matrix @ CG about X,Y,Z:\n\n".format(rbtype.capitalize())
-        )
+        f.write(f"{rbtype.capitalize()}-based Inertia Matrix @ CG about X,Y,Z:\n\n")
         writer.vecwrite(f, "\t\t{:12.4f}  {:12.4f}  {:12.4f}\n", I)
         f.write("\n")
         f.write("\tPrincipal Axis Moments of Inertia:\n\n")
@@ -2694,10 +2681,7 @@ def cbcheck(
     f.write("GROUNDING CHECKS:\n\n")
 
     def _wrtground(f, uset, rbf, rbfsumm, rbtype):
-        f.write(
-            "                            K*RB using {}-"
-            "based rb modes:\n".format(rbtype)
-        )
+        f.write(f"                            K*RB using {rbtype}-based rb modes:\n")
         f.write(
             "DOF                    X           Y           Z "
             "          RX          RY          RZ\n"
@@ -2724,11 +2708,9 @@ def cbcheck(
                 np.arange(nq) + 1,
                 rbf[nb::],
             )
-        f.write("\nSummation of {}-based rb-forces: RB'*K*RB:\n\n".format(rbtype))
+        f.write(f"\nSummation of {rbtype}-based rb-forces: RB'*K*RB:\n\n")
         writer.vecwrite(
-            f,
-            "\t{:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n",
-            rbfsumm,
+            f, "\t{:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}  {:10.3f}\n", rbfsumm
         )
         f.write("\n\n")
 
@@ -2759,9 +2741,8 @@ def cbcheck(
         f.write("Using geometry-based rb modes for effective mass calcs.\n")
         if em_filt > 0:
             f.write(
-                "\nPrinting only the modes with at least "
-                "{:.1f}% effective mass.\n"
-                "The sum includes all modes.\n".format(em_filt)
+                f"\nPrinting only the modes with at least {em_filt:.1f}% effective "
+                "mass.\nThe sum includes all modes.\n"
             )
             pv = np.any(effmass > em_filt, axis=1)
             num = num[pv]
@@ -2773,9 +2754,7 @@ def cbcheck(
         f.write("\nMode No.  Frequency (Hz) " + dirstr)
         f.write("--------  -------------- " + linestr)
         writer.vecwrite(f, frm, num, frq, effmass)
-        f.write(
-            ("\nTotal Effective Mass:    " + "  {:6.2f}" * 6 + "\n").format(*summ)
-        )
+        f.write(("\nTotal Effective Mass:    " + "  {:6.2f}" * 6 + "\n").format(*summ))
     else:
         f.write("\n\nThere are no modes for the modal-effective-mass check.\n")
     return SimpleNamespace(m=m, k=k, bset=bset, rbs=rbs, rbg=rbg, rbe=rbe, uset=uset)

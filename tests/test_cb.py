@@ -1096,6 +1096,9 @@ def test_mk_net_drms():
     labels3 = [i.replace("g", "mm/s^2") for i in net.ifatm_labels[:6]] + [
         i.replace("g", "m/s^2") for i in net.ifatm_labels[6:]
     ]
+    print(labels3)
+    print()
+    print(net3.ifatm_labels)
     assert labels3 == net3.ifatm_labels
 
     net4 = cb.mk_net_drms(

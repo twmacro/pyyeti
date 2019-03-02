@@ -613,7 +613,7 @@ def _geti2(H, E, I, h, pade):
         term = term.dot(H.A) / j
     if j >= maxloops:
         raise RuntimeError(
-            "maximum loops ({}) exceeded for power series expansion".format(maxloops)
+            f"maximum loops ({maxloops}) exceeded for power series expansion"
         )
     return (h * h) * I2
 
@@ -721,7 +721,7 @@ def expmint_pow(A, h):
         term = term.dot(Ah) / j
     if j >= maxloops:
         raise RuntimeError(
-            "maximum loops ({}) exceeded for power series expansion".format(maxloops)
+            f"maximum loops ({maxloops}) exceeded for power series expansion"
         )
     return E, h * Int1, h * h * Int2
 

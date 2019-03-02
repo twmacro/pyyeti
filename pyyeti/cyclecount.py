@@ -355,7 +355,7 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3, retbins=False):
     4  4.5   0.5    0.5
     5  4.0   0.0    0.5
     6  3.0   1.0    0.5
-    >>> format = lambda x: "{:.1f}".format(x)
+    >>> format = lambda x: f"{x:.1f}"
     >>> df = cyclecount._binify(rf, 3, 2)
     >>> df.applymap(format)                # doctest: +ELLIPSIS
     Amp             (1.497, 2.500] (2.500, 3.500] (3.500, 4.500]

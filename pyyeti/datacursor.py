@@ -16,12 +16,12 @@ import matplotlib.offsetbox as offsetbox
 
 def form1(x, y, n, ind, ax, line):
     """Default annotation for plots with 1 line"""
-    return "x: {x:0.2f}\ny: {y:0.2f}".format(x=x, y=y)
+    return f"x: {x:0.2f}\ny: {y:0.2f}"
 
 
 def form2(x, y, n, ind, ax, line):
     """Default annotation for plots with more than 1 line"""
-    return "x: {x:0.2f}\ny: {y:0.2f}\n{label}".format(x=x, y=y, label=line.get_label())
+    return f"x: {x:0.2f}\ny: {y:0.2f}\n{line.get_label()}"
 
 
 def _ensure_iterable(a):
@@ -57,7 +57,7 @@ class DataCursor(object):
         vectors. `form1` defaults to::
 
           def form1(x, y, n, ind, ax, line):
-              return 'x: {x:0.2f}\ny: {y:0.2f}'.format(x=x, y=y)
+              return f'x: {x:0.2f}\ny: {y:0.2f}'
 
     form2 : function
         Function to format the x, y data for the annotation. This is
@@ -65,8 +65,7 @@ class DataCursor(object):
         as `form1`. Defaults to::
 
           def form2(x, y, n, ind, ax, line):
-              return ('x: {x:0.2f}\ny: {y:0.2f}\n{label}'
-                      .format(x=x, y=y, label=line.get_label()))
+              return f"x: {x:0.2f}\ny: {y:0.2f}\n{line.get_label()}"
 
     offsets : tuple
         Two element tuple containing x and y offsets in points for the
@@ -194,7 +193,7 @@ class DataCursor(object):
         from pyyeti.datacursor import DC
 
         def formnew(x, y, n, ind, ax, line):
-            return ('{}'.format(line.get_label()))
+            return f'{line.get_label()}'
 
         DC.form1 = DC.form2 = formnew
         DC.permdot = dict(s=130, color='black', alpha=0.4,
@@ -216,10 +215,10 @@ class DataCursor(object):
         from pyyeti.datacursor import DC
 
         def addpt(x, y, n, ind, ax, line):
-            print('You selected ({}, {})'.format(x, y))
+            print(f'You selected ({x}, {y})')
 
         def delpt(x, y, n, ind, ax, line):
-            print('You deleted ({}, {})'.format(x, y))
+            print(f'You deleted ({x}, {y})')
 
         DC.addpt_func(addpt)
         DC.delpt_func(delpt)

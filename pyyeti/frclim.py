@@ -581,7 +581,7 @@ def stdfs(mr, Q):
         >>> mr = np.geomspace(0.00001, 100, 100)
         >>> for Q in (10, 25, 50):
         ...     nfl = [frclim.stdfs(i, Q) for i in mr]
-        ...     _ = plt.loglog(mr, nfl, label='Q={}'.format(Q))
+        ...     _ = plt.loglog(mr, nfl, label=f'Q={Q}')
         >>> _ = plt.legend()
         >>> _ = plt.xlabel('Mass ratio (Load/Source)')
         >>> _ = plt.ylabel('Normalized Force Limit')
@@ -992,9 +992,7 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     res = minimize_scalar(get_neg_pknfl, bracket=wr)
     if "message" in res:
         raise RuntimeError(
-            "routine "
-            ":func:`scipy.optimize.minimize_scalar` "
-            "failed: {}".format(res.message)
+            f"routine :func:`scipy.optimize.minimize_scalar` failed: {res.message}"
         )
     nw2 = res.x
     nfl = -res.fun

@@ -184,24 +184,23 @@ class MultiColumnListbox(object):  # pragma: no cover
 
         from pyyeti import guitools
         headers = ['First', 'Middle', 'Last']
-        list1 = ['Tony', 'Jennifer', 'Albert', 'Marion']
-        list2 = ['J.', 'M.', 'E.', 'K.']
-        list3 = ['Anderson', 'Smith', 'Kingsley', 'Cotter']
+        lst1 = ['Tony', 'Jennifer', 'Albert', 'Marion']
+        lst2 = ['J.', 'M.', 'E.', 'K.']
+        lst3 = ['Anderson', 'Smith', 'Kingsley', 'Cotter']
         ind = guitools.MultiColumnListbox(
-                 'Select person', headers, [list1, list2, list3]
+                 'Select person', headers, [lst1, lst2, lst3]
               ).sel_index[0]
-        print('First Person is {} {} {}'
-              .format(list1[ind], list2[ind], list3[ind]))
+        print(f'First Person is {lst1[ind]} {lst2[ind]} {lst3[ind]}')
 
     Or, using the `sel_dict` attribute::
 
         dct = guitools.MultiColumnListbox(
-                 'Select person', headers, [list1, list2, list3]
+                 'Select person', headers, [lst1, lst2, lst3]
               ).sel_dict
         key = sorted(dct)[0]
         vals = dct[key]
-        print('First Person is {} {} {}'
-              .format(vals['First'], vals['Middle'], vals['Last']))
+        print(f"First Person is {vals['First']} {vals['Middle']} "
+              f"{vals['Last']}")
 
     """
 

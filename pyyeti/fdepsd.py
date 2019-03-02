@@ -37,7 +37,7 @@ def _dofde(args):
     """Utility routine for parallel processing"""
     (j, (coeffunc, Q, dT, verbose)) = args
     if verbose:
-        print("Processing frequency {:8.2f} Hz".format(WN_[j] / 2 / np.pi), end="\r")
+        print(f"Processing frequency {WN_[j] / 2 / np.pi:8.2f} Hz", end="\r")
     b, a = coeffunc(Q, dT, WN_[j])
     resphist = signal.lfilter(b, a, SIG_)
     ASV_[1, j] = abs(resphist).max()
@@ -461,7 +461,7 @@ def fdepsd(
 
     if hpfilter is not None:
         if verbose:
-            print("High pass filtering @ {} Hz".format(hpfilter))
+            print(f"High pass filtering @ {hpfilter} Hz")
         b, a = signal.butter(3, hpfilter / (sr / 2), "high")
         # to try to get rid of filter transient at the beginning:
         #  - put a 0.25 second buffer on the front (length from
@@ -488,13 +488,13 @@ def fdepsd(
     if curppc < ppc and rollfunc:
         if verbose:
             print(
-                "Using {} method to increase sample rate (have "
-                "only {} pts/cycle @ {} Hz".format(rolloff, curppc, mxfrq)
+                f"Using {rolloff} method to increase sample rate (have "
+                f"only {curppc} pts/cycle @ {mxfrq} Hz"
             )
         sig, sr = rollfunc(sig, sr, ppc, mxfrq)
         ppc = sr / mxfrq
         if verbose:
-            print("After interpolation, have {} pts/cycle @ {} Hz\n".format(ppc, mxfrq))
+            print(f"After interpolation, have {ppc} pts/cycle @ {mxfrq} Hz\n")
 
     LF = freq.size
     dT = 1 / sr
@@ -539,7 +539,7 @@ def fdepsd(
         # cycles
         for j, wn in enumerate(Wn):
             if verbose:
-                print("Processing frequency {:8.2f} Hz".format(wn / 2 / pi), end="\r")
+                print(f"Processing frequency {wn / 2 / pi:8.2f} Hz", end="\r")
             b, a = coeffunc(Q, dT, wn)
             resphist = signal.lfilter(b, a, sig)
             SRSmax[j] = abs(resphist).max()

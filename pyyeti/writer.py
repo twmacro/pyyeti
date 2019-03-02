@@ -193,14 +193,14 @@ def vecwrite(f, string, *args, postfunc=None, pfargs=None, so=None):
                         if range(curlen)[so] != range(length)[so]:
                             msg = (
                                 "length mismatch with slice object:"
-                                " arg # {} is incompatible with "
-                                "previous args".format(i + 1)
+                                f" arg # {i + 1} is incompatible with "
+                                "previous args"
                             )
                             raise ValueError(msg)
                     elif curlen != length:
                         msg = (
-                            "length mismatch:  arg # {} has "
-                            "length {}; expected {} or 1.".format(i + 1, curlen, length)
+                            f"length mismatch: arg # {i + 1} has "
+                            f"length {curlen}; expected {length} or 1."
                         )
                         raise ValueError(msg)
                 length = curlen
@@ -291,8 +291,7 @@ def formheader(headers, widths, formats, sep=(0, 2), just=-1, ulchar="-"):
         for j in range(1, nheaders):
             if len(headers[j]) != length:
                 raise ValueError(
-                    "headers[{}] != length of previous "
-                    "headers".format(len(headers[j]))
+                    f"headers[{len(headers[j])}] != length of previous headers"
                 )
             for k in range(length):
                 mxlengths[k] = max(mxlengths[k], len(headers[j][k]))
@@ -306,8 +305,7 @@ def formheader(headers, widths, formats, sep=(0, 2), just=-1, ulchar="-"):
         if isinstance(headers[0], (list, tuple)):
             s = "[*]"
         raise ValueError(
-            "this check failed: ``len(headers{}) == "
-            "len(formats) == len(widths)``".format(s)
+            f"this check failed: ``len(headers{s}) == len(formats) == len(widths)``"
         )
 
     def strexp(string, width, just):
