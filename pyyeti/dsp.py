@@ -1039,9 +1039,7 @@ def despike_diff(
                 y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv
             )
         else:
-            raise ValueError(
-                "invalid `exclude_point` for :func:`despike_diff` routine"
-            )
+            raise ValueError("invalid `exclude_point` for :func:`despike_diff` routine")
 
     x = np.atleast_1d(x)
     if x.ndim > 1:
@@ -1339,9 +1337,7 @@ def fixtime(
                     "Cannot fix this."
                 )
             if negmethod == "stop":
-                raise ValueError(
-                    f"There are {nneg:d} negative time steps. Stopping."
-                )
+                raise ValueError(f"There are {nneg:d} negative time steps. Stopping.")
             if negmethod == "sort":
                 warn(
                     f"there are {nneg} negative time steps. "

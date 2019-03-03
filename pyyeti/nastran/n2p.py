@@ -454,24 +454,18 @@ def rbcoords(rb, verbose=2):
             if verbose > 1:
                 print(
                     "Warning:  deviation from standard pattern, "
-                    "node #{} starting at index {}:".format(j + 1, row)
+                    f"node #{j + 1} starting at index {row}:"
                 )
-                print("  Max deviation = {:.3g} units.".format(dev))
-                print("  Max % error   = {:.3g}%.".format(err))
+                print(f"  Max deviation = {dev:.3g} units.")
+                print(f"  Max % error   = {err:.3g}%.")
                 print("  Rigid-Body Rotations:")
                 for k in range(3):
-                    print(
-                        "         {:10.4f} {:10.4f} {:10.4f}".format(
-                            R[k, 0], R[k, 1], R[k, 2]
-                        )
-                    )
+                    print("         {:10.4f} {:10.4f} {:10.4f}".format(*R[k, :3]))
                 print("")
             haderr = 1
     if verbose > 0 and haderr:
-        print(
-            "Maximum absolute coordinate location error: {:.3g} units".format(maxdev)
-        )
-        print("Maximum % error: {:.3g}%.".format(maxerr))
+        print(f"Maximum absolute coordinate location error: {maxdev:.3g} units")
+        print(f"Maximum % error: {maxerr:.3g}%.")
     return coords, maxdev, maxerr
 
 
@@ -1079,7 +1073,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
             s = nsets
 
         if pv.any():
-            f.write("{}\n{}\n".format(header, colheader))
+            f.write(f"{header}\n{colheader}\n")
             uset_mod = uset.iloc[pv, :0].reset_index().values
             full_rows = pv.size // 10
             rem = pv.size - 10 * full_rows
@@ -1087,21 +1081,21 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
             if full_rows:
                 usetfr = uset_mod[: full_rows * 10]
                 for j in range(full_rows):
-                    f.write("{:6d}=".format(count))
+                    f.write(f"{count:6d}=")
                     for k in range(10):
                         r = j * 10 + k
-                        f.write(" {:8d}-{:1d}".format(usetfr[r, 0], usetfr[r, 1]))
-                    f.write(" ={:6d}\n".format(count + 9))
+                        f.write(f" {usetfr[r, 0]:8d}-{usetfr[r, 1]:1d}")
+                    f.write(f" ={count + 9:6d}\n")
                     count += 10
             if rem:
                 uset_rem = uset_mod[-rem:].astype(np.int64)
-                f.write("{:6d}=".format(count))
+                f.write(f"{count:6d}=")
                 for j in range(rem):
-                    f.write(" {:8d}-{:1d}".format(uset_rem[j, 0], uset_rem[j, 1]))
+                    f.write(f" {uset_rem[j, 0]:8d}-{uset_rem[j, 1]:1d}")
                 f.write("\n")
             f.write("\n")
         else:
-            f.write("{}\n      -None-\n\n".format(header))
+            f.write(f"{header}\n      -None-\n\n")
     if isinstance(file, str):
         f.close()
     return return_table
@@ -1313,8 +1307,8 @@ def mkdofpv(uset, nasset, dof, strict=True):
             dof = dof[chk] - 10 * ids
             missing_dof = np.column_stack((ids, dof))
             msg = (
-                "set '{}' does not contain all of the dof in "
-                "`dof`. These are missing:\n{!s}".format(nasset, missing_dof)
+                f"set '{nasset}' does not contain all of the dof in "
+                f"`dof`. These are missing:\n{missing_dof}"
             )
             raise ValueError(msg)
         else:
@@ -1436,7 +1430,7 @@ def mkcordcardinfo(uset, cid=None):
     pv = (dof == 2).nonzero()[0]
     if pv.size == 0:
         if cid is not None:
-            raise ValueError("{} not found ... USET table has no grids?".format(cid))
+            raise ValueError(f"{cid} not found ... USET table has no grids?")
         return {}
 
     def _getlist(coordinfo):
@@ -1453,7 +1447,7 @@ def mkcordcardinfo(uset, cid=None):
     if cid is not None:
         pv2 = (uset.iloc[pv, 1] == cid).values.nonzero()[0]
         if pv2.size == 0:
-            raise ValueError("{} not found in USET table.".format(cid))
+            raise ValueError(f"{cid} not found in USET table.")
         pv2 = pv2[0]
         r = pv[pv2]
         coordinfo = uset.iloc[r : r + 5, 1:]
@@ -1503,7 +1497,7 @@ def _mkusetcoordinfo_byid(refid, uset):
             if pos.size > 0:
                 i = pv[pos[0]]
                 return uset.iloc[i : i + 5, 1:].values
-    raise ValueError("reference coordinate id {} not found in `uset`.".format(refid))
+    raise ValueError(f"reference coordinate id {refid} not found in `uset`.")
 
 
 def mkusetcoordinfo(cord, uset, coordref):
@@ -1697,7 +1691,7 @@ def build_coords(cords):
                     raise RuntimeError(
                         "duplicate but unequal "
                         "coordinate systems detected."
-                        " cid = {}".format(cids[i])
+                        f" cid = {cids[i]}"
                     )
             cords = np.delete(cords, delrows, axis=0)
             cids = cords[:, 0]
@@ -1712,7 +1706,7 @@ def build_coords(cords):
             if pv.size == 0:
                 msg = (
                     "Could not resolve coordinate systems. Need "
-                    "these coordinate cards:\n{!s}".format(ref_ids)
+                    f"these coordinate cards:\n{ref_ids}"
                 )
                 raise RuntimeError(msg)
             selected[pv] = loop
@@ -2083,19 +2077,15 @@ def make_uset(dof, nasset=0, xyz=None):
         xyz = np.atleast_2d(xyz)
         if xyz.shape[0] != dof.shape[0]:
             raise ValueError(
-                "number of rows in `xyz` ({}) "
-                "must match number of rows in `dof` ({})".format(
-                    xyz.shape[0], dof.shape[0]
-                )
+                f"number of rows in `xyz` ({xyz.shape[0]}) "
+                f"must match number of rows in `dof` ({dof.shape[0]})"
             )
 
     nasset = np.atleast_1d(nasset).astype(int)
     if nasset.shape[0] not in (1, dof.shape[0]):
         raise ValueError(
-            "number of rows in `nasset` ({}) "
-            "must either be 1 or match number of rows in `dof` ({})".format(
-                nasset.shape[0], dof.shape[0]
-            )
+            f"number of rows in `nasset` ({nasset.shape[0]}) must either "
+            f"be 1 or match number of rows in `dof` ({dof.shape[0]})"
         )
 
     edof = expanddof(dof)
@@ -2361,7 +2351,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     >>> uset = nastran.addgrid(
     ...     None, [100, 200], 'b', [0, cylcoord],
     ...     [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
-    >>> pd.options.display.float_format = lambda x: '{:.1f}'.format(x)
+    >>> pd.options.display.float_format = lambda x: f'{x:.1f}'
     >>> uset     # doctest: +ELLIPSIS
               nasset    x    y    z
     id  dof...
@@ -2386,7 +2376,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
         pv = curgids.isin(gid)
         if pv.any():
             raise ValueError(
-                "these grid ids are already in `uset` table: {}".format([*curgids[pv]])
+                f"these grid ids are already in `uset` table:\n{curgids[pv]}"
             )
 
     # ensure basic coordinate system is present:
@@ -2451,8 +2441,8 @@ def _solve(a, b):
     c = np.linalg.cond(a)
     if c > 1 / np.finfo(float).eps:
         warnings.warn(
-            "matrix is poorly conditioned (cond={:.3e}). "
-            "Solution will likely be inaccurate.".format(c),
+            f"matrix is poorly conditioned (cond={c:.3e}). "
+            "Solution will likely be inaccurate.",
             RuntimeWarning,
         )
     return linalg.solve(a, b)
@@ -2639,10 +2629,8 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         )
         if np.size(mdof, 0) != np.size(ddof, 0):
             raise ValueError(
-                "incorrect size of M-set DOF ({}): "
-                "must equal size of Dep DOF ({}).".format(
-                    np.size(mdof, 0), np.size(ddof, 0)
-                )
+                f"incorrect size of M-set DOF ({np.size(mdof, 0)}): "
+                f"must equal size of Dep DOF ({np.size(ddof, 0)})."
             )
         # The rest of the code uses 'mdof' to sort rows of the output
         # matrix. We could leave it as input, or sort it according to
@@ -2778,9 +2766,7 @@ def _findse(nas, se):
     """
     r = np.nonzero(nas["selist"][:, 0] == se)[0]
     if r.size == 0:
-        msg = "superelement {} not found. Current `selist` is:\n{!s}".format(
-            se, nas["selist"]
-        )
+        msg = f"superelement {se} not found. Current `selist` is:\n{nas['selist']}"
         raise ValueError(msg)
     return r[0]
 
@@ -2851,9 +2837,7 @@ def upasetpv(nas, seup):
             raise ValueError("not all upstream DOF could be found in downstream")
     if len(maps) > 0:
         if not np.all(maps[:, 1] == 1):  # pragma: no cover
-            raise ValueError(
-                "column 2 of MAPS for {} is not all 1.  Stopping.".format(seup)
-            )
+            raise ValueError(f"column 2 of MAPS for {seup} is not all 1. Stopping.")
         # definition of maps:  dn = up(maps) ... want up = dn(maps2)
         # example:
         # maps = [ 2, 0, 1 ]
@@ -2911,8 +2895,8 @@ def upqsetpv(nas, sedn=0):
     rows = (selist[:, 1] == sedn).nonzero()[0]
     if rows.size == 0:
         msg = (
-            "downstream superelement {} not found in 2nd "
-            "column of `selist`. Current `selist` is:\n{!s}".format(sedn, nas["selist"])
+            f"downstream superelement {sedn} not found in 2nd "
+            f"column of `selist`. Current `selist` is:\n{nas['selist']}"
         )
         raise ValueError(msg)
 
@@ -2973,8 +2957,7 @@ def upqsetpv(nas, sedn=0):
             if len(maps) > 0:
                 if not np.all(maps[:, 1] == 1):  # pragma: no cover
                     raise ValueError(
-                        "column 2 of MAPS for {} is not all 1."
-                        " Stopping.".format(seup)
+                        f"column 2 of MAPS for {seup} is not all 1. Stopping."
                     )
                 pv[pv1] = qup[maps[:, 0].astype(np.int64)]
             else:
@@ -3074,9 +3057,8 @@ def _formtran_0(nas, dof, gset):
     if len(pv2) != len(pvdof):
         notpv2 = locate.flippv(pv2, len(pvdof))
         msg = (
-            "bug in :func:`_formtran_0` since dof in "
-            "recovery set does not contain all of the "
-            "dof in `dof`. These dof are missing:\n{!s}".format(dof[notpv2])
+            "bug in :func:`_formtran_0` since dof in recovery set does not contain"
+            f" all of the dof in `dof`. These dof are missing:\n{dof[notpv2]}"
         )
         raise RuntimeError(msg)
     # sets = [ a, m, s ]
@@ -3197,10 +3179,9 @@ def formtran(nas, se, dof, gset=False):
         q1 = sum(mksetpv(uset, "g", "q"))
         if q1 > 0:
             warnings.warn(
-                "nas['goq'][{}] not found, but q-set do"
-                " exist. Assuming it is all zeros. "
-                "This can happen when q-set DOF are "
-                "defined but modes are not calculated.".format(se),
+                f"nas['goq'][{se}] not found, but q-set do exist. Assuming it "
+                "is all zeros. This can happen when q-set DOF are defined but "
+                "modes are not calculated.",
                 RuntimeWarning,
             )
             o1 = sum(mksetpv(uset, "g", "o"))
@@ -3212,11 +3193,10 @@ def formtran(nas, se, dof, gset=False):
         got = nas["got"][se]
     else:
         warnings.warn(
-            "nas['got'][{}] not found. Assuming it is "
-            "all zeros. This can happen for a Benfield"
-            "-Hruda collector superelement since all "
-            "b-set (really upstream q-set) are not "
-            "connected to other DOF in the stiffness.".format(se),
+            f"nas['got'][{se}] not found. Assuming it is all zeros. This can "
+            "happen for a Benfield-Hruda collector superelement since all "
+            "b-set (really upstream q-set) are not connected to other DOF "
+            "in the stiffness.",
             RuntimeWarning,
         )
         o1 = sum(mksetpv(uset, "g", "o"))
@@ -3258,9 +3238,8 @@ def formtran(nas, se, dof, gset=False):
     if len(pv2) != len(pvdof):
         notpv2 = locate.flippv(pv2, len(pvdof))
         msg = (
-            "bug in :func:`formtran` since dof in "
-            "recovery set does not contain all of the "
-            "dof in `dof`. These dof are missing:\n{!s}".format(dof[notpv2])
+            "bug in :func:`formtran` since dof in recovery set does not contain "
+            f"all of the dof in `dof`. These dof are missing:\n{dof[notpv2]}"
         )
         raise RuntimeError(msg)
 

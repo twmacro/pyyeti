@@ -601,7 +601,7 @@ class OP2:
                 break
             if rectype > 0:
                 if not names or name in names:
-                    print("Reading matrix {}...".format(name))
+                    print(f"Reading matrix {name}...")
                     mats[name] = self.rdop2matrix(trailer)
                 else:
                     self.skipop2matrix(trailer)
@@ -689,15 +689,15 @@ class OP2:
             if dbtype > 0:
                 self.skipop2matrix(trailer)
                 size = [trailer[2], trailer[1]]
-                s = "Matrix {:8}".format(name)
+                s = f"Matrix {name:8}"
             else:
                 self.skipop2table()
                 size = [0, 0]
-                s = "Table  {:8}".format(name)
+                s = f"Table  {name:8}"
             cur = self._fileh.tell()
-            s += ", bytes = {:10} [{:10} to {:10}]".format(cur - pos - 1, pos, cur)
+            s += f", bytes = {cur-pos-1:10} [{pos:10} to {cur:10}]"
             if size != [0, 0]:
-                s += ", {:6} x {:<}".format(size[0], size[1])
+                s += f", {size[0]:6} x {size[1]:<}"
             if name not in dbnames:
                 dbnames[name] = []
             dbnames[name].append([[pos, cur], cur - pos - 1, size])
@@ -929,7 +929,7 @@ class OP2:
 
         """
         key = self._getkey()
-        print("{} Headers:".format(name))
+        print(f"{name} Headers:")
         Frm = struct.Struct(self._intstru % 3)
         eot = 0
         while not eot:
@@ -999,19 +999,17 @@ class OP2:
             if 1 <= func <= 7:
                 if self.CodeFuncs[func](item_code) not in val:
                     warnings.warn(
-                        "{} value {} not acceptable".format(name, item_code),
-                        RuntimeWarning,
+                        f"{name} value {item_code} not acceptable", RuntimeWarning
                     )
                     return False
             elif func > 65535:
                 if self.CodeFuncs["big"](func, item_code) not in val:
                     warnings.warn(
-                        "{} value {} not acceptable".format(name, item_code),
-                        RuntimeWarning,
+                        f"{name} value {item_code} not acceptable", RuntimeWarning
                     )
                     return False
             else:
-                raise ValueError("Unknown function code: {}".format(func))
+                raise ValueError(f"Unknown function code: {func}")
         return True
 
     def _get_block_bytes(self, name, pos):
@@ -1521,11 +1519,9 @@ class OP2:
         rb = len(cid)
         if rd != rb:
             raise ValueError(
-                "RDOP2USET:  BGPDTS incompatible with "
-                "EQEXINS for superelement {}.\n"
+                f"RDOP2USET: BGPDTS incompatible with EQEXINS for superelement {se}.\n"
                 "  Guess:  residual run clobbered EQEXINS\n"
-                '    Fix:  add the "fxphase0" alter to your '
-                "residual run".format(se)
+                '    Fix:  add the "fxphase0" alter to your residual run'
             )
         coordinfo = np.zeros((rd, 18))
         coordinfo[:, :3] = xyz
@@ -1562,8 +1558,7 @@ class OP2:
         coordinfo = coordinfo[pv, :]
         if uset is None:
             warnings.warn(
-                "uset information not found. Putting all DOF in b-set.",
-                RuntimeWarning,
+                "uset information not found. Putting all DOF in b-set.", RuntimeWarning
             )
             b = n2p.mkusetmask("b")
             uset = np.zeros(len(doflist), int) + b
@@ -1735,11 +1730,11 @@ class OP2:
                 break
             if rectype > 0:
                 if verbose:
-                    print("Skipping matrix {}...".format(name))
+                    print(f"Skipping matrix {name}...")
                 self.skipop2matrix(trailer)
             elif len(name) > 2 and name.find("TO") == 0:
                 if verbose:
-                    print("Reading {}...".format(name))
+                    print(f"Reading {name}...")
                 # skip record 1
                 self.rdop2record()
                 # record 2 contains directory
@@ -1749,7 +1744,7 @@ class OP2:
                 self.rdop2eot()
             elif len(name) > 4 and name[:4] == "XYCD":
                 if verbose:
-                    print("Reading {}...".format(name))
+                    print(f"Reading {name}...")
                 # record 1 contains order of request info
                 drmkeys["dr"] = self.rdop2record()
                 # record 2 contains sorted list
@@ -1757,7 +1752,7 @@ class OP2:
                 self.rdop2eot()
             else:
                 if verbose:
-                    print("Skipping table {}...".format(name))
+                    print(f"Skipping table {name}...")
                 self.skipop2table()
         return drmkeys
 
@@ -2146,9 +2141,8 @@ def rdnas2cam(op2file="nas2cam", op4file=None):
     for se in nas["selist"][:, 0]:
         if op4names[j] != "se_start":
             raise ValueError(
-                "matrices are not in understandable"
-                " order. Expected 'se_start', got "
-                "'{}'".format(op4names[j])
+                "matrices are not in understandable order. Expected 'se_start', got "
+                f"'{op4names[j]}'"
             )
         # read all matrices for this se
         j += 1
@@ -2269,7 +2263,7 @@ def nastran_dr_descriptions():
     # expand and append station id for all 11 stations:
     stress2 = [i + " End-A" for i in stress2_main]
     for K in range(2, 11):
-        id_string = " K={:2}".format(K)
+        id_string = f" K={K:2}"
         stress2 += [i + id_string for i in stress2_main]
     stress2 += [i + " End-B" for i in stress2_main]
     stress[2] = stress2
@@ -2289,7 +2283,7 @@ def nastran_dr_descriptions():
     # expand and append station id for all 11 stations:
     force2 = [i + " End-A" for i in force2_main]
     for K in range(2, 11):
-        id_string = " K={:2}".format(K)
+        id_string = f" K={K:2}"
         force2 += [i + id_string for i in force2_main]
     force2 += [i + " End-B" for i in force2_main]
     force[2] = force2
@@ -2742,9 +2736,8 @@ def _get_drm(drminfo, otm, drms, drmkeys, dr, desc):
                 if eltype in _dct:
                     otm[_desc][j] = _dct[eltype][DOF[j] - offset]
                 else:
-                    otm[_desc][j] = ("EL-{}, El. Type {:3}, Code {:3}  ").format(
-                        _name, eltype, DOF[j]
-                    )
+                    _s = f"EL-{_name}, El. Type {eltype:3}, Code {DOF[j]:3}  "
+                    otm[_desc][j] = _s
     else:
         if len(nasnm) == 3:
             matname = "m" + nasnm + "x1"
@@ -2766,9 +2759,8 @@ def _get_drm(drminfo, otm, drms, drmkeys, dr, desc):
                 if eltype in _dct:
                     otm[_desc][j] = _dct[eltype][DOF[j] - offset]
                 else:
-                    otm[_desc][j] = ("EL-{}, El. Type {:3}, Code {:3}  ").format(
-                        _name, eltype, DOF[j]
-                    )
+                    _s = f"EL-{_name}, El. Type {eltype:3}, Code {DOF[j]:3}  "
+                    otm[_desc][j] = _s
 
 
 def procdrm12(op2file=None, op4file=None, dosort=True):
@@ -2941,12 +2933,12 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
         pv = np.nonzero(DR[0] == drtype)[0]
         if pv.size > 0:
             if np.any(drtype == types):
-                print('Processing "{}" requests...'.format(Vreq[drtype - 1]))
+                print(f'Processing "{Vreq[drtype - 1]}" requests...')
                 _get_drm(drminfo[drtype], otm, drms, drmkeys, DR[:, pv], desc)
             else:
                 print(
-                    'Skipping "{}" requests. Needs to be added '
-                    "to procdrm12().".format(Vreq[drtype - 1])
+                    f'Skipping "{Vreq[drtype - 1]}" requests. Needs to be added '
+                    "to procdrm12()."
                 )
     return otm
 
@@ -3019,21 +3011,21 @@ def rdpostop2(
                 break
             if dbtype > 0:
                 if verbose:
-                    print("Reading matrix {}...".format(name))
+                    print(f"Reading matrix {name}...")
                 if name not in mats:
                     mats[name] = []
                 mats[name] += [o2.rdop2matrix(trailer)]
             else:
                 if name.find("BGPDT") == 0:
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     bgpdt_rec1 = o2._rdop2bgpdt68()
                     # o2.skipop2table()
                     continue
 
                 if name.find("CSTM") == 0:
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     cstm = o2._rdop2cstm68()
                     bc = np.array(
                         [
@@ -3046,7 +3038,7 @@ def rdpostop2(
 
                 if name.find("GEOM1") == 0:
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     (cords, sebulk, selist, seload, seconct) = o2._rdop2geom1cord2()
                     if 0 not in cords:
                         cords[0] = np.array(
@@ -3067,25 +3059,25 @@ def rdpostop2(
 
                 if name.find("DYNAMIC") == 0:
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     mats["tload"] = o2.rdop2dynamics()
                     continue
 
                 if name.find("EQEXIN") == 0:
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     eqexin1, eqexin = o2._rdop2eqexin()
                     continue
 
                 if name.find("USET") == 0:
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     uset = o2._rdop2uset()
                     continue
 
                 if getougv1 and (name.find("OUGV1") == 0 or name.find("BOPHIG") == 0):
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     try:
                         mo = mats["ougv1"]
                     except KeyError:
@@ -3095,7 +3087,7 @@ def rdpostop2(
 
                 if getoef1 and name.startswith("OEF1"):
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     try:
                         mo = mats["oef1"]
                     except KeyError:
@@ -3106,7 +3098,7 @@ def rdpostop2(
 
                 if getoes1 and name.startswith("OES1"):
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     try:
                         mo = mats["oes1"]
                     except KeyError:
@@ -3116,7 +3108,7 @@ def rdpostop2(
 
                 if name.find("LAMA") == 0:
                     if verbose:
-                        print("Reading table {}...".format(name))
+                        print(f"Reading table {name}...")
                     try:
                         mo = mats["lama"]
                     except KeyError:
@@ -3125,7 +3117,7 @@ def rdpostop2(
                     continue
 
                 if verbose:
-                    print("Skipping table {}...".format(name))
+                    print(f"Skipping table {name}...")
                 o2.skipop2table()
 
         if eqexin1 is not None and eqexin is not None and bgpdt_rec1 is not None:

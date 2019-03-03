@@ -296,8 +296,7 @@ class OP4:
         if not (name[0].isalpha() or name[0] == "_"):
             oldname, name = name, "_" + name
             warnings.warn(
-                "Output4 file has matrix name: {}. "
-                "Changing to {}.".format(oldname, name),
+                f"Output4 file has matrix name: {oldname}. Changing to {name}.",
                 RuntimeWarning,
             )
         return name
@@ -1063,11 +1062,10 @@ class OP4:
             if rows < self._rows4bigmat:
                 rows = -rows
         f.write(
-            "{:8}{:8}{:8}{:8}{:8s}1P,{}E{}.{}\n".format(
-                cols, rows, form, mtype, name.upper(), perline, numlen, digits
-            )
+            f"{cols:8}{rows:8}{form:8}{mtype:8}{name.upper():8s}"
+            f"1P,{perline}E{numlen}.{digits}\n"
         )
-        numform = "%{}.{}E".format(numlen, digits)
+        numform = f"%{numlen}.{digits}E"
         return cols, multiplier, perline, numlen, numform
 
     def _write_ascii(self, f, name, matrix, digits, form):
@@ -1094,7 +1092,7 @@ class OP4:
         )
 
         def _write_col_data(f, v, c, s, elems, perline, numform):
-            f.write("{:8}{:8}{:8}\n".format(c + 1, s + 1, elems))
+            f.write(f"{c + 1:8}{s + 1:8}{elems:8}\n")
             neven = ((elems - 1) // perline) * perline
             for i in range(0, neven, perline):
                 for j in range(perline):
@@ -1129,7 +1127,7 @@ class OP4:
                 elems *= multiplier
                 vec.dtype = float
                 _write_col_data(f, vec, c, s, elems, perline, numform)
-        f.write("{:8}{:8}{:8}\n".format(cols + 1, 1, 1))
+        f.write(f"{cols + 1:8}{1:8}{1:8}\n")
         f.write(numform % 2 ** 0.5)
         f.write("\n")
 
@@ -1171,7 +1169,7 @@ class OP4:
                     j += r1
                     string.dtype = float
                     _write_data_string(f, string, r0, r1, multiplier, perline, numform)
-        f.write("{:8}{:8}{:8}\n".format(cols + 1, 1, 1))
+        f.write(f"{cols + 1:8}{1:8}{1:8}\n")
         f.write(numform % 2 ** 0.5)
         f.write("\n")
 
@@ -1212,12 +1210,12 @@ class OP4:
 
         def _write_col_header(f, ind, c, multiplier):
             nwords = ind.shape[0] + 2 * sum(ind[:, 1]) * multiplier
-            f.write("{:8}{:8}{:8}\n".format(c + 1, 0, nwords))
+            f.write(f"{c + 1:8}{0:8}{nwords:8}\n")
 
         def _write_data_string(f, string, r0, r1, multiplier, perline, numform):
             L = r1 * 2 * multiplier
             IS = (r0 + 1) + ((L + 1) << 16)
-            f.write("{:12}\n".format(IS))
+            f.write(f"{IS:12}\n")
             elems = L // 2
             neven = ((elems - 1) // perline) * perline
             for i in range(0, neven, perline):
@@ -1264,11 +1262,11 @@ class OP4:
 
         def _write_col_header(f, ind, c, multiplier):
             nwords = 2 * ind.shape[0] + 2 * sum(ind[:, 1]) * multiplier
-            f.write("{:8}{:8}{:8}\n".format(c + 1, 0, nwords))
+            f.write(f"{c + 1:8}{0:8}{nwords:8}\n")
 
         def _write_data_string(f, string, r0, r1, multiplier, perline, numform):
             L = r1 * 2 * multiplier
-            f.write("{:8}{:8}\n".format(L + 1, r0 + 1))
+            f.write(f"{L + 1:8}{r0 + 1:8}\n")
             elems = L // 2
             neven = ((elems - 1) // perline) * perline
             for i in range(0, neven, perline):
@@ -1322,7 +1320,7 @@ class OP4:
         (rows, cols, form, mtype, multiplier) = OP4._get_header_info(matrix, form)
 
         # write 1st record (24 bytes: 4 4-byte ints, 1 8-byte string)
-        name = ("{:<8}".format(name.upper())).encode()
+        name = (f"{name.upper():<8}").encode()
         if bigmat:
             if rows < self._rows4bigmat:
                 rows = -rows
@@ -1843,11 +1841,7 @@ class OP4:
                 mtypes.append(mtype)
             if verbose:
                 for n, s, f, m in zip(names, sizes, forms, mtypes):
-                    print(
-                        "{:8}, {:6} x {:<6}, form={}, mtype={}".format(
-                            n, s[0], s[1], f, m
-                        )
-                    )
+                    print(f"{n:8}, {s[0]:6} x {s[1]:<6}, form={f}, mtype={m}")
         finally:
             self._op4close()
         return names, sizes, forms, mtypes
