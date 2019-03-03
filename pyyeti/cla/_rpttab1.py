@@ -77,13 +77,11 @@ def _rowlbls_table(lbl, ec, j):
 def _wttab_eventcount(f, res, ec, count_filter, desclen, descfrm, caselen):
     # extrema count
     n = len(res.cases)
-    f.write("Extrema Count\nFilter: {}\n\n".format(count_filter))
+    f.write(f"Extrema Count\nFilter: {count_filter}\n\n")
     widths = [desclen, *([caselen] * n)]
     headers = ["Description", *res.cases]
     for j, frm, lbl in zip(
-        (0, 1),
-        ("{{:{}d}}".format(caselen), "{{:{}.1f}}".format(caselen)),
-        ("Count", "Percent"),
+        (0, 1), (f"{{:{caselen}d}}", f"{{:{caselen}.1f}}"), ("Count", "Percent")
     ):
         formats = [descfrm, *([frm] * n)]
         hu_, frm_ = writer.formheader(
@@ -98,7 +96,7 @@ def _wttab_eventcount(f, res, ec, count_filter, desclen, descfrm, caselen):
 
 def _wtxlsx_eventcount(workbook, header, bold, hform, res, ec, name, count_filter):
     # extrema count
-    sheet = "{} Count".format(name)
+    sheet = f"{name} Count"
     worksheet = workbook.add_worksheet(sheet)
 
     title = header.split("\n")
@@ -107,7 +105,7 @@ def _wtxlsx_eventcount(workbook, header, bold, hform, res, ec, name, count_filte
 
     n = len(title)
     worksheet.write(n, 0, "Extrema Count", bold)
-    worksheet.write(n + 1, 0, "Filter: {}".format(count_filter), bold)
+    worksheet.write(n + 1, 0, f"Filter: {count_filter}", bold)
     worksheet.write(n + 1, 1, count_filter)
     n += 2
     ncases = len(res.cases)
@@ -154,7 +152,7 @@ def _wttab(
     f.write(header)
     ec = {}  # event counter
     for lbl, vals, case_pv, ext, extcases in loop_vars:
-        f.write("{} Responses\n\n".format(lbl))
+        f.write(f"{lbl} Responses\n\n")
         hu_ = hu.replace("Maximum", lbl)
         f.write(hu_)
         ec[lbl] = _event_count(vals, case_pv, count_filter)
@@ -172,7 +170,7 @@ def _wtxlsx(workbook, header, headers, res, loop_vars, name, rows, count_filter)
     number = workbook.add_format({"num_format": frm})
     ec = {}
     for lbl, vals, case_pv, ext, extcases in loop_vars:
-        worksheet = workbook.add_worksheet("{} {}".format(name, lbl))
+        worksheet = workbook.add_worksheet(f"{name} {lbl}")
         title = header.split("\n")
         for i, ln in enumerate(title):
             worksheet.write(i, 0, ln, bold)
@@ -242,7 +240,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
     if len(res.drminfo.labels) != res.mx.shape[0]:
         raise ValueError(
             "length of `labels` does not match number of"
-            " rows in `res.mx` (`desc` = {})".format(res.drminfo.desc)
+            f" rows in `res.mx` (`desc` = {res.drminfo.desc})"
         )
 
     rows = np.arange(res.mx.shape[0]) + 1
@@ -269,8 +267,8 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         caselen = max(13, len(max(res.cases, key=len)))
         n = len(res.cases)
         widths = [6, desclen, *([caselen] * n), caselen, caselen]
-        descfrm = "{{:{:d}}}".format(desclen)
-        numform = "{{:{}.6e}}".format(caselen)
+        descfrm = f"{{:{desclen:d}}}"
+        numform = f"{{:{caselen}.6e}}"
         formats = ["{:6d}", descfrm, *([numform] * n), numform, "{}"]
         hu, frm = writer.formheader(
             headers, widths, formats, sep=[0, 1], just="c", ulchar="="

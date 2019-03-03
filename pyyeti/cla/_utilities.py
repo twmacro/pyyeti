@@ -61,7 +61,7 @@ def _get_rpt_headers(res=None, desc=None, uf_reds=None, units=None, misc=""):
         desc = res.drminfo.desc
         uf_reds = res.drminfo.uf_reds
         units = res.drminfo.units
-    descline = "Description: {}\n".format(desc)
+    descline = f"Description: {desc}\n"
     if uf_reds is None:
         unceline = "Uncertainty: Not specified\n"
     else:
@@ -69,9 +69,9 @@ def _get_rpt_headers(res=None, desc=None, uf_reds=None, units=None, misc=""):
             "Uncertainty: [Rigid, Elastic, Dynamic, Static] "
             "= [{}, {}, {}, {}]\n".format(*uf_reds)
         )
-    unitline = "Units:       {}\n".format(units)
+    unitline = f"Units:       {units}\n"
     currdate = datetime.date.today().strftime("%d-%b-%Y")
-    dateline = "Date:        {}\n".format(currdate)
+    dateline = f"Date:        {currdate}\n"
     return descline + unceline + unitline + misc + dateline
 
 
@@ -89,7 +89,7 @@ def _get_numform(mxmn1, excel=False):
         pmn = int(np.floor(np.log10(abs(mxmn1[pv]).min())))
         if pmx - pmn < 6 and pmn > -3:
             if pmn < 5:
-                numform = "{{:13.{}f}}".format(5 - pmn)
+                numform = f"{{:13.{5 - pmn}f}}"
             else:
                 numform = "{:13.0f}"
         else:
@@ -158,20 +158,20 @@ def _proc_filterval(filterval, nrows):
         return None
     filterval = np.atleast_1d(filterval)
     if filterval.ndim > 1:
-        raise ValueError("`filterval` must be 1-D (is {}-D)".format(filterval))
+        raise ValueError(f"`filterval` must be 1-D (is {filterval}-D)")
     nfilt = len(filterval)
     if nfilt > 1 and nfilt != nrows:
         raise ValueError(
             "`filterval` has incorrect length:"
-            " expected {} elements, but got {}".format(nrows, nfilt)
+            f" expected {nrows} elements, but got {nfilt}"
         )
     return filterval
 
 
 def PrintCLAInfo(mission, event):
     "PrintCLAInfo Print CLA event info, typically for the log file"
-    print("Mission:  {}".format(mission))
-    print("Event:    {}".format(event))
+    print(f"Mission:  {mission}")
+    print(f"Event:    {event}")
 
 
 def freq3_augment(freq1, lam, tol=1.0e-5):
@@ -418,7 +418,7 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
 
     r, c = mm.ext.shape
     if c not in [1, 2]:
-        raise ValueError("mm.ext has {} cols, but must have 1 or 2.".format(c))
+        raise ValueError(f"mm.ext has {c} cols, but must have 1 or 2.")
 
     # expand current case information to full size if necessary
     if isinstance(maxcase, str):
@@ -500,81 +500,6 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
             curext.mincase[i] = mincase[i]
         curext.ext[j, 1] = mm.ext[j, 1]
         _put_time(curext, mm, j, 1, 1)
-
-
-# def reorder(ordered_dict, keys, where):
-#     """
-#     Copy and reorder OrderedDict
-#
-#     Parameters
-#     ----------
-#     ordered_dict : OrderedDict instance
-#         The OrderedDict to copy and put in a new order
-#     keys : iterable
-#         Iterable of keys in the order desired. Note that all keys do
-#         not need to be included, just those where a new order is
-#         desired. For example, if you just want to ensure that 'scltm'
-#         is first::
-#
-#             new_dict = reorder(ordered_dict, ['scltm'], 'first')
-#
-#     where : string
-#         Either 'first' or 'last'. Specifies where to put the
-#         reordered items in the final order.
-#
-#     Returns
-#     -------
-#     OrderedDict instance
-#         A new OrderedDict ordered as specified
-#
-#     Raises
-#     ------
-#     ValueError
-#         If a key is not found
-#     ValueError
-#         If `where` is not 'first' or 'last'
-#
-#     Examples
-#     --------
-#     >>> from pyyeti import cla
-#     >>> dct = OrderedDict((('one', 1),
-#     ...                    ('two', 2),
-#     ...                    ('three', 3)))
-#     >>> dct
-#     OrderedDict([('one', 1), ('two', 2), ('three', 3)])
-#     >>> cla.reorder(dct, ['three', 'two'], 'first')
-#     OrderedDict([('three', 3), ('two', 2), ('one', 1)])
-#     """
-#     def reorder_keys(all_keys, keys, where):
-#         all_keys = list(all_keys)
-#         keys = list(keys)
-#
-#         # ensure all keys are in all_keys:
-#         for k in keys:
-#             if k not in all_keys:
-#                 raise ValueError(
-#                     'Key "{}" not found. Order unchanged.'
-#                     .format(k))
-#
-#         if where == 'first':
-#             new_keys = list(keys)
-#             new_keys.extend(k for k in all_keys
-#                             if k not in keys)
-#         elif where == 'last':
-#             new_keys = [k for k in all_keys
-#                         if k not in keys]
-#             new_keys.extend(keys)
-#         else:
-#             raise ValueError(
-#                 "`where` must be 'first' or 'last', not {!r}"
-#                 .format(where))
-#
-#         return new_keys
-#
-#     return OrderedDict(
-#         (k, ordered_dict[k])
-#         for k in reorder_keys(ordered_dict, keys, where)
-#     )
 
 
 def _calc_covariance_sine_cosine(varx, vary, covar):

@@ -1246,7 +1246,7 @@ def read_text_file(rdfunc):
     ...     return f.readline()
     >>> @write_text_file
     ... def dowrite(f, string, number):
-    ...     f.write(f'{string:s} = {number:.3f}\n')
+    ...     f.write(f'{string} = {number:.3f}\n')
     >>> with StringIO() as f:
     ...     dowrite(f, 'param', number=45.3)
     ...     _ = f.seek(0, 0)
@@ -1301,7 +1301,7 @@ def write_text_file(wtfunc):
     >>> from pyyeti.ytools import write_text_file
     >>> @write_text_file
     ... def dowrite(f, string, number):
-    ...     f.write(f'{string:s} = {number:.3f}\n')
+    ...     f.write(f'{string} = {number:.3f}\n')
     >>> dowrite(1, 'param', number=45.3)
     param = 45.300
     """

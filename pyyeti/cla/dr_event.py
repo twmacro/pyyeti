@@ -100,9 +100,10 @@ class DR_Event:
     """
 
     def __repr__(self):
-        cats = ", ".join("'{}'".format(name) for name in self.Info)
-        return "{} ({}) with {} categories: [{}]".format(
-            type(self).__name__, hex(id(self)), len(self.Info), cats
+        cats = ", ".join(f"'{name}'" for name in self.Info)
+        return (
+            f"{type(self).__name__} ({hex(id(self))}) with "
+            f"{len(self.Info)} categories: [{cats}]"
         )
 
     def __init__(self):
@@ -223,9 +224,7 @@ class DR_Event:
                 continue
 
             if name in self.Info:
-                raise ValueError(
-                    '"{}" data recovery category already' " defined".format(name)
-                )
+                raise ValueError(f'"{name}" data recovery category already defined')
 
             # variables for how to do data recovery:
             self.Info[name] = copy.copy(drdefs[name])
@@ -270,7 +269,7 @@ class DR_Event:
 
             for name, mat in dct.items():
                 if name in self.Vars[se]:
-                    raise ValueError('"{}" is already in Vars[{}]'.format(name, se))
+                    raise ValueError(f'"{name}" is already in Vars[{se}]')
                 if se == 0:
                     self.Vars[se][name] = mat
                 elif mat.shape[1] > Lb:
@@ -284,7 +283,7 @@ class DR_Event:
                 self.Vars[se] = {}
             for name, mat in dct.items():
                 if name in self.Vars[se]:
-                    raise ValueError('"{}" is already in Vars[{}]'.format(name, se))
+                    raise ValueError(f'"{name}" is already in Vars[{se}]')
                 self.Vars[se][name] = mat
 
     def set_dr_order(self, cats, where):

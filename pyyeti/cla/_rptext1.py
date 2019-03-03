@@ -94,12 +94,11 @@ def rptext1(
     if labels is not None:
         if len(res.drminfo.labels) != res.ext.shape[0]:
             raise ValueError(
-                "length of `labels` does not match "
-                "number of rows in `res.ext` (`desc`"
-                " = {})".format(res.drminfo.desc)
+                "length of `labels` does not match number of rows in `res.ext` "
+                f"(`desc` = {res.drminfo.desc})"
             )
         w = max(11, len(max(labels, key=len)))
-        frm = "{{:{:d}}}".format(w)
+        frm = f"{{:{w}}}"
         _add_column("Description", frm, labels, w, 2, "l", print_info)
 
     # max, mx_x, case, min, mn_x, case
@@ -112,7 +111,7 @@ def rptext1(
         casewidth = max(
             4, len(max(res.maxcase, key=len)), len(max(res.mincase, key=len))
         )
-        casefrm = "{{:{:d}}}".format(casewidth)
+        casefrm = f"{{:{casewidth}}}"
 
     one_col = res.ext.ndim == 1 or res.ext.shape[1] == 1
     for col, hdr, case in zip(

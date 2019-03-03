@@ -1082,15 +1082,14 @@ def wtdmig(f, dct):
         # row index must be 2-level MultiIndex:
         if rowids.nlevels != 2:
             raise ValueError(
-                '"{}" must have a 2-level row index but has {} levels'.format(
-                    name, rowids.nlevels
-                )
+                f'"{name}" must have a 2-level row index but has '
+                f"{rowids.nlevels} levels"
             )
 
         if colids.nlevels > 2:
             raise ValueError(
-                '"{}" must have a 1 or 2-level column index but has '
-                "{} levels".format(name, colids.nlevels)
+                f'"{name}" must have a 1 or 2-level column index but has '
+                f"{colids.nlevels} levels"
             )
 
         m = value.values
@@ -1120,9 +1119,8 @@ def wtdmig(f, dct):
 
         #        DMIG  NAME  0    IFO  TIN  TOUT POLAR     NCOL
         f.write(
-            "{:<8s}{:<8s}{:8d}{:8d}{:8d}{:8d}{:8d}{:8s}{:8d}\n".format(
-                "DMIG", name, 0, form, mtype, tout, polar, "", ncol
-            )
+            f"{'DMIG':<8s}{name:<8s}{0:8d}{form:8d}{mtype:8d}{tout:8d}"
+            f"{polar:8d}{'':8s}{ncol:8d}\n"
         )
 
         # write a column at a time:
@@ -1134,18 +1132,18 @@ def wtdmig(f, dct):
                 else:
                     gj = colids[col]
                     cj = 0
-                f.write("{:<8s}{:<16s}{:16d}{:16d}\n".format("DMIG*", name, gj, cj))
+                f.write(f"{'DMIG*':<8s}{name:<16s}{gj:16d}{cj:16d}\n")
                 for row in range(start_row, m.shape[0]):
                     num = m[row, col]
                     if num != 0.0:
                         gi, ci = rowids[row]
                         if mtype < 3:  # real
-                            num_str = "{:16.9E}".format(num)
+                            num_str = f"{num:16.9E}"
                         else:  # complex
-                            num_str = "{:16.9E}{:16.9E}".format(num.real, num.imag)
+                            num_str = f"{num.real:16.9E}{num.imag:16.9E}"
                         if mtype & 1 == 0:  # if even
                             num_str = num_str.replace("E", "D")
-                        f.write("{:<8s}{:16d}{:16d}{:s}\n".format("*", gi, ci, num_str))
+                        f.write(f"{'*':<8s}{gi:16d}{ci:16d}{num_str:s}\n")
 
 
 def rdgrids(f):
@@ -1263,7 +1261,7 @@ def wtgrids(
     length = len(teststr)
     if length != 8 and length != 16:
         raise ValueError(
-            "`form` produces a {} length string. It must be 8 or 16.\n", length
+            f"`form` produces a {length} length string. It must be 8 or 16.\n"
         )
     if ps == seid == "":
         if len(teststr) > 8:
@@ -1415,19 +1413,17 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLE
     d = d.ravel()
     npts = len(t)
     if len(d) != npts:
-        raise ValueError("len(d) is {} but len(t) is {}".format(len(d), npts))
+        raise ValueError(f"len(d) is {len(d)} but len(t) is {npts}")
 
     # determine if using single or double field:
     n = len(form.format(1, 1))
     if n != 16 and n != 32:
-        raise ValueError(
-            "`form` produces a {} length string. It must be 16 or 32.".format(n)
-        )
+        raise ValueError(f"`form` produces a {n} length string. It must be 16 or 32.")
     if title:
-        f.write("$ {:s}\n".format(title))
+        f.write(f"$ {title:s}\n")
     if n == 32:
         tablestr = tablestr + "*"
-        f.write("{:<8s}{:16d}\n*\n".format(tablestr, tid))
+        f.write(f"{tablestr:<8s}{tid:16d}\n*\n")
         rows = npts // 2
         r = rows * 2
         writer.vecwrite(
@@ -1437,7 +1433,7 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLE
         for j in range(r, npts):
             f.write(form.format(t[j], d[j]))
     else:
-        f.write("{:<8s}{:8d}\n".format(tablestr, tid))
+        f.write(f"{tablestr:<8s}{tid:8d}\n")
         rows = npts // 4
         r = rows * 4
         writer.vecwrite(
@@ -1876,7 +1872,7 @@ def wtcsuper(f, superid, grids):
     CSUPER       100       0       1       2       3       4       5       6
                    7       8       9
     """
-    f.write("CSUPER  {:8d}{:8d}".format(superid, 0))
+    f.write(f"CSUPER  {superid:8d}{0:8d}")
     wtnasints(f, 4, grids)
 
 
@@ -1920,7 +1916,7 @@ def wtspc1(f, eid, dof, grids, name="SPC1"):
                 2015    2016    2017    2018    2019    2020    2021    2022
                 2023    2024    2025    2026    2027    2028    2029    2030
     """
-    f.write("{:<8s}{:8d}{:8d}".format(name, eid, dof))
+    f.write(f"{name:<8s}{eid:8d}{dof:8d}")
     wtnasints(f, 4, grids)
 
 
@@ -1959,7 +1955,7 @@ def wtxset1(f, dof, grids, name="BSET1"):
     QSET1          0    2001    2002    2003    2004    2005    2006    2007
                 2008    2009    2010    2011    2012
     """
-    f.write("{:<8s}{:8d}".format(name, dof))
+    f.write(f"{name:<8s}{dof:8d}")
     wtnasints(f, 3, grids)
 
 
@@ -2005,23 +2001,20 @@ def wtqcset(f, startgrid, nq):
     if xdof == 6:
         if ngrids > 1:
             f.write(
-                "{:<8s}{:8d}{:8d}{:<8s}{:8d}\n".format(
-                    "QSET1", 123456, startgrid, " THRU ", endgrid
-                )
+                f"{'QSET1':<8s}{123456:8d}{startgrid:8d}{' THRU ':<8s}{endgrid:8d}\n"
             )
         else:
-            f.write("{:<8s}{:8d}{:8d}\n".format("QSET1", 123456, startgrid))
+            f.write(f"{'QSET1':<8s}{123456:8d}{startgrid:8d}\n")
     else:
         if ngrids > 2:
             f.write(
-                "{:<8s}{:8d}{:8d}{:<8s}{:8d}\n".format(
-                    "QSET1", 123456, startgrid, " THRU ", endgrid - 1
-                )
+                f"{'QSET1':<8s}{123456:8d}{startgrid:8d}{' THRU ':<8s}"
+                f"{endgrid - 1:8d}\n"
             )
         elif ngrids == 2:
-            f.write("{:<8s}{:8d}{:8d}\n".format("QSET1", 123456, startgrid))
-        f.write("{:<8s}{:>8s}{:8d}\n".format("QSET1", xdofs, endgrid))
-        f.write("{:<8s}{:>8s}{:8d}\n".format("CSET1", cdofs, endgrid))
+            f.write(f"{'QSET1':<8s}{123456:8d}{startgrid:8d}\n")
+        f.write(f"{'QSET1':<8s}{xdofs:>8s}{endgrid:8d}\n")
+        f.write(f"{'CSET1':<8s}{cdofs:>8s}{endgrid:8d}\n")
 
 
 @ytools.write_text_file
@@ -2057,7 +2050,7 @@ def wtrbe2(f, eid, indep, dof, dep):
     RBE2           1     100  123456     101     102     103     104     105
                  106     107     108     109     110
     """
-    f.write("RBE2    {:8d}{:8d}{:8d}".format(eid, indep, dof))
+    f.write(f"RBE2    {eid:8d}{indep:8d}{dof:8d}")
     wtnasints(f, 5, dep)
 
 
@@ -2132,11 +2125,9 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
             ALPHA     6.5e-6
     """
     if len(Ind_List) & 1:
-        raise ValueError(
-            "`Ind_List` must have even length (it is {})".format(len(Ind_List))
-        )
+        raise ValueError(f"`Ind_List` must have even length (it is {len(Ind_List)})")
 
-    f.write("RBE3    {:8d}        {:8d}{:8d}".format(eid, GRID_dep, DOF_dep))
+    f.write(f"RBE3    {eid:8d}        {GRID_dep:8d}{DOF_dep:8d}")
     field = 5
 
     def _Inc_Field(f, field):
@@ -2156,12 +2147,12 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
         else:
             wt = 1.0
         field = _Inc_Field(f, field)
-        f.write("{:8.3f}".format(wt))
+        f.write(f"{wt:8.3f}")
         field = _Inc_Field(f, field)
-        f.write("{:8d}".format(dof))
+        f.write(f"{dof:8d}")
         for g in GRIDS_ind:
             field = _Inc_Field(f, field)
-            f.write("{:8d}".format(g))
+            f.write(f"{g:8d}")
     f.write("\n")
 
     def _Inc_UM_Field(f, field):
@@ -2180,7 +2171,7 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
         f.write("\n")
 
     if alpha is not None:
-        f.write("        ALPHA   {:>8s}\n".format(alpha))
+        f.write(f"        ALPHA   {alpha:>8s}\n")
 
 
 @ytools.write_text_file
@@ -2257,7 +2248,7 @@ def wtset(f, setid, ids):
      15, 16, 17, 18, 19, 20, 21,
      22, 23, 24, 25
     """
-    f.write("SET {:d} =".format(setid))
+    f.write(f"SET {setid} =")
     n = len(ids)
     # 7 ids per line:
     frm = " {:d}," * 7 + "\n"
@@ -2290,7 +2281,7 @@ def wtrspline(f, rid, ids, DoL="0.1"):
         must be independent.
     DoL : string or real scalar
         Specifies ratio of diameter of elastic tube to the sum of the
-        lengths of all segments. Written with: ``'{:<8}'.format(DoL)``
+        lengths of all segments. Written with: ``f'{DoL:<8}'``
 
     Returns
     -------
@@ -2365,13 +2356,13 @@ def wtrspline(f, rid, ids, DoL="0.1"):
 
     # write one RSPLINE per series of dependents:
     for d0, d1 in zip(firsts, lasts):
-        f.write("RSPLINE {:8}{:>8}{:8}".format(rid, DoL, ids[d0 - 1]))
+        f.write(f"RSPLINE {rid:8}{DoL:>8}{ids[d0 - 1]:8}")
         rid += 1
         field = 5  # next nastran field (1 to 10)
 
         # write all but last grid of current segment:
         for j in range(d0, d1 + 1):
-            f.write("{:8}".format(ids[j]))
+            f.write(f"{ids[j]:8}")
             field += 1
             if field == 10:
                 f.write("\n        ")
@@ -2380,7 +2371,7 @@ def wtrspline(f, rid, ids, DoL="0.1"):
             field += 1
 
         # write closing independent:
-        f.write("{:8}\n".format(ids[d1 + 1]))
+        f.write(f"{ids[d1 + 1]:8}\n")
 
 
 def _intersect(circA, circB, xyA, draw=False):
@@ -2475,8 +2466,8 @@ def _check_z_alignment(circ_parms, tol):
     if abs(cosine) < tol:
         raise ValueError(
             "perpendicular directions of `r1grids` and "
-            "`r2grids` do not match: {} vs. {}; the "
-            "cosine of the angle between them is {}".format(z1, z2, cosine)
+            f"`r2grids` do not match: {z1} vs. {z2}; the "
+            f"cosine of the angle between them is {cosine}"
         )
 
 
@@ -2499,9 +2490,9 @@ def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0, names):
         ]
     }
     comment = (
-        "Origin of local CORD2R {} is at center of {}; z is "
+        f"Origin of local CORD2R {cord_id} is at center of {names[0]}; z is "
         "perpendicular to plane of circle, and x is aligned with "
-        "node {} (and new node {}).".format(cord_id, names[0], node0, node_id0)
+        f"node {node0} (and new node {node_id0})."
     )
     f.write(mkcomment(comment))
     wtcoordcards(f, local_cord)
@@ -2528,11 +2519,11 @@ def _wtgrids_rbe2s(
 
     # write new grids
     comment = (
-        "Grids to RBE2 to the {} grids. These grids line "
-        "up with the {} circle so that the RSPLINE (which "
-        "ties together these new grids and the {} grids) will "
+        f"Grids to RBE2 to the {names[0]} grids. These grids line "
+        f"up with the {names[1]} circle so that the RSPLINE (which "
+        f"ties together these new grids and the {names[1]} grids) will "
         "be smooth."
-    ).format(names[0], names[1], names[1])
+    )
     f.write(mkcomment(comment))
     vec = np.arange(n1)
     newids = node_id0 + vec
@@ -2540,9 +2531,9 @@ def _wtgrids_rbe2s(
     wtgrids(f, newids, xyz=newpts, cp=cord_id)
 
     comment = (
-        "RBE2 the {} nodes to new nodes created above "
+        f"RBE2 the {names[0]} nodes to new nodes created above "
         "(the new nodes are independent):"
-    ).format(names[0])
+    )
     f.write(mkcomment(comment))
     writer.vecwrite(f, "RBE2,{},{},123456,{}\n", rbe2ids, newids, ring1_ids)
     return newpts, newids
@@ -2566,15 +2557,15 @@ def _sort_n_write(
 
     if independent == "ring1":
         comment = (
-            "RSPLINE the {} nodes to the new nodes created "
+            f"RSPLINE the {names[1]} nodes to the new nodes created "
             "above, with the new nodes being independent."
-        ).format(names[1])
+        )
         ids_1[:, 1] = 1
     else:
         comment = (
-            "RSPLINE the new nodes created above to the {} "
-            "nodes, with the {} nodes being independent."
-        ).format(names[1], names[1])
+            f"RSPLINE the new nodes created above to the {names[1]} "
+            f"nodes, with the {names[1]} nodes being independent."
+        )
         ids_2[:, 1] = 1
 
     f.write(mkcomment(comment))
@@ -2605,9 +2596,9 @@ def _plot_rspline(
     names,
 ):
     for item in "xyz":
-        get_func = getattr(ax, "get_{}label".format(item))
+        get_func = getattr(ax, f"get_{item}label")
         if not get_func():
-            set_func = getattr(ax, "set_{}label".format(item))
+            set_func = getattr(ax, f"set_{item}label")
             set_func(item.upper())
 
     # draw the fit for circles:
@@ -2625,11 +2616,9 @@ def _plot_rspline(
             line,
             markersize=8.0,
             markeredgewidth=2.0,
-            label="{} nodes".format(names[num])
+            label=f"{names[num]} nodes"
         )[0]
-        ax.plot(
-            *circle_basic, h.get_color(), label="{} best-fit circle".format(names[num])
-        )
+        ax.plot(*circle_basic, h.get_color(), label=f"{names[num]} best-fit circle")
 
     # get basic coordinates of newpts:
     newpts_basic = newpts @ basic2local + center
@@ -2650,7 +2639,7 @@ def _plot_rspline(
         *segments.T,
         "-",
         color=h.get_color(),
-        label="RBE2s - should be {} radial".format(names[0])
+        label=f"RBE2s - should be {names[0]} radial"
     )
 
     # plot the rspline:
@@ -2739,7 +2728,7 @@ def wtrspline_rings(
 
     DoL : string or real scalar; optional
         Specifies ratio of diameter of elastic tybe to the sum of the
-        lengths of all segments. Written with: ``'{:<8}'.format(DoL)``
+        lengths of all segments. Written with: ``f'{DoL:<8}'``
     independent : str; optional
         Either 'ring1' or 'ring2' or the assigned name if one was
         provided in the `r1grids` or `r2grids` input. This input is
@@ -2918,8 +2907,7 @@ def wtrspline_rings(
             r = ring.shape[0]
             if (r // 6) * 6 != r:
                 raise ValueError(
-                    "number of rows `{}` is not "
-                    "multiple of 6 for USET input".format(name)
+                    f"number of rows `{name}` is not " "multiple of 6 for USET input"
                 )
             IDs.append(ring.index.get_level_values("id")[::6])
             xyz.append(ring.iloc[::6, 1:].values)
@@ -3120,7 +3108,7 @@ def wtcoordcards(f, ci):
             coord = data[1]
             abc = +coord[1:]
             abc[abs(abc) < abs(abc).max() * 1e-15] = 0.0
-            f.write("$ Coordinate {:d}:\n".format(k))
+            f.write(f"$ Coordinate {k}:\n")
             f.write(
                 "{:<8s}{:16d}{:16d}{:16.8e}{:16.8e}*\n".format(
                     data[0] + "*", k, int(coord[0, 2]), *abc[0, :2]
@@ -3301,17 +3289,11 @@ def wtextseout(
     spointn = spoint1 + nq - 1
     with open(name + ".asm", "w") as f:
         f.write(
-            (
-                "$ {:s} ASSEMBLY FILE FOR RESIDUAL RUN...INCLUDE IN BULK DATA\n"
-            ).format(name.upper())
+            f"$ {name.upper()} ASSEMBLY FILE FOR RESIDUAL RUN...INCLUDE IN BULK DATA\n"
         )
         f.write("$\n")
-        f.write(
-            ("SEBULK  {:8d}  EXTOP4          MANUAL                {:8d}\n").format(
-                se, unit
-            )
-        )
-        f.write("SECONCT {:8d}{:8d}              NO\n".format(se, sedn))
+        f.write(f"SEBULK  {se:8d}  EXTOP4          MANUAL                {unit:8d}\n")
+        f.write(f"SECONCT {se:8d}{sedn:8d}              NO\n")
         f.write("        ")
         gids = np.vstack((grids, grids)).T
         wtnasints(f, 2, gids.ravel())
@@ -3328,24 +3310,19 @@ def wtextseout(
         wtgrids(f, grids, 0, xyz, cd)
         if spointn >= spoint1:
             f.write("$\n")
-            f.write("SECONCT {:8d}{:8d}              NO\n".format(se, sedn))
+            f.write(f"SECONCT {se:8d}{sedn:8d}              NO\n")
             f.write(
-                "        {:8d}    THRU{:8d}{:8d}    THRU{:8d}\n".format(
-                    spoint1, spointn, spoint1, spointn
-                )
+                f"        {spoint1:8d}    THRU{spointn:8d}"
+                f"{spoint1:8d}    THRU{spointn:8d}\n"
             )
             f.write("$\n")
-            f.write("SPOINT  {:8d}    THRU{:8d}\n".format(spoint1, spointn))
+            f.write(f"SPOINT  {spoint1:8d}    THRU{spointn:8d}\n")
 
     # Write out PCH file
     with open(name + ".pch", "w") as f:
-        f.write(
-            ("$ {:s} PUNCH FILE FOR RESIDUAL RUN...INCLUDE AT END\n").format(
-                name.upper()
-            )
-        )
+        f.write(f"$ {name.upper()} PUNCH FILE FOR RESIDUAL RUN...INCLUDE AT END\n")
         f.write("$\n")
-        f.write("BEGIN SUPER{:8d}\n$\n".format(se))
+        f.write(f"BEGIN SUPER{se:8d}\n$\n")
         ids = np.hstack((grids, spoint1 + np.arange(nq)))
         dof = np.zeros_like(ids, dtype=int)
         dof[: len(grids)] = 123456
@@ -3358,14 +3335,14 @@ def wtextseout(
         f.write("$\n")
 
         f.write("$ BSET\n$\n")
-        f.write("ASET1   {:8d}".format(123456))
+        f.write(f"ASET1   {123456:8d}")
         wtnasints(f, 3, grids)
         if spointn >= spoint1:
             f.write("$\n")
             f.write("$ QSET\n$\n")
-            f.write("QSET1   {:8d}{:8d}    THRU{:8d}\n".format(0, spoint1, spointn))
+            f.write(f"QSET1   {0:8d}{spoint1:8d}    THRU{spointn:8d}\n")
             f.write("$\n")
-            f.write("SPOINT  {:8d}    THRU{:8d}\n".format(spoint1, spointn))
+            f.write(f"SPOINT  {spoint1:8d}    THRU{spointn:8d}\n")
 
 
 def mknast(
@@ -3441,11 +3418,11 @@ def mknast(
     # initialize shell script
     GREP = "grep -l '[*^][*^][*^].*FATAL'"
     with open(script, "w") as f:
-        f.write("#!{:s}\n".format(shell))
+        f.write(f"#!{shell}\n")
         curdir = os.getcwd()
-        f.write("cd {:s}\n\n".format(curdir))
+        f.write(f"cd {curdir}\n\n")
         if top:
-            f.write("{:s}\n".format(top))
+            f.write(f"{top}\n")
 
         i = -1
         while 1:  # loop over file names
@@ -3456,28 +3433,28 @@ def mknast(
                 else:
                     nasfile = files[i]
             else:
-                p = "File #{:2d} (blank to quit): ".format(i + 1)
+                p = f"File #{i + 1:2d} (blank to quit): "
                 nasfile = input(p)
                 if not nasfile:
                     break
 
             if not os.path.exists(nasfile):
-                print("Warning:  file '{:s}' not found.\n".format(nasfile))
+                print(f"Warning:  file '{nasfile}' not found.\n")
 
-            f.write("\n# ******** File {:s} ********\n".format(nasfile))
+            f.write(f"\n# ******** File {nasfile} ********\n")
             p = nasfile.rfind("/")
             if p > -1:
                 filepath = nasfile[:p]
                 filename = nasfile[p + 1 :]
-                f.write("  cd {:s}\n".format(filepath))
+                f.write(f"  cd {filepath}\n")
                 docd = 1
             else:
                 filename = nasfile
                 docd = 0
 
             if before:
-                f.write("{:s}\n".format(before))
-            f.write("  {:s} '{:s}' '{:s}'\n".format(nascom, nasopt, filename))
+                f.write(f"{before}\n")
+            f.write(f"  {nascom} '{nasopt}' '{filename}'\n")
 
             if stoponfatal:
                 p = filename.rfind(".")
@@ -3486,18 +3463,18 @@ def mknast(
                 else:
                     f06file = filename + "." + ext
 
-                f.write("  if [ X != X`{:s} {:s}` ] ; then\n".format(GREP, f06file))
+                f.write(f"  if [ X != X`{GREP} {f06file}` ] ; then\n")
                 f.write("    exit\n")
                 f.write("  fi\n")
             if after:
-                f.write("{:s}\n".format(after))
+                f.write(f"{after}\n")
 
             if docd:
-                f.write("  cd {:s}\n".format(curdir))
+                f.write(f"  cd {curdir}\n")
 
         if bottom:
-            f.write("{:s}\n".format(bottom))
-    os.system("chmod a+rx '{:s}'".format(script))
+            f.write(f"{bottom}\n")
+    os.system(f"chmod a+rx '{script}'")
 
 
 def rddtipch(f, name="TUG1"):
@@ -3540,7 +3517,7 @@ def rddtipch(f, name="TUG1"):
         row = locate.find_rows(tug1, [100, 4])
         drm = mug1[row, :]
     """
-    string = "DTI     {:<8s}2".format(name)
+    string = f"DTI     {name:<8s}2"
     c = rdcards(f, string)
     c = c[0, 16:-1].reshape(-1, 4).astype(np.int64)
     m = c[:, 1:]

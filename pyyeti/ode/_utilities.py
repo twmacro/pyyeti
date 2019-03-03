@@ -135,8 +135,8 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
         badrows = np.nonzero(rfmodes2 + pvrb != 1)[0]
 
     if badrows is not None:
-        msg = "Partitioning problem. Check settings for mode number(s):\n{}"
-        raise ValueError(msg.format(badrows))
+        msg = f"Partitioning problem. Check settings for mode number(s):\n{badrows}"
+        raise ValueError(msg)
 
     w2 = abs(w2)
     # define the appropriate parameters based on damping
@@ -551,7 +551,7 @@ def addconj(lam, ur, ur_inv):
         if abs(two - 2.0) > 1e-13:
             raise ValueError(
                 "factor of 2.0 seems to be missing: "
-                "error on first underdamped mode = {}".format(abs(two - 2.0))
+                f"error on first underdamped mode = {abs(two - 2.0)}"
             )
         n = len(lam) + len(conj2)
         if n != ur_inv.shape[1] or n != ur.shape[0]:

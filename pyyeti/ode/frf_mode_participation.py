@@ -199,7 +199,7 @@ def getmodepart(
     for j, s in enumerate(sols):
         if len(s) != 3:
             raise ValueError(
-                "sols[{}] must have 3 elements: [Trecover, accel, labels]".format(j)
+                f"sols[{j}] must have 3 elements: [Trecover, accel, labels]"
             )
         Trec = np.atleast_2d(s[0])
         acce = np.atleast_2d(s[1])
@@ -207,23 +207,20 @@ def getmodepart(
         if Trec.shape[0] == 1:
             if isinstance(labels, (list, tuple)) and len(labels) != 1:
                 raise ValueError(
-                    "in sols[{}], Trecover has 1 row, "
-                    "but labels is length {}".format(j, len(labels))
+                    f"in sols[{j}], Trecover has 1 row, "
+                    f"but labels is length {len(labels)}"
                 )
         else:
             if not isinstance(labels, (list, tuple)):
                 raise ValueError(
-                    "in sols[{}], labels must be a "
-                    "list/tuple because Trecover has "
-                    "more than 1 row".format(j)
+                    f"in sols[{j}], labels must be a list/tuple because Trecover"
+                    " has more than 1 row"
                 )
             if Trec.shape[0] != len(labels):
-                raise ValueError(
-                    "in sols[{}], len(labels) != Trecover.shape[0]".format(j)
-                )
+                raise ValueError(f"in sols[{j}], len(labels) != Trecover.shape[0]")
         if Trec.shape[1] != acce.shape[0]:
             raise ValueError(
-                "in sols[{}], Trecover is not compatibly sized with accel".format(j)
+                f"in sols[{j}], Trecover is not compatibly sized with accel"
             )
 
     def _getmds(modepart):
@@ -236,10 +233,7 @@ def getmodepart(
         i = np.argsort(modepart[pv])[::-1]
         mds = pv[i]
         for m in mds:
-            print(
-                "\tSelected mode index (0-offset) {}, "
-                "frequency {:.4f}".format(m, mfreq[m])
-            )
+            print(f"\tSelected mode index (0-offset) {m}, frequency {mfreq[m]:.4f}")
         return mds
 
     mfreq = np.atleast_1d(mfreq)
@@ -272,8 +266,8 @@ def getmodepart(
         print("To quit, type 't' inside the axes")
 
     if idlabel:
-        frfname = "FRF - {}".format(idlabel)
-        mpname = "MP - {}".format(idlabel)
+        frfname = f"FRF - {idlabel}"
+        mpname = f"MP - {idlabel}"
     else:
         frfname = "FRF"
         mpname = "MP"
@@ -348,7 +342,7 @@ def getmodepart(
         plt.ylabel("Mode Participation")
         ax = plt.gca()
         for i, m in enumerate(mds):
-            barlabel = "{:.4f} Hz".format(mfreq[m])
+            barlabel = f"{mfreq[m]:.4f} Hz"
             ax.text(mfreq[m], modepart[m], barlabel, ha="center", va="bottom")
             modes.append(m)
             primary.append(i == 0)
@@ -358,7 +352,7 @@ def getmodepart(
         while len(primary) > 0:
             m = modes.pop()
             p = primary.pop()
-            print("\tMode {}, {:.4f} Hz erased".format(m, mfreq[m]))
+            print(f"\tMode {m}, {mfreq[m]:.4f} Hz erased")
             if p:
                 break
 

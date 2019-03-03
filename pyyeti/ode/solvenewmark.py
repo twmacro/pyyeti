@@ -642,8 +642,7 @@ class SolveNewmark(_BaseODE):
         """
         if force.shape[0] != self.n:
             raise ValueError(
-                "Force matrix has {} rows; {} rows are "
-                "expected".format(force.shape[0], self.n)
+                f"Force matrix has {force.shape[0]} rows; {self.n} rows are expected"
             )
 
         d0, v0 = self._set_initial_cond(d0, v0)

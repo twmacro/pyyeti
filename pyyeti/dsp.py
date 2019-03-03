@@ -1344,8 +1344,8 @@ def fixtime(
                 )
             if negmethod == "sort":
                 warn(
-                    f"there are {nneg:d} negative time steps. "
-                    "Sorting the data. {POOR:s}",
+                    f"there are {nneg} negative time steps. "
+                    f"Sorting the data. {POOR}",
                     RuntimeWarning,
                 )
                 j = t.argsort()
@@ -1417,14 +1417,14 @@ def fixtime(
         if pv.any():
             if delouttimes:
                 warn(
-                    f"there are {pv.sum():d} outlier times being deleted. These are"
-                    f" times more than 3-sigma away from the mean. {POOR:s}",
+                    f"there are {pv.sum()} outlier times being deleted. These are"
+                    f" times more than 3-sigma away from the mean. {POOR}",
                     RuntimeWarning,
                 )
                 keep = keep[~pv]
             else:
                 warn(
-                    f"there are {pv.sum():d} outlier times that are NOT being deleted"
+                    f"there are {pv.sum()} outlier times that are NOT being deleted"
                     " because `delouttimes` is False. These are times more than "
                     "3-sigma away from the mean.",
                     RuntimeWarning,

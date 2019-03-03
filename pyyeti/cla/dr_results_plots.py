@@ -25,7 +25,7 @@ def _get_Qs(Q, res, name, showall):
             if q in srsQs:
                 Qs.append(q)
             else:
-                warnings.warn("no Q={} SRS data for {}".format(q, name), RuntimeWarning)
+                warnings.warn(f"no Q={q} SRS data for {name}", RuntimeWarning)
         if len(Qs) == 0:
             return None
     Qs = n2p._ensure_iter(Qs)
@@ -61,7 +61,7 @@ def _set_vars(issrs, res, name, event, showall, showboth, cases):
         else:
             for case in cases:
                 if case not in curres.cases:
-                    raise ValueError("case {} not found for {}".format(case, name))
+                    raise ValueError(f"case {case} not found for {name}")
 
     if isinstance(rowpv, slice):
         rowpv = np.arange(len(curres.drminfo.labels))[rowpv]
@@ -77,14 +77,14 @@ def _set_vars(issrs, res, name, event, showall, showboth, cases):
 def _get_figname(nplots, perpage, fmt, onepdf, name, lbl, sname, filenum):
     if nplots > perpage:
         if fmt == "pdf" and onepdf:
-            prefix = "{}_{}".format(name, lbl)
-            figname = "{} {}_{}".format(sname, prefix, filenum)
+            prefix = f"{name}_{lbl}"
+            figname = f"{sname} {prefix}_{filenum}"
         else:
-            prefix = "{}_{}_{}".format(name, lbl, filenum)
-            figname = "{} {}".format(sname, prefix)
+            prefix = f"{name}_{lbl}_{filenum}"
+            figname = f"{sname} {prefix}"
     else:
-        prefix = "{}_{}".format(name, lbl)
-        figname = "{} {}".format(sname, prefix)
+        prefix = f"{name}_{lbl}"
+        figname = f"{sname} {prefix}"
     return prefix, figname
 
 
@@ -129,7 +129,7 @@ def _prep_subplot(
 def _add_title(name, label, maxlen, sname, row, cols, q=None):
     def _add_q(ttl, q):
         if q is not None:
-            ttl = "{}, Q={}".format(ttl, q)
+            ttl = f"{ttl}, Q={q}"
         return ttl
 
     if cols == 1:
@@ -143,7 +143,7 @@ def _add_title(name, label, maxlen, sname, row, cols, q=None):
         big = 12
 
     if maxlen > 35:
-        ttl = "{} {}\nRow {}".format(name, sname, row)
+        ttl = f"{name} {sname}\nRow {row}"
         plt.annotate(
             label,
             xy=(0, 1),
@@ -155,7 +155,7 @@ def _add_title(name, label, maxlen, sname, row, cols, q=None):
             va="top",
         )
     else:
-        ttl = "{} {}\n{}".format(name, sname, label)
+        ttl = f"{name} {sname}\n{label}"
     ttl = _add_q(ttl, q)
     plt.title(ttl, fontsize=big)
 
@@ -281,7 +281,7 @@ def _plot_ext(
     srsext = curres.srs.ext[q]
     # srsext (each rows x freq)
     if sub == maxcol:
-        plot(frq, srsext[j], label="Q={}".format(q))
+        plot(frq, srsext[j], label=f"Q={q}")
         plt.legend(loc="best", fontsize="small", fancybox=True, framealpha=0.5)
     else:
         plot(frq, srsext[j])
@@ -303,18 +303,18 @@ def _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub, srstype):
             uj += 1
     if issrs:
         if srstype == "eqsine":
-            plt.ylabel("EQ-Sine ({})".format(u))
+            plt.ylabel(f"EQ-Sine ({u})")
         else:
-            plt.ylabel("SRS ({})".format(u))
+            plt.ylabel(f"SRS ({u})")
     else:
         if ylab.startswith("PSD"):
             if len(u) == 1:
-                uu = " ({}$^2$/Hz)".format(u)
+                uu = f" ({u}$^2$/Hz)"
             else:
-                uu = " ({})$^2$/Hz".format(u)
+                uu = f" ({u})$^2$/Hz"
             plt.ylabel(ylab + uu)
         else:
-            plt.ylabel(ylab + " ({})".format(u))
+            plt.ylabel(ylab + f" ({u})")
     plt.xlabel(xlab)
     return uj
 
@@ -499,11 +499,11 @@ def mk_plots(
     try:
         for name in alldrms:
             if name not in res:
-                raise ValueError("category {} does not exist.".format(name))
+                raise ValueError(f"category {name} does not exist.")
             if issrs:
                 if "srs" not in res[name].__dict__:
                     if drms and name in drms:
-                        warnings.warn("no SRS data for {}".format(name), RuntimeWarning)
+                        warnings.warn(f"no SRS data for {name}", RuntimeWarning)
                     continue
                 Qs = _get_Qs(Q, res, name, showall)
                 if Qs is None:
@@ -534,9 +534,7 @@ def mk_plots(
                     ptype = "frf"
                 else:
                     if drms and name in drms:
-                        warnings.warn(
-                            "no response data for {}".format(name), RuntimeWarning
-                        )
+                        warnings.warn(f"no response data for {name}", RuntimeWarning)
                     continue
 
             (labels, rowpv, maxlen, sname, srstype, lbl, units, _cases) = _set_vars(
@@ -549,7 +547,7 @@ def mk_plots(
                     if not fname.endswith(".pdf"):
                         fname = fname + ".pdf"
                 else:
-                    fname = os.path.join(direc, "{}_{}.pdf".format(sname, ptype))
+                    fname = os.path.join(direc, f"{sname}_{ptype}.pdf")
                 pdffile = PdfPages(fname)
 
             filenum = 0

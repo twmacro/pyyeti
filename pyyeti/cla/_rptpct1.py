@@ -49,7 +49,7 @@ def _get_filtline(filterval):
     if len(filterval) > 1:
         filtline = "Filter:      <defined row-by-row>\n"
     else:
-        filtline = "Filter:      {}\n".format(filterval[0])
+        filtline = f"Filter:      {filterval[0]}\n"
     return filtline
 
 
@@ -69,22 +69,20 @@ def _get_noteline(use_range, names, prtbads, flagbads):
     if prtbad is not None or prtbadh is not None or prtbadl is not None:
         if prtbad is not None:
             prtbad = abs(prtbad)
-            noteline += tab + "Printing rows where abs(% Diff) > {}%\n".format(prtbad)
+            noteline += tab + f"Printing rows where abs(% Diff) > {prtbad}%\n"
         elif prtbadh is not None:
-            noteline += tab + "Printing rows where % Diff > {}%\n".format(prtbadh)
+            noteline += tab + f"Printing rows where % Diff > {prtbadh}%\n"
         else:
-            noteline += tab + "Printing rows where % Diff < {}%\n".format(prtbadl)
+            noteline += tab + f"Printing rows where % Diff < {prtbadl}%\n"
 
     if flagbad is not None or flagbadh is not None or flagbadl is not None:
         if flagbad is not None:
             flagbad = abs(flagbad)
-            noteline += tab + "Flagging (*) rows where abs(% Diff) > {}%\n".format(
-                flagbad
-            )
+            noteline += tab + f"Flagging (*) rows where abs(% Diff) > {flagbad}%\n"
         elif flagbadh is not None:
-            noteline += tab + "Flagging (*) rows where % Diff > {}%\n".format(flagbadh)
+            noteline += tab + f"Flagging (*) rows where % Diff > {flagbadh}%\n"
         else:
-            noteline += tab + "Flagging (*) rows where % Diff < {}%\n".format(flagbadl)
+            noteline += tab + f"Flagging (*) rows where % Diff < {flagbadl}%\n"
     return noteline
 
 
@@ -131,7 +129,7 @@ def _get_pct_diff(a, b, filt, pv, nastring, mxmn_b=None, ismax=True, flagbads=No
     pct[~pv] = np.nan
 
     # make 7 char version:
-    spct = ["{:7.2f}".format(p) for p in pct]
+    spct = [f"{p:7.2f}" for p in pct]
     badpv = _get_badpv(pct, pv, *flagbads, False)
     for j in badpv.nonzero()[0]:
         spct[j] += "*"
@@ -144,7 +142,7 @@ def _get_pct_diff(a, b, filt, pv, nastring, mxmn_b=None, ismax=True, flagbads=No
 def _get_histogram_str(desc, hdr, pctinfo):
     pctcount = pctinfo["hsto"]
     s = [
-        ("\n\n    {} - {} Comparison Histogram\n\n".format(desc, hdr)),
+        (f"\n\n    {desc} - {hdr} Comparison Histogram\n\n"),
         ("      % Diff      Count    Percent\n     --------   --------   -------\n"),
     ]
     with StringIO() as f:
@@ -157,7 +155,7 @@ def _get_histogram_str(desc, hdr, pctinfo):
         pvdiff = abs(pctcount[:, 0]) <= pdiff
         num = pctcount[pvdiff, 2].sum()
         if num > last:
-            s.append("    {:.1f}% of values are within {:d}%\n".format(num, pdiff))
+            s.append(f"    {num:.1f}% of values are within {pdiff}%\n")
         if np.round(num * 10) == 1000:
             break
         last = num
@@ -167,9 +165,7 @@ def _get_histogram_str(desc, hdr, pctinfo):
     stddev = 0.0 if n <= 1 else pct.std(ddof=1)
     s.append(
         "\n    % Diff Statistics: [Min, Max, Mean, StdDev]"
-        " = [{:.2f}, {:.2f}, {:.4f}, {:.4f}]\n".format(
-            pct.min(), pct.max(), pct.mean(), stddev
-        )
+        f" = [{pct.min():.2f}, {pct.max():.2f}, {pct.mean():.4f}, {stddev:.4f}]\n"
     )
     return "".join(s)
 
@@ -216,7 +212,7 @@ def _proc_pct(
     # for trimming down if prtbad set:
     prtpv = _get_badpv(pct, pv, *prtbads, True)
     pctlen = max(len(pdhdr), len(max(spct, key=len)))
-    sformatpd = "{{:{}}}".format(pctlen)
+    sformatpd = f"{{:{pctlen}}}"
 
     # for writer.formheader:
     numlen = max(13, len(max(names, key=len)), len(numform.format(np.pi)))
@@ -287,9 +283,9 @@ def _plot_magpct(
     show_figures,
     tight_layout_args,
 ):
-    ptitle = "{} - {{}} Comparison vs Magnitude".format(desc)
-    xl = "{} Magnitude".format(names[1])
-    yl = "% Diff of {} vs {}".format(*names)
+    ptitle = f"{desc} - {{}} Comparison vs Magnitude"
+    xl = f"{names[1]} Magnitude"
+    yl = f"% Diff of {names[0]} vs {names[1]}"
     _figure_on("Magpct - " + desc, doabsmax, show_figures)
     try:
         for lbl, hdr, sp, ismax in (
@@ -335,8 +331,8 @@ def _plot_histogram(
     show_figures,
     tight_layout_args,
 ):
-    ptitle = "{} - {{}} Comparison Histogram".format(desc)
-    xl = "% Diff of {} vs {}".format(*names)
+    ptitle = f"{desc} - {{}} Comparison Histogram"
+    xl = f"% Diff of {names[0]} vs {names[1]}"
     yl = "Percent Occurrence (%)"
     _figure_on("Histogram - " + desc, doabsmax, show_figures)
     try:
@@ -768,8 +764,7 @@ def rptpct1(
     R = mxmn1.shape[0]
     if R != mxmn2.shape[0]:
         raise ValueError(
-            "`mxmn1` and `mxmn2` have a different"
-            " number of rows (`desc` = {})".format(desc)
+            "`mxmn1` and `mxmn2` have a different" f" number of rows (`desc` = {desc})"
         )
     if desc is None:
         desc = "No description provided"
@@ -779,11 +774,11 @@ def rptpct1(
     filterval = _proc_filterval(filterval, R)
 
     if labels is None:
-        labels = ["Row {:6d}".format(i + 1) for i in range(R)]
+        labels = [f"Row {i + 1:6d}" for i in range(R)]
     elif len(labels) != R:
         raise ValueError(
             "length of `labels` does not match number"
-            " of rows in `mxmn1` (`desc` = {})".format(desc)
+            f" of rows in `mxmn1` (`desc` = {desc})"
         )
     if units is None:
         units = "Not specified"
@@ -798,7 +793,7 @@ def rptpct1(
 
     # for row labels:
     w = max(11, len(max(labels, key=len)))
-    frm = "{{:{:d}}}".format(w)
+    frm = f"{{:{w}}}"
 
     # start preparing for writer.formheader:
     print_info = SimpleNamespace(
@@ -895,7 +890,7 @@ def rptpct1(
                 if magpct_filterval != "filterval":
                     raise ValueError(
                         "`magpct_filterval` is an invalid string: "
-                        '"{}" (can only be "filterval")'.format(magpct_filterval)
+                        f'"{magpct_filterval}" (can only be "filterval")'
                     )
                 magpct_filterval = filterval
             _plot_magpct(

@@ -210,11 +210,10 @@ class _BaseODE:
                 c = np.linalg.cond(krf)
             if c > 1 / np.finfo(float).eps:
                 msg = (
-                    "the residual-flexibility part of the "
-                    "stiffness is poorly conditioned "
-                    "(cond={:.3e}). Displacements will likely "
+                    "the residual-flexibility part of the stiffness is poorly "
+                    f"conditioned (cond={c:.3e}). Displacements will likely "
                     "be inaccurate."
-                ).format(c)
+                )
                 warnings.warn(msg, RuntimeWarning)
             self.ikrf = ikrf
 
@@ -228,10 +227,9 @@ class _BaseODE:
             c = np.linalg.cond(m)
         if c > 1 / np.finfo(float).eps:
             msg = (
-                "the mass matrix is poorly conditioned "
-                "(cond={:.3e}). Solution will likely be "
-                "inaccurate."
-            ).format(c)
+                f"the mass matrix is poorly conditioned (cond={c:.3e}). Solution "
+                "will likely be inaccurate."
+            )
             warnings.warn(msg, RuntimeWarning)
         return invm
 
@@ -261,22 +259,20 @@ class _BaseODE:
             if mat.ndim == 2:
                 any_2d = True
                 if mat.shape[0] != mat.shape[1]:
-                    raise ValueError("{} matrix is non-square!".format(name[i]))
+                    raise ValueError(f"{name[i]} matrix is non-square!")
                 if mat.shape[0] != n:
                     raise ValueError(
-                        "{} matrix has a different "
-                        "number of rows than the "
-                        "stiffness!".format(name[i])
+                        f"{name[i]} matrix has a different number of rows than "
+                        "the stiffness!"
                     )
             elif mat.ndim == 1:
                 if mat.shape[0] != n:
                     raise ValueError(
-                        "length of {} diagonal is "
-                        "not compatible with the "
-                        "stiffness!".format(name[i])
+                        f"length of {name[i]} diagonal is not compatible with "
+                        "the stiffness!"
                     )
             else:
-                raise ValueError("{} has more than 2 dimensions!".format(name[i]))
+                raise ValueError(f"{name[i]} has more than 2 dimensions!")
         return any_2d
 
     def _do_pre_eig(self, m, b, k):
@@ -415,7 +411,7 @@ class _BaseODE:
         if istime:
             if nt > 1 and n > 0 and not self.pc:
                 raise RuntimeError(
-                    "rerun `{}` with a valid time step.".format(type(self).__name__)
+                    f"rerun `{type(self).__name__}` with a valid time step."
                 )
             d = np.zeros((self.n, nt), self.systype, order=ORDER)
             v = np.zeros((self.n, nt), self.systype, order=ORDER)
@@ -447,13 +443,13 @@ class _BaseODE:
     def _init_dva_part(self, nt, F0, d0, v0, static_ic, istime=True):
         if F0.shape[0] != self.n:
             raise ValueError(
-                "Initial force vector has {} elements;"
-                " {} elements are expected".format(F0.shape[0], self.n)
+                f"Initial force vector has {F0.shape[0]} elements;"
+                f" {self.n} elements are expected"
             )
         if self.pre_eig:
             raise NotImplementedError(
-                "{} generator not yet implemented "
-                "using the `pre_eig` option".format(type(self).__name__)
+                f"{type(self).__name__} generator not yet implemented "
+                "using the `pre_eig` option"
             )
 
         d0, v0 = self._set_initial_cond(d0, v0)
@@ -471,8 +467,7 @@ class _BaseODE:
     def _init_dva(self, force, d0, v0, static_ic, istime=True):
         if force.shape[0] != self.n:
             raise ValueError(
-                "Force matrix has {} rows; {} rows are "
-                "expected".format(force.shape[0], self.n)
+                f"Force matrix has {force.shape[0]} rows; {self.n} rows are expected"
             )
 
         d0, v0 = self._set_initial_cond(d0, v0)
@@ -538,6 +533,6 @@ class _BaseODE:
         """Check compatibility between force matrix and freq vector"""
         if force.shape[1] != len(freq):
             raise ValueError(
-                "Number of columns `force` ({}) does "
-                "not equal length of `freq` ({})".format(force.shape[1], len(freq))
+                f"Number of columns `force` ({force.shape[1]}) does "
+                f"not equal length of `freq` ({len(freq)})"
             )

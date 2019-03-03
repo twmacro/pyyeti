@@ -191,8 +191,8 @@ def relative_displacement_dtm(nas, node_pairs):
         # check for coincident nodes:
         if la.norm((b - a) / ext_coords) < 1e-5:
             raise ValueError(
-                "coincident nodes detected at index {} of "
-                "`node_pairs`: {}".format(i, node_pairs[i])
+                f"coincident nodes detected at index {i} of "
+                f"`node_pairs`: {node_pairs[i]}"
             )
 
         c = a + (b - a)[[1, 2, 0]]
@@ -205,7 +205,5 @@ def relative_displacement_dtm(nas, node_pairs):
         reldtm[i] = dtm2[2] - dtm1[2]
         dist[i] = la.norm(b - a)
 
-    labels = [
-        "SE{},{} - SE{},{}".format(se2, n2, se1, n1) for se1, n1, se2, n2 in node_pairs
-    ]
+    labels = [f"SE{se2},{n2} - SE{se1},{n1}" for se1, n1, se2, n2 in node_pairs]
     return reldtm, dist, labels

@@ -152,8 +152,7 @@ class SolveExp1(object):
         force = np.atleast_2d(force)
         if force.shape[0] != self.n:
             raise ValueError(
-                "Force matrix has {} rows; {} rows are "
-                "expected".format(force.shape[0], self.n)
+                f"Force matrix has {force.shape[0]} rows; {self.n} rows are expected"
             )
         nt = force.shape[1]
         d = np.zeros((self.n, nt))  # , float, order='F')

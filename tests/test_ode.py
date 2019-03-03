@@ -1350,7 +1350,7 @@ def test_SSModel_repr():
     assert repr(s) == (
         "SSModel(\nA=array([[1]]),\nB=array([[2]]),\n"
         "C=array([[3]]),\nD=array([[4]]),\nh=None,\n"
-        "method=None,\nprewarp=None\n)"
+        "method=None,\nprewarp=None,\n)"
     )
 
 

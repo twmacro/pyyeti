@@ -298,9 +298,10 @@ class DR_Results(OrderedDict):
     """
 
     def __repr__(self):
-        cats = ", ".join("'{}'".format(name) for name in self)
-        return "{} ({}) with {} keys: [{}]".format(
-            type(self).__name__, hex(id(self)), len(self), cats
+        cats = ", ".join(f"'{name}'" for name in self)
+        return (
+            f"{type(self).__name__} ({hex(id(self))}) "
+            f"with {len(self)} keys: [{cats}]"
         )
 
     def init(self, Info, mission, event, cats=None):
@@ -414,7 +415,7 @@ class DR_Results(OrderedDict):
                     return ", ".join(key for key in results)
                 else:
                     return next(iter(v2.values())).event
-            raise TypeError("unexpected type: {}".format(str(type(results))))
+            raise TypeError(f"unexpected type: {str(type(results))}")
 
         events = []
         for results in results_iter:
@@ -706,7 +707,7 @@ class DR_Results(OrderedDict):
         >>> drdefs = cla.DR_Def(defaults)
         >>>
         >>> def _get_labels(name):
-        ...     return ['{} Row {:6d}'.format(name, i+1)
+        ...     return [f'{name} Row {i+1:6d}'
         ...             for i in range(rows[name])]
         >>>
         >>> @cla.DR_Def.addcat
@@ -797,7 +798,7 @@ class DR_Results(OrderedDict):
         except ValueError:
             pass
         else:
-            raise ValueError("case '{}' already defined!".format(case))
+            raise ValueError(f"case '{case}' already defined!")
         res.mx[:, j] = mm.ext[:, 0]
         res.mx_x[:, j] = mm.ext_x[:, 0]
         res.mn[:, j] = mm.ext[:, 1]
@@ -810,9 +811,8 @@ class DR_Results(OrderedDict):
         lbllen = len(res.drminfo.labels)
         if lbllen != m:
             raise ValueError(
-                "for {}, length of `labels` ({}) does "
-                "not match number of data recovery "
-                "items ({})".format(name, lbllen, m)
+                f"for {name}, length of `labels` ({lbllen}) does "
+                f"not match number of data recovery items ({m})"
             )
 
     def _init_mxmn(self, name, res, domain, mm, n):
@@ -1106,9 +1106,8 @@ class DR_Results(OrderedDict):
         if nonzero_forces.size:
             if verbose:
                 print(
-                    "Trimming off {} zero forces".format(
-                        forcepsd.shape[0] - nonzero_forces.size
-                    )
+                    f"Trimming off {forcepsd.shape[0] - nonzero_forces.size} "
+                    "zero forces"
                 )
             forcepsd = forcepsd[nonzero_forces]
             t_frc = t_frc[nonzero_forces]
@@ -1139,7 +1138,7 @@ class DR_Results(OrderedDict):
         timers = [0, 0, 0]
         for i in range(rpsd):
             if verbose:
-                print("{}: processing force {} of {}".format(case, i + 1, rpsd))
+                print(f"{case}: processing force {i + 1} of {rpsd}")
             # solve for unit FRF for i'th force:
             genforce = t_frc[i][:, None] * unitforce
             t1 = time.time()
@@ -1757,10 +1756,8 @@ class DR_Results(OrderedDict):
             for lbls in (l1, l2):
                 if len(lbls) != len(set(lbls)):
                     msg = (
-                        'Row labels for "{}" (event "{}") are not '
-                        'all unique. Cannot compare to event "{}".'.format(
-                            ext1.drminfo.desc, ext1.event, ext2.event
-                        )
+                        f'Row labels for "{ext1.drminfo.desc}" (event "{ext1.event}") '
+                        f'are not all unique. Cannot compare to event "{ext2.event}".'
                     )
                     raise ValueError(msg)
             # for both ext1 and ext2, expand:
@@ -1888,7 +1885,7 @@ class DR_Results(OrderedDict):
             mission = res.mission
             if event is None:
                 event = res.event
-            title = "{} - {} Extrema Results".format(mission, event)
+            title = f"{mission} - {event} Extrema Results"
             filename = os.path.join(direc, name + ".ext")
             rptext1(
                 res,
@@ -1950,9 +1947,7 @@ class DR_Results(OrderedDict):
                 mission = res.mission
                 if event is None:
                     event = res.event
-                ttl = "{} - {} Extrema Results and Bin Count Tables".format(
-                    mission, event
-                )
+                ttl = f"{mission} - {event} Extrema Results and Bin Count Tables"
                 if excel:
                     if not isinstance(excel, str):
                         filename = os.path.join(direc, name + ".xlsx")
@@ -2043,7 +2038,7 @@ class DR_Results(OrderedDict):
                 mission = res.mission
                 if event is None:
                     event = res.event
-                title = "{}, {} - {} vs. {}".format(mission, event, *names)
+                title = f"{mission}, {event} - {names[0]} vs. {names[1]}"
                 filename = os.path.join(direc, drm + fileext)
                 rptpct1(
                     res,
@@ -2055,8 +2050,8 @@ class DR_Results(OrderedDict):
                 )
         if len(skipdrms) > 0:
             warnings.warn(
-                "Some comparisons were skipped (not found in"
-                " `refres`):\n{}".format(str(skipdrms)),
+                "Some comparisons were skipped (not found in `refres`):\n"
+                f"{str(skipdrms)}",
                 RuntimeWarning,
             )
 

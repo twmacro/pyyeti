@@ -71,13 +71,13 @@ class SSModel(object):
         """Return representation of the :class:`SSModel` system."""
         return (
             f"{self.__class__.__name__}(\n"
-            f"A={self.A},\n"
-            f"B={self.B},\n"
-            f"C={self.C},\n"
-            f"D={self.D},\n"
-            f"h={self.h},\n"
-            f"method={self.method},\n"
-            f"prewarp={self.prewarp},\n)"
+            f"A={self.A!r},\n"
+            f"B={self.B!r},\n"
+            f"C={self.C!r},\n"
+            f"D={self.D!r},\n"
+            f"h={self.h!r},\n"
+            f"method={self.method!r},\n"
+            f"prewarp={self.prewarp!r},\n)"
         )
 
     def getlti(self):
