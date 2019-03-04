@@ -11,6 +11,7 @@ import inspect
 from collections import abc, OrderedDict
 from types import SimpleNamespace
 import warnings
+import copyreg
 import numpy as np
 import pandas as pd
 import xlsxwriter
@@ -229,9 +230,12 @@ class DR_Def(OrderedDict):
         sys.path.insert(0, modpath)
         try:
             drmod = importlib.import_module(modfile)
-        except ImportError:
+        except (ImportError, SyntaxError) as e:
             s0, s1 = _get_msg()
-            msg = f'{s0} import of "{modfile}" failed. {s1}'
+            msg = (
+                f'{s0} import of "{modfile}" failed. {s1}\nThe exception was: '
+                f"{type(e).__name__}: {e!s}"
+            )
             warnings.warn(msg, RuntimeWarning)
         else:
             if funcname not in dir(drmod):
@@ -360,7 +364,7 @@ class DR_Def(OrderedDict):
 
         ns.ignorepv = _get_pv(ns.ignorepv, "ignorepv", len(ns.labels))
 
-        if ns.srsconv is None:
+        if ns.srsconv is None and ns.srsQs is not None:
             ns.srsconv = 1.0
 
         if ns.srsQs is not None:
@@ -616,11 +620,16 @@ class DR_Def(OrderedDict):
         srsfrq : 1d array_like or None; optional
             Frequency vector for SRS.
 
-            DA: get value from `self.defaults` if `srsQs` is not None;
-            otherwise, leave it None.
+            DA: get value from `self.defaults` if `srsQs` is not None
+            (after its default action, if applicable); otherwise,
+            leave it None.
         srsconv : scalar or 1d array_like or None; optional
-            Conversion factor scalar or vector same length as
-            `srspv`. If None, it is internally reset to 1.0.
+            Conversion factor for the SRS; scalar or vector same
+            length as `srspv`.
+
+            DA: it is internally reset to 1.0 if `srsQs` is not None
+            (after its default action, if applicable); otherwise,
+            leave it None.
         srslabels : list_like or None; optional
             Analogous to `labels` but just for the `srspv` rows.
 
@@ -636,8 +645,9 @@ class DR_Def(OrderedDict):
             Specifies which rows to compute SRS for. See note below
             about inputting partition vectors.
 
-            DA: if `srsQs` is not None, internally set to
-            ``slice(len(labels))``; otherwise, leave it None.
+            DA: if `srsQs` is not None (after its default action, if
+            applicable), internally set to ``slice(len(labels))``;
+            otherwise, leave it None.
         srsunits : string or None; optional
             Units string for the `srspv`.
 
@@ -1153,3 +1163,29 @@ class DR_Def(OrderedDict):
         Syntactic sugar for the :func:`DR_Def.merge` method.
         """
         return DR_Def.merge(self, other)
+
+
+# setup pickling for a little bit of future-proofing:
+def unpickle_drdefs(kwargs):
+    # pickle_version is not used yet
+    pickle_version = kwargs.pop("__pickle_version", 0)
+    defaults = kwargs.pop("__defaults", {"srsQs": None, "srsfrq": None})
+    new_drdefs = DR_Def(defaults)
+    for k, v in kwargs.items():
+        if k.startswith("__"):
+            continue
+        if k.startswith("_"):
+            new_drdefs[k] = v
+        else:
+            new_drdefs.add(name=k, **v.__dict__)
+    return new_drdefs
+
+
+def pickle_drdefs(drdefs):
+    odct = OrderedDict(drdefs)
+    odct["__defaults"] = drdefs.defaults
+    odct["__pickle_version"] = 1
+    return unpickle_drdefs, (odct,)
+
+
+copyreg.pickle(DR_Def, pickle_drdefs)

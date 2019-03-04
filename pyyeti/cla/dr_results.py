@@ -8,6 +8,7 @@ from collections import OrderedDict
 from types import SimpleNamespace
 import warnings
 import importlib
+import copyreg
 import numpy as np
 import matplotlib.pyplot as plt
 import xlsxwriter
@@ -747,7 +748,7 @@ class DR_Results(OrderedDict):
         misc                            None                         -
         se                                 0                         -
         srsQs                           None                         -
-        srsconv                          1.0                         -
+        srsconv                         None                         -
         srsfrq                          None                         -
         srslabels                       None                         -
         srsopts                         None                         -
@@ -2358,3 +2359,22 @@ class DR_Results(OrderedDict):
             plot=plot,
             show_figures=show_figures,
         )
+
+
+# setup pickling for a little bit of future-proofing:
+def unpickle_drresults(kwargs):
+    # pickle_version is not used yet
+    pickle_version = kwargs.pop("__pickle_version", 0)
+    new_drresults = DR_Results()
+    for k, v in kwargs.items():
+        new_drresults[k] = v
+    return new_drresults
+
+
+def pickle_drresults(drresults):
+    odct = OrderedDict(drresults)
+    odct["__pickle_version"] = 1
+    return unpickle_drresults, (odct,)
+
+
+copyreg.pickle(DR_Results, pickle_drresults)
