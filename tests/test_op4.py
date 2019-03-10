@@ -8,6 +8,82 @@ import scipy.sparse as sp
 from nose.tools import *
 
 
+def _check_badname_cm(cm):
+    assert (
+        cm.warnings[0].message.args[0]
+        == "Output4 file has matrix name: '1mat'. Changing to 'm0'."
+    )
+
+    assert (
+        cm.warnings[1].message.args[0]
+        == "Output4 file has matrix name: ''. Changing to 'm1'."
+    )
+
+    assert (
+        cm.warnings[2].message.args[0]
+        == "Output4 file has matrix name: '09'. Changing to 'm2'."
+    )
+
+
+def _rdop4_tst(o4):
+    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    filenames = glob("tests/nastran_op4_data/*.op4")
+    nocomp = ["cdbin", "rdbin", "csbin", "rsbin", "cd", "rd", "cs", "rs", "x100000"]
+    nocomp = [s + ".op4" for s in nocomp]
+    m = matlab.loadmat(matfile)
+
+    badname_translate = {"m0": "rmat", "m1": "cmat", "m2": "rcmat"}
+
+    for filename in filenames:
+        if os.path.basename(filename) in nocomp:
+            continue
+        if filename.find("badname") > -1:
+            with assert_warns(RuntimeWarning) as cm:
+                dct = o4.dctload(filename)
+            _check_badname_cm(cm)
+
+            with assert_warns(RuntimeWarning) as cm:
+                names, mats, forms, mtypes = o4.listload(filename)
+            _check_badname_cm(cm)
+
+            with assert_warns(RuntimeWarning) as cm:
+                names2, sizes, forms2, mtypes2 = o4.dir(filename, verbose=False)
+            _check_badname_cm(cm)
+        else:
+            dct = o4.dctload(filename)
+            names, mats, forms, mtypes = o4.listload(filename)
+            names2, sizes, forms2, mtypes2 = o4.dir(filename, verbose=False)
+        assert sorted(dct.keys()) == sorted(names)
+        assert names == names2
+        assert forms == forms2
+        assert mtypes == mtypes2
+        for mat, sz in zip(mats, sizes):
+            assert mat.shape == sz
+        for nm in dct:
+            matnm = badname_translate.get(nm, nm)
+            if nm[-1] == "s":
+                matnm = nm[:-1]
+            assert np.allclose(m[matnm], dct[nm][0])
+            pos = names.index(nm)
+            assert np.allclose(m[matnm], mats[pos])
+            assert dct[nm][1] == forms[pos]
+            assert dct[nm][2] == mtypes[pos]
+
+        nm2 = nm = "rcmat"
+        if filename.find("single") > -1:
+            nm2 = "rcmats"
+        if filename.find("badname") > -1:
+            nm2 = "m2"
+            with assert_warns(RuntimeWarning) as cm:
+                dct = o4.dctload(filename, nm2)
+                name, mat, *_ = o4.listload(filename, [nm2])
+        else:
+            dct = o4.dctload(filename, [nm2])
+            name, mat, *_ = o4.listload(filename, nm2)
+        assert np.allclose(m[nm], dct[nm2][0])
+        assert np.allclose(m[nm], mat[0])
+
+
 def test_rdop4():
     # unittest bug avoidance:
     import sys
@@ -16,123 +92,14 @@ def test_rdop4():
         if getattr(v, "__warningregistry__", None):
             v.__warningregistry__ = {}
 
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
-    filenames = glob("tests/nastran_op4_data/*.op4")
-    nocomp = ["cdbin", "rdbin", "csbin", "rsbin", "cd", "rd", "cs", "rs", "x100000"]
-    nocomp = [s + ".op4" for s in nocomp]
     o4 = op4.OP4()
-    m = matlab.loadmat(matfile)
-    for filename in filenames:
-        if os.path.basename(filename) in nocomp:
-            continue
-        if filename.find("badname") > -1:
-            with assert_warns(RuntimeWarning) as cm:
-                dct = o4.dctload(filename)
-            the_warning = str(cm.warning)
-            assert 0 == the_warning.find("Output4 file has matrix name: 1mat")
-            with assert_warns(RuntimeWarning) as cm:
-                names, mats, forms, mtypes = o4.listload(filename)
-            the_warning = str(cm.warning)
-            assert 0 == the_warning.find("Output4 file has matrix name: 1mat")
-            with assert_warns(RuntimeWarning) as cm:
-                names2, sizes, forms2, mtypes2 = o4.dir(filename, verbose=False)
-            the_warning = str(cm.warning)
-            assert 0 == the_warning.find("Output4 file has matrix name: 1mat")
-        else:
-            dct = o4.dctload(filename)
-            names, mats, forms, mtypes = o4.listload(filename)
-            names2, sizes, forms2, mtypes2 = o4.dir(filename, verbose=False)
-        assert sorted(dct.keys()) == sorted(names)
-        assert names == names2
-        assert forms == forms2
-        assert mtypes == mtypes2
-        for mat, sz in zip(mats, sizes):
-            assert mat.shape == sz
-        for nm in dct:
-            if nm[-1] == "s":
-                matnm = nm[:-1]
-            elif nm == "_1mat":
-                matnm = "rmat"
-            else:
-                matnm = nm
-            assert np.allclose(m[matnm], dct[nm][0])
-            pos = names.index(nm)
-            assert np.allclose(m[matnm], mats[pos])
-            assert dct[nm][1] == forms[pos]
-            assert dct[nm][2] == mtypes[pos]
-        nm2 = nm = "rcmat"
-        if filename.find("single") > -1:
-            nm2 = "rcmats"
-        if filename.find("badname") > -1:
-            with assert_warns(RuntimeWarning) as cm:
-                dct = o4.dctload(filename, nm2)
-                name, mat, *_ = o4.listload(filename, [nm2])
-        else:
-            dct = o4.dctload(filename, [nm2])
-            name, mat, *_ = o4.listload(filename, nm2)
-        assert np.allclose(m[nm], dct[nm2][0])
-        assert np.allclose(m[nm], mat[0])
+    _rdop4_tst(o4)
 
 
 def test_rdop4_zero_rowscutoff():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
-    filenames = glob("tests/nastran_op4_data/*.op4")
-    nocomp = ["cdbin", "rdbin", "csbin", "rsbin", "cd", "rd", "cs", "rs", "x100000"]
-    nocomp = [s + ".op4" for s in nocomp]
     o4 = op4.OP4()
     o4._rowsCutoff = 0
-    m = matlab.loadmat(matfile)
-    for filename in filenames:
-        if os.path.basename(filename) in nocomp:
-            continue
-        if filename.find("badname") > -1:
-            with assert_warns(RuntimeWarning) as cm:
-                dct = o4.dctload(filename)
-            the_warning = str(cm.warning)
-            assert 0 == the_warning.find("Output4 file has matrix name: 1mat")
-            with assert_warns(RuntimeWarning) as cm:
-                names, mats, forms, mtypes = o4.listload(filename)
-            the_warning = str(cm.warning)
-            assert 0 == the_warning.find("Output4 file has matrix name: 1mat")
-            with assert_warns(RuntimeWarning) as cm:
-                names2, sizes, forms2, mtypes2 = o4.dir(filename, verbose=False)
-            the_warning = str(cm.warning)
-            assert 0 == the_warning.find("Output4 file has matrix name: 1mat")
-        else:
-            dct = o4.dctload(filename)
-            names, mats, forms, mtypes = o4.listload(filename)
-            names2, sizes, forms2, mtypes2 = o4.dir(filename, verbose=False)
-        assert sorted(dct.keys()) == sorted(names)
-        assert names == names2
-        assert forms == forms2
-        assert mtypes == mtypes2
-        for mat, sz in zip(mats, sizes):
-            assert mat.shape == sz
-        for nm in dct:
-            if nm[-1] == "s":
-                matnm = nm[:-1]
-            elif nm == "_1mat":
-                matnm = "rmat"
-            else:
-                matnm = nm
-            assert np.allclose(m[matnm], dct[nm][0])
-            pos = names.index(nm)
-            assert np.allclose(m[matnm], mats[pos])
-            assert dct[nm][1] == forms[pos]
-            assert dct[nm][2] == mtypes[pos]
-
-        nm2 = nm = "rcmat"
-        if filename.find("single") > -1:
-            nm2 = "rcmats"
-        if filename.find("badname") > -1:
-            with assert_warns(RuntimeWarning) as cm:
-                dct = o4.dctload(filename, nm2)
-                name, mat, *_ = o4.listload(filename, [nm2])
-        else:
-            dct = o4.dctload(filename, [nm2])
-            name, mat, *_ = o4.listload(filename, nm2)
-        assert np.allclose(m[nm], dct[nm2][0])
-        assert np.allclose(m[nm], mat[0])
+    _rdop4_tst(o4)
 
 
 def test_rdop4_partb():

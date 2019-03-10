@@ -156,6 +156,7 @@ class OP4:
         bytes = self._fileh.read(16)
         self._endian = ""
         self._dformat = False
+        self._matcount = 0
 
         # Assuming binary, check for a zero byte in the 'type' field;
         # will have one at front or back if binary:
@@ -284,21 +285,23 @@ class OP4:
                 c = int(line[:8]) - 1
         self._fileh.readline()
 
-    @staticmethod
-    def _check_name(name):
+    def _check_name(self, name):
         """
-        Check name read from op4 file: strip all blanks/nulls and
-        put '_' on front if needed.
+        Check name read from op4 file: strip all blanks/nulls; if name
+        is not a valid Python identifier, it is set to
+        f"m{self._matcount}". self._matcount starts at 0 and is
+        incremented in this routine.
 
         Returns new name (usually the same as the input name).
         """
         name = name.strip(" \x00").replace(" ", "").replace("\x00", "").lower()
-        if not (name[0].isalpha() or name[0] == "_"):
-            oldname, name = name, "_" + name
+        if not name.isidentifier():
+            oldname, name = name, f"m{self._matcount}"
             warnings.warn(
-                f"Output4 file has matrix name: {oldname}. Changing to {name}.",
+                f"Output4 file has matrix name: {oldname!r}. Changing to {name!r}.",
                 RuntimeWarning,
             )
+        self._matcount += 1
         return name
 
     def _get_ascii_block(self, L, perline, linelen):
