@@ -26,7 +26,8 @@ def relative_displacement_dtm(nas, node_pairs):
         and `tug1` entries as shown in the example usage below. The
         matrix `mug1` is a data recovery matrix (to recover the
         displacements) and `tug1` is the DOF map to `mug1`: ``[node,
-        dof]``. The naming convention is::
+        dof]``. These get created during an "EXTSEOUT" Nastran run.
+        The naming convention is::
 
             tug1 --> nas['tug1'][se]
             mug1 --> nas['extse'][se]['mug1']

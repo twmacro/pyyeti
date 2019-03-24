@@ -300,3 +300,30 @@
      - number equations
      - example uses SolveUnc for plot label
      - fixed in v0.95.1
+
+~119. Mark srs end points in cla.DR_Results.srs_plots
+      v0.95.5
+
+120. In cla.DR_Results.*_plots ... plot legend looks bad unless
+     positioned with live plot ???
+
+~121. Could mention in relative_displacement_dtm where tug1, mug1
+     usually come from ... or maybe that's shown in the example?
+     v0.95.5
+
+122. cla.DR_Def
+     - When checking for a data recovery function, second import
+       of say "drfuncs.py" (from a different directory) fails
+       because the "drfuncs" module was already imported. However,
+       the actual importer during data recovery seems to work ....
+       Two different import methods?
+
+123. cla.DR_Def
+     - Pickle loading not working properly: cannot rely on
+       having "drdefaults". For example, the drdefs may have been
+       merged from multiple different sets, all with their own
+       "drdefaults".
+
+124. cla.DR_Def, cla.DR_Results
+     - Right now, there is no way to assure or confirm that a "psd"
+       version of a data recovery function gets or was used ... hmm

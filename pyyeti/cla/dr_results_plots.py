@@ -213,8 +213,16 @@ def _legend_layout(leg_info, tight_layout_args):
 
 
 def _mark_srs(plot, x, y, line, marker, label, **kwargs):
-    me = signal.argrelextrema(y, np.greater)[0]
-    return plot(x, y, line, marker=marker, markevery=list(me), label=label, **kwargs)
+    if len(y) > 1:
+        me = list(signal.argrelextrema(y, np.greater)[0])
+        # to capture end points too:
+        if y[0] > y[1]:
+            me.insert(0, 0)
+        if y[-1] > y[-2]:
+            me.append(len(y) - 1)
+    else:
+        me = [0]
+    return plot(x, y, line, marker=marker, markevery=me, label=label, **kwargs)
 
 
 def _plot_all(
