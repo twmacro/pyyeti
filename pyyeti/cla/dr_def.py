@@ -2,7 +2,6 @@
 """
 DR_Def: data recovery definitions
 """
-import importlib
 import os
 import sys
 import copy
@@ -16,7 +15,7 @@ import numpy as np
 import pandas as pd
 import xlsxwriter
 from pyyeti.nastran import n2p
-from ._utilities import _merge_uf_reds, _is_valid_identifier
+from ._utilities import _merge_uf_reds, _is_valid_identifier, get_drfunc
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -224,26 +223,19 @@ class DR_Def(OrderedDict):
             )
             return s0, s1
 
-        modpath, modfile = os.path.split(filename)
-        if modfile.endswith(".py"):
-            modfile = modfile[:-3]
-        sys.path.insert(0, modpath)
         try:
-            drmod = importlib.import_module(modfile)
-        except (ImportError, SyntaxError) as e:
+            get_drfunc(filename, funcname)
+        except (FileNotFoundError, ImportError, SyntaxError) as e:
             s0, s1 = _get_msg()
             msg = (
-                f'{s0} import of "{modfile}" failed. {s1}\nThe exception was: '
+                f'{s0} import of "{filename}" failed. {s1}\nThe exception was: '
                 f"{type(e).__name__}: {e!s}"
             )
             warnings.warn(msg, RuntimeWarning)
-        else:
-            if funcname not in dir(drmod):
-                s0, s1 = _get_msg()
-                msg = f'{s0} "{funcname}" not found in: {filename}. {s1}'
-                warnings.warn(msg, RuntimeWarning)
-        finally:
-            sys.path.pop(0)
+        except AttributeError:
+            s0, s1 = _get_msg()
+            msg = f'{s0} "{funcname}" not found in: {filename}. {s1}'
+            warnings.warn(msg, RuntimeWarning)
 
     def _handle_defaults(self, name):
         """Handle default values and take default actions"""
@@ -256,20 +248,13 @@ class DR_Def(OrderedDict):
         if ns.drfile is None:
             # this is set to defaults only if it is in defaults,
             # otherwise, leave it None
-            if "drfile" in self.defaults:
-                ns.drfile = self.defaults
+            ns.drfile = self.defaults.get("drfile", None)
 
         if ns.se is None:
-            if "se" in self.defaults:
-                ns.se = self.defaults
-            else:
-                ns.se = 0
+            ns.se = self.defaults.get("se", 0)
 
         if ns.uf_reds is None:
-            if "uf_reds" in self.defaults:
-                ns.uf_reds = self.defaults
-            else:
-                ns.uf_reds = (1, 1, 1, 1)
+            ns.uf_reds = self.defaults.get("uf_reds", (1, 1, 1, 1))
 
         if ns.srsQs is None:
             for k, v in ns.__dict__.items():
@@ -1168,9 +1153,22 @@ class DR_Def(OrderedDict):
 # setup pickling for a little bit of future-proofing:
 def unpickle_drdefs(kwargs):
     # pickle_version is not used yet
-    pickle_version = kwargs.pop("__pickle_version", 0)
-    defaults = kwargs.pop("__defaults", {"srsQs": None, "srsfrq": None})
-    new_drdefs = DR_Def(defaults)
+    kwargs.pop("__pickle_version", 0)
+
+    # Cannot use old drdefaults. For example, the drdefs may have been
+    # merged from multiple different sets, all with their own
+    # "drdefaults". So, get it but don't use it
+    drdefaults = kwargs.pop("__defaults", None)
+
+    # Currently, "srsQs" and "srsfrq" are set to "defaults" if None
+    # (which is handy when defining categories originally, but less
+    # handy for unpickling already-processed categories) ... then, if
+    # any other "srs*" value is set (like "srsconv" used to be), the
+    # "add" will fail because they're not in the "defaults". This is
+    # avoided here simply by setting these two values to None in a new
+    # "defaults". (This feels messy ... I'd like a better way to do
+    # handle this ....)
+    new_drdefs = DR_Def({"srsQs": None, "srsfrq": None})
     for k, v in kwargs.items():
         if k.startswith("__"):
             continue
@@ -1178,6 +1176,10 @@ def unpickle_drdefs(kwargs):
             new_drdefs[k] = v
         else:
             new_drdefs.add(name=k, **v.__dict__)
+
+    if drdefaults:
+        new_drdefs.defaults = drdefaults
+
     return new_drdefs
 
 

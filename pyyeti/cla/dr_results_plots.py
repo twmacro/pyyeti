@@ -488,7 +488,8 @@ def mk_plots(
     rows = layout[0]
     cols = layout[1]
     perpage = rows * cols
-    orientation = "landscape" if figsize[0] > figsize[1] else "portrait"
+    # The following removed in v0.95.5:
+    # orientation = "landscape" if figsize[0] > figsize[1] else "portrait"
 
     if drms is None:
         alldrms = sorted(res)
@@ -661,13 +662,14 @@ def mk_plots(
                         # papertype='letter')
                     elif fmt:
                         fname = os.path.join(direc, prefix + "." + fmt)
-                        if fmt != "pdf":
-                            kwargs = dict(
-                                orientation=orientation, dpi=200, bbox_inches="tight"
-                            )
-                        else:
-                            kwargs = {}
-                        plt.savefig(fname, format=fmt, **kwargs)
+                        # The following removed in v0.95.5:
+                        # if fmt != "pdf":
+                        #     kwargs = dict(
+                        #         orientation=orientation, dpi=200, bbox_inches="tight"
+                        #     )
+                        # else:
+                        #     kwargs = {}
+                        plt.savefig(fname, format=fmt)  # , **kwargs)
                     if not show_figures:
                         plt.close(cur_fig)
                         cur_fig = None

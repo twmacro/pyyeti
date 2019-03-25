@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import xlsxwriter
 from pyyeti import locate, srs
-from ._utilities import _is_valid_identifier, maxmin, extrema
+from ._utilities import _is_valid_identifier, maxmin, extrema, get_drfunc
 from ._rptext1 import rptext1
 from ._rptpct1 import rptpct1
 from ._rpttab1 import rpttab1
@@ -25,48 +25,6 @@ try:
     np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
-
-
-def get_drfunc(drinfo, get_psd=False):
-    """
-    Get data recovery function(s)
-
-    Parameters
-    ----------
-    drinfo : SimpleNamespace
-        Typically created by a call to :func:`DR_Def.add` (see also
-        :class:`DR_Def`, where the `drinfo` entry is shown for the
-        'SC_ifa' category as an example). The relevant members for
-        this routine are "drfile" and "drfunc".
-    get_psd : bool; optional
-        If True, return a tuple of (`drfunc`, `psd_drfunc`).
-        Otherwise, just return `drfunc`.
-
-    Returns
-    -------
-    drfunc : function
-        The data recovery function
-    psd_drfunc : function or None; optional
-        The PSD-specific data recovery function or None if no such
-        function was defined; only returned if `get_psd` is True.
-    """
-    if _is_valid_identifier(drinfo.drfunc):
-        spec = importlib.util.spec_from_file_location("has_drfuncs", drinfo.drfile)
-        drmod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(drmod)
-        func = getattr(drmod, drinfo.drfunc)
-        if get_psd:
-            psdfunc = getattr(drmod, drinfo.drfunc + "_psd", None)
-            return func, psdfunc
-        return func
-
-    # build function and return it:
-    strfunc = "def _func(sol, nas, Vars, se):\n    return " + drinfo.drfunc.strip()
-    g = globals()
-    exec(strfunc, g)
-    if get_psd:
-        return g["_func"], None
-    return g["_func"]
 
 
 def _is_eqsine(opts):
@@ -927,7 +885,7 @@ class DR_Results(OrderedDict):
             dr = DR.Info[name]  # record with: .desc, .labels, ...
             uf_reds = dr.uf_reds
             SOL = sol[uf_reds]
-            drfunc = get_drfunc(dr)
+            drfunc = get_drfunc(dr.drfile, dr.drfunc)
             resp = drfunc(SOL, nas, DR.Vars, dr.se)
 
             mm = maxmin(resp, SOL.t)
@@ -1003,7 +961,7 @@ class DR_Results(OrderedDict):
             dr = DR.Info[name]  # record with: .desc, .labels, ...
             uf_reds = dr.uf_reds
             SOL = sol[uf_reds]
-            drfunc = get_drfunc(dr)
+            drfunc = get_drfunc(dr.drfile, dr.drfunc)
             resp = drfunc(SOL, nas, DR.Vars, dr.se)
 
             mm = maxmin(abs(resp), SOL.f)
@@ -1132,7 +1090,9 @@ class DR_Results(OrderedDict):
             # loop; returns tuple: (func, func_psd) ... func_psd will
             # be None if no special function defined for PSD
             # recovery):
-            drfuncs[key] = get_drfunc(value.drminfo, get_psd=True)
+            drfuncs[key] = get_drfunc(
+                value.drminfo.drfile, value.drminfo.drfunc, get_psd=True
+            )
 
         import time
 

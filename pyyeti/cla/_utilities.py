@@ -5,12 +5,14 @@ from collections import OrderedDict
 from types import SimpleNamespace
 from keyword import iskeyword
 import datetime
+import importlib
 import numpy as np
 from pyyeti import locate
 
 
 __all__ = [
     "_is_valid_identifier",
+    "get_drfunc",
     "_merge_uf_reds",
     "_get_rpt_headers",
     "_get_numform",
@@ -39,6 +41,50 @@ except TypeError:
 def _is_valid_identifier(name):
     "Return True if `name` is valid Python identifier"
     return name.isidentifier() and not iskeyword(name)
+
+
+def get_drfunc(filename, funcname, get_psd=False):
+    """
+    Get data recovery function(s)
+
+    Parameters
+    ----------
+    filename : string
+        Name of Python file containing data recovery function
+    funcname : string
+        Name of data recovery function
+    get_psd : bool; optional
+        If True, return a tuple of (`drfunc`, `psd_drfunc`).
+        Otherwise, just return `drfunc`.
+
+    Returns
+    -------
+    drfunc : function
+        The data recovery function
+    psd_drfunc : function or None; optional
+        The PSD-specific data recovery function or None if no such
+        function was defined; only returned if `get_psd` is True.
+    """
+    if _is_valid_identifier(funcname):
+        # force a proper exception if file doesn't exist:
+        with open(filename, "r") as _:
+            pass
+        spec = importlib.util.spec_from_file_location("has_drfuncs", filename)
+        drmod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(drmod)
+        func = getattr(drmod, funcname)
+        if get_psd:
+            psdfunc = getattr(drmod, funcname + "_psd", None)
+            return func, psdfunc
+        return func
+
+    # build function and return it:
+    strfunc = "def _func(sol, nas, Vars, se):\n    return " + funcname.strip()
+    g = globals()
+    exec(strfunc, g)
+    if get_psd:
+        return g["_func"], None
+    return g["_func"]
 
 
 def _merge_uf_reds(old, new, method="replace"):

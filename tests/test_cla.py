@@ -770,6 +770,7 @@ def summarize(pth):
         # write extrema reports:
         results["extreme"].rpttab(excel=event.lower())
         results["extreme"].srs_plots(Q=10, showall=True)
+        results["extreme"].srs_plots(Q=10, showall=True, fmt="png")
 
         # group results together to facilitate investigation:
         Grouped_Results = cla.DR_Results()
@@ -1027,7 +1028,6 @@ def check_split():
 def do_srs_plots():
     plt.close("all")
     with cd("summary"):
-        # Load both sets of results and report percent differences:
         results = cla.load("results.pgz")
         with assert_warns(RuntimeWarning) as cm:
             results["extreme"].srs_plots(
@@ -1119,8 +1119,8 @@ def test_transfer_orbit_cla():
             do_srs_plots()
             do_time_plots()
     finally:
-        # pass
-        shutil.rmtree("./temp_cla", ignore_errors=True)
+        pass
+        # shutil.rmtree("./temp_cla", ignore_errors=True)
 
 
 def test_maxmin():
@@ -1726,10 +1726,6 @@ def test_merge():
     assert str(results).endswith(
         "with 4 keys: ['FDLC', 'VLC', 'Liftoff, Transonics, MECO', 'extreme']"
     )
-
-    results["newentry"] = "should cause type error"
-    results.strip_hists()
-    # assert_raises(TypeError, results.strip_hists)
 
     results = cla.DR_Results()
     r1 = {"FLAC": "this is a bad entry"}
@@ -3230,3 +3226,29 @@ def test_dr_def_merge():
         drdefs[1],
         drdefs[2],
     )
+
+
+def test_drdef_importer():
+    # setup CLA parameters:
+    # define some defaults for data recovery:
+    drdefs = cla.DR_Def()
+
+    @cla.DR_Def.addcat
+    def _():
+        name = "atm"
+        labels = 12
+        drfile = "drfuncs.py"
+        drfunc = "atm"
+        with warnings.catch_warnings(record=True) as w:
+            drdefs.add(**locals())
+            assert len(w) == 0
+
+    @cla.DR_Def.addcat
+    def _():
+        name = "ltm"
+        labels = 12
+        drfile = "ltmdrfuncs/drfuncs.py"
+        drfunc = "ltm"
+        with warnings.catch_warnings(record=True) as w:
+            drdefs.add(**locals())
+            assert len(w) == 0
