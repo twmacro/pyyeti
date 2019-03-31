@@ -1119,8 +1119,8 @@ def test_transfer_orbit_cla():
             do_srs_plots()
             do_time_plots()
     finally:
-        pass
-        # shutil.rmtree("./temp_cla", ignore_errors=True)
+        # pass
+        shutil.rmtree("./temp_cla", ignore_errors=True)
 
 
 def test_maxmin():
@@ -3113,7 +3113,8 @@ def get_dr_defs(se, cats, drms_, nondrms_):
             drms = {drms_[i]: i}
             nondrms = {nondrms_[i]: 10 + i}
             drfunc = f"Vars[se]['{name}'] @ sol.a"
-            srsopts = dict(eqsine=1, ic="steady")
+            if not name.startswith("ltm"):
+                srsopts = dict(eqsine=1, ic="steady")
             drdefs.add(**locals())
 
     return drdefs
@@ -3138,23 +3139,32 @@ def test_dr_def_merge():
     drdefs_merge = cla.DR_Def.merge(drdefs[0], drdefs[1], drdefs[2])
     drdefs_add = drdefs[0] + drdefs[1] + drdefs[2]
 
-    # se 101 has the 0 drms and se 102 has the 1 & 2 drms:
-    for drdefs_ in (drdefs_merge, drdefs_add):
-        for se, addon in ((101, [0]), (102, [1, 2])):
-            cur_drms = drdefs_["_vars"].drms[se]
-            cur_nondrms = drdefs_["_vars"].nondrms[se]
-            for i, name in enumerate(names):
-                for j in addon:
-                    cur_name = name + "{}_d".format(j)
-                    assert cur_name in cur_drms
-                    assert cur_drms[cur_name] == i
+    for _ in range(2):
+        # se 101 has the 0 drms and se 102 has the 1 & 2 drms:
+        for drdefs_ in (drdefs_merge, drdefs_add):
+            for se, addon in ((101, [0]), (102, [1, 2])):
+                cur_drms = drdefs_["_vars"].drms[se]
+                cur_nondrms = drdefs_["_vars"].nondrms[se]
+                for i, name in enumerate(names):
+                    for j in addon:
+                        cur_name = name + f"{j}_d"
+                        assert cur_name in cur_drms
+                        assert cur_drms[cur_name] == i
 
-                    cur_name = name + "{}_n".format(j)
-                    assert cur_name in cur_nondrms
-                    assert cur_nondrms[cur_name] == 10 + i
+                        cur_name = name + f"{j}_n"
+                        assert cur_name in cur_nondrms
+                        assert cur_nondrms[cur_name] == 10 + i
 
-    assert list(drdefs_merge) == ["_vars", *cats]
-    assert list(drdefs_add) == ["_vars", *cats]
+        assert list(drdefs_merge) == ["_vars", *cats]
+        assert list(drdefs_add) == ["_vars", *cats]
+
+        try:
+            pname = "test_drdefs_pickle.p"
+            cla.save(pname, drdefs_add)
+            drdefs_add = cla.load(pname)
+        finally:
+            # pass
+            os.remove(pname)
 
     drdefs_add = drdefs[2] + drdefs[0] + drdefs[1]
     new_cats = [name + str(i) for i in (2, 0, 1) for name in ["atm", "ltm", "dtm"]]

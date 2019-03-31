@@ -323,14 +323,12 @@
        Two different import methods?
        v0.95.5
 
-`123. cla.DR_Def
+~123. cla.DR_Def
      - Pickle loading not working properly: cannot rely on
        having "drdefaults". For example, the drdefs may have been
        merged from multiple different sets, all with their own
        "drdefaults".
        v0.95.5
-
-       - still needs testing as of v0.95.5!!!
 
 124. cla.DR_Def, cla.DR_Results
      - Right now, there is no way to assure or confirm that a "psd"

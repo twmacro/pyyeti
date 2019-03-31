@@ -31,10 +31,10 @@ More features are planned in the near future.
 
 Installation
 ------------
-pyYeti runs on Python 3.5 or later. The dependencies are NumPy, SciPy,
+pyYeti runs on Python 3.6 or later. The dependencies are NumPy, SciPy,
 Matplotlib, pandas and setuptools. These are all conveniently provided
 by the Anaconda Python distribution:
-https://www.continuum.io/downloads.
+https://www.anaconda.com/distribution/.
 
 The easiest way to install is to try `pip`::
 
