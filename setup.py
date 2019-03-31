@@ -28,7 +28,7 @@ def read(*filenames, **kwargs):
     return sep.join(buf)
 
 
-long_description = read("README.rst")
+long_description = read("README.md")
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
     "Programming Language :: C",
