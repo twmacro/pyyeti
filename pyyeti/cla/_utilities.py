@@ -567,7 +567,7 @@ def _calc_covariance_sine_cosine(varx, vary, covar):
     #     theta = np.arctan2(phi[1, 1], phi[0, 1])
     #
     # Or, since this is just a 2x2 for each item, we can also solve
-    # this by ahead of time.
+    # this by hand ahead of time.
 
     # allocate sine and cosine arrays:
     n = varx.shape[0]

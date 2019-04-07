@@ -7,13 +7,12 @@ import copy
 from collections import OrderedDict
 from types import SimpleNamespace
 import warnings
-import importlib
 import copyreg
 import numpy as np
 import matplotlib.pyplot as plt
 import xlsxwriter
 from pyyeti import locate, srs
-from ._utilities import _is_valid_identifier, maxmin, extrema, get_drfunc
+from ._utilities import maxmin, extrema, get_drfunc
 from ._rptext1 import rptext1
 from ._rptpct1 import rptpct1
 from ._rpttab1 import rpttab1

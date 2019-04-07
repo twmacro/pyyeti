@@ -108,6 +108,7 @@ def run_setup(with_binary):
         author_email="twmacro@gmail.com",
         description=("Tools mostly related to structural dynamics"),
         long_description=long_description,
+        long_description_content_type="text/markdown",
         packages=find_packages(),
         include_package_data=True,
         platforms="any",
