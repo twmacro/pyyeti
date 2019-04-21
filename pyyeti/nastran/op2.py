@@ -1821,13 +1821,13 @@ class OP2:
 
                      nasset    x    y    z
             id dof
-            1  1    2097154  1.0  2.0  3.0     # grid location
-               2    2097154  0.0  1.0  0.0     # coord system info
-               3    2097154  0.0  0.0  0.0     # coord system origin
-               4    2097154  1.0  0.0  0.0     # | transform to basic
-               5    2097154  0.0  1.0  0.0     # | for coord system
-               6    2097154  0.0  0.0  1.0     # |
-            2  0    4194304  0.0  0.0  0.0     # spoint location
+            1  1    2097154  1.0  2.0  3.0    # grid location in basic
+               2    2097154  0.0  1.0  0.0    # coord system info
+               3    2097154  0.0  0.0  0.0    # coord system origin
+               4    2097154  1.0  0.0  0.0    # | transform to basic
+               5    2097154  0.0  1.0  0.0    # | for coord system
+               6    2097154  0.0  0.0  1.0    # |
+            2  0    4194304  0.0  0.0  0.0    # spoint
 
         That example was formed by using
         :func:`pyyeti.nastran.n2p.make_uset`::
@@ -1941,7 +1941,7 @@ class OP2:
 
         See also
         --------
-        :func:`rdnas2cam`, :mod:`pyyeti.nastran`.
+        :func:`rdnas2cam`, :func:`pyyeti.nastran.bulk.bulk2uset`.
         """
         # setup basic coordinate system info and a dummy for spoints:
         bc = np.array(

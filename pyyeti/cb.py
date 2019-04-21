@@ -839,6 +839,24 @@ def mk_net_drms(
 
         If None, the transform is assumed to be identity.
 
+        .. note::
+            The coordinates of the data recovery matrices are
+            naturally in s/c coordinates (implicitly defined via the
+            mass and stiffness matrices). The s/c coordinate system is
+            ultimately defined in the Nastran coupling run, not in
+            this routine. So, the `sccoord` input does not affect the
+            matrices that recover in s/c coordinates; it is *only*
+            used to compute the l/v coordinate system versions *from*
+            the s/c versions. Therefore, the l/v versions will be
+            incorrect if `sccoord` does not agree with the Nastran
+            coupling run.
+
+            So, why not have a `lvcoord` input instead? While that
+            would make more sense for this routine, `sccoord` is used
+            simply because that's very likely what is used in the
+            Nastran coupling run, making it more convenient and less
+            error-prone than defining a `lvcoord` input.
+
     conv : None or 2-element array_like or string; optional
         If None, no unit conversion is done; otherwise, units are
         converted from s/c to l/v. If 2-element array_like, it is::
