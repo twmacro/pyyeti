@@ -8,6 +8,7 @@ import itertools
 from collections import abc
 from warnings import warn
 from types import SimpleNamespace
+import numbers
 import numpy as np
 import scipy.signal as signal
 import scipy.interpolate as interp
@@ -2060,9 +2061,6 @@ def waterfall(
     slicekwargs : dict; optional
         If provided, these are passed to `slicefunc`. Must be None or
         `{}` if `slicefunc` is None.
-    units : tuple_like; optional
-        Contains two strings to specify units of `timeslice` and
-        `tsoverlap`.
 
     Returns
     -------
@@ -2180,24 +2178,21 @@ def waterfall(
         def slicefunc(a):
             return a
 
-    try:
-        flen = len(freq)
-        mp = np.zeros((flen, tlen), float)
-        col = 0
-    except TypeError:
+    # do first iteration outside loop to get freq and allocate map:
+    s = slicefunc(sig[b : b + ntimeslice], *sliceargs, **slicekwargs)
+    b += inc
+    res = func(s, *args, **kwargs)
+    if isinstance(freq, numbers.Integral):
         if which is None:
             raise ValueError("`which` cannot be None when `freq` is an integer")
-        # do first iteration outside loop to get freq:
-        s = slicefunc(sig[b : b + ntimeslice], *sliceargs, **slicekwargs)
-        b += inc
-        res = func(s, *args, **kwargs)
         freq = res[freq]
         flen = len(freq)
-        mp = np.zeros((flen, tlen), float)
-        mp[:, 0] = res[which]
-        col = 1
+    else:
+        flen = len(freq)
+    mp = np.zeros((flen, tlen), res[which].dtype)
+    mp[:, 0] = res[which]
 
-    for j in range(col, tlen):
+    for j in range(1, tlen):
         s = slicefunc(sig[b : b + ntimeslice], *sliceargs, **slicekwargs)
         b += inc
         res = func(s, *args, **kwargs)
@@ -2744,9 +2739,19 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5, makeplot="no"):
     return y_h, freq, h
 
 
+def _fftsize(n, sr, maxdf):
+    if maxdf and sr / n > maxdf:
+        N = nextpow2(int(sr / maxdf))
+    else:
+        N = n
+    return N
+
+
 def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxdf=None):
     r"""
-    FFT sine/cosine or magnitude/phase coefficients of a signal
+    FFT sine/cosine or magnitude/phase coefficients of a real signal
+
+    This routine returns the positive frequency coefficients only.
 
     Parameters
     ----------
@@ -2755,9 +2760,17 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
     sr : scalar
         The sample rate (samples/sec)
     coef : string; optional
-        If set to 'mag', return magnitude and phase; otherwise,
-        return A and B: the cosine and sine coefficients (see
-        below)
+        Specifies how to return the coefficients:
+
+        ==========   ========================
+          `coef`     Return
+        ==========   ========================
+         "mag"       (magnitude, phase, freq)
+         "ab"        (a, b, freq)
+         "complex"   (a + i b, None, freq)
+        ==========   ========================
+
+        See below for more details.
     window : string, tuple, or 1d array_like; optional
         Specifies window function. If a string or tuple, it is passed
         to :func:`scipy.signal.get_window` to get the window. If 1d
@@ -2778,17 +2791,26 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
 
     Returns
     -------
-    MAG_or_A : 1d ndarray
-        The magnitude or cosine coefficients
-    PHASE_or_B : 1d ndarray
-        The phase (rad) or sine coefficients
-    f : 1d ndarray
-        Frequency vector (Hz)
+    3-tuple depending on `coef`:
+
+        ==========   ========================
+          `coef`     Return value
+        ==========   ========================
+         "mag"       (magnitude, phase, freq)
+         "ab"        (a, b, freq)
+         "complex"   (a + i b, None, freq)
+        ==========   ========================
+
+        All values are for the positive side frequencies only.
+        Definitions of `magnitude`, `phase`, and the `a` and `b`
+        coefficients are shown below. `freq` is in Hz.
 
     Notes
     -----
     The FFT results are scaled according to the 'coherent gain' of the
-    window function (1.0 "boxcar")::
+    window function. For the "boxcar" window (which is just all
+    1.0's), the coherent gain is 1.0. The coherent gain is defined
+    by::
 
         scale = 1/coherent_gain
         coherent_gain = sum(window)/len(window)
@@ -2805,12 +2827,13 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
                   A_k \cos(k \omega t_n) +
                   B_k \sin(k \omega t_n)
 
-    where :math:`\omega = 2 \pi \Delta f`, :math:`M` is the magnitude,
-    and :math:`\phi` is the phase.
+    where :math:`\omega = 2 \pi \Delta freq`, :math:`M` is the
+    magnitude, and :math:`\phi` is the phase.
 
     The example below uses these formulas directly to upsample a
-    signal. This is for demonstration only; to truly upsample a
-    signal based on FFT, see :func:`scipy.signal.resample`.
+    signal. This is for demonstration only; to truly upsample a signal
+    based on FFT in a more efficient manner, see
+    :func:`scipy.signal.resample`.
 
     See also
     --------
@@ -2860,8 +2883,12 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
         >>> _ = plt.legend(loc='best')
         >>> _ = plt.title('Using `fftcoef` for FFT curve fit')
         >>> _ = plt.xlabel('Time (s)')
-
     """
+    if coef not in ("mag", "ab", "complex"):
+        raise ValueError(
+            f"invalid `coef` ({coef!r}). Must be one of 'mag', 'ab', or 'complex'."
+        )
+
     n = len(x)
     if isinstance(window, (str, tuple)):
         window = signal.get_window(window, n)
@@ -2879,13 +2906,6 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
     else:
         x = x * window
 
-    def _fftsize(n, sr, maxdf):
-        if maxdf and sr / n > maxdf:
-            N = nextpow2(int(sr / maxdf))
-        else:
-            N = n
-        return N
-
     N = _fftsize(n, sr, maxdf)
     if N > n:
         X = np.empty(N)
@@ -2893,26 +2913,28 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
         X[n:] = 0.0
     else:
         X = x
-    even = not N & 1
-    if even:
-        m = N // 2 + 1
-    else:
-        m = (N + 1) // 2
 
-    F = np.fft.fft(X)
-    f = np.arange(0.0, m) * (sr / N)
+    F = np.fft.rfft(X)
+    f = np.fft.rfftfreq(N, 1.0 / sr)
+    # or, could do this to get same result:
+    #     F = np.fft.fft(X)
+    #     m = N // 2 + 1
+    #     f = np.arange(0.0, m) * (sr / N)
+    #     F = F[:m]
     if fold:
-        a = 2.0 * F[:m].real / n
-        a[0] = a[0] / 2.0
-        if even:
-            a[m - 1] = a[m - 1] / 2.0
-        b = -2.0 * F[:m].imag / n
+        a = 2.0 * F.real / n
+        a[0] /= 2.0
+        if not N & 1:  # if N is an even number
+            a[-1] /= 2.0
+        b = -2.0 * F.imag / n
     else:
-        a = F[:m].real / n
-        b = -F[:m].imag / n
+        a = F.real / n
+        b = -F.imag / n
 
     if coef == "mag":
         return np.sqrt(a ** 2 + b ** 2), np.arctan2(-a, b), f
+    elif coef == "complex":
+        return a + 1j * b, None, f
     return a, b, f
 
 
@@ -3014,3 +3036,263 @@ def fftmap(
         freq=2,
         kwargs=dict(sr=sr, window=window, dodetrend=dodetrend, fold=fold, maxdf=maxdf),
     )
+
+
+def transmissibility(
+    in_data,
+    out_data,
+    sr,
+    timeslice=1.0,
+    tsoverlap=0.5,
+    window="hann",
+    getmap=False,
+    **kwargs
+):
+    r"""
+    Compute transmissibility transfer function using the FFT
+
+    Transmissibility is a common transfer function measurement of
+    ``output / input``. It is a type of frequency response function
+    where the gain (magnitude) vs frequency is of primary
+    interest. Note that the phase can be computed from the output of
+    this routine as well.
+
+    Parameters
+    ----------
+    in_data : 1d array_like
+        Time series of measurement values for the input data
+    out_data : 1d array_like
+        Time series of measurement values for the output data
+    sr : scalar
+        Sample rate.
+    timeslice : scalar or string-integer
+        If scalar, it is the length in seconds for each slice. If
+        string, it contains the integer number of points for each
+        slice. For example, if `sr` is 1000 samples/second,
+        ``timeslice=0.75`` is equivalent to ``timeslice="750"``.
+    tsoverlap : scalar in [0, 1) or string-integer
+        If scalar, is the fraction of each time-slice to overlap. If
+        string, it contains the integer number of points to
+        overlap. For example, if `sr` is 1000 samples/second,
+        ``tsoverlap=0.5`` and ``tsoverlap="500"`` each specify 50%
+        overlap.
+    window : string, tuple, or 1d array_like; optional
+        Specifies window function. If a string or tuple, it is passed
+        to :func:`scipy.signal.get_window` to get the window. If 1d
+        array_like, it must be length ``len(x)`` and is used directly.
+    getmap : bool, optional
+        If True, get the transfer function map output (the `tfmap` and
+        `t` variables described below).
+    *kwargs : optional
+        Named arguments to pass to :func:`scipy.signal.fftcoef`. Note
+        that `x`, `sr`, `coef` and `window` arguments are passed
+        automatically, and that `fold` is irrelevant (due to computing
+        a ratio). Therefore, at the time of this writing, only
+        `dodetrend`, and `maxdf` are really valid entries in `kwargs`.
+
+    Returns
+    -------
+    f : 1d ndarray
+        Array of sample frequencies.
+    tf : 1d ndarray
+        Average magnitude of transmissibility transfer function across
+        all time slices of ``out_data / in_data``; length is
+        ``len(f)``::
+
+             tf = abs(tfmap).mean(axis=1)
+
+    tfmap : complex 2d ndarray; optional
+        The complex transfer function map. Each column is a transfer
+        function of ``out_data / in_data`` computed from the FFT ratio
+        for the corresponding time slice. Rows correspond to frequency
+        `f` and columns correspond to time `t`. Only output if
+        `getmap` is True. Following the conventions used in
+        :func:`dsp.fftcoef`::
+
+             magnitude_map = abs(tfmap)
+             phase_map = np.arctan2(-tfmap.real, tfmap.imag)
+
+    t : 1d ndarray; optional
+        The time vector for the columns of `tfmap`. Only output if
+        `getmap` is True.
+
+    Notes
+    -----
+    This routine calls :func:`waterfall` for handling the timeslices
+    and preparing the output and :func:`fftcoef` (with `coef` set to
+    "complex") to process each time slice of both `in_data` and
+    `out_data`.
+
+    The frequency step size is determined by `timeslice` in seconds::
+
+        freq_step_size = 1 / timeslice
+
+    Examples
+    --------
+    We'll make up a pseudo-random signal with content from 5 to 60 Hz,
+    and use that as a base-excitation (acceleration) input to a spring
+    mass system. This is the same system as used in the
+    :func:`pyyeti.srs.srs` routine::
+
+                      _____    ^
+                     |     |   |
+                     |  M  |  ---  SDOF response (x)
+                     |_____|
+                      /  |
+                    K \ |_| C  ^
+                      /  |     |
+                    [=======] ---  input base acceleration (sig)
+
+    We'll then compute the transmissibility of the acceleration of the
+    mass relative to the base-excitation. We should see a nice peak
+    (roughly equal to the dynamic amplification factor Q) at the
+    natural frequency of the single degree of freedom system. For the
+    example, the frequency of the SDOF system is set to 35 Hz and Q is
+    set to 25.
+
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
+        >>> from matplotlib import cm
+        >>> import matplotlib.gridspec as gridspec
+        >>> from pyyeti import dsp, psd, ode
+        >>>
+        >>> # make up a flat (5-60 Hz) spectrum signal as input:
+        >>> psd_ = 1.0
+        >>> fstart = 5.0
+        >>> fstop = 60.0
+        >>> spec = np.array([[0.1, psd_], [100.0, psd_]])
+        >>> in_acce, sr, t = psd.psd2time(
+        ...     spec, 10, fstart, fstop, 0.05, gettime=True,
+        ...     winends={"ends": "both"}
+        ... )
+        >>>
+        >>> # define a 35 hz system with 2% damping (Q = 25):
+        >>> frq = 35.0
+        >>> omega = frq * np.pi * 2
+        >>> Q = 25
+        >>> zeta = 1 / (2 * Q)
+        >>> ts = ode.SolveUnc(1, 2*zeta*omega, omega**2, 1/sr)
+        >>>
+        >>> # base-drive system like SRS ... in_acce is base input
+        >>> # (see pyyeti.srs.srs):
+        >>> #    zddot = input
+        >>> #    x = absolute displacement of mass
+        >>> #    u = x - z
+        >>> sol = ts.tsolve(-in_acce)
+        >>> out_acce = sol.a.ravel() + in_acce  # xddot
+        >>>
+        >>> fm, tf, tfmap, tm = dsp.transmissibility(
+        ...    in_acce, out_acce, sr, getmap=True)
+        >>>
+        >>> fig = plt.figure(figsize=(8, 8))
+        >>>
+        >>> # use GridSpec to make a nice layout:
+        >>> gs = gridspec.GridSpec(3, 2, height_ratios=[1, 1, 1], width_ratios=[30, 1])
+        >>>
+        >>> ax1 = plt.subplot(gs[0, 0])
+        >>> _ = ax1.plot(t, in_acce, label="input")
+        >>> _ = ax1.plot(t, out_acce, alpha=0.75, label="output")
+        >>> _ = ax1.set_xlabel("Time (s)")
+        >>> _ = ax1.set_ylabel("Acceleration")
+        >>> _ = ax1.legend(loc="upper right")
+        >>>
+        >>> # plot only region where the input has content:
+        >>> pv = (fm >= fstart) & (fm <= fstop)
+        >>>
+        >>> ax2 = plt.subplot(gs[1, 0])
+        >>> _ = ax2.plot(fm[pv], tf[pv])
+        >>> _ = ax2.set_xlabel("Frequency (Hz)")
+        >>> _ = ax2.set_ylabel("Average Output/Input")
+        >>> _ = ax2.set_title("Transmissibility")
+        >>>
+        >>> ax3 = plt.subplot(gs[2, 0], sharex=ax1)
+        >>> c = ax3.contour(tm, fm[pv], abs(tfmap)[pv], 40, cmap=cm.plasma)
+        >>> _ = ax3.set_xlabel("Time (s)")
+        >>> _ = ax3.set_ylabel("Frequency")
+        >>> _ = ax3.set_title("Transmissibility Map")
+        >>>
+        >>> ax4 = plt.subplot(gs[2, 1])
+        >>> cb = fig.colorbar(c, cax=ax4)
+        >>> cb.filled = True
+        >>> cb.draw_all()
+        >>> _ = ax4.set_title("Output/Input")
+        >>> fig.tight_layout()
+
+    As an aside and for fun, compare the actual root-mean-square
+    response to the Miles' equation estimate. Miles' should be a
+    little higher on average ... it assumes infinitely wide, flat
+    input spectrum.
+
+    We'll also compare the actual peak vs both:
+
+        - a ``3 * sigma`` Miles' peak
+        - a ``peak_factor * sigma`` Miles' peak, where X is determined
+          from the Rayleigh distribution
+
+    The Rayleigh peak factor is ``sqrt(2*log(duration*f))``. This
+    factor is described in more detail under the `resp_time` option in
+    :func:`pyyeti.cla.DR_Results.psd_data_recovery`. In this example,
+    since the number of cycles is quite high, 3 sigma will generally
+    be below the peak. The Rayleigh peak factor allows for a fairly
+    good estimate of the actual peak.
+
+    >>> actual = np.sqrt((out_acce ** 2).mean())
+    >>> miles = np.sqrt(np.pi / 2 * Q * frq * psd_)
+    >>> if True:   # doctest: +SKIP
+    ...     print("rms comparison:")
+    ...     print(f"\tactual        = {actual:.2f}")
+    ...     print(f"\tMiles         = {miles:.2f}")
+    ...     print(f"\tratio         = {actual/miles:.2f}")
+    rms comparison:
+            actual        = 36.50
+            Miles         = 37.07
+            ratio         = 0.98
+    >>>
+    >>> # Compare actual peak to 3 sigma peak from Miles':
+    >>> actual_pk = abs(out_acce).max()
+    >>> miles_pk = 3 * miles
+    >>> if True:   # doctest: +SKIP
+    ...     print("peak comparison #1:")
+    ...     print(f"\tactual        = {actual_pk:.2f}")
+    ...     print(f"\t3 * Miles     = {miles_3s:.2f}")
+    ...     print(f"\tratio         = {actual_pk/miles_3s:.2f}")
+    peak comparison #1:
+            actual        = 134.00
+            3 * Miles     = 111.22
+            ratio         = 1.20
+    >>>
+    >>> pfactor = np.sqrt(2 * np.log(frq * t[-1]))
+    >>> miles_pk_rayleigh = pfactor * miles
+    >>> if True:   # doctest: +SKIP
+    ...     print("peak comparison #2:")
+    ...     print(f"\tactual        = {actual_pk:.2f}")
+    ...     print(f"\t{rpf:.2f} * Miles  = {miles_rayleigh:.2f}")
+    ...     print(f"\tratio         = {actual_pk/miles_rayleigh:.2f}")
+    peak comparison #2:
+            actual        = 134.00
+            3.62 * Miles  = 134.19
+            ratio         = 1.00
+    """
+    in_data, out_data = np.atleast_1d(in_data, out_data)
+    if in_data.shape != out_data.shape or in_data.ndim != 1:
+        raise ValueError("`in_data` and `out_data` must be 1d arrays of the same size")
+
+    kwargs["sr"] = sr
+    kwargs["window"] = window
+    kwargs["coef"] = "complex"
+    fftmap_in, t, f = waterfall(
+        in_data, sr, timeslice, tsoverlap, fftcoef, which=0, freq=2, kwargs=kwargs
+    )
+
+    fftmap_out, t, f = waterfall(
+        out_data, sr, timeslice, tsoverlap, fftcoef, which=0, freq=2, kwargs=kwargs
+    )
+
+    tfmap = fftmap_out / fftmap_in
+    p = abs(tfmap).mean(axis=1)
+    if getmap:
+        return f, p, tfmap, t
+    return f, p

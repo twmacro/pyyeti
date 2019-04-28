@@ -20,6 +20,7 @@ Main routines
     fftmap
     fixtime
     resample
+    transmissibility
     waterfall
     windowends
 
