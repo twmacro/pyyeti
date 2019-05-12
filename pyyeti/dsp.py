@@ -3111,8 +3111,7 @@ def transmissibility(
         to :func:`scipy.signal.get_window` to get the window. If 1d
         array_like, it must be length ``len(x)`` and is used directly.
     getmap : bool, optional
-        If True, get the transfer function map output (the `tfmap` and
-        `t` variables described below).
+        If True, get the transfer function map outputs (see below).
     *kwargs : optional
         Named arguments to pass to :func:`scipy.signal.fftcoef`. Note
         that `x`, `sr`, `coef` and `window` arguments are passed
