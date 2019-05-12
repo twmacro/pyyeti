@@ -198,13 +198,13 @@ class DR_Event:
             DR.add(nas, drdefs, uf_reds, 'replace')
             DR.add(nas, drdefs, uf_reds, lambda old, new: new)
 
-        These are also equivalent:
+        These are also equivalent::
 
             DR.add(nas, drdefs, uf_reds, 'multiply')
             DR.add(nas, drdefs, uf_reds, lambda old, new: old*new)
 
         As a final example, if you wanted to add values onto the
-        previous settings instead of multiply, you could do this:
+        previous settings instead of multiply, you could do this::
 
             DR.add(nas, drdefs, uf_reds, lambda old, new: old+new)
         """

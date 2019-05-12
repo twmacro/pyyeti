@@ -2815,29 +2815,59 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
         scale = 1/coherent_gain
         coherent_gain = sum(window)/len(window)
 
-    The coefficients are related to the original signal by the
-    summations (if `fold` is True):
-
-    .. math::
-        x(t_n) = \sum\limits^{len(x)-1}_{k=0}
-                  M_k\sin(k \omega t_n - \phi_k)
+    The coefficients are related to the original signal by either of
+    these two equivalent summations (if `fold` is True):
 
     .. math::
         x(t_n) = \sum\limits^{len(x)-1}_{k=0}
                   A_k \cos(k \omega t_n) +
                   B_k \sin(k \omega t_n)
 
+    .. math::
+        x(t_n) = \sum\limits^{len(x)-1}_{k=0}
+                  M_k\sin(k \omega t_n - \phi_k)
+
     where :math:`\omega = 2 \pi \Delta freq`, :math:`M` is the
-    magnitude, and :math:`\phi` is the phase.
+    magnitude, and :math:`\phi` is the phase. The magnitude and phase
+    are computed by:
+
+    .. math::
+        \begin{aligned}
+        M_k &= \sqrt {A_k^2 + B_k^2}
+
+        \phi_k &= \arctan2(-A_k, B_k)
+        \end{aligned}
+
+    Normally, the frequency step is defined by:
+
+    .. math::
+        \Delta freq = sr / \text{len}(x)
+
+    A finer frequency step can be achieved by specifying the `maxdf`
+    parameter. If `maxdf` is specified *and* the frequency step
+    computed from the above equation is greater than `maxdf`, the
+    frequency step is computed by:
+
+    .. math::
+        \begin{aligned}
+        N &= \text{nextpow2}(\text{int}(sr / maxdf))
+
+        \Delta freq &= sr / N
+        \end{aligned}
+
+    The function :func:`nextpow2` finds the next power of 2
+    integer. This approach makes efficient use of the FFT while
+    ensuring the final frequency step is less than or equal to
+    `maxdf`.
 
     The example below uses these formulas directly to upsample a
     signal. This is for demonstration only; to truly upsample a signal
     based on FFT in a more efficient manner, see
-    :func:`scipy.signal.resample`.
+    :func:`scipy.signal.resample`. (See also :func:`resample`.)
 
     See also
     --------
-    :func:`fftmap`
+    :func:`fftmap`, :func:`transmissibility`
 
     Examples
     --------
@@ -3053,7 +3083,7 @@ def transmissibility(
 
     Transmissibility is a common transfer function measurement of
     ``output / input``. It is a type of frequency response function
-    where the gain (magnitude) vs frequency is of primary
+    where the gain (magnitude) vs frequency is typically of primary
     interest. Note that the phase can be computed from the output of
     this routine as well.
 
@@ -3092,29 +3122,55 @@ def transmissibility(
 
     Returns
     -------
+    A SimpleNamespace with the members:
+
     f : 1d ndarray
         Array of sample frequencies.
-    tf : 1d ndarray
+    mag : 1d ndarray
         Average magnitude of transmissibility transfer function across
         all time slices of ``out_data / in_data``; length is
         ``len(f)``::
 
-             tf = abs(tfmap).mean(axis=1)
+             mag = abs(tr_map).mean(axis=1)
 
-    tfmap : complex 2d ndarray; optional
-        The complex transfer function map. Each column is a transfer
-        function of ``out_data / in_data`` computed from the FFT ratio
-        for the corresponding time slice. Rows correspond to frequency
-        `f` and columns correspond to time `t`. Only output if
-        `getmap` is True. Following the conventions used in
-        :func:`dsp.fftcoef`::
+    phase : 1d ndarray
+        Average phase in degrees of transmissibility transfer function
+        across all time slices of ``out_data / in_data``; length is
+        ``len(f)``. Computing the average of angles is tricky; for
+        example, the average of 15 degrees and 355 degrees is 5
+        degrees. To get this result, the approach used here is to
+        compute the average of cartesian coordinates of points on a
+        unit circle at each angle, and then compute the angle to that
+        average location::
 
-             magnitude_map = abs(tfmap)
-             phase_map = np.arctan2(-tfmap.real, tfmap.imag)
+             phase = np.angle(
+                        (tr_map / abs(tr_map)).mean(axis=1), deg=True
+                     )
+
+        This definition of phase follows the negative sign convention
+        of phase (as in :func:`fftcoef`): ``sin(theta - phase)``.
+    tr_map : complex 2d ndarray; optional
+        The complex transmissibility transfer function map. Each
+        column is the transmissibility of ``out_data / in_data``
+        computed from the FFT ratio (from :func:`fftcoef`) for the
+        corresponding time slice. Rows correspond to frequency `f` and
+        columns correspond to time `t`. Only output if `getmap` is
+        True.
+    mag_map : 2d ndarray; optional
+        The magnitude of the transmissibility map. Only output if
+        `getmap` is True. It is computed by::
+
+            mag_map = abs(tr_map)
+
+    phase_map : 2d ndarray; optional
+        The phase in degrees of the transmissibility map. Only output
+        if `getmap` is True. It is computed by::
+
+            phase_map = np.angle(tr_map, deg=True)
 
     t : 1d ndarray; optional
-        The time vector for the columns of `tfmap`. Only output if
-        `getmap` is True.
+        The time vector for the columns of `tr_map`, `mag_map` and
+        `phase_map`. Only output if `getmap` is True.
 
     Notes
     -----
@@ -3150,6 +3206,10 @@ def transmissibility(
     example, the frequency of the SDOF system is set to 35 Hz and Q is
     set to 25.
 
+    To check the results, the exact magnitude and phase from a
+    closed-form frequency-domain solution (via
+    :func:`pyyeti.ode.SolveUnc.fsolve`) will be plotted as well.
+
     .. plot::
         :context: close-figs
 
@@ -3174,7 +3234,7 @@ def transmissibility(
         >>> omega = frq * np.pi * 2
         >>> Q = 25
         >>> zeta = 1 / (2 * Q)
-        >>> ts = ode.SolveUnc(1, 2*zeta*omega, omega**2, 1/sr)
+        >>> ts = ode.SolveUnc(1, 2 * zeta * omega, omega ** 2, 1 / sr)
         >>>
         >>> # base-drive system like SRS ... in_acce is base input
         >>> # (see pyyeti.srs.srs):
@@ -3184,41 +3244,76 @@ def transmissibility(
         >>> sol = ts.tsolve(-in_acce)
         >>> out_acce = sol.a.ravel() + in_acce  # xddot
         >>>
-        >>> fm, tf, tfmap, tm = dsp.transmissibility(
-        ...    in_acce, out_acce, sr, getmap=True)
+        >>> tr = dsp.transmissibility(
+        ...           in_acce, out_acce, sr, getmap=True)
         >>>
-        >>> fig = plt.figure(figsize=(8, 8))
+        >>> fig = plt.figure(figsize=(8, 11))
         >>>
         >>> # use GridSpec to make a nice layout:
-        >>> gs = gridspec.GridSpec(3, 2, height_ratios=[1, 1, 1], width_ratios=[30, 1])
+        >>> gs = gridspec.GridSpec(5, 2, width_ratios=[30, 1])
         >>>
-        >>> ax1 = plt.subplot(gs[0, 0])
-        >>> _ = ax1.plot(t, in_acce, label="input")
-        >>> _ = ax1.plot(t, out_acce, alpha=0.75, label="output")
-        >>> _ = ax1.set_xlabel("Time (s)")
-        >>> _ = ax1.set_ylabel("Acceleration")
-        >>> _ = ax1.legend(loc="upper right")
+        >>> ax = ax_time = plt.subplot(gs[0, 0])
+        >>> _ = ax.plot(t, in_acce, label="input")
+        >>> _ = ax.plot(t, out_acce, alpha=0.75, label="output")
+        >>> _ = ax.set_xlabel("Time (s)")
+        >>> _ = ax.set_ylabel("Acceleration")
+        >>> _ = ax.legend(loc="upper right")
         >>>
-        >>> # plot only region where the input has content:
-        >>> pv = (fm >= fstart) & (fm <= fstop)
+        >>> # plot only frequency range where input has content:
+        >>> pv = (tr.f >= fstart) & (tr.f <= fstop)
+        >>> fm = tr.f[pv]
         >>>
-        >>> ax2 = plt.subplot(gs[1, 0])
-        >>> _ = ax2.plot(fm[pv], tf[pv])
-        >>> _ = ax2.set_xlabel("Frequency (Hz)")
-        >>> _ = ax2.set_ylabel("Average Output/Input")
-        >>> _ = ax2.set_title("Transmissibility")
+        >>> # compute exact solution for comparison:
+        >>> in_acce_exact = np.ones(len(fm))
+        >>> sol = ts.fsolve(-in_acce_exact, fm)
+        >>> acce_exact = in_acce_exact + sol.a[0]
+        >>> mag_exact = abs(acce_exact)
+        >>> phase_exact = -np.angle(acce_exact, deg=True)
         >>>
-        >>> ax3 = plt.subplot(gs[2, 0], sharex=ax1)
-        >>> c = ax3.contour(tm, fm[pv], abs(tfmap)[pv], 40, cmap=cm.plasma)
-        >>> _ = ax3.set_xlabel("Time (s)")
-        >>> _ = ax3.set_ylabel("Frequency")
-        >>> _ = ax3.set_title("Transmissibility Map")
+        >>> # plot magnitude:
+        >>> ax = ax_freq = plt.subplot(gs[1, 0])
+        >>> _ = ax.plot(fm, tr.mag[pv], label="Estimate")
+        >>> _ = ax.plot(fm, mag_exact, label="Exact")
+        >>> _ = ax.set_xlabel("Frequency (Hz)")
+        >>> _ = ax.set_ylabel("TR Magnitude")
+        >>> _ = ax.set_title("Average Transmissibility Magnitude")
+        >>> _ = ax.legend(loc="upper right")
         >>>
-        >>> ax4 = plt.subplot(gs[2, 1])
-        >>> cb = fig.colorbar(c, cax=ax4)
+        >>> ax = plt.subplot(gs[2, 0], sharex=ax_time)
+        >>> c = ax.contour(tr.t, fm, tr.mag_map[pv], 40,
+        ...                cmap=cm.plasma)
+        >>> _ = ax.set_xlabel("Time (s)")
+        >>> _ = ax.set_ylabel("Frequency (Hz)")
+        >>> _ = ax.set_title("Transmissibility Magnitude Map")
+        >>>
+        >>> ax = plt.subplot(gs[2, 1])
+        >>> cb = fig.colorbar(c, cax=ax)
         >>> cb.filled = True
         >>> cb.draw_all()
-        >>> _ = ax4.set_title("Output/Input")
+        >>> _ = ax.set_title("TR Magnitude")
+        >>>
+        >>> # plot phase:
+        >>> ax = plt.subplot(gs[3, 0], sharex=ax_freq)
+        >>> _ = ax.plot(fm, tr.phase[pv], label="Estimate")
+        >>> _ = ax.plot(fm, phase_exact, label="Exact")
+        >>> _ = ax.set_xlabel("Frequency (Hz)")
+        >>> _ = ax.set_ylabel("TR Phase (deg)")
+        >>> _ = ax.set_title("Average Transmissibility Phase")
+        >>> _ = ax.legend(loc="lower right")
+        >>>
+        >>> ax = plt.subplot(gs[4, 0], sharex=ax_time)
+        >>> c = ax.contour(tr.t, fm, tr.phase_map[pv], 40,
+        ...                cmap=cm.plasma)
+        >>> _ = ax.set_xlabel("Time (s)")
+        >>> _ = ax.set_ylabel("Frequency (Hz)")
+        >>> _ = ax.set_title("Transmissibility Phase Map")
+        >>>
+        >>> ax = plt.subplot(gs[4, 1])
+        >>> cb = fig.colorbar(c, cax=ax)
+        >>> cb.filled = True
+        >>> cb.draw_all()
+        >>> _ = ax.set_title("TR Phase (deg)")
+        >>>
         >>> fig.tight_layout()
 
     As an aside and for fun, compare the actual root-mean-square
@@ -3229,8 +3324,8 @@ def transmissibility(
     We'll also compare the actual peak vs both:
 
         - a ``3 * sigma`` Miles' peak
-        - a ``peak_factor * sigma`` Miles' peak, where X is determined
-          from the Rayleigh distribution
+        - a ``peak_factor * sigma`` Miles' peak, where ``peak_factor``
+          is determined from the Rayleigh distribution
 
     The Rayleigh peak factor is ``sqrt(2*log(duration*f))``. This
     factor is described in more detail under the `resp_time` option in
@@ -3253,7 +3348,7 @@ def transmissibility(
     >>>
     >>> # Compare actual peak to 3 sigma peak from Miles':
     >>> actual_pk = abs(out_acce).max()
-    >>> miles_pk = 3 * miles
+    >>> miles_3s = 3 * miles
     >>> if True:   # doctest: +SKIP
     ...     print("peak comparison #1:")
     ...     print(f"\tactual        = {actual_pk:.2f}")
@@ -3264,8 +3359,8 @@ def transmissibility(
             3 * Miles     = 111.22
             ratio         = 1.20
     >>>
-    >>> pfactor = np.sqrt(2 * np.log(frq * t[-1]))
-    >>> miles_pk_rayleigh = pfactor * miles
+    >>> rpf = np.sqrt(2 * np.log(frq * t[-1]))  # rayleigh peak factor
+    >>> miles_rayleigh = rpf * miles
     >>> if True:   # doctest: +SKIP
     ...     print("peak comparison #2:")
     ...     print(f"\tactual        = {actual_pk:.2f}")
@@ -3291,8 +3386,19 @@ def transmissibility(
         out_data, sr, timeslice, tsoverlap, fftcoef, which=0, freq=2, kwargs=kwargs
     )
 
-    tfmap = fftmap_out / fftmap_in
-    p = abs(tfmap).mean(axis=1)
+    tr_map = fftmap_out / fftmap_in
+    mag = abs(tr_map).mean(axis=1)
+    phase = np.angle((tr_map / abs(tr_map)).mean(axis=1), deg=True)
     if getmap:
-        return f, p, tfmap, t
-    return f, p
+        mag_map = abs(tr_map)
+        phase_map = np.angle(tr_map, deg=True)
+        return SimpleNamespace(
+            f=f,
+            mag=mag,
+            phase=phase,
+            tr_map=tr_map,
+            mag_map=mag_map,
+            phase_map=phase_map,
+            t=t,
+        )
+    return SimpleNamespace(f=f, mag=mag, phase=phase)
