@@ -23,25 +23,47 @@ except TypeError:
     pass
 
 
-def _apply_pv(value, pv):
+def _apply_pv(value, pv, oldlen):
+    # if value has a len that's > 1, try to partition it down;
+    # otherwise, return it as is:
     try:
-        newvalue = value[pv]
-    except (TypeError, IndexError):
-        pass
+        n = len(value)
+    except TypeError:
+        return value
     else:
-        value = newvalue
-    return value
+        if n == 1:
+            return value
+
+    # ensure `value` is a true numpy array:
+    value = np.atleast_1d(value)
+
+    # oldlen is either 0 (for `value` vectors that are expected to be
+    # full size ... currently, only the `filterval` and
+    # `magpct_filterval` vectors), or it is the length of the
+    # dimension that the `value` index type of partition vector
+    # (currently, only the `ignorepv` vector) was originally defined
+    # to partition.
+    if oldlen == 0:
+        # `value` is `filterval` or `magpct_filterval`
+        newvalue = value[pv]
+    else:
+        # `value` is `ignorepv`
+        truefalse = locate.index2bool(value, oldlen)
+        newvalue = truefalse[pv].nonzero()[0]
+    return newvalue
 
 
 def _align_mxmn(mxmn1, mxmn2, labels2, row_number, infodct):
     if infodct["labels"] and infodct["labels"] != labels2:
+        n = len(infodct["labels"])
         pv1, pv2 = locate.list_intersect(infodct["labels"], labels2)
         mxmn1 = mxmn1[pv1]
         mxmn2 = mxmn2[pv2]
         infodct["labels"] = [infodct["labels"][i] for i in pv1]
         row_number = row_number[pv1]
-        infodct["filterval"] = _apply_pv(infodct["filterval"], pv1)
-        infodct["ignorepv"] = _apply_pv(infodct["ignorepv"], pv1)
+        infodct["filterval"] = _apply_pv(infodct["filterval"], pv1, 0)
+        infodct["magpct_filterval"] = _apply_pv(infodct["magpct_filterval"], pv1, 0)
+        infodct["ignorepv"] = _apply_pv(infodct["ignorepv"], pv1, n)
     return mxmn1, mxmn2, row_number
 
 
@@ -174,6 +196,7 @@ def _proc_pct(
     ext1,
     ext2,
     filterval,
+    magpct_filterval,
     *,
     names,
     mxmn1,
@@ -192,10 +215,16 @@ def _proc_pct(
     nastring,
     doabsmax,
     shortabsmax,
-    print_info
+    print_info,
 ):
+    # handle magpct stuff here:
+    mag = ext1[comppv], ext2[comppv]
+    if magpct_filterval is not None and len(magpct_filterval) > 1:
+        magfilt = magpct_filterval[comppv]
+    else:
+        magfilt = magpct_filterval
+
     pv = comppv.copy()
-    mag = ext1[comppv], ext2[comppv]  # good here?
     pct, spct = _get_pct_diff(
         ext1,
         ext2,
@@ -240,7 +269,9 @@ def _proc_pct(
         print_info.widths.extend([numlen, numlen, numlen, numlen, pctlen])
         print_info.seps.extend([4, 2, 2, 2, 2])
         print_info.justs.extend(["c", "c", "c", "c", "c"])
-    return dict(pct=pct_ret, spct=spct, hsto=hsto, prtpv=prtpv, mag=mag)
+    return dict(
+        pct=pct_ret, spct=spct, hsto=hsto, prtpv=prtpv, mag=mag, magfilt=magfilt
+    )
 
 
 def _figure_on(name, doabsmax, show_figures):
@@ -274,7 +305,6 @@ def _plot_magpct(
     desc,
     doabsmax,
     filename,
-    magpct_filterval,
     magpct_symlog,
     use_range,
     maxhdr,
@@ -304,7 +334,7 @@ def _plot_magpct(
                     pctinfo[lbl]["mag"][1],
                     Ref=ref,
                     ismax=ismax,
-                    filterval=magpct_filterval,
+                    filterval=pctinfo[lbl]["magfilt"],
                     symlog=magpct_symlog,
                 )
                 plt.title(ptitle.format(hdr))
@@ -404,7 +434,8 @@ def rptpct1(
     absmhdr="Abs-Max",
     perpage=-1,
     tight_layout_args=None,
-    show_figures=False
+    show_figures=False,
+    align_by_label=True,
 ):
     """
     Write a percent difference report between 2 sets of max/min data.
@@ -434,6 +465,14 @@ def rptpct1(
     mxmn2 : 2d array_like or SimpleNamespace
         The reference set of max/min data. Format is the same as
         `mxmn1`.
+
+        .. note::
+            If both `mxmn1` and `mxmn2` are SimpleNamespaces and have
+            the ``.drminfo.labels`` attribute, this routine will, by
+            default, use the labels to align the data sets for
+            comparison. To prevent this, set the `align_by_label`
+            parameter to False.
+
     filename : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
         by :func:`open` or :func:`StringIO`. Input as integer 1 to
@@ -450,9 +489,8 @@ def rptpct1(
     filterval : scalar, 1d array_like or None; must be named; optional
         Numbers with absolute value <= than `filterval` will get a
         'n/a' % diff. If vector, length must match number of rows in
-        `mxmn1` and `mxmn2` data. Overrides
-        `mxmn1.drminfo.filterval`. If neither are input, `filterval`
-        is set to 1.e-6.
+        `mxmn1` and `mxmn2` data. Overrides `mxmn1.drminfo.filterval`.
+        If neither are input, `filterval` is set to 1.e-6.
     labels : list or None; must be named; optional
         A list of strings briefly describing each row. Overrides
         `mxmn1.drminfo.labels`. If neither are input,
@@ -461,10 +499,16 @@ def rptpct1(
         Specifies the units. Overrides `mxmn1.drminfo.units`. If
         neither are input, 'Not specified' is used.
     ignorepv : 1d array or None; must be named; optional
-        0-offset index vector specifying which rows to ignore (they
-        get the 'n/a' % diff). Overrides `mxmn1.drminfo.units`. If
-        neither are input, no rows are ignored (though `filterval` is
-        still used).
+        0-offset index vector specifying which rows of `mxmn1` to
+        ignore (they get the 'n/a' % diff). Overrides
+        `mxmn1.drminfo.ignorepv`. If neither are input, no rows are
+        ignored (though `filterval` is still used).
+
+        .. note::
+            `ignorepv` applies *before* any alignment by labels is
+            done (when `align_by_label` is True, which is the
+            default).
+
     uf_reds : 1d array or None; must be named; optional
         Uncertainty factors: [rigid, elastic, dynamic, static].
         Overrides `mxmn1.drminfo.uf_reds`. If neither is input,
@@ -535,8 +579,9 @@ def rptpct1(
         emphasized by using a mixed linear/log y-axis. The percent
         differences for the `ignorepv` rows are not plotted.
     magpct_filterval : None, string, scalar, or 1d ndarray; optional
-        Unless `magpct_filterval` is a string, this is directly used
-        as the ``filterval`` input to :func:`magpct`. If it is
+        Unless `magpct_filterval` is a string, this is used as the
+        ``filterval`` input to :func:`magpct` after applying
+        `ignorepv` and doing any data aligning by labels. If it is
         'filterval', `magpct_filterval` is first reset to the final
         value of `filterval` (described above). In any case, if
         `magpct_filterval` is not None, see also the `magpct_symlog`
@@ -544,7 +589,6 @@ def rptpct1(
         :func:`magpct`.
 
         .. note::
-
            The two filter value options (`filterval` and
            `magpct_filterval`) have different defaults: None and
            'filterval`, respectively. They also differ on how the
@@ -576,12 +620,15 @@ def rptpct1(
     perpage : integer; must be named; optional
         The number of lines to write perpage. If < 1, there is no
         limit (one page).
-    tight_layout_args : dict or None; optional
+    tight_layout_args : dict or None; must be named; optional
         Arguments for :func:`plt.tight_layout`. If None, defaults to
         ``{'pad': 3.0}``.
-    show_figures : bool; optional
+    show_figures : bool; must be named; optional
         If True, plot figures will be displayed on the screen for
         interactive viewing. Warning: there may be many figures.
+    align_by_label : bool; must be named; optional
+        If True, use labels to align the two sets of data for
+        comparison. See note above under the `mxmn2` option.
 
     Returns
     -------
@@ -724,7 +771,24 @@ def rptpct1(
     """
     if tight_layout_args is None:
         tight_layout_args = {"pad": 3.0}
-    infovars = ("desc", "filterval", "labels", "units", "ignorepv", "uf_reds")
+
+    if isinstance(magpct_filterval, str):
+        if magpct_filterval != "filterval":
+            raise ValueError(
+                "`magpct_filterval` is an invalid string: "
+                f"{magpct_filterval!r} (can only be 'filterval' if a string)"
+            )
+        magpct_filterval = filterval
+
+    infovars = (
+        "desc",
+        "filterval",
+        "magpct_filterval",
+        "labels",
+        "units",
+        "ignorepv",
+        "uf_reds",
+    )
     dct = locals()
     infodct = {n: dct[n] for n in infovars}
     del dct
@@ -745,40 +809,46 @@ def rptpct1(
     if isinstance(mxmn2, SimpleNamespace) and getattr(mxmn2, "drminfo", None):
         labels2 = mxmn2.drminfo.labels
         mxmn2 = mxmn2.ext
-        # use labels and labels2 to align data; this is in case
-        # the two sets of results recover some of the same items,
-        # but not all
-        mxmn1, mxmn2, row_number = _align_mxmn(
-            mxmn1, mxmn2, labels2, row_number, infodct
-        )
+        if align_by_label:
+            # use labels and labels2 to align data; this is in case
+            # the two sets of results recover some of the same items,
+            # but not all
+            mxmn1, mxmn2, row_number = _align_mxmn(
+                mxmn1, mxmn2, labels2, row_number, infodct
+            )
     else:
         mxmn2 = np.atleast_2d(mxmn2)
 
     desc = infodct["desc"]
-    filterval = infodct["filterval"]
-    labels = infodct["labels"]
-    units = infodct["units"]
-    ignorepv = infodct["ignorepv"]
-    uf_reds = infodct["uf_reds"]
+    if desc is None:
+        desc = "No description provided"
 
     R = mxmn1.shape[0]
     if R != mxmn2.shape[0]:
         raise ValueError(
-            "`mxmn1` and `mxmn2` have a different" f" number of rows (`desc` = {desc})"
+            f"`mxmn1` and `mxmn2` have a different number of rows: "
+            f"{R} vs {mxmn2.shape[0]} for category with `desc` = {desc}"
         )
-    if desc is None:
-        desc = "No description provided"
 
-    if filterval is None:
-        filterval = 1.0e-6
-    filterval = _proc_filterval(filterval, R)
+    for filter_ in ("filterval", "magpct_filterval"):
+        if infodct[filter_] is None and filter_ == "filterval":
+            infodct[filter_] = 1.0e-6
+        infodct[filter_] = _proc_filterval(infodct[filter_], R, filter_)
+
+    filterval = infodct["filterval"]
+    magpct_filterval = infodct["filterval"]
+    labels = infodct["labels"]
+    units = infodct["units"]
+    ignorepv = infodct["ignorepv"]
+    uf_reds = infodct["uf_reds"]
 
     if labels is None:
         labels = [f"Row {i + 1:6d}" for i in range(R)]
     elif len(labels) != R:
         raise ValueError(
             "length of `labels` does not match number"
-            f" of rows in `mxmn1` (`desc` = {desc})"
+            f" of rows in `mxmn1`: {len(labels)} vs {R} for "
+            f"category with `desc` = {desc}"
         )
     if units is None:
         units = "Not specified"
@@ -857,16 +927,24 @@ def rptpct1(
                 ext1,
                 ext2,
                 filterval,
+                magpct_filterval,
                 mxmn_b=mxmn_b,
                 ismax=ismax,
                 valhdr=valhdr,
-                **kwargs
+                **kwargs,
             )
             prtpv |= pctinfo[lbl]["prtpv"]
         prtpv &= comppv
     else:
         pctinfo["amx"] = _proc_pct(
-            mx1, mx2, filterval, mxmn_b=None, ismax=True, valhdr=absmhdr, **kwargs
+            mx1,
+            mx2,
+            filterval,
+            magpct_filterval,
+            mxmn_b=None,
+            ismax=True,
+            valhdr=absmhdr,
+            **kwargs,
         )
         prtpv = pctinfo["amx"]["prtpv"]
     hu, frm = writer.formheader(
@@ -886,20 +964,12 @@ def rptpct1(
     plt.interactive(show_figures)
     try:
         if domagpct:
-            if isinstance(magpct_filterval, str):
-                if magpct_filterval != "filterval":
-                    raise ValueError(
-                        "`magpct_filterval` is an invalid string: "
-                        f'"{magpct_filterval}" (can only be "filterval")'
-                    )
-                magpct_filterval = filterval
             _plot_magpct(
                 pctinfo,
                 names,
                 desc,
                 doabsmax,
                 filename,
-                magpct_filterval,
                 magpct_symlog,
                 use_range,
                 maxhdr,

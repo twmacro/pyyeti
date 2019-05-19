@@ -19,7 +19,7 @@ except TypeError:
 
 def _set_frange(frange, low, high):
     s = frange[0] if frange[0] > 0.0 else low
-    e = frange[1] if frange[1] <= high else high
+    e = frange[-1] if frange[-1] <= high else high
     return s, e
 
 
@@ -43,10 +43,10 @@ def get_freq_oct(n, frange=(1.0, 10000.0), exact=False, trim="outside", anchor=N
         =========   ================================================
          `trim`     Description
         =========   ================================================
-        'inside'    All frequencies just inside range:
+        'inside'    All frequencies inside `frange`:
                         ``F_lower[0] >= frange[0]``;
                         ``F_upper[-1] <= frange[-1]``
-        'center'    Center frequencies just inside range:
+        'center'    Center frequencies inside `frange`:
                         ``F[0] >= frange[0]``;
                         ``F[-1] <= frange[-1]``
         'outside'   First band includes ``frange[0]`` and last band
@@ -461,7 +461,7 @@ def interp(spec, freq, linear=False):
     return psdfull
 
 
-def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=(25.0, np.inf)):
+def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=None):
     """
     Convert PSD from one frequency scale to another.
 
@@ -493,13 +493,18 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=(25.0, np.inf)):
         corresponding PSD value to be higher than it would otherwise
         be, meaning the overall mean-square value will also be a
         little higher.
-    frange : 1d array_like; optional
-        If `freq` is None, this option specifies bounds for the
-        frequencies. Only the first and last elements are used. If the
-        first value is <= 0.0, it is reset to 1.0. If the last value
-        is > ``F[-1]``, it is reset to ``F[-1]``. The final `frange`
-        setting is passed to :func:`get_freq_oct` when the `n_oct`
-        option is used.
+    frange : 1d array_like or None; optional
+        This option can be used to limit the frequency range of the
+        output frequencies. If None, this option is ignored for cases
+        where `freq` is used, but is set internally to ``(25.0,
+        np.inf))`` for cases where `n_oct` is used. Only the first and
+        last elements of `frange` are used. Note that the output
+        frequencies will be trimmed further if needed by the first and
+        last values of `F`.
+
+        .. note::
+            When the `n_oct` option is used, if the first value of
+            `frange` is <= 0.0, it is internally reset to 1.0.
 
     Returns
     -------
@@ -600,7 +605,8 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=(25.0, np.inf)):
 
     def _get_fl_fu(fcenter):
         Df = np.diff(fcenter)
-        if np.all(Df == Df[0]):
+        # if np.all(Df == Df[0]):
+        if (abs(Df / Df[0] - 1.0) < 1e-12).all():
             # linear scale
             Df = Df[0]
             FL = fcenter - Df / 2
@@ -615,10 +621,14 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=(25.0, np.inf)):
         return FL, FU
 
     if freq is None:
+        if frange is None:
+            frange = (25.0, np.inf)
         frange = _set_frange(frange, 1.0, F[-1])
         Wctr, FL, FU = get_freq_oct(n_oct, exact=True, frange=frange)
     else:
         freq = np.atleast_1d(freq)
+        if frange is not None:
+            freq = freq[(freq >= frange[0]) & (freq <= frange[-1])]
         FL, FU = _get_fl_fu(freq)
         Nmax = np.max(np.nonzero(FL <= F[-1])[0]) + 1
         Nmin = np.min(np.nonzero(FU >= F[0])[0])

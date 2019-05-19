@@ -199,16 +199,16 @@ def get_marker_cycle():
     )
 
 
-def _proc_filterval(filterval, nrows):
+def _proc_filterval(filterval, nrows, name="filterval"):
     if filterval is None:
         return None
     filterval = np.atleast_1d(filterval)
     if filterval.ndim > 1:
-        raise ValueError(f"`filterval` must be 1-D (is {filterval}-D)")
+        raise ValueError(f"`{name}` must be 1-D (is {filterval.ndim}-D)")
     nfilt = len(filterval)
     if nfilt > 1 and nfilt != nrows:
         raise ValueError(
-            "`filterval` has incorrect length:"
+            f"`{name}` has incorrect length:"
             f" expected {nrows} elements, but got {nfilt}"
         )
     return filterval

@@ -157,6 +157,11 @@ def test_rescale():
     p, f, ms, mvs = psd.rescale(in_p, in_freq, freq=out_freq, extendends=False)
     assert np.allclose(p, [0.525, 1.0, 0.525])
 
+    p, f, ms, mvs = psd.rescale(
+        np.ones(1000), np.arange(1000), freq=np.arange(100, 800, 100), frange=(200, 500)
+    )
+    assert np.allclose(f, np.arange(200, 600, 100))
+
 
 def test_spl():
     x = np.random.randn(100000)

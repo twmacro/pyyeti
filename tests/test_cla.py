@@ -340,6 +340,80 @@ def test_form_extreme():
     assert results["extreme"]["ATM"].cases == cases
 
 
+def test_rptpct1_align_by_label():
+    results = cla.DR_Results()
+    # use not-exactly-matching row labels for testing
+    results.merge(
+        (
+            get_fake_cla_results("FLAC", _get_labels0, 0),
+            get_fake_cla_results("VLC", _get_labels1, 1),
+        ),
+        {"FLAC": "FDLC"},
+    )
+
+    # results["VLC"]["Liftoff"]["ATM"].drminfo.labels:
+    # ['ATM Row       1',
+    #  'ATM Row       3',
+    #  'ATM Row       5',
+    # ...
+    #  'ATM Row      65',
+    #  'ATM Row      67']  # 34 elements
+
+    # results["FDLC"]["Liftoff"]["ATM"].drminfo.labels
+    # ['ATM Row       1',
+    #  'ATM Row       2',
+    #  'ATM Row       3',
+    # ...
+    #  'ATM Row      33',
+    #  'ATM Row      34']  # 34 elements
+
+    with StringIO() as f:
+        mx_pct = cla.rptpct1(
+            results["VLC"]["Liftoff"]["ATM"], results["FDLC"]["Liftoff"]["ATM"], f
+        )["mx"]["pct"]
+        assert len(mx_pct) == 17
+
+        mx_pct = cla.rptpct1(
+            results["VLC"]["Liftoff"]["ATM"],
+            results["FDLC"]["Liftoff"]["ATM"],
+            f,
+            align_by_label=False,
+        )["mx"]["pct"]
+        assert len(mx_pct) == 34
+
+        # test ignorepv with label align:
+        mx_pct = cla.rptpct1(
+            results["VLC"]["Liftoff"]["ATM"],
+            results["FDLC"]["Liftoff"]["ATM"],
+            f,
+            ignorepv=np.arange(10),
+            # 7 rows get compared: 21, 23, ... 33
+        )["mx"]["pct"]
+        assert len(mx_pct) == 7
+
+        mx_pct = cla.rptpct1(
+            results["VLC"]["Liftoff"]["ATM"],
+            results["FDLC"]["Liftoff"]["ATM"],
+            f,
+            ignorepv=np.arange(10, 34),
+            # 10 rows get compared: 1, 3, ... 19
+        )["mx"]["pct"]
+        assert len(mx_pct) == 10
+
+        # test filterval with label align:
+        filterval = np.empty(34)
+        filterval[:] = 2.7
+        mx_mag = cla.rptpct1(
+            results["VLC"]["Liftoff"]["ATM"],
+            results["FDLC"]["Liftoff"]["ATM"],
+            f,
+            filterval=filterval,
+            ignorepv=np.arange(10),
+            # 7 rows get compared: 21, 23, ... 33
+        )["mx"]["mag"][0]
+        assert len(mx_mag) == 7
+
+
 # run a cla:
 
 
@@ -892,7 +966,7 @@ def compare(pth):
                 )
         # test for some exceptions:
         assert_raises(
-            ValueError,
+            IndexError,
             lsp.rptpct,
             lvc,
             names=("LSP", "Contractor"),
@@ -903,7 +977,7 @@ def compare(pth):
             filterval=[1, 1, 2, 3],
         )
         assert_raises(
-            ValueError,
+            IndexError,
             lsp.rptpct,
             lvc,
             names=("LSP", "Contractor"),
