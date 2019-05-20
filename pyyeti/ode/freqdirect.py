@@ -170,12 +170,12 @@ class FreqDirect(_BaseODE):
             ======  ==============================================
                0    no rigid-body is included
                1    acceleration and velocity rigid-body only
-               2    all of rigid-body is included (see note below)
+               2    all of rigid-body is included
             ======  ==============================================
 
         Returns
         -------
-        A record (SimpleNamespace class) with the members:
+        A SimpleNamespace with the members:
 
         d : 2d ndarray
             Displacement; ndof x freq
@@ -185,6 +185,11 @@ class FreqDirect(_BaseODE):
             Acceleration; ndof x freq
         f : 1d ndarray
             Frequency vector (same as the input `freq`)
+
+        Notes
+        -----
+        See :class:`FreqDirect` for more discussion on how rigid-body
+        response is handled.
         """
         force = np.atleast_2d(force)
         d, v, a, force = self._init_dva(

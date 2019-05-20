@@ -334,12 +334,14 @@
      - Right now, there is no way to assure or confirm that a "psd"
        version of a data recovery function gets or was used ... hmm
 
-125. Bulk2uset without grids should work
+~125. Bulk2uset without grids should work
+     - v0.95.9
 
-126. Both solvepsd routines list “fs” as a class … it’s an instance
+~126. Both solvepsd routines list “fs” as a class … it’s an instance
      of a class
      o   Both versions: “all of rigid-body is included (see note
          below)”, but there is no note
+     - v0.95.9
 
 ~127. Rptpct1
      o   Add flag to ignore labels
@@ -349,3 +351,5 @@
 ~128. psd.rescale should pay attention to “frange” even if “freq” is
      input
      - v0.95.9
+
+129. Do the return values of rptpct1 make sense?

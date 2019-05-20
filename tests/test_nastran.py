@@ -161,6 +161,16 @@ def test_bulk2uset():
     assert coord.keys() == c.keys()
     assert np.allclose(coord[0], c[0])
 
+    blk = """
+CORD2R  10      0       0.0     0.0     0.0     1.0     0.0     0.0
+        0.0     1.0     0.0
+"""
+
+    with StringIO(blk) as f:
+        uset, cord = nastran.bulk2uset(f)
+    assert uset.size == 0
+    assert len(cord) == 2
+
 
 def test_wtextseout():
     nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")

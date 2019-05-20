@@ -670,7 +670,7 @@ def solvepsd(
 
     Parameters
     ----------
-    fs : class
+    fs : class instance
         An instance of :class:`SolveUnc` or :class:`FreqDirect` (or
         similar ... must have `.fsolve` method)
     forcepsd : 2d array_like
@@ -699,13 +699,13 @@ def solvepsd(
         An input to the :func:`fs.fsolve` method, it specifies how to
         handle rigid-body responses:
 
-        ======  ==============================================
+        ======  ===============================================
         incrb   description
-        ======  ==============================================
+        ======  ===============================================
            0    no rigid-body is included
            1    acceleration and velocity rigid-body only
-           2    all of rigid-body is included (see note below)
-        ======  ==============================================
+           2    all of rigid-body is included (see `fs.fsolve`)
+        ======  ===============================================
 
     forcephi : 2d array_like or None; optional
         If not None, it is a force transformation data-recovery matrix

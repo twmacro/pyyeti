@@ -705,7 +705,7 @@ class SolveUnc(_BaseODE):
 
         Returns
         -------
-        A record (SimpleNamespace class) with the members:
+        A SimpleNamespace with the members:
 
         d : 2d ndarray
             Displacement; ndof x freq

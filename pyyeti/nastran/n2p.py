@@ -730,8 +730,12 @@ def expanddof(dof):
            [2, 1],
            [2, 5],
            [2, 6]]...)
+    >>> nastran.expanddof([])
+    array([], shape=(0, 2), dtype=int64)
     """
     dof = np.atleast_1d(dof).astype(np.int64)
+    if dof.size == 0:
+        return np.zeros((0, 2), dtype=np.int64)
     if dof.ndim < 2 or dof.shape[1] == 1:
         return np.array([[n, i] for n in dof.ravel() for i in range(1, 7)])
     elif dof[:, 1].max() <= 6:
