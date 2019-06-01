@@ -920,17 +920,17 @@ def compare(pth):
 
         # test magpct filterval options; when a filtered value %diff
         # is large
-        # 1) magpct_filterval = 'filterval'
-        #    magpct_symlog = True
+        # 1) magpct_options['filterval'] = 'filterval'
+        #    magpct_options['symlog'] = True
         #      - filterval is None
         #      - filterval is 10
         #      - filterval is 1d array
-        # 2) magpct_filterval = 'filterval'
-        #    magpct_symlog = False
+        # 2) magpct_options['filterval'] = 'filterval'
+        #    magpct_options['symlog'] = False
         #      - filterval is None
         #      - filterval is 10
         #      - filterval is 1d array
-        # 3) magpct_filterval = None
+        # 3) magpct_options['filterval'] = None
 
         # first, modify scatm results for testing:
         lsp = results["extreme"]
@@ -955,16 +955,17 @@ def compare(pth):
                     direc = "scatm_msymlog_{}_mfilterval_{}_fv_{}s".format(ms, mf, _fv)
                 else:
                     direc = "scatm_msymlog_{}_mfilterval_{}_fv_{}a".format(ms, mf, _fv)
+                magpct_options = {"filterval": mf, "symlog": ms}
                 lsp.rptpct(
                     lvc,
                     names=("LSP", "Contractor"),
                     drms=["scatm"],
                     direc=direc,
-                    magpct_filterval=mf,
-                    magpct_symlog=ms,
+                    magpct_options=magpct_options,
                     filterval=fv,
                 )
         # test for some exceptions:
+        magpct_options = {"filterval": mf, "symlog": ms}
         assert_raises(
             IndexError,
             lsp.rptpct,
@@ -972,8 +973,7 @@ def compare(pth):
             names=("LSP", "Contractor"),
             drms=["scatm"],
             direc="junk",
-            magpct_filterval=mf,
-            magpct_symlog=ms,
+            magpct_options=magpct_options,
             filterval=[1, 1, 2, 3],
         )
         assert_raises(
@@ -983,10 +983,10 @@ def compare(pth):
             names=("LSP", "Contractor"),
             drms=["scatm"],
             direc="junk",
-            magpct_filterval=mf,
-            magpct_symlog=ms,
+            magpct_options=magpct_options,
             filterval=np.ones((3, 4)),
         )
+        magpct_options["filterval"] = "bad string"
         assert_raises(
             ValueError,
             lsp.rptpct,
@@ -994,8 +994,7 @@ def compare(pth):
             names=("LSP", "Contractor"),
             drms=["scatm"],
             direc="junk",
-            magpct_filterval="bad string",
-            magpct_symlog=ms,
+            magpct_options=magpct_options,
             filterval=1.0,
         )
 

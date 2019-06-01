@@ -772,7 +772,7 @@ def test_rddmig():
     dct2 = nastran.rddmig("tests/nastran_dmig_data/matrix.op2")
 
     for key, val in dct.items():
-        val2 = dct2["M" + key.upper()]
+        val2 = dct2["m" + key]
         assert np.allclose(val, val2)
 
     assert np.all((dct["ident"] == np.eye(dct["ident"].shape[0])).values)
@@ -789,7 +789,7 @@ def test_rddmig():
     dct2 = nastran.rddmig("tests/nastran_dmig_data/matrix.op2", ("mpatrn", "mrandm"))
 
     for key, val in dct.items():
-        val2 = dct2["M" + key.upper()]
+        val2 = dct2["m" + key]
         assert np.allclose(val, val2)
 
     assert sorted(dct.keys()) == ["patrn", "randm"]
@@ -800,7 +800,7 @@ def test_rddmig2():
 
     # chop out some DOF so we can test 'expanded':
     slc = (slice(None), slice(3))
-    mrandm = dct["MRANDM"].loc[slc, slc]
+    mrandm = dct["mrandm"].loc[slc, slc]
 
     with StringIO() as f:
         nastran.wtdmig(f, dict(mrandm=mrandm))

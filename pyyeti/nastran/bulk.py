@@ -582,9 +582,10 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     dct : dictionary
         Dictionary of pandas DataFrames containing the DMIG
         entries. The column and row indices are pandas MultiIndex
-        objects with node ID in level 0 and DOF in level 1. The
-        exception is for form "9" matrices: the column index in that
-        case is just the column number (as specified by Nastran).
+        objects with node ID in level 0 and DOF in level 1 (the names
+        are "id" and "dof"). The exception is for form "9" matrices:
+        the column index in that case is just the column number (as
+        specified by Nastran).
 
     Notes
     -----
@@ -605,7 +606,6 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
     Examples
     --------
-
     Manually create a punch format DMIG string, treat it as a file,
     and read it in with a couple different options:
 
@@ -625,15 +625,15 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     ...     dct3 = nastran.rddmig(f, square=True)
     ...     dct4 = nastran.rddmig(f, expanded=True, square=True)
     >>> dct1['mat']    # doctest: +ELLIPSIS
-    ID          1
-    DOF         1
-    ID DOF...
+    id          1
+    dof         1
+    id dof...
     1  3     12.0
     10 0    100.0
     >>> dct2['mat']    # doctest: +ELLIPSIS
-    ID          1...
-    DOF         1    2    3    4    5    6
-    ID DOF...
+    id          1...
+    dof         1    2    3    4    5    6
+    id dof...
     1  1      0.0  0.0  0.0  0.0  0.0  0.0
        2      0.0  0.0  0.0  0.0  0.0  0.0
        3     12.0  0.0  0.0  0.0  0.0  0.0
@@ -642,16 +642,16 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
        6      0.0  0.0  0.0  0.0  0.0  0.0
     10 0    100.0  0.0  0.0  0.0  0.0  0.0
     >>> dct3['mat']    # doctest: +ELLIPSIS
-    ID         1         10
-    DOF         1    3    0
-    ID DOF...
+    id         1         10
+    dof         1    3    0
+    id dof...
     1  1      0.0  0.0  0.0
        3     12.0  0.0  0.0
     10 0    100.0  0.0  0.0
     >>> dct4['mat']    # doctest: +ELLIPSIS
-    ID         1                             10
-    DOF         1    2    3    4    5    6    0
-    ID DOF...
+    id         1                             10
+    dof         1    2    3    4    5    6    0
+    id dof...
     1  1      0.0  0.0  0.0  0.0  0.0  0.0  0.0
        2      0.0  0.0  0.0  0.0  0.0  0.0  0.0
        3     12.0  0.0  0.0  0.0  0.0  0.0  0.0
@@ -686,7 +686,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
     def _mk_index(iddof):
         iddof = sorted(iddof, key=lambda x: 10 * x[0] + x[1])
-        return pd.MultiIndex.from_tuples(iddof, names=["ID", "DOF"])
+        return pd.MultiIndex.from_tuples(iddof, names=["id", "dof"])
 
     def _prep_dataframe(mtype, form, row_ids, row_iddof, col_iddof, ncol):
         # create dataframe:
@@ -800,6 +800,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         dct = {}
         name, trailer, dbtype = o2.rdop2nt()
         while name is not None:
+            name = name.lower()
             # print(f'op2: found {name}')
             if dmig_names is not None and name.lower() not in dmig_names:
                 o2.skipop2table()
@@ -838,7 +839,7 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
             # - each DMIG entry is a column
             # - end of each DMIG entry is marked with row:
-            #     [ID, DOF] = [-1, -1]
+            #     [id, dof] = [-1, -1]
 
             # 12 & 13 4-byte integers are 1st col id, dof pair
             j = 12
@@ -994,11 +995,11 @@ def wtdmig(f, dct):
         Dictionary of pandas DataFrames. The keys will be used as the
         names of the DMIG entries. With one exception, the column and
         row indices of each DataFrame are pandas MultiIndex objects
-        with node ID in level 0 and DOF in level 1. The exception is
-        for form "9" matrices: the column index in that case is just
-        the column number (starting at one for Nastran). Use an
-        OrderedDict from the standard Python "collections" module to
-        write the entries in a specific order.
+        with node ID in level 0 and DOF in level 1 (the names are "id"
+        and "dof"). The exception is for form "9" matrices: the column
+        index in that case is just the column number (starting at one
+        for Nastran). Use an OrderedDict from the standard Python
+        "collections" module to write the entries in a specific order.
 
     Returns
     -------
@@ -1066,9 +1067,9 @@ def wtdmig(f, dct):
     ...     nastran.wtdmig(sio, {'k': k})
     ...     k2 = nastran.rddmig(sio)['k']
     >>> k2              # doctest: +ELLIPSIS
-    ID       100...
-    DOF        1    2    6
-    ID  DOF...
+    id       100...
+    dof        1    2    6
+    id  dof...
     100 1    3.5 -1.2 -2.4
         2   -1.2  8.8  6.5
         6   -2.4  6.5  9.9
@@ -2824,7 +2825,7 @@ def wtrspline_rings(
         ...                    sta2*np.ones(n2),        # x
         ...                    rad2*np.cos(theta2),     # y
         ...                    rad2*np.sin(theta2))).T  # z
-        >>> fig = plt.figure('rspline demo', figsize=(8, 6))
+        >>> fig = plt.figure('Example', figsize=(8, 6))
         >>> fig.clf()
         >>> ax = fig.add_subplot(1, 1, 1, projection='3d')
         >>> nastran.wtrspline_rings(

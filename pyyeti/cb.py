@@ -168,7 +168,8 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
         >>> a = T @ tf.a
         >>> d = T @ tf.d
-        >>> fig = plt.figure('cbtf demo')
+        >>> fig = plt.figure('Example')
+        >>> fig.clf()
         >>> ax = plt.subplot(211)
         >>> lines = ax.plot(outfreq, np.abs(tf.frc).T, label='Force')
         >>> lines += ax.plot(outfreq, np.abs(a).T)

@@ -198,7 +198,8 @@ class SolveCDF(SolveUnc):
         Plot the four accelerations:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure('SolveCDF vs. lsim', figsize=[8, 8])
+        >>> fig = plt.figure('Example', figsize=[8, 8])
+        >>> fig.clf()
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
@@ -210,7 +211,7 @@ class SolveCDF(SolveUnc):
         ...     _ = plt.xlabel('Time (s)')
         ...     if j == 0:
         ...         _ = plt.legend(loc='best')
-        >>> plt.tight_layout()
+        >>> fig.tight_layout()
     """
 
     def __init__(self, m, b, k, h=None, rb=None, rf=None, order=1, pre_eig=False):

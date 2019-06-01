@@ -73,7 +73,8 @@ class FreqDirect(_BaseODE):
         Plot the four accelerations:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure(figsize=[8, 8])
+        >>> fig = plt.figure('Example', figsize=[8, 8])
+        >>> fig.clf()
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
@@ -82,7 +83,7 @@ class FreqDirect(_BaseODE):
         ...     _ = plt.title(name)
         ...     _ = plt.ylabel('Acceleration')
         ...     _ = plt.xlabel('Frequency (Hz)')
-        >>> plt.tight_layout()
+        >>> fig.tight_layout()
     """
 
     def __init__(self, m, b, k, rb=None, rf=None):

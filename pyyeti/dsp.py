@@ -131,7 +131,8 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         >>> n = len(data)
         >>> x = np.arange(n)
         >>> upx = np.arange(n*p)/p
-        >>> _ = plt.figure('resample demo 1', figsize=(10, 8))
+        >>> _ = plt.figure('Example', figsize=(10, 8))
+        >>> plt.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(x, data, 'o-', label='Original')
         >>> res = {}
@@ -176,7 +177,8 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         >>> data = np.random.randn(n)
         >>> x = np.arange(n)
         >>> dndata, dnx = dsp.resample(data, p, q, t=x)
-        >>> fig = plt.figure('resample demo 2')
+        >>> fig = plt.figure('Example 2')
+        >>> fig.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(x, data, 'o-', label='Original', alpha=.3)
         >>> _ = plt.plot(dnx, dndata, label='Resample', lw=2)
@@ -595,7 +597,7 @@ def despike(
         >>> import matplotlib.pyplot as plt
         >>> np.set_printoptions(linewidth=65)
         >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
-        >>> _ = plt.figure(figsize=(8, 11))
+        >>> _ = plt.figure('Example', figsize=(8, 11))
         >>> plt.clf()
         >>> for i in range(5):
         ...     s = dsp.despike(x, n=9, sigma=2, maxiter=1,
@@ -1935,7 +1937,8 @@ def windowends(sig, portion=0.01, ends="front", axis=-1):
         :context: close-figs
 
         >>> import matplotlib.pyplot as plt
-        >>> _ = plt.figure(figsize=[8, 3])
+        >>> _ = plt.figure('Example', figsize=[8, 3])
+        >>> plt.clf()
         >>> sig = np.ones(100)
         >>> wesig = dsp.windowends(sig, 5, ends='both')
         >>> _ = plt.plot(sig, label='Original')
@@ -2107,7 +2110,8 @@ def waterfall(
         ...                          slicefunc=dsp.windowends,
         ...                          sliceargs=[.02],
         ...                          slicekwargs=dict(ends='front'))
-        >>> _ = plt.figure('SRS Map')
+        >>> _ = plt.figure('Example')
+        >>> plt.clf()
         >>> _ = plt.contour(t, f, mp, 40, cmap=cm.plasma_r)
         >>> cbar = plt.colorbar()
         >>> cbar.filled = True
@@ -2122,7 +2126,8 @@ def waterfall(
 
         Also show results on a 3D surface plot:
 
-        >>> fig = plt.figure('SRS Map surface')
+        >>> fig = plt.figure('Example 2')
+        >>> fig.clf()
         >>> from mpl_toolkits.mplot3d import Axes3D
         >>> ax = fig.gca(projection='3d')
         >>> x, y = np.meshgrid(t, f)
@@ -2354,7 +2359,8 @@ def calcenv(
         >>> from pyyeti import dsp
         >>> x = np.arange(1.0, 31.0, 1.0)
         >>> y = np.cos(x)
-        >>> fig = plt.figure('calcenv', figsize=[10, 8])
+        >>> fig = plt.figure('Example', figsize=[10, 8])
+        >>> fig.clf()
         >>>
         >>> ax = plt.subplot(411)
         >>> env = dsp.calcenv(x, y, base=None, makeplot='add')
@@ -2489,7 +2495,8 @@ def fdscale(y, sr, scale):
         ...                   [9., 1.0],
         ...                   [100., 1.0]])
         >>> sig_scaled = dsp.fdscale(sig, 1/t[1], scale)
-        >>> _ = plt.figure('gensweep2')
+        >>> _ = plt.figure('Example')
+        >>> plt.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(f, sig)
         >>> _ = plt.title('Sine Sweep vs Frequency')
@@ -2684,21 +2691,25 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5, makeplot="no"):
 
         >>> sr = 1/h
         >>> nyq = sr/2
+        >>> _ = plt.figure('Example')
+        >>> plt.clf()
+        >>> _ = plt.figure('Example 2')
+        >>> plt.clf()
         >>> for j, (w, pz, yj) in enumerate(((7, None, y1),
         ...                                 ([7, 18], None, y2),
         ...                                 ([18, 45], None, y3),
         ...                                 (45, False, y4))):
-        ...     _ = plt.figure('filters')
+        ...     _ = plt.figure('Example')
         ...     _ = plt.subplot(4, 1, j+1)
         ...     yf = dsp.fftfilt(y, w, pass_zero=pz, nyq=nyq,
         ...                      makeplot='add')[0]
         ...     _ = plt.xlim(0, 75)
-        ...     _ = plt.figure('compare')
+        ...     _ = plt.figure('Example 2')
         ...     _ = plt.subplot(4, 1, j+1)
         ...     _ = plt.plot(t, yj, t, yf)
-        >>> _ = plt.figure('filters')
+        >>> _ = plt.figure('Example')
         >>> _ = plt.tight_layout()
-        >>> _ = plt.figure('compare')
+        >>> _ = plt.figure('Example 2')
         >>> _ = plt.tight_layout()
     """
     # main routine:
@@ -2881,7 +2892,8 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
         >>> x = np.random.randn(n)
         >>> t = np.arange(n)
         >>> mag, phase, frq = dsp.fftcoef(x, 1.0)
-        >>> _ = plt.figure()
+        >>> _ = plt.figure('Example')
+        >>> plt.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(frq, mag)
         >>> _ = plt.ylabel('Magnitude')
@@ -2906,7 +2918,8 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
         >>> for k, (a, b, f) in enumerate(zip(A, B, frq)):
         ...     x3 = x3 + a*np.cos(k*w*t2) + b*np.sin(k*w*t2)
         >>> #
-        >>> _ = plt.figure()
+        >>> _ = plt.figure('Example 2')
+        >>> plt.clf()
         >>> _ = plt.plot(t, x, 'o', label='Original')
         >>> _ = plt.plot(t2, x2, label='FFT fit w/ Mag & Phase')
         >>> _ = plt.plot(t2, x3, '--', label='FFT fit w/ A & B')
@@ -3246,7 +3259,8 @@ def transmissibility(
         >>> tr = dsp.transmissibility(
         ...           in_acce, out_acce, sr, getmap=True)
         >>>
-        >>> fig = plt.figure(figsize=(8, 11))
+        >>> fig = plt.figure('Example', figsize=(8, 11))
+        >>> fig.clf()
         >>>
         >>> # use GridSpec to make a nice layout:
         >>> gs = gridspec.GridSpec(5, 2, width_ratios=[30, 1])

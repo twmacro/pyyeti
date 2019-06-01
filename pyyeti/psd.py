@@ -568,7 +568,8 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=None):
         >>> p12, f12, msv12, ms12 = psd.rescale(
         ...     p, f, n_oct=12, frange=frange)
         >>>
-        >>> fig = plt.figure('PSD compare')
+        >>> fig = plt.figure('Example')
+        >>> fig.clf()
         >>> line = plt.semilogx(f, p, label='Linear')
         >>> line = plt.semilogx(f3, p3, label='1/3 Octave')
         >>> line = plt.semilogx(f6, p6, label='1/6 Octave')
@@ -897,7 +898,8 @@ def psd2time(
         True
         >>> abs(np.trapz(psdi, fi) - np.trapz(speci, fi)) < .25
         True
-        >>> fig = plt.figure('psd2time demo')
+        >>> fig = plt.figure('Example')
+        >>> fig.clf()
         >>> a = plt.subplot(211)
         >>> line = plt.plot(np.arange(len(sig))/sr, sig)
         >>> plt.grid(True)
@@ -1079,7 +1081,8 @@ def psdmod(sig, sr, nperseg=None, timeslice=1.0, tsoverlap=0.5, getmap=False, **
         ...                     tsoverlap=0.5)
         >>> f3, p3 = psd.psdmod(sig, sr, nperseg=sr)
         >>> spec = spec.T
-        >>> fig = plt.figure('psdmod')
+        >>> fig = plt.figure('Example')
+        >>> fig.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(t, sig)
         >>> _ = plt.title(r'Input Signal - Specification Level = '

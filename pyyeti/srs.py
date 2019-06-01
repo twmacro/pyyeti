@@ -969,7 +969,8 @@ def srs(
         Compare the upsampling/rolloff methods:
 
         >>> import matplotlib.pyplot as plt
-        >>> _ = plt.figure('srs rolloff')
+        >>> _ = plt.figure('Example')
+        >>> plt.clf()
         >>> sr = 200
         >>> t = np.arange(0, 5, 1/sr)
         >>> sig = np.sin(2*np.pi*15*t) + 3*np.sin(2*np.pi*85*t)
@@ -1553,7 +1554,8 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> Q = 20
         >>> mp, t, f = srs.srsmap(2, .5, sig, sr, frq, Q, .02,
         ...                       eqsine=1)
-        >>> _ = plt.figure('SRS Map')
+        >>> _ = plt.figure('Example')
+        >>> plt.clf()
         >>> _ = plt.contour(t, f, mp, 40, cmap=cm.plasma)
         >>> cbar = plt.colorbar()
         >>> cbar.filled = True
@@ -1568,7 +1570,8 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
     .. plot::
         :context: close-figs
 
-        >>> fig = plt.figure('SRS Map surface')
+        >>> fig = plt.figure('Example 2')
+        >>> fig.clf()
         >>> from mpl_toolkits.mplot3d import Axes3D
         >>> ax = fig.gca(projection='3d')
         >>> x, y = np.meshgrid(t, f)

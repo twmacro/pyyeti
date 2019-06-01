@@ -196,7 +196,9 @@
          forc = ltmf
        - probably wouldn't need to define a drfunc in this case!
 
-83. rddmig reads upper case names for op2, lower for pch?
+~83. rddmig reads upper case names for op2, lower for pch?
+    - v0.96.0
+    
 
 84. if licensing is good, update guitools to Qt ... I think (this was
     nearly done i think ... just never finalized it because of license
@@ -259,6 +261,7 @@
      - generator solver
      - force limiting
      - nonlinear spring analysis
+     - cla
 
 ~108. Fdepsd Di_test – mention it doesn’t include sigma
 
@@ -353,3 +356,21 @@
      - v0.95.9
 
 129. Do the return values of rptpct1 make sense?
+
+~130. In magpct, what about really large values “hiding” small ones?
+     - Log-x or linear-log-x?
+     - Option to set scale?
+     - v0.96.0 -- added "symlogx" and "symlogx_ratio" options
+
+~131. Rddmig and uset tables should have same index label names (‘id’
+      vs ‘ID’).
+      - v0.96.0
+
+132. Units in mk_net_drms should be more settable (now, translation
+     acceleration units is the only option)
+
+~133. Change figures in examples to use "Example" and "Example 2"
+      names:
+    
+        >>> fig = plt.figure('Example', figsize=(8, 6))
+        >>> fig.clf()

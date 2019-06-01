@@ -46,7 +46,8 @@ class SolveExp1(object):
         >>> ts = ode.SolveExp1(A, h)
         >>> sol = ts.tsolve(B @ F, B[:, 0])
         >>> y = C @ sol.d
-        >>> fig = plt.figure('SolveExp1 demo')
+        >>> fig = plt.figure('Example')
+        >>> fig.clf()
         >>> ax = plt.plot(sol.t, y.T,
         ...               label='SolveExp1')
         >>> ssmodel = SSModel(A, B, C, D)

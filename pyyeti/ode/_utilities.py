@@ -778,7 +778,8 @@ def solvepsd(
         Plot the four accelerations PSDs:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure('solvepsd demo', figsize=[8, 8])
+        >>> fig = plt.figure('Example', figsize=[8, 8])
+        >>> fig.clf()
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
@@ -787,7 +788,7 @@ def solvepsd(
         ...     _ = plt.title(name)
         ...     _ = plt.ylabel(r'Accel PSD ($g^2$/Hz)')
         ...     _ = plt.xlabel('Frequency (Hz)')
-        >>> plt.tight_layout()
+        >>> fig.tight_layout()
     """
     ndrms = len(drmlist)
     forcepsd = np.atleast_2d(forcepsd)

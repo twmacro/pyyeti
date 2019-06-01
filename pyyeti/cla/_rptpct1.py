@@ -34,7 +34,8 @@ def _apply_pv(value, pv, oldlen):
         if n == 1:
             return value
 
-    # ensure `value` is a true numpy array:
+    # `value` is a vector with len > 1 ... ensure it is a true numpy
+    # array:
     value = np.atleast_1d(value)
 
     # oldlen is either 0 (for `value` vectors that are expected to be
@@ -44,10 +45,12 @@ def _apply_pv(value, pv, oldlen):
     # (currently, only the `ignorepv` vector) was originally defined
     # to partition.
     if oldlen == 0:
-        # `value` is `filterval` or `magpct_filterval`
+        # `value` is `filterval` or `magpct_filterval` ... these just
+        # need to be partitioned down:
         newvalue = value[pv]
     else:
-        # `value` is `ignorepv`
+        # `value` is `ignorepv` ... it needs to be redefined to
+        # correspond to reduced size:
         truefalse = locate.index2bool(value, oldlen)
         newvalue = truefalse[pv].nonzero()[0]
     return newvalue
@@ -305,7 +308,10 @@ def _plot_magpct(
     desc,
     doabsmax,
     filename,
-    magpct_symlog,
+    magpct_options,
+    # magpct_symlog,
+    # magpct_symlogx,
+    # magpct_symlogx_ratio,
     use_range,
     maxhdr,
     minhdr,
@@ -335,7 +341,10 @@ def _plot_magpct(
                     Ref=ref,
                     ismax=ismax,
                     filterval=pctinfo[lbl]["magfilt"],
-                    symlog=magpct_symlog,
+                    **magpct_options,
+                    # symlog=magpct_symlog,
+                    # symlogx=magpct_symlogx,
+                    # symlogx_ratio=magpct_symlogx_ratio,
                 )
                 plt.title(ptitle.format(hdr))
                 plt.xlabel(xl)
@@ -422,8 +431,11 @@ def rptpct1(
     dohistogram=True,
     histogram_inc=1.0,
     domagpct=True,
-    magpct_filterval="filterval",
-    magpct_symlog=True,
+    magpct_options=None,
+    # magpct_filterval="filterval",
+    # magpct_symlog=True,
+    # magpct_symlogx="auto",
+    # magpct_symlogx_ratio=10.0,
     doabsmax=False,
     shortabsmax=False,
     roundvals=-1,
@@ -438,7 +450,7 @@ def rptpct1(
     align_by_label=True,
 ):
     """
-    Write a percent difference report between 2 sets of max/min data.
+    Write a percent difference report between 2 sets of max/min data
 
     Parameters
     ----------
@@ -573,32 +585,38 @@ def rptpct1(
         If True, plot the percent differences versus magnitude via
         :func:`magpct`. Plots will be written to
         "`filename`.magpct.png". Filtering for the "magpct" plot is
-        controlled by the `magpct_filterval` and `magpct_symlog`
-        options. By default, all percent differences are shown, but
-        the larger values (according to the `filterval` filter) are
-        emphasized by using a mixed linear/log y-axis. The percent
-        differences for the `ignorepv` rows are not plotted.
-    magpct_filterval : None, string, scalar, or 1d ndarray; optional
-        Unless `magpct_filterval` is a string, this is used as the
-        ``filterval`` input to :func:`magpct` after applying
-        `ignorepv` and doing any data aligning by labels. If it is
-        'filterval', `magpct_filterval` is first reset to the final
-        value of `filterval` (described above). In any case, if
-        `magpct_filterval` is not None, see also the `magpct_symlog`
-        option, which specifies how the filter is to be used in
-        :func:`magpct`.
+        controlled by the ``magpct_options['filterval']`` and
+        ``magpct_options['symlog']`` options. By default, all percent
+        differences are shown, but the larger values (according to the
+        `filterval` filter) are emphasized by using a mixed linear/log
+        y-axis. The percent differences for the `ignorepv` rows are
+        not plotted.
+    magpct_options : None or dict; must be named; optional
+        If None, it is internally reset to::
+
+            magpct_options = {'filterval': 'filterval'}
+
+        Use this parameter to provide any options to :func:`magpct`
+        but note that the `filterval` option for :func:`magpct` is
+        treated specially. Here, in addition to any of the values that
+        :func:`magpct` accepts, it can also be set to the string
+        "filterval" as in the default case shown above. In that case,
+        ``magpct_options['filterval']`` gets internally reset to the
+        initial value of `filterval` (described above).
+
+        .. note::
+            The call to :func:`magpct` is *after* applying `ignorepv`
+            and doing any data aligning by labels.
 
         .. note::
            The two filter value options (`filterval` and
-           `magpct_filterval`) have different defaults: None and
-           'filterval`, respectively. They also differ on how the
-           ``None`` setting is used: for `filterval`, None is replaced
-           by 1.e-6 while for `magpct_filterval`, None means that the
-           "magpct" plot will not have any filters applied at all.
+           ``magpct_options['filterval']``) have different defaults:
+           None and 'filterval`, respectively. They also differ on how
+           the ``None`` setting is used: for `filterval`, None is
+           replaced by 1.e-6 while for `magpct_filterval`, None means
+           that the "magpct" plot will not have any filters applied at
+           all.
 
-    magpct_symlog : bool; must be named; optional
-        Directly used as the ``symlog`` input to :func:`magpct`; see
-        that routine for a description.
     doabsmax : bool; must be named; optional
         If True, compare only absolute maximums.
     shortabsmax : bool; must be named; optional
@@ -772,12 +790,23 @@ def rptpct1(
     if tight_layout_args is None:
         tight_layout_args = {"pad": 3.0}
 
+    if magpct_options is None:
+        magpct_options = {"filterval": "filterval"}
+    else:
+        magpct_options = magpct_options.copy()
+
+    # magpct_options['filterval'] get special treatment:
+    magpct_filterval = magpct_options["filterval"]
+    del magpct_options["filterval"]
+
     if isinstance(magpct_filterval, str):
         if magpct_filterval != "filterval":
             raise ValueError(
-                "`magpct_filterval` is an invalid string: "
-                f"{magpct_filterval!r} (can only be 'filterval' if a string)"
+                "``magpct_options['filterval']`` is an invalid "
+                f"string: {magpct_filterval!r} (can only "
+                "be 'filterval' if a string)"
             )
+        # copy the initial `filterval` setting:
         magpct_filterval = filterval
 
     infovars = (
@@ -830,17 +859,20 @@ def rptpct1(
             f"{R} vs {mxmn2.shape[0]} for category with `desc` = {desc}"
         )
 
-    for filter_ in ("filterval", "magpct_filterval"):
-        if infodct[filter_] is None and filter_ == "filterval":
-            infodct[filter_] = 1.0e-6
-        infodct[filter_] = _proc_filterval(infodct[filter_], R, filter_)
-
     filterval = infodct["filterval"]
-    magpct_filterval = infodct["filterval"]
+    magpct_filterval = infodct["magpct_filterval"]
     labels = infodct["labels"]
     units = infodct["units"]
     ignorepv = infodct["ignorepv"]
     uf_reds = infodct["uf_reds"]
+    del infodct
+
+    if filterval is None:
+        filterval = 1.0e-6
+    filterval = _proc_filterval(filterval, R, "filterval")
+    magpct_filterval = _proc_filterval(
+        magpct_filterval, R, "magpct_options['filterval']"
+    )
 
     if labels is None:
         labels = [f"Row {i + 1:6d}" for i in range(R)]
@@ -970,7 +1002,10 @@ def rptpct1(
                 desc,
                 doabsmax,
                 filename,
-                magpct_symlog,
+                magpct_options,
+                # magpct_symlog,
+                # magpct_symlogx,
+                # magpct_symlogx_ratio,
                 use_range,
                 maxhdr,
                 minhdr,

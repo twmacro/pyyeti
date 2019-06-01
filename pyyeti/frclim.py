@@ -337,7 +337,8 @@ def ntfl(Source, Load, As, freq):
         5. Plot comparisons:
 
         >>> import matplotlib.pyplot as plt
-        >>> _ = plt.figure('ntfl demo - solution comparison')
+        >>> _ = plt.figure('Example')
+        >>> plt.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.semilogy(freq, abs(A_coupled),
         ...                  label='Coupled')
@@ -361,7 +362,8 @@ def ntfl(Source, Load, As, freq):
 
         6. Plot apparent masses:
 
-        >>> _ = plt.figure('ntfl demo - apparent mass')
+        >>> _ = plt.figure('Example 2')
+        >>> plt.clf()
         >>> _ = plt.semilogy(freq, abs(r.TAM[0, :, 0]),
         ...                  label='Total App. Mass')
         >>> _ = plt.semilogy(freq, abs(r.SAM[0, :, 0]),
@@ -378,8 +380,8 @@ def ntfl(Source, Load, As, freq):
         7. Plot accelerations and
         8. Plot force limit factor:
 
-        >>> _ = plt.figure('ntfl demo - accelerations'
-        ...                ' & force limit factor')
+        >>> _ = plt.figure('Example 3')
+        >>> plt.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.semilogy(freq, abs(As).T,
         ...                  label='Free Acce')

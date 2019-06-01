@@ -178,6 +178,7 @@ def getmodepart(
     Approach 2: plot FRFs first, then call :func:`getmodepart`:
 
     >>> fig = plt.figure('approach 2 FRFs')         # doctest: +SKIP
+    >>> fig.clf()                                   # doctest: +SKIP
     >>> for s in sols:                              # doctest: +SKIP
     ...     plt.plot(freq, abs(s[0] @ s[1]).T,      # doctest: +SKIP
     ...              label=s[2])                    # doctest: +SKIP

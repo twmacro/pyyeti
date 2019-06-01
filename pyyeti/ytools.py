@@ -1189,7 +1189,8 @@ def gensweep(ppc, fstart, fstop, rate):
         >>> from pyyeti import ytools
         >>> import matplotlib.pyplot as plt
         >>> sig, t, f = ytools.gensweep(10, 1, 12, 8)
-        >>> _ = plt.figure('gensweep')
+        >>> _ = plt.figure('Example')
+        >>> plt.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(t, sig)
         >>> _ = plt.title('Sine Sweep vs Time')
