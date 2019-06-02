@@ -309,9 +309,6 @@ def _plot_magpct(
     doabsmax,
     filename,
     magpct_options,
-    # magpct_symlog,
-    # magpct_symlogx,
-    # magpct_symlogx_ratio,
     use_range,
     maxhdr,
     minhdr,
@@ -342,9 +339,6 @@ def _plot_magpct(
                     ismax=ismax,
                     filterval=pctinfo[lbl]["magfilt"],
                     **magpct_options,
-                    # symlog=magpct_symlog,
-                    # symlogx=magpct_symlogx,
-                    # symlogx_ratio=magpct_symlogx_ratio,
                 )
                 plt.title(ptitle.format(hdr))
                 plt.xlabel(xl)
@@ -432,10 +426,6 @@ def rptpct1(
     histogram_inc=1.0,
     domagpct=True,
     magpct_options=None,
-    # magpct_filterval="filterval",
-    # magpct_symlog=True,
-    # magpct_symlogx="auto",
-    # magpct_symlogx_ratio=10.0,
     doabsmax=False,
     shortabsmax=False,
     roundvals=-1,
@@ -586,7 +576,7 @@ def rptpct1(
         :func:`magpct`. Plots will be written to
         "`filename`.magpct.png". Filtering for the "magpct" plot is
         controlled by the ``magpct_options['filterval']`` and
-        ``magpct_options['symlog']`` options. By default, all percent
+        ``magpct_options['symlogy']`` options. By default, all percent
         differences are shown, but the larger values (according to the
         `filterval` filter) are emphasized by using a mixed linear/log
         y-axis. The percent differences for the `ignorepv` rows are
@@ -1003,9 +993,6 @@ def rptpct1(
                 doabsmax,
                 filename,
                 magpct_options,
-                # magpct_symlog,
-                # magpct_symlogx,
-                # magpct_symlogx_ratio,
                 use_range,
                 maxhdr,
                 minhdr,

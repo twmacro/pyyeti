@@ -24,7 +24,7 @@ def test_magpct():
     assert len(pds) == 1
     assert np.allclose(pds[0], [0, -33.3333333])
 
-    pds = cla.magpct([1, 2], [1, 3], filterval=4, symlog=False)
+    pds = cla.magpct([1, 2], [1, 3], filterval=4, symlogy=False)
     assert len(pds) == 1
     assert pds[0] is None
 
@@ -921,12 +921,12 @@ def compare(pth):
         # test magpct filterval options; when a filtered value %diff
         # is large
         # 1) magpct_options['filterval'] = 'filterval'
-        #    magpct_options['symlog'] = True
+        #    magpct_options['symlogy'] = True
         #      - filterval is None
         #      - filterval is 10
         #      - filterval is 1d array
         # 2) magpct_options['filterval'] = 'filterval'
-        #    magpct_options['symlog'] = False
+        #    magpct_options['symlogy'] = False
         #      - filterval is None
         #      - filterval is 10
         #      - filterval is 1d array
@@ -955,7 +955,7 @@ def compare(pth):
                     direc = "scatm_msymlog_{}_mfilterval_{}_fv_{}s".format(ms, mf, _fv)
                 else:
                     direc = "scatm_msymlog_{}_mfilterval_{}_fv_{}a".format(ms, mf, _fv)
-                magpct_options = {"filterval": mf, "symlog": ms}
+                magpct_options = {"filterval": mf, "symlogy": ms}
                 lsp.rptpct(
                     lvc,
                     names=("LSP", "Contractor"),
@@ -965,7 +965,7 @@ def compare(pth):
                     filterval=fv,
                 )
         # test for some exceptions:
-        magpct_options = {"filterval": mf, "symlog": ms}
+        magpct_options = {"filterval": mf, "symlogy": ms}
         assert_raises(
             IndexError,
             lsp.rptpct,

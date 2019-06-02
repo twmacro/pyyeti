@@ -6,8 +6,8 @@ import matplotlib.transforms as transforms
 from ._utilities import _proc_filterval, get_marker_cycle
 
 
-def _getpdiffs(m1, m2, ref, ismax, symlog, filterval):
-    if not symlog and filterval is not None:
+def _getpdiffs(m1, m2, ref, ismax, symlogy, filterval):
+    if not symlogy and filterval is not None:
         pv = (ref != 0) & (abs(m1) > filterval) & (abs(m2) > filterval)
     else:
         pv = ref != 0.0
@@ -24,7 +24,7 @@ def _getpdiffs(m1, m2, ref, ismax, symlog, filterval):
         neg = a < b if ismax else a > b
         pdiff[neg] *= -1.0
 
-    if symlog and filterval is not None:
+    if symlogy and filterval is not None:
         if len(filterval) > len(a):
             filt = filterval[pv]
         else:
@@ -40,12 +40,12 @@ def _getpdiffs(m1, m2, ref, ismax, symlog, filterval):
     return pdiff, ref[pv], max_linear_pdiff
 
 
-def _get_next_pdiffs(M1, M2, Ref, ismax, symlog, filterval):
+def _get_next_pdiffs(M1, M2, Ref, ismax, symlogy, filterval):
     if M1.ndim == 1:
-        yield _getpdiffs(M1, M2, Ref, ismax, symlog, filterval)
+        yield _getpdiffs(M1, M2, Ref, ismax, symlogy, filterval)
     else:
         for c in range(M1.shape[1]):
-            yield _getpdiffs(M1[:, c], M2[:, c], Ref[:, c], ismax, symlog, filterval)
+            yield _getpdiffs(M1[:, c], M2[:, c], Ref[:, c], ismax, symlogy, filterval)
 
 
 def magpct(
@@ -55,7 +55,7 @@ def magpct(
     ismax=None,
     symbols=None,
     filterval=None,
-    symlog=True,
+    symlogy=True,
     symlogx="auto",
     symlogx_ratio=10.0,
     ax=None,
@@ -86,24 +86,29 @@ def magpct(
         If None, no filtering is done and all percent differences are
         shown on a linear y-axis scale. If not None, percent
         differences for small numbers are handled in one of two ways
-        depending on the `symlog` option (described next).
-    symlog : bool; optional
-        Refers to the y-axis. If `filterval` is not None, this option
-        determines how `filterval` is used:
+        depending on the `symlogy` option (described next).
+    symlogy : bool; optional
+        If `filterval` is None, the "symlog" option is used on the
+        y-axis (see :func:`matplotlib.pyplot.yscale`).
 
-          ========   =================================================
-          `symlog`   Description
-          ========   =================================================
-           True      Plot all percent differences, but use
-                     :func:`matplotlib.pyplot.yscale` with the
-                     "symlog" option. The "filtered region" is plotted
-                     on a linear y-axis while percent differences for
-                     the small values are potentially plotted outside
-                     that region on a log y-axis. This is so all data
-                     is shown, while emphasizing the important data.
-           False     Plot only values larger (in the absolute sense)
-                     than `filterval`.
-          ========   =================================================
+        If `filterval` is not None, this option determines how
+        `filterval` is used:
+
+          =========   ================================================
+          `symlogy`   Description
+          =========   ================================================
+           True       Plot all percent differences, but use
+                      :func:`matplotlib.pyplot.yscale` with the
+                      "symlog" option. The "filtered region" is
+                      plotted on a linear y-axis while percent
+                      differences for the small values are potentially
+                      plotted outside that region on a log
+                      y-axis. This is so all data is shown, while
+                      emphasizing the important data.
+
+           False      Plot only values larger (in the absolute sense)
+                      than `filterval`.
+          =========   ================================================
 
     symlogx : string or bool; optional
         Specifies whether or not to use the "symlog" option on the
@@ -135,7 +140,7 @@ def magpct(
         List of 1d percent differences, one numpy array for each
         column in `M1` and `M2`. Each 1d array contains only the
         percent differences where ``M2 != 0.0``. If `M2` is all zero
-        for a column (or all filtered out and `symlog` is False), the
+        for a column (or all filtered out and `symlogy` is False), the
         corresponding entry in `pdiffs` is None.
 
     Notes
@@ -151,7 +156,7 @@ def magpct(
 
     Examples
     --------
-    The first example demos the `symlog` and `filterval` options.
+    The first example demos the `symlogy` and `filterval` options.
 
     .. plot::
         :context: close-figs
@@ -169,13 +174,13 @@ def magpct(
         >>> _ = ax[0].set_title('No Filter')
         >>> pdiffs = cla.magpct(m1, m2, symbols='ox', ax=ax[0])
         >>>
-        >>> _ = ax[1].set_title('Filter = 45, symlog=True')
+        >>> _ = ax[1].set_title('Filter = 45, symlogy=True')
         >>> pdiffs = cla.magpct(m1, m2, symbols='ox',
         ...                     filterval=45, ax=ax[1])
         >>>
-        >>> _ = ax[2].set_title('Filter = 45, symlog=False')
+        >>> _ = ax[2].set_title('Filter = 45, symlogy=False')
         >>> pdiffs = cla.magpct(m1, m2, symbols='ox',
-        ...                     filterval=45, symlog=False, ax=ax[2])
+        ...                     filterval=45, symlogy=False, ax=ax[2])
         >>>
         >>> fig.tight_layout()
 
@@ -211,6 +216,7 @@ def magpct(
         ...                     ax=ax[3], symlogx_ratio=100.0)
         >>> fig.tight_layout()
     """
+    SHADED = "lightgray"
     if Ref is None:
         M1, M2 = np.atleast_1d(M1, M2)
         Ref = M2
@@ -237,7 +243,7 @@ def magpct(
     ref_max = -np.inf
     ref_absmax = -np.inf
     symlogx_auto = False  # an assumption
-    for curpd, ref, mlp in _get_next_pdiffs(M1, M2, Ref, ismax, symlog, filterval):
+    for curpd, ref, mlp in _get_next_pdiffs(M1, M2, Ref, ismax, symlogy, filterval):
         pdiffs.append(curpd)
         if curpd is not None:
             apd = abs(curpd)
@@ -248,6 +254,8 @@ def magpct(
                 (apd > 10, "r"),
             ]:
                 ax.plot(ref[pv], curpd[pv], c + _marker)
+        # mlp -> max_linear_pdiff; only not None if symlogy is true and
+        # filterval is not None
         if mlp is not None:
             logthreshy = max(logthreshy, abs(curpd).max())
             linthreshy = max(linthreshy, mlp)
@@ -267,18 +275,31 @@ def magpct(
         ax.set_yscale(
             "symlog", linthreshy=linthreshy, linscaley=3, subsy=[2, 3, 4, 5, 6, 7, 8, 9]
         )
-        ax.set_facecolor("lightgray")
+
+        ax.set_facecolor(SHADED)
         ax.axhspan(-lty, lty, facecolor="white", zorder=-2)
+
         trans = transforms.blended_transform_factory(ax.transAxes, ax.transData)
         ax.text(
             0.98,
             0.98 * lty,
+            # "Values > Filter",
+            # "Significant values %Diff range",
             "Filtered region",
             va="top",
             ha="right",
             transform=trans,
             fontstyle="italic",
         )
+    elif symlogy:
+        # no filter, but use symlog on y-axis:
+        ax.set_xscale("symlog")
+
+    if symlogx == "auto":
+        symlogx = symlogx_auto
+
+    if symlogx:
+        ax.set_xscale("symlog")
 
     if filterval is not None and len(filterval) == 1:
         if ref_max > filterval:
@@ -290,11 +311,27 @@ def magpct(
                 -filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
             )
 
-    if symlogx == "auto":
-        symlogx = symlogx_auto
-
-    if symlogx:
-        ax.set_xscale("symlog")
+        # # ax.set_xlim(ax.get_xlim())
+        # # left, right = ax.get_xlim()
+        # # print(f"({left}, {right})")
+        # if ref_max > filterval:
+        #     ax.axvline(
+        #         filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
+        #     )
+        #     right = filterval
+        # else:
+        #     right = ref_max
+        # if ref_min < -filterval:
+        #     ax.axvline(
+        #         -filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
+        #     )
+        #     left = -filterval
+        # else:
+        #     left = ref_min
+        # # left1, right1 = ax.get_xlim()
+        # # print(f"({left1}, {right1})")
+        # ax.axvspan(left, right, facecolor=SHADED, zorder=-2)
+        # # ax.axvspan(-filterval, filterval, facecolor=SHADED, zorder=-2)
 
     if apd is not None:
         ax.set_xlabel("Reference Magnitude")
