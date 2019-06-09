@@ -306,6 +306,8 @@ class _BaseODE:
         if m is not None:
             m = np.diag(mdiag).copy()
         k = np.diag(kdiag).copy()
+        if b.ndim == 1:
+            b = np.diag(b)
         b = u.T @ b @ u
         return m, b, k
 

@@ -8,6 +8,7 @@ from scipy import integrate
 from pyyeti import ode, dsp
 from pyyeti.ssmodel import SSModel
 from pyyeti import expmint
+from pyyeti.nastran import n2p, op2
 
 
 def test_expmint():
@@ -5402,3 +5403,44 @@ def test_solveunc_cd_as_force():
                     # this works, but adds no more coverage:
                     # run_solvers_cd_as_forces(
                     #     None, b, k, h, order, rf, f)
+
+
+def test_ode_pre_eig():
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    se = 101
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
+    uset = nas["uset"][se]
+    b = n2p.mksetpv(uset, "a", "b")
+    q = ~b
+    b = np.nonzero(b)[0]
+
+    rb = n2p.rbgeom_uset(uset.iloc[b], 3)
+
+    pv = np.any(maa, axis=0)
+    q = q[pv]
+    pv = np.ix_(pv, pv)
+    maa = maa[pv]
+    kaa = kaa[pv]
+    baa1 = np.zeros(maa.shape[0])
+    baa1[q] = 2 * 0.05 * np.sqrt(kaa[q, q])
+    # baa2 = 1e-5 * kaa
+
+    h = 0.001
+    t = np.arange(0.0, 0.02, h)
+    f = np.zeros((maa.shape[0], len(t)))
+    f[b] = 10.0 * rb[:, :1] * np.ones((1, len(t)))
+
+    ts = ode.SolveExp2(maa, baa1, kaa, h, pre_eig=True)
+    sol = ts.tsolve(f, static_ic=True)
+
+    tsu = ode.SolveUnc(maa, baa1, kaa, h, pre_eig=True)
+    solu = tsu.tsolve(f, static_ic=True)
+
+    assert abs(np.diff(sol.a, axis=1)).max() < 1e-6
+    assert abs(np.diff(solu.a, axis=1)).max() < 1e-6
+    assert abs(maa @ sol.a[:, 0] + kaa @ sol.d[:, 0] - f[:, 0]).max() < 1e-6
+
+    assert np.allclose(sol.a, solu.a, atol=1e-6)
+    assert np.allclose(sol.v, solu.v)
+    assert np.allclose(sol.d, solu.d)

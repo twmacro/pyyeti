@@ -1229,7 +1229,7 @@ def mk_net_drms(
         ifltmd_lv = ifltmd_sc
 
     # use RBE3 for net accelerations
-    if len(bset) > 6:
+    if uset_if.shape[0] > 6:
         dof_indep = 123
         xyz = ytools.mkpattvec([0, 1, 2], len(bset_if), 6).ravel()
         xyz = bset_if[xyz]

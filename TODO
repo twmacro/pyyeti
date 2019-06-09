@@ -46,8 +46,9 @@
 19. Add windowends to srs ?
 
 21. In cb or cla:
-    - make routine that returns string for adding data recovery categories for mk_net_drms output:
-        """
+    - make routine that returns string for adding data recovery
+      categories for mk_net_drms output:
+"""
         @cla.DR_Def.addcat
         def _():
             name = 'net_ifatm'
@@ -198,7 +199,7 @@
 
 ~83. rddmig reads upper case names for op2, lower for pch?
     - v0.96.0
-    
+
 
 84. if licensing is good, update guitools to Qt ... I think (this was
     nearly done i think ... just never finalized it because of license
@@ -371,6 +372,56 @@
 
 ~133. Change figures in examples to use "Example" and "Example 2"
       names:
-    
+
         >>> fig = plt.figure('Example', figsize=(8, 6))
         >>> fig.clf()
+
+134. mk_net_drms:
+
+     ~ - The check below should be against the subset of b, if there
+         is one
+     - Also, the 123 vs 123456 should be a user option
+     - With one grid, if it’s the reference, should we mess with
+       formrbe3 at all???
+
+        # use RBE3 for net accelerations
+        if len(bset) > 6:
+            dof_indep = 123
+            xyz = ytools.mkpattvec([0, 1, 2], len(bset_if), 6).ravel()
+            xyz = bset_if[xyz]
+        else:
+            dof_indep = 123456
+            xyz = np.arange(6)
+
+     - reorder is not efficient (fix mk_net_drms or cbreorder or
+       both??)
+        - if no reordering, just do nothing
+
+     - grids should be from full uset … exception can happen otherwise
+       because of a repeated grid id during the addgrid (pandas does
+       not necessarily create delete old id’s from the index … it just
+       doesn’t use them):
+
+         grids = uset_if.index.get_level_values("id")[::6]
+         new_id = grids.max() + 1
+         uset2 = n2p.addgrid(uset_if, new_id, "b", 0, ref, 0)
+
+~135. nosetests is not running doctests on files like cla/_magpct.py
+      v0.96.1 -- added "ignore-files='^$'" to setup.cfg
+
+136. Good solution for addgrid??:
+     uset.index = uset.index.remove_unused_levels()
+
+`137. ode.solveunc – damping can’t be diagonal (maa, kaa were square,
+     but … ??)
+     - used pre_eig option for CB matrices and wanted static initial
+       condition
+     - ALSO, in tsolve(s), add note to use pre_eig if needed to get to
+       modal space!!
+     - i think bug is fixed (0.96.1) but still need to check docs ...
+       starting point is last test in test_ode.py
+
+138. Switch testing to pytest. nosetests is not maintained apparently.
+     - don't import nose for tests
+     - this is probably not as big a job as it sounds ... nose tools
+       aren't used that heavily I don't think (it's not tiny ...)
