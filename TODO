@@ -412,7 +412,7 @@
 136. Good solution for addgrid??:
      uset.index = uset.index.remove_unused_levels()
 
-`137. ode.solveunc – damping can’t be diagonal (maa, kaa were square,
+~`137. ode.solveunc – damping can’t be diagonal (maa, kaa were square,
      but … ??)
      - used pre_eig option for CB matrices and wanted static initial
        condition
@@ -420,6 +420,7 @@
        modal space!!
      - i think bug is fixed (0.96.1) but still need to check docs ...
        starting point is last test in test_ode.py
+    v0.96.2
 
 138. Switch testing to pytest. nosetests is not maintained apparently.
      - don't import nose for tests

@@ -150,7 +150,7 @@ class FreqDirect(_BaseODE):
         any, they are treated like all other elastic modes).
         """
         self._common_precalcs(m, b, k, h=None, rb=rb, rf=rf)
-        self._mk_slices(dorbel=False)
+        self._mk_slices()  # dorbel=False)
 
     def fsolve(self, force, freq, incrb=2):
         """

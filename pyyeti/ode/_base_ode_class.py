@@ -109,29 +109,33 @@ class _BaseODE:
             return slice(pv[0], pv[-1] + 1)
         raise ValueError("invalid partition vector for conversion to slice")
 
-    def _mk_slices(self, dorbel):
+    def _mk_slices(self):  # , dorbel):
         """Convert index partition vectors to slice objects and sets
         ``slices=True`` if successful."""
+        # if not dorbel:
+        #     print("Setting dorbel to True for testing...")
+        #     dorbel = True
         try:
             nonrf = self._mk_slice(self.nonrf)
             rf = self._mk_slice(self.rf)
             kdof = self._mk_slice(self.kdof)
-            if dorbel:
-                rb = self._mk_slice(self.rb)
-                el = self._mk_slice(self.el)
-                _rb = self._mk_slice(self._rb)
-                _el = self._mk_slice(self._el)
+            # if dorbel:
+            rb = self._mk_slice(self.rb)
+            el = self._mk_slice(self.el)
+            _rb = self._mk_slice(self._rb)
+            _el = self._mk_slice(self._el)
+        except ValueError:
+            self.slices = False
+        else:
             self.nonrf = nonrf
             self.rf = rf
             self.kdof = kdof
-            if dorbel:
-                self.rb = rb
-                self.el = el
-                self._rb = _rb
-                self._el = _el
+            # if dorbel:
+            self.rb = rb
+            self.el = el
+            self._rb = _rb
+            self._el = _el
             self.slices = True
-        except ValueError:
-            self.slices = False
 
     def _chk_diag_part(self, m, b, k, cd_as_force=False):
         """Checks for all-diagonal and partitions based on rf modes"""
@@ -307,8 +311,9 @@ class _BaseODE:
             m = np.diag(mdiag).copy()
         k = np.diag(kdiag).copy()
         if b.ndim == 1:
-            b = np.diag(b)
-        b = u.T @ b @ u
+            b = (u.T * b) @ u
+        else:
+            b = u.T @ b @ u
         return m, b, k
 
     def _common_precalcs(self, m, b, k, h, rb, rf, pre_eig=False, cd_as_force=False):
@@ -351,6 +356,10 @@ class _BaseODE:
         self.systype = systype
 
     def _make_rb_el(self, rb):
+        """
+        - rb and el are relative to full size
+        - _rb and _el are relative to the non RF part
+        """
         if rb is None:
             if self.ksize:
                 tol = 0.005
@@ -428,12 +437,26 @@ class _BaseODE:
         if d0 is not None:
             d[self.nonrf, 0] = d0[self.nonrf]
         elif static_ic and self.elsize:
+            # el is relative to full size
+            # _el is relative to "k" size
             if self.unc:
                 d0 = la.lstsq(np.diag(self.k[self._el]), F0[self.el])
                 d[self.el, 0] = d0[0]
             else:
-                d0 = la.lstsq(self.k, F0[self.kdof])
-                d[self.kdof, 0] = d0[0]
+                # print(f"{type(self).__name__}")
+                # print(f"self.k.shape = {self.k.shape}")
+                # print(f"F0.shape = {F0.shape}")
+                # # SolveExp2 leaves rb in the equations, which messes
+                # # up the lstsq solution ...
+                # print(f"self.kdof = {self.kdof}")
+                # print(f"self.el = {self.el}")
+                # print(f"self._el = {self._el}")
+                if self.slices:
+                    d0 = la.lstsq(self.k[self._el, self._el], F0[self.el])
+                else:
+                    d0 = la.lstsq(self.k[np.ix_(self._el, self._el)], F0[self.el])
+                d[self.rb, 0] = 0.0
+                d[self.el, 0] = d0[0]
         if v0 is not None:
             v[self.nonrf, 0] = v0[self.nonrf]
 

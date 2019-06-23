@@ -5405,7 +5405,7 @@ def test_solveunc_cd_as_force():
                     #     None, b, k, h, order, rf, f)
 
 
-def test_ode_pre_eig():
+def test_ode_pre_eig_diagdamp():
     nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
@@ -5424,23 +5424,26 @@ def test_ode_pre_eig():
     kaa = kaa[pv]
     baa1 = np.zeros(maa.shape[0])
     baa1[q] = 2 * 0.05 * np.sqrt(kaa[q, q])
-    # baa2 = 1e-5 * kaa
+    baa2 = 1e-5 * kaa
 
     h = 0.001
-    t = np.arange(0.0, 0.02, h)
+    t = np.arange(0.0, 0.20, h)
     f = np.zeros((maa.shape[0], len(t)))
     f[b] = 10.0 * rb[:, :1] * np.ones((1, len(t)))
+    cnst_steps = 20
+    f[b, cnst_steps:] = 10.0 * rb[:, :1] * np.cos(2 * np.pi * 12.0 * t[:-cnst_steps])
 
-    ts = ode.SolveExp2(maa, baa1, kaa, h, pre_eig=True)
-    sol = ts.tsolve(f, static_ic=True)
+    for baa in (baa1, baa2):
+        ts = ode.SolveExp2(maa, baa, kaa, h, pre_eig=True)
+        sol = ts.tsolve(f, static_ic=True)
 
-    tsu = ode.SolveUnc(maa, baa1, kaa, h, pre_eig=True)
-    solu = tsu.tsolve(f, static_ic=True)
+        tsu = ode.SolveUnc(maa, baa, kaa, h, pre_eig=True)
+        solu = tsu.tsolve(f, static_ic=True)
 
-    assert abs(np.diff(sol.a, axis=1)).max() < 1e-6
-    assert abs(np.diff(solu.a, axis=1)).max() < 1e-6
-    assert abs(maa @ sol.a[:, 0] + kaa @ sol.d[:, 0] - f[:, 0]).max() < 1e-6
+        assert abs(np.diff(sol.a[:, :cnst_steps], axis=1)).max() < 1e-7
+        assert abs(np.diff(solu.a[:, :cnst_steps], axis=1)).max() < 1e-7
+        assert abs(maa @ sol.a[:, 0] + kaa @ sol.d[:, 0] - f[:, 0]).max() < 1e-8
 
-    assert np.allclose(sol.a, solu.a, atol=1e-6)
-    assert np.allclose(sol.v, solu.v)
-    assert np.allclose(sol.d, solu.d)
+        assert np.allclose(sol.a, solu.a, atol=1e-6)
+        assert np.allclose(sol.v, solu.v)
+        assert np.allclose(sol.d, solu.d)

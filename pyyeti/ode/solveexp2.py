@@ -187,7 +187,7 @@ class SolveExp2(_BaseODE):
 
             .. note::
                 `rb` applies only to modal-space equations. Use
-                `pre-eig` if necessary to convert to modal-space. This
+                `pre_eig` if necessary to convert to modal-space. This
                 means that if `rb` is an index vector, it specifies
                 the rigid-body modes *after* the `pre_eig`
                 operation. See also `pre_eig`.
@@ -304,7 +304,7 @@ class SolveExp2(_BaseODE):
             self.pc = True
         else:
             self.pc = False
-        self._mk_slices(dorbel=False)
+        self._mk_slices()  # dorbel=False)
 
     def tsolve(self, force, d0=None, v0=None, static_ic=False):
         """
@@ -316,14 +316,20 @@ class SolveExp2(_BaseODE):
             The force matrix; ndof x time
         d0 : 1d ndarray; optional
             Displacement initial conditions; if None, zero ic's are
-            used.
+            used unless `static_ic` is True.
         v0 : 1d ndarray; optional
             Velocity initial conditions; if None, zero ic's are used.
         static_ic : bool; optional
             If True and `d0` is None, then `d0` is calculated such
-            that static (steady-state) initial conditions are
-            used. Uses the pseudo-inverse in case there are rigid-body
-            modes. `static_ic` is ignored if `d0` is not None.
+            that static (steady-state) initial conditions are used. Be
+            sure to use the "pre_eig" option to put equations in modal
+            space if necessary: for static initial conditions, the
+            rigid-body part is initialized to 0.0 and the elastic part
+            is computed such that the system is in static equilibrium
+            (from the elastic part of ``K x = F``).
+
+            .. note::
+                `static_ic` is quietly ignored if `d0` is not None.
 
         Returns
         -------

@@ -294,7 +294,8 @@ class SolveUnc(_BaseODE):
         members. Note that in the table, `non-rf/elastic` means
         `non-rf` for uncoupled systems, `elastic` for coupled -- the
         difference is whether or not the rigid-body modes are
-        included: they are for uncoupled.
+        included in the final "k" matrix: they are for uncoupled but
+        not for coupled.
 
         =========  ===================================================
         Member     Description
@@ -307,9 +308,9 @@ class SolveUnc(_BaseODE):
         el         index vector or slice for the el modes
         rf         index vector or slice for the rf modes
         _rb        index vector or slice for the rb modes relative to
-                   the non-rf modes
+                   the non-rf/elastic modes
         _el        index vector or slice for the el modes relative to
-                   the non-rf modes
+                   the non-rf/elastic modes
         nonrf      index vector or slice for the non-rf modes
         kdof       index vector or slice for the non-rf/elastic modes
         n          number of total DOF
@@ -364,12 +365,11 @@ class SolveUnc(_BaseODE):
                 self.pc = self._get_su_eig(h is not None)
         else:
             self.pc = None
-        self._mk_slices(dorbel=True)
+        self._mk_slices()  # dorbel=True)
         self.order = order
 
     def tsolve(self, force, d0=None, v0=None, static_ic=False):
-        """
-        Solve time-domain 2nd order ODE equations
+        """Solve time-domain 2nd order ODE equations
 
         Parameters
         ----------
@@ -377,14 +377,20 @@ class SolveUnc(_BaseODE):
             The force matrix; ndof x time
         d0 : 1d ndarray; optional
             Displacement initial conditions; if None, zero ic's are
-            used.
+            used unless `static_ic` is True.
         v0 : 1d ndarray; optional
             Velocity initial conditions; if None, zero ic's are used.
         static_ic : bool; optional
             If True and `d0` is None, then `d0` is calculated such
-            that static (steady-state) initial conditions are
-            used. Uses the pseudo-inverse in case there are rigid-body
-            modes. `static_ic` is ignored if `d0` is not None.
+            that static (steady-state) initial conditions are used. Be
+            sure to use the "pre_eig" option to put equations in modal
+            space if necessary: for static initial conditions, the
+            rigid-body part is initialized to 0.0 and the elastic part
+            is computed such that the system is in static equilibrium
+            (from the elastic part of ``K x = F``).
+
+            .. note::
+                `static_ic` is quietly ignored if `d0` is not None.
 
         Returns
         -------
@@ -400,6 +406,7 @@ class SolveUnc(_BaseODE):
             Time-step
         t : 1d ndarray
             Time vector: np.arange(d.shape[1])*h
+
         """
         force = np.atleast_2d(force)
         d, v, a, force = self._init_dva(force, d0, v0, static_ic)
@@ -1558,32 +1565,38 @@ class SolveUnc(_BaseODE):
         return flex
 
     def _get_su_eig(self, delcc):
-        """
-        Does pre-calcs for the `SolveUnc` solver via the complex
+        """Does pre-calcs for the `SolveUnc` solver via the complex
         eigenvalue approach.
 
         Parameters
         ----------
-        None, but class is expected to be populated with:
+        delcc : bool
+            If True, delete one of each complex-conjugate pair and put
+            the appropriate factor of 2.0 in the kept mode
+            (see :func:`ode.eigss`). It will be automatically added
+            back in if needed later (for example, if
+            :func:`SolveUnc.fsolve` is called).
 
-            m : 1d or 2d ndarray or None
-                Mass; vector (of diagonal), or full; if None, mass is
-                assumed identity. Has only rigid-body b and elastic
-                modes.
-            b : 1d or 2d ndarray
-                Damping; vector (of diagonal), or full. Has only
-                rigid-body b and elastic modes.
-            k : 1d or 2d ndarray
-                Stiffness; vector (of diagonal), or full. Has only
-                rigid-body b and elastic modes.
-            h : scalar or None
-                Time step; can be None if just solving static case.
-            rb : 1d array or None
-                Index vector for the rigid-body modes; None for no
-                rigid-body modes.
-            el : 1d array or None
-                Index vector for the elastic modes; None for no
-                elastic modes.
+        Class is expected to be populated with:
+
+        m : 1d or 2d ndarray or None
+            Mass; vector (of diagonal), or full; if None, mass is
+            assumed identity. Has only rigid-body and elastic
+            modes.
+        b : 1d or 2d ndarray
+            Damping; vector (of diagonal), or full. Has only
+            rigid-body and elastic modes.
+        k : 1d or 2d ndarray
+            Stiffness; vector (of diagonal), or full. Has only
+            rigid-body and elastic modes.
+        h : scalar or None
+            Time step; can be None if just solving static case.
+        rb : 1d array or None
+            Index vector for the rigid-body modes; None for no
+            rigid-body modes.
+        el : 1d array or None
+            Index vector for the elastic modes; None for no
+            elastic modes.
 
         Returns
         -------
@@ -1621,6 +1634,7 @@ class SolveUnc(_BaseODE):
         See also
         --------
         :class:`SolveUnc`
+
         """
         pc = SimpleNamespace()
         h = self.h
@@ -1640,6 +1654,10 @@ class SolveUnc(_BaseODE):
         self.b = self.b[pv]
         self.kdof = self.nonrf[self._el]
         self.ksize = self.kdof.size
+
+        self._el = np.arange(self.ksize)  # testing ...
+        self._rb = np.arange(0)
+
         if self.elsize:
             self._inv_m()
             A = self._build_A()

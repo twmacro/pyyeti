@@ -239,7 +239,7 @@ class SolveNewmark(_BaseODE):
         """
         self._common_precalcs(m, b, k, h, rb=[], rf=rf)
         self._newmark_precalcs()
-        self._mk_slices(dorbel=False)
+        self._mk_slices()  # dorbel=False)
 
     def tsolve(self, force, d0=None, v0=None):
         """
