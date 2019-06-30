@@ -2644,7 +2644,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
     # partition uset table down to needed dof only:
     npids = np.vstack((ddof[0, :1], idof[:, :1]))
-    ids = sorted(list(set(npids[:, 0])))
+    ids = sorted(set(npids[:, 0]))
     alldof = mkdofpv(uset, "p", ids)[0]
     uset = uset.iloc[alldof]
 

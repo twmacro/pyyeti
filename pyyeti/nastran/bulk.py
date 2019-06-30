@@ -2033,9 +2033,11 @@ def wtrbe2(f, eid, indep, dof, dep):
     eid : integer
         Element ID
     indep : integer
-        Independent grid ID
+        Independent grid ID. All 6 DOF are automatically independent
+        and are not specified.
     dof : integer
-        An integer concatenation of the DOF (ex: 123456)
+        An integer concatenation of the DOF (ex: 123456) that applies
+        for all the dependent DOF.
     dep : 1d array_like
         Vector of dependend grid IDs
 

@@ -426,3 +426,22 @@
      - don't import nose for tests
      - this is probably not as big a job as it sounds ... nose tools
        aren't used that heavily I don't think (it's not tiny ...)
+
+139. CLA cases should be able to have different time vectors/time steps
+     - this *might* not be needed as it's pretty easy to just add
+       a level to the DR_Results structure ...
+
+140. Inconsistency between cbtf and the CLA tools (.freq vs .f):
+     o   tf[case[0]].f = tf[case[0]].freq
+
+~141. In formrbe3, get rid of “list” here:
+         ids = sorted(list(set(npids[:, 0])))
+     - fixed in v0.96.2
+
+~142. In wtrbe2, add note in doc for DOF arg that it’s for all the
+     *dependent* nodes. (All 6 DOF of the independent node are
+     automatic). From the quick reference guide: “CM Component numbers
+     of the dependent degrees-of-freedom in the global coordinate
+     system at grid points GMi. (Integers 1 through 6 with no embedded
+     blanks.)”
+     - added in v0.96.2
