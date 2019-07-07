@@ -638,7 +638,7 @@ def owlab(pth):
         results = DR.prepare_results(sc["mission"], event)
 
         # set rfmodes:
-        rfmodes = nas["rfmodes"][0]
+        # rfmodes = nas["rfmodes"][0]
 
         # setup modal mass, damping and stiffness
         m = None  # None means identity
@@ -652,7 +652,7 @@ def owlab(pth):
 
         # random part:
         freq = cla.freq3_augment(np.arange(25.0, 45.1, 0.5), nas["lambda"][0])
-        #                 freq     x      y      z
+        #          freq     x      y      z
         rnd = [
             np.array(
                 [
@@ -694,17 +694,18 @@ def owlab(pth):
         # for testing:
         results2 = DR.prepare_results(sc["mission"], event)
         verbose = True  # for testing
+        freq2 = freq.copy()
         for j, ff in enumerate(rnd):
             caseid = "{} {:2d}".format(event, j + 1)
             print("Running {} case {}".format(event, j + 1))
-            F = interp.interp1d(ff[:, 0], ff[:, 1:].T, axis=1, fill_value=0.0)(freq)
+            F = interp.interp1d(ff[:, 0], ff[:, 1:].T, axis=1, fill_value=0.0)(freq2)
             if j == 0:
                 results2.solvepsd(
-                    nas, caseid, DR, fs, F, T, freq, verbose=verbose, incrb=1
+                    nas, caseid, DR, fs, F, T, freq2, verbose=verbose, incrb=1
                 )
                 verbose = not verbose
-                freq = +freq  # make copy
-                freq[-1] = 49.7  # to cause error on next 'solvepsd'
+                freq2 = +freq2  # make copy
+                freq2[-1] = 49.7  # to cause error on next 'solvepsd'
                 results2.psd_data_recovery(caseid, DR, len(rnd), j, resp_time=20)
             else:
                 assert_raises(
@@ -716,9 +717,29 @@ def owlab(pth):
                     fs,
                     F,
                     T,
-                    freq,
+                    freq2,
                     verbose=verbose,
                 )
+
+        # test for incompatibly sized ValueError:
+        T = T[:2]  # chop off last row
+        results3 = DR.prepare_results(sc["mission"], event)
+        for j, ff in enumerate(rnd):
+            caseid = "{} {:2d}".format(event, j + 1)
+            print("Running {} case {}".format(event, j + 1))
+            F = interp.interp1d(ff[:, 0], ff[:, 1:].T, axis=1, fill_value=0.0)(freq)
+            assert_raises(
+                ValueError,
+                results3.solvepsd,
+                nas,
+                caseid,
+                DR,
+                fs,
+                F,
+                T,
+                freq,
+            )
+            break
 
         # compare srs results using 3.0 peak factor and frequency
         # dependent peak factor:

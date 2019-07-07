@@ -66,6 +66,10 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         B+Q-set velocities.
     freq : 1d ndarray
         The frequency vector (same as `freq`).
+    f : 1d ndarray
+        The frequency vector (same as `freq` ... added for
+        compatibility with the output of the ODE solvers in module
+        :mod:`pyyeti.ode`).
 
     Notes
     -----
@@ -242,7 +246,7 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         accel[bset] = a
         accel[qset] = sol.a
         frc = m[bset] @ accel + b[bset] @ veloc + k[bb] @ displ[bset]
-    return SimpleNamespace(frc=frc, a=accel, d=displ, v=veloc, freq=freq)
+    return SimpleNamespace(frc=frc, a=accel, d=displ, v=veloc, freq=freq, f=freq)
 
 
 def cbreorder(M, b, drm=False, last=False):

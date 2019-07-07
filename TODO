@@ -431,8 +431,9 @@
      - this *might* not be needed as it's pretty easy to just add
        a level to the DR_Results structure ...
 
-140. Inconsistency between cbtf and the CLA tools (.freq vs .f):
-     o   tf[case[0]].f = tf[case[0]].freq
+~140. Inconsistency between cbtf and the CLA tools (.freq vs .f):
+      o   tf[case[0]].f = tf[case[0]].freq
+     - added the .f attribute in v0.96.2
 
 ~141. In formrbe3, get rid of “list” here:
          ids = sorted(list(set(npids[:, 0])))
@@ -444,4 +445,8 @@
      of the dependent degrees-of-freedom in the global coordinate
      system at grid points GMi. (Integers 1 through 6 with no embedded
      blanks.)”
+     - added in v0.96.2
+
+~143. DR_Results.solvepsd HAS to check for compatibility between force
+      & frcphi
      - added in v0.96.2

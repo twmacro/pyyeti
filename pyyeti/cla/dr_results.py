@@ -1060,6 +1060,10 @@ class DR_Results(OrderedDict):
         :func:`DR_Def.add`.
         """
         forcepsd, t_frc = np.atleast_2d(forcepsd, t_frc)
+        if t_frc.shape[0] != forcepsd.shape[0]:
+            raise ValueError("`forcepsd` and `t_frc` are incompatibly "
+                             f"sized: {forcepsd.shape} vs {t_frc.shape}")
+
         nonzero_forces = np.any(forcepsd, axis=1).nonzero()[0]
         if nonzero_forces.size:
             if verbose:
