@@ -488,7 +488,7 @@ def despike(
     sigma : real scalar; optional
         Number of standard deviations beyond which a point is
         considered an outlier. The default value is quite high; this
-        is possible because the point itself if excluded from the
+        is possible because the point itself is excluded from the
         calculations.
     maxiter : integer; optional
         Maximum number of iterations of outlier removal allowed. If
@@ -505,13 +505,14 @@ def despike(
         This standard deviation is of the entire input signal minus
         the moving average (using a window of `n` size). This value
         exists to avoid deleting small deviations such as bit
-        toggles. `threshold_value` overrides `threshold_sigma` if it
-        is not None.
+        toggles. Set to 0.0 to not use a threshold. `threshold_value`
+        overrides `threshold_sigma` if it is not None.
     threshold_value : scalar or None; optional
         Optional method for specifying a minimum threshold. If not
         None, this scalar is used as an absolute minimum deviation
         from the moving average for a value to be considered a spike.
-        Overrides `threshold_sigma`.
+        Overrides `threshold_sigma`. Set to 0.0 to not use a
+        threshold.
     exclude_point : string or int or None; optional
         Defines where, within each window, the point that is being
         considered as a potential outlier is. For example, 'first'
@@ -534,11 +535,11 @@ def despike(
         Despiked version of input `x`. Will be shorter than input `x`
         if any spikes were deleted; otherwise, it will equal input
         `x`.
-    pv : bool 1d ndarray; same size as `x`
+    pv : bool 1d ndarray; same size as input `x`
         Has True where an outlier was detected
-    hilim : 1d ndarray; same size as `x`
+    hilim : 1d ndarray; same size as input `x`
         This is the upper limit: ``mean + sigma*std``
-    lolim : 1d ndarray; same size as `x`
+    lolim : 1d ndarray; same size as input `x`
         This is the lower limit: ``mean - sigma*std``
     niter : integer
         Number of iterations executed
@@ -810,7 +811,7 @@ def despike_diff(
     sigma : real scalar; optional
         Number of standard deviations beyond which a point is
         considered an outlier. The default value is quite high; this
-        is possible because the point itself if excluded from the
+        is possible because the point itself is excluded from the
         calculations.
     maxiter : integer; optional
         Maximum number of iterations of outlier removal allowed. If
@@ -824,17 +825,19 @@ def despike_diff(
         (setting `maxiter` to 0 is the same as setting it to 1).
     threshold_sigma : scalar; optional
         Number of standard deviations below which all data is kept.
-        This standard deviation is computed from `x`. Let
-        ``dx = np.diff(x)``, the standard deviation is
-        ``std(dx - moving_average(dx))``. The moving average uses a
-        window of `n` size. This value exists to avoid deleting small
-        deviations such as bit toggles. `threshold_value` overrides
-        `threshold_sigma` if it is not None.
+        This standard deviation is computed from `x`. Let ``dx =
+        np.diff(x)``, the standard deviation is ``std(dx -
+        moving_average(dx))``. The moving average uses a window of `n`
+        size. This value exists to avoid deleting small deviations
+        such as bit toggles. Set to 0.0 to not use a
+        threshold. `threshold_value` overrides `threshold_sigma` if it
+        is not None.
     threshold_value : scalar or None; optional
         Optional method for specifying a minimum threshold. If not
         None, this scalar is used as an absolute minimum deviation
         from the moving average for a value to be considered a spike.
-        Overrides `threshold_sigma`.
+        Overrides `threshold_sigma`. Set to 0.0 to not use a
+        threshold.
     exclude_point : string or int; optional
         Defines where, within each window, the point that is being
         considered as a potential outlier is. For this routine,
@@ -853,7 +856,7 @@ def despike_diff(
         Despiked version of input `x`. Will be shorter than input `x`
         if any spikes were deleted; otherwise, it will equal input
         `x`.
-    pv : bool 1d ndarray; same size as `x`
+    pv : bool 1d ndarray; same size as input `x`
         Has True where an outlier was detected
     niter : integer
         Number of iterations executed
@@ -871,12 +874,13 @@ def despike_diff(
 
     .. note::
 
-        If you plan to use both :func:`fixtime` and :func:`despike`,
-        it is recommended that you let :func:`fixtime` call
-        :func:`despike` (via the `delspikes` option) instead of
-        calling it directly. This is preferable because the ideal time
-        to run :func:`despike` is in the middle of :func:`fixtime`:
-        after drop-outs have been deleted but before gaps are filled.
+        If you plan to use both :func:`fixtime` and
+        :func:`despike_diff`, it is recommended that you let
+        :func:`fixtime` call :func:`despike_diff` (via the `delspikes`
+        option) instead of calling it directly. This is preferable
+        because the ideal time to run :func:`despike_diff` is in the
+        middle of :func:`fixtime`: after drop-outs have been deleted
+        but before gaps are filled.
 
     Examples
     --------
