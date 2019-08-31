@@ -451,7 +451,8 @@
       & frcphi
      - added in v0.96.2
 
-144. Make uset unit conversion function public
+~144. Make uset unit conversion function public
+     - added in v0.96.3
 
 145. The following would be a nice feature to add to n2p … more
      general of course: replace current basic with a new basic:
@@ -472,3 +473,19 @@
 
 146. The op4 writer wrote a bad file for the saocom high fidelity 1/3
      model ... debug this.
+     - actually, this *might* have simply been a "formatted" vs
+       "unformatted" op4 file
+
+~147. Printclainfo – documentation looks like it needs updating:
+      (has extra PrintCLAInfo)
+      - 0.96.3
+
+148. Make rdop2tload external? … now, have to do this:
+     op2.OP2("PAF.op2").rdop2tload()
+
+149. ytools load/save:
+     - Add parameter to specify compression? (rather than relying on
+       extension – which seems pretty restrictive)
+
+150. In wtextseout, should have capability to write grids in non-basic
+     coordinate system … makes moving the SE around later easier

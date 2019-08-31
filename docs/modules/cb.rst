@@ -15,3 +15,4 @@ Hurty-Craig-Bampton model checking
     mk_net_drms
     rbdispchk
     rbmultchk
+    uset_convert

@@ -1663,7 +1663,7 @@ def build_coords(cords):
             [xo   yo  zo]  # origin of coord. system
             [     T     ]  # 3x3 transformation to basic
             Note that T is for the coordinate system, not a grid
-            (unless type = 1 which means rectangular)
+            (unless ctype = 1 which means rectangular)
 
     Notes
     -----

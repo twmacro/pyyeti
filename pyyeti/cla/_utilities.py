@@ -215,7 +215,7 @@ def _proc_filterval(filterval, nrows, name="filterval"):
 
 
 def PrintCLAInfo(mission, event):
-    "PrintCLAInfo Print CLA event info, typically for the log file"
+    "Print CLA event info, typically for the log file"
     print(f"Mission:  {mission}")
     print(f"Event:    {event}")
 

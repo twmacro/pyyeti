@@ -15,6 +15,27 @@ def test_cbreorder():
     assert_raises(ValueError, cb.cbreorder, drm, [0, 1, 2, 3], drm=False, last=True)
 
 
+def test_uset_convert():
+    import numpy as np
+    from pyyeti import cb
+    from pyyeti.nastran import n2p
+
+    # node 100 in basic is @ [50, 100, 150] inches
+    uset = n2p.addgrid(None, 100, "b", 0, [50, 100, 150], 0)
+    ref = (100, 100, 100)
+    uset_conv, ref_conv = cb.uset_convert(uset, ref, "e2m")
+    assert np.allclose(uset_conv.loc[(100, 1), "x":"z"], [1.27, 2.54, 3.81])
+    assert np.allclose(ref_conv, [2.54, 2.54, 2.54])
+
+    uset_back, ref_back = cb.uset_convert(uset_conv, ref_conv)
+    assert np.allclose(uset_back, uset)
+    assert np.allclose(ref_back, ref)
+
+    uset_conv2, ref_conv = cb.uset_convert(uset_conv)
+    assert np.allclose(uset, uset_conv2)
+    assert ref_conv is None
+
+
 def test_cbconvert():
     b = np.arange(6)
     drm = np.ones((1, 8))
@@ -484,9 +505,7 @@ def test_cbcheck_unit_convert():
         s = f.getvalue()
 
     s = s.splitlines()
-    with open(
-        "tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_unitconv.out"
-    ) as f:
+    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_unitconv.out") as f:
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
@@ -1021,7 +1040,7 @@ def test_mk_net_drms():
     net2 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref, sccoord=Tl2s, conv=conv, g=g)
 
     # rb modes in system units:
-    uset2, ref2 = cb._uset_convert(uset, ref, conv)
+    uset2, ref2 = cb.uset_convert(uset, ref, conv)
     rb = n2p.rbgeom_uset(uset2, ref2)
     l_sc = net.ifltma_sc[:, :n] @ rb
     l_lv = net.ifltma_lv[:, :n] @ rb

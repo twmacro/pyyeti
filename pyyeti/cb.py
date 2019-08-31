@@ -378,7 +378,72 @@ def _get_conv_factors(conv):
     return lengthconv, massconv
 
 
-def _uset_convert(uset, uref, conv):
+def uset_convert(uset, ref=None, conv="m2e"):
+    """
+    Convert units of a "uset" DataFrame.
+
+    Parameters
+    ----------
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
+    ref : 3-element array_like or None; optional
+        If 3-element array_like, the length units are converted for
+        `ref` as well as for `uset`. If None (or anything else), it is
+        ignored.
+    conv : 2-element array_like or string; optional
+        If 2-element array_like, it is::
+
+            (length_conversion, mass_conversion)
+
+        If string, it is one of:
+
+            * 'm2e' (convert from metric to English)
+            * 'e2m' (convert from English to metric)
+
+        The string form assumes units of meter & kg, and inch &
+        lbf*s**2/inch (slinch).
+
+    Returns
+    -------
+    uset_converted : pandas DataFrame
+        The converted uset DataFrame
+    ref_converted : 3-element 1d ndarray or None
+        The converted version of `ref` or, if `ref` was not a
+        3-element array_like, it is `ref` itself
+
+    Examples
+    --------
+    Convert a USET table from inches to meters.
+
+    >>> import numpy as np
+    >>> from pyyeti import cb
+    >>> from pyyeti.nastran import n2p
+    >>> # node 100 in basic is @ [50, 100, 150] inches
+    >>> uset = n2p.addgrid(None, 100, 'b', 0, [50, 100, 150], 0)
+    >>> uset    # doctest: +ELLIPSIS
+              nasset     x      y      z
+    id  dof...
+    100 1    2097154  50.0  100.0  150.0
+        2    2097154   0.0    1.0    0.0
+        3    2097154   0.0    0.0    0.0
+        4    2097154   1.0    0.0    0.0
+        5    2097154   0.0    1.0    0.0
+        6    2097154   0.0    0.0    1.0
+    >>> uset_conv, ref_conv = cb.uset_convert(
+    ...     uset, (100, 100, 100), "e2m")
+    >>> uset_conv    # doctest: +ELLIPSIS
+              nasset     x     y     z
+    id  dof...
+    100 1    2097154  1.27  2.54  3.81
+        2    2097154  0.00  1.00  0.00
+        3    2097154  0.00  0.00  0.00
+        4    2097154  1.00  0.00  0.00
+        5    2097154  0.00  1.00  0.00
+        6    2097154  0.00  0.00  1.00
+    >>> ref_conv
+    array([ 2.54,  2.54,  2.54])
+    """
     lengthconv = _get_conv_factors(conv)[0]
     uset = uset.copy()
     # pv = uset[:, 1] == 1
@@ -388,11 +453,11 @@ def _uset_convert(uset, uref, conv):
     pv = dof == 3
     uset.iloc[pv, 1:] *= lengthconv
     try:
-        if len(uref) == 3:
-            uref = np.atleast_1d(uref) * lengthconv
+        if len(ref) == 3:
+            ref = np.atleast_1d(ref) * lengthconv
     except TypeError:
         pass
-    return uset, uref
+    return uset, ref
 
 
 def cbconvert(M, b, conv="m2e", drm=False):
@@ -426,7 +491,7 @@ def cbconvert(M, b, conv="m2e", drm=False):
 
     Returns
     -------
-    Mconv : 2d ndarray
+    2d ndarray
         The converted matrix.
 
     Notes
@@ -776,7 +841,7 @@ def mk_net_drms(
     conv=None,
     reorder=True,
     g=9.80665 / 0.0254,
-    tau="g"
+    tau="g",
 ):
     """
     Form common data recovery matrices for "net" interface responses.
@@ -1220,7 +1285,7 @@ def mk_net_drms(
         # make new M & K for l/v versions:
         Mcb = cbconvert(Mcb, bset, conv)
         Kcb = cbconvert(Kcb, bset, conv)
-        uset, ref = _uset_convert(uset, ref, conv)
+        uset, ref = uset_convert(uset, ref, conv)
         uset_if = uset.iloc[bset_if]
 
         # rigid-body modes relative to reference:
@@ -2413,7 +2478,7 @@ def cbcheck(
     if conv is not None:
         m = cbconvert(Mcb, bseto, conv)
         k = cbconvert(Kcb, bseto, conv)
-        uset, uref = _uset_convert(uset, uref, conv)
+        uset, uref = uset_convert(uset, uref, conv)
     else:
         m = Mcb
         k = Kcb
