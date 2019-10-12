@@ -1,10 +1,11 @@
+import inspect
 import numpy as np
 import math
 import scipy.linalg as la
 from scipy.io import matlab
 import io
 import os
-from pyyeti import nastran
+from pyyeti import nastran, cb
 from pyyeti.nastran import n2p, op2, op4
 from nose.tools import *
 
@@ -426,6 +427,71 @@ def test_rbmove():
     rb1 = n2p.rbgeom(grids, [2.0, 4.0, -5.0])
     rb1_b = n2p.rbmove(rb0, [0.0, 0.0, 0.0], [2.0, 4.0, -5.0])
     assert np.all(rb1_b == rb1)
+
+
+def test_replace_basic_cs():
+    pth = os.path.dirname(inspect.getfile(cb))
+    pth = os.path.join(pth, "..")
+    pth = os.path.join(pth, "tests")
+    pth = os.path.join(pth, "nas2cam_csuper")
+
+    # define new basic (so that old basic is at origin 100, 100, 100)
+    """
+           ^ Y_basic, X_new
+           |
+           |
+    Y_new  |
+    <------ -----> X_basic
+          /
+        /  Z_basic, Z_new
+
+
+           ^ Z_new, X_old
+           |
+           |  / Y_new
+           |/
+           -----> X_new, Z_old
+          /
+        /  Y_old
+    """
+
+    new_cs_id = 50
+    new_cs_in_basic = np.array([[100, 100, 100], [100, 100, 110], [100, 110, 100]])
+
+    # Load the mass and stiffness from the .op4 file
+    # This loads the data into a dict:
+    mk = op4.load(os.path.join(pth, "inboard.op4"))
+    # maa = mk["mxx"][0]
+    kaa = mk["kxx"][0]
+
+    # Get the USET table The USET table has the boundary DOF
+    # information (id, location, coordinate system). This is needed
+    # for superelements with an indeterminate interface. The nastran
+    # module has the function bulk2uset which is handy for forming the
+    # USET table from bulk data.
+
+    uset, coords = nastran.bulk2uset(os.path.join(pth, "inboard.asm"))
+    n = uset.shape[0]
+    b = np.arange(n)
+    kbb = kaa[np.ix_(b, b)]
+    rb = n2p.rbgeom_uset(uset)
+
+    frb = kbb @ rb
+    frbres = rb.T @ frb
+
+    assert abs(frb).max() < 0.01
+    assert abs(frbres).max() < 0.1
+
+    uset_new = n2p.replace_basic_cs(uset, new_cs_id, new_cs_in_basic)
+    rb_new = n2p.rbgeom_uset(uset_new)
+    frb_new = kbb @ rb_new
+    frbres_new = rb_new.T @ frb_new
+
+    assert abs(frb_new).max() < 0.01
+    assert abs(frbres_new).max() < 0.1
+
+    # check for ValueError on duplicate CS id:
+    assert_raises(ValueError, n2p.replace_basic_cs, uset, 10, new_cs_in_basic)
 
 
 def test_make_uset():

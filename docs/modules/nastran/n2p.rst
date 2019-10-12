@@ -26,6 +26,7 @@ Nastran-to-Python tools
     rbgeom
     rbgeom_uset
     rbmove
+    replace_basic_cs
     upasetpv
     upqsetpv
     usetprt

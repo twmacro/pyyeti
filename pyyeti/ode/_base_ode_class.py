@@ -336,10 +336,11 @@ class _BaseODE:
         else:
             self.pre_eig = False
         nonrf = np.ones(n, bool)
-        if rf is None:
+        if rf is None or (isinstance(rf, list) and not rf):
             rf = np.array([], bool)
         else:
-            rf = np.ix_(np.atleast_1d(rf))[0]
+            # rf = np.ix_(np.atleast_1d(rf))[0]
+            rf = np.atleast_1d(rf)
         nonrf[rf] = False
         nonrf = np.nonzero(nonrf)[0]
         self.n = n
@@ -377,8 +378,11 @@ class _BaseODE:
                 rb = np.nonzero(rb)[0]
             else:
                 rb = _rb = np.array([], bool)
+        elif isinstance(rb, list) and not rb:
+            rb = _rb = np.array([], bool)
         else:
-            rb = np.ix_(np.atleast_1d(rb))[0]
+            # rb = np.ix_(np.atleast_1d(rb))[0]
+            rb = np.atleast_1d(rb)
             vec = np.zeros(self.n, bool)
             vec[rb] = True
             _rb = np.nonzero(vec[self.nonrf])[0]

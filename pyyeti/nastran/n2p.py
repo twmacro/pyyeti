@@ -27,7 +27,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 import scipy.linalg as linalg
-from pyyeti import locate
+from pyyeti import locate, ytools
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -58,6 +58,7 @@ __all__ = [
     "rbgeom",
     "rbgeom_uset",
     "rbmove",
+    "replace_basic_cs",
     "upasetpv",
     "upqsetpv",
     "usetprt",
@@ -304,6 +305,93 @@ def rbmove(rb, oldref, newref):
     True
     """
     return rb @ rbgeom(oldref, newref)
+
+
+def replace_basic_cs(uset, new_cs_id, new_cs_in_basic):
+    """
+    Define a new coordinate system as the base for a USET table
+
+    This routine enables the translation and/or rotation of a model.
+    The new rectangular coordinate system is "inserted" between all
+    the local systems that exist in the USET table and the basic
+    coordinate system.
+
+    Parameters
+    ----------
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
+    new_cs_id : integer
+        The ID that for the new rectangular system
+    new_cs_in_basic : 3 x 3 array_like
+        The A, B, C points as defined for a CORD2R bulk card that
+        define the new coordinate system relative to the basic
+        system. "A" defines the origin of the new system, "B" defines
+        the positive Z axis of the new system, and "C" defines the
+        positive X axis direction of the new system.
+
+    Returns
+    -------
+    uset_new : pandas DataFrame
+        The updated `uset`
+
+    Notes
+    -----
+    This routine does the following:
+
+        1. Computes the transform ``T`` from the new system to basic
+        2. Adjusts all node locations (in basic) by::
+
+               new_location = T @ old_location + A
+
+        3. Adjusts all coordinate system origins similarly
+        4. Updates any "0" ID reference coordinate system numbers to
+           be `new_cs_id`
+        5. Apply transform ``T`` to all transforms in the USET table
+
+    This routine is currently BETA ... please check results carefully
+    and report any issues.
+
+    Raises
+    ------
+    ValueError
+        When `new_cs_id` is already in use
+    """
+    uset_new = uset.copy()
+
+    # extract the GRID part of the uset table to a numpy array:
+    grids = uset_new.index.get_level_values("dof") > 0
+    xyz = uset_new.loc[grids, "x":"z"].values  # .copy()
+    nrows = xyz.shape[0]
+
+    current_cs_ids = xyz[1::6, 0].astype(int)
+    if (new_cs_id == current_cs_ids).any():
+        raise ValueError(f"`new_cs_id` ({new_cs_id}) is already used")
+
+    new_cs_in_basic = np.atleast_2d(new_cs_in_basic)
+    coord = build_coords([new_cs_id, 1, 0, *new_cs_in_basic.ravel()])[new_cs_id]
+
+    T = coord[2:]  # new cs to basic
+
+    # 1. adjust all node locations:
+    #           new_location_in_basic = T @ old_location + A
+    A = new_cs_in_basic[0].reshape(3, 1)
+    xyz[::6] = (T @ xyz[::6].T + A).T
+
+    # 2. adjust all coord-system origins similarly:
+    xyz[2::6] = (T @ xyz[2::6].T + A).T
+
+    # 3. fix up all the ids ... 0 --> new_cs_id
+    pv = current_cs_ids == 0
+    xyz[np.arange(1, nrows, 6)[pv], 0] = new_cs_id
+
+    # 4. apply transform from new coord-sys to basic:
+    t_rows = ytools.mkpattvec([3, 4, 5], nrows, 6).ravel()
+
+    xyz[t_rows] = (T @ xyz[t_rows].reshape(-1, 3, 3)).reshape(-1, 3)
+
+    uset_new.loc[grids, "x":"z"] = xyz
+    return uset_new
 
 
 def rbcoords(rb, verbose=2):
@@ -1901,7 +1989,7 @@ def getcoordinates(uset, gid, csys, coordref=None):
     --------
     :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
     :func:`pyyeti.nastran.bulk.bulk2uset`, :func:`mkcordcardinfo`,
-    :func:`pyyeti.nastran.wtcoordcards`, :func:`rbgeom_uset`.
+    :func:`pyyeti.nastran.bulk.wtcoordcards`, :func:`rbgeom_uset`.
 
     Examples
     --------
