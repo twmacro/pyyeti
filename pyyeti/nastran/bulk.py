@@ -35,6 +35,7 @@ __all__ = [
     "rdtabled1",
     "wttabled1",
     "bulk2uset",
+    "uset2bulk",
     "rdwtbulk",
     "rdeigen",
     "wtnasints",
@@ -1483,12 +1484,14 @@ def bulk2uset(*args):
 
     Notes
     -----
+    This is the reverse of :func:`uset2bulk`.
+
     All grids are put in the 'b' set. This routine uses
     :func:`pyyeti.nastran.n2p.addgrid` to build the output.
 
     See also
     --------
-    :func:`rdcards`, :func:`rdgrids`,
+    :func:`uset2bulk`, :func:`rdcards`, :func:`rdgrids`,
     :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
     :mod:`pyyeti.nastran.n2p`.
     """
@@ -1533,6 +1536,56 @@ def bulk2uset(*args):
         coordref,
     )
     return uset, coordref
+
+
+@ytools.write_text_file
+def uset2bulk(f, uset):
+    """
+    Write CORD2* and GRID cards from a USET table
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    This is the reverse of :func:`bulk2uset`.
+
+    See also
+    --------
+    :func:`bulk2uset`, :func:`pyyeti.n2p.mkcordcardinfo`,
+    :func:`wtcoordcards`, :func:`wtgrids`.
+    """
+
+    # Get some data from the uset table:
+    ci = n2p.mkcordcardinfo(uset)
+    grids = uset.index.get_level_values("id")
+    dof = uset.index.get_level_values("dof")
+    pv = dof == 1
+    grids = grids[pv]
+    xyz = uset.loc[pv, "x":"z"].values
+    pv = dof == 2
+    cd = uset.loc[pv, "x"].values.astype(int)
+
+    # Write coordinate system cards if needed:
+    if ci:
+        f.write("$\n$ COORDINATE SYSTEM DATA\n$\n")
+        wtcoordcards(f, ci)
+
+    # Write Grid data:
+    f.write("$\n$ GRID DATA\n$\n")
+    wtgrids(f, grids, 0, xyz, cd)
 
 
 def rdwtbulk(fin, fout):
@@ -2619,7 +2672,7 @@ def _plot_rspline(
             line,
             markersize=8.0,
             markeredgewidth=2.0,
-            label=f"{names[num]} nodes"
+            label=f"{names[num]} nodes",
         )[0]
         ax.plot(*circle_basic, h.get_color(), label=f"{names[num]} best-fit circle")
 
@@ -2636,13 +2689,13 @@ def _plot_rspline(
         "o",
         markersize=5.0,
         markeredgewidth=2.0,
-        label=("New {} nodes\n - should be on {} circle").format(*names)
+        label=("New {} nodes\n - should be on {} circle").format(*names),
     )[0]
     ax.plot(
         *segments.T,
         "-",
         color=h.get_color(),
-        label=f"RBE2s - should be {names[0]} radial"
+        label=f"RBE2s - should be {names[0]} radial",
     )
 
     # plot the rspline:
@@ -3302,14 +3355,11 @@ def wtextseout(
         wtnasints(f, 2, gids.ravel())
 
         # Write coordinate system cards if needed:
-        f.write("$\n")
-        f.write("$ COORDINATE SYSTEM DATA\n$\n")
+        f.write("$\n$ COORDINATE SYSTEM DATA\n$\n")
         wtcoordcards(f, ci)
 
         # Write Grid data:
-        f.write("$\n")
-        f.write("$ BOUNDARY GRID DATA\n")
-        f.write("$\n")
+        f.write("$\n$ BOUNDARY GRID DATA\n$\n")
         wtgrids(f, grids, 0, xyz, cd)
         if spointn >= spoint1:
             f.write("$\n")
@@ -3360,7 +3410,7 @@ def mknast(
     before="",
     after="",
     top="",
-    bottom=""
+    bottom="",
 ):
     """
     Create shell script to run chain of nastran (or other) runs.

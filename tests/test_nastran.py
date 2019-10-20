@@ -172,6 +172,55 @@ CORD2R  10      0       0.0     0.0     0.0     1.0     0.0     0.0
     assert len(cord) == 2
 
 
+def test_uset2bulk():
+    xyz = np.array([[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [20.0, 0.0, 0.0]])
+    with StringIO() as f:
+        nastran.wtgrids(f, [100, 200, 300], xyz=xyz)
+        uset, cords = nastran.bulk2uset(f)
+
+    new_cs_in_basic = np.array(
+        [[0.0, 100.0, 0.0], [0.0, 100.0, 1.0], [0.0, 110.0, 0.0]]
+    )
+    uset2 = n2p.replace_basic_cs(uset, 10, new_cs_in_basic)
+
+    with StringIO() as f:
+        nastran.uset2bulk(f, uset2)
+        # s = f.getvalue()
+        uset3, cords = nastran.bulk2uset(f)
+
+    assert np.allclose(uset2, uset3)
+
+    coordinates = [[0.0, 100.0, 0.0], [0.0, 110.0, 0.0], [0.0, 120.0, 0.0]]
+
+    assert np.allclose(uset3.loc[(slice(None), 1), "x":], coordinates)
+
+    """
+               ^ X_10
+               |
+               |
+        Y_10   |
+        <------                    ---
+              /                     |
+            /  Z_10                 |
+                                    |
+                                   100
+               ^ Y_basic            |
+               |                    |
+               |                    |
+               |                    |
+                -----> X_basic     ---
+              /
+            /  Z_basic
+    """
+
+    # transform from 10 to basic:
+    T = np.array([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    assert np.allclose(uset3.iloc[3:6, 1:], T)
+
+    # Could get T from n2p.build_coords:
+    # T = n2p.build_coords([10, 1, 0, *new_cs_in_basic.ravel()])[10][2:]
+
+
 def test_wtextseout():
     nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101

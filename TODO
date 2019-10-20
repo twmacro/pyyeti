@@ -489,3 +489,6 @@
 
 150. In wtextseout, should have capability to write grids in non-basic
      coordinate system … makes moving the SE around later easier
+
+~151. Add "uset2bulk"
+     - v0.96.4
