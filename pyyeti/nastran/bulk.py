@@ -1564,7 +1564,7 @@ def uset2bulk(f, uset):
 
     See also
     --------
-    :func:`bulk2uset`, :func:`pyyeti.n2p.mkcordcardinfo`,
+    :func:`bulk2uset`, :func:`pyyeti.nastran.n2p.mkcordcardinfo`,
     :func:`wtcoordcards`, :func:`wtgrids`.
     """
 
