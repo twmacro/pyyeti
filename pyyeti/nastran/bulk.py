@@ -249,23 +249,117 @@ def rdgpwg(f, search_strings=None):
     return mass, cg, refpt, Is
 
 
-def _get_line(fiter, s=None, trim=True):
-    if s is None:
-        try:
-            s = next(fiter)  # f.readline()
-        except StopIteration:
-            return None
-    s = s.expandtabs()
-    if trim:
-        s = s[:72]
+# def _readline_keep_comments(it, Vals):
+#     try:
+#         s = next(it)
+#         while len(s) > 0 and s[0] == "$":
+#             Vals.append(s)
+#             s = next(it)
+#         return s
+#     except StopIteration:
+#         return None
+#
+#
+# def _readline_skip_comments(it, Vals):
+#     try:
+#         s = next(it)
+#         while len(s) > 0 and s[0] == "$":
+#             s = next(it)
+#         return s
+#     except StopIteration:
+#         return None
+#
+#
+# def _get_line(fiter, _readline, Vals, s=None, trim=True):
+#     if s is None:
+#         s = _readline(fiter, Vals)
+#         if s is None:
+#             return None
+#     s = s.expandtabs()
+#     if trim:
+#         s = s[:72]
+#     p = s.find("$")
+#     if p > -1:
+#         s = s[:p]
+#     s = s.rstrip()
+#     return s
+
+
+def _proc_line(s):
     p = s.find("$")
     if p > -1:
         s = s[:p]
-    s = s.rstrip()
-    return s
+    return s.rstrip()
 
 
-def _rdfixed(fiter, s, n, conchar, blank, tolist):
+def _handle_comments(comment_list, Vals):
+    if comment_list:
+        # if there were comments read in, store them
+        # and clear cache:
+        Vals.extend(comment_list)
+        comment_list.clear()
+
+
+def _next_line(f, name, regex, keep_comments, Vals):
+    if regex:
+        prog = re.compile(name, re.IGNORECASE)
+
+        def ismatch(line, prog):
+            return prog.match(line)
+
+    else:
+        prog = name.lower()
+
+        def ismatch(line, prog):
+            return line.lower().find(prog) == 0
+
+    do_match = True
+    if not keep_comments:
+        for line in f:
+            line = line.expandtabs()
+            if do_match:
+                if ismatch(line, prog):
+                    # found the start of a matching card, yield line
+                    do_match = yield line
+                    # if card continues on multiple lines, do_match
+                    # will be set to False
+            else:
+                # do_match is False (meaning reading continuation
+                # lines), so get next line no matter what it is:
+                do_match = yield line
+                # if do_match is now True, the last line read is the
+                # next line that needs to be examined:
+                if do_match:
+                    if ismatch(line, prog):
+                        do_match = yield line
+
+        do_match = yield None  # mark the end of input
+    else:
+        comment_list = []
+        for line in f:
+            if line.startswith("$"):
+                comment_list.append(line)
+                continue
+            line = line.expandtabs()
+
+            # this is very much like above, so see those
+            # comments. added comments pertain to handling comments
+            if do_match:
+                if ismatch(line, prog):
+                    _handle_comments(comment_list, Vals)
+                    do_match = yield line
+            else:
+                do_match = yield line
+                if do_match:
+                    if ismatch(line, prog):
+                        _handle_comments(comment_list, Vals)
+                        do_match = yield line
+
+        do_match = yield None  # mark the end of input
+        _handle_comments(comment_list, Vals)
+
+
+def _rdfixed(fiter, s, n, conchar, blank, tolist, keep_name):
     """
     Read fixed field cards:
     fiter : file iterator
@@ -276,20 +370,30 @@ def _rdfixed(fiter, s, n, conchar, blank, tolist):
     blank : value to use for blank fields and string-valued fields
     tolist : if True, return list, else return np.array; strings are
              kept in this case (instead of being turned into `blank`)
+    keep_name : if True and tolist is True, keep the card name in the
+                output
     """
     vals = []
     length = len(s)
     i = -1
-    I = -1
+    nfields = -1
     if n > 8:
         inc = 4  # number of values per line
     else:
         inc = 8
+
+    s = _proc_line(s[:72])
+
+    if tolist and keep_name:
+        # read card name outside of loop:
+        v = nas_sscanf(s[:8], tolist)
+        vals.append(v)
+
     maxstart = 72 - n
     while 1:
-        for i in range(i, I):
+        for i in range(i, nfields):
             vals.append(blank)
-        i = I
+        i = nfields
         j = 8
         while j <= maxstart and length > j:
             i += 1
@@ -299,17 +403,16 @@ def _rdfixed(fiter, s, n, conchar, blank, tolist):
             else:
                 vals.append(blank)
             j += n
-        s = _get_line(fiter)
-        if s is None or len(s) == 0:
+        s = fiter.send(False)
+        if s is None or len(s) == 0 or conchar.find(s[0]) < 0:
             break
-        if conchar.find(s[0]) < 0:
-            break
+        s = _proc_line(s[:72])
         length = len(s)
-        I += inc
-    return vals, s
+        nfields += inc
+    return vals
 
 
-def _rdcomma(fiter, s, conchar, blank, tolist):
+def _rdcomma(fiter, s, conchar, blank, tolist, keep_name):
     """
     Read comma delimited cards:
     fiter : file iterator
@@ -320,38 +423,51 @@ def _rdcomma(fiter, s, conchar, blank, tolist):
     blank : value to use for blank fields and string-valued fields
     tolist : if True, return list, else return np.array; strings are
              kept in this case (instead of being turned into `blank`)
+    keep_name : if True and tolist is True, keep the card name in the
+                output
     """
     vals = []
     i = -1
-    I = -1
+    nfields = -1
     inc = 8
+    start_field = 0 if (tolist and keep_name) else 1
+    s = _proc_line(s)
     while 1:
-        for i in range(i, I):
+        for i in range(i, nfields):
             vals.append(blank)
-        i = I
+        i = nfields
         tok = s.split(",")
         lentok = min(len(tok), 9)
-        for j in range(1, lentok):
+        for j in range(start_field, lentok):
             i += 1
             v = nas_sscanf(tok[j], tolist)
             if v is not None:
                 vals.append(v)
             else:
                 vals.append(blank)
-        s = _get_line(fiter, trim=False)
-        if s is None or len(s) == 0:
+        # first field for continuation cards will never be retained:
+        start_field = 1
+        s = fiter.send(False)
+        if s is None or len(s) == 0 or conchar.find(s[0]) < 0:
             break
-        if conchar.find(s[0]) < 0:
-            break
-        I += inc
-    return vals, s
+        s = _proc_line(s)
+        nfields += inc
+    return vals
 
 
 @ytools.read_text_file
 def rdcards(
-    f, name, blank=0, return_var="array", dtype=float, no_data_return=None, regex=False
+    f,
+    name,
+    blank=None,
+    return_var="array",
+    dtype=float,
+    no_data_return=None,
+    regex=False,
+    keep_name=False,
+    keep_comments=False,
 ):
-    """
+    r"""
     Read Nastran cards (lines) into a matrix, dictionary, or list.
 
     Parameters
@@ -364,14 +480,19 @@ def rdcards(
     name : string
         Usually the card name, but is really just the initial part of
         the string to look for. This means that `name` can span more
-        then one field, in case that is handy. It can also be a
+        than one field, in case that is handy. It can also be a
         regular expression if the `regex` option is set to True. This
         routine is case insensitive: if `regex` is False, `name` is
         converted to lower case as are the lines that are read in from
-        the file; otherwise, the ``re.IGNORECASE`` option is used.
-    blank : scalar; optional
-        Numeric value to use for blank fields and string-valued
-        fields.
+        the file; if `regex` is True, the ``re.IGNORECASE`` option is
+        used.
+    blank : None, scalar or string; optional
+        If reading into an array or dictionary (see `return_var`),
+        `blank` is expected to be a numeric value to use for blank
+        fields and string-valued fields. If reading into a list, it
+        can also be a string (like ``""``). If None (the default), it
+        is internally reset to ``""`` if `return_var` is ``"list"``
+        and to ``0`` otherwise.
     return_var : string; optional
         Specifies which data structure to use for the data:
 
@@ -398,6 +519,15 @@ def rdcards(
     regex : bool; optional
         If set to True, Use regular expression matching instead of
         literal string matching.
+    keep_name : bool; optional
+        If reading into a list, `keep_name` can be set to True to
+        retain the card name in the output. This option is ignored if
+        not reading into a list.
+    keep_comments : bool; optional
+        If reading into a list, `keep_comments` can be set to True to
+        retain all comment cards in the output. This option is ignored
+        if not reading into a list. Note that only the comments that
+        start at the beginning of the line are retained.
 
     Returns
     -------
@@ -427,22 +557,23 @@ def rdcards(
 
     Note: this routine is has no knowledge of any card, which means
     that it will not append trailing blanks to a card. For example, if
-    a GRID card is: 'GRID, 1', then this routine would return 1, not
-    ``[1, 0, 0, 0, 0, 0, 0, 0]``. The :func:`rdgrids` routine would
-    return ``[1, 0, 0, 0, 0, 0, 0, 0]`` since it knows the number of
-    fields a GRID card has.
+    a GRID card is: 'GRID, 1', then this routine would return ``[1]``,
+    not ``[1, 0, 0, 0, 0, 0, 0, 0]``. The :func:`rdgrids` routine
+    would return ``[1, 0, 0, 0, 0, 0, 0, 0]`` since it knows the
+    number of fields a GRID card has.
 
     Examples
     --------
-    Create some bulk data to read:
+    Create some bulk data to read (not necessarily valid):
 
     >>> from io import StringIO
     >>> from pyyeti.nastran import bulk
     >>> fs = StringIO('''
     ... DTI     SELOAD         1       2
     ... dti     seload         3       4
+    ... $ a comment for testing
     ... dti,seload,5,6
-    ... DTI, SELOAD, 7, 8.0, 'a'
+    ... DTI, SELOAD, , 8.0, 'a'
     ... DTI,SETREE,100,0
     ... ''')
 
@@ -453,7 +584,7 @@ def rdcards(
     ['SELOAD', 1, 2]
     ['seload', 3, 4]
     ['seload', 5, 6]
-    ['SELOAD', 7, 8.0, "'a'"]
+    ['SELOAD', '', 8.0, "'a'"]
     ['SETREE', 100, 0]
 
     Read some of the DTI,SELOAD cards (it's case-insensitive):
@@ -468,7 +599,7 @@ def rdcards(
     array([[ 0.,  1.,  2.,  0.],
            [ 0.,  3.,  4.,  0.],
            [ 0.,  5.,  6.,  0.],
-           [ 0.,  7.,  8.,  0.]])
+           [ 0.,  0.,  8.,  0.]])
 
     Same, but read into a list:
 
@@ -478,12 +609,31 @@ def rdcards(
     ['SELOAD', 1, 2]
     ['seload', 3, 4]
     ['seload', 5, 6]
-    ['SELOAD', 7, 8.0, "'a'"]
+    ['SELOAD', '', 8.0, "'a'"]
+
+    Include the card name as well:
+
+    >>> lst = bulk.rdcards(fs, r'DTI(,\s*|\s+)SELOAD', regex=True,
+    ...                    return_var='list', keep_name=True)
+    >>> for item in lst: print(item)
+    ['DTI', 'SELOAD', 1, 2]
+    ['dti', 'seload', 3, 4]
+    ['dti', 'seload', 5, 6]
+    ['DTI', 'SELOAD', '', 8.0, "'a'"]
+
+    For the most accurate read of the data, include comments:
+
+    >>> lst = bulk.rdcards(fs, r'DTI(,\s*|\s+)SELOAD', regex=True,
+    ...                    return_var='list', keep_name=True,
+    ...                    keep_comments=True)
+    >>> for item in lst: print(f"{item!r}")
+    ['DTI', 'SELOAD', 1, 2]
+    ['dti', 'seload', 3, 4]
+    '$ a comment for testing\n'
+    ['dti', 'seload', 5, 6]
+    ['DTI', 'SELOAD', '', 8.0, "'a'"]
     """
-    if not regex:
-        name = name.lower()
-    else:
-        prog = re.compile(name, re.IGNORECASE)
+
     if return_var not in ("array", "list", "dict"):
         raise ValueError(
             "invalid `return_var` setting; must be one of:" ' ("array", "list", "dict")'
@@ -497,39 +647,24 @@ def rdcards(
         todict = False
         tolist = return_var == "list"
         Vals = []
+
+    if blank is None:
+        blank = "" if tolist else 0
+
     mxlen = 0
     f.seek(0, 0)
 
-    def _readline(it):
-        try:
-            s = next(it)
-        except StopIteration:
-            s = None
-        return s
-
-    it = iter(f)
-    s = _readline(it)
-    while True:
-        if not regex:
-            while s is not None and s.lower().find(name) != 0:
-                s = _readline(it)
-        else:
-            while s is not None and not prog.match(s):
-                s = _readline(it)
-
-        if s is None:
-            break
-        s = _get_line(it, s, trim=False)
-        p = s.find(",")
-        if p > -1:
-            vals, s = _rdcomma(it, s, " +,", blank, tolist)
+    fiter = _next_line(f, name, regex, tolist and keep_comments, Vals)
+    s = next(fiter)
+    while s is not None:
+        # if here, have matching line
+        if s.find(",") > -1:
+            vals = _rdcomma(fiter, s, " +,", blank, tolist, keep_name)
         else:
             s = s[:72].rstrip()
             p = s[:8].find("*")
-            if p > -1:
-                vals, s = _rdfixed(it, s, 16, "*", blank, tolist)
-            else:
-                vals, s = _rdfixed(it, s, 8, " +", blank, tolist)
+            field, continuation = (16, "*") if p > -1 else (8, " +")
+            vals = _rdfixed(fiter, s, field, continuation, blank, tolist, keep_name)
         if tolist:
             Vals.append(vals)
         else:
@@ -541,6 +676,18 @@ def rdcards(
                 Vals[key] = vals
             else:
                 Vals.append(vals)
+        try:
+            s = fiter.send(True)
+        except StopIteration:
+            break
+
+    # flush out iterator if needed (get any last comments)
+    try:
+        s = fiter.send(True)
+    except StopIteration:
+        pass
+    del fiter
+
     if len(Vals) > 0:
         if not (todict or tolist):
             npVals = np.empty((len(Vals), mxlen), dtype=dtype)

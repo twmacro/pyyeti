@@ -22,6 +22,91 @@ def test_rdcards():
     )
 
 
+def test_rdcards2():
+    fs = StringIO(
+        """
+$
+PARAM,POST,-1
+EIGR           1    AHOU                          100000
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+TABLED1        1
+            0.01     1.0   150.0    1.0     ENDT
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+$$$INCLUDE 'outboard.blk'
+$ GRID           1       0      0.      0.    300.       0
+GRID*                  1               0      0.00000000      0.00000000
+*           300.00000000               0
+$GRID           2       0    300.      0.    300.       0
+grid, 2, 0,  300.,  0., 300.,  0
+$$$
+$111111122222222333333334444444455555555666666667777777788888888
+RBE2    1001    330     123456  33
+$ last line
+"""
+    )
+
+    lst = nastran.rdcards(
+        fs,
+        r"[a-z]+[*]*",
+        return_var="list",
+        regex=True,
+        keep_name=True,
+        keep_comments=True,
+    )
+    sbe = [
+        "$\n",
+        ["PARAM", "POST", -1],
+        ["EIGR", 1, "AHOU", "", "", "", 100000],
+        "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n",
+        ["TABLED1", 1, "", "", "", "", "", "", "", 0.01, 1.0, 150.0, 1.0, "ENDT"],
+        "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n",
+        "$$$INCLUDE 'outboard.blk'\n",
+        "$ GRID           1       0      0.      0.    300.       0\n",
+        ["GRID*", 1, 0, 0.0, 0.0, 300.0, 0],
+        "$GRID           2       0    300.      0.    300.       0\n",
+        ["grid", 2, 0, 300.0, 0.0, 300.0, 0],
+        "$$$\n",
+        "$111111122222222333333334444444455555555666666667777777788888888\n",
+        ["RBE2", 1001, 330, 123456, 33],
+        "$ last line\n",
+    ]
+    assert lst == sbe
+
+    fs = StringIO(
+        """
+$ starting comment
+DTI     SELOAD         1       2
+dti     seload         3       4
+$ a comment for testing
+dti,seload,5,6
+DTI, SELOAD, , 8.0, 'a'
+DTI,SETREE,100,0
+$ ending comment
+    """
+    )
+
+    lst = nastran.rdcards(
+        fs,
+        r"DTI(,\s*|\s+)SELOAD",
+        regex=True,
+        return_var="list",
+        keep_name=True,
+        keep_comments=True,
+    )
+    sbe = [
+        "$ starting comment\n",
+        ["DTI", "SELOAD", 1, 2],
+        ["dti", "seload", 3, 4],
+        "$ a comment for testing\n",
+        ["dti", "seload", 5, 6],
+        ["DTI", "SELOAD", "", 8.0, "'a'"],
+        "$ ending comment\n",
+    ]
+    assert sbe == lst
+
+
 def test_wtgrids():
     xyz = np.array([[0.1, 0.2, 0.3], [1.1, 1.2, 1.3]])
     with StringIO() as f:
