@@ -454,7 +454,7 @@
 ~144. Make uset unit conversion function public
      - added in v0.96.3
 
-145. The following would be a nice feature to add to n2p … more
+~145. The following would be a nice feature to add to n2p … more
      general of course: replace current basic with a new basic:
 
      def reset_uset(uset, coord_in_new_basic):
@@ -470,6 +470,8 @@
              uset_xdof,
              coord_in_new_basic,
          )
+
+     - added in v0.96.4 (called replace_basic_cs)
 
 146. The op4 writer wrote a bad file for the saocom high fidelity 1/3
      model ... debug this.
@@ -492,3 +494,11 @@
 
 ~151. Add "uset2bulk"
      - v0.96.4
+
+152. Add wtcards ... write cards as read in by rdcards
+
+153. ? Add "move_bulk_nodes" (or something):
+     - use: bulk2uset, replace_basic_cs, rdcards, wtcards
+     - it would include option to sub new cs in relevant fields for
+       different cards ... this would make it useable, but also hard
+       to be complete
