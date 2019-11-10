@@ -498,7 +498,8 @@
 152. Add wtcards ... write cards as read in by rdcards
 
 153. ? Add "move_bulk_nodes" (or something):
-     - use: bulk2uset, replace_basic_cs, rdcards, wtcards
+     - it would use: bulk2uset, rdcards, replace_basic_cs, uset2bulk,
+       wtcards
      - it would include option to sub new cs in relevant fields for
        different cards ... this would make it useable, but also hard
-       to be complete
+       to make it complete

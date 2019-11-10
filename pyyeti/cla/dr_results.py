@@ -846,12 +846,13 @@ class DR_Results(OrderedDict):
         sol : dict
             SimpleNamespace containing the modal solution as output
             from :func:`DR_Event.apply_uf`.
-        nas : dictionary
-            Typically, this is the nas2cam dictionary:
-            ``nas = pyyeti.nastran.op2.rdnas2cam()``.
-            Can be None if not needed: it is not used in this routine;
-            it is only passed to the data recovery routines (the
-            `drfunc` setting in :func:`DR_Def.add`).
+        dr_object : any object
+            Any object that is useful for data recovery. Can be None
+            if not needed: it is not used in this routine; it is only
+            passed to the data recovery routines (the `drfunc` setting
+            in :func:`DR_Def.add`). Historically, this was the nas2cam
+            dictionary (``nas = pyyeti.nastran.op2.rdnas2cam()``). It
+            has more recently be set to `DR` (same as below).
         case : string
             Unique string identifying the case; stored in, for
             example, the ``self['SC_atm'].cases`` and the `.mincase`
@@ -1061,8 +1062,10 @@ class DR_Results(OrderedDict):
         """
         forcepsd, t_frc = np.atleast_2d(forcepsd, t_frc)
         if t_frc.shape[0] != forcepsd.shape[0]:
-            raise ValueError("`forcepsd` and `t_frc` are incompatibly "
-                             f"sized: {forcepsd.shape} vs {t_frc.shape}")
+            raise ValueError(
+                "`forcepsd` and `t_frc` are incompatibly "
+                f"sized: {forcepsd.shape} vs {t_frc.shape}"
+            )
 
         nonzero_forces = np.any(forcepsd, axis=1).nonzero()[0]
         if nonzero_forces.size:
@@ -1931,7 +1934,7 @@ class DR_Results(OrderedDict):
         fileext=".cmp",
         direc="compare",
         keyconv=None,
-        **rptpct1_args
+        **rptpct1_args,
     ):
         """
         Write comparison files for all max/min data in results.
@@ -2010,7 +2013,7 @@ class DR_Results(OrderedDict):
                     filename,
                     title=title,
                     names=names,
-                    **rptpct1_args
+                    **rptpct1_args,
                 )
         if len(skipdrms) > 0:
             warnings.warn(
