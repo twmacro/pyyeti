@@ -288,7 +288,7 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
         )
     else:
         if not name:
-            raise ValueError("`name` must be input when writing" ' ".xlsx" files')
+            raise ValueError('`name` must be input when writing ".xlsx" files')
         if excel == "new":
             opts = {"nan_inf_to_errors": True}
             with xlsxwriter.Workbook(filename, opts) as workbook:

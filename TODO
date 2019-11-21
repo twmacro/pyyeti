@@ -241,7 +241,7 @@
      o   In/sec^2, rad/sec^2
      - done in version 0.95.0
 
-104. Add 'axis' option fftfilt (and others too probably)
+104. Add 'axis' option fftfilt, dspcoef (and others too probably)
      o make it elegant ... check dsp.exclusive_sgfilter to see if
        that's done well. Numpy must have nice functions for this since
        many of those functions allow it. Share code amongst these
@@ -503,3 +503,18 @@
      - it would include option to sub new cs in relevant fields for
        different cards ... this would make it useable, but also hard
        to make it complete
+
+~154. In n2p: have an odd looking string:
+            raise ValueError(
+                '`nasset` must be "p" if `uset` is not a ' "pandas DataFrame"
+            )
+     Are there more?
+     v0.96.4
+
+155. n2p.mkdofpv uses a shift value of 10 to include DOF … what if DOF > 9??
+     - can locate.mat_intersect use np.searchsorted (or something like it?)
+
+     See:
+
+       https://stackoverflow.com/questions/38674027/
+        find-the-row-indexes-of-several-values-in-a-numpy-array

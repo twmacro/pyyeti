@@ -1380,9 +1380,7 @@ def mkdofpv(uset, nasset, dof, strict=True):
         if nasset == "p":
             uset_set = (uset[:, 0] * 10 + uset[:, 1]).astype(np.int64)
         else:
-            raise ValueError(
-                '`nasset` must be "p" if `uset` is not a ' "pandas DataFrame"
-            )
+            raise ValueError('`nasset` must be "p" if `uset` is not a pandas DataFrame')
 
     dof = expanddof(dof)
     dof = dof[:, 0] * 10 + dof[:, 1]

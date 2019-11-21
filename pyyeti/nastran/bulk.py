@@ -636,7 +636,7 @@ def rdcards(
 
     if return_var not in ("array", "list", "dict"):
         raise ValueError(
-            "invalid `return_var` setting; must be one of:" ' ("array", "list", "dict")'
+            'invalid `return_var` setting; must be one of: ("array", "list", "dict")'
         )
 
     if return_var == "dict":
