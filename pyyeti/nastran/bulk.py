@@ -31,6 +31,7 @@ __all__ = [
     "mkcomment",
     "wtdmig",
     "rdgrids",
+    "rdcord2s",
     "wtgrids",
     "rdtabled1",
     "wttabled1",
@@ -1344,6 +1345,54 @@ def rdgrids(f):
         return v
 
 
+def _convert_card(card):
+    char = card[0][5]
+    if char in "rR":
+        ctype = 1
+    elif char in "cC":
+        ctype = 2
+    else:
+        ctype = 3
+    card[0], card[1] = card[1], ctype
+    return card
+
+
+def rdcord2s(f):
+    """
+    Read CORD2* cards from a Nastran bulk file
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+
+    Returns
+    -------
+    dictionary
+        Dictionary with the keys being the coordinate system id and
+        the values being the 5x3 matrix::
+
+            [id  type 0]  # output coord. sys. id and type
+            [xo  yo  zo]  # origin of coord. system
+            [    T     ]  # 3x3 transformation to basic
+            Note that T is for the coordinate system, not a grid
+            (unless type = 1 which means rectangular)
+
+    See also
+    --------
+    :func:`bulk2uset`, :func:`rdcards`.
+    """
+    cards = rdcards(f, r"(cord2[rcs])\b", return_var="list", regex=True, keep_name=True)
+
+    if cards is None:
+        return {}
+
+    return n2p.build_coords(np.array([_convert_card(card) for card in cards]))
+
+
 def wtgrids(
     f,
     grids,
@@ -1603,7 +1652,7 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLE
     f.write("ENDT\n")
 
 
-def bulk2uset(*args):
+def bulk2uset2(*args):
     """
     Read CORD2* and GRID cards from file(s) to make a USET table
 
@@ -1683,6 +1732,72 @@ def bulk2uset(*args):
         coordref,
     )
     return uset, coordref
+
+
+def bulk2uset(*args):
+    """
+    Read CORD2* and GRID cards from file(s) to make a USET table
+
+    Parameters
+    ----------
+    *args
+        File names (or handles as returned by :func:`open`). Files
+        referred to by handle are rewound first. If an argument is
+        None or a directory name, a GUI is open for file selection.
+
+    Returns
+    -------
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
+    coordref : dictionary
+        Dictionary with the keys being the coordinate system id and
+        the values being the 5x3 matrix::
+
+            [id  type 0]  # output coord. sys. id and type
+            [xo  yo  zo]  # origin of coord. system
+            [    T     ]  # 3x3 transformation to basic
+            Note that T is for the coordinate system, not a grid
+            (unless type = 1 which means rectangular)
+
+    Notes
+    -----
+    This is the reverse of :func:`uset2bulk`.
+
+    All grids are put in the 'b' set. This routine uses
+    :func:`pyyeti.nastran.n2p.addgrid` to build the output.
+
+    See also
+    --------
+    :func:`uset2bulk`, :func:`rdcards`, :func:`rdgrids`,
+    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
+    :mod:`pyyeti.nastran.n2p`.
+    """
+    grids = np.zeros((0, 8))
+    coords = {}
+
+    if len(args) == 0:
+        args = [None]
+
+    for f in args:
+        f = guitools.get_file_name(f, read=True)
+        coords.update(rdcord2s(f))
+        g = rdgrids(f)
+        if g is not None:
+            grids = np.vstack((grids, g))
+
+    i = np.argsort(grids[:, 0])
+    grids = grids[i, :]
+    uset = n2p.addgrid(
+        None,
+        grids[:, 0].astype(np.int64),
+        "b",
+        grids[:, 1],
+        grids[:, 2:5],
+        grids[:, 5],
+        coords,
+    )
+    return uset, coords
 
 
 @ytools.write_text_file

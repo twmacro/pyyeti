@@ -306,6 +306,31 @@ def test_uset2bulk():
     # T = n2p.build_coords([10, 1, 0, *new_cs_in_basic.ravel()])[10][2:]
 
 
+def test_rdcord2s():
+    from io import StringIO
+
+    cylcoord = np.array([[50, 2, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]])
+    sphcoord = np.array([[51, 3, 0], [0, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+    uset = n2p.addgrid(
+        None,
+        [100, 200, 300],
+        "b",
+        [0, cylcoord, sphcoord],
+        [[5, 10, 15], [32, 90, 10], [50, 90, 90]],
+        [0, cylcoord, sphcoord],
+    )
+
+    with StringIO() as f:
+        nastran.uset2bulk(f, uset)
+        cords = nastran.rdcord2s(f)
+        u, c = nastran.bulk2uset(f)
+
+    assert len(cords) == len(c)
+    for k, v in cords.items():
+        assert np.allclose(c[k], v)
+
+
 def test_wtextseout():
     nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
