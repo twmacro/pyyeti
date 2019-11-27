@@ -306,7 +306,7 @@ def test_uset2bulk():
     # T = n2p.build_coords([10, 1, 0, *new_cs_in_basic.ravel()])[10][2:]
 
 
-def test_rdcord2s():
+def test_rdcord2cards():
     from io import StringIO
 
     cylcoord = np.array([[50, 2, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]])
@@ -323,7 +323,7 @@ def test_rdcord2s():
 
     with StringIO() as f:
         nastran.uset2bulk(f, uset)
-        cords = nastran.rdcord2s(f)
+        cords = nastran.rdcord2cards(f)
         u, c = nastran.bulk2uset(f)
 
     assert len(cords) == len(c)

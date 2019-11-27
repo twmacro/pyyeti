@@ -31,7 +31,7 @@ __all__ = [
     "mkcomment",
     "wtdmig",
     "rdgrids",
-    "rdcord2s",
+    "rdcord2cards",
     "wtgrids",
     "rdtabled1",
     "wttabled1",
@@ -1357,7 +1357,7 @@ def _convert_card(card):
     return card
 
 
-def rdcord2s(f):
+def rdcord2cards(f):
     """
     Read CORD2* cards from a Nastran bulk file
 
@@ -1781,7 +1781,7 @@ def bulk2uset(*args):
 
     for f in args:
         f = guitools.get_file_name(f, read=True)
-        coords.update(rdcord2s(f))
+        coords.update(rdcord2cards(f))
         g = rdgrids(f)
         if g is not None:
             grids = np.vstack((grids, g))

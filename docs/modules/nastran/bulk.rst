@@ -12,7 +12,7 @@ Limited set of read/write routines for Nastran bulk data
     mknast
     nas_sscanf
     rdcards
-    rdcord2s
+    rdcord2cards
     rdcsupers
     rddmig
     rddtipch
