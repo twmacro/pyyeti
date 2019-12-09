@@ -1365,7 +1365,7 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     return z_vrs
 
 
-def srs_frf(frf, frf_frq, srs_frq, Q):
+def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
     r"""
     Compute SRS from frequency response functions.
 
@@ -1387,6 +1387,9 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
     Q : scalar
         Dynamic amplification factor :math:`Q = 1/(2\zeta)` where
         :math:`\zeta` is the fraction of critical damping.
+    getresp : bool; optional
+        If True, return the complex response frfs (see `resp` output
+        below).
 
     Returns
     -------
@@ -1394,12 +1397,87 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
         The SRS results: [SRS1, SRS2, .... SRSn];
         ``sh.shape = (len(srs_frq), n)`` where n is the number of
         FRFs.
+    resp : dictionary; optional
+        Only returned if `getresp` is True. Members:
+
+        ======   =====================================================
+         key     value
+        ======   =====================================================
+        'freq'   frequency vector for responses; this is a superset of
+                 `frf_frq` and `srs_frf` with near-duplicates removed
+        'frfs'   3-D array; shape = ``(len(freq), n, len(srs_frq))``
+        ======   =====================================================
+
+    Notes
+    -----
+    The shock response spectrum is the response of single DOF
+    system(s) that are excited by an input base acceleration FRF::
+
+                      _____    ^
+                     |     |   |
+                     |  M  |  ---  SDOF response (x)
+                     |_____|
+                      /  |
+                    K \ |_| C  ^
+                      /  |     |
+                    [=======] ---  input base acceleration (frf)
+
+    The response of each system is computed independently by
+    integration across the entire frequency range as specified in
+    ``resp["freq"]`` above.
+
+    Derivation of the equation of motion follows. First, let:
+
+    .. math::
+        \begin{aligned}
+        \ddot{z} &= sig \\
+        M &= 1 \\
+        K &= \omega^2 \\
+        C &= 2\zeta\omega \\
+        \end{aligned}
+
+    Note that :math:`\omega=2 \pi f` where :math:`f` is a frequency in
+    Hz from the input `srs_frq`. The equation of motion is:
+
+    .. math::
+        \begin{aligned}
+        \ddot{x} &= \sum Forces\; on\; M \\
+        &= \omega^2(z-x)+2\zeta\omega(\dot{z}-\dot{x})
+        \end{aligned}
+
+    Define a relative coordinate :math:`u = x - z`. Then:
+
+    .. math::
+        \begin{aligned}
+        \ddot{x}+2\zeta\omega\dot{u}+\omega^2 u &= 0 \\
+        \ddot{u}+2\zeta\omega\dot{u}+\omega^2 u &= -\ddot{z}
+        \end{aligned}
+
+    Using the Fourier transform :math:`\mathcal{F}[x(t)] = X(\Omega)`:
+
+    .. math::
+        \begin{aligned}
+        (-\Omega^2+2\zeta\omega\Omega j + \omega^2) U(\Omega) &=
+        -Z_{acce}(\Omega) \\
+        U(\Omega) &= -Z_{acce}(\Omega) /
+        (-\Omega^2+2\zeta\omega\Omega j + \omega^2) \\
+        U_{acce}(\Omega) &= \Omega^2 Z_{acce}(\Omega) /
+        (-\Omega^2+2\zeta\omega\Omega j + \omega^2)
+        \end{aligned}
+
+    Then:
+
+    .. math::
+        X_{acce}(\Omega) = U_{acce}(\Omega) + Z_{acce}(\Omega)
+
+    The return value `sh` contains the peak of the absolute value of
+    :math:`X_{acce}(\Omega)`.
 
     Examples
     --------
     Make up a complex FRF and compute the shock response spectrum
     (srs). The peak srs value is at the peak FRF value and can be
-    show to be: ``srs_peak = frf_peak * sqrt(Q**2 + 1)``.
+    shown to be: ``srs_peak = frf_peak * sqrt(Q**2 + 1)``.
 
     >>> from pyyeti import srs
     >>> import numpy as np
@@ -1434,6 +1512,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
     pv[1:] = df > 1.0e-5
     ffreq = ffreq[pv]
     nf = len(ffreq)
+
     if len(frf_frq) == 1:
         newfrf = np.zeros((nf, nfrf), float)
         i = np.searchsorted(ffreq, frf_frq)
@@ -1446,6 +1525,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
             frf_frq, frf, axis=0, bounds_error=False, fill_value=0, assume_sorted=True
         )
         frf = ifunc(ffreq)
+
     shk = np.empty((n, nfrf), float)
     pvrb = ks < 0.005  # ks/ms < .005 ... since ms == 1
     pvel = np.logical_not(pvrb)
@@ -1461,7 +1541,11 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
             - ms[pvel].reshape(-1, 1) @ fw ** 2
             + 1j * (bs[pvel].reshape(-1, 1) @ fw)
         )
+
     a = np.empty((n, nf), complex)
+    if getresp:
+        frfs = np.empty((nf, nfrf, n), complex)
+
     for j in range(nfrf):
         # compute relative response, then absolute (see eqns in srs)
         a[:] = 0.0
@@ -1470,7 +1554,15 @@ def srs_frf(frf, frf_frq, srs_frq, Q):
             a[pvrb] = -fs  # / ms ... since ms == 1
         if el:
             a[pvel] = (fs * freqw ** 2) / H
-        shk[:, j] = abs(a + fs).max(axis=1)
+        a += fs
+        if getresp:
+            frfs[:, j, :] = a.T
+        shk[:, j] = abs(a).max(axis=1)
+
+    if getresp:
+        resp = {"freq": ffreq, "frfs": frfs}
+        return shk, resp
+
     return shk
 
 

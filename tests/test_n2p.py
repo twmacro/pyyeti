@@ -796,11 +796,9 @@ def gettestuset():
         300: [[10, 20, 30], "o", sphcoord],
         400: [[20, 30, 40], "m", cylcoord],
     }
-    n = len(coords)
     uset = None
     coordref = {}
     for i, id in enumerate(sorted(coords)):
-        j = i * 6
         loc = coords[id][0]
         dofset = coords[id][1]
         csys = coords[id][2]

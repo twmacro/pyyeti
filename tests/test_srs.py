@@ -1145,6 +1145,15 @@ def test_srs_frf():
     pks_should_be = np.abs(frf).max(axis=0) * np.sqrt(Q ** 2 + 1)
     assert np.all(np.abs(sh.max(axis=0) - pks_should_be) < 1e-12)
 
+    # test getresp:
+    # frfs are integration frequency x nfrfs x srs_frq
+    sh, resp = srs.srs_frf(frf, frf_frq, srs_frq[::2], Q, getresp=True)
+    assert len(resp["freq"]) == resp["frfs"].shape[0]
+    assert resp["frfs"].shape[1] == frf.shape[1]
+    assert resp["frfs"].shape[2] == srs_frq[::2].shape[0]
+    sh2 = abs(resp["frfs"]).max(axis=0)
+    assert np.allclose(sh2.T, sh)
+
 
 def test_srsmap():
     from pyyeti import ytools, dsp

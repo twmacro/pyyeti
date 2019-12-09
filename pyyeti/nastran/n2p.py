@@ -796,6 +796,11 @@ def expanddof(dof):
     outdof : 2d ndarray
         The expanded version of the dof input.
 
+    Raises
+    ------
+    ValueError
+        When DOF > 6 are found.
+
     Examples
     --------
     >>> from pyyeti import nastran
@@ -828,7 +833,10 @@ def expanddof(dof):
         return np.array([[n, i] for n in dof.ravel() for i in range(1, 7)])
     elif dof[:, 1].max() <= 6:
         return dof
-    return np.array([[node, int(i)] for node, arg in dof for i in str(arg)])
+    edof = np.array([[node, int(i)] for node, arg in dof for i in str(arg)])
+    if (edof[:, 1] > 6).any():
+        raise ValueError("found DOF > 6?")
+    return edof
 
 
 def mkusetmask(nasset=None):
@@ -1383,32 +1391,152 @@ def mkdofpv(uset, nasset, dof, strict=True):
             raise ValueError('`nasset` must be "p" if `uset` is not a pandas DataFrame')
 
     dof = expanddof(dof)
-    dof = dof[:, 0] * 10 + dof[:, 1]
+    _dof = dof[:, 0] * 10 + dof[:, 1]
 
     i = np.argsort(uset_set)
-    pvi = np.searchsorted(uset_set, dof, sorter=i)
+    pvi = np.searchsorted(uset_set, _dof, sorter=i)
     # since searchsorted can return length as index:
     pvi[pvi == i.size] -= 1
     pv = i[pvi]
-    chk = uset_set[pv] != dof
+
+    chk = uset_set[pv] != _dof
     if chk.any():
         if strict:
-            ids = dof[chk] // 10
-            dof = dof[chk] - 10 * ids
-            missing_dof = np.column_stack((ids, dof))
             msg = (
                 f"set '{nasset}' does not contain all of the dof in "
-                f"`dof`. These are missing:\n{missing_dof}"
+                f"`dof`. These are missing:\n{dof[chk]}"
             )
             raise ValueError(msg)
         else:
             chk = ~chk
             pv = pv[chk]
             dof = dof[chk]
-    ids = dof // 10
-    dof = dof - 10 * ids
-    outdof = np.column_stack((ids, dof))
-    return pv, outdof
+
+    return pv, dof
+
+
+# def mkdofpv(uset, nasset, dof, strict=True):
+#     """
+#     Make a DOF partition vector for a particular set from a Nastran
+#     USET table.
+#
+#     Parameters
+#     ----------
+#     uset : pandas DataFrame or ndarray
+#         A DataFrame as output by
+#         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. It can also be an
+#         ndarray with at least 2-columns of [id, dof]; any other
+#         columns are quietly ignored. If ndarray, `nasset` must be 'p'
+#         (so no set partitions are needed).
+#     nasset : string or integer
+#         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
+#         May also be an integer bitmask (see :func:`mkusetmask` for
+#         more information).
+#     dof : 1d or 2d array
+#         `dof` can be input in 2 different ways:
+#
+#          1. 1 column, each row is an ID (grid, spoint, etc). All
+#             DOF associated with the ID that are in the set will be
+#             included. An error will be generated if any ID is
+#             missing.
+#          2. 2 column DOF array, each row is: [ID DOF]. Here, DOF
+#             specifies which degrees-of-freedom of the ID to find.
+#             The DOF can be input in the same way as Nastran accepts
+#             it: 0 or any combo of digits 1-6; eg, 123456 for all 6.
+#             An error is generated if any DOF are missing. See
+#             examples.
+#
+#     strict : bool; optional
+#         If True, raise a ValueError if any DOF in `dof` are not in
+#         `uset`.
+#
+#     Returns
+#     -------
+#     pv : vector
+#         Index vector for partitioning dof out of set; this
+#         maintains the order of DOF as specified.
+#     outdof : vector
+#         The expanded version of the dof input, in order of output.
+#
+#     Notes
+#     -----
+#     This routine uses :func:`pyyeti.locate.mat_intersect` to find
+#     where `dof` occurs in `uset`. That is, after the node id's and DOF
+#     have been extracted from `uset` and all rows of `dof` have been
+#     expanded to include all 6 DOF::
+#
+#         locate.mat_intersect(uset_iddof, expanded_dof, keep=2)
+#
+#     Raises
+#     ------
+#     ValueError
+#         When requested `dof` are not found in the `nasset` and
+#         `strict` is True.
+#
+#     See also
+#     --------
+#     :func:`pyyeti.locate.mat_intersect`
+#
+#     Examples
+#     --------
+#     >>> import numpy as np
+#     >>> from pyyeti import nastran
+#     >>> # Want an A-set partition vector for all available a-set dof
+#     >>> # of grids 100 and 200:
+#     >>> ids = np.array([[100], [200]])
+#     >>> uset = nastran.addgrid(
+#     ...     None, [100, 200], 'b', 0,
+#     ...     [[5, 10, 15], [32, 90, 10]], 0)
+#     >>> nastran.mkdofpv(uset, "a", ids)         # doctest: +ELLIPSIS
+#     (array([ 0,  1,  2,  3,  4,  5... 10, 11]...), array([[100,   1],
+#            [100,   2],
+#            [100,   3],
+#            [100,   4],
+#            [100,   5],
+#            [100,   6],
+#            [200,   1],
+#            [200,   2],
+#            [200,   3],
+#            [200,   4],
+#            [200,   5],
+#            [200,   6]]...))
+#     >>>
+#     >>> # add an spoint for testing:
+#     >>> uset = uset.append(nastran.make_uset([[991, 0]], 4194304))
+#     >>> # request spoint 991 and dof 123 for grid 100 (in that order):
+#     >>> ids2 = [[991, 0], [100, 123]]
+#     >>> nastran.mkdofpv(uset, "a", ids2)        # doctest: +ELLIPSIS
+#     (array([12,  0,  1,  2]...), array([[991,   0],
+#            [100,   1],
+#            [100,   2],
+#            [100,   3]]...))
+#     """
+#     if isinstance(uset, pd.DataFrame):
+#         if nasset != "p":
+#             setpv = mksetpv(uset, "p", nasset)
+#             uset = uset.loc[setpv]
+#         uset = uset.index.to_frame().values
+#     else:
+#         if nasset == "p":
+#             uset = uset[:, :2]
+#         else:
+#             raise ValueError('`nasset` must be "p" if `uset` is not a pandas DataFrame')
+#
+#     dof = expanddof(dof)
+#     pv1, pv2 = locate.mat_intersect(uset, dof, keep=2)
+#
+#     if pv1.shape[0] < dof.shape[0]:
+#         if strict:
+#             missing_dof = dof[locate.flippv(pv2, dof.shape[0])]
+#             msg = (
+#                 f"set '{nasset}' does not contain all of the dof in "
+#                 f"`dof`. These are missing:\n{missing_dof}"
+#             )
+#             raise ValueError(msg)
+#         else:
+#             dof = dof[pv2]
+#
+#     return pv1, dof
 
 
 def mkcordcardinfo(uset, cid=None):
