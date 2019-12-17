@@ -657,3 +657,22 @@ def mkdofpv(uset, nasset, dof, strict=True, expand_dof=True):
     return pv, outdof
 
 156. Srs.srs_frf should have the “getresp” option.
+
+157. Add ltma, ltmd = cb.modedisp_to_modeacce(m, k, bset, ltm)
+
+159. Add “import_module” function to ytools?
+
+160. Add wn & zeta to ts.pc for complex SolveUnc ?
+
+161. Op4:
+    -  warning on not reading enough bytes at end of reading matrix
+       (hit EOF too soon)
+    -  except no “1P,”
+    -  except little “e” in the “1P,” format
+
+162. In srs.vrs:
+     ~ - Wording here: “The equation for Miles’ equation is:”
+     - Clean up calculation … (freq / fn) is done repeatedly
+     - Add relative acceleration output?
+
+         Uacce = p^4 / [(1-p^2)^2 + (2 zeta p)^2]  Zacce

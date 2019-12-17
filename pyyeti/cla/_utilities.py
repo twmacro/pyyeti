@@ -719,6 +719,7 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres, case, i):
     x = resp[xr]
     y = resp[yr]
     tmp = drmres.tmp
+    # after area is computed, these will be the variance/covariance:
     tmp.varx += F * abs(x) ** 2
     tmp.vary += F * abs(y) ** 2
     tmp.covar += F * np.real(x * np.conj(y))

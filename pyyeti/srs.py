@@ -1224,7 +1224,7 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
            \cdot PSD(freq_i) \cdot \Delta freq_i}\;\;;\;
            p_i = \frac{freq_i}{f_n}
 
-    The equation for Miles' equation is:
+    Miles' equation is:
 
     .. math::
         Z_{miles}(f_n) = \sqrt{\frac{\pi}{2} \cdot f_n \cdot Q
