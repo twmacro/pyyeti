@@ -183,6 +183,36 @@ def find_rows(matrix, row):
     return abs(matrix - row).sum(axis=1) == 0
 
 
+def _bytes_view(arr):
+    # view columns as byte-string -- this will be sortable and make
+    # the matrix look like a 1d vector; that means np.searchsorted
+    # will work on it.
+
+    # first, need to ensure c-contiguous:
+    arr = np.ascontiguousarray(arr)
+
+    # special precaution for floats:
+    if np.issubdtype(arr.dtype, np.floating):
+        # add zero to get rid of the minus sign on 0. ... the byte
+        # string for 0. and -0. are different:
+
+        # In [2]: a = np.array([-0.])
+        # In [3]: a.view(np.dtype((np.void, 8)))
+        # array([b'\x00\x00\x00\x00\x00\x00\x00\x80'], dtype='|V8')
+        #
+        # In [4]: a = np.array([0.])
+        # In [5]: a.view(np.dtype((np.void, 8)))
+        # array([b'\x00\x00\x00\x00\x00\x00\x00\x00'], dtype='|V8')
+
+        # also:
+        # In [6]: np.array([-0.]).tostring()
+        # Out[6]: b'\x00\x00\x00\x00\x00\x00\x00\x80'
+        # In [7]: (0. + np.array([-0.])).tostring()
+        # Out[7]: b'\x00\x00\x00\x00\x00\x00\x00\x00'
+        arr += 0.0
+    return arr.view(np.dtype((np.void, arr.dtype.itemsize * arr.shape[-1])))
+
+
 def mat_intersect(D1, D2, keep=0):
     """
     Get row intersection partition vectors between two matrices or
@@ -272,44 +302,163 @@ def mat_intersect(D1, D2, keep=0):
         haystack = D1
         switch = True
 
-    # if arrays are integer type, we can speed things up a lot:
+    # to use the byte-string view, types must be the same:
+    out_dtype = np.find_common_type([haystack.dtype, needles.dtype], [])
 
-    # if (issubclass(D1.dtype.type, numbers.Integral) and
-    #     issubclass(D2.dtype.type, numbers.Integral)):
+    if haystack.dtype != out_dtype:
+        haystack = haystack.astype(out_dtype)
 
-    if np.issubdtype(D1.dtype, np.integer) and np.issubdtype(D2.dtype, np.integer):
-        dims = np.maximum(D1.max(axis=0), D2.max(axis=0)) + 1
-        haystack_indices = np.ravel_multi_index(haystack.T, dims)
-        needle_indices = np.ravel_multi_index(needles.T, dims)
+    if needles.dtype != out_dtype:
+        needles = needles.astype(out_dtype)
 
-        i = haystack_indices.argsort()
-        pvi = np.searchsorted(haystack_indices, needle_indices, sorter=i)
+    # view entire rows as a single values:
+    haystack = _bytes_view(haystack).ravel()
+    needles = _bytes_view(needles).ravel()
 
-        # since searchsorted can return length as index:
-        pvi[pvi == i.size] -= 1
-        pv2 = i[pvi]
+    i = haystack.argsort()
+    pvi = np.searchsorted(haystack, needles, sorter=i)
 
-        # trim pv2 down to exact matches and create pv1:
-        pv1 = np.where(haystack_indices[pv2] == needle_indices)[0]
-        pv2 = pv2[pv1]
-    else:
-        pv1 = np.zeros(needles.shape[0], dtype=np.int64)
-        pv2 = np.zeros(needles.shape[0], dtype=np.int64)
-        j = 0
-        for i, needle in enumerate(needles):
-            rows = find_rows(haystack, needle).nonzero()[0]
-            if rows.size > 0:
-                pv1[j] = i
-                pv2[j] = rows[0]
-                j += 1
+    # since searchsorted can return length as index:
+    pvi[pvi == i.size] -= 1
+    pv2 = i[pvi]
 
-        pv1 = pv1[:j]
-        pv2 = pv2[:j]
+    # trim pv2 down to exact matches and create pv1:
+    pv1 = np.where(haystack[pv2] == needles)[0]
+    pv2 = pv2[pv1]
 
     if switch:
         pv1, pv2 = pv2, pv1
 
     return pv1, pv2
+
+
+# def mat_intersect(D1, D2, keep=0):
+#     """
+#     Get row intersection partition vectors between two matrices or
+#     vectors.
+#
+#     Parameters
+#     ----------
+#     D1 : array_like
+#         1d or 2d array.
+#     D2 : array_like
+#         1d or 2d array.
+#     keep : integer
+#         0, 1 or 2:
+#
+#           - if 0, loop over smaller matrix, finding where the rows
+#             occur in the larger
+#           - if 1, loop over `D1`, finding where the rows occur in `D2`
+#           - if 2, loop over `D2`, finding where the rows occur in `D1`
+#
+#     Returns
+#     -------
+#     pv1 : 1d ndarray
+#         Row index vector into `D1`.
+#     pv2 : 1d ndarray
+#         Row index vector into `D2`.
+#
+#     Notes
+#     -----
+#     `pv1` and `pv2` are found such that::
+#
+#         D1[pv1] == D2[pv2]
+#         (Note for matrices:  M[i] == M[i, :])
+#
+#     For matrices, the number of columns in `D1` and `D2` must be equal
+#     to get non-empty results.
+#
+#     Examples
+#     --------
+#     >>> import numpy as np
+#     >>> from pyyeti import locate
+#     >>> mat1 = np.array([[7, 3], [6, 8], [4, 0], [9, 2], [1, 5]])
+#     >>> mat2 = np.array([[9, 2], [1, 5], [7, 3]])
+#     >>> pv1, pv2 = locate.mat_intersect(mat1, mat2)
+#     >>> pv1  # doctest: +ELLIPSIS
+#     array([3, 4, 0]...)
+#     >>> pv2  # doctest: +ELLIPSIS
+#     array([0, 1, 2]...)
+#     >>> np.all(mat1[pv1] == mat2[pv2])
+#     True
+#     >>> locate.mat_intersect(mat1, mat2, 1)  # doctest: +ELLIPSIS
+#     (array([0, 3, 4]...), array([2, 0, 1]...))
+#     >>> locate.mat_intersect(mat2, mat1, 2)  # doctest: +ELLIPSIS
+#     (array([2, 0, 1]...), array([0, 3, 4]...))
+#     >>> locate.mat_intersect(mat2, mat1)     # doctest: +ELLIPSIS
+#     (array([0, 1, 2]...), array([3, 4, 0]...))
+#     >>> mat3 = np.array([[1, 2, 3]])
+#     >>> locate.mat_intersect(mat1, mat3)     # doctest: +ELLIPSIS
+#     (array([], dtype=int...), array([], dtype=int...)
+#     """
+#     D1 = np.array(D1)
+#     D2 = np.array(D2)
+#     if D1.ndim == D2.ndim == 1:
+#         c1 = c2 = 1
+#         r1 = len(D1)
+#         r2 = len(D2)
+#         D1 = np.atleast_2d(D1)
+#         D2 = np.atleast_2d(D2)
+#         D1 = D1.T
+#         D2 = D2.T
+#     else:
+#         D1 = np.atleast_2d(D1)
+#         D2 = np.atleast_2d(D2)
+#         (r1, c1) = np.shape(D1)
+#         (r2, c2) = np.shape(D2)
+#
+#     if c1 != c2:
+#         return np.array([], dtype=int), np.array([], dtype=int)
+#
+#     # loop over the smaller one if keep == 0:
+#     # (we'll be searching for needles in the haystack)
+#     if (keep == 0 and r1 <= r2) or keep == 1:
+#         needles = D1
+#         haystack = D2
+#         switch = False
+#     else:
+#         needles = D2
+#         haystack = D1
+#         switch = True
+#
+#     # if arrays are integer type, we can speed things up a lot:
+#
+#     # if (issubclass(D1.dtype.type, numbers.Integral) and
+#     #     issubclass(D2.dtype.type, numbers.Integral)):
+#
+#     if np.issubdtype(D1.dtype, np.integer) and np.issubdtype(D2.dtype, np.integer):
+#         dims = np.maximum(D1.max(axis=0), D2.max(axis=0)) + 1
+#         haystack_indices = np.ravel_multi_index(haystack.T, dims)
+#         needle_indices = np.ravel_multi_index(needles.T, dims)
+#
+#         i = haystack_indices.argsort()
+#         pvi = np.searchsorted(haystack_indices, needle_indices, sorter=i)
+#
+#         # since searchsorted can return length as index:
+#         pvi[pvi == i.size] -= 1
+#         pv2 = i[pvi]
+#
+#         # trim pv2 down to exact matches and create pv1:
+#         pv1 = np.where(haystack_indices[pv2] == needle_indices)[0]
+#         pv2 = pv2[pv1]
+#     else:
+#         pv1 = np.zeros(needles.shape[0], dtype=np.int64)
+#         pv2 = np.zeros(needles.shape[0], dtype=np.int64)
+#         j = 0
+#         for i, needle in enumerate(needles):
+#             rows = find_rows(haystack, needle).nonzero()[0]
+#             if rows.size > 0:
+#                 pv1[j] = i
+#                 pv2[j] = rows[0]
+#                 j += 1
+#
+#         pv1 = pv1[:j]
+#         pv2 = pv2[:j]
+#
+#     if switch:
+#         pv1, pv2 = pv2, pv1
+#
+#     return pv1, pv2
 
 
 # def mat_intersect(D1, D2, keep=0):

@@ -13,7 +13,7 @@ import scipy.interpolate as interp
 import scipy.linalg as la
 from nose.tools import *
 import matplotlib.pyplot as plt
-from pyyeti import cla, cb, ode, stats
+from pyyeti import cla, cb, ode, stats, locate
 from pyyeti import nastran, srs
 from pyyeti.nastran import op2, n2p, op4
 
@@ -729,15 +729,7 @@ def owlab(pth):
             print("Running {} case {}".format(event, j + 1))
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T, axis=1, fill_value=0.0)(freq)
             assert_raises(
-                ValueError,
-                results3.solvepsd,
-                nas,
-                caseid,
-                DR,
-                fs,
-                F,
-                T,
-                freq,
+                ValueError, results3.solvepsd, nas, caseid, DR, fs, F, T, freq
             )
             break
 
@@ -2824,7 +2816,7 @@ def test_rptpct1_2():
             results["FFN 0"]["kc_forces"],
             results["FFN 1"]["kc_forces"].ext[:4],
             f,
-            **opts
+            **opts,
         )
 
     drminfo0 = results["FFN 0"]["kc_forces"].drminfo
@@ -2838,7 +2830,7 @@ def test_rptpct1_2():
             results["FFN 0"]["kc_forces"],
             results["FFN 1"]["kc_forces"].ext,
             f,
-            **opts
+            **opts,
         )
 
     opts = {
@@ -3056,7 +3048,10 @@ def test_reldisp_dtm():
     # - element 72 runs between 11 & 18
     # form axial force recovery for 66 & 72:
     tef1 = nastran.rddtipch(pth + "outboard.pch", "tef1")
-    pv = n2p.mkdofpv(tef1, "p", [[66, 7], [72, 7]])[0]
+
+    # pv = n2p.mkdofpv(tef1, "p", [[66, 7], [72, 7]])[0]
+    pv = locate.mat_intersect(tef1, [[66, 7], [72, 7]], keep=2)[0]
+
     ltm = nas["extse"][OUTBOARD]["mef1"][pv] @ nas["ulvs"][OUTBOARD]
 
     # convert the axial load ltm to a delta-x ltm:
