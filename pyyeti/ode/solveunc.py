@@ -51,7 +51,7 @@ class SolveUnc(_BaseODE):
         \left\{
             \begin{array}{c} \ddot{q} \\ \dot{q} \end{array}
         \right\} - \left[
-            \begin{array}{cc} M^{-1} C & M^{-1} K \\ I & 0 \end{array}
+            \begin{array}{cc} -M^{-1} C & -M^{-1} K \\ I & 0 \end{array}
         \right] \left\{
             \begin{array}{c} \dot{q} \\ q \end{array}
         \right\} = \left\{
@@ -329,7 +329,7 @@ class SolveUnc(_BaseODE):
         pc         None or record (SimpleNamespace) of integration
                    coefficients; if uncoupled, this is populated by
                    :func:`get_su_coef`; otherwise by
-                   :func:`SolveUnc._get_su_eig`
+                   :func:`SolveUnc.get_su_eig`
         pre_eig    True if the "pre" eigensolution was done; False
                    otherwise
         phi        the mode shape matrix from the "pre" eigensolution;
@@ -362,7 +362,7 @@ class SolveUnc(_BaseODE):
                     tmp = np.eye(self.ksize) + Bp * self.bo
                     self.pc.alpha = la.solve(tmp.T, self.bo.T).T
             else:
-                self.pc = self._get_su_eig(h is not None)
+                self.pc = self.get_su_eig(h is not None)
         else:
             self.pc = None
         self._mk_slices()  # dorbel=True)
@@ -1564,8 +1564,9 @@ class SolveUnc(_BaseODE):
         flex = self._add_rf_flex(flex, phi, velo, unc)
         return flex
 
-    def _get_su_eig(self, delcc):
-        """Does pre-calcs for the `SolveUnc` solver via the complex
+    def get_su_eig(self, delcc):
+        """
+        Does pre-calcs for the `SolveUnc` solver via the complex
         eigenvalue approach.
 
         Parameters
@@ -1625,6 +1626,11 @@ class SolveUnc(_BaseODE):
         imrb : 2d ndarray or None
             LU decomposition of rigid-body part of mass; or None if
             `m` is None.
+        wn : 1d ndarray
+            Real natural frequencies in same order as `lam`. See
+            :func:`ode.get_freq_damping`
+        zeta : 1d ndarray
+            Critical damping ratios. See :func:`ode.get_freq_damping`
 
         Notes
         -----
@@ -1634,7 +1640,6 @@ class SolveUnc(_BaseODE):
         See also
         --------
         :class:`SolveUnc`
-
         """
         pc = SimpleNamespace()
         h = self.h
@@ -1661,10 +1666,12 @@ class SolveUnc(_BaseODE):
         if self.elsize:
             self._inv_m()
             A = self._build_A()
-            lam, ur, ur_inv, dups = eigss(A, delcc)
+            eig_info = eigss(A, delcc)
+            pc.wn = eig_info.wn
+            pc.zeta = eig_info.zeta
             if h:
-                self._get_complex_su_coefs(pc, lam, h)
-            self._add_partition_copies(pc, lam, ur, ur_inv)
+                self._get_complex_su_coefs(pc, eig_info.lam, h)
+            self._add_partition_copies(pc, eig_info.lam, eig_info.ur, eig_info.ur_inv)
         return pc
 
     def _get_complex_su_coefs(self, pc, lam, h):

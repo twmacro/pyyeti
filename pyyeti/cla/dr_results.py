@@ -1102,6 +1102,7 @@ class DR_Results(OrderedDict):
 
         import time
 
+        pg = np.zeros((t_frc.shape[0], freq.size))
         timers = [0, 0, 0]
         for i in range(rpsd):
             if verbose:
@@ -1110,7 +1111,14 @@ class DR_Results(OrderedDict):
             genforce = t_frc[i][:, None] * unitforce
             t1 = time.time()
             sol = fs.fsolve(genforce, freq, incrb)
-            sol.pg = unitforce
+
+            # zeroing line not needed on first loop, but is okay (last
+            # row gets re-zeroed)
+            pg[i - 1] = 0.0
+
+            pg[i] = unitforce
+            sol.pg = pg
+            # sol.pg = unitforce
             timers[0] += time.time() - t1
 
             # apply uncertainty factors:

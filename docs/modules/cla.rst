@@ -13,6 +13,7 @@ Class for defining data recovery categories
     DR_Def.add
     DR_Def.addcat
     DR_Def.add_0rb
+    DR_Def.amend
     DR_Def.copycat
     DR_Def.excel_summary
     DR_Def.merge

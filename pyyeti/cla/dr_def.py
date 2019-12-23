@@ -237,6 +237,43 @@ class DR_Def(OrderedDict):
             msg = f'{s0} "{funcname}" not found in: {filename}. {s1}'
             warnings.warn(msg, RuntimeWarning)
 
+    @staticmethod
+    def _get_pv(pv, name, length):
+        if pv is None:
+            return pv
+        if isinstance(pv, str) and pv == "all":
+            return slice(length)
+        if isinstance(pv, slice):
+            return pv
+        if not isinstance(pv, str) and isinstance(pv, (abc.Sequence, numbers.Integral)):
+            pv = np.atleast_1d(pv)
+        if isinstance(pv, np.ndarray):
+            pv = pv.ravel()
+            if pv.dtype == bool:
+                if len(pv) != length:
+                    msg = (
+                        f"length of `{name}` ({len(pv)}) does not "
+                        f"match length of labels ({length})"
+                    )
+                    raise ValueError(msg)
+                return pv.nonzero()[0]
+            elif issubclass(pv.dtype.type, np.integer):
+                if pv.max() >= length or pv.min() < 0:
+                    msg = (
+                        f"values in `{name}` range from [{pv.min()}, {pv.max()}], "
+                        f"but should be in range [0, {length}] for this "
+                        "category"
+                    )
+                    raise ValueError(msg)
+                return pv
+        raise TypeError(f"`{name}` input not understood")
+
+    @staticmethod
+    def _get_labels(pv, labels):
+        if isinstance(pv, slice):
+            return labels[pv]
+        return [labels[i] for i in pv]
+
     def _handle_defaults(self, name):
         """Handle default values and take default actions"""
         # first, the defaults:
@@ -315,39 +352,7 @@ class DR_Def(OrderedDict):
                 )
             ns.filterval = np.atleast_1d(ns.filterval)
 
-        def _get_pv(pv, name, length):
-            if pv is None:
-                return pv
-            if isinstance(pv, str) and pv == "all":
-                return slice(length)
-            if isinstance(pv, slice):
-                return pv
-            if not isinstance(pv, str) and isinstance(
-                pv, (abc.Sequence, numbers.Integral)
-            ):
-                pv = np.atleast_1d(pv)
-            if isinstance(pv, np.ndarray):
-                pv = pv.ravel()
-                if pv.dtype == bool:
-                    if len(pv) != length:
-                        msg = (
-                            f"length of `{name}` ({len(pv)}) does not "
-                            f"match length of labels ({length})"
-                        )
-                        raise ValueError(msg)
-                    return pv.nonzero()[0]
-                elif issubclass(pv.dtype.type, np.integer):
-                    if pv.max() >= length or pv.min() < 0:
-                        msg = (
-                            f"values in `{name}` range from [{pv.min()}, {pv.max()}], "
-                            f"but should be in range [0, {length}] for this "
-                            "category"
-                        )
-                        raise ValueError(msg)
-                    return pv
-            raise TypeError(f"`{name}` input not understood")
-
-        ns.ignorepv = _get_pv(ns.ignorepv, "ignorepv", len(ns.labels))
+        ns.ignorepv = self._get_pv(ns.ignorepv, "ignorepv", len(ns.labels))
 
         if ns.srsconv is None and ns.srsQs is not None:
             ns.srsconv = 1.0
@@ -360,20 +365,15 @@ class DR_Def(OrderedDict):
         if ns.srspv is not None and ns.srsopts is None:
             ns.srsopts = {}
 
-        def _get_labels(pv, labels):
-            if isinstance(pv, slice):
-                return labels[pv]
-            return [labels[i] for i in pv]
-
         # fill in hist-labels/units and srs-labels/units if needed:
         for i in ("hist", "srs"):
             pv = i + "pv"
-            dct[pv] = _get_pv(dct[pv], pv, len(ns.labels))
+            dct[pv] = self._get_pv(dct[pv], pv, len(ns.labels))
             if dct[pv] is not None:
                 lbl = i + "labels"
                 unt = i + "units"
                 if dct[lbl] is None:
-                    dct[lbl] = _get_labels(dct[pv], ns.labels)
+                    dct[lbl] = self._get_labels(dct[pv], ns.labels)
                 if dct[unt] is None:
                     dct[unt] = ns.units
 
@@ -410,7 +410,7 @@ class DR_Def(OrderedDict):
         srsopts=None,
         srspv=None,
         srsunits=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Adds a data recovery category.
@@ -574,7 +574,8 @@ class DR_Def(OrderedDict):
         histunits : string or None; optional
             Units string for the `histpv`.
 
-            DA: set to `units`.
+            DA: set to `units` if `histpv` is not None; otherwise,
+            leave it None.
         ignorepv : 1d array_like or 'all' or slice or None; optional
             Typically, this is left as None (default) so that all rows
             are compared. `ignorepv` specifies rows that need to be
@@ -631,12 +632,13 @@ class DR_Def(OrderedDict):
             about inputting partition vectors.
 
             DA: if `srsQs` is not None (after its default action, if
-            applicable), internally set to ``slice(len(labels))``;
-            otherwise, leave it None.
+            applicable), set to ``slice(len(labels))``; otherwise,
+            leave it None.
         srsunits : string or None; optional
             Units string for the `srspv`.
 
-            DA: set to `units`.
+            DA: if `srsQs` is not None (after its default action, if
+            applicable), set to `units`; otherwise, leave it None.
         **kwargs : dict; optional
             All other inputs are quietly ignored.
 
@@ -798,6 +800,68 @@ class DR_Def(OrderedDict):
         # increment static variable ncats for error checking:
         DR_Def.ncats += 1
 
+    def amend(self, *, name, overwrite_drms=False, **kwargs):
+        """
+        Amend a category
+
+        Parameters
+        ----------
+        name : string
+            Name of category to amend, eg: 'SC_atm'. Must already
+            exist (if it doesn't, just use :func:`add` to create it as
+            desired).
+        overwrite_drms : bool; optional
+            Allow replacement of original `drms` and `nondrms`. This
+            can be dangerous, since multiplie categories can use the
+            same `drms` and `nondrms`; use with caution.
+        **kwargs : dict; optional
+            Any inputs to amend. Any unrecognized entries are quietly
+            ignored.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This routine collects all original settings for category
+        `name`, replaces any of them by whatever is specified in
+        ``**kwargs``, and calls :func:`add` to add the category to a
+        temporary DR_Def instance. If there are no errors, the old
+        category is replaced with the new one. Original order is
+        maintained in case that is important.
+        """
+        ns = self[name]
+
+        # up-front check for drms/nondrms:
+        for drm in ("drms", "nondrms"):
+            if drm in kwargs and not overwrite_drms:
+                raise ValueError(
+                    f"to overwrite the '{drm}' entry, set `overwrite_drms` to True"
+                )
+
+        # work with a temporary instance:
+        temp_drdefs = DR_Def(self.defaults)
+
+        # copy old dictionary:
+        settings = ns.__dict__.copy()
+        settings.update(kwargs)
+
+        # add updated category to temporary DR_Def:
+        temp_drdefs.add(name=name, **settings)
+
+        # replace old category with updated version:
+        self[name] = temp_drdefs[name]
+
+        # check for drms/nondrms:
+        se = self[name].se
+        for drm in ("drms", "nondrms"):
+            if drm in kwargs:
+                new_dct = getattr(temp_drdefs["_vars"], drm)[se]
+                if len(new_dct) > 0:
+                    old_dct = getattr(self["_vars"], drm)[se]
+                    old_dct.update(new_dct)
+
     def copycat(self, categories, name_addon, **kwargs):
         """
         Copy a category with optional modifications.
@@ -811,9 +875,9 @@ class DR_Def(OrderedDict):
             make the new names. If list, contains the new names with
             no regard to old names.
         **kwargs : misc
-            Any options to modify. See :func:`add` for complete
-            list. For `uf_reds`, set any of the four values to None to
-            keep the original value.
+            Any options to modify. See :func:`add` for complete list.
+            For `uf_reds`, set any of the four values to None to keep
+            the original value.
 
         Returns
         -------

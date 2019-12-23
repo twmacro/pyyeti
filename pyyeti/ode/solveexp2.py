@@ -28,7 +28,7 @@ class SolveExp2(_BaseODE):
         \left\{
             \begin{array}{c} \ddot{q} \\ \dot{q} \end{array}
         \right\} - \left[
-            \begin{array}{cc} M^{-1} B & M^{-1} K \\ I & 0 \end{array}
+            \begin{array}{cc} -M^{-1} B & -M^{-1} K \\ I & 0 \end{array}
         \right] \left\{
             \begin{array}{c} \dot{q} \\ q \end{array}
         \right\} = \left\{

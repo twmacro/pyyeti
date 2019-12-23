@@ -1338,10 +1338,9 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     if getresp:
         psd_vrs = np.empty((len(Fn), npsds, len(freq)))
         for i, fn in enumerate(Fn):
-            t = (
-                (1 + (2 * zeta * freq / fn) ** 2)
-                / ((1 - (freq / fn) ** 2) ** 2 + (2 * zeta * freq / fn) ** 2)
-            ) * psdfull.T
+            p = freq / fn
+            p2z2 = (2 * zeta * p) ** 2
+            t = ((1 + p2z2) / ((1 - p ** 2) ** 2 + p2z2)) * psdfull.T
             psd_vrs[i] = t  # npsds x len(freq)
             z_vrs[i] = np.sqrt(np.sum(df * t, axis=1))
         resp = {}
@@ -1352,11 +1351,9 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
         return z_vrs, z_miles, resp
 
     for i, fn in enumerate(Fn):
-        t = (
-            (1 + (2 * zeta * freq / fn) ** 2)
-            / ((1 - (freq / fn) ** 2) ** 2 + (2 * zeta * freq / fn) ** 2)
-            * df
-        ) * psdfull.T
+        p = freq / fn
+        p2z2 = (2 * zeta * p) ** 2
+        t = ((1 + p2z2) / ((1 - p ** 2) ** 2 + p2z2) * df) * psdfull.T
         z_vrs[i] = np.sqrt(np.sum(t, axis=1))
     if PSD.ndim == 1:
         z_vrs = z_vrs.ravel()

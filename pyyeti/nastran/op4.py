@@ -571,10 +571,11 @@ class OP4:
             numlen = 16
             if length > 44:
                 # 1P,3E24.16  <-- starts at position 40
-                numformat = line[43:]
-                p = numformat.find("E")
-                if p < 0:
-                    p = numformat.find("D")
+                # 3e24.16
+                numformat = line[40:].strip().upper()
+                if numformat.startswith("1P,"):
+                    numformat = numformat[3:]
+                p = numformat.replace("D", "E").find("E")
                 if p > 0:
                     perline = int(numformat[:p])
                     numlen = int(numformat[p + 1 :].split(".")[0])
@@ -893,7 +894,12 @@ class OP4:
             X = sparsefunc(X)
 
         # read final bytes of record and record marker
-        fp.read(reclen - 3 * self._bytes_i + 4)
+        nbytes = reclen - 3 * self._bytes_i + 4
+        if len(fp.read(nbytes)) < nbytes:
+            warnings.warn(
+                f"Premature end-of-file after matrix {name}. Nastran "
+                "will likely FATAL on this file."
+            )
         return name, X, form, mtype
 
     @staticmethod

@@ -1639,6 +1639,30 @@ def test_foh_c2d_d2c():
     chk_inverse(ss_sysz, ss_sys)
 
 
+def test_get_freq_damping():
+    # uncoupled equations
+    m = np.array([10.0, 11.0, 12.0, 13.0])  # diagonal of mass
+    k = np.array([6.0e5, 7.0e5, 8.0e5, 9.0e5])  # diagonal of stiffness
+    zeta = np.array([0.2, 0.05, 1.0, 2.0])  # percent damping
+
+    wn = np.sqrt(k / m)
+
+    # m = np.array([30.0])  # diagonal of mass
+    # k = np.array([7.0e5])  # diagonal of stiffness
+    # zeta = np.array([1.000000000010])  # percent damping
+
+    b = 2.0 * zeta * np.sqrt(k / m) * m  # diagonal of damping
+
+    A = ode.make_A(m, b, k)
+    lam, phi = la.eig(A)
+    wn_extracted, zeta_extracted = ode.get_freq_damping(lam)
+    i = np.argsort(wn_extracted)
+    assert np.allclose(wn_extracted[i], wn)
+    assert np.allclose(zeta_extracted[i], zeta)
+
+    assert_raises(ValueError, ode.get_freq_damping, lam[1:])
+
+
 def test_eigss():
     m = np.array([10.0, 30.0, 30.0, 30.0])  # diagonal of mass
     k = np.array([3.0e5, 6.0e5, 6.0e5, 6.0e5])  # diagonal of stiffness
@@ -1650,6 +1674,7 @@ def test_eigss():
 
     A = ode.make_A(m, b, k)
     luud = ode.eigss(A, delcc=0)
+    luud = (luud.lam, luud.ur, luud.ur_inv, luud.dups)
     # In [5]: luud[0]
     # Out[5]:
     # array([-527.79168675  +0.j        ,  -37.89373820  +0.j        ,

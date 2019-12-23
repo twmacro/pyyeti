@@ -14,7 +14,15 @@ except TypeError:
     pass
 
 
-__all__ = ["get_su_coef", "eigss", "delconj", "addconj", "make_A", "solvepsd"]
+__all__ = [
+    "get_su_coef",
+    "get_freq_damping",
+    "eigss",
+    "delconj",
+    "addconj",
+    "make_A",
+    "solvepsd",
+]
 
 
 def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
@@ -319,6 +327,163 @@ def _eigc_dups(lam, tol=1.0e-10):
     return lams, i, dups
 
 
+def get_freq_damping(lam):
+    r"""
+    Get frequency and damping from complex eigenvalues
+
+    Parameters
+    ----------
+    lam : 1d ndarray; shape = (2n,)
+        Vector of potentially complex eigenvalues. Pairs are assumed
+        to be adjacent
+
+    Returns
+    -------
+    wn : 1d ndarray; shape = (n,)
+        Vector of natural frequencies (rad/sec) in the same order as
+        `lam`.
+    zeta : 1d ndarray; shape = (n,)
+        Vector of critical damping ratios:
+
+        =======  ====================================================
+        `zeta`   description
+        =======  ====================================================
+         < 1.0   underdamped; eigenvalues are complex conjugate pairs
+         = 1.0   critically damped; eigenvalues are real duplicates
+         > 1.0   overdamped; eigenvalues are real and unequal
+        =======  ====================================================
+
+    Notes
+    -----
+    The implicit assumption behind this routine is that the equations
+    of motion are real (that the state-space matrix as documented in
+    :class:`SolveUnc` is real). If that is not true, this routine may
+    or may not be helpful, probably depending on how close to real the
+    system is. Note that this routine will issue a warning if it finds
+    that there are complex eigenvalues without an adjacent
+    conjugate. The rest of the documentation assumes the system is
+    real.
+
+    The complex eigenvalue pairs for all cases (underdamped,
+    critically damped, and overdamped) are:
+
+    .. math::
+        \begin{aligned}
+           \lambda_1 &= \omega_n (\zeta + \sqrt {\zeta^2 - 1}) \\
+           \lambda_2 &= \omega_n (\zeta - \sqrt {\zeta^2 - 1})
+        \end{aligned}
+
+    The eigenvalue pairs will be real if :math:`\zeta >= 1.0` and
+    complex conjugates otherwise.
+
+    The natural frequency :math:`\omega_n` is computed by taking the
+    square-root of the product of the eigenvalue pairs. This works for
+    underdamped, critically damped, and overdamped cases:
+
+    .. math::
+        \omega_n = \sqrt{\lambda_1 \lambda_2}
+
+    Because:
+
+    .. math::
+        \begin{aligned}
+           \lambda_1 \lambda_2 &=
+                \omega_n (\zeta + \sqrt {\zeta^2 - 1})
+                \omega_n (\zeta - \sqrt {\zeta^2 - 1}) \\
+             &= \omega_n^2 (\zeta^2 - (\zeta^2 - 1) \\
+             &= \omega_n^2
+        \end{aligned}
+
+    Once :math:`\omega_n` is known, :math:`\zeta` can be computed by
+    dividing the sum of the eigenvalue pairs by :math:`2 \omega_n`:
+
+    .. math::
+        \begin{aligned}
+           \zeta &= \frac{\lambda_1 + \lambda_2}{2 \omega_n} \\
+                 &= \frac{\omega_n (\zeta + \sqrt {\zeta^2 - 1})
+                        + \omega_n (\zeta - \sqrt {\zeta^2 - 1})}
+                        {2 \omega_n} \\
+                 &= \frac{2 \omega_n \zeta}{2 \omega_n} \\
+                 &= \zeta
+        \end{aligned}
+
+    .. note::
+        This routine will give incorrect results without warning if
+        any real eigenvalue is not adjacent to its pair. (A complex
+        eigenvalue that is not adjacent to its pair will trigger a
+        warning.)
+
+    Raises
+    ------
+        ValueError
+            When length of `lam` is not even (eigenvalues must be in
+            pairs)
+
+    Examples
+    --------
+    Set up a diagonal system of equations with known natural
+    frequencies and damping. Then, to demo the routine, put the
+    equations into state-space form (as shown in :class:`SolveUnc`),
+    compute eigenvalues, call this routine, and check results:
+
+    >>> import numpy as np
+    >>> import scipy.linalg as la
+    >>> from pyyeti import ode
+    >>>
+    >>> m = np.array([10.0, 11.0, 12.0, 13.0])  # mass
+    >>> k = np.array([6.0e5, 7.0e5, 8.0e5, 9.0e5])  # stiffness
+    >>> zeta = np.array([0.2, 0.05, 1.0, 2.0])  # percent damping
+    >>>
+    >>> wn = np.sqrt(k / m)
+    >>>
+    >>> b = 2.0 * zeta * np.sqrt(k / m) * m  # damping
+    >>>
+    >>> # solve eigenvalue problem on state-space equations:
+    >>> A = ode.make_A(m, b, k)
+    >>> lam, phi = la.eig(A)
+    >>> wn_extracted, zeta_extracted = ode.get_freq_damping(lam)
+    >>>
+    >>> # check results:
+    >>> i = np.argsort(wn_extracted)
+    >>> np.allclose(wn_extracted[i], wn)
+    True
+    >>> np.allclose(zeta_extracted[i], zeta)
+    True
+    """
+    # find complex conjugate pairs:
+    lam = np.atleast_1d(lam)
+
+    # Check for sign on lam ... if we assume lam is computed from A as
+    # defined in eigss (the convention used in pyYeti), then we really
+    # want to compute wn & zeta from -lam. We won't assume that
+    # though; instead, we'll just check the sign on the real part
+    # ... probably could just check one eigenvalue, but it's pretty
+    # cheap to do more of an average:
+    if lam.sum().real < 0:
+        lam = -lam
+
+    lam1 = lam[::2]
+    lam2 = lam[1::2]
+    if lam1.shape[0] != lam2.shape[0]:
+        raise ValueError("`lam` must be even length")
+
+    mult = lam1 * lam2
+    add = lam1 + lam2
+    if (abs(mult.imag).max() > 1e-14) or (abs(add.imag).max() > 1e-14):
+        warnings.warn(
+            "Eigenvalues pairs in `lam` appear not to be adjacent. Multiplying "
+            "and adding pairs resulted in a non-zero imaginary parts:\n"
+            f"  Multiply: abs((lam1 * lam2).imag).max() = {abs(mult.imag).max()}\n"
+            f"  Add:      abs((lam1 + lam2).imag).max() = {abs(add.imag).max()}",
+            RuntimeWarning,
+        )
+
+    wn = np.sqrt(abs(mult.real))
+    zeta = (lam1 + lam2).real / (2 * wn)
+
+    return wn, zeta
+
+
 def eigss(A, delcc):
     r"""
     Solve complex eigen problem for state-space formulation.
@@ -336,17 +501,25 @@ def eigss(A, delcc):
 
     Returns
     -------
-    lam : 1d ndarray
+    A SimpleNamespace with the members:
+
+    lam : 1d ndarray; complex
         The vector of complex eigenvalues
-    ur : 2d ndarray
+    ur : 2d ndarray; complex
         Normalized complex right eigenvectors
-    ur_inv : 2d ndarray
+    ur_inv : 2d ndarray; complex
         Inverse of right eigenvectors
     dups : 1d ndarray
         Index partition vector for repeated roots; it will be empty
         (`np.array([])`) if there are no repeated roots. For example,
         if only the second and third roots are duplicates of each
         other, `dups` will be `np.array([1, 2])`.
+    wn : 1d ndarray; real
+        Vector of natural frequencies (rad/sec) in the same order as
+        `lam` (see :func:`get_freq_damping`)
+    zeta : 1d ndarray; real
+        Vector of critical damping ratios (see
+        :func:`get_freq_damping`)
 
     Notes
     -----
@@ -362,7 +535,7 @@ def eigss(A, delcc):
         \left\{
             \begin{array}{c} \ddot{q} \\ \dot{q} \end{array}
         \right\} - \left[
-            \begin{array}{cc} M^{-1} B & M^{-1} K \\ I & 0 \end{array}
+            \begin{array}{cc} -M^{-1} B & -M^{-1} K \\ I & 0 \end{array}
         \right] \left\{
             \begin{array}{c} \dot{q} \\ q \end{array}
         \right\} = \left\{
@@ -394,7 +567,7 @@ def eigss(A, delcc):
 
     See also
     --------
-    :func:`make_A`, :class:`SolveUnc`.
+    :func:`make_A`, :class:`SolveUnc`, :func:`get_freq_damping`.
     """
     msg = (
         "in :func:`eigss`, the eigenvectors for the state-"
@@ -417,9 +590,10 @@ def eigss(A, delcc):
     lam, i, dups = _eigc_dups(lam)
     ur = ur[:, i]
     ur_inv = ur_inv[i]
+    wn, zeta = get_freq_damping(lam)
     if delcc:
-        return delconj(lam, ur, ur_inv, dups)
-    return lam, ur, ur_inv, dups
+        lam, ur, ur_inv, dups = delconj(lam, ur, ur_inv, dups)
+    return SimpleNamespace(lam=lam, ur=ur, ur_inv=ur_inv, dups=dups, wn=wn, zeta=zeta)
 
 
 def delconj(lam, ur, ur_inv, dups):
@@ -443,12 +617,12 @@ def delconj(lam, ur, ur_inv, dups):
 
     Returns
     -------
-    lam1 : 1d ndarray
+    lam1 : 1d ndarray; complex
         Trimmed vector of complex eigenvalues
-    ur1 : 2d ndarray
+    ur1 : 2d ndarray; complex
         Trimmed normalized complex right eigenvectors; columns may be
         trimmed
-    ur_inv1 : 2d ndarray
+    ur_inv1 : 2d ndarray; complex
         Trimmed inverse of right eigenvectors; rows may be trimmed
     dups1 : 1d ndarray
         Version of input `dups` for the trimmed variables.
@@ -509,12 +683,12 @@ def addconj(lam, ur, ur_inv):
 
     Returns
     -------
-    lam1 : 1d ndarray
+    lam1 : 1d ndarray; complex
         The vector of complex eigenvalues (complete set)
-    ur1 : 2d ndarray
+    ur1 : 2d ndarray; complex
         Complete set of normalized complex right eigenvectors; will be
         square
-    ur_inv1 : 2d ndarray
+    ur_inv1 : 2d ndarray; complex
         Complete set of inverse of right eigenvectors; will be square
 
     Notes
@@ -613,7 +787,7 @@ def make_A(M, B, K):
         \left\{
             \begin{array}{c} \ddot{q} \\ \dot{q} \end{array}
         \right\} - \left[
-            \begin{array}{cc} M^{-1} B & M^{-1} K \\ I & 0 \end{array}
+            \begin{array}{cc} -M^{-1} B & -M^{-1} K \\ I & 0 \end{array}
         \right] \left\{
             \begin{array}{c} \dot{q} \\ q \end{array}
         \right\} = \left\{

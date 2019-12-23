@@ -23,6 +23,7 @@ Time and frequency domain equation of motion solvers
     SolveUnc.generator
     SolveUnc.finalize
     SolveUnc.get_f2x
+    SolveUnc.get_su_eig
 
 2nd Order ODE Solver `SolveCDF`
 -------------------------------
@@ -81,5 +82,6 @@ Utility routines
     addconj
     delconj
     eigss
+    get_freq_damping
     get_su_coef
     make_A

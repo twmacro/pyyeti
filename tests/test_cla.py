@@ -3351,3 +3351,55 @@ def test_drdef_importer():
         with warnings.catch_warnings(record=True) as w:
             drdefs.add(**locals())
             assert len(w) == 0
+
+
+def test_dr_def_amend():
+    # define some defaults for data recovery:
+    defaults = dict(
+        se=90, uf_reds=(1, 1, 1.25, 1), srsfrq=np.arange(0.1, 50.1, 0.1), srsQs=(10, 33)
+    )
+
+    drdefs = cla.DR_Def(defaults)
+
+    atm = np.arange(12 * 12).reshape(12, -1)
+
+    @cla.DR_Def.addcat
+    def _():
+        name = "scatm"
+        desc = "Outboard Internal Accelerations"
+        units = "mm/sec^2, rad/sec^2"
+        labels = [f"Row {i+1}" for i in range(12)]
+        drms = {name: atm}
+        drfunc = f"Vars[se]['{name}'] @ sol.a"
+        drdefs.add(**locals())
+
+    # PP(drdefs["scatm"])
+
+    cat = drdefs["scatm"]
+    assert cat.srsfrq is None
+    assert cat.srsQs is None
+    assert cat.srslabels is None
+    assert cat.srsopts is None
+    assert cat.srsunits is None
+    assert cat.srspv is None
+    assert cat.filterval == 1e-6
+    assert (drdefs["_vars"].drms[90]["scatm"] == atm).all()
+
+    drdefs.amend(name="scatm", srspv=[0, 4], filterval=1.2)
+
+    # PP(drdefs["scatm"])
+
+    cat = drdefs["scatm"]
+    assert (defaults["srsfrq"] == cat.srsfrq).all()
+    assert defaults["srsQs"] == cat.srsQs
+    assert cat.srslabels == ["Row 1", "Row 5"]
+    assert cat.srsopts == {}
+    assert cat.srsunits == cat.units
+    assert (cat.srspv == [0, 4]).all()
+    assert cat.filterval == 1.2
+
+    assert_raises(ValueError, drdefs.amend, **dict(name="scatm", drms={"scatm": 1}))
+
+    drdefs.amend(name="scatm", drms={"scatm": 1}, overwrite_drms=True)
+
+    assert drdefs["_vars"].drms[90]["scatm"] == 1

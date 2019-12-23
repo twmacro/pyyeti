@@ -126,9 +126,9 @@ class DataCursor(object):
     to see selected data points. These operations are available (when
     the mouse is inside the axes):
 
-    ===========  ======================================================
+    ===========  =====================================================
     Action       Description
-    ===========  ======================================================
+    ===========  =====================================================
     left-click   Data point will be stored in the member list
                  `xypoints`. The other members (`inds`, `lines`,
                  `linenums`, `pts` and `notes`) are updated as well.
@@ -140,7 +140,7 @@ class DataCursor(object):
     typing 'D'   Deletes last point AND removes the line from the plot
                  via ``line_handle.remove()``. Any older annotations
                  are not deleted.
-    ===========  ======================================================
+    ===========  =====================================================
 
     To get x-y data points from plots from within a script, use
     :func:`DataCursor.getdata`. Enter the number of points or press
@@ -630,8 +630,14 @@ class DataCursor(object):
         for n, ln in enumerate(ax.lines):
             xdata = ln.get_xdata()
             ydata = ln.get_ydata()
-            dx = (xdata - x) / np.diff(ax.get_xlim())
-            dy = (ydata - y) / np.diff(ax.get_ylim())
+
+            # print("xdata\n", xdata)
+            # print("ydata\n", ydata)
+            # print("xdata - x\n", xdata - x)
+            # print("np.diff(ax.get_xlim())\n", np.diff(ax.get_xlim()))
+
+            dx = (xdata - x) / np.diff(ax.get_xlim())[0]
+            dy = (ydata - y) / np.diff(ax.get_ylim())[0]
             # dx = (xdata-x)
             # dy = (ydata-y)
             d = np.sqrt(dx ** 2.0 + dy ** 2.0)
