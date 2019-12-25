@@ -3403,3 +3403,236 @@ def test_dr_def_amend():
     drdefs.amend(name="scatm", drms={"scatm": 1}, overwrite_drms=True)
 
     assert drdefs["_vars"].drms[90]["scatm"] == 1
+
+
+def grounded_mass_spring_system():
+    r"""
+                    |--> x1       |--> x2        |--> x3
+
+
+                 |----|    k1   |----|    k2   |----|    k4   |/
+              f  |    |--\/\/\--|    |--\/\/\--|    |--\/\/\--|/
+            ====>| m1 |         | m2 |         | m3 |         |/
+                 |    |---| |---|    |---| |---|    |---| |---|/
+                 |----|    c1   |----|    c2   |----|    c4   |/
+                   |                             |
+                   |             k3              |
+                   |-----------\/\/\-------------|
+                   |                             |
+                   |------------| |--------------|
+                                 c3
+
+        m1 = 2 kg
+        m2 = 4 kg
+        m3 = 6 kg
+
+        k1 = 12000 N/m
+        k2 = 16000 N/m
+        k3 = 10000 N/m
+        k4 = 15000 N/m
+
+        c1 = 70 N s/m
+        c2 = 75 N s/m
+        c3 = 30 N s/m
+        c4 = 50 N s/m
+
+        h = 0.001
+        t = np.arange(0, 1.0, h)
+        f = np.zeros((3, len(t)))
+        f[0, 20:250] = 10.0  # N
+
+    """
+    m1 = 2.0
+    m2 = 4.0
+    m3 = 6.0
+    k1 = 12000.0
+    k2 = 16000.0
+    k3 = 10000.0
+    k4 = 15000.0
+    c1 = 70.0
+    c2 = 75.0
+    c3 = 30.0
+    c4 = 50.0
+    mass = np.diag([m1, m2, m3])
+    stiff = np.array(
+        [[k1 + k3, -k1, -k3], [-k1, k1 + k2, -k2], [-k3, -k2, k2 + k3 + k4]]
+    )
+    damp = np.array(
+        [[c1 + c3, -c1, -c3], [-c1, c1 + c2, -c2], [-c3, -c2, c2 + c3 + c4]]
+    )
+
+    # force will be positive for tension
+
+    # drm for subtracting 1 from 2, 2 from 3, 1 from 3:
+    sub = np.array([[-1.0, 1.0, 0], [0.0, -1.0, 1.0], [-1.0, 0, 1.0], [0.0, 0.0, -1.0]])
+
+    # ltm for forces in springs:
+    #    fs = ltm @ x
+    ltm = [[k1], [k2], [k3], [k4]] * sub
+
+    # form the mode-acce versions:
+    #    fs = ltmf @ f + ltma @ xdd + ltmv @ xd
+    # ltmf = ltm @ inv(k)
+    # ltma = -ltm @ inv(k) @ m
+    # ltmv = -ltm @ inv(k) @ c
+    ltmf = la.solve(stiff.T, ltm.T).T
+    ltma = -ltmf @ mass
+    ltmv = -ltmf @ damp
+
+    drms1 = {"ltm": ltm, "ltmf": ltmf, "ltma": ltma, "ltmv": ltmv}
+
+    # define some defaults for data recovery:
+    uf_reds = (1, 1, 1, 1)
+    defaults = dict(se=0, uf_reds=uf_reds)
+    drdefs = cla.DR_Def(defaults)
+
+    @cla.DR_Def.addcat
+    def _():
+        name = "fs_md"
+        desc = "Spring Forces - Mode Displacement"
+        units = "N"
+        labels = [f"Spring {i}" for i in range(4)]
+        # force will be positive for tension
+        drms = drms1
+        drfunc = "Vars[se]['ltm'] @ sol.d"
+        histpv = "all"
+        drdefs.add(**locals())
+
+    @cla.DR_Def.addcat
+    def _():
+        name = "fs_ma"
+        desc = "Spring Forces - Mode Acceleration"
+        units = "N"
+        labels = [f"Spring {i}" for i in range(4)]
+        # force will be positive for tension
+        drfunc = """(Vars[se]['ltmf'] @ sol.pg +
+                     Vars[se]['ltma'] @ sol.a +
+                     Vars[se]['ltmv'] @ sol.v)"""
+        histpv = "all"
+        drdefs.add(**locals())
+
+    # prepare spacecraft data recovery matrices
+    DR = cla.DR_Event()
+    DR.add(None, drdefs)
+
+    return mass, damp, stiff, drms1, uf_reds, defaults, DR
+
+
+def test_solvepsd_ltmf():
+    mass, damp, stiff, drms, uf_reds, defaults, DR = grounded_mass_spring_system()
+
+    # define forces:
+    h = 0.001
+    t = np.arange(0, 1.0, h)
+    f = np.zeros((3, len(t)))
+    f[0, 20:250] = 10.0
+
+    # setup solver:
+    # ts = ode.SolveExp2(mass, damp, stiff, h)
+    ts = ode.SolveUnc(mass, damp, stiff, h, pre_eig=True)
+    sol = ts.tsolve(f)
+    sol.pg = f
+    sol2 = {uf_reds: sol}
+
+    # initialize results (ext, mnc, mxc for all drms)
+    event = "Case 1"
+    results = DR.prepare_results("Spring & Damper Forces", event)
+
+    # perform data recovery:
+    results.time_data_recovery(sol2, None, event, DR, 1, 0)
+
+    # ensure the two methods are equivalent:
+    assert np.allclose(results["fs_md"].ext, results["fs_ma"].ext)
+
+    # --------------------------------------------
+    # now run a PSD style event with two psd's to ensure that solvepsd
+    # handles the forces (sol.pg) properly:
+    # >>> lam, phi = la.eigh(stiff, mass)
+    # >>> np.sqrt(lam) / 2 / np.pi
+    # array([  5.21246336,  15.89585871,  18.68656157])
+
+    freq = np.arange(0.1, 30.0, 0.1)
+    n = freq.shape[0]
+
+    # - fpsd[0] on dof 2
+    # - fpsd[1] on dof 1
+    fpv = np.array([2, 1])
+    fpsd = np.zeros((2, n))
+    fpsd[0] = np.interp(freq, [2.0, 12.0, 20.0, 25.0], [0.0, 10.0, 10.0, 0.0])
+    fpsd[1] = np.interp(freq, [2.0, 12.0, 20.0, 25.0], [0.0, 12.0, 12.0, 0.0])
+
+    # "ltmf" recovery matrix must match PSD force (order and size)
+    DR.Vars[0]["ltmf_keep"] = DR.Vars[0]["ltmf"].copy()
+    DR.Vars[0]["ltmf"] = DR.Vars[0]["ltmf_keep"][:, fpv]
+
+    t_frc = np.eye(stiff.shape[0])[fpv]
+    caseid = "PSDTest"
+    nas = {"nrb": 0}
+    results = DR.prepare_results("Spring & Damper Forces", event)
+    results.solvepsd(nas, caseid, DR, ts, fpsd, t_frc, freq)
+    results.psd_data_recovery(caseid, DR, 1, 0)
+
+    # --------------------------------------------
+    # now run the two psds separately and rss the resulting rms values
+    # ... should match (taking sqrt of the sum of PSDs is the same as
+    # rss'ing the rms values)
+    res_separate = cla.DR_Results()
+    for i, fpsdi in enumerate(fpsd):
+        caseid = f"PSD Case {i}"
+        res_separate[caseid] = DR.prepare_results("Spring & Damper Forces", event)
+        DR.Vars[0]["ltmf"] = DR.Vars[0]["ltmf_keep"][:, fpv[[i]]]
+
+        t_frc = np.eye(stiff.shape[0])[fpv[i]]
+        res_separate[caseid].solvepsd(nas, caseid, DR, ts, fpsdi[None, :], t_frc, freq)
+        res_separate[caseid].psd_data_recovery(caseid, DR, 1, 0)
+
+    # ensure the two methods AND approaches are equivalent:
+    rss_md = np.sqrt(
+        res_separate["PSD Case 0"]["fs_md"].ext ** 2
+        + res_separate["PSD Case 1"]["fs_md"].ext ** 2
+    )
+    rss_md[:, 1] *= -1
+    assert np.allclose(results["fs_md"].ext, rss_md)
+
+    rss_ma = np.sqrt(
+        res_separate["PSD Case 0"]["fs_ma"].ext ** 2
+        + res_separate["PSD Case 1"]["fs_ma"].ext ** 2
+    )
+    rss_ma[:, 1] *= -1
+    assert np.allclose(results["fs_ma"].ext, rss_ma)
+
+    assert np.allclose(rss_md, rss_ma)
+
+    # --------------------------------------------
+    # rerun with a zero psd force for more testing:
+    fpsd = np.zeros((3, n))
+    # should give same answer as above:
+    fpsd[fpv[0]] = np.interp(freq, [2.0, 12.0, 20.0, 25.0], [0.0, 10.0, 10.0, 0.0])
+    fpsd[fpv[1]] = np.interp(freq, [2.0, 12.0, 20.0, 25.0], [0.0, 12.0, 12.0, 0.0])
+
+    # "ltmf" recovery matrix must match PSD force (order and size)
+    DR.Vars[0]["ltmf"] = DR.Vars[0]["ltmf_keep"]
+
+    t_frc = np.eye(stiff.shape[0])
+    caseid = "PSDTest"
+
+    results2 = DR.prepare_results("Spring & Damper Forces", event)
+    with assert_warns(RuntimeWarning) as cm:
+        results2.solvepsd(nas, caseid, DR, ts, fpsd, t_frc, freq)
+    the_warning = str(cm.warning)
+    assert the_warning.startswith("There are 1 zero forces")
+
+    results2.psd_data_recovery(caseid, DR, 1, 0)
+
+    assert np.allclose(results["fs_md"].ext, results2["fs_md"].ext)
+    assert np.allclose(results["fs_md"].ext, results2["fs_ma"].ext)
+
+    # as one last test, tell it to trim forces (mode-acce won't work
+    # because of sizes, so delete that one first)
+    del DR.Info["fs_ma"]
+
+    results2 = DR.prepare_results("Spring & Damper Forces", event)
+    results2.solvepsd(nas, caseid, DR, ts, fpsd, t_frc, freq, allow_force_trimming=True)
+    results2.psd_data_recovery(caseid, DR, 1, 0)
+
+    assert np.allclose(results["fs_md"].ext, results2["fs_md"].ext)

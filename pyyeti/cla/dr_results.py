@@ -851,8 +851,7 @@ class DR_Results(OrderedDict):
             if not needed: it is not used in this routine; it is only
             passed to the data recovery routines (the `drfunc` setting
             in :func:`DR_Def.add`). Historically, this was the nas2cam
-            dictionary (``nas = pyyeti.nastran.op2.rdnas2cam()``). It
-            has more recently be set to `DR` (same as below).
+            dictionary (``nas = pyyeti.nastran.op2.rdnas2cam()``).
         case : string
             Unique string identifying the case; stored in, for
             example, the ``self['SC_atm'].cases`` and the `.mincase`
@@ -992,7 +991,17 @@ class DR_Results(OrderedDict):
                 self._compute_srs(res, dr, resp, "frf", SOL.f, j, first)
 
     def solvepsd(
-        self, nas, case, DR, fs, forcepsd, t_frc, freq, incrb=2, verbose=False
+        self,
+        nas,
+        case,
+        DR,
+        fs,
+        forcepsd,
+        t_frc,
+        freq,
+        incrb=2,
+        verbose=False,
+        allow_force_trimming=False,
     ):
         """
         Solve equations of motion in frequency domain with PSD forces
@@ -1023,9 +1032,16 @@ class DR_Results(OrderedDict):
         forcepsd : 2d array_like
             Matrix of force psds; each row is a force
         t_frc : 2d array_like
-            Transformation from system modal DOF to forced DOF; number
-            of rows is the number of PSDs:
-            ``t_frc.shape[0] == forcepsd.shape[0]``
+            Transpose of the transform to put `forcepsd` into the
+            coordinates of the equations of motion. Commonly, `t_frc`
+            is simply a row-partition of the mode shape matrix (phi)
+            and the conversion of `forcepsd` is from physical space to
+            modal space. In that case, the row-partition is from the
+            full set down to just the forced DOF. However, `t_frc` can
+            also have force mappings (as from the TLOAD capability in
+            Nastran); in that case, ``t_frc.T = phi.T @
+            mapping_vectors``. In any case, the number of rows is the
+            number of PSDs: ``t_frc.shape[0] == forcepsd.shape[0]``
         freq : 1d array_like
             Frequency vector at which solution will be computed
         incrb : 0, 1, or 2; optional
@@ -1042,6 +1058,13 @@ class DR_Results(OrderedDict):
 
         verbose : bool; optional
             If True, print status messages and timer results.
+        allow_force_trimming : bool; optional
+            If True, zero forces will be trimmed off to save
+            time. Since this can cause trouble during data recovery if
+            you have any force-dependent data recovery matrices
+            ("drmf"), the default is False. It is advisable to trim
+            off zero forces before calling this routine and trim the
+            corresponding columns off any "drmf" matrices.
 
         Notes
         -----
@@ -1059,6 +1082,16 @@ class DR_Results(OrderedDict):
         ``self['SC_atm'].psd``; this is determined according to the
         `histpv` setting defined through the call to
         :func:`DR_Def.add`.
+
+        .. note::
+            If you have force-dependent data recovery matrices (which
+            is typically from using the mode-acceleration method of
+            data recovery for fundamentally displacement-based
+            quantities), you may need to trim/reorder its columns to
+            match `forcepsd`. While looping over each PSD in
+            `forcepsd`, this routine creates ``sol.pg`` sized
+            compatibly with `forcepsd` and has only one row of 1.0
+            values.
         """
         forcepsd, t_frc = np.atleast_2d(forcepsd, t_frc)
         if t_frc.shape[0] != forcepsd.shape[0]:
@@ -1068,17 +1101,22 @@ class DR_Results(OrderedDict):
             )
 
         nonzero_forces = np.any(forcepsd, axis=1).nonzero()[0]
-        if nonzero_forces.size:
-            if verbose:
-                print(
-                    f"Trimming off {forcepsd.shape[0] - nonzero_forces.size} "
-                    "zero forces"
+        nzero = forcepsd.shape[0] - nonzero_forces.size
+        if nzero > 0:
+            if allow_force_trimming:
+                if verbose:
+                    print(f"Trimming off {nzero} " "zero forces")
+                forcepsd = forcepsd[nonzero_forces]
+                t_frc = t_frc[nonzero_forces]
+            else:
+                # if verbose:
+                warnings.warn(
+                    f"There are {nzero} zero forces that are NOT being trimmed "
+                    "off. See the parameter `allow_force_trimming`.",
+                    RuntimeWarning,
                 )
-            forcepsd = forcepsd[nonzero_forces]
-            t_frc = t_frc[nonzero_forces]
-        freq = np.atleast_1d(freq)
 
-        # decompose system equations for uncoupled solver:
+        freq = np.atleast_1d(freq)
         rpsd = forcepsd.shape[0]
         unitforce = np.ones(freq.shape)
 
@@ -1115,10 +1153,8 @@ class DR_Results(OrderedDict):
             # zeroing line not needed on first loop, but is okay (last
             # row gets re-zeroed)
             pg[i - 1] = 0.0
-
             pg[i] = unitforce
             sol.pg = pg
-            # sol.pg = unitforce
             timers[0] += time.time() - t1
 
             # apply uncertainty factors:

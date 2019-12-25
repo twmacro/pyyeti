@@ -897,8 +897,9 @@ class OP4:
         nbytes = reclen - 3 * self._bytes_i + 4
         if len(fp.read(nbytes)) < nbytes:
             warnings.warn(
-                f"Premature end-of-file after matrix {name}. Nastran "
-                "will likely FATAL on this file."
+                f"Premature end-of-file after matrix {name!r}. Nastran "
+                "will likely FATAL on this file.",
+                RuntimeWarning,
             )
         return name, X, form, mtype
 

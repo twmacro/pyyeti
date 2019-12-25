@@ -585,3 +585,24 @@ def test_large_rows_dense():
     x = np.zeros((100000, 1))
     x[45678] = 1.0
     assert np.allclose(m["x"], x)
+
+
+def test_premature_eof_warning():
+    a = np.random.randn(10, 10)
+    f = tempfile.NamedTemporaryFile(delete=False)
+    fname = f.name
+    f.close()
+
+    try:
+        op4.write(fname, {"a": a})
+        bufr = open(fname, "rb").read()
+        open(fname, "wb").write(bufr[:-6])
+
+        with assert_warns(RuntimeWarning) as cm:
+            a2 = op4.read(fname)
+            assert cm.warnings[0].message.args[0].startswith("Premature end-of-file")
+
+    finally:
+        os.remove(fname)
+
+    assert (a2["a"] == a).all()
