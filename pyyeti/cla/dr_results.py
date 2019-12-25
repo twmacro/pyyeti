@@ -1006,6 +1006,9 @@ class DR_Results(OrderedDict):
         """
         Solve equations of motion in frequency domain with PSD forces
 
+        See also :func:`pyyeti.ode.solvepsd` for a very similar
+        routine, but one that is independent of the :mod:`cla` module.
+
         Parameters
         ----------
         nas : dictionary
@@ -1032,16 +1035,17 @@ class DR_Results(OrderedDict):
         forcepsd : 2d array_like
             Matrix of force psds; each row is a force
         t_frc : 2d array_like
-            Transpose of the transform to put `forcepsd` into the
-            coordinates of the equations of motion. Commonly, `t_frc`
-            is simply a row-partition of the mode shape matrix (phi)
-            and the conversion of `forcepsd` is from physical space to
-            modal space. In that case, the row-partition is from the
-            full set down to just the forced DOF. However, `t_frc` can
-            also have force mappings (as from the TLOAD capability in
-            Nastran); in that case, ``t_frc.T = phi.T @
-            mapping_vectors``. In any case, the number of rows is the
-            number of PSDs: ``t_frc.shape[0] == forcepsd.shape[0]``
+            Transform to put `forcepsd` into the coordinates of the
+            equations of motion: ``t_frc @ forcepsd``. Commonly,
+            `t_frc` is simply the transpose of a row-partition of the
+            mode shape matrix (phi) and the conversion of `forcepsd`
+            is from physical space to modal space. In that case, the
+            row-partition is from the full set down to just the forced
+            DOF. However, `t_frc` can also have force mappings (as
+            from the TLOAD capability in Nastran); in that case,
+            ``t_frc = phi.T @ mapping_vectors``. In any case, the
+            number of columns in `t_frc` is the number of rows in
+            `forcepsd`: ``t_frc.shape[1] == forcepsd.shape[0]``
         freq : 1d array_like
             Frequency vector at which solution will be computed
         incrb : 0, 1, or 2; optional
@@ -1120,7 +1124,7 @@ class DR_Results(OrderedDict):
             values. See also `allow_force_trimming` above.
         """
         forcepsd, t_frc = np.atleast_2d(forcepsd, t_frc)
-        if t_frc.shape[0] != forcepsd.shape[0]:
+        if t_frc.shape[1] != forcepsd.shape[0]:
             raise ValueError(
                 "`forcepsd` and `t_frc` are incompatibly "
                 f"sized: {forcepsd.shape} vs {t_frc.shape}"
@@ -1133,7 +1137,7 @@ class DR_Results(OrderedDict):
                 if verbose:
                     print(f"Trimming off {nzero} " "zero forces")
                 forcepsd = forcepsd[nonzero_forces]
-                t_frc = t_frc[nonzero_forces]
+                t_frc = t_frc[:, nonzero_forces]
             else:
                 # if verbose:
                 warnings.warn(
@@ -1166,13 +1170,13 @@ class DR_Results(OrderedDict):
 
         import time
 
-        pg = np.zeros((t_frc.shape[0], freq.size))
+        pg = np.zeros((t_frc.shape[1], freq.size))
         timers = [0, 0, 0]
         for i in range(rpsd):
             if verbose:
                 print(f"{case}: processing force {i + 1} of {rpsd}")
             # solve for unit FRF for i'th force:
-            genforce = t_frc[i][:, None] * unitforce
+            genforce = t_frc[:, [i]] * unitforce
             t1 = time.time()
             sol = fs.fsolve(genforce, freq, incrb)
 

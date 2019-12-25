@@ -2855,10 +2855,15 @@ def test_ode_solvepsd():
     forcepsd = 10000 * np.ones((4, freq.size))  # constant PSD forces
     ts = ode.SolveUnc(m, b, k)
     atm = np.random.randn(4, 4)
+    vtm = np.random.randn(4, 4)
     dtm = np.random.randn(4, 4)
     t_frc = np.random.randn(4, 4)
-    drms = [[atm, None], [None, dtm], [atm, dtm]]
     forcephi = np.random.randn(4, 4)
+    drms = [
+        [atm, None, None, None],
+        [None, None, dtm, None],
+        [atm, vtm, dtm, forcephi],
+    ]
 
     rbduf = 1.2
     elduf = 1.5
@@ -2870,8 +2875,9 @@ def test_ode_solvepsd():
         ts, forcepsd, t_frc, freq, drms, rbduf=rbduf, elduf=elduf
     )
     rmsf, psdf = ode.solvepsd(ts, forcepsd, t_frc, freq, drms)
-    rmsphi, psdphi = ode.solvepsd(ts, forcepsd, t_frc, freq, drms, forcephi=forcephi)
+    rmsphi, psdphi = ode.solvepsd(ts, forcepsd, t_frc, freq, drms)
     assert_raises(ValueError, ode.solvepsd, ts, forcepsd, t_frc, freq[:-1], drms)
+    assert_raises(ValueError, ode.solvepsd, ts, forcepsd, t_frc[:, :-1], freq, drms)
 
     # solve by hand for comparison:
     freqw = 2 * np.pi * freq
@@ -2893,47 +2899,46 @@ def test_ode_solvepsd():
     dpsd0 = 0.0
     apsd0 = 0.0
     adpsd0 = 0.0
-    dpsdphi = 0.0
-    apsdphi = 0.0
-    adpsdphi = 0.0
     unitforce = np.ones((1, len(freq)))
     for i in range(forcepsd.shape[0]):
         # solve for unit frequency response function:
-        genforce = t_frc[i : i + 1].T @ unitforce
+        genforce = t_frc[:, i : i + 1] @ unitforce
         # sol = ts.fsolve(genforce, freq)
         d = genforce / H
         v = 1j * freqw * d
         a = 1j * freqw * v
         dpsd = dpsd + abs(dtm @ d) ** 2 * forcepsd[i]
         apsd = apsd + abs(atm @ a) ** 2 * forcepsd[i]
-        adpsd = adpsd + abs(atm @ a + dtm @ d) ** 2 * forcepsd[i]
-
-        F = forcephi[:, i : i + 1] @ unitforce
-        dpsdphi = dpsdphi + abs(dtm @ d - F) ** 2 * forcepsd[i]
-        apsdphi = apsdphi + abs(atm @ a - F) ** 2 * forcepsd[i]
-        adpsdphi = adpsdphi + abs(atm @ a + dtm @ d - F) ** 2 * forcepsd[i]
+        fterm = forcephi[:, i : i + 1] @ unitforce
+        adpsd = adpsd + abs(atm @ a + vtm @ v + dtm @ d + fterm) ** 2 * forcepsd[i]
 
         dduf = d.copy()
         dduf[0] = dduf[0] * rbduf
         dduf[1:] = dduf[1:] * elduf
+        vduf = v.copy()
+        vduf[0] = vduf[0] * rbduf
+        vduf[1:] = vduf[1:] * elduf
         aduf = a.copy()
         aduf[0] = aduf[0] * rbduf
         aduf[1:] = aduf[1:] * elduf
         dpsdduf = dpsdduf + abs(dtm @ dduf) ** 2 * forcepsd[i]
         apsdduf = apsdduf + abs(atm @ aduf) ** 2 * forcepsd[i]
-        adpsdduf = adpsdduf + abs(atm @ aduf + dtm @ dduf) ** 2 * forcepsd[i]
+        adpsdduf = (
+            adpsdduf
+            + abs(atm @ aduf + vtm @ vduf + dtm @ dduf + fterm) ** 2 * forcepsd[i])
 
         # incrb = 1
         d[0] = 0
         dpsd1 = dpsd1 + abs(dtm @ d) ** 2 * forcepsd[i]
         apsd1 = apsd1 + abs(atm @ a) ** 2 * forcepsd[i]
-        adpsd1 = adpsd1 + abs(atm @ a + dtm @ d) ** 2 * forcepsd[i]
+        adpsd1 = adpsd1 + abs(atm @ a + vtm @ v + dtm @ d + fterm) ** 2 * forcepsd[i]
 
-        # incrb = 0
+        # incrb = 0 
         a[0] = 0
+        v[0] = 0
         dpsd0 = dpsd0 + abs(dtm @ d) ** 2 * forcepsd[i]
         apsd0 = apsd0 + abs(atm @ a) ** 2 * forcepsd[i]
-        adpsd0 = adpsd0 + abs(atm @ a + dtm @ d) ** 2 * forcepsd[i]
+        adpsd0 = adpsd0 + abs(atm @ a + vtm @ v + dtm @ d + fterm) ** 2 * forcepsd[i]
 
     assert np.allclose(psd[0], apsd)
     assert np.allclose(psd[1], dpsd)
@@ -2953,11 +2958,6 @@ def test_ode_solvepsd():
     assert np.allclose(psdduf[0], apsdduf)
     assert np.allclose(psdduf[1], dpsdduf)
     assert np.allclose(psdduf[2], adpsdduf)
-
-    # with the forcephi matrix
-    assert np.allclose(psdphi[0], apsdphi)
-    assert np.allclose(psdphi[1], dpsdphi)
-    assert np.allclose(psdphi[2], adpsdphi)
 
 
 def test_getmodepart():

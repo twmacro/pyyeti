@@ -648,7 +648,7 @@ def owlab(pth):
         mbk = (m, b, k)
 
         # form force transform:
-        T = n2p.formdrm(nas, 0, [[22, 123]])[0]
+        T = n2p.formdrm(nas, 0, [[22, 123]])[0].T
 
         # random part:
         freq = cla.freq3_augment(np.arange(25.0, 45.1, 0.5), nas["lambda"][0])
@@ -722,7 +722,7 @@ def owlab(pth):
                 )
 
         # test for incompatibly sized ValueError:
-        T = T[:2]  # chop off last row
+        T = T[:, :2]  # chop off last column
         results3 = DR.prepare_results(sc["mission"], event)
         for j, ff in enumerate(rnd):
             caseid = "{} {:2d}".format(event, j + 1)
@@ -3565,7 +3565,7 @@ def test_solvepsd_ltmf():
     DR.Vars[0]["ltmf_keep"] = DR.Vars[0]["ltmf"].copy()
     DR.Vars[0]["ltmf"] = DR.Vars[0]["ltmf_keep"][:, fpv]
 
-    t_frc = np.eye(stiff.shape[0])[fpv]
+    t_frc = np.eye(stiff.shape[0])[fpv].T
     caseid = "PSDTest"
     nas = {"nrb": 0}
     results = DR.prepare_results("Spring & Damper Forces", event)
@@ -3582,7 +3582,7 @@ def test_solvepsd_ltmf():
         res_separate[caseid] = DR.prepare_results("Spring & Damper Forces", event)
         DR.Vars[0]["ltmf"] = DR.Vars[0]["ltmf_keep"][:, fpv[[i]]]
 
-        t_frc = np.eye(stiff.shape[0])[fpv[i]]
+        t_frc = np.eye(stiff.shape[0])[[fpv[i]]].T
         res_separate[caseid].solvepsd(nas, caseid, DR, ts, fpsdi[None, :], t_frc, freq)
         res_separate[caseid].psd_data_recovery(caseid, DR, 1, 0)
 

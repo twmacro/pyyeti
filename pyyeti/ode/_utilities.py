@@ -835,9 +835,7 @@ def make_A(M, B, K):
     return A
 
 
-def solvepsd(
-    fs, forcepsd, t_frc, freq, drmlist, incrb=2, forcephi=None, rbduf=1.0, elduf=1.0
-):
+def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2, rbduf=1.0, elduf=1.0):
     """
     Solve equations of motion in frequency domain with uncorrelated
     PSD forces.
@@ -855,24 +853,43 @@ def solvepsd(
     forcepsd : 2d array_like
         The matrix of force psds; each row is a force PSD
     t_frc : 2d array_like
-        Transformation matrix from system modal DOF to forced DOF;
-        ``rows(t_frc) = rows(forcepsd)``
+        Transform to put `forcepsd` into the coordinates of the
+        equations of motion: ``t_frc @ forcepsd``. Commonly, `t_frc`
+        is simply the transpose of a row-partition of the mode shape
+        matrix (phi) and the conversion of `forcepsd` is from physical
+        space to modal space. In that case, the row-partition is from
+        the full set down to just the forced DOF. However, `t_frc` can
+        also have force mappings (as from the TLOAD capability in
+        Nastran); in that case, ``t_frc = phi.T @
+        mapping_vectors``. In any case, the number of columns in
+        `t_frc` is the number of rows in `forcepsd`: ``t_frc.shape[1]
+        == forcepsd.shape[0]``
     freq : 1d array_like
         Frequency vector at which solution will be computed;
         ``len(freq) = cols(forcepsd)``
     drmlist : list_like
-        List of lists (or similar) of any number of pairs of data
-        recovery matrices: [[atm1, dtm1], [atm2, dtm2], ...]. To not
-        use a particular drm, set it to None. For example, to perform
+        List of lists (or similar) of any number of data recovery
+        matrix quadruples (in the order typically used to write
+        equations of motion)::
+
+            [
+                [drma1, drmv1, drmd1, drmf1],
+                [drma2, drmv2, drmd2, drmf2],
+                ...
+            ]
+
+        To not use a particular drm, set it to None. For example, to perform
         these 3 types of data recovery::
 
                 acce = atm*a
                 disp = dtm*d
-                loads = ltma*a + dtmd*d
+                loads = ltma*a + ltmv*v + ltmd*d + ltmf*f
 
         `drmlist` would be::
 
-              [[atm, None], [dtm, None], [ltma, ltmd]]
+              [[atm, None, None, None],
+               [None, None, dtm, None],
+               [ltma, ltmv, ltmd, ltmf]]
 
     incrb : 0, 1, or 2; optional
         An input to the :func:`fs.fsolve` method, it specifies how to
@@ -885,12 +902,6 @@ def solvepsd(
            1    acceleration and velocity rigid-body only
            2    all of rigid-body is included (see `fs.fsolve`)
         ======  ===============================================
-
-    forcephi : 2d array_like or None; optional
-        If not None, it is a force transformation data-recovery matrix
-        as in::
-
-             resp = atm*a + dtm*d - forcephi*f
 
     rbduf : scalar; optional
         Rigid-body uncertainty factor
@@ -915,16 +926,22 @@ def solvepsd(
     This routine first calls `fs.fsolve` to solve the modal equations
     of motion. Then, it scales the responses by the corresponding PSD
     input force. All PSD responses are summed together for the overall
-    response. For example, for a displacement and acceleration
-    dependent response::
+    response. For example::
 
         resp_psd = 0
         for i in range(forcepsd.shape[0]):
             # solve for unit frequency response function:
-            genforce = t_frc[i:i+1].T @ np.ones((1, len(freq)))
+            unitforce = np.ones((1, len(freq)))
+            genforce = t_frc[:, i:i+1] @ unitforce
             sol = fs.fsolve(genforce, freq, incrb)
-            frf = atm @ sol.a + dtm @ sol.d
+            frf = (drma @ sol.a
+                   + drmv @ sol.v
+                   + drmd @ sol.d
+                   + drmf[:, [i]] @ unitforce)
             resp_psd += forcepsd[i] * abs(frf)**2
+
+    In that example, the data recovery uses all four drms. Also, the
+    looping over the `drmlist` is not included for simplicity.
 
     Examples
     --------
@@ -942,7 +959,7 @@ def solvepsd(
         >>> fs = ode.SolveUnc(m, b, k)
         >>> atm = np.eye(4)    # recover modal accels
         >>> t_frc = np.eye(4)  # assume forces already modal
-        >>> drms = [[atm, None]]
+        >>> drms = [[atm, None, None, None]]
         >>> rms, psd = ode.solvepsd(fs, forcepsd, t_frc, freq,
         ...                         drms)
 
@@ -970,16 +987,22 @@ def solvepsd(
         >>> fig.tight_layout()
     """
     ndrms = len(drmlist)
-    forcepsd = np.atleast_2d(forcepsd)
+    forcepsd, t_frc = np.atleast_2d(forcepsd, t_frc)
     freq = np.atleast_1d(freq)
     rpsd, cpsd = forcepsd.shape
     unitforce = np.ones((1, cpsd))
     psd = [0.0] * ndrms
     rms = [0.0] * ndrms
 
+    if t_frc.shape[1] != rpsd:
+        raise ValueError(
+            "`forcepsd` and `t_frc` are incompatibly "
+            f"sized: {forcepsd.shape} vs {t_frc.shape}"
+        )
+
     for i in range(rpsd):
         # solve for unit frequency response function for i'th force:
-        genforce = t_frc[i : i + 1].T @ unitforce
+        genforce = t_frc[:, i : i + 1] @ unitforce
         sol = fs.fsolve(genforce, freq, incrb)
         if rbduf != 1.0:
             sol.a[fs.rb] *= rbduf
@@ -989,16 +1012,16 @@ def solvepsd(
             sol.a[fs.el] *= elduf
             sol.v[fs.el] *= elduf
             sol.d[fs.el] *= elduf
-        for j, drmpair in enumerate(drmlist):
-            atm = drmpair[0]
-            dtm = drmpair[1]
+        for j, (drma, drmv, drmd, drmf) in enumerate(drmlist):
             frf = 0.0
-            if atm is not None:
-                frf += atm @ sol.a
-            if dtm is not None:
-                frf += dtm @ sol.d
-            if forcephi is not None:
-                frf -= forcephi[:, i : i + 1] @ unitforce
+            if drma is not None:
+                frf += drma @ sol.a
+            if drmv is not None:
+                frf += drmv @ sol.v
+            if drmd is not None:
+                frf += drmd @ sol.d
+            if drmf is not None:
+                frf += drmf[:, i : i + 1] @ unitforce
             psd[j] += forcepsd[i] * abs(frf) ** 2
 
     # compute area under curve:
