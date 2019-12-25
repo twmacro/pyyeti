@@ -606,5 +606,5 @@
        function, size of ltmf needs to be n_recover_rows x t_frc.rows
        (or .cols if we do the above)
 
-      - add loop equation to text
+      ~ - add loop equation to text
       - check to see if ode.solvepsd needs any similar updates

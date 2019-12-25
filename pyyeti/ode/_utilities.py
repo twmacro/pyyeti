@@ -842,6 +842,11 @@ def solvepsd(
     Solve equations of motion in frequency domain with uncorrelated
     PSD forces.
 
+    See also :func:`pyyeti.cla.DR_Results.solvepsd` for a very similar
+    routine, but one that is designed for use within the pyYeti
+    "coupled loads analysis paradigm" (where the classes defined in
+    :mod:`pyyeti.cla` are used).
+
     Parameters
     ----------
     fs : class instance

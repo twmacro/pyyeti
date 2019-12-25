@@ -1083,15 +1083,41 @@ class DR_Results(OrderedDict):
         `histpv` setting defined through the call to
         :func:`DR_Def.add`.
 
+        The solution loop is essentially as follows, written in a
+        python-like pseudo-code::
+
+            for cat in categories:
+                cat[case]._psd = 0.0
+
+            for i in range(forcepsd.shape[0]):
+                # solve for unit frequency response function for i'th
+                # force:
+                genforce = t_frc[:, [i]] @ unitforce;
+                sol = fs.fsolve(genforce, freq, incrb)
+                sol.pg[:] = 0.0
+                sol.pg[i] = unitforce
+                sol = DR.frf_apply_uf(sol, nas["nrb"])
+
+                # compute the unit frf's for all categories:
+                for cat in categories:
+                    # call the drfunc set in cla.DR_Def.add for
+                    # current category
+                    resp = cat_drfunc(sol[uf_reds], nas, DR.Vars, se)
+                    # ex: resp = (ltma @ sol.a + ltmd @ sol.d
+                    #             + ltmf @ sol.pg)
+
+                    # compute psd response and add it on:
+                    cat._psd[case] += forcepsd[i] * abs(resp) ** 2
+
         .. note::
             If you have force-dependent data recovery matrices (which
             is typically from using the mode-acceleration method of
             data recovery for fundamentally displacement-based
             quantities), you may need to trim/reorder its columns to
-            match `forcepsd`. While looping over each PSD in
+            match `forcepsd`. Note that while looping over each PSD in
             `forcepsd`, this routine creates ``sol.pg`` sized
             compatibly with `forcepsd` and has only one row of 1.0
-            values.
+            values. See also `allow_force_trimming` above.
         """
         forcepsd, t_frc = np.atleast_2d(forcepsd, t_frc)
         if t_frc.shape[0] != forcepsd.shape[0]:
