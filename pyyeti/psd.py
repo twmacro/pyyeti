@@ -813,16 +813,19 @@ def spl(
 
 
 def psd2time(
-    fp, ppc, fstart, fstop, df, winends=None, gettime=False, expand_method="interp"
+    spec, ppc, fstart, fstop, df, winends=None, gettime=False, expand_method="interp"
 ):
     """
     Generate a 'random' time domain signal given a PSD specification.
 
     Parameters
     ----------
-    fp : 2d array_like
-        Two column matrix of PSD specification:  [freq, spec]. The
-        frequency is in Hz and the specification is in units^2/Hz.
+    spec : 2d ndarray or 2-element tuple/list
+        If ndarray, its columns are ``[Freq, PSD1, PSD2, ... PSDn]``.
+        Otherwise, it must be a 2-element tuple or list, eg:
+        ``(Freq, PSD)`` where PSD is: ``[PSD1, PSD2, ... PSDn]``. In
+        the second usage, PSD can be 1d; in the first usage, PSD is
+        always considered 2d.
     ppc : scalar
         Points per cycle at highest (`fstop`) frequency; if < 2, it is
         internally reset to 2.
@@ -843,10 +846,10 @@ def psd2time(
         If True, a time vector is output.
     expand_method : str; optional
         Either 'interp' or 'rescale', referring to which function in
-        this module will be used to expand input `fp` to all needed
-        frequencies. Use 'interp' if `fp` is a specification with
-        constant dB/octave slopes. Use 'rescale' if `fp` provides the
-        PSD levels on a center-band scale. See :func:`interp` and
+        this module will be used to expand input `spec` to all needed
+        frequencies. Use 'interp' if `spec` is a specification with
+        constant dB/octave slopes. Use 'rescale' if `spec` provides
+        the PSD levels on a center-band scale. See :func:`interp` and
         :func:`rescale` for more information.
 
     Returns
@@ -936,9 +939,10 @@ def psd2time(
 
     # generate amp(f) vector
     if expand_method == "interp":
-        speclevel = interp(fp, freq).ravel()
+        speclevel = interp(spec, freq).ravel()
     elif expand_method == "rescale":
-        speclevel, *_ = rescale(fp[:, 1], fp[:, 0], freq=freq)
+        _freq, _psd, npsds = proc_psd_spec(spec)
+        speclevel, *_ = rescale(_psd.ravel(), _freq, freq=freq)
     else:
         raise ValueError(
             '`expand_method` must be either "interp" or "rescale", '
