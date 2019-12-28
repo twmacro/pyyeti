@@ -112,14 +112,6 @@
    201: array([2000004, 2005283, 2005319, ..., 5924498, 5924499, 5924500], dtype=int32),
    609: array([7999031, 7999032, 7999033, ..., 9004098, 9004099, 9004100], dtype=int32)}
 
-~ 58. Order of recovery should be maintained from definition order
-     o   I think the only change (besides documenting that order is
-         used) is to change this from:
-            self.Info = {}
-     o   To:
-            self.Info = OrderedDict()
-     o   In DR_Event.__init__
-
 59. For 58 to be really useful, probably need to enhance
     calls to the drfuncs … would want access to other categories.
     Need some good ideas for this.
@@ -151,10 +143,6 @@
       to the port
 
     - but, ifatm and ifltm for the port would be nice ... probably
-
-    ~ - ALSO: have it be able to output "g, rad/sec^2", "g, g/in", and
-      "in/sec^2, rad/sec^2"
-        v0.95.0
 
 66. Write a nastran coordinate system plotter
     - use pyNastran instead?
@@ -198,10 +186,6 @@
          forc = ltmf
        - probably wouldn't need to define a drfunc in this case!
 
-~83. rddmig reads upper case names for op2, lower for pch?
-    - v0.96.0
-
-
 84. if licensing is good, update guitools to Qt ... I think (this was
     nearly done i think ... just never finalized it because of license
     (see ~/python/gui/guitools_qt.py))
@@ -224,37 +208,13 @@
 
 99. Add generator feature and hm features to Newmark-Beta solver
 
-~100. Add the Chapman solver (or similar) with the generator & hm
-     features
-     - added in version 0.94.6
-     - need to add tests for new solver!
-     - add as SolveCDF in 0.94.7
-
-~101. Add regex to nastran.rdcards …
-     ‘DTI     SELOAD’ would be better as ‘DTI\s+SELOAD’
-     - done in version 0.95.0
-
 102. Fix up the sparse documentation for wtextseout
-
-~ 103. Add units option to mk_net_drms:
-     o   G, rad/sec^2
-     o   G, G/in
-     o   In/sec^2, rad/sec^2
-     - done in version 0.95.0
 
 104. Add 'axis' option fftfilt, dspcoef (and others too probably)
      o make it elegant ... check dsp.exclusive_sgfilter to see if
        that's done well. Numpy must have nice functions for this since
        many of those functions allow it. Share code amongst these
        functions.
-
-~105. Think about refactoring the cd_as_force=True option of SolveUnc
-     to its own class ... inheriting from SolveUnc (that way, don’t
-     need the non-uniformity of having the cd_as_force option)
-       o SolveUncCD? ... And fail when M & K are not diagonal? (nah on
-         the fail i think ... just fall back to SolveUnc)
-       o Refactoring this seems good for doc purposes
-     - done as SolveCDF, v0.94.7
 
 106. Add Henkel-Mar class -- I think. The one in
      python/workworks/henkelmar.py *might* be where to start.
@@ -264,11 +224,6 @@
      - force limiting
      - nonlinear spring analysis
      - cla
-
-~108. Fdepsd Di_test – mention it doesn’t include sigma
-
-~109. I think: get rid of hadamard in SolveUnc doc
-     - version 0.94.9
 
 110. Consider refactoring the generator solvers by using “yield from”
      (can code be reused?)
@@ -283,99 +238,14 @@
 
 112. Can some things (ode solvers?) be sped up by numba?
 
-~113. Move "finddups" from ode to locate (and rename it to
-     'find_duplicates')
-     - version 0.94.9
-
-~114. misspelled efficient in ode tutorial
-      -fixed in v0.95.1
-
-~115. cla.DR_Results srs plotter: hit the peaks
-      -fixed in v0.95.1
-
-~116. From TRU: the 6x6 mass matrix stuff is wrong in pyYeti!
-      - fixed in v0.95.1
-
-~117. What to do about this:
-     The pandas “to_numpy” was added in version 0.24.0 … hmmm
-     - reverted back to .values in v0.95.1
-
-~118. SolveCDF doc updates from BTA:
-     - define Qi before using it
-     - number equations
-     - example uses SolveUnc for plot label
-     - fixed in v0.95.1
-
-~119. Mark srs end points in cla.DR_Results.srs_plots
-      v0.95.5
-
-~120. In cla.DR_Results.*_plots ... plot legend looks bad unless
-     positioned with live plot ???
-     - pdfs look good ... not png
-     -- apparently, the "bbox_inches='tight'" option was messing
-        the plot up ... ?
-     v0.95.5
-
-~121. Could mention in relative_displacement_dtm where tug1, mug1
-     usually come from ... or maybe that's shown in the example?
-     v0.95.5
-
-~122. cla.DR_Def
-     - When checking for a data recovery function, second import
-       of say "drfuncs.py" (from a different directory) fails
-       because the "drfuncs" module was already imported. However,
-       the actual importer during data recovery seems to work ....
-       Two different import methods?
-       v0.95.5
-
-~123. cla.DR_Def
-     - Pickle loading not working properly: cannot rely on
-       having "drdefaults". For example, the drdefs may have been
-       merged from multiple different sets, all with their own
-       "drdefaults".
-       v0.95.5
-
 124. cla.DR_Def, cla.DR_Results
      - Right now, there is no way to assure or confirm that a "psd"
        version of a data recovery function gets or was used ... hmm
 
-~125. Bulk2uset without grids should work
-     - v0.95.9
-
-~126. Both solvepsd routines list “fs” as a class … it’s an instance
-     of a class
-     o   Both versions: “all of rigid-body is included (see note
-         below)”, but there is no note
-     - v0.95.9
-
-~127. Rptpct1
-     o   Add flag to ignore labels
-     o   Use ignore_pv before looking at labels
-     - v0.95.9
-
-~128. psd.rescale should pay attention to “frange” even if “freq” is
-     input
-     - v0.95.9
-
 129. Do the return values of rptpct1 make sense?
-
-~130. In magpct, what about really large values “hiding” small ones?
-     - Log-x or linear-log-x?
-     - Option to set scale?
-     - v0.96.0 -- added "symlogx" and "symlogx_ratio" options
-
-~131. Rddmig and uset tables should have same index label names (‘id’
-      vs ‘ID’).
-      - v0.96.0
 
 132. Units in mk_net_drms should be more settable (now, translation
      acceleration units is the only option)
-
-~133. Change figures in examples to use "Example" and "Example 2"
-      names:
-
-        >>> fig = plt.figure('Example', figsize=(8, 6))
-        >>> fig.clf()
 
 134. mk_net_drms:
 
@@ -407,21 +277,8 @@
          new_id = grids.max() + 1
          uset2 = n2p.addgrid(uset_if, new_id, "b", 0, ref, 0)
 
-~135. nosetests is not running doctests on files like cla/_magpct.py
-      v0.96.1 -- added "ignore-files='^$'" to setup.cfg
-
 136. Good solution for addgrid??:
      uset.index = uset.index.remove_unused_levels()
-
-~`137. ode.solveunc – damping can’t be diagonal (maa, kaa were square,
-     but … ??)
-     - used pre_eig option for CB matrices and wanted static initial
-       condition
-     - ALSO, in tsolve(s), add note to use pre_eig if needed to get to
-       modal space!!
-     - i think bug is fixed (0.96.1) but still need to check docs ...
-       starting point is last test in test_ode.py
-    v0.96.2
 
 138. Switch testing to pytest. nosetests is not maintained apparently.
      - don't import nose for tests
@@ -432,56 +289,10 @@
      - this *might* not be needed as it's pretty easy to just add
        a level to the DR_Results structure ...
 
-~140. Inconsistency between cbtf and the CLA tools (.freq vs .f):
-      o   tf[case[0]].f = tf[case[0]].freq
-     - added the .f attribute in v0.96.2
-
-~141. In formrbe3, get rid of “list” here:
-         ids = sorted(list(set(npids[:, 0])))
-     - fixed in v0.96.2
-
-~142. In wtrbe2, add note in doc for DOF arg that it’s for all the
-     *dependent* nodes. (All 6 DOF of the independent node are
-     automatic). From the quick reference guide: “CM Component numbers
-     of the dependent degrees-of-freedom in the global coordinate
-     system at grid points GMi. (Integers 1 through 6 with no embedded
-     blanks.)”
-     - added in v0.96.2
-
-~143. DR_Results.solvepsd HAS to check for compatibility between force
-      & frcphi
-     - added in v0.96.2
-
-~144. Make uset unit conversion function public
-     - added in v0.96.3
-
-~145. The following would be a nice feature to add to n2p … more
-     general of course: replace current basic with a new basic:
-
-     def reset_uset(uset, coord_in_new_basic):
-         # assert all nodes are in old basic before we reset to new basic:
-         assert (uset.loc[(slice(None), 2), "x"] == 0).all()
-     
-         uset_xdof = uset.loc[(slice(None), 1), "x":]
-         return n2p.addgrid(
-             None,
-             uset_xdof.index.get_level_values("id"),
-             "b",
-             coord_in_new_basic,
-             uset_xdof,
-             coord_in_new_basic,
-         )
-
-     - added in v0.96.4 (called replace_basic_cs)
-
 146. The op4 writer wrote a bad file for the saocom high fidelity 1/3
      model ... debug this.
      - actually, this *might* have simply been a "formatted" vs
        "unformatted" op4 file
-
-~147. Printclainfo – documentation looks like it needs updating:
-      (has extra PrintCLAInfo)
-      - 0.96.3
 
 148. Make rdop2tload external? … now, have to do this:
      op2.OP2("PAF.op2").rdop2tload()
@@ -493,9 +304,6 @@
 150. In wtextseout, should have capability to write grids in non-basic
      coordinate system … makes moving the SE around later easier
 
-~151. Add "uset2bulk"
-     - v0.96.4
-
 152. Add wtcards ... write cards as read in by rdcards
 
 153. ? Add "move_bulk_nodes" (or something):
@@ -505,39 +313,9 @@
        different cards ... this would make it useable, but also hard
        to make it complete
 
-~154. In n2p: have an odd looking string:
-            raise ValueError(
-                '`nasset` must be "p" if `uset` is not a ' "pandas DataFrame"
-            )
-     Are there more?
-     v0.96.4
-
-~ 155. n2p.mkdofpv uses a shift value of 10 to include DOF … what if DOF > 9??
-     - can locate.mat_intersect use np.searchsorted (or something like it?)
-
-     See:
-
-       https://stackoverflow.com/questions/38674027/
-        find-the-row-indexes-of-several-values-in-a-numpy-array
-
-     - this one has been overcome by events:
-       - locate.mat_intersect is now much faster, so can easily handle DOF > 6
-       - mkdofpv now raises an exception if DOF is not in 1-6
-
-~ 156. Srs.srs_frf should have the “getresp” option.
-
 157. Add ltma, ltmd = cb.modedisp_to_modeacce(m, k, bset, ltm)
 
 159. Add “import_module” function to ytools?
-
-~160. Add wn & zeta to ts.pc for complex SolveUnc ?
-      - added in version 0.96.6
-
-~161. Op4:
-    -  warning on not reading enough bytes at end of reading matrix
-       (hit EOF too soon)
-    -  accept no “1P,”
-    -  accept little “e” in the “1P,” format
 
 162. In srs.vrs:
      ~ - Wording here: “The equation for Miles’ equation is:”
@@ -545,66 +323,3 @@
      - Add relative acceleration output?
 
          Uacce = p^4 / [(1-p^2)^2 + (2 zeta p)^2]  Zacce
-
-~163. In cla.DR_Def, it’s a lot of work to amend a category:
-
-    if len(GET_HISTS) > 0:
-        pv = GET_HISTS - 1
-        cat = sc["drdefs"]["SC_atm"]
-        cat.histpv = pv
-        cat.histunits = cat.units
-        cat.histlabels = [cat.labels[i] for i in pv]
-        cat.srspv = pv
-        cat.srsunits = cat.units
-        cat.srslabels = [cat.labels[i] for i in pv]
-        cat.srsfrq = sc['drdefs'].defaults.srsfrq
-        cat.srsQs = sc['drdefs'].defaults.srsQs
-        cat.srsconv = 1.0
-        cat.srsopts = sc['drdefs']['SC_tsp'].srsopts
-    - added in v0.96.6
-
-~164. Datacursor has trouble when x is a dataframe index
-
-~165. Fix solvepsd in cla.DR_Results:
-
-    di = 0  # index into sc_ffn_pv
-    sc_ffn = np.empty((sc_ffn_pv.size, freq.size))
-
-    # the logic below depends on sc_ffn_pv being sorted ... could
-    # update the logic, but for now, just ensure that the assumption
-    # is true:
-    assert (sc_ffn_pv == np.sort(sc_ffn_pv)).all()
- 
-    # if improve_xb:
-    #     pg_xb = np.empty((np.shape(DR.Vars[609]["scltmd_b"])[1], freq.size))
-    #     pg_xb[:] = unitforce
- 
-    # pg = np.empty((t_frc.shape[1], freq.size))
-    pg = np.empty((np.shape(DR.Vars[609]["scltmd_b"])[1], freq.size))
-
-    for i in range(rpsd):
-        if verbose:
-            print("{}: processing force {} of {}".format(case, i + 1, rpsd))
-        # solve for unit FRF for i'th force:
-        genforce = t_frc[i][:, None] * unitforce
-        t1 = time.time()
-        sol = fs.fsolve(genforce, freq, incrb)
-        # sol.pg = unitforce
-        pg[:] = 0.0
-        pg[i] = unitforce
-        sol.pg = pg
-
-~166. The "t_frc" argument to the solvepsd routines should be
-     transposed, and the description should be: "transform to put
-     physical forces into modal space" or something along those
-     lines. The reason is that a PSD force need not be applied to a
-     DOF; they can be mapped to multiple nodes via the TLOAD setup.
-
-     ~- also, add note about sol.pg size, so that ltmf's can be setup
-       properly. Size is t_frc.rows (or .cols if we do the above) x
-       freq. Since "ltmf @ sol.pg" could be done in the data recovery
-       function, size of ltmf needs to be n_recover_rows x t_frc.rows
-       (or .cols if we do the above)
-
-      ~ - add loop equation to text
-      ~ - check to see if ode.solvepsd needs any similar updates

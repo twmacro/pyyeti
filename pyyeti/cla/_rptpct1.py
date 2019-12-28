@@ -175,23 +175,33 @@ def _get_histogram_str(desc, hdr, pctinfo):
         s.append(f.getvalue())
         s.append("\n")
 
+    # total_percent_10 will either be 0 or 1000:
+    #  - 0 if all % diffs are "n/a"
+    #  - 1000 otherwise
+    total_percent_10 = np.round(pctcount[:, 2].sum() * 10)
     last = -1.0
     for pdiff in [1, 2, 5, 10, 15, 20, 25, 50, 100, 500]:
         pvdiff = abs(pctcount[:, 0]) <= pdiff
         num = pctcount[pvdiff, 2].sum()
         if num > last:
             s.append(f"    {num:.1f}% of values are within {pdiff}%\n")
-        if np.round(num * 10) == 1000:
+        if np.round(num * 10) == total_percent_10:
             break
         last = num
 
     pct = pctinfo["pct"]
     n = len(pct)
-    stddev = 0.0 if n <= 1 else pct.std(ddof=1)
-    s.append(
-        "\n    % Diff Statistics: [Min, Max, Mean, StdDev]"
-        f" = [{pct.min():.2f}, {pct.max():.2f}, {pct.mean():.4f}, {stddev:.4f}]\n"
-    )
+    if n == 0:
+        s.append(
+            "\n    % Diff Statistics: [Min, Max, Mean, StdDev]"
+            " = [n/a, n/a, n/a, n/a]\n"
+        )
+    else:
+        stddev = 0.0 if n <= 1 else pct.std(ddof=1)
+        s.append(
+            "\n    % Diff Statistics: [Min, Max, Mean, StdDev]"
+            f" = [{pct.min():.2f}, {pct.max():.2f}, {pct.mean():.4f}, {stddev:.4f}]\n"
+        )
     return "".join(s)
 
 

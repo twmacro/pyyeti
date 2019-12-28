@@ -661,7 +661,7 @@ class DR_Results(OrderedDict):
         >>>
         >>> # defaults for data recovery
         >>> defaults = dict(se=0,
-        ...                 uf_reds=(1, 1, duf, 1))
+        ...                 uf_reds=(1, 1, duf, suf))
         >>> drdefs = cla.DR_Def(defaults)
         >>>
         >>> def _get_labels(name):
@@ -711,7 +711,7 @@ class DR_Results(OrderedDict):
         srsopts                         None                         -
         srspv                           None                         -
         srsunits                        None                         -
-        uf_reds            4: (1, 1, 1.2, 1)                         -
+        uf_reds          4: (1, 1, 1.2, 1.0)                         -
         units             m/sec^2, rad/sec^2                    N, N-m
         >>>
         >>> # prepare results data structure:

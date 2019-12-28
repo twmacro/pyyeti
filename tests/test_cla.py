@@ -174,7 +174,7 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
     suf = 1.0
 
     # defaults for data recovery
-    defaults = dict(se=0, uf_reds=(1, 1, duf, 1), drfile=".")
+    defaults = dict(se=0, uf_reds=(1, 1, duf, suf), drfile=".")
 
     drdefs = cla.DR_Def(defaults)
 
@@ -3636,3 +3636,50 @@ def test_solvepsd_ltmf():
     results2.psd_data_recovery(caseid, DR, 1, 0)
 
     assert np.allclose(results["fs_md"].ext, results2["fs_md"].ext)
+
+
+def comp_all_na():
+    # make up some "external source" CLA results:
+    mission = "Rocket / Spacecraft VLC"
+    event = "Liftoff"
+    t = np.arange(200) / 200
+    nrows = 12
+    resp = np.random.randn(nrows, len(t))
+    mxmn = cla.maxmin(resp, t)
+    ext_results = mxmn.ext
+    ext_results[:, 1] = 0.0  # set min to 0.0
+
+    drdefs = cla.DR_Def()
+
+    @cla.DR_Def.addcat
+    def _():
+        name = "ATM"
+        desc = "S/C Internal Accelerations"
+        units = "m/sec^2, rad/sec^2"
+        labels = [f"{name} Row {i+1:6d}" for i in range(nrows)]
+        drfunc = "no func"
+        drdefs.add(**locals())
+
+    # prepare results data structure:
+    DR = cla.DR_Event()
+    DR.add(None, drdefs)
+    results = DR.prepare_results(mission, event)
+    results.add_maxmin("ATM", ext_results, event)
+
+    # results 2:
+    ext2 = ext_results + 0.1
+    ext2[:, 1] = 0.0
+
+    results.rptpct({"ATM": ext2}, dohistogram=False, domagpct=False)
+
+
+def test_rptpct_all_na():
+    try:
+        if os.path.exists("temp_cla2"):
+            shutil.rmtree("./temp_cla2", ignore_errors=True)
+        os.mkdir("temp_cla2")
+        with cd("temp_cla2"):
+            comp_all_na()
+    finally:
+        # pass
+        shutil.rmtree("./temp_cla2", ignore_errors=True)

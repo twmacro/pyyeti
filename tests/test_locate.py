@@ -66,6 +66,15 @@ def test_mat_intersect():
     assert len(a) == len(b) == 0
 
 
+def test_mat_intersect_2():
+    n = 30_000
+    haystack = np.random.randn(n, 33)
+    needles = haystack[::7]
+    pv1, pv2 = locate.mat_intersect(haystack, needles, keep=2)
+    assert (pv1 == np.arange(0, n, 7)).all()
+    assert (pv2 == np.arange(0, n // 7 + 1)).all()
+
+
 def test_locate_misc():
     mat1 = np.array([[7, 3], [6, 8], [4, 0], [9, 2], [1, 5]])
     mat2 = np.array([[9, 2], [1, 5], [7, 3]])
