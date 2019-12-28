@@ -858,21 +858,31 @@ def test_fdscale():
     scale = np.array(
         [[0.0, 1.0], [4.0, 1.0], [5.0, 0.5], [8.0, 0.5], [9.0, 1.0], [100.0, 1.0]]
     )
-    sig_scaled = dsp.fdscale(sig, 1 / t[1], scale)
+    sr = 1 / t[1]
+    sig_scaled = dsp.fdscale(sig, sr, scale)
     x = np.arange(0, 10, 0.001)
     y = 1 / np.interp(x, scale[:, 0], scale[:, 1])
     unscale = np.vstack((x, y)).T
-    sig_unscaled = dsp.fdscale(sig_scaled, 1 / t[1], unscale)
+    sig_unscaled = dsp.fdscale(sig_scaled, sr, unscale)
     assert np.allclose(sig, sig_unscaled, atol=1e-6)
 
-    sig_scaled = dsp.fdscale(sig[:-1], 1 / t[1], scale)
-    sig_unscaled = dsp.fdscale(sig_scaled, 1 / t[1], unscale)
+    sig_scaled = dsp.fdscale(sig[:-1], sr, scale)
+    sig_unscaled = dsp.fdscale(sig_scaled, sr, unscale)
     assert np.allclose(sig[:-1], sig_unscaled, atol=1e-6)
 
     sig2 = np.vstack((sig, sig)).T
-    sig_scaled = dsp.fdscale(sig2, 1 / t[1], scale)
-    sig_unscaled = dsp.fdscale(sig_scaled, 1 / t[1], unscale)
+    sig_scaled = dsp.fdscale(sig2, sr, scale)
+    sig_unscaled = dsp.fdscale(sig_scaled, sr, unscale)
     assert np.allclose(sig2, sig_unscaled, atol=1e-6)
+
+    sign = np.vstack((sig, sig, sig))
+    sigf1 = dsp.fdscale(sign, sr, scale)
+    sigf2 = dsp.fdscale(sign.T, sr, scale, axis=0).T
+    assert np.allclose(sigf1, sigf2)
+
+    sign3 = sign.reshape(1, 3, -1, 1)
+    sigf3 = dsp.fdscale(sign3, sr, scale, axis=2).reshape(3, -1)
+    assert np.allclose(sigf1, sigf3)
 
 
 def test_fftfilt():

@@ -472,7 +472,7 @@ def despike(
     threshold_sigma=2.0,
     threshold_value=None,
     exclude_point="first",
-    **kwargs
+    **kwargs,
 ):
     """
     Delete outlier data points from signal
@@ -795,7 +795,7 @@ def despike_diff(
     threshold_sigma=2.0,
     threshold_value=None,
     exclude_point="first",
-    **kwargs
+    **kwargs,
 ):
     """
     Delete outlier data points from signal based on level changes
@@ -1888,6 +1888,19 @@ def aligntime(dct, channels=None, mode="truncate", value=0):
     return dctout
 
 
+def _vector_to_axis(v, ndim, axis):
+    """
+    Reshape 1d `v` to nd where the only non-unity dimension is `axis`.
+    Useful for broadcasting when, for example, multiplying a vector
+    along a certain axis of an nd array.
+
+        _vector_to_axis(np.arange(5), 3, 1).shape  --> (1, 5, 1)
+    """
+    dims = np.ones(ndim, int)
+    dims[axis] = -1
+    return v.reshape(*dims)
+
+
 def windowends(sig, portion=0.01, ends="front", axis=-1):
     """
     Apply a 1-cos (half-Hann) window to the ends of a signal.
@@ -1959,15 +1972,13 @@ def windowends(sig, portion=0.01, ends="front", axis=-1):
         n = int(portion)
     if n < 3:
         n = 3
-    dims = np.ones(sig.ndim, int)
-    dims[axis] = -1
     v = np.ones(ln, float)
     w = 0.5 - 0.5 * np.cos(2 * np.pi * np.arange(n) / (2 * n - 2))
     if ends == "front" or ends == "both":
         v[:n] = w
     if ends == "back" or ends == "both":
         v[-n:] = w[::-1]
-    v = v.reshape(*dims)
+    v = _vector_to_axis(v, sig.ndim, axis)
     return sig * v
 
 
@@ -2451,24 +2462,26 @@ def calcenv(
     return xe_max, ye_max, xe_min, ye_min, h
 
 
-def fdscale(y, sr, scale):
+def fdscale(y, sr, scale, axis=-1):
     """
     Scale a time signal in the frequency domain.
 
     Parameters
     ----------
-    y : 1d or 2d array_like
-        Signal(s) to be scaled. If 2d, each column is scaled.
+    y : nd array_like
+        Signal(s) to be scaled. Scaling is done along axis `axis`.
     sr : scalar
         Sample rate.
     scale : 2d array_like
         A two column matrix of [freq scale]. It is automatically sized
         to the correct dimensions via linear interpolation (uses
         :func:`np.interp`).
+    axis : int, optional
+        Axis along which to operate.
 
     Returns
     -------
-    y_new : 1d or 2d ndarray
+    y_new : nd ndarray
         The scaled version of `y`.
 
     Notes
@@ -2517,24 +2530,15 @@ def fdscale(y, sr, scale):
         >>> _ = plt.tight_layout()
     """
     y = np.atleast_1d(y)
-    scale = np.atleast_2d(scale)
-    if y.ndim == 1:
-        is1d = True
-        y = y[:, None]
-    else:
-        is1d = False
-
-    n = y.shape[0]
+    n = y.shape[axis]
     even = n % 2 == 0
     m = n // 2 + 1 if even else (n + 1) // 2
     freq = np.arange(m) * (sr / n)  # positive 1/2 frequency scale
 
-    F = np.fft.rfft(y, axis=0)
+    F = np.fft.rfft(y, axis=axis)
     h = np.interp(freq, scale[:, 0], scale[:, 1])
-    Ynew = np.fft.irfft(F * h[:, None], n=n, axis=0)
-
-    if is1d:
-        return Ynew.ravel()
+    h = _vector_to_axis(h, y.ndim, axis)
+    Ynew = np.fft.irfft(F * h, n=n, axis=axis)
     return Ynew
 
 
@@ -3093,7 +3097,7 @@ def transmissibility(
     tsoverlap=0.5,
     window="hann",
     getmap=False,
-    **kwargs
+    **kwargs,
 ):
     r"""
     Compute transmissibility transfer function using the FFT
