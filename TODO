@@ -210,7 +210,7 @@
 
 102. Fix up the sparse documentation for wtextseout
 
-104. Add 'axis' option fftfilt, dspcoef (and others too probably)
+104. Add 'axis' option fftfilt, fftcoef (and others too probably)
      o make it elegant ... check dsp.exclusive_sgfilter to see if
        that's done well. Numpy must have nice functions for this since
        many of those functions allow it. Share code amongst these

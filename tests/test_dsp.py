@@ -40,10 +40,14 @@ def test_resample():
     assert np.allclose(x2, x, rtol, atol)
 
     D = np.vstack((d, d)).T
-    D2, X2 = dsp.resample(D, p, q, t=x, pts=pts)
+    D2, X2 = dsp.resample(D, p, q, t=x, pts=pts, axis=0)
     assert np.all(d1 == D[:, 0])
     assert np.all(d1 == D[:, 1])
     assert np.allclose(x2, X2)
+
+    D3, X3 = dsp.resample(D.T, p, q, t=x, pts=pts)
+    assert np.allclose(D2, D3.T)
+    assert np.allclose(X3, X2)
 
     lcc = {}
     for pts in [10, 50]:
@@ -1074,6 +1078,19 @@ def test_fftcoef():
         x2[4] = 4.0
         assert np.allclose(mag, x2)
         assert np.allclose(phase[4], -np.pi / 2)
+
+        sig = np.column_stack((x, x, x))
+        mag1, phase1, frq1 = dsp.fftcoef(sig, 1 / t[1], axis=0)
+        assert np.allclose(frq, frq1)
+        for i in range(3):
+            assert np.allclose(mag1[:, i], mag)
+            assert np.allclose(phase1[:, i], phase)
+
+        sig = sig.reshape(1, 1, -1, 3, 1)
+        mag2, phase2, frq2 = dsp.fftcoef(sig, 1 / t[1], axis=2)
+        assert np.allclose(frq, frq2)
+        assert np.allclose(mag1, mag2.reshape(-1, 3))
+        assert np.allclose(phase1, phase2.reshape(-1, 3))
 
 
 def test_fftcoef_recon():

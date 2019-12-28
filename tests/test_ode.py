@@ -2859,11 +2859,7 @@ def test_ode_solvepsd():
     dtm = np.random.randn(4, 4)
     t_frc = np.random.randn(4, 4)
     forcephi = np.random.randn(4, 4)
-    drms = [
-        [atm, None, None, None],
-        [None, None, dtm, None],
-        [atm, vtm, dtm, forcephi],
-    ]
+    drms = [[atm, None, None, None], [None, None, dtm, None], [atm, vtm, dtm, forcephi]]
 
     rbduf = 1.2
     elduf = 1.5
@@ -2925,7 +2921,8 @@ def test_ode_solvepsd():
         apsdduf = apsdduf + abs(atm @ aduf) ** 2 * forcepsd[i]
         adpsdduf = (
             adpsdduf
-            + abs(atm @ aduf + vtm @ vduf + dtm @ dduf + fterm) ** 2 * forcepsd[i])
+            + abs(atm @ aduf + vtm @ vduf + dtm @ dduf + fterm) ** 2 * forcepsd[i]
+        )
 
         # incrb = 1
         d[0] = 0
@@ -2933,7 +2930,7 @@ def test_ode_solvepsd():
         apsd1 = apsd1 + abs(atm @ a) ** 2 * forcepsd[i]
         adpsd1 = adpsd1 + abs(atm @ a + vtm @ v + dtm @ d + fterm) ** 2 * forcepsd[i]
 
-        # incrb = 0 
+        # incrb = 0
         a[0] = 0
         v[0] = 0
         dpsd0 = dpsd0 + abs(dtm @ d) ** 2 * forcepsd[i]
@@ -5388,7 +5385,7 @@ def test_solveunc_cd_as_force():
     maxk = 3.0e5
     frq = np.sqrt(maxk / minm) / (2.0 * np.pi)
     f, filtfreq, filt = dsp.fftfilt(
-        dsp.windowends(np.random.randn(len(t), n)), frq.max() * 0.8, nyq=sr / 2
+        dsp.windowends(np.random.randn(len(t), n)), frq.max() * 0.8, nyq=sr / 2, axis=0
     )
     f = f.T
 

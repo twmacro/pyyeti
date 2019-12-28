@@ -23,26 +23,29 @@ except TypeError:
     pass
 
 
-def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
+def resample(data, p, q, *, axis=-1, beta=5, pts=10, t=None, getfir=False):
     """
     Change sample rate of data by a rational factor using Lanczos
     resampling.
 
     Parameters
     ----------
-    data : 1d or 2d ndarray
-        Data to be resampled; if a matrix, every column is resampled.
+    data : nd array_like
+        Data to be resampled. The resampling is done along axis
+        `axis`.
     p : integer
         The upsample factor.
     q : integer
         The downsample factor.
+    axis : int, optional
+        Axis along which to operate.
     beta : scalar
         The beta value for the Kaiser window. See
         :func:`scipy.signal.kaiser`.
     pts : integer
         Number of points in data to average from each side of current
-        data point. For example, if ``pts == 10``, a total 21 points of
-        original data are used for averaging.
+        data point. For example, if ``pts == 10``, a total 21 points
+        of original data are used for averaging.
     t : array_like
         If `t` is given, it is assumed to be the sample positions
         associated with the signal data in `data` and the new
@@ -52,7 +55,7 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
 
     Returns
     -------
-    rdata : 1d or 2d ndarray
+    rdata : nd ndarray
         The resampled data. If the signal(s) in `data` have `n`
         samples, the signal(s) in `rdata` have ``ceil(n*p/q)``
         samples.
@@ -202,13 +205,11 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
         >>> _ = plt.tight_layout()
     """
     data = np.atleast_1d(data)
-    ndim = data.ndim
-    if ndim == 1 or min(data.shape) == 1:
-        data = data.reshape(-1, 1)
-        cols = 1
-    else:
-        cols = data.shape[1]
-    ln = data.shape[0]
+    ln = data.shape[axis]
+
+    if not (axis == -1 or axis == data.ndim - 1):
+        # Move the axis containing the data to the end
+        data = np.swapaxes(data, axis, data.ndim - 1)
 
     # setup FIR filter for upsampling given the following parameters:
     gf = math.gcd(p, q)
@@ -227,35 +228,38 @@ def resample(data, p, q, beta=5, pts=10, t=None, getfir=False):
     # sinc(x) = sin(pi*x)/(pi*x)
     s = 2 * cutoff * np.sinc(2 * cutoff * (n - M / 2))
     fir = p * w * s
-    m = np.mean(data, axis=0)
+    m = np.mean(data, axis=-1, keepdims=True)
 
     # insert zeros
+    shape = [*data.shape]
     if p > 1:
-        updata1 = np.zeros((ln * p, cols))
-        # for j in range(cols):
-        #    updata1[::p, j] = data[:, j] - m[j]
-        updata1[::p] = data - m
+        shape[-1] = ln * p
+        updata1 = np.zeros(shape)
+        updata1[..., ::p] = data - m
     else:
         updata1 = data - m
 
     # take care of lag by shifting with zeros:
     nz = M // 2
-    z = np.zeros((nz, cols), float)
-    updata1 = np.vstack((z, updata1, z))
-    updata = signal.lfilter(fir, 1, updata1, axis=0)
-    updata = updata[M:]
+    shape[-1] = nz
+    z = np.zeros(shape)
+    updata1 = np.concatenate((z, updata1, z), axis=-1)
+    updata = signal.lfilter(fir, 1, updata1, axis=-1)
+    updata = updata[..., M:]
 
     # downsample:
     n = int(np.ceil(ln * p / q))
     if q > 1:
-        RData = np.zeros((n, cols), float)
-        # for j in range(cols):
-        #    RData[:, j] = updata[::q, j] + m[j]
-        RData = updata[::q] + m
+        shape[-1] = n
+        RData = np.zeros(shape)
+        RData = updata[..., ::q] + m
     else:
         RData = updata + m
-    if ndim == 1:
-        RData = RData.ravel()
+
+    if not (axis == -1 or axis == data.ndim - 1):
+        # Move the axis back to where it was
+        RData = np.swapaxes(RData, axis, data.ndim - 1)
+
     if t is None:
         if getfir:
             return RData, fir
@@ -435,6 +439,7 @@ def exclusive_sgfilter(x, n, exclude_point="first", axis=-1):
         b[:] = 1 / (n - 1)
         # b is applied in reverse: y[1] = b[0]*x[1] + b[1]*x[0]
         b[n - n_pt - 1] = 0.0
+
     if not (axis == -1 or axis == x.ndim - 1):
         # Move the axis containing the data to the end
         x = np.swapaxes(x, axis, x.ndim - 1)
@@ -2772,7 +2777,17 @@ def _fftsize(n, sr, maxdf):
     return N
 
 
-def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxdf=None):
+def fftcoef(
+    x,
+    sr,
+    *,
+    axis=-1,
+    coef="mag",
+    window="boxcar",
+    dodetrend=False,
+    fold=True,
+    maxdf=None,
+):
     r"""
     FFT sine/cosine or magnitude/phase coefficients of a real signal
 
@@ -2780,10 +2795,13 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
 
     Parameters
     ----------
-    x : 1d array_like
-        The (real) signal to FFT
+    x : nd array_like
+        The (real) signal(s) to FFT. The FFT is carried out along axis
+        `axis`.
     sr : scalar
         The sample rate (samples/sec)
+    axis : int, optional
+        Axis along which to operate.
     coef : string; optional
         Specifies how to return the coefficients:
 
@@ -2826,7 +2844,12 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
          "complex"   (a + i b, None, freq)
         ==========   ========================
 
-        All values are for the positive side frequencies only.
+        All values are for the positive side frequencies only. The
+        dimensions of the nd arrays `magnitude`, `phase`, `a` and `b`
+        are similar to input `x` except that along the axis `axis`;
+        the dimension of that axis corresponds to `freq`. `freq` is a
+        1d array of the positive side frequencies only.
+
         Definitions of `magnitude`, `phase`, and the `a` and `b`
         coefficients are shown below. `freq` is in Hz.
 
@@ -2945,8 +2968,8 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
         raise ValueError(
             f"invalid `coef` ({coef!r}). Must be one of 'mag', 'ab', or 'complex'."
         )
-
-    n = len(x)
+    x = np.atleast_1d(x)
+    n = x.shape[axis]
     if isinstance(window, (str, tuple)):
         window = signal.get_window(window, n)
     else:
@@ -2955,8 +2978,14 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
             raise ValueError(
                 f"window size is {len(window)}; expected {n} to match signal"
             )
-    scale = n / window.sum()
-    window *= scale
+
+    window *= n / window.sum()
+
+    if not (axis == -1 or axis == x.ndim - 1):
+        # Move the axis containing the data to the end
+        x = np.swapaxes(x, axis, x.ndim - 1)
+
+    window = _vector_to_axis(window, x.ndim, -1)
 
     if dodetrend:
         x = signal.detrend(x) * window
@@ -2965,9 +2994,11 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
 
     N = _fftsize(n, sr, maxdf)
     if N > n:
-        X = np.empty(N)
-        X[:n] = x
-        X[n:] = 0.0
+        shape = [*x.shape]
+        shape[-1] = N
+        X = np.empty(shape)
+        X[..., :n] = x
+        X[..., n:] = 0.0
     else:
         X = x
 
@@ -2980,13 +3011,18 @@ def fftcoef(x, sr, coef="mag", window="boxcar", dodetrend=False, fold=True, maxd
     #     F = F[:m]
     if fold:
         a = 2.0 * F.real / n
-        a[0] /= 2.0
+        a[..., 0] /= 2.0
         if not N & 1:  # if N is an even number
-            a[-1] /= 2.0
+            a[..., -1] /= 2.0
         b = -2.0 * F.imag / n
     else:
         a = F.real / n
         b = -F.imag / n
+
+    if not (axis == -1 or axis == x.ndim - 1):
+        # Move the axis containing the data to the end
+        a = np.swapaxes(a, axis, x.ndim - 1)
+        b = np.swapaxes(b, axis, x.ndim - 1)
 
     if coef == "mag":
         return np.sqrt(a ** 2 + b ** 2), np.arctan2(-a, b), f

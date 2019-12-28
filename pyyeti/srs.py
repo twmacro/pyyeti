@@ -380,7 +380,7 @@ def lanroll(sig, sr, ppc, frq):
     if N > 1:
         curppc = sr / frq
         factor = int(np.ceil(ppc / curppc))
-        sig = dsp.resample(sig, factor, 1, pts=65)
+        sig = dsp.resample(sig, factor, 1, pts=65, axis=0)
         sr *= factor
     return sig, sr
 

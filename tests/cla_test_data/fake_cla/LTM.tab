@@ -1,7 +1,7 @@
 Rocket / Spacecraft CLA - Envelope Extrema Results and Bin Count Tables
 
 Description: S/C Internal Loads
-Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1.2, 1]
+Uncertainty: [Rigid, Elastic, Dynamic, Static] = [1, 1, 1.2, 1.0]
 Units:       N, N-m
 Date:        18-Jan-2017
 
