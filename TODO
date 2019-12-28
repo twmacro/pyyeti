@@ -323,3 +323,5 @@
      - Add relative acceleration output?
 
          Uacce = p^4 / [(1-p^2)^2 + (2 zeta p)^2]  Zacce
+
+163. psd.get_freq_oct should be able to return "book" values
