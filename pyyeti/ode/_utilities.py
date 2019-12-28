@@ -327,7 +327,7 @@ def _eigc_dups(lam, tol=1.0e-10):
     return lams, i, dups
 
 
-def get_freq_damping(lam):
+def get_freq_damping(lam, suppress_warning=False):
     r"""
     Get frequency and damping from complex eigenvalues
 
@@ -336,6 +336,13 @@ def get_freq_damping(lam):
     lam : 1d ndarray; shape = (2n,)
         Vector of potentially complex eigenvalues. Pairs are assumed
         to be adjacent
+    suppress_warning : bool; optional
+        If True, do not print a warning if this routine finds that
+        there are complex eigenvalues without an adjacent
+        conjugate. Suppressing the warning can be useful for cases
+        where the state-space matrix is complex. In that case, this
+        routine may not be that useful, but there's no sense in
+        printing a warning. See also the notes below.
 
     Returns
     -------
@@ -360,9 +367,9 @@ def get_freq_damping(lam):
     :class:`SolveUnc` is real). If that is not true, this routine may
     or may not be helpful, probably depending on how close to real the
     system is. Note that this routine will issue a warning if it finds
-    that there are complex eigenvalues without an adjacent
-    conjugate. The rest of the documentation assumes the system is
-    real.
+    that there are complex eigenvalues without an adjacent conjugate
+    (unless `suppress_warning` is True). The rest of the documentation
+    assumes the system is real.
 
     The complex eigenvalue pairs for all cases (underdamped,
     critically damped, and overdamped) are:
@@ -469,14 +476,15 @@ def get_freq_damping(lam):
 
     mult = lam1 * lam2
     add = lam1 + lam2
-    if (abs(mult.imag).max() > 1e-14) or (abs(add.imag).max() > 1e-14):
-        warnings.warn(
-            "Eigenvalues pairs in `lam` appear not to be adjacent. Multiplying "
-            "and adding pairs resulted in a non-zero imaginary parts:\n"
-            f"  Multiply: abs((lam1 * lam2).imag).max() = {abs(mult.imag).max()}\n"
-            f"  Add:      abs((lam1 + lam2).imag).max() = {abs(add.imag).max()}",
-            RuntimeWarning,
-        )
+    if not suppress_warning:
+        if (abs(mult.imag).max() > 1e-14) or (abs(add.imag).max() > 1e-14):
+            warnings.warn(
+                "Eigenvalues pairs in `lam` appear not to be adjacent. Multiplying "
+                "and adding pairs resulted in a non-zero imaginary parts:\n"
+                f"  Multiply: abs((lam1 * lam2).imag).max() = {abs(mult.imag).max()}\n"
+                f"  Add:      abs((lam1 + lam2).imag).max() = {abs(add.imag).max()}",
+                RuntimeWarning,
+            )
 
     wn = np.sqrt(abs(mult.real))
     zeta = (lam1 + lam2).real / (2 * wn)
@@ -590,7 +598,7 @@ def eigss(A, delcc):
     lam, i, dups = _eigc_dups(lam)
     ur = ur[:, i]
     ur_inv = ur_inv[i]
-    wn, zeta = get_freq_damping(lam)
+    wn, zeta = get_freq_damping(lam, np.iscomplexobj(A))
     if delcc:
         lam, ur, ur_inv, dups = delconj(lam, ur, ur_inv, dups)
     return SimpleNamespace(lam=lam, ur=ur, ur_inv=ur_inv, dups=dups, wn=wn, zeta=zeta)
