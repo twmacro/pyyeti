@@ -914,7 +914,7 @@ def test_fftfilt():
     assert_raises(ValueError, dsp.fftfilt, y, [0.1, 0.3], bw=[0.2, 0.2, 0.2])
 
     y2 = np.column_stack((y, y))
-    yf2 = dsp.fftfilt(y2, np.array([7, 18, 45]) / nyq)[0]
+    yf2 = dsp.fftfilt(y2, np.array([7, 18, 45]) / nyq, axis=0)[0]
     # yf2 = dsp.fftfilt(y2, np.array([7, 18, 45]), nyq=nyq)[0]
     assert np.allclose(yf2[:, 0], yf2[:, 1])
     assert np.allclose(yf2[:, 0], yf)
@@ -928,6 +928,16 @@ def test_fftfilt():
     n2 = dsp.nextpow2(len(t))
     period = n2 * h
     assert np.allclose(freq[1], 1 / period)
+
+    sig = y
+    sign = np.vstack((sig, sig, sig))
+    sigf1, *_ = dsp.fftfilt(sign, [7, 18, 45], nyq=nyq)
+    sigf2, *_ = dsp.fftfilt(sign.T, [7, 18, 45], nyq=nyq, axis=0)
+    assert np.allclose(sigf1, sigf2.T)
+
+    sign3 = sign.reshape(1, 3, -1, 1)
+    sigf3, *_ = dsp.fftfilt(sign3, [7, 18, 45], nyq=nyq, axis=2)
+    assert np.allclose(sigf1, sigf3.reshape(3, -1))
 
 
 def test_fftfilt2():

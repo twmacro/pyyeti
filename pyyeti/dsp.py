@@ -2617,14 +2617,16 @@ def _make_h(freq, w, bw, pass_zero, mag, nyq):
     return H
 
 
-def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5, makeplot="no"):
+def fftfilt(
+    sig, w, *, axis=-1, bw=None, pass_zero=None, nyq=1.0, mag=0.5, makeplot="no"
+):
     """
     Filter time-domain signals using FFT with Gaussian ramps.
 
     Parameters
     ----------
-    sig : 1d or 2d array_like
-        Signal(s) to filter. If 2d, each column is filtered
+    sig : nd array_like
+        Signal(s) to filter. Filtering is done along axis `axis`.
     w : scalar or 1d array_like
         Edge (cutoff) frequencies where ``0.0 < w[i] < nyq`` for all
         ``i`` (`w` must not include 0.0 or `nyq`). Can be any length
@@ -2634,6 +2636,8 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5, makeplot="no"):
         band-pass is created for a 2-element `w`. Units are relative
         to the `nyq` input; so, for example, if `nyq` is the Nyquist
         frequency in Hz, `w` would be in Hz.
+    axis : int, optional
+        Axis along which to operate.
     bw : scalar, 1d array_like, or None; optional
         Width of each transition region (each up or down ramp). If
         None, ``bw = 0.01 * nyq``.
@@ -2661,7 +2665,7 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5, makeplot="no"):
 
     Returns
     -------
-    fsig : 1d or 2d ndarray
+    fsig : nd ndarray
         Filtered version of `sig`
     freq : 1d ndarray
         Frequency vector from 0.0 to `nyq`
@@ -2724,29 +2728,31 @@ def fftfilt(sig, w, bw=None, pass_zero=None, nyq=1.0, mag=0.5, makeplot="no"):
     sig, w = np.atleast_1d(sig, w)
     if pass_zero is None:
         pass_zero = True if len(w) != 2 else False
-    if sig.ndim == 1:
-        is1d = True
-        sig = sig[:, None]
-    else:
-        is1d = False
 
     if np.any(w > nyq):
         raise ValueError("value(s) in `w` exceed `nyq`")
 
-    n = sig.shape[0]
+    if not (axis == -1 or axis == sig.ndim - 1):
+        # Move the axis containing the data to the end
+        sig = np.swapaxes(sig, axis, sig.ndim - 1)
+
+    n = sig.shape[-1]
     n2 = nextpow2(n)
     freq = np.fft.rfftfreq(n2, 0.5 / nyq)
     h = _make_h(freq, w, bw, pass_zero, mag, nyq)
     t = np.arange(n)
-    ylines = interp.interp1d(t[[0, -1]], sig[[0, -1], :], axis=0)(t)
+    ylines = interp.interp1d(t[[0, -1]], sig[..., [0, -1]], axis=-1)(t)
     y2 = sig - ylines
-    Y = np.fft.rfft(y2, n2, axis=0)
-    Y *= h[:, None]
-    y_h = np.fft.irfft(Y, n2, axis=0)[:n]
+    Y = np.fft.rfft(y2, n2, axis=-1)
+    h_nd = _vector_to_axis(h, sig.ndim, -1)
+    y_h = np.fft.irfft(Y * h_nd, n2, axis=-1)[..., :n]
+
     if pass_zero:
         y_h += ylines
-    if is1d:
-        y_h = y_h.ravel()
+
+    if not (axis == -1 or axis == sig.ndim - 1):
+        # Move the axis back to where it was
+        y_h = np.swapaxes(y_h, axis, sig.ndim - 1)
 
     ax = _check_makeplot(makeplot)
     if ax:
