@@ -828,8 +828,8 @@ class DR_Def(OrderedDict):
         `name`, replaces any of them by whatever is specified in
         ``**kwargs``, and calls :func:`add` to add the category to a
         temporary DR_Def instance. If there are no errors, the old
-        category is replaced with the new one. Original order is
-        maintained in case that is important.
+        category is replaced with the new one. Original data recovery
+        order is maintained in case that is important.
         """
         ns = self[name]
 
