@@ -325,3 +325,8 @@
          Uacce = p^4 / [(1-p^2)^2 + (2 zeta p)^2]  Zacce
 
 163. psd.get_freq_oct should be able to return "book" values
+
+164. locate.mat_intersect(ffn_dof_map[:, :2], ullage_tloads, keep=2)[0]
+     - Add an “all” parameter or something … raise exception if not all
+       found
+     - Change default keep to be 2?
