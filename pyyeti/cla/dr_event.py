@@ -27,7 +27,7 @@ class DR_Event:
 
     Attributes
     ----------
-    Info : OrderedDict
+    Info : :class:`collections.OrderedDict`
         Contains data recovery information for each category. The
         category names are the keys. This is a copy of information in
         one or more `DR_Def` instances created during data recovery

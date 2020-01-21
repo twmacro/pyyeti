@@ -82,9 +82,9 @@ class SSModel(object):
 
     def getlti(self):
         """
-        Return scipy.signal.lti instance of continuous model. If model
-        is discrete, :func:`d2c` is called (with defaults) to convert
-        to continuous before calling :func:`scipy.signal.lti`.
+        Return :class:`scipy.signal.lti` instance of continuous model. If
+        model is discrete, :func:`d2c` is called (with defaults) to
+        convert to continuous before calling :class:`scipy.signal.lti`.
         """
         if self.h:
             c = self.d2c()

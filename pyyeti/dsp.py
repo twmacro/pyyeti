@@ -23,7 +23,7 @@ except TypeError:
     pass
 
 
-def resample(data, p, q, *, axis=-1, beta=5, pts=10, t=None, getfir=False):
+def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
     """
     Change sample rate of data by a rational factor using Lanczos
     resampling.
@@ -41,7 +41,7 @@ def resample(data, p, q, *, axis=-1, beta=5, pts=10, t=None, getfir=False):
         Axis along which to operate.
     beta : scalar
         The beta value for the Kaiser window. See
-        :func:`scipy.signal.kaiser`.
+        :func:`scipy.signal.windows.kaiser`.
     pts : integer
         Number of points in data to average from each side of current
         data point. For example, if ``pts == 10``, a total 21 points
@@ -112,7 +112,7 @@ def resample(data, p, q, *, axis=-1, beta=5, pts=10, t=None, getfir=False):
 
     See also
     --------
-    :func:`scipy.signal.resample`.
+    :func:`scipy.signal.resample`
 
     Examples
     --------
@@ -139,8 +139,8 @@ def resample(data, p, q, *, axis=-1, beta=5, pts=10, t=None, getfir=False):
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(x, data, 'o-', label='Original')
         >>> res = {}
-        >>> for pts, m in zip([2, 3, 5],
-        ...                   ['^', 'v', '<']):
+        >>> for pts, m in zip([3, 5, 7, 10],
+        ...                   ['^', 'v', '<', '>']):
         ...     res[pts], up2 = dsp.resample(data, p, q, pts=pts, t=x)
         ...     lab = f'Resample, pts={pts}'
         ...     _ = plt.plot(upx, res[pts], '-', label=lab, marker=m)
@@ -157,6 +157,8 @@ def resample(data, p, q, *, axis=-1, beta=5, pts=10, t=None, getfir=False):
         ...          label='Original')
         >>> _ = plt.plot(frqup, 2*np.abs(fft.rfft(res[5]))/n2,
         ...          label='Resample, pts=5')
+        >>> _ = plt.plot(frqup, 2*np.abs(fft.rfft(res[10]))/n2,
+        ...          label='Resample, pts=10')
         >>> _ = plt.plot(frqup, 2*np.abs(fft.rfft(resfft))/n2,
         ...          label='scipy.signal.resample')
         >>> _ = plt.legend(loc='best')
@@ -183,7 +185,7 @@ def resample(data, p, q, *, axis=-1, beta=5, pts=10, t=None, getfir=False):
         >>> fig = plt.figure('Example 2')
         >>> fig.clf()
         >>> _ = plt.subplot(211)
-        >>> _ = plt.plot(x, data, 'o-', label='Original', alpha=.3)
+        >>> _ = plt.plot(x, data, 'o-', label='Original', alpha=0.3)
         >>> _ = plt.plot(dnx, dndata, label='Resample', lw=2)
         >>> resfft = signal.resample(data, int(np.ceil(n/q)))
         >>> _ = plt.plot(dnx, resfft, label='scipy.signal.resample',
@@ -217,7 +219,7 @@ def resample(data, p, q, *, axis=-1, beta=5, pts=10, t=None, getfir=False):
     q = q // gf
 
     M = 2 * pts * max(p, q)
-    w = signal.kaiser(M + 1, beta)
+    w = signal.windows.kaiser(M + 1, beta)
     # w = signal.hann(M+1)
     n = np.arange(M + 1)
 
@@ -3176,10 +3178,10 @@ def transmissibility(
     getmap : bool, optional
         If True, get the transfer function map outputs (see below).
     *kwargs : optional
-        Named arguments to pass to :func:`scipy.signal.fftcoef`. Note
-        that `x`, `sr`, `coef` and `window` arguments are passed
-        automatically, and that `fold` is irrelevant (due to computing
-        a ratio). Therefore, at the time of this writing, only
+        Named arguments to pass to :func:`fftcoef`. Note that `x`,
+        `sr`, `coef` and `window` arguments are passed automatically,
+        and that `fold` is irrelevant (due to computing a
+        ratio). Therefore, at the time of this writing, only
         `dodetrend`, and `maxdf` are really valid entries in `kwargs`.
 
     Returns

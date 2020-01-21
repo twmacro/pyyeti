@@ -487,7 +487,7 @@ def rptpct1(
 
     filename : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     title : string; must be named; optional
@@ -639,8 +639,8 @@ def rptpct1(
         The number of lines to write perpage. If < 1, there is no
         limit (one page).
     tight_layout_args : dict or None; must be named; optional
-        Arguments for :func:`plt.tight_layout`. If None, defaults to
-        ``{'pad': 3.0}``.
+        Arguments for :func:`matplotlib.pyplot.tight_layout`. If None,
+        defaults to ``{'pad': 3.0}``.
     show_figures : bool; must be named; optional
         If True, plot figures will be displayed on the screen for
         interactive viewing. Warning: there may be many figures.

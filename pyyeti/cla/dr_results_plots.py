@@ -436,7 +436,8 @@ def mk_plots(
         If None, all cases are plotted. This option is ignored if
         plotting SRS curves and `showall` is True.
     tight_layout_args : dict or None; optional
-        Arguments for :func:`plt.tight_layout`. If None, defaults to::
+        Arguments for :func:`matplotlib.pyplot.tight_layout`. If None,
+        defaults to::
 
                 {'pad': 3.0,
                  'w_pad': 2.0,

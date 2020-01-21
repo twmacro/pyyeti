@@ -47,7 +47,8 @@ def _is_eqsine(opts):
 
 class DR_Results(OrderedDict):
     """
-    Subclass of OrderedDict that contains data recovery results
+    Subclass of :class:`collections.OrderedDict` that contains data
+    recovery results
 
     Notes
     -----
@@ -263,12 +264,12 @@ class DR_Results(OrderedDict):
         )
 
     def init(self, Info, mission, event, cats=None):
-        """
+        r"""
         Build initial results data structure.
 
         Parameters
         ----------
-        Info : OrderedDict or :class:`DR_Def` instance
+        Info : :class:`collections.OrderedDict` or :class:`DR_Def` instance
             Contains data recovery information for each category. The
             category names are the keys. Either the `Info` attribute
             of :class:`DR_Event` or a :class:`DR_Def` instance.
@@ -1683,9 +1684,10 @@ class DR_Results(OrderedDict):
             List of cases (or events) in desired order. Can be subset
             of cases available. If None, the order is determined by
             the order in which results were inserted
-            (:class:`DR_Results` is an OrderedDict). Note that
-            `case_order` is used for highest level only. `case_order`
-            defines the 'cases' member variable (for example,
+            (:class:`DR_Results` is a
+            :class:`collections.OrderedDict`). Note that `case_order`
+            is used for highest level only. `case_order` defines the
+            'cases' member variable (for example,
             ``self['extreme']['SC_atm'].cases``).
         doappend : integer; optional
             Flag that defines how to build the extreme `.maxcase` and
@@ -2190,8 +2192,8 @@ class DR_Results(OrderedDict):
             Directory name to put all output plot files; will be
             created if it doesn't exist.
         tight_layout_args : dict or None; optional
-            Arguments for :func:`plt.tight_layout`. If None, defaults
-            to::
+            Arguments for :func:`matplotlib.pyplot.tight_layout`. If
+            None, defaults to::
 
                 {'pad': 3.0,
                  'w_pad': 2.0,
@@ -2337,8 +2339,8 @@ class DR_Results(OrderedDict):
             Directory name to put all output plot files; will be
             created if it doesn't exist.
         tight_layout_args : dict or None; optional
-            Arguments for :func:`plt.tight_layout`. If None, defaults
-            to::
+            Arguments for :func:`matplotlib.pyplot.tight_layout`. If
+            None, defaults to::
 
                 {'pad': 3.0,
                  'w_pad': 2.0,
@@ -2378,7 +2380,6 @@ class DR_Results(OrderedDict):
             results.resp_plots()
             # write png file(s) to 'png/':
             results.resp_plots(fmt='png', direc='png')
-
         """
         return mk_plots(
             self,

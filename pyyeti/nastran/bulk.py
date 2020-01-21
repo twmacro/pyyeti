@@ -1137,7 +1137,7 @@ def wtdmig(f, dct):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     dct : dictionary
@@ -1410,7 +1410,7 @@ def wtgrids(
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     grids : 1d array_like
@@ -1551,7 +1551,7 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLE
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     tid : integer
@@ -1809,7 +1809,7 @@ def uset2bulk(f, uset):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     uset : pandas DataFrame
@@ -1863,7 +1863,7 @@ def rdwtbulk(fin, fout):
         is opened for file selection.
     fout : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
 
@@ -2013,7 +2013,7 @@ def wtnasints(f, start, ints):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     start : integer
@@ -2168,7 +2168,7 @@ def wtcsuper(f, superid, grids):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     superid : integer
@@ -2201,7 +2201,7 @@ def wtspc1(f, eid, dof, grids, name="SPC1"):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     eid : integer
@@ -2245,7 +2245,7 @@ def wtxset1(f, dof, grids, name="BSET1"):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     dof : integer
@@ -2285,7 +2285,7 @@ def wtqcset(f, startgrid, nq):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     startgrid : integer
@@ -2342,7 +2342,7 @@ def wtrbe2(f, eid, indep, dof, dep):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     eid : integer
@@ -2381,7 +2381,7 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     eid : integer
@@ -2501,7 +2501,7 @@ def wtseset(f, superid, grids):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     superid: integer
@@ -2544,7 +2544,7 @@ def wtset(f, setid, ids):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     setid: integer
@@ -2587,7 +2587,7 @@ def wtrspline(f, rid, ids, DoL="0.1"):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     rid : integer
@@ -2991,7 +2991,7 @@ def wtrspline_rings(
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     r1grids : 2d array_like or DataFrame or tuple
@@ -3308,7 +3308,7 @@ def wtvcomp(f, baa, kaa, bset, spoint1):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     baa : 2d array_like
@@ -3386,7 +3386,7 @@ def wtcoordcards(f, ci):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     ci : dictionary or None
@@ -3447,7 +3447,7 @@ def wtextrn(f, ids, dof):
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     ids : 1d array_like

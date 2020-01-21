@@ -209,7 +209,7 @@ class SolveNewmark(_BaseODE):
         ============  ================================================
         Member        Description
         ============  ================================================
-        m             mass for the non-rf DOF
+        m             mass for the non-rf DOF (or None for identity)
         b             damping for the non-rf DOF
         k             stiffness for the non-rf DOF
         h             time step
@@ -618,9 +618,21 @@ class SolveNewmark(_BaseODE):
         h = self.h
         sqh = h * h
         h2 = 2 * h
-        A = self.m / sqh + self.b / h2 + self.k / 3
-        A1 = (2 / sqh) * self.m - self.k / 3
-        A0 = -self.m / sqh + self.b / h2 - self.k / 3
+
+        if self.m is None:
+            if self.unc:
+                # have diagonals:
+                mterm = 1.0 / sqh
+            else:
+                # have matrices:
+                mterm = np.diag(np.ones(self.ksize) / sqh)
+        else:
+            mterm = self.m / sqh
+
+        A = mterm + self.b / h2 + self.k / 3
+        A1 = 2 * mterm - self.k / 3
+        A0 = self.b / h2 - self.k / 3 - mterm
+
         if self.unc:
             # have diagonals:
             self.Ad = A

@@ -330,3 +330,15 @@
      - Add an “all” parameter or something … raise exception if not all
        found
      - Change default keep to be 2?
+
+~165. Newmark beta solver doesn’t allow mass to be None?
+    - v0.97.1
+
+166. Add column plotter
+
+~167. In docs, make links to numpy/scipy/etc functions live
+    - v0.97.1
+
+~168. Change beta to 14 in resample I think … try pts=5?? (see
+     scipy.signal.kaiser)
+    - v0.97.1

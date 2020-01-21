@@ -1640,7 +1640,7 @@ def rbmultchk(
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     drm : 2d ndarray
@@ -1872,7 +1872,7 @@ def rbdispchk(
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     rbdisp : 2d ndarray
@@ -2104,7 +2104,7 @@ def cbcoordchk(
         `outfile`.
     outfile : string or file_like or 1 or None; optional
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     rb_normalizer : 2d array_like or None
@@ -2270,7 +2270,7 @@ def cbcheck(
     ----------
     f : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     Mcb : 2d ndarray

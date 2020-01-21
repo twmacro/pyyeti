@@ -9,15 +9,15 @@ in big or little endian format.
 Notes on sparse matrices:
 
   1. By default, matrices read from .op4 files will be regular
-     `numpy.ndarray` matrices. However, `scipy.sparse` matrices can be
-     created instead. See the `sparse` option in :func:`read` and
-     :func:`load`.
+     :class:`numpy.ndarray` matrices. However, :mod:`scipy.sparse`
+     matrices can be created instead. See the `sparse` option in
+     :func:`read` and :func:`load`.
 
   2. By default, matrices written to .op4 files will follow the Python
-     type: `numpy.ndarray` matrices will be written in dense format
-     and `scipy.sparse` matrices will be written in "bigmat" sparse
-     format. This can be overridden by specifying the `sparse` option
-     in :func:`write`.
+     type: :class:`numpy.ndarray` matrices will be written in dense
+     format and :mod:`scipy.sparse` matrices will be written in
+     "bigmat" sparse format. This can be overridden by specifying the
+     `sparse` option in :func:`write`.
 """
 
 import itertools as it
@@ -35,7 +35,7 @@ class OP4:
     Class for reading/writing Nastran output4 (.op4) files.
 
     See demo below and refer to the help on these functions for more
-    information: :func:`write` (or :func:`save`), :func:`load` (or the
+    information: :func:`write` (or :func:`save`), :func:`load` (or the 
     lower level :func:`dctload`, :func:`listload`), and
     :func:`dir`. `save` is an alias for `write`.
 
@@ -64,7 +64,7 @@ class OP4:
 
     Note: to preserve order, the dictionary returned by "load" or
     "read" is actually an OrderedDict from the standard Python
-    "collections" module.
+    "collections" module (:class:`collections.OrderedDict`).
 
     To read into a list:
 
@@ -526,10 +526,10 @@ class OP4:
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
-            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
-            a more desirable form. For example, to ensure *all*
+            "COO" sparse form (see :class:`scipy.sparse.coo_matrix`)
+            to a more desirable form. For example, to ensure *all*
             matrices are returned in CSC form (see
-            :func:`scipy.sparse.csc_matrix`) use::
+            :class:`scipy.sparse.csc_matrix`) use::
 
                 sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
@@ -553,7 +553,7 @@ class OP4:
         - The `matrix` output will be [rows, cols] of the matrix if
           the matrix is skipped.
         - The default form for sparse matrices is the "COO" sparse
-          form (see :func:`scipy.sparse.coo_matrix`). To override,
+          form (see :class:`scipy.sparse.coo_matrix`). To override,
           provide a callable in the `sparse` option (see above).
         """
         while 1:
@@ -809,10 +809,10 @@ class OP4:
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
-            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
-            a more desirable form. For example, to ensure *all*
+            "COO" sparse form (see :class:`scipy.sparse.coo_matrix`)
+            to a more desirable form. For example, to ensure *all*
             matrices are returned in CSC form (see
-            :func:`scipy.sparse.csc_matrix`) use::
+            :class:`scipy.sparse.csc_matrix`) use::
 
                 sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
@@ -1593,10 +1593,10 @@ class OP4:
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
-            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
-            a more desirable form. For example, to ensure *all*
+            "COO" sparse form (see :class:`scipy.sparse.coo_matrix`)
+            to a more desirable form. For example, to ensure *all*
             matrices are returned in CSC form (see
-            :func:`scipy.sparse.csc_matrix`) use::
+            :class:`scipy.sparse.csc_matrix`) use::
 
                 sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
@@ -1604,7 +1604,7 @@ class OP4:
 
         Returns
         -------
-        dct : collections.OrderedDict
+        dct : :class:`collections.OrderedDict`
             Keys are the lower-case matrix names and the values are
             either just the matrix or a tuple of:
             ``(matrix, form, mtype)`` depending on `justmatrix`.
@@ -1612,7 +1612,7 @@ class OP4:
         Notes
         -----
         The default form for sparse matrices is the "COO" sparse form
-        (see :func:`scipy.sparse.coo_matrix`). To override, provide a
+        (see :class:`scipy.sparse.coo_matrix`). To override, provide a
         callable in the `sparse` option (see above).
 
         See also
@@ -1672,10 +1672,10 @@ class OP4:
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
-            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
-            a more desirable form. For example, to ensure *all*
+            "COO" sparse form (see :class:`scipy.sparse.coo_matrix`)
+            to a more desirable form. For example, to ensure *all*
             matrices are returned in CSC form (see
-            :func:`scipy.sparse.csc_matrix`) use::
+            :class:`scipy.sparse.csc_matrix`) use::
 
                 sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
@@ -1697,7 +1697,7 @@ class OP4:
         Notes
         -----
         The default form for sparse matrices is the "COO" sparse form
-        (see :func:`scipy.sparse.coo_matrix`). To override, provide a
+        (see :class:`scipy.sparse.coo_matrix`). To override, provide a
         callable in the `sparse` option (see above).
 
         See also
@@ -1766,10 +1766,10 @@ class OP4:
             None, True, or False (see table above) and the second
             element is a callable, as in: ``X = callable(X)``. A
             common usage of the callable would be to convert from
-            "COO" sparse form (see :func:`scipy.sparse.coo_matrix`) to
-            a more desirable form. For example, to ensure *all*
+            "COO" sparse form (see :class:`scipy.sparse.coo_matrix`)
+            to a more desirable form. For example, to ensure *all*
             matrices are returned in CSC form (see
-            :func:`scipy.sparse.csc_matrix`) use::
+            :class:`scipy.sparse.csc_matrix`) use::
 
                 sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
@@ -1777,7 +1777,7 @@ class OP4:
 
         Returns
         -------
-        dct : collections.OrderedDict, if ``into == 'dct'``
+        dct : :class:`collections.OrderedDict`, if ``into == 'dct'``
             Keys are the lower-case matrix names and the values are
             either just the matrix or a tuple of:
             ``(matrix, form, mtype)`` depending on `justmatrix`.
@@ -1788,7 +1788,7 @@ class OP4:
         Notes
         -----
         The default form for sparse matrices is the "COO" sparse form
-        (see :func:`scipy.sparse.coo_matrix`). To override, provide a
+        (see :class:`scipy.sparse.coo_matrix`). To override, provide a
         callable in the `sparse` option (see above).
 
         See also
@@ -1953,7 +1953,7 @@ class OP4:
         must be a list, not a dictionary. If a list, the order is
         maintained. If a dictionary, the matrices are written in the
         order they are retrieved from the dictionary; use a
-        ``collections.OrderedDict`` to specify a certain order.
+        :class:`collections.OrderedDict` to specify a certain order.
 
         See the examples in :func:`pyyeti.nastran.op4.write`.
 
@@ -2095,9 +2095,9 @@ def load(filename=None, namelist=None, into="dct", justmatrix=False, sparse=Fals
         None, True, or False (see table above) and the second element
         is a callable, as in: ``X = callable(X)``. A common usage of
         the callable would be to convert from "COO" sparse form (see
-        :func:`scipy.sparse.coo_matrix`) to a more desirable form. For
-        example, to ensure *all* matrices are returned in CSC form
-        (see :func:`scipy.sparse.csc_matrix`) use::
+        :class:`scipy.sparse.coo_matrix`) to a more desirable
+        form. For example, to ensure *all* matrices are returned in
+        CSC form (see :class:`scipy.sparse.csc_matrix`) use::
 
             sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
@@ -2105,7 +2105,7 @@ def load(filename=None, namelist=None, into="dct", justmatrix=False, sparse=Fals
 
     Returns
     -------
-    dct : collections.OrderedDict, if ``into == 'dct'``
+    dct : :class:`collections.OrderedDict`, if ``into == 'dct'``
         Keys are the lower-case matrix names and the values are
         either just the matrix or a tuple of:
         ``(matrix, form, mtype)`` depending on `justmatrix`.
@@ -2116,7 +2116,7 @@ def load(filename=None, namelist=None, into="dct", justmatrix=False, sparse=Fals
     Notes
     -----
     The default form for sparse matrices is the "COO" sparse form (see
-    :func:`scipy.sparse.coo_matrix`). To override, provide a callable
+    :class:`scipy.sparse.coo_matrix`). To override, provide a callable
     in the `sparse` option (see above).
 
     Examples
@@ -2214,9 +2214,9 @@ def read(filename=None, namelist=None, into="dct", justmatrix=True, sparse=False
         None, True, or False (see table above) and the second element
         is a callable, as in: ``X = callable(X)``. A common usage of
         the callable would be to convert from "COO" sparse form (see
-        :func:`scipy.sparse.coo_matrix`) to a more desirable form. For
-        example, to ensure *all* matrices are returned in CSC form
-        (see :func:`scipy.sparse.csc_matrix`) use::
+        :class:`scipy.sparse.coo_matrix`) to a more desirable
+        form. For example, to ensure *all* matrices are returned in
+        CSC form (see :class:`scipy.sparse.csc_matrix`) use::
 
             sparse=(True, scipy.sparse.coo_matrix.tocsc)
 
@@ -2224,7 +2224,7 @@ def read(filename=None, namelist=None, into="dct", justmatrix=True, sparse=False
 
     Returns
     -------
-    dct : collections.OrderedDict, if ``into == 'dct'``
+    dct : :class:`collections.OrderedDict`, if ``into == 'dct'``
         Keys are the lower-case matrix names and the values are
         either just the matrix or a tuple of:
         ``(matrix, form, mtype)`` depending on `justmatrix`.
@@ -2235,7 +2235,7 @@ def read(filename=None, namelist=None, into="dct", justmatrix=True, sparse=False
     Notes
     -----
     The default form for sparse matrices is the "COO" sparse form (see
-    :func:`scipy.sparse.coo_matrix`). To override, provide a callable
+    :class:`scipy.sparse.coo_matrix`). To override, provide a callable
     in the `sparse` option (see above).
 
     See also
@@ -2375,7 +2375,7 @@ def write(
     be a list, not a dictionary. If a list, the order is
     maintained. If a dictionary, the matrices are written in the order
     they are retrieved from the dictionary; use a
-    ``collections.OrderedDict`` to specify a certain order.
+    :class:`collections.OrderedDict` to specify a certain order.
 
     `save` is an alias for `write`.
 

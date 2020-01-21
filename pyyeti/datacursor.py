@@ -72,14 +72,14 @@ class DataCursor(object):
         annotation.
     bbox : dict; optional
         Defines the `bbox` parameter for
-        :func:`matplotlib.axes.Axes.annotate`
+        :meth:`matplotlib.axes.Axes.annotate`
     arrowprops : dict; optional
         Defines the `arrowprops` parameter for
-        :func:`matplotlib.axes.Axes.annotate`
+        :meth:`matplotlib.axes.Axes.annotate`
     followdot : dict; optional
         Typically defines the `s`, `color`, and `alpha` settings (and
         possibly others as desired) for
-        :func:`matplotlib.axes.Axes.scatter`. That function is used
+        :meth:`matplotlib.axes.Axes.scatter`. That function is used
         for drawing the "dot" on the plot that follows the mouse and
         highlights the currently selected data point.
     permdot : dict; optional
@@ -97,8 +97,8 @@ class DataCursor(object):
         Contains line number for each [x, y] data pair, starting at 0.
         Same length as `xypoints`.
     pts : list
-        Contains the :func:`plt.scatter` object handles for the selected
-        points. Same length as `xypoints`.
+        Contains the :func:`matplotlib.pyplot.scatter` object handles
+        for the selected points. Same length as `xypoints`.
     notes : list
         Contains the annotation object handles for the selected points.
         Same length as `xypoints`.

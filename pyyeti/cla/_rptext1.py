@@ -62,7 +62,7 @@ def rptext1(
         (see example in :class:`DR_Results`)
     filename : string or file_like or 1 or None
         Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :func:`StringIO`. Input as integer 1 to
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     title : string; optional

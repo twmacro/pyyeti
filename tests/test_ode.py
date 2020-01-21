@@ -289,6 +289,128 @@ def test_newmark_diag():
     assert_raises(ValueError, nb.tsolve, np.zeros((m.shape[0] + 1, 1)))
 
 
+def test_ode_newmark_uncoupled_mNone():
+    # uncoupled equations
+    m = None
+    k = np.array([0.0, 6.0e5, 6.0e5, 6.0e5])  # diagonal of stiffness
+    zeta = np.array([0.0, 0.05, 1.0, 2.0])  # percent damping
+    b = 2.0 * zeta * np.sqrt(k)  # diagonal of damping
+
+    h = 0.001  # time step
+    t = np.arange(0, 0.3001, h)  # time vector
+    c = 2 * np.pi
+    f = (
+        np.vstack(
+            (
+                3 * (1 - np.cos(c * 2 * t)),  # forcing function
+                4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                6 * (np.cos(np.sqrt(6e5 / 30) * t)),
+            )
+        )
+        * 1.0e4
+    )
+
+    m1 = np.ones(4)
+
+    for _ in range(2):
+        m1 = np.diag(m1)
+        k = np.diag(k)
+        b = np.diag(b)
+        for rf in (None, 3, 2, np.array([1, 2, 3])):
+            ts = ode.SolveNewmark(m1, b, k, h, rf=rf)
+            sol = ts.tsolve(f)
+
+            tsn = ode.SolveNewmark(m, b, k, h, rf=rf)
+            soln = tsn.tsolve(f)
+
+            assert np.allclose(sol.a, soln.a)
+            assert np.allclose(sol.v, soln.v)
+            assert np.allclose(sol.d, soln.d)
+
+
+def test_ode_newmark_coupled_mNone():
+    # coupled equations
+    m = None
+    k = np.array([0.0, 6.0e5, 6.0e5, 6.0e5])  # diagonal of stiffness
+    zeta = np.array([0.0, 0.05, 1.0, 2.0])  # percent damping
+    b = 2.0 * zeta * np.sqrt(k)  # diagonal of damping
+    k = np.diag(k)
+    b = np.diag(b)
+
+    k[1:, 1:] += np.random.randn(3, 3) * 1000
+    b[1:, 1:] += np.random.randn(3, 3)
+
+    h = 0.001  # time step
+    t = np.arange(0, 0.3001, h)  # time vector
+    c = 2 * np.pi
+    f = (
+        np.vstack(
+            (
+                3 * (1 - np.cos(c * 2 * t)),  # forcing function
+                4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                6 * (np.cos(np.sqrt(6e5 / 30) * t)),
+            )
+        )
+        * 1.0e4
+    )
+
+    m1 = np.eye(4)
+
+    for rf in (None, 3, 2, np.array([1, 2, 3])):
+        ts = ode.SolveNewmark(m1, b, k, h, rf=rf)
+        sol = ts.tsolve(f)
+
+        tsn = ode.SolveNewmark(m, b, k, h, rf=rf)
+        soln = tsn.tsolve(f)
+
+        assert np.allclose(sol.a, soln.a)
+        assert np.allclose(sol.v, soln.v)
+        assert np.allclose(sol.d, soln.d)
+
+
+def test_ode_newmark_coupled_2_mNone():
+    # coupled equations
+    m = None
+    k = np.array([3.0e5, 6.0e5, 6.0e5, 6.0e5])  # diagonal of stiffness
+    zeta = np.array([0.1, 0.05, 1.0, 2.0])  # percent damping
+    b = 2.0 * zeta * np.sqrt(k)  # diagonal of damping
+    k = np.diag(k)
+    b = np.diag(b)
+
+    k += np.random.randn(4, 4) * 1000
+    b += np.random.randn(4, 4)
+
+    h = 0.001  # time step
+    t = np.arange(0, 0.3001, h)  # time vector
+    c = 2 * np.pi
+    f = (
+        np.vstack(
+            (
+                3 * (1 - np.cos(c * 2 * t)),  # forcing function
+                4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                6 * (np.cos(np.sqrt(6e5 / 30) * t)),
+            )
+        )
+        * 1.0e4
+    )
+
+    m1 = np.eye(4)
+
+    for rf in (None, 3, 2, np.array([1, 2, 3])):
+        ts = ode.SolveNewmark(m1, b, k, h, rf=rf)
+        sol = ts.tsolve(f)
+
+        tsn = ode.SolveNewmark(m, b, k, h, rf=rf)
+        soln = tsn.tsolve(f)
+
+        assert np.allclose(sol.a, soln.a)
+        assert np.allclose(sol.v, soln.v)
+        assert np.allclose(sol.d, soln.d)
+
+
 def test_rbdamped_modes_coupled():
     N = 10
     win = 100

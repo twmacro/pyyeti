@@ -215,9 +215,9 @@ def rpttab1(res, filename, title, count_filter=1e-6, name=None):
 
         Otherwise, `filename` is either a name of a file, or is a
         file_like object as returned by :func:`open` or
-        :func:`StringIO`. Input as integer 1 to write to stdout. Can
-        also be the name of a directory or None; in these cases, a GUI
-        is opened for file selection.
+        :class:`io.StringIO`. Input as integer 1 to write to
+        stdout. Can also be the name of a directory or None; in these
+        cases, a GUI is opened for file selection.
     title : string
         Title for report
     count_filter : scalar; optional

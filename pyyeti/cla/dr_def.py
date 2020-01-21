@@ -29,15 +29,15 @@ class DR_Def(OrderedDict):
     """
     Data recovery definitions.
 
-    This class inherits from OrderedDict and defines how data recovery
-    will be done. The entries are created through repeated calls to
-    member function :func:`add` (typically from a "prepare_4_cla.py"
-    script). Within a single instance of this class, the order that
-    items are added also defines the data recovery order (as done in
-    :func:`DR_Results.time_data_recovery`, for example). When using
-    multiple instances, the data recovery order of the instances is
-    determined by the order they are added to an instance of
-    :class:`DR_Event` via :func:`DR_Event.add`.
+    This class inherits from :class:`collections.OrderedDict` and
+    defines how data recovery will be done. The entries are created
+    through repeated calls to member function :func:`add` (typically
+    from a "prepare_4_cla.py" script). Within a single instance of
+    this class, the order that items are added also defines the data
+    recovery order (as done in :func:`DR_Results.time_data_recovery`,
+    for example). When using multiple instances, the data recovery
+    order of the instances is determined by the order they are added
+    to an instance of :class:`DR_Event` via :func:`DR_Event.add`.
     :func:`DR_Event.set_dr_order` can be used to modify the final
     order. :func:`pyyeti.ytools.reorder_dict` can also be used for
     that purpose.

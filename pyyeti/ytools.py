@@ -1348,6 +1348,10 @@ def save(name, obj):
         GUI is opened for file selection.
     obj : any
         Any object to be pickled.
+
+    Notes
+    -----
+    See :mod:`pickle`
     """
     name, fopen = _get_fopen(name, read=False)
     with fopen(name, "wb") as f:
@@ -1370,6 +1374,10 @@ def load(name):
     -------
     obj : any
         The pickled object.
+
+    Notes
+    -----
+    See :mod:`pickle`
     """
     name, fopen = _get_fopen(name, read=True)
     with fopen(name, "rb") as f:
@@ -1382,12 +1390,13 @@ def reorder_dict(ordered_dict, keys, where):
 
     .. note::
 
-        This will also work for regular Python ``dict`` objects for
-        Python 3.7+ where insertion order is guaranteed.
+        This will also work for regular Python ``dict``
+        (:class:`dict`) objects for Python 3.7+ where insertion order
+        is guaranteed. See also :class:`collections.OrderedDict`.
 
     Parameters
     ----------
-    ordered_dict : instance of OrderedDict (or other ordered mapping)
+    ordered_dict : instance of `OrderedDict` or other ordered mapping
         The ordered dictionary to copy and put in a new order. Must
         accept tuple of 2-tuples, eg, ``((key1, value1),
         (key2, value2), ...)`` in its ``__init__`` function.

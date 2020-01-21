@@ -895,7 +895,7 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
       3. Keep the maximum `nfl` from 2.
 
     The optimization is carried out by
-    :func:`scipy.minimize.minimum_scalar`.
+    :func:`scipy.optimize.minimize_scalar`.
 
     The modal masses are defined relative to the interface point. See
     references [#fl4]_ and [#fl5]_ for more information.
