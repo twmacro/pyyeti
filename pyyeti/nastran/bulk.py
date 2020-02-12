@@ -1385,7 +1385,9 @@ def rdcord2cards(f):
     --------
     :func:`bulk2uset`, :func:`rdcards`.
     """
-    cards = rdcards(f, r"(cord2[rcs])\b", return_var="list", regex=True, keep_name=True)
+    cards = rdcards(
+        f, r"(cord2[rcs])\b", return_var="list", regex=True, keep_name=True, blank=0
+    )
 
     if cards is None:
         return {}

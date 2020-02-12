@@ -307,8 +307,6 @@ def test_uset2bulk():
 
 
 def test_rdcord2cards():
-    from io import StringIO
-
     cylcoord = np.array([[50, 2, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]])
     sphcoord = np.array([[51, 3, 0], [0, 0, 0], [0, 1, 0], [0, 0, 1]])
 
@@ -329,6 +327,28 @@ def test_rdcord2cards():
     assert len(cords) == len(c)
     for k, v in cords.items():
         assert np.allclose(c[k], v)
+
+
+def test_rdcord2cards2():
+    s1 = """
+$1111111222222223333333344444444555555556666666677777777888888889999999900000000
+CORD2R       501       0   300.0    4.0 -10.0000  .56000 .200000   -10.7+
++       310.0000     4.0   -11.7
+"""
+
+    s2 = """
+$1111111222222223333333344444444555555556666666677777777888888889999999900000000
+CORD2R       501           300.0    4.0 -10.0000  .56000 .200000   -10.7+
++       310.0000     4.0   -11.7
+"""
+
+    with StringIO(s1) as f:
+        cords1 = nastran.rdcord2cards(f)
+
+    with StringIO(s2) as f:
+        cords2 = nastran.rdcord2cards(f)
+
+    assert np.all(cords1[501] == cords2[501])
 
 
 def test_wtextseout():
