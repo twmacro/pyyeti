@@ -733,7 +733,13 @@ def test_ode_coupled():
     )
 
     for order in (0, 1):
-        for rf in (None, 3, 2, np.array([1, 2, 3])):
+        # for rf in (None, 3, 2, np.array([1, 2, 3])):
+        for rf in (
+            None,
+            [False, False, False, True],
+            [False, False, True, False],
+            np.array([False, True, True, True]),
+        ):
             if rf is 2 and k.ndim > 1:
                 k = np.diag(k)
             if rf is 3 and m.ndim > 1:
@@ -801,9 +807,11 @@ def test_ode_coupled():
                     yl2 = C.dot(sole1.d) + D.dot(f2[:, :1])
                     assert np.allclose(yl[:1, :], yl2.T)
 
-                    yl[:, rf] = 0.0
-                    yl[:, rf + n] = 0.0
-                    yl[:, rf + 2 * n] = rfsol
+                    rf2 = np.nonzero(rf)[0]
+                    yl[:, rf2] = 0.0
+                    yl[:, rf2 + n] = 0.0
+                    yl[:, rf2 + 2 * n] = rfsol
+
                 assert np.allclose(yl[:, :n], sol.a.T)
                 assert np.allclose(yl[:, n : 2 * n], sol.v.T)
                 assert np.allclose(yl[:, 2 * n :], sol.d.T)
@@ -1385,10 +1393,14 @@ def test_ode_coupled_mNone_rblast():
         * 1.0e4
     )
 
+    number_one = 1
+
     rb = 3
     for order in (0, 1):
-        for rf in ([], 2, 1, np.array([0, 1, 2])):
-            if order == 1 and rf is 1:
+        if order == 1:
+            rb = [False, False, False, True]
+        for rf in ([], 2, number_one, np.array([0, 1, 2])):
+            if order == 1 and rf is number_one:
                 k = np.diag(k)
             for static_ic in (0, 1):
                 ts = ode.SolveExp2(m, b, k, h, order=order, rf=rf)

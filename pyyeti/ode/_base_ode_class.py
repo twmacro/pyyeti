@@ -316,6 +316,12 @@ class _BaseODE:
             b = u.T @ b @ u
         return m, b, k
 
+    def _ensure_index_type(self, pv):
+        pv = np.atleast_1d(pv)
+        if np.issubdtype(pv.dtype, np.bool_):
+            return np.nonzero(pv)[0]
+        return pv
+
     def _common_precalcs(self, m, b, k, h, rb, rf, pre_eig=False, cd_as_force=False):
         systype = float
         self.mid = id(m)
@@ -339,8 +345,9 @@ class _BaseODE:
         if rf is None or (isinstance(rf, list) and not rf):
             rf = np.array([], bool)
         else:
-            # rf = np.ix_(np.atleast_1d(rf))[0]
-            rf = np.atleast_1d(rf)
+            # # rf = np.ix_(np.atleast_1d(rf))[0]
+            # rf = np.atleast_1d(rf)
+            rf = self._ensure_index_type(rf)
         nonrf[rf] = False
         nonrf = np.nonzero(nonrf)[0]
         self.n = n
@@ -381,8 +388,9 @@ class _BaseODE:
         elif isinstance(rb, list) and not rb:
             rb = _rb = np.array([], bool)
         else:
-            # rb = np.ix_(np.atleast_1d(rb))[0]
-            rb = np.atleast_1d(rb)
+            # # rb = np.ix_(np.atleast_1d(rb))[0]
+            # rb = np.atleast_1d(rb)
+            rb = self._ensure_index_type(rb)
             vec = np.zeros(self.n, bool)
             vec[rb] = True
             _rb = np.nonzero(vec[self.nonrf])[0]

@@ -342,3 +342,15 @@
 ~168. Change beta to 14 in resample I think … try pts=5?? (see
      scipy.signal.kaiser)
     - v0.97.1
+
+~169. Missing backslash in bulk.mkcomment docstr:
+    - surround (bool; optional) – If True, a leading and trailing ‘$n’
+      string will be added.
+      - v0.97.2
+
+~170. Update docs/tutorials/tools/nb_to_doc.py with black
+      - v0.97.2
+
+~171. Shouldn’t the rb and rf inputs to the solvers be allowed to be
+     Boolean?
+     - v0.97.3

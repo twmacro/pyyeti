@@ -218,10 +218,10 @@ class SolveUnc(_BaseODE):
             Time step; can be None if only want to solve a static
             problem or if only solving frequency domain problems
         rb : 1d array or None; optional
-            Index partition vector for rigid-body modes. Set to [] to
-            specify no rigid-body modes. If None, the rigid-body modes
-            will be automatically detected by this logic for uncoupled
-            systems::
+            Index or bool partition vector for rigid-body modes. Set
+            to [] to specify no rigid-body modes. If None, the
+            rigid-body modes will be automatically detected by this
+            logic for uncoupled systems::
 
                rb = np.nonzero(abs(k).max(0) < 0.005)[0]
 
@@ -235,15 +235,15 @@ class SolveUnc(_BaseODE):
             .. note::
                 `rb` applies only to modal-space equations. Use
                 `pre-eig` if necessary to convert to modal-space. This
-                means that if `rb` is an index vector, it specifies
+                means that if `rb` is a partition vector, it specifies
                 the rigid-body modes *after* the `pre_eig`
                 operation. See also `pre_eig`.
 
         rf : 1d array or None; optional
-            Index partition vector for res-flex modes; these will be
-            solved statically. As for the `rb` option, the `rf` option
-            only applies to modal space equations (possibly after the
-            `pre_eig` operation).
+            Index or bool partition vector for res-flex modes; these
+            will be solved statically. As for the `rb` option, the
+            `rf` option only applies to modal space equations
+            (possibly after the `pre_eig` operation).
         order : integer; optional
             Specify which solver to use:
 

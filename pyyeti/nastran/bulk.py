@@ -1086,7 +1086,8 @@ def mkcomment(comment, width=72, start="$ ", surround=True):
     start : string; optional
         String to start each line.
     surround : bool; optional
-        If True, a leading and trailing '$\n' string will be added.
+        If True, a leading and trailing blank comment line will be
+        included.
 
     Returns
     -------

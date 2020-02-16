@@ -100,18 +100,25 @@ class FreqDirect(_BaseODE):
         k : 1d or 2d ndarray
             Stiffness; vector (of diagonal), or full
         rb : 1d array or None; optional
-            An option for equations in modal space. Index partition
-            vector for rigid-body modes. If None, the rigid-body modes
-            will be automatically detected by this logic::
+            An option for equations in modal space. Index or bool
+            partition vector for rigid-body modes. Set to [] to
+            specify no rigid-body modes. If None, the rigid-body modes
+            will be automatically detected by this logic for uncoupled
+            systems::
 
-               rb = np.nonzero(abs(k) < 0.005)[0]  # for diagonal k
-               rb = np.nonzero(abs(k).max(0) < 0.005)[0]  # for full k
+               rb = np.nonzero(abs(k).max(0) < 0.005)[0]
 
-            Set to [] to specify no rigid-body modes.
+            And by this logic for coupled systems::
+
+               rb = ((abs(k).max(axis=0) < 0.005) &
+                     (abs(k).max(axis=1) < 0.005) &
+                     (abs(b).max(axis=0) < 0.005) &
+                     (abs(b).max(axis=1) < 0.005)).nonzero()[0]
+
         rf : 1d array or None; optional
-            Index partition vector for res-flex modes; these will be
-            solved statically. As for the `rb` option, the `rf` option
-            only applies to modal space equations.
+            Index or bool partition vector for res-flex modes; these
+            will be solved statically. As for the `rb` option, the
+            `rf` option only applies to modal space equations.
 
         Notes
         -----

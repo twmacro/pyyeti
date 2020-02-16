@@ -13,32 +13,40 @@ from subprocess import run
 
 def convert_nb(nbname):
 
-    if not nbname.endswith('.ipynb'):
-        nbname = nbname + '.ipynb'
-    rst = nbname.replace('.ipynb', '.rst')
+    if not nbname.endswith(".ipynb"):
+        nbname = nbname + ".ipynb"
+    rst = nbname.replace(".ipynb", ".rst")
 
     # Return if .rst file already exists and is newer than the notebook:
-    if (os.path.exists(rst) and
-            os.path.getmtime(rst) > os.path.getmtime(nbname)):
+    if os.path.exists(rst) and os.path.getmtime(rst) > os.path.getmtime(nbname):
         return
 
     d, b = os.path.split(nbname)
-    tmp = os.path.join(d, 'temp_'+b)
-    tmp2 = 'temp_' + rst
+    tmp = os.path.join(d, "temp_" + b)
+    tmp2 = "temp_" + rst
 
     # Execute the notebook:
-    run(["jupyter", "nbconvert", "--to", "notebook",
-         "--execute", nbname, "--output", tmp], check=True)
+    run(
+        [
+            "jupyter",
+            "nbconvert",
+            "--to",
+            "notebook",
+            "--execute",
+            nbname,
+            "--output",
+            tmp,
+        ],
+        check=True,
+    )
 
     # Convert to .rst for Sphinx:
-    run(["jupyter", "nbconvert", "--to", "rst",
-         tmp, "--output", tmp2], check=True)
+    run(["jupyter", "nbconvert", "--to", "rst", tmp, "--output", tmp2], check=True)
 
     with open(tmp2) as fin:
-        with open(rst, 'wt') as fout:
+        with open(rst, "wt") as fout:
             for line in fin:
-                fout.write(line.replace('.. parsed-literal::',
-                                        '.. code-block:: none'))
+                fout.write(line.replace(".. parsed-literal::", ".. code-block:: none"))
 
     # Remove the temporary notebooks:
     os.remove(tmp)

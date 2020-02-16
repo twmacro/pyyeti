@@ -171,10 +171,10 @@ class SolveExp2(_BaseODE):
             Time step; can be None if only want to solve a static
             problem
         rb : 1d array or None; optional
-            Index partition vector for rigid-body modes. Set to [] to
-            specify no rigid-body modes. If None, the rigid-body modes
-            will be automatically detected by this logic for uncoupled
-            systems::
+            Index or bool partition vector for rigid-body modes. Set
+            to [] to specify no rigid-body modes. If None, the
+            rigid-body modes will be automatically detected by this
+            logic for uncoupled systems::
 
                rb = np.nonzero(abs(k).max(0) < 0.005)[0]
 
@@ -198,10 +198,10 @@ class SolveExp2(_BaseODE):
                 in :func:`SolveExp2.tsolve`.
 
         rf : 1d array or None; optional
-            Index partition vector for res-flex modes; these will be
-            solved statically. As for the `rb` option, the `rf` option
-            only applies to modal space equations (possibly after the
-            `pre_eig` operation).
+            Index or bool partition vector for res-flex modes; these
+            will be solved statically. As for the `rb` option, the
+            `rf` option only applies to modal space equations
+            (possibly after the `pre_eig` operation).
         order : integer; optional
             Specify which solver to use:
 

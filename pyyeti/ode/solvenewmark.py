@@ -197,9 +197,9 @@ class SolveNewmark(_BaseODE):
             Time step; can be None if only want to solve a static
             problem or if only solving frequency domain problems
         rf : 1d array or None; optional
-            Index partition vector for res-flex modes; these will be
-            solved statically. The `rf` option only applies to modal
-            space equations.
+            Index or bool partition vector for res-flex modes; these
+            will be solved statically. The `rf` option only applies to
+            modal space equations.
 
         Notes
         -----
