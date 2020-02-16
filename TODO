@@ -334,7 +334,8 @@
 ~165. Newmark beta solver doesn’t allow mass to be None?
     - v0.97.1
 
-166. Add column plotter
+~166. Add column plotter
+    - v0.97.3
 
 ~167. In docs, make links to numpy/scipy/etc functions live
     - v0.97.1
