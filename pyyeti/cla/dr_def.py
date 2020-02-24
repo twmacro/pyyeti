@@ -904,7 +904,7 @@ class DR_Def(OrderedDict):
         in "static" and "dynamic" pieces::
 
             drdefs.copycat('SC_cg', '_static',
-                             uf_reds=(None, None 0, None))
+                             uf_reds=(None, None, 0, None))
             drdefs.copycat('SC_cg', '_dynamic',
                              uf_reds=(None, None, None, 0))
 

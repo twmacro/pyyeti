@@ -355,3 +355,6 @@
 ~171. Shouldn’t the rb and rf inputs to the solvers be allowed to be
      Boolean?
      - v0.97.3
+
+172. update locate.find_rows to be more like mat_intersect is
+     typically used and check for unique rows
