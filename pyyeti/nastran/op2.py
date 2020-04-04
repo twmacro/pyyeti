@@ -760,7 +760,7 @@ class OP2:
                 if (
                     L == r * (L // r)
                     and data[::r].min() > 0
-                    and np.diff(data[::r]).min() > 0
+                    and (len(data[::r]) == 1 or np.diff(data[::r]).min() > 0)
                     and data[1::r].min() > 0
                     and data[4::r].min() > 0
                 ):

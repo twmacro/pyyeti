@@ -2304,6 +2304,15 @@ def cbcheck(
 
            uset = n2p.addgrid(None, 1, 'b', 0, [0, 0, 0], 0)
 
+        .. note::
+            This USET table is typically relative to the coordinate
+            system of the Craig-Bampton component being checked, which
+            simplifies comparisons to documentation. In that case,
+            this USET is the same as the one used in
+            :func:`mk_net_drms`, but unlike the one used in
+            :func:`pyyeti.nastran.bulk.wtextseout` (which is relative
+            to superelement 0).
+
     uref : integer or array_like; optional
         Defines reference for geometry-based rigid-body modes in a
         format compatible with :func:`pyyeti.nastran.n2p.rbgeom_uset`:

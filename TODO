@@ -358,3 +358,44 @@
 
 172. update locate.find_rows to be more like mat_intersect is
      typically used and check for unique rows
+
+173. VRS should check for or enforce a good integration frequency vector
+
+174. Cbcheck should check for null rows and cols in BOTH mass and
+     stiffness … not just mass, because there can be massless DOF on
+     boundary (for example)
+
+~175. From Dave H about uset documentation:
+
+     You might consider [adding some] red formatting for your [uset]
+     note in wtextseout, to make it jump off the page a little more?
+     And also putting a warning in cbcheck similar to mk_net_drms
+     might be helpful.
+
+176. Make a non statistical version of DR_Results.form_stat_ext(k)
+ 
+    for sns in results.values():
+        mx = sns.mx.max(axis=1)
+        mn = sns.mn.min(axis=1)
+        argmx = sns.mx.argmax(axis=1)
+        argmn = sns.mn.argmin(axis=1)
+        sns.ext = np.column_stack((mx, mn))
+        cases = sns.cases
+        sns.maxcase = [cases[i] for i in argmx]
+        sns.mincase = [cases[i] for i in argmn]
+        sns.ext_x = None  # time information is lost
+
+        # handle SRS if it is there:
+        if "srs" in sns.__dict__:
+            for Q in sns.srs.srs:
+                arr = sns.srs.srs[Q]
+                sns.srs.ext[Q] = arr.max(axis=0)
+
+177. windowends is Tukey window … note this?
+
+178. Incorporate BTA's nastran comments from
+     pyyeti_comments-nastran.docx
+
+179. Add check_for_fatal to mknast (like mkruns.cam has it)
+
+180. Update mknast to be more generic and to create a Python script ?

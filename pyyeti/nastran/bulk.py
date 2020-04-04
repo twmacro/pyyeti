@@ -550,11 +550,11 @@ def rdcards(
     This routine can read fixed field (8 or 16 chars wide) or
     comma-delimited and can handle any number of continuations. Note
     that the characters in the continuation fields are ignored. It
-    also uses nas_sscanf to read the numbers, so numbers like 1.-3
-    (which means 1.e-3) are okay. Blank fields and string fields are
-    set to `blank`, except when `return_var` is 'list'; in that case,
-    string fields are kept as is and only blank fields are set to
-    `blank`.
+    also uses :func:`nas_sscanf` to read the numbers, so numbers like
+    1.-3 (which means 1.e-3) are okay. Blank fields and string fields
+    are set to `blank`, except when `return_var` is 'list'; in that
+    case, string fields are kept as is and only blank fields are set
+    to `blank`.
 
     Note: this routine is has no knowledge of any card, which means
     that it will not append trailing blanks to a card. For example, if
@@ -1084,14 +1084,15 @@ def mkcomment(comment, width=72, start="$ ", surround=True):
     width : integer; optional
         Specify maximum line length.
     start : string; optional
-        String to start each line.
+        String (i.e. "$ ", "# ") to start each comment line with.
     surround : bool; optional
         If True, a leading and trailing blank comment line will be
         included.
 
     Returns
     -------
-    None
+    string
+        The formatted comment.
 
     Notes
     -----
@@ -1416,8 +1417,9 @@ def wtgrids(
         by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
-    grids : 1d array_like
-        Vector of grid ids; N = len(grids).
+    grids : 1d array_like; length N
+        Vector of grid ids. The length of `grids` will be referenced
+        as ``N`` in explanations below.
     cp : integer scalar or vector
         Id of coordinate system(s) grids are defined in; either scalar
         or vector with N rows.
@@ -1655,88 +1657,6 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLE
     f.write("ENDT\n")
 
 
-def bulk2uset2(*args):
-    """
-    Read CORD2* and GRID cards from file(s) to make a USET table
-
-    Parameters
-    ----------
-    *args
-        File names (or handles as returned by :func:`open`). Files
-        referred to by handle are rewound first. If an argument is
-        None or a directory name, a GUI is open for file selection.
-
-    Returns
-    -------
-    uset : pandas DataFrame
-        A DataFrame as output by
-        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
-    coordref : dictionary
-        Dictionary with the keys being the coordinate system id and
-        the values being the 5x3 matrix::
-
-            [id  type 0]  # output coord. sys. id and type
-            [xo  yo  zo]  # origin of coord. system
-            [    T     ]  # 3x3 transformation to basic
-            Note that T is for the coordinate system, not a grid
-            (unless type = 1 which means rectangular)
-
-    Notes
-    -----
-    This is the reverse of :func:`uset2bulk`.
-
-    All grids are put in the 'b' set. This routine uses
-    :func:`pyyeti.nastran.n2p.addgrid` to build the output.
-
-    See also
-    --------
-    :func:`uset2bulk`, :func:`rdcards`, :func:`rdgrids`,
-    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
-    :mod:`pyyeti.nastran.n2p`.
-    """
-    grids = np.zeros((0, 8))
-    no_data = np.zeros((0, 11))
-    cord2r = cord2c = cord2s = no_data
-    if len(args) == 0:
-        args = [None]
-    for f in args:
-        f = guitools.get_file_name(f, read=True)
-        cord2r = np.vstack((cord2r, rdcards(f, "cord2r", no_data_return=no_data)))
-        cord2c = np.vstack((cord2c, rdcards(f, "cord2c", no_data_return=no_data)))
-        cord2s = np.vstack((cord2s, rdcards(f, "cord2s", no_data_return=no_data)))
-        g = rdgrids(f)
-        if g is not None:
-            grids = np.vstack((grids, g))
-
-    def _expand_cords(cord, v):
-        r = np.size(cord, 0)
-        if r > 0:
-            O = np.ones((r, 1)) * v
-            cord = np.hstack((cord[:, :1], O, cord[:, 1:]))
-            return cord
-        return np.zeros((0, 12))
-
-    cord2r = _expand_cords(cord2r, 1.0)
-    cord2c = _expand_cords(cord2c, 2.0)
-    cord2s = _expand_cords(cord2s, 3.0)
-    # each cord matrix is 12 columns:
-    #   [id, type, ref, a1, a2, a3, b1, b2, b3, c1, c2, c3]
-    cords = np.vstack((cord2r, cord2c, cord2s))
-    coordref = n2p.build_coords(cords)
-    i = np.argsort(grids[:, 0])
-    grids = grids[i, :]
-    uset = n2p.addgrid(
-        None,
-        grids[:, 0].astype(np.int64),
-        "b",
-        grids[:, 1],
-        grids[:, 2:5],
-        grids[:, 5],
-        coordref,
-    )
-    return uset, coordref
-
-
 def bulk2uset(*args):
     """
     Read CORD2* and GRID cards from file(s) to make a USET table
@@ -1744,9 +1664,10 @@ def bulk2uset(*args):
     Parameters
     ----------
     *args
-        File names (or handles as returned by :func:`open`). Files
-        referred to by handle are rewound first. If an argument is
-        None or a directory name, a GUI is open for file selection.
+        File names or file handles as returned by :func:`open`. Files
+        referred to by handle are rewound first. A GUI is open for
+        file selection if no arguments are provided or if an argument
+        is either a directory name or None.
 
     Returns
     -------
@@ -1926,7 +1847,7 @@ def rdeigen(f, use_pandas=True):
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
     use_pandas : bool; optional
-        If True, the values with be pandas objects
+        If True, the values will be pandas objects
 
     Returns
     -------
@@ -2029,13 +1950,26 @@ def wtnasints(f, start, ints):
     -------
     None
 
+    Notes
+    -----
+
+    This routine is typically not called directly, but could be useful
+    to write cards that are not already accounted for in this
+    module. As an example usage, here is the code inside
+    :func:`wtcsuper`::
+
+        f.write(f"CSUPER  {superid:8d}{0:8d}")
+        wtnasints(f, 4, grids)
+
     Examples
     --------
+    >>> import numpy as np
     >>> from pyyeti import nastran
-    >>> wtnasints(1, 2, np.arange(20))
+    >>> nastran.wtnasints(1, 2, np.arange(28))
            0       1       2       3       4       5       6       7
                    8       9      10      11      12      13      14      15
-                  16      17      18      19
+                  16      17      18      19      20      21      22      23
+                  24      25      26      27
     """
     n = len(ints)
     firstline = 10 - start
@@ -2059,7 +1993,7 @@ def rdcsupers(f):
     Parameters
     ----------
     f : string or file_like or None
-        Either a name of a file, or is a file_like object as returned
+        Either a filename, or is a file_like object as returned
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
@@ -2067,8 +2001,9 @@ def rdcsupers(f):
     Returns
     -------
     dictionary
-        The keys are the CSUPER IDs and the values are the ids from
-        the card: [csuper_id, 0, node_ids]
+        The dictionary keys are the CSUPER IDs. The dictionary values
+        are all the ids from the CSUPER card in the form: [csuper_id, 0,
+        node_id_1, node_id_2, … node_id_n]
 
     Notes
     -----
@@ -3507,10 +3442,18 @@ def wtextseout(
         Index partition vector for the bset
     uset : pandas DataFrame
         A DataFrame as output by
-        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Unlike
-        :func:`pyyeti.cb.mk_net_drms`, this `uset` defines the b-set
-        nodes relative to the basic coordinate system of superelement
-        0.
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`.
+
+        .. warning::
+            Unlike :func:`pyyeti.cb.mk_net_drms`, this USET table
+            defines the b-set nodes relative to the basic coordinate
+            system of superelement 0. This is so the external
+            superelement is positioned properly. Note however that the
+            "displacement" coordinate system(s) (specified after the
+            coordinates on the "GRID" card) must match whatever the
+            displacement coordinate system(s) are for the
+            Craig-Bampton component.
+
     spoint1 : integer
         Starting value for the SPOINTs (for modal DOF)
     sedn : integer; optional
@@ -3678,7 +3621,8 @@ def mknast(
     bottom="",
 ):
     """
-    Create shell script to run chain of nastran (or other) runs.
+    Creates a shell script for running a chain of Nastran (or other)
+    runs.
 
     Note that all inputs except `script` must be named and can be
     input in any order.
@@ -3694,9 +3638,11 @@ def mknast(
     nasopt : string; optional
         Options for nastran command
     ext : string; optional
-        The extension on the f06 file; usually 'f06' or 'out'
+        The extension of the Nastran output (f06) file; usually 'f06'
+        or 'out'
     stoponfatal : bool; optional
-        Set to True if you want the script to exit on first fatal
+        Set to True if you want the script to exit on first FATAL
+        instead of continuing on
     shell : string; optional
         Shell program to write at top of script, eg: #!`shell`
     files : string or None; optional
@@ -3812,15 +3758,17 @@ def rddtipch(f, name="TUG1"):
     Returns
     -------
     id_dof : ndarray
-        2-column matrix:  [id, dof]. Number of rows corresponds to
-        matrix in .op4 file.
+        2-column matrix of the form: ``[id, dof]``. The number of rows
+        in `id_dof` corresponds to the matching matrix in .op4 file
+        (see Notes).
 
     Notes
     -----
-    This routine is useful for .pch files written by the EXTSEOUT
-    command. The 2nd record of TUG1 contains the DOF that correspond
-    to the rows of the MUG1 matrix on the .op4 file. That matrix can
-    be read by the op4 module.
+    This routine is useful for reading data from .pch files written by
+    the EXTSEOUT command. The 2nd record of "TUG1" (for example)
+    contains the DOF that correspond to the rows of the "MUG1" matrix
+    in the .op4 file. That matrix can be read by the
+    :mod:`pyyeti.nastran.op4` module.
 
     Example usage::
 
