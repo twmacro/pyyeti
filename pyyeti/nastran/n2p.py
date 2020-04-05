@@ -3,10 +3,11 @@
 Tools for working with data that originated in Nastran. Typically,
 a Nastran modes run is executed with the "nas2cam" DMAP (CAM is now
 replaced by Python but the DMAP retains the old name). This creates an
-op2/op4 file pair which is read by :func:`pyyeti.nastran.rdnas2cam`.
-After that, the tools in this module can be used to create rigid-body
-modes, form data recovery matrices, make partition vectors based on
-sets, form RBE3-like interpolation matrices, etc.
+op2/op4 file pair which is read by
+:func:`pyyeti.nastran.op2.rdnas2cam`.  After that, the tools in this
+module can be used to create rigid-body modes, form data recovery
+matrices, make partition vectors based on sets, form RBE3-like
+interpolation matrices, etc.
 
 The functions provided by this module can be accessed by just
 importing the "nastran" package. For example, you can access the
@@ -1857,7 +1858,7 @@ def build_coords(cords):
     Parameters
     ----------
     cords : 2d array_like
-        2d array, n x 12. Each row has::
+        2d array, n x 12. Each row has:
 
         .. code-block:: none
 
@@ -3722,17 +3723,18 @@ def addulvs(nas, *ses, **kwargs):
 
     Example usage::
 
-        >>> from pyyeti.nastran import n2p
-        >>> from pyyeti.pp import PP
+        >>> from pyyeti.nastran import op2, n2p   # doctest: +SKIP
+        >>> from pyyeti.pp import PP              # doctest: +SKIP
 
-        >>> nas = nastran.rdnas2cam("nas2cam")
-        >>> n2p.addulvs(nas, 101, 102)
+        >>> nas = op2.rdnas2cam("nas2cam")        # doctest: +SKIP
+        >>> n2p.addulvs(nas, 101, 102)            # doctest: +SKIP
 
-        >>> PP(nas['ulvs'])
+        >>> PP(nas['ulvs'])                       # doctest: +SKIP
 
         <class 'dict'>[n=2]
             101: float64 ndarray 2484 elems: (46, 54)
             102: float64 ndarray 1728 elems: (32, 54)
+
     """
     if "ulvs" not in nas:
         nas["ulvs"] = {}
