@@ -2195,13 +2195,13 @@ def _solve_eig(fout, k, m, mtype, ktype, types):
     """
     # chop out zero rows/cols ... assume symmetry:
     n = m.shape[0]
-    nz = m.any(axis=0)
+    nz = m.any(axis=0) | k.any(axis=0)
     z = ~nz
     if z.any():
         # there are zero cols
         fout.write(
-            "\nTrimming out null columns (and corresponding "
-            "rows) for free-free eigen problem:\n"
+            "\nTrimming out null columns (found in both mass and stiffness)\n"
+            "and corresponding rows for free-free eigen problem:\n"
         )
         fout.write("\tpv = " + str(z.nonzero()[0]) + "\n\n")
         nz2 = np.ix_(nz, nz)
@@ -2276,8 +2276,8 @@ def cbcheck(
     Mcb : 2d ndarray
         Craig-Bampton mass. In order to solve the free-free eigenvalue
         problem, this routine first finds any null columns in `Mcb`
-        and partitions out those columns and rows (symmetrically) of
-        `Mcb` and `Kcb`.
+        and `Kcb` and partitions out those columns and rows
+        (symmetrically) of `Mcb` and `Kcb`.
     Kcb : 2d ndarray
         Craig-Bampton stiffness.
     bseto : 1d ndarray

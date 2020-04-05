@@ -1296,6 +1296,7 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     rf = len(freq)
     if Q <= 0.5:
         raise ValueError("Q must be > 0.5 since VRS assumes underdamped equations.")
+
     # expand PSD:
     psdfull = psd.interp((Freq, PSD), freq, linear)
     if PSD.ndim == 1:
@@ -1306,6 +1307,8 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     df[1:-1] = (freq[2:] - freq[:-2]) / 2
     df[0] = freq[1] - freq[0]
     df[-1] = freq[-1] - freq[-2]
+
+    # check for adequate freq step for integration:
 
     if Fn is None:
         Fn = freq

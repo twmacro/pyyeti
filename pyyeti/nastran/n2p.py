@@ -607,10 +607,10 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
 
     Examples
     --------
-    A rigid-body mode shape matrix with two identical nodes is
-    defined. Then, the second node will be transformed into a
-    different coordinate system and scaled up by 10.0. Also, the 3
-    rotation rows for the second grid are not included.
+    A rigid-body mode shape matrix with two identical nodes is defined
+    by hand. Then, the second node will be transformed into a
+    different coordinate system and scaled up by 10.0. Also, note that
+    the 3 rotation rows for the second grid are not included.
 
     >>> import numpy as np
     >>> from pyyeti.nastran import n2p
@@ -625,7 +625,7 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
     ...     [0.,   1.,   0., -15.,   0.,   5.],
     ...     [0.,   0.,   1.,  10.,  -5.,   0.],
     ... ])
-    >>> c = 1 / np.sqrt(2)
+    >>> c = 1 / np.sqrt(2)  # a 45 degree angle
     >>> T = np.array([[1., 0., 0.],
     ...               [0., c, c],
     ...               [0., -c, c]])
@@ -777,7 +777,7 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
 
 def expanddof(dof):
     """
-    Expands DOF specification
+    Expands degree of freedom (DOF) specification
 
     Parameters
     ----------
@@ -1851,8 +1851,8 @@ def mkusetcoordinfo(cord, uset, coordref):
 
 def build_coords(cords):
     """
-    Builds the coordinate system dictionary from array of coordinate
-    card information.
+    Builds the coordinate system dictionary from an array of
+    coordinate card information.
 
     Parameters
     ----------
@@ -1866,6 +1866,13 @@ def build_coords(cords):
                 ctype = 1 for rectangular
                 ctype = 2 for cylindrical
                 ctype = 3 for spherical
+
+        Each row provides the same information as would be provided on
+        a CORD2R, CORD2C, or CORD2S card. The ID of each coordinate
+        system is ``cid``, the type is ``ctype`` as shown above, and
+        ``refcid`` is the reference coordinate system ID. The points
+        A, B and C are defined by ``(a1, a2, a3)``, ``(b1, b2, b3)``
+        and ``(c1, c2, c3)``, respectively.
 
     Returns
     -------
@@ -2440,26 +2447,42 @@ def _addgrid_get_uset(nasset, mask, smap):
 
 
 def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
-    """
+    r"""
     Add a grid or grids to a USET table.
 
     Parameters
     ----------
     uset : pandas DataFrame or None
-        A DataFrame as output by
-        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`; can be None. If not
-        None, this routine will use :func:`pandas.concat` to return a
-        new, expanded DataFrame.
+        None or a DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. If a DataFrame, this
+        routine will use :func:`pandas.concat` to return a new,
+        expanded DataFrame that includes the new grids.
     gid : integer or list_like of integers
         Grid id(s), all must be unique.
-    nasset : string or list_like of strings
+    nasset : string or list_like of strings; lower case
         The set(s) to put the grid in (eg "m"); each string must
         either be one of these letters: m, s, o, q, r, c, b, e, or it
         can be a 6-character string of set letters, one for each dof.
+
+        The sets (and supersets) currently accounted for are::
+
+            Sets              Supersets
+
+             M  -------------------------------------\
+             S  ------------------------------\       > G --\
+             O  -----------------------\       > N --/       \
+             Q  ----------------\       > F --/       \       \
+             R  ---------\       > A --/       \       \       > P
+             C  --\       > T --/       \       > FE    > NE  /
+             B  ---> L --/               > D   /       /     /
+             E  ------------------------/-----/-------/-----/
+
+        See :func:`mkusetmask` for more information on sets.
+
     coordin : integer or 4x3 matrix; or list_like of those items
         If integer(s), specifies id(s) of the input coordinate system
         which is defined in uset (or coordref). If a 4x3 matrix(es),
-        defines the input coordinate system (see below). Note the id 0
+        defines the input coordinate system (see below). Note: ID 0
         is the basic coordinate system and is always available.
     xyz : 1d or 2d array_like
         Each row defines grid location(s) in `coordin` coordinates::
@@ -2528,9 +2551,8 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     In the demo below, a single call to this routine is used both for
     simplicity and efficiency. The other way to do this is to call
     this routine for each node; in that case, the uset DataFrame is
-    expanded each call (meaning a new DataFrame is created every for
-    every successive node). For example, the less efficient method is
-    this::
+    expanded each call (meaning a new DataFrame is created for every
+    successive node). For example, the less efficient method is this::
 
         uset = None
         uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
@@ -3679,12 +3701,13 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
 
 def addulvs(nas, *ses, **kwargs):
     """
-    Add ULVS matrices to the nas (nas2cam) record.
+    Add ULVS matrices to the `nas` "nas2cam" data structure
 
     Parameters
     ----------
     nas : dictionary
-        This is the nas2cam dictionary: ``nas = op2.rdnas2cam()``
+        This is the nas2cam dictionary: ``nas =
+        op2.rdnas2cam()``. This gets modified; see notes below.
     *ses : list
         Remaining args are the superelement ids for which to compute a
         ULVS via :func:`formulvs`.
@@ -3693,9 +3716,23 @@ def addulvs(nas, *ses, **kwargs):
 
     Notes
     -----
+    This routine adds the "ULVS" matrices to the ``nas["ulvs"]``
+    dictionary. The matrices are indexed by the superelement
+    number. See :func:`formulvs` for more information.
+
     Example usage::
 
-        addulvs(nas, 100, 200, 300)
+        >>> from pyyeti.nastran import n2p
+        >>> from pyyeti.pp import PP
+
+        >>> nas = nastran.rdnas2cam("nas2cam")
+        >>> n2p.addulvs(nas, 101, 102)
+
+        >>> PP(nas['ulvs'])
+
+        <class 'dict'>[n=2]
+            101: float64 ndarray 2484 elems: (46, 54)
+            102: float64 ndarray 1728 elems: (32, 54)
     """
     if "ulvs" not in nas:
         nas["ulvs"] = {}

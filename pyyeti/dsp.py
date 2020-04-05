@@ -1910,7 +1910,10 @@ def _vector_to_axis(v, ndim, axis):
 
 def windowends(sig, portion=0.01, ends="front", axis=-1):
     """
-    Apply a 1-cos (half-Hann) window to the ends of a signal.
+    Apply parts of a cosine window to the ends of a signal.
+
+    This is also called the "Tukey" window. The window values are
+    computed from: ``(1 - cos)/2``.
 
     Parameters
     ----------
@@ -2575,8 +2578,8 @@ def _get_ramp(df, bw, on):
     #     -log(nearzero) = (df*(npts-1)) ** 2 / den
     #     den = (df*(npts-1)) ** 2 / (-log(nearzero))
     nearzero = 1 / npts / 4
-    den = -(df * (npts - 1)) ** 2 / np.log(nearzero)
-    ramp = np.exp(-(np.arange(npts + 1) * df) ** 2 / den)
+    den = -((df * (npts - 1)) ** 2) / np.log(nearzero)
+    ramp = np.exp(-((np.arange(npts + 1) * df) ** 2) / den)
     ramp[-1] = 0.0
     if not on:
         ramp = ramp[::-1]

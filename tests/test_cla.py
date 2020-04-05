@@ -597,7 +597,7 @@ def toes(pth):
             caseid = "{} {:2d}".format(event, j + 1)
             results.time_data_recovery(sol, nas["nrb"], caseid, DR, LC, j)
 
-        results.form_stat_ext(stats.ksingle(0.99, 0.90, LC))
+        results.calc_stat_ext(stats.ksingle(0.99, 0.90, LC))
 
         # save results:
         cla.save("results.pgz", results)
@@ -1076,7 +1076,7 @@ def check_split():
             assert_raises(TypeError, mg.split)
 
             if do_stats:
-                mg["extreme"].form_stat_ext(stats.ksingle(0.99, 0.90, LC))
+                mg["extreme"].calc_stat_ext(stats.ksingle(0.99, 0.90, LC))
 
             cat = "cglf"
             for cat in mg["extreme"]:

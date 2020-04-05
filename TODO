@@ -358,10 +358,14 @@
 
 172. update locate.find_rows to be more like mat_intersect is
      typically used and check for unique rows
+      - this could use "findfirstandlast" routine
+      - have two modes of output:
+         - vector & error out on not found or if multiple found
+         - list of lists, no erroring
 
 173. VRS should check for or enforce a good integration frequency vector
 
-174. Cbcheck should check for null rows and cols in BOTH mass and
+~174. Cbcheck should check for null rows and cols in BOTH mass and
      stiffness … not just mass, because there can be massless DOF on
      boundary (for example)
 
@@ -372,7 +376,7 @@
      And also putting a warning in cbcheck similar to mk_net_drms
      might be helpful.
 
-176. Make a non statistical version of DR_Results.form_stat_ext(k)
+~176. Make a non statistical version of DR_Results.form_stat_ext(k)
  
     for sns in results.values():
         mx = sns.mx.max(axis=1)
@@ -391,7 +395,7 @@
                 arr = sns.srs.srs[Q]
                 sns.srs.ext[Q] = arr.max(axis=0)
 
-177. windowends is Tukey window … note this?
+~177. windowends is Tukey window … note this?
 
 178. Incorporate BTA's nastran comments from
      pyyeti_comments-nastran.docx
@@ -399,3 +403,5 @@
 179. Add check_for_fatal to mknast (like mkruns.cam has it)
 
 180. Update mknast to be more generic and to create a Python script ?
+
+181. Document the Rayleigh peak factor in nice equations

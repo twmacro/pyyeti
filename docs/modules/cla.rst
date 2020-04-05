@@ -41,9 +41,10 @@ Class for storing and working with CLA results
     DR_Results.all_base_events
     DR_Results.all_nonbase_events
     DR_Results.all_categories
+    DR_Results.calc_ext
+    DR_Results.calc_stat_ext
     DR_Results.delete_extreme
     DR_Results.form_extreme
-    DR_Results.form_stat_ext
     DR_Results.frf_data_recovery
     DR_Results.init
     DR_Results.init_extreme_cat

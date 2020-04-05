@@ -525,7 +525,7 @@ class DR_Results(OrderedDict):
 
             # change to statistical extrema:
             ncases = len(new_res['extreme'].cases)
-            new_res['extreme'].form_stat_ext(
+            new_res['extreme'].calc_stat_ext(
                 stats.ksingle(0.99, 0.90, ncases))
 
             # compare new extrema to original:
@@ -1340,9 +1340,51 @@ class DR_Results(OrderedDict):
         if j == n - 1:
             del res._psd
 
-    def form_stat_ext(self, k):
+    def calc_ext(self):
         """
-        Form statistical extreme response for event results
+        Calculate the .ext attribute from the .mx and .mn attributes
+
+        Notes
+        -----
+        Each results SimpleNamespace (eg, ``self['SECO1']['SC_ifa']``)
+        is expected to have `.mx` and `.mn` members. Each of these is
+        data-recovery rows x load cases. This routine will calculate a
+        new `.ext` member by::
+
+           .ext = [max(mx), min(mn)]
+
+        If ``.srs.srs[q]`` is present, a new ``srs.ext[q]`` will be
+        calculated as well. Each ``.srs.srs[q]`` is assumed to be
+        cases x rows x freq.
+
+        The `.maxcase` and `.mincase` members are set to the
+        corresponding maximizing and minimizing label from
+        ``.cases``. The `.ext_x` member is set to None.
+
+        Note that this method is not needed in typical situations,
+        since the extreme values are computed automatically (during
+        the call to :func:`time_data_recovery`, for example).
+        """
+        for res in self.values():
+            mx = res.mx.max(axis=1)
+            mn = res.mn.min(axis=1)
+            argmx = res.mx.argmax(axis=1)
+            argmn = res.mn.argmin(axis=1)
+            res.ext = np.column_stack((mx, mn))
+            cases = res.cases
+            res.maxcase = [cases[i] for i in argmx]
+            res.mincase = [cases[i] for i in argmn]
+            res.ext_x = None
+
+            # handle SRS if it is there:
+            if "srs" in res.__dict__:
+                for Q in res.srs.srs:
+                    arr = res.srs.srs[Q]
+                    res.srs.ext[Q] = arr.max(axis=0)
+
+    def calc_stat_ext(self, k):
+        """
+        Calculate statistical extreme response for event results
 
         Parameters
         ----------
@@ -1380,6 +1422,22 @@ class DR_Results(OrderedDict):
                 for Q in res.srs.srs:
                     arr = res.srs.srs[Q]
                     res.srs.ext[Q] = arr.mean(axis=0) + k * arr.std(ddof=1, axis=0)
+
+    def form_stat_ext(self, k):
+        """
+        Form statistical extreme response for event results
+
+        Notes
+        -----
+        This routine is deprecated. It has been renamed to
+        :func:`calc_stat_ext` instead.
+        """
+        warnings.warn(
+            "`form_stat_ext` has been renamed to `calc_stat_ext` and will "
+            "removed in a future version.",
+            FutureWarning,
+        )
+        return self.calc_stat_ext(k)
 
     def all_base_events(self, top_level_name="Top Level"):
         """

@@ -64,7 +64,7 @@ if 1:
         caseid = "{} {:2d}".format(event, j + 1)
         results.time_data_recovery(sol, nas["nrb"], caseid, DR, LC, j)
 
-    results.form_stat_ext(stats.ksingle(0.99, 0.90, LC))
+    results.calc_stat_ext(stats.ksingle(0.99, 0.90, LC))
 
     # save results:
     cla.save("results.pgz", results)

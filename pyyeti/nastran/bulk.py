@@ -2923,7 +2923,7 @@ def wtrspline_rings(
     independent="ring1",
 ):
     """
-    Creates a smooth RSPLINE to connect two rings of grids.
+    Creates a smooth RSPLINE to connect two rings of grids
 
     Parameters
     ----------
@@ -3014,7 +3014,7 @@ def wtrspline_rings(
          ring 1.
       2. Create N new ring 1 grids at station and radius of ring 2
          grids, but at the same angular location as original N.
-      3. RBE2 these new grids to the N original grids ... new grids
+      3. RBE2 these new grids to the N original grids. The new grids
          are independent.
       4. Write RSPLINE cards using :func:`wtrspline`. The first
          RSPLINE starts at the independent grid (on ring 1 or ring 2
@@ -3240,7 +3240,7 @@ def wtrspline_rings(
 
 def wtvcomp(f, baa, kaa, bset, spoint1):
     """
-    Write the VCOMP DMIG bulk data for P. Blelloch's BH DMAP
+    Write VCOMP DMIG bulk data for P. Blelloch's Benfield-Hruda DMAP
 
     Parameters
     ----------
