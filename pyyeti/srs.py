@@ -9,6 +9,7 @@ import multiprocessing as mp
 import ctypes
 import os
 from math import sin, cos, exp, sqrt, pi
+from warnings import warn
 import numpy as np
 import scipy.signal as signal
 import scipy.interpolate as interp
@@ -1291,31 +1292,48 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     >>> resp['psd'][:, 0].max(axis=1)
     array([ 2.69,  4.04,  1.47])
     """
-    Freq, PSD, npsds = psd.proc_psd_spec(spec)
-    freq = np.atleast_1d(freq)
-    rf = len(freq)
     if Q <= 0.5:
         raise ValueError("Q must be > 0.5 since VRS assumes underdamped equations.")
 
-    # expand PSD:
-    psdfull = psd.interp((Freq, PSD), freq, linear)
-    if PSD.ndim == 1:
-        psdfull = psdfull[:, None]
-
-    # Create delta_f
-    df = np.empty(rf)
-    df[1:-1] = (freq[2:] - freq[:-2]) / 2
-    df[0] = freq[1] - freq[0]
-    df[-1] = freq[-1] - freq[-2]
-
-    # check for adequate freq step for integration:
+    Freq, PSD, npsds = psd.proc_psd_spec(spec)
+    freq = np.atleast_1d(freq)
 
     if Fn is None:
         Fn = freq
         do_interp = False
     else:
         Fn = np.atleast_1d(Fn)
+        freq = np.unique(np.hstack((freq, Fn)))
         do_interp = True
+    rf = len(freq)
+
+    # expand PSD:
+    psdfull = psd.interp((Freq, PSD), freq, linear)
+    if PSD.ndim == 1:
+        psdfull = psdfull[:, None]
+
+    # check for adequate delta_freq for integration:
+    df = np.empty(rf)
+    df[:-1] = freq[1:] - freq[:-1]
+    df[-1] = freq[-1] - freq[-2]
+    if do_interp:
+        pv = np.where((freq >= Fn.min()) & (freq <= Fn.max()))[0]
+        bad_df = df[pv] > freq[pv] / Q
+    else:
+        bad_df = df > freq / Q
+
+    if bad_df.any():
+        warn(
+            "Integration frequency vector may produce inaccurate results;"
+            " refine the step. See the documentation for more information.",
+            RuntimeWarning,
+        )
+
+    # Create delta_f for area calculation:
+    df = np.empty(rf)
+    df[1:-1] = (freq[2:] - freq[:-2]) / 2
+    df[0] = freq[1] - freq[0]
+    df[-1] = freq[-1] - freq[-2]
 
     # Compute Miles' equation
     if getresp or getmiles:
