@@ -363,7 +363,40 @@
          - vector & error out on not found or if multiple found
          - list of lists, no erroring
 
-173. VRS should check for or enforce a good integration frequency vector
+        @numba.jit(nopython=True)
+        def findfirstandlast(haystack, needle):
+            left = 0
+            right = haystack.size
+            while left < right:
+                mid = (left + right) // 2
+                if needle > haystack[mid]:
+                    left = mid + 1
+                else:
+                    right = mid
+            while right < haystack.size and needle == haystack[right]:
+                right += 1
+            return left, right  # non-inclusive on the right
+        
+         
+        def get_active_tloads_pv(rf_info, dofmap):
+            dofmap = np.atleast_2d(dofmap)
+            dofmap = dofmap[:, :2]
+            # n = dofmap.shape[0]
+         
+            tloads = rf_info.rf_maps["tload"][:, 2:]
+            haystack = tloads[:, 0] * 10 + tloads[:, 1]
+            needles = dofmap[:, 0] * 10 + dofmap[:, 1]
+         
+            i = np.argsort(haystack, kind="stable")
+            pv = []
+            sorted_haystack = haystack[i]
+            for needle in needles:
+                first, last = findfirstandlast(sorted_haystack, needle)
+                pv.append([i[j] for j in range(first, last)])
+            return pv
+
+
+~173. VRS should check for or enforce a good integration frequency vector
 
 ~174. Cbcheck should check for null rows and cols in BOTH mass and
      stiffness … not just mass, because there can be massless DOF on
@@ -404,4 +437,9 @@
 
 180. Update mknast to be more generic and to create a Python script ?
 
-181. Document the Rayleigh peak factor in nice equations
+~181. Document the Rayleigh peak factor in nice equations
+
+~182. DR_Def.merge & DR_Event.add … add doc note about raising error on
+     duplicate names
+
+~183. Cbcheck: uset should say it’s for the b-set

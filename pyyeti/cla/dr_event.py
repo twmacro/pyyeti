@@ -207,6 +207,11 @@ class DR_Event:
         previous settings instead of multiply, you could do this::
 
             DR.add(nas, drdefs, uf_reds, lambda old, new: old+new)
+
+        Raises
+        ------
+        ValueError
+            When the there are duplicate category names.
         """
         if drdefs is None:
             return

@@ -2293,7 +2293,7 @@ def cbcheck(
         based rigid-body modes. If `bref` is not all 6-DOF of a single
         node, you'll also want to set `rb_norm` to True.
     uset : pandas DataFrame; optional for single point interface
-        A DataFrame as output by
+        The b-set USET table. This is a DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2` or
         :func:`pyyeti.nastran.n2p.addgrid`. For information on the
         format of this matrix, see

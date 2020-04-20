@@ -336,14 +336,52 @@ def fdepsd(
     :func:`pyyeti.srs.vrs` to compute the VRS response in the
     absolute-acceleration case). This is to check for conservatism.
     Instead of using 3 for peak factor (for 3-rms or 3-sigma), use
-    ``sqrt(2*log(f*T0))`` for the peak factor. (This peak factor is
-    explained more under the `resp_time` option in
-    :func:`pyyeti.cla.DR_Results.psd_data_recovery`.) Also, enveloping
-    multiple specifications from multiple Q's is worth considering.
+    :math:`\sqrt{2 \ln(f \cdot T_0)}` for the peak factor (derived
+    below). Also, enveloping multiple specifications from multiple Q's
+    is worth considering.
 
     Note that this analysis can be time consuming; the time is
     proportional to the number of frequencies multiplied by the number
     of time steps in the signal.
+
+    The derivation of the peak factor is as follows. For the special
+    case of narrow band noise where the instantaneous amplitudes
+    follow the Gaussian distribution, the resulting probability
+    density function for the peak amplitudes follow the Rayleigh
+    distribution [#fde3]_. The single DOF response to Gaussian input
+    is reasonably estimated as Gaussian narrow band. Let this response
+    have the standard deviation :math:`\sigma`. From the Rayleigh
+    distribution, the probability of a peak being greater than
+    :math:`A` is:
+
+    .. math::
+        Prob[peak > A] = e ^ {\frac{-A^2}{2 \sigma^2}}
+
+    To estimate the maximum peak for the response of a single DOF
+    system with frequency :math:`f`, find the amplitude that would be
+    expected to occur once within the allotted time (:math:`T_0`). That
+    is, set the product of the probability of a cycle amplitude being
+    greater than :math:`A` and the number of cycles equal to 1.0. The
+    number of cycles of :math:`f` Hz is:
+
+    .. math::
+        N = f \cdot T_0
+
+    Therefore:
+
+    .. math::
+        \begin{aligned}
+        e ^ {\frac{-A^2}{2 \sigma^2}} f \cdot T_0 &= 1.0
+
+        \frac{-A^2}{2 \sigma^2} &= \ln(1.0) - \ln(f \cdot T_0)
+
+        \frac{A^2}{2 \sigma^2} &= \ln(f \cdot T_0)
+
+        A^2 &= 2 \sigma^2 \ln(f \cdot T_0)
+
+        A &= \sqrt{2 \ln(f \cdot T_0)} \sigma
+
+        \end{aligned}
 
     References
     ----------
@@ -355,6 +393,11 @@ def fdepsd(
     .. [#fde2] "Implementing the Fatigue Damage Spectrum and Fatigue
             Damage Equivalent Vibration Testing"; Scot I. McNeill; 79th
             Shock and Vibration Symposium, October 26 – 30, 2008.
+
+    .. [#fde3] Bendat, Julius S., "Probability Functions for Random
+            Responses: Prediction of Peaks, Fatigue Damage, and
+            Catastrophic Failures", NASA Contractor Report 33 (NASA
+            CR-33), 1964.
 
     See also
     --------

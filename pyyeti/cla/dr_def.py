@@ -1110,6 +1110,11 @@ class DR_Def(OrderedDict):
         except calling :func:`DR_Def.merge` directly is more efficient
         if there are more than two instances being merged.
 
+        Raises
+        ------
+        ValueError
+            When the there are duplicate category names.
+
         Examples
         --------
         For demonstration, create two data recovery categories using
@@ -1152,7 +1157,7 @@ class DR_Def(OrderedDict):
         >>> drdefs    # doctest: +ELLIPSIS
         DR_Def (...) with 2 categories: ['_vars', 'atm', 'dtm']
         """
-        # to check for duplicate category names, use a set:
+        # use a set to check for duplicate category names:
         cats = set(first)
         cats.remove("_vars")
         duplicate_cats = set()

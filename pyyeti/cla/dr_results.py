@@ -1249,14 +1249,9 @@ class DR_Results(OrderedDict):
             deviation).
         resp_time : scalar or None; optional
             If not None, used to compute frequency-dependent peak
-            factors for SRS from: ``sqrt(2*log(resp_time*f))``. For
-            narrowband random vibrations (like a single DOF response
-            to gaussian input), the peaks follow the Rayleigh
-            distribution. To derive, set the product of the
-            probability of a cycle amplitude being greater than `A`
-            (``exp(-A**2/(2*sigma**2))``) times the count of cycles at
-            `f` Hz (``resp_time*f``) equal to 1.0 cycles. Solving for
-            `A` gives ``A = sigma*sqrt(2*log(resp_time*f))``.
+            factors for SRS from: ``sqrt(2*log(resp_time*f))``. See
+            :func:`pyyeti.fdepsd.fdepsd` for the derivation of this
+            factor.
 
         Returns
         -------
@@ -1269,12 +1264,17 @@ class DR_Results(OrderedDict):
 
         Note: the x-value entries (eg, `mx_x`, `ext_x`) are really
         the "apparent frequency" values, an estimate for the number of
-        positive slope zero crossings per second [#rand1]_.
+        positive slope zero crossings per second [#rand1]_, [#rand2]_.
 
         References
         ----------
         .. [#rand1] Wirsching, Paez, Ortiz, "Random Vibrations: Theory
                     and Practice", Dover Publications, Inc., 2006.
+
+        .. [#rand2] Bendat, Julius S., "Probability Functions for
+                    Random Responses: Prediction of Peaks, Fatigue
+                    Damage, and Catastrophic Failures", NASA
+                    Contractor Report 33 (NASA CR-33), 1964.
         """
 
         def _calc_rms(df, p):
