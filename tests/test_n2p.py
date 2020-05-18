@@ -494,6 +494,35 @@ def test_replace_basic_cs():
     assert_raises(ValueError, n2p.replace_basic_cs, uset, 10, new_cs_in_basic)
 
 
+def test_replace_basic_cs_2():
+    cs10 = [[10, 1, 0], [0, 0, 0], [0, 0, 1], [1, 0, 0]]
+
+    #  first, make a uset table with node 1 at (0, 0, 0:
+    uset0 = n2p.addgrid(None, 1, "b", 0, [0.0, 0.0, 0.0], 0)
+
+    new_cs_id = 50
+    new_cs_in_basic = np.array(
+        [[10.0, 10.0, 10.0], [10.0, 10.0, 11.0], [11.0, 10.0, 10.0]]
+    )
+    uset1 = n2p.replace_basic_cs(uset0, new_cs_id, new_cs_in_basic)
+    uset2 = n2p.replace_basic_cs(uset0, np.vstack(([new_cs_id, 0, 0], new_cs_in_basic)))
+
+    assert np.all(uset1 == uset2)
+    assert_raises(
+        ValueError,
+        n2p.replace_basic_cs,
+        uset0,
+        np.vstack(([new_cs_id, 1, 0], new_cs_in_basic)),
+    )
+
+    assert_raises(
+        ValueError,
+        n2p.replace_basic_cs,
+        uset0,
+        np.vstack(([new_cs_id, 0, 1], new_cs_in_basic)),
+    )
+
+
 def test_make_uset():
     # improper sized xyz:
     assert_raises(ValueError, n2p.make_uset, [[1, 123456], [2, 0]], 1, [[1, 1, 1]])

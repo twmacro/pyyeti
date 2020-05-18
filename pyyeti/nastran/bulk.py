@@ -2947,9 +2947,15 @@ def wtrspline_rings(
 
         The default name in the output comments for ring 1 is 'Ring
         1'. By using the tuple input option, you can provide a
-        name. For example, this is equivalent to the default::
+        name. For example, the default is equivalent to::
 
             ('Ring 1', r1grids)
+
+        .. note::
+             Note that when using a USET table, the grids can be
+             defined in any local coordinate system(s). However, both
+             `r1grids` and `r2grids` must use the same basic
+             coordinate system.
 
     r2grids : 2d array_like or DataFrame or tuple
         Contains the ids and locations (and optionally, the name) of

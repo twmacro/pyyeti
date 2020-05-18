@@ -16,12 +16,12 @@ import matplotlib.offsetbox as offsetbox
 
 def form1(x, y, n, ind, ax, line):
     """Default annotation for plots with 1 line"""
-    return f"x: {x:0.2f}\ny: {y:0.2f}"
+    return f"x: {x:.5g}\ny: {y:5g}"
 
 
 def form2(x, y, n, ind, ax, line):
     """Default annotation for plots with more than 1 line"""
-    return f"x: {x:0.2f}\ny: {y:0.2f}\n{line.get_label()}"
+    return f"x: {x:.5g}\ny: {y:.5g}\n{line.get_label()}"
 
 
 def _ensure_iterable(a):
@@ -57,7 +57,7 @@ class DataCursor(object):
         vectors. `form1` defaults to::
 
           def form1(x, y, n, ind, ax, line):
-              return f'x: {x:0.2f}\ny: {y:0.2f}'
+              return f"x: {x:.5g}\ny: {y:5g}"
 
     form2 : function
         Function to format the x, y data for the annotation. This is
@@ -65,7 +65,7 @@ class DataCursor(object):
         as `form1`. Defaults to::
 
           def form2(x, y, n, ind, ax, line):
-              return f"x: {x:0.2f}\ny: {y:0.2f}\n{line.get_label()}"
+              return f"x: {x:.5g}\ny: {y:.5g}\n{line.get_label()}"
 
     offsets : tuple
         Two element tuple containing x and y offsets in points for the

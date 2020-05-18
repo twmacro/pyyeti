@@ -167,8 +167,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
 
     Examples
     --------
-    >>> from pyyeti import nastran
     >>> import numpy as np
+    >>> from pyyeti import nastran
     >>> #  first, make a uset table:
     >>> #   node 100 in basic is @ [5, 10, 15]
     >>> #   node 200 in cylindrical coordinate system is @
@@ -308,33 +308,54 @@ def rbmove(rb, oldref, newref):
     return rb @ rbgeom(oldref, newref)
 
 
-def replace_basic_cs(uset, new_cs_id, new_cs_in_basic):
+def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
     """
     Define a new coordinate system as the base for a USET table
 
     This routine enables the translation and/or rotation of a model.
     The new rectangular coordinate system is "inserted" between all
     the local systems that exist in the USET table and the basic
-    coordinate system.
+    coordinate system. In other words, this routine replaces the
+    original basic coordinate system with a new one.
 
     Parameters
     ----------
     uset : pandas DataFrame
         A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
-    new_cs_id : integer
-        The ID that for the new rectangular system
-    new_cs_in_basic : 3 x 3 array_like
-        The A, B, C points as defined for a CORD2R bulk card that
-        define the new coordinate system relative to the basic
-        system. "A" defines the origin of the new system, "B" defines
-        the positive Z axis of the new system, and "C" defines the
-        positive X axis direction of the new system.
+    new_cs_id : integer or 4 x 3 array_like
+        If integer, it is the ID for the new rectangular system and
+        `new_cs_in_basic` is a required input. Otherwise, if 4x3
+        matrix, format is as on a Nastran CORD2* card::
+
+            [ id type=0 reference_id=0 ]
+            [ Ax   Ay   Az             ]
+            [ Bx   By   Bz             ]
+            [ Cx   Cy   Cz             ]
+
+        The type must be 0 (rectangular) and the reference_id must be
+        0. The A, B, C points are as defined for a CORD2R bulk card
+        for the new coordinate system (which replaces the old basic)
+        relative to the basic system. "A" defines the origin of the
+        new system, "B" defines the positive Z axis of the new system,
+        and "C" defines the positive X axis direction of the new
+        system.
+
+    new_cs_in_basic : 3 x 3 array_like; optional
+        The A, B, C points as defined for a CORD2R bulk card::
+
+            [ Ax   Ay   Az ]
+            [ Bx   By   Bz ]
+            [ Cx   Cy   Cz ]
+
+        See description in `new_cs_id`. This input is ignored if
+        `new_cs_id` is a 4x3 matrix. If `new_cs_id` is an integer,
+        `new_cs_in_basic` is a required input.
 
     Returns
     -------
     uset_new : pandas DataFrame
-        The updated `uset`
+        The updated USET table. See notes below.
 
     Notes
     -----
@@ -350,14 +371,90 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic):
            be `new_cs_id`
         5. Apply transform ``T`` to all transforms in the USET table
 
-    This routine is currently BETA ... please check results carefully
-    and report any issues.
+    .. note::
+        The new coordinate system id `new_cs_id` will not be present
+        in the final USET table `uset_new` if no nodes output in the
+        old basic system.
 
     Raises
     ------
     ValueError
         When `new_cs_id` is already in use
+    ValueError
+        If ``type`` or ``reference_id`` is not 0 in the `new_cs_id`
+        input.
+
+    Examples
+    --------
+    Create a USET table with node 1 located at (0, 0, 0) in the basic
+    coordinate system.
+
+    >>> import numpy as np
+    >>> from pyyeti.nastran import n2p
+    >>> uset = n2p.addgrid(None, 1, 'b', 0, [0., 0., 0.], 0.)
+    >>> uset     # doctest: +ELLIPSIS
+             nasset    x    y    z
+    id dof...
+    1  1    2097154  0.0  0.0  0.0
+       2    2097154  0.0  1.0  0.0
+       3    2097154  0.0  0.0  0.0
+       4    2097154  1.0  0.0  0.0
+       5    2097154  0.0  1.0  0.0
+       6    2097154  0.0  0.0  1.0
+
+    Next, use :func:`replace_basic_cs` to move the node to (10, 10,
+    10).
+
+    >>> new_cs_id = 50
+    >>> new_cs_in_basic = np.array([[10., 10., 10.],
+    ...                             [10., 10., 11.],
+    ...                             [11., 10., 10.]])
+    >>> uset_new = n2p.replace_basic_cs(
+    ...    uset, new_cs_id, new_cs_in_basic
+    ... )
+    >>> uset_new     # doctest: +ELLIPSIS
+             nasset     x     y     z
+    id dof...
+    1  1    2097154  10.0  10.0  10.0
+       2    2097154  50.0   1.0   0.0
+       3    2097154  10.0  10.0  10.0
+       4    2097154   1.0   0.0   0.0
+       5    2097154   0.0   1.0   0.0
+       6    2097154   0.0   0.0   1.0
+
+    As a second example, in addition to translation, rotate the
+    coordinate system of the node such that its Z axis is aligned with
+    the new X_basic direction and its X axis is aligned with the new
+    Z_basic.
+
+    Also, demonstrate the 4x3 input `new_cs_id` and not inputting `new_cs_in_basic`
+
+    >>> new_cs_id_2 = np.array([[60, 0, 0],
+    ...                         [10., 10., 10.],
+    ...                         [11., 10., 10.],
+    ...                         [10., 10., 11.]])
+    >>> uset_new_2 = n2p.replace_basic_cs(uset, new_cs_id_2)
+    >>> uset_new_2     # doctest: +ELLIPSIS
+             nasset     x     y     z
+    id dof...
+    1  1    2097154  10.0  10.0  10.0
+       2    2097154  60.0   1.0   0.0
+       3    2097154  10.0  10.0  10.0
+       4    2097154   0.0   0.0   1.0
+       5    2097154   0.0  -1.0   0.0
+       6    2097154   1.0   0.0   0.0
     """
+    new_cs_id = np.atleast_2d(new_cs_id)
+    if new_cs_id.shape == (4, 3):
+        if new_cs_id[0, 1] != 0:
+            raise ValueError(f"``type`` in `new_cs_id` must be 0 (rectangular)")
+        if new_cs_id[0, 2] != 0:
+            raise ValueError(f"``reference_id`` in `new_cs_id` must be 0")
+        new_cs_in_basic = new_cs_id[1:]
+    else:
+        new_cs_in_basic = np.atleast_2d(new_cs_in_basic)
+
+    new_cs_id = new_cs_id[0, 0]
     uset_new = uset.copy()
 
     # extract the GRID part of the uset table to a numpy array:
@@ -369,7 +466,6 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic):
     if (new_cs_id == current_cs_ids).any():
         raise ValueError(f"`new_cs_id` ({new_cs_id}) is already used")
 
-    new_cs_in_basic = np.atleast_2d(new_cs_in_basic)
     coord = build_coords([new_cs_id, 1, 0, *new_cs_in_basic.ravel()])[new_cs_id]
 
     T = coord[2:]  # new cs to basic
@@ -456,8 +552,8 @@ def rbcoords(rb, verbose=2):
 
     Examples
     --------
-    >>> from pyyeti import nastran
     >>> import numpy as np
+    >>> from pyyeti import nastran
     >>> # generate perfect rigid-body modes to test this routine
     >>> coords = np.array([[0, 0, 0],
     ...                    [1, 2, 3],
@@ -473,8 +569,8 @@ def rbcoords(rb, verbose=2):
 
     Now show example when non-rb modes are passed in:
 
-    >>> from pyyeti import nastran
     >>> import numpy as np
+    >>> from pyyeti import nastran
     >>> not_rb = np.dot(np.arange(12).reshape(12, 1),
     ...                 np.arange(6).reshape(1, 6))
     >>> np.set_printoptions(precision=4, suppress=True)
@@ -1013,8 +1109,8 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
 
     Examples
     --------
-    >>> from pyyeti import nastran
     >>> import numpy as np
+    >>> from pyyeti import nastran
     >>> #  first, make a uset table:
     >>> #   node 100 in basic is @ [5, 10, 15]
     >>> #   node 200 in cylindrical coordinate system is @
@@ -1416,130 +1512,6 @@ def mkdofpv(uset, nasset, dof, strict=True):
     return pv, dof
 
 
-# def mkdofpv(uset, nasset, dof, strict=True):
-#     """
-#     Make a DOF partition vector for a particular set from a Nastran
-#     USET table.
-#
-#     Parameters
-#     ----------
-#     uset : pandas DataFrame or ndarray
-#         A DataFrame as output by
-#         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. It can also be an
-#         ndarray with at least 2-columns of [id, dof]; any other
-#         columns are quietly ignored. If ndarray, `nasset` must be 'p'
-#         (so no set partitions are needed).
-#     nasset : string or integer
-#         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
-#         May also be an integer bitmask (see :func:`mkusetmask` for
-#         more information).
-#     dof : 1d or 2d array
-#         `dof` can be input in 2 different ways:
-#
-#          1. 1 column, each row is an ID (grid, spoint, etc). All
-#             DOF associated with the ID that are in the set will be
-#             included. An error will be generated if any ID is
-#             missing.
-#          2. 2 column DOF array, each row is: [ID DOF]. Here, DOF
-#             specifies which degrees-of-freedom of the ID to find.
-#             The DOF can be input in the same way as Nastran accepts
-#             it: 0 or any combo of digits 1-6; eg, 123456 for all 6.
-#             An error is generated if any DOF are missing. See
-#             examples.
-#
-#     strict : bool; optional
-#         If True, raise a ValueError if any DOF in `dof` are not in
-#         `uset`.
-#
-#     Returns
-#     -------
-#     pv : vector
-#         Index vector for partitioning dof out of set; this
-#         maintains the order of DOF as specified.
-#     outdof : vector
-#         The expanded version of the dof input, in order of output.
-#
-#     Notes
-#     -----
-#     This routine uses :func:`pyyeti.locate.mat_intersect` to find
-#     where `dof` occurs in `uset`. That is, after the node id's and DOF
-#     have been extracted from `uset` and all rows of `dof` have been
-#     expanded to include all 6 DOF::
-#
-#         locate.mat_intersect(uset_iddof, expanded_dof, keep=2)
-#
-#     Raises
-#     ------
-#     ValueError
-#         When requested `dof` are not found in the `nasset` and
-#         `strict` is True.
-#
-#     See also
-#     --------
-#     :func:`pyyeti.locate.mat_intersect`
-#
-#     Examples
-#     --------
-#     >>> import numpy as np
-#     >>> from pyyeti import nastran
-#     >>> # Want an A-set partition vector for all available a-set dof
-#     >>> # of grids 100 and 200:
-#     >>> ids = np.array([[100], [200]])
-#     >>> uset = nastran.addgrid(
-#     ...     None, [100, 200], 'b', 0,
-#     ...     [[5, 10, 15], [32, 90, 10]], 0)
-#     >>> nastran.mkdofpv(uset, "a", ids)         # doctest: +ELLIPSIS
-#     (array([ 0,  1,  2,  3,  4,  5... 10, 11]...), array([[100,   1],
-#            [100,   2],
-#            [100,   3],
-#            [100,   4],
-#            [100,   5],
-#            [100,   6],
-#            [200,   1],
-#            [200,   2],
-#            [200,   3],
-#            [200,   4],
-#            [200,   5],
-#            [200,   6]]...))
-#     >>>
-#     >>> # add an spoint for testing:
-#     >>> uset = uset.append(nastran.make_uset([[991, 0]], 4194304))
-#     >>> # request spoint 991 and dof 123 for grid 100 (in that order):
-#     >>> ids2 = [[991, 0], [100, 123]]
-#     >>> nastran.mkdofpv(uset, "a", ids2)        # doctest: +ELLIPSIS
-#     (array([12,  0,  1,  2]...), array([[991,   0],
-#            [100,   1],
-#            [100,   2],
-#            [100,   3]]...))
-#     """
-#     if isinstance(uset, pd.DataFrame):
-#         if nasset != "p":
-#             setpv = mksetpv(uset, "p", nasset)
-#             uset = uset.loc[setpv]
-#         uset = uset.index.to_frame().values
-#     else:
-#         if nasset == "p":
-#             uset = uset[:, :2]
-#         else:
-#             raise ValueError('`nasset` must be "p" if `uset` is not a pandas DataFrame')
-#
-#     dof = expanddof(dof)
-#     pv1, pv2 = locate.mat_intersect(uset, dof, keep=2)
-#
-#     if pv1.shape[0] < dof.shape[0]:
-#         if strict:
-#             missing_dof = dof[locate.flippv(pv2, dof.shape[0])]
-#             msg = (
-#                 f"set '{nasset}' does not contain all of the dof in "
-#                 f"`dof`. These are missing:\n{missing_dof}"
-#             )
-#             raise ValueError(msg)
-#         else:
-#             dof = dof[pv2]
-#
-#     return pv1, dof
-
-
 def mkcordcardinfo(uset, cid=None):
     """
     Returns 'coordinate card' data from information in USET table
@@ -1597,16 +1569,18 @@ def mkcordcardinfo(uset, cid=None):
     --------
     >>> import numpy as np
     >>> from pyyeti import nastran
-    >>> sccoord = np.array([[501, 1, 0], [2345.766, 0, 0],
-    ...                     [2345.766, 10, 0], [3000, 0, 0]])
+    >>> sccoord = np.array([[501, 1, 0],
+    ...                     [1234.567, 0, 0],
+    ...                     [1234.567, 10, 0],
+    ...                     [2000, 0, 0]])
     >>> uset = nastran.addgrid(None, 1001, 'b', sccoord, [0, 0, 0],
     ...                        sccoord)
     >>> np.set_printoptions(precision=4, suppress=True)
     >>> nastran.mkcordcardinfo(uset)
     {501: ['CORD2R', array([[  501.   ,     1.   ,     0.   ],
-           [ 2345.766,     0.   ,     0.   ],
-           [ 2345.766,     1.   ,     0.   ],
-           [ 2346.766,     0.   ,     0.   ]])]}
+           [ 1234.567,     0.   ,     0.   ],
+           [ 1234.567,     1.   ,     0.   ],
+           [ 1235.567,     0.   ,     0.   ]])]}
     >>> nastran.mkcordcardinfo(uset, 0)
     ['CORD2R', array([[ 0.,  1.,  0.],
            [ 0.,  0.,  0.],
@@ -1614,14 +1588,18 @@ def mkcordcardinfo(uset, cid=None):
            [ 1.,  0.,  0.]])]
     >>> nastran.mkcordcardinfo(uset, 501)
     ['CORD2R', array([[  501.   ,     1.   ,     0.   ],
-           [ 2345.766,     0.   ,     0.   ],
-           [ 2345.766,     1.   ,     0.   ],
-           [ 2346.766,     0.   ,     0.   ]])]
+           [ 1234.567,     0.   ,     0.   ],
+           [ 1234.567,     1.   ,     0.   ],
+           [ 1235.567,     0.   ,     0.   ]])]
     >>> # add random-ish cylindrical and spherical systems to test:
-    >>> cylcoord = np.array([[601, 2, 501], [10, 20, 30],
-    ...                      [100, 20, 30], [10, 1, 1]])
-    >>> sphcoord = np.array([[701, 3, 601], [35, 15, -10],
-    ...                      [55, 15, -10], [45, 30, 1]])
+    >>> cylcoord = np.array([[601, 2, 501],
+    ...                      [10, 20, 30],
+    ...                      [100, 20, 30],
+    ...                      [10, 1, 1]])
+    >>> sphcoord = np.array([[701, 3, 601],
+    ...                      [35, 15, -10],
+    ...                      [55, 15, -10],
+    ...                      [45, 30, 1]])
     >>> uset = nastran.addgrid(uset, 1002, 'b', cylcoord, [2, 90, 5],
     ...                        cylcoord)
     >>> uset = nastran.addgrid(
@@ -2127,8 +2105,8 @@ def getcoordinates(uset, gid, csys, coordref=None):
 
     Examples
     --------
-    >>> from pyyeti import nastran
     >>> import numpy as np
+    >>> from pyyeti import nastran
     >>> # node 100 in basic is @ [5, 10, 15]
     >>> # node 200 in cylindrical coordinate system is @
     >>> # [r, th, z] = [32, 90, 10]

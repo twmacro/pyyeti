@@ -1263,7 +1263,7 @@ class OP2:
         The x, y, z values are the grid location in basic.
         """
         nbytes = self._ibytes + 3 * self._fbytes
-        dtype = np.dtype([("ints", (self._intstr, 1)), ("xyz", (self._rfrm, 3))])
+        dtype = np.dtype([("ints", self._intstr), ("xyz", (self._rfrm, 3))])
         data = self.rdop2record("bytes")
         n = len(data) // nbytes
         if n * nbytes != len(data):
