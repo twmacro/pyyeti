@@ -467,7 +467,7 @@
      FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
        dtype = np.dtype([("ints", (self._intstr, 1)), ("xyz", (self._rfrm, 3))])
 
-189. pyyeti.nastran.n2p.replace_basic_cs
+~189. pyyeti.nastran.n2p.replace_basic_cs
      - Missing some words:
         o   new_cs_id (integer) – The ID that for the new rectangular system
      - Should I also point out that the new ID might not be present in final uset table?
@@ -503,5 +503,39 @@
                 rf_maps[name.lower()] = rf_maps[name.lower()][:, :2]
 
  
+`192. Fix mk_net_drms:
+      - Add test for this:
 
+    if reorder:
+        Mcb = cb.cbreorder(Mcb, bset)
+        Kcb = cb.cbreorder(Kcb, bset)
+        i = np.argsort(bset)
+        uset = uset.iloc[i]
+        if bsubset is not None:
+            bsubset = locate.index2bool(bsubset, len(bset))
+            bsubset = bsubset[i]
+        bset = np.arange(len(bset))
  
+
+    if bsubset is None:
+        bset_if = bset
+        uset_if = uset
+    else:
+        bset_if = bset[bsubset]
+        uset_if = uset.iloc[bsubset]
+ 
+
+    Tsc2lv = cb._get_Tlv2sc(sccoord).T
+ 
+
+    # only ifltm needs to be computed for both sets of units
+    # (ifatm and cgatm both output g's and rad/sec^2)
+    # rigid-body modes relative to reference:
+    rb = n2p.rbgeom_uset(uset_if, ref)
+    bifb = np.ix_(bset_if, bset)
+    ifltma_sc = rb.T @ Mcb[bset_if]
+    ifltmd_sc = rb.T @ Kcb[bifb]  # should be zero if bsubset is None
+
+193. Add:
+        Mean + (zp + zc/sqrt(n)) sigma note to pyYeti somewhere. Ksingle/kdouble?
+        - ref Yunis AIAA paper

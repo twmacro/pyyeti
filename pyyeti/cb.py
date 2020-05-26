@@ -1254,13 +1254,19 @@ def mk_net_drms(
             bsubset = locate.index2bool(bsubset, len(bset))
             bsubset = bsubset[i]
         bset = np.arange(len(bset))
-    bset_if = bset if bsubset is None else bset[bsubset]
+
+    if bsubset is None:
+        bset_if = bset
+        uset_if = uset
+    else:
+        bset_if = bset[bsubset]
+        uset_if = uset.iloc[bsubset]
+
     Tsc2lv = _get_Tlv2sc(sccoord).T
 
     # only ifltm needs to be computed for both sets of units
     # (ifatm and cgatm both output g's and rad/sec^2)
     # rigid-body modes relative to reference:
-    uset_if = uset.iloc[bset_if]
     rb = n2p.rbgeom_uset(uset_if, ref)
     bifb = np.ix_(bset_if, bset)
     ifltma_sc = rb.T @ Mcb[bset_if]

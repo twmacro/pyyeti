@@ -382,7 +382,7 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
         When `new_cs_id` is already in use
     ValueError
         If ``type`` or ``reference_id`` is not 0 in the `new_cs_id`
-        input.
+        4 x 3 input.
 
     Examples
     --------
@@ -427,7 +427,8 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
     the new X_basic direction and its X axis is aligned with the new
     Z_basic.
 
-    Also, demonstrate the 4x3 input `new_cs_id` and not inputting `new_cs_in_basic`
+    Also, demonstrate the 4x3 input `new_cs_id` and not inputting
+    `new_cs_in_basic`
 
     >>> new_cs_id_2 = np.array([[60, 0, 0],
     ...                         [10., 10., 10.],
