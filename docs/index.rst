@@ -81,6 +81,15 @@ Miscellaneous
    tutorials/srs
    tutorials/ode
 
+Computing MPE and Qual Statistical Levels from "flight" data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Single sided tolerance limits
+
+.. toctree::
+   :maxdepth: 1
+
+   tutorials/flight_data_statistics
+
 Hurty-Craig-Bampton model checks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -43,7 +43,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    #    'sphinx.ext.mathjax',
+    "sphinx.ext.mathjax",
     "matplotlib.sphinxext.plot_directive",
     "sphinx.ext.intersphinx",
     # bug in anaconda package??:
@@ -52,10 +52,12 @@ extensions = [
     # 'IPython.sphinxext.ipython_console_highlighting',
 ]
 
-if LooseVersion(sphinx.__version__) <= LooseVersion("1.3.5"):
-    extensions.append("sphinx.ext.pngmath")
-else:
-    extensions.append("sphinx.ext.imgmath")
+# if LooseVersion(sphinx.__version__) <= LooseVersion("1.3.5"):
+#     extensions.append("sphinx.ext.pngmath")
+# else:
+#     extensions.append("sphinx.ext.imgmath")
+#     # imgmath_dvipng_args = ['-gamma', '1.5', '-D', '110', '-bg', 'Transparent']
+#     imgmath_dvipng_args = ["-D", "200"]
 
 highlight_language = "python3"
 
