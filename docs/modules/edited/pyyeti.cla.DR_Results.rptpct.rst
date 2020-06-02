@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.rptpct
-================================
+pyyeti.cla.DR\_Results.rptpct
+=============================
 
 .. currentmodule:: pyyeti.cla
 

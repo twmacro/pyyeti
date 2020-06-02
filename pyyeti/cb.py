@@ -839,9 +839,10 @@ def mk_net_drms(
     ref=[0, 0, 0],
     sccoord=None,
     conv=None,
-    reorder=True,
+    reorder=False,
     g=9.80665 / 0.0254,
     tau="g",
+    rbe3_indep_dof=None,
 ):
     """
     Form common data recovery matrices for "net" interface responses.
@@ -953,6 +954,12 @@ def mk_net_drms(
     reorder : bool; optional
         If True, reorder the DOF so the b-set are first (uses
         :func:`cbreorder`).
+    rbe3_indep_dof: integer or None; optional
+        This specifies the independent DOF for the RBE3 used in
+        forming the "ifatm" recovery matrix when there are more than 6
+        DOF on the boundary. If None, `rbe3_indep_dof` is set to
+        123. Note that 123456 is always used if there are only 6 DOF
+        on the boundary.
     g : scalar; optional
         Standard gravity in l/v units.
     tau : string or 2-tuple of strings; optional
@@ -1286,13 +1293,16 @@ def mk_net_drms(
     if conv is not None:
         # make s/c version of ifltm compatible with system
         ifltma_sc = cbconvert(ifltma_sc, bset, conv, drm=True)
-        ifltmd_sc = cbconvert(ifltmd_sc, bset, conv, drm=True)
+        ifltmd_sc = cbconvert(ifltmd_sc, np.arange(bset.shape[0]), conv, drm=True)
 
         # make new M & K for l/v versions:
         Mcb = cbconvert(Mcb, bset, conv)
         Kcb = cbconvert(Kcb, bset, conv)
         uset, ref = uset_convert(uset, ref, conv)
-        uset_if = uset.iloc[bset_if]
+        if bsubset is None:
+            uset_if = uset
+        else:
+            uset_if = uset.iloc[bsubset]
 
         # rigid-body modes relative to reference:
         rb = n2p.rbgeom_uset(uset_if, ref)
@@ -1305,8 +1315,9 @@ def mk_net_drms(
 
     # use RBE3 for net accelerations
     if uset_if.shape[0] > 6:
-        dof_indep = 123
-        xyz = ytools.mkpattvec([0, 1, 2], len(bset_if), 6).ravel()
+        dof_indep = 123 if rbe3_indep_dof is None else rbe3_indep_dof
+        vec = n2p.expanddof([[1, dof_indep]])[:, 1] - 1
+        xyz = ytools.mkpattvec(vec, len(bset_if), 6).ravel()
         xyz = bset_if[xyz]
     else:
         dof_indep = 123456

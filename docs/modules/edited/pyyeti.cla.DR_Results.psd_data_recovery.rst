@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.psd\_data\_recovery
-=============================================
+pyyeti.cla.DR\_Results.psd\_data\_recovery
+==========================================
 
 .. currentmodule:: pyyeti.cla
 

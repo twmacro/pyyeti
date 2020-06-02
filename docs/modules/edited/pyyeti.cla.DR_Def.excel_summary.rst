@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Def\.excel\_summary
-====================================
+pyyeti.cla.DR\_Def.excel\_summary
+=================================
 
 .. currentmodule:: pyyeti.cla
 

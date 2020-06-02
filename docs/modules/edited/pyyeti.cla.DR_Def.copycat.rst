@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Def\.copycat
-=============================
+pyyeti.cla.DR\_Def.copycat
+==========================
 
 .. currentmodule:: pyyeti.cla
 

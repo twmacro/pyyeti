@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.init\_extreme\_cat
-============================================
+pyyeti.cla.DR\_Results.init\_extreme\_cat
+=========================================
 
 .. currentmodule:: pyyeti.cla
 

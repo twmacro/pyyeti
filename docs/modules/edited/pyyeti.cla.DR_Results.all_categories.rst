@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.all\_categories
-=========================================
+pyyeti.cla.DR\_Results.all\_categories
+======================================
 
 .. currentmodule:: pyyeti.cla
 

@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.split
-===============================
+pyyeti.cla.DR\_Results.split
+============================
 
 .. currentmodule:: pyyeti.cla
 

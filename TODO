@@ -251,8 +251,9 @@
 
      ~ - The check below should be against the subset of b, if there
          is one
-     - Also, the 123 vs 123456 should be a user option
-     - With one grid, if it’s the reference, should we mess with
+     ~ - Also, the 123 vs 123456 should be a user option
+     x - yes, because location could be different
+         - With one grid, if it’s the reference, should we mess with
        formrbe3 at all???
 
         # use RBE3 for net accelerations
@@ -331,31 +332,6 @@
        found
      - Change default keep to be 2?
 
-~165. Newmark beta solver doesn’t allow mass to be None?
-    - v0.97.1
-
-~166. Add column plotter
-    - v0.97.3
-
-~167. In docs, make links to numpy/scipy/etc functions live
-    - v0.97.1
-
-~168. Change beta to 14 in resample I think … try pts=5?? (see
-     scipy.signal.kaiser)
-    - v0.97.1
-
-~169. Missing backslash in bulk.mkcomment docstr:
-    - surround (bool; optional) – If True, a leading and trailing ‘$n’
-      string will be added.
-      - v0.97.2
-
-~170. Update docs/tutorials/tools/nb_to_doc.py with black
-      - v0.97.2
-
-~171. Shouldn’t the rb and rf inputs to the solvers be allowed to be
-     Boolean?
-     - v0.97.3
-
 172. update locate.find_rows to be more like mat_intersect is
      typically used and check for unique rows
       - this could use "findfirstandlast" routine
@@ -396,40 +372,6 @@
             return pv
 
 
-~173. VRS should check for or enforce a good integration frequency vector
-
-~174. Cbcheck should check for null rows and cols in BOTH mass and
-     stiffness … not just mass, because there can be massless DOF on
-     boundary (for example)
-
-~175. From Dave H about uset documentation:
-
-     You might consider [adding some] red formatting for your [uset]
-     note in wtextseout, to make it jump off the page a little more?
-     And also putting a warning in cbcheck similar to mk_net_drms
-     might be helpful.
-
-~176. Make a non statistical version of DR_Results.form_stat_ext(k)
- 
-    for sns in results.values():
-        mx = sns.mx.max(axis=1)
-        mn = sns.mn.min(axis=1)
-        argmx = sns.mx.argmax(axis=1)
-        argmn = sns.mn.argmin(axis=1)
-        sns.ext = np.column_stack((mx, mn))
-        cases = sns.cases
-        sns.maxcase = [cases[i] for i in argmx]
-        sns.mincase = [cases[i] for i in argmn]
-        sns.ext_x = None  # time information is lost
-
-        # handle SRS if it is there:
-        if "srs" in sns.__dict__:
-            for Q in sns.srs.srs:
-                arr = sns.srs.srs[Q]
-                sns.srs.ext[Q] = arr.max(axis=0)
-
-~177. windowends is Tukey window … note this?
-
 178. Incorporate BTA's nastran comments from
      pyyeti_comments-nastran.docx
 
@@ -437,44 +379,11 @@
 
 180. Update mknast to be more generic and to create a Python script ?
 
-~181. Document the Rayleigh peak factor in nice equations
-
-~182. DR_Def.merge & DR_Event.add … add doc note about raising error on
-     duplicate names
-
-~183. Cbcheck: uset should say it’s for the b-set
-
-~184. Update wording in wtrspline_rings: confusing wording about basic
-     coordinates
-
 185. Update DR.apply_uf:
         sol2 = DR.apply_uf(sol, *mbk, md.nas["nrb"], rfmodes)
         # put rigid-body displacements back in the total and rigid case:
         sol2[(1, 1, 1, 1)].d[:6] = sol[:6]
         sol2[(1, 0, 1, 1)].d[:6] = sol[:6]
-
-~186. A better form1 and form2 in datacursor would be good ... now, it
-     can easily print "0.00"
-     ".5g" .... ? As in f"{x:.5g}"
-
-`187. Expmint:
-      - Odd looking :: in the docs
-      - Output of expmint.expmint not documented well
-
-~188. Fix future warning:
-
-     /home/loads/twidrick/.python/lib/python3.7/site-packages/pyyeti-0.97.4-py3.7-linux-x86_64.egg/pyyeti/nastran/op2.py:1266:
-     FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
-       dtype = np.dtype([("ints", (self._intstr, 1)), ("xyz", (self._rfrm, 3))])
-
-~189. pyyeti.nastran.n2p.replace_basic_cs
-     - Missing some words:
-        o   new_cs_id (integer) – The ID that for the new rectangular system
-     - Should I also point out that the new ID might not be present in final uset table?
-        o   Should I output a coord dict?
-
-190. Mk_net_drms
-     -  Add independent dof argument for ifatm
 
 
 191. Add tugd, tefd reader to op2:
@@ -502,40 +411,6 @@
             if name == "TUGD":
                 rf_maps[name.lower()] = rf_maps[name.lower()][:, :2]
 
- 
-`192. Fix mk_net_drms:
-      - Add test for this:
-
-    if reorder:
-        Mcb = cb.cbreorder(Mcb, bset)
-        Kcb = cb.cbreorder(Kcb, bset)
-        i = np.argsort(bset)
-        uset = uset.iloc[i]
-        if bsubset is not None:
-            bsubset = locate.index2bool(bsubset, len(bset))
-            bsubset = bsubset[i]
-        bset = np.arange(len(bset))
- 
-
-    if bsubset is None:
-        bset_if = bset
-        uset_if = uset
-    else:
-        bset_if = bset[bsubset]
-        uset_if = uset.iloc[bsubset]
- 
-
-    Tsc2lv = cb._get_Tlv2sc(sccoord).T
- 
-
-    # only ifltm needs to be computed for both sets of units
-    # (ifatm and cgatm both output g's and rad/sec^2)
-    # rigid-body modes relative to reference:
-    rb = n2p.rbgeom_uset(uset_if, ref)
-    bifb = np.ix_(bset_if, bset)
-    ifltma_sc = rb.T @ Mcb[bset_if]
-    ifltmd_sc = rb.T @ Kcb[bifb]  # should be zero if bsubset is None
-
 193. Add:
         Mean + (zp + zc/sqrt(n)) sigma note to pyYeti somewhere. Ksingle/kdouble?
-        - ref Yunis AIAA paper
+        - ref Yunis journal paper

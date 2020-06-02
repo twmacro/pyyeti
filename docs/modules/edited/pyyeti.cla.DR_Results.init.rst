@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.init
-==============================
+pyyeti.cla.DR\_Results.init
+===========================
 
 .. currentmodule:: pyyeti.cla
 

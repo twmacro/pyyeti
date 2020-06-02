@@ -81,9 +81,8 @@ Miscellaneous
    tutorials/srs
    tutorials/ode
 
-Computing MPE and Qual Statistical Levels from "flight" data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Single sided tolerance limits
+Single sided normal tolerance limits
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. toctree::
    :maxdepth: 1

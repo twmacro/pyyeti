@@ -1142,6 +1142,55 @@ def test_mk_net_drms():
     labels4 = net.ifatm_labels[:6] + net3.ifatm_labels[6:]
     assert labels4 == net4.ifatm_labels
 
+    # test mixed b-set/q-set:
+    na = maa.shape[0]
+    q = np.r_[n:na]
+    newb = np.r_[0:12, na - 12 : na]
+    newq = np.r_[12 : na - 12]
+    kaa_newb = np.empty((na, na))
+    maa_newb = np.empty((na, na))
+    for newr, oldr in [(newb, b), (newq, q)]:
+        for newc, oldc in [(newb, b), (newq, q)]:
+            maa_newb[np.ix_(newr, newc)] = maa[np.ix_(oldr, oldc)]
+            kaa_newb[np.ix_(newr, newc)] = kaa[np.ix_(oldr, oldc)]
+
+    net5 = cb.mk_net_drms(
+        maa_newb,
+        kaa_newb,
+        newb,
+        uset=uset,
+        ref=ref,
+        sccoord=sccoord,
+        conv=conv,
+        g=g,
+        reorder=False,
+    )
+
+    assert np.allclose(net5.ifltma[:, newb], net.ifltma[:, b])
+    assert np.allclose(net5.ifltma[:, newq], net.ifltma[:, q])
+
+    net6 = cb.mk_net_drms(
+        maa_newb,
+        kaa_newb,
+        newb,
+        uset=uset,
+        ref=ref,
+        sccoord=sccoord,
+        conv=conv,
+        g=g,
+        reorder=False,
+        rbe3_indep_dof=123456,
+    )
+
+    assert np.allclose(net6.ifltma, net5.ifltma)
+    # translations match:
+    assert np.allclose(net6.ifatm_sc[:3], net5.ifatm_sc[:3])
+    # rotations do not:
+    assert not np.allclose(net6.ifatm_sc[3:], net5.ifatm_sc[3:])
+    vec = ytools.mkpattvec([3, 4, 5], len(newb), 6).ravel()
+    assert (net5.ifatm_sc[:, newb[vec]] == 0.0).all()
+    assert not (net6.ifatm_sc[:, newb[vec]] == 0.0).all()
+
 
 def test_mk_net_drms_6dof():
     # same as above, but reduced to single point interface

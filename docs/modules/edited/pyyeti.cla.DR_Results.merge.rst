@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.merge
-===============================
+pyyeti.cla.DR\_Results.merge
+============================
 
 .. currentmodule:: pyyeti.cla
 

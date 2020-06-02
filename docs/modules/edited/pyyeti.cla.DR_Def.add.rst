@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Def\.add
-=========================
+pyyeti.cla.DR\_Def.add
+======================
 
 .. currentmodule:: pyyeti.cla
 

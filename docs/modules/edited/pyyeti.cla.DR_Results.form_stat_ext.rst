@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.form\_stat\_ext
-=========================================
+pyyeti.cla.DR\_Results.form\_stat\_ext
+======================================
 
 .. currentmodule:: pyyeti.cla
 

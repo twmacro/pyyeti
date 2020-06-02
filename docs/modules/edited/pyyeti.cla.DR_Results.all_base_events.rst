@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.all\_base\_events
-===========================================
+pyyeti.cla.DR\_Results.all\_base\_events
+========================================
 
 .. currentmodule:: pyyeti.cla
 

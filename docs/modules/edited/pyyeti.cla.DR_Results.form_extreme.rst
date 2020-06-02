@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.form\_extreme
-=======================================
+pyyeti.cla.DR\_Results.form\_extreme
+====================================
 
 .. currentmodule:: pyyeti.cla
 

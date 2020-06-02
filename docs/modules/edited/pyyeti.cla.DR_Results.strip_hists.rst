@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.strip\_hists
-======================================
+pyyeti.cla.DR\_Results.strip\_hists
+===================================
 
 .. currentmodule:: pyyeti.cla
 

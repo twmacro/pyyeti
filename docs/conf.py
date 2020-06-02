@@ -242,7 +242,8 @@ html_static_path = ["_static"]
 
 
 def setup(app):
-    app.add_javascript("copybutton.js")
+    # app.add_javascript("copybutton.js")
+    app.add_js_file("copybutton.js")
 
 
 # Add any extra paths that contain custom files (such as robots.txt or
@@ -310,17 +311,53 @@ def setup(app):
 htmlhelp_basename = "pyyetidoc"
 
 # -- Options for LaTeX output ---------------------------------------------
+USE_PDFLATEX = True
 
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    "papersize": "letterpaper",
-    # The font size ('10pt', '11pt' or '12pt').
-    # 'pointsize': '10pt',
-    # Additional stuff for the LaTeX preamble.
-    "preamble": "\\usepackage{enumitem}\n\\setlistdepth{999}",
-    # Latex figure (float) alignment
-    # 'figure_align': 'htbp',
-}
+if USE_PDFLATEX:
+
+    latex_elements = {
+        # The paper size ('letterpaper' or 'a4paper').
+        "papersize": "letterpaper",
+        # The font size ('10pt', '11pt' or '12pt').
+        # 'pointsize': '10pt',
+        # Additional stuff for the LaTeX preamble.
+        "preamble": r"""
+\usepackage{enumitem}
+\setlistdepth{999}
+\usepackage[LGR,T1]{fontenc}
+\usepackage{textgreek}
+""",
+        # "fncychap": r"\usepackage[Bjornstrup]{fncychap}",
+        "fncychap": r"\usepackage[Bjarne]{fncychap}",
+        # Latex figure (float) alignment
+        # 'figure_align': 'htbp',
+    }
+
+else:
+
+    latex_engine = "xelatex"
+    latex_elements = {
+        "papersize": "letterpaper",
+        "fontpkg": r"""
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
+""",
+        "preamble": r"""
+\usepackage[titles]{tocloft}
+\cftsetpnumwidth {1.25cm}\cftsetrmarg{1.5cm}
+\setlength{\cftchapnumwidth}{0.75cm}
+\setlength{\cftsecindent}{\cftchapnumwidth}
+\setlength{\cftsecnumwidth}{1.25cm}
+\usepackage{enumitem}
+\setlistdepth{999}
+""",
+        "fncychap": r"\usepackage[Bjornstrup]{fncychap}",
+        "printindex": r"\footnotesize\raggedright\printindex",
+    }
+    # latex_show_urls = "footnote"
+
+latex_use_xindy = False
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
@@ -466,10 +503,10 @@ epub_exclude_files = ["search.html"]
 # epub_use_index = True
 
 intersphinx_mapping = {
-    "python": ("http://docs.python.org/3", None),
-    "numpy": ("http://docs.scipy.org/doc/numpy", None),
-    "scipy": ("http://docs.scipy.org/doc/scipy/reference", None),
-    "matplotlib": ("http://matplotlib.org", None),
-    "h5py": ("http://docs.h5py.org/en/latest/", None),
-    "sphinx": ("http://www.sphinx-doc.org/en/stable/", None),
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
+    "matplotlib": ("https://matplotlib.org", None),
+    "h5py": ("https://docs.h5py.org/en/latest/", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/stable/", None),
 }

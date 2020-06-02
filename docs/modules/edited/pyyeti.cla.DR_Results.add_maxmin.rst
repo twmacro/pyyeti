@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.add\_maxmin
-=====================================
+pyyeti.cla.DR\_Results.add\_maxmin
+==================================
 
 .. currentmodule:: pyyeti.cla
 

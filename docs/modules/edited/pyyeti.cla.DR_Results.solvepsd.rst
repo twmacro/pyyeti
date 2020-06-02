@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.solvepsd
-==================================
+pyyeti.cla.DR\_Results.solvepsd
+===============================
 
 .. currentmodule:: pyyeti.cla
 

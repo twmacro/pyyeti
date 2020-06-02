@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.delete\_extreme
-=========================================
+pyyeti.cla.DR\_Results.delete\_extreme
+======================================
 
 .. currentmodule:: pyyeti.cla
 

@@ -1,5 +1,5 @@
-pyyeti\.cla\.DR\_Results\.resp\_plots
-=====================================
+pyyeti.cla.DR\_Results.resp\_plots
+==================================
 
 .. currentmodule:: pyyeti.cla
 
