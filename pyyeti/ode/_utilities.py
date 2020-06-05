@@ -577,10 +577,20 @@ def eigss(A, delcc):
     --------
     :func:`make_A`, :class:`SolveUnc`, :func:`get_freq_damping`.
     """
-    msg = (
+    warn1 = (
         "in :func:`eigss`, the eigenvectors for the state-"
-        "space formulation are poorly conditioned (cond={:.3e}). "
-        "Solution will likely be inaccurate.\n"
+        "space formulation are poorly conditioned (cond={:.3e}).\n"
+    )
+
+    warn2 = (
+        "Repeated roots detected and equations do not appear "
+        "to be diagonalized. Generally, this is a failure "
+        "condition.\n"
+        "\tMax off-diag / on-diag of `inv(ur) @ A @ ur` = {} / {} = {}\n"
+    )
+
+    note = (
+        "Solution will likely be inaccurate. "
         "Possible causes/solutions:\n"
         "\tThe partition vector for the rigid-body modes is "
         "incorrect or not set\n"
@@ -590,14 +600,25 @@ def eigss(A, delcc):
         "\tUse :class:`SolveExp2` instead for time domain, or\n"
         "\tUse :class:`FreqDirect` instead for frequency domain\n"
     )
+
     lam, ur = la.eig(A)
     c = np.linalg.cond(ur)
     if c > 1 / np.finfo(float).eps:
-        warnings.warn(msg.format(c), RuntimeWarning)
+        warnings.warn(warn1.format(c) + note, RuntimeWarning)
     ur_inv = la.inv(ur)
     lam, i, dups = _eigc_dups(lam)
     ur = ur[:, i]
     ur_inv = ur_inv[i]
+    if dups.size:
+        uau = ur_inv @ A @ ur
+        d = np.diag(uau)
+        max_off = abs(np.diag(d) - uau).max()
+        max_on = abs(d).max()
+        if max_off > 1e-8 * max_on:
+            warnings.warn(
+                warn2.format(max_off, max_on, max_off / max_on) + note, RuntimeWarning
+            )
+
     wn, zeta = get_freq_damping(lam, np.iscomplexobj(A))
     if delcc:
         lam, ur, ur_inv, dups = delconj(lam, ur, ur_inv, dups)

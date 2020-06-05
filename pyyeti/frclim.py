@@ -135,11 +135,10 @@ def ntfl(Source, Load, As, freq):
         assuming a unit input in that direction (with the other
         directions fixed).
     A : 2d ndarray
-        Norton Thevenin interface acceleration, complex,
-        # bdof x len(freq).
+        Coupled system interface acceleration, complex, # bdof x
+        len(freq).
     F : 2d ndarray
-        Norton Thevenin interface force, complex,
-        # bdof x len(freq)
+        Coupled system interface force, complex, # bdof x len(freq)
     LAM, SAM, TAM : 3d ndarrays
         Load, Source and Total apparent mass matrices:
 
@@ -155,6 +154,16 @@ def ntfl(Source, Load, As, freq):
 
     Notes
     -----
+    The outputs are computed as follows:
+
+    .. math::
+
+        \begin{aligned}
+        R(f) &= diag(T_{AM}(f)^{-1} \cdot L_{AM}(f)) \\
+        A(f) &= T_{AM}(f)^{-1} \cdot L_{AM}(f) \cdot A_s(f) \\
+        F(f) &= S_{AM}(f) \cdot T_{AM}(f)^{-1} \cdot L_{AM}(f) \cdot A_s(f)
+        \end{aligned}
+
     The `bdof` input defines boundary DOF in one of two ways as
     follows. Let `N` be total number of DOF in mass, damping, &
     stiffness.
@@ -178,7 +187,7 @@ def ntfl(Source, Load, As, freq):
     - If using a free-free model, include residual vectors defined
       relative to the boundary DOF.
     - The free acceleration of the source is the complex response of
-      the boundary DOF without the load attached.  Frequency envelopes
+      the boundary DOF without the load attached. Frequency envelopes
       of flight data, or vibration specifications derived from
       envelopes, are not accurate ways to come up with the free
       acceleration.
