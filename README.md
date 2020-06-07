@@ -1,8 +1,9 @@
 <p align="center">
-<a href="https://travis-ci.org/twmacro/pyyeti"><img alt="Build Status" src="https://travis-ci.org/twmacro/pyyeti.svg?branch=master"></a>
-<a href="https://pyyeti.readthedocs.org"><img alt="Documentation Status" src="https://readthedocs.org/projects/pyyeti/badge/?version=latest"></a>
+<a href="https://travis-ci.com/twmacro/pyyeti"><img alt="Build Status" src="https://travis-ci.com/twmacro/pyyeti.svg?branch=master"></a>
+<a href="https://pyyeti.readthedocs.io/en/stable/?badge=stable"><img alt="Documentation Status" src="https://readthedocs.org/projects/pyyeti/badge/?version=stable"></a>
 <a href="https://coveralls.io/github/twmacro/pyyeti?branch=master"><img alt="Coverage Status" src="https://coveralls.io/repos/github/twmacro/pyyeti/badge.svg?branch=master"></a>
-<a href="https://pypi.python.org/pypi/pyyeti"><img alt="PyPI" src="https://img.shields.io/pypi/v/pyyeti.svg"></a>
+<a href="https://github.com/twmacro/pyyeti/blob/master/LICENSE.txt"><img alt="License: BSD 3-Clause" src="https://img.shields.io/badge/License-BSD%203--Clause-blue.svg"></a>
+<a href="https://pypi.org/project/pyyeti/"><img alt="PyPI" src="https://img.shields.io/pypi/v/pyyeti"></a>
 <a href="https://github.com/twmacro/pyyeti"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
