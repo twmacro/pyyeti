@@ -47,22 +47,12 @@ CLASSIFIERS = [
 
 def check_dependencies():
     install_requires = []
-    try:
-        import numpy
-    except ImportError:
-        install_requires.append("numpy>=1.11")
-    try:
-        import scipy
-    except ImportError:
-        install_requires.append("scipy")
-    try:
-        import matplotlib
-    except ImportError:
-        install_requires.append("matplotlib")
-    try:
-        import pandas
-    except ImportError:
-        install_requires.append("pandas")
+    packages = ["numpy", "scipy", "matplotlib", "pandas", "xlsxwriter", "h5py"]
+    for package in packages:
+        try:
+            exec(f"import {package}")
+        except ImportError:
+            install_requires.append(package)
     return install_requires
 
 
@@ -114,7 +104,7 @@ def run_setup(with_binary):
         platforms="any",
         tests_require=["nose"],
         classifiers=CLASSIFIERS,
-        **kw
+        **kw,
     )
 
 
