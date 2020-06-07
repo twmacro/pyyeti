@@ -496,12 +496,12 @@ def write_read(m, binary, sparse):
 
 def test_sparse_write():
     fnames = [
-        "../../code/pyyeti/tests/nastran_op4_data/cdbin.op4",
-        "../../code/pyyeti/tests/nastran_op4_data/rs.op4",
-        "../../code/pyyeti/tests/nastran_op4_data/r_c_rc.op4",
-        "../../code/pyyeti/tests/nastran_op4_data/double_bigmat_le.op4",
-        "../../code/pyyeti/tests/nastran_op4_data/double_nonbigmat_be.op4",
-        "../../code/pyyeti/tests/nastran_op4_data/single_dense_be.op4",
+        "tests/nastran_op4_data/cdbin.op4",
+        "tests/nastran_op4_data/rs.op4",
+        "tests/nastran_op4_data/r_c_rc.op4",
+        "tests/nastran_op4_data/double_bigmat_le.op4",
+        "tests/nastran_op4_data/double_nonbigmat_be.op4",
+        "tests/nastran_op4_data/single_dense_be.op4",
     ]
 
     for fname in fnames:
@@ -580,7 +580,7 @@ def test_large_sparse():
 
 
 def test_large_rows_dense():
-    fname = "../../code/pyyeti/tests/nastran_op4_data/x100000.op4"
+    fname = "tests/nastran_op4_data/x100000.op4"
     m = op4.read(fname)
     x = np.zeros((100000, 1))
     x[45678] = 1.0
