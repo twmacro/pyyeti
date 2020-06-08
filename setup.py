@@ -113,7 +113,12 @@ def run_setup(with_binary):
             ),
             (
                 "tests/nastran_drm12",
-                ["tests/nastran_drm12/drm12.op2", "tests/nastran_drm12/drm12.op4"],
+                [
+                    "tests/nastran_drm12/inboard_nas2cam.op2",
+                    "tests/nastran_drm12/inboard_nas2cam.op4",
+                    "tests/nastran_drm12/drm12.op2",
+                    "tests/nastran_drm12/drm12.op4",
+                ],
             ),
         ],
         platforms="any",
