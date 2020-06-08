@@ -101,6 +101,21 @@ def run_setup(with_binary):
         long_description_content_type="text/markdown",
         packages=find_packages(),
         include_package_data=True,
+        data_files=[
+            (
+                "tests/nas2cam_csuper",
+                [
+                    "tests/nas2cam_csuper/nas2cam.op2",
+                    "tests/nas2cam_csuper/nas2cam.op4",
+                    "tests/nas2cam_csuper/inboard.op4",
+                    "tests/nas2cam_csuper/inboard.asm",
+                ],
+            ),
+            (
+                "tests/nastran_drm12",
+                ["tests/nastran_drm12/drm12.op2", "tests/nastran_drm12/drm12.op4"],
+            ),
+        ],
         platforms="any",
         tests_require=["nose"],
         classifiers=CLASSIFIERS,
