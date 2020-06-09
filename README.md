@@ -12,24 +12,22 @@
 
 pyYeti has tools mostly related to structural dynamics:
 
-    * Solve matrix equations of motion in the time and
-      frequency domains
-    * Shock response spectrum (SRS)
-    * Fatigue damage equivalent power spectral densities (PSD)
-    * Force limiting analysis tools
-    * Hurty-Craig-Bampton model checks
-    * Coupled loads analysis tools
-    * Statistics tools for computing k-factors (for tolerance
-      bounds and intervals) and for order statistics
-    * Read/write Nastran output4 (.op4) files
-    * Limited capability to read Nastran output2 (.op2) files
-    * A data-cursor for interacting with 2D x-y plots
-    * Rainflow cycle counting
-    * Resample data with the Lanczos method
-    * A "vectorized" writing module
-    * Eigensolution with the subspace iteration method
-    * Tools for working with the "nas2cam" Nastran DMAP
-    * Other miscellaneous tools
+* Solve matrix equations of motion in the time and frequency domains
+* Shock response spectrum (SRS)
+* Fatigue damage equivalent power spectral densities (PSD)
+* Force limiting analysis tools
+* Hurty-Craig-Bampton model checks
+* Coupled loads analysis tools
+* Statistics tools for computing k-factors (for tolerance bounds and intervals) and for order statistics
+* Read/write Nastran output4 (.op4) files
+* Limited capability to read Nastran output2 (.op2) files
+* A data-cursor for interacting with 2D x-y plots
+* Rainflow cycle counting
+* Resample data with the Lanczos method
+* A "vectorized" writing module
+* Eigensolution with the subspace iteration method
+* Tools for working with the "nas2cam" Nastran DMAP
+* Other miscellaneous tools
 
 
 ## Installation
@@ -39,7 +37,7 @@ Matplotlib, pandas and setuptools. These are all conveniently provided
 by the Anaconda Python distribution:
 https://www.anaconda.com/distribution/.
 
-You can install pyYeti via `pip`::
+You can install pyYeti via `pip`:
 
     pip install pyyeti
 
@@ -57,7 +55,7 @@ need a C compiler installed.
 
 pyYeti documentation is here:
 
-    http://pyyeti.readthedocs.org/
+   http://pyyeti.readthedocs.org/
 
 
 ## Tutorials
@@ -66,7 +64,7 @@ The documentation contains several tutorials in the documentation.
 These are also available (in their original form) as Jupyter
 notebooks:
 
-    https://github.com/twmacro/pyyeti/tree/master/docs/tutorials
+   https://github.com/twmacro/pyyeti/tree/master/docs/tutorials
 
 
 ## License
