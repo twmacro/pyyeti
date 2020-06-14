@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""
-Plain Python version of the rainflow algorithm.
+"""Plain Python version of the rainflow algorithm. Numba
+(``numba.jit(nopython=True)``) is used if available to achieve speeds
+comparable to the compiled-c version.
 """
 import numpy as np
 
@@ -88,10 +89,13 @@ def rainflow(peaks, getoffsets=False):
         raise ValueError("`peaks` must be a real vector with length >= 2")
     if getoffsets:
         return _rainflow2(peaks, L)
+    return _rainflow1(peaks, L)
 
+
+def _rainflow1(peaks, L):
     # not getting offsets:
-    pts = np.empty(L, float)
-    rf = np.empty((L - 1, 3), float)
+    pts = np.empty(L)
+    rf = np.empty((L - 1, 3))
     j = -1
     fullcyclesp1 = 1  # full cycles plus 1
     n = -1
@@ -143,12 +147,12 @@ def rainflow(peaks, getoffsets=False):
 
 def _rainflow2(peaks, L):
     """Utility routine for :func:`rainflow`; returns (rf, os)."""
-    pts = np.empty(L, float)
-    rf = np.empty((L - 1, 3), float)
+    pts = np.empty(L)
+    rf = np.empty((L - 1, 3))
     j = -1
     fullcyclesp1 = 1  # full cycles plus 1
     n = -1
-    cycle_index = np.empty(L, int)
+    cycle_index = np.empty(L, np.int64)
     os = np.empty((L - 1, 2), np.int64)
     for k in range(L):
         # /* step 1 from [1]: */
@@ -204,3 +208,12 @@ def _rainflow2(peaks, L):
         A = B
 
     return rf[: L - fullcyclesp1], os[: L - fullcyclesp1]
+
+
+try:
+    import numba
+except ImportError:
+    pass
+else:
+    _rainflow1 = numba.jit(nopython=True)(_rainflow1)
+    _rainflow2 = numba.jit(nopython=True)(_rainflow2)

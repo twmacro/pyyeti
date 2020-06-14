@@ -35,6 +35,7 @@ CLASSIFIERS = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: Implementation :: CPython",
     "Natural Language :: English",
@@ -132,10 +133,15 @@ if __name__ == "__main__":
     try:
         run_setup(True)
     except BuildFailed:
-        BUILD_EXT_WARNING = (
-            "WARNING: The C rainflow extension could not "
-            "be compiled; fast rainflow is not enabled."
-        )
+        BUILD_EXT_WARNING = """
+Warning:
+
+   The C rainflow extension could not be compiled; only plain Python
+   rainflow counter will be available. Note: the Python version will
+   be sped up with `numba.jit(nopython=True)` if possible; tests show
+   speeds on par with compiled C version.
+
+"""
         print("*" * 86)
         print(BUILD_EXT_WARNING)
         print("Failure information, if any, is above.")
