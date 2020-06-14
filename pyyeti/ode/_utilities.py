@@ -603,7 +603,7 @@ def eigss(A, delcc):
         "`pre_eig` option\n"
         "\tUse :class:`SolveExp2` instead for time domain, or\n"
         "\tUse :class:`FreqDirect` instead for frequency domain\n\n"
-        "Setting `eig_success` attribute to False\n"
+        "\tSetting `eig_success` attribute to False\n"
     )
 
     lam, ur = la.eig(A)

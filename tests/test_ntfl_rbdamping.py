@@ -494,5 +494,5 @@ def test_ntfl_rbdamp():
     Load = [load.model.M, load.model.B, load.model.K, Lbdof]
     NT = FrcLim.ntfl(Source, Load, free_accel, freq)
 
-    # assert np.allclose(abs(iff_sys), abs(NT.F), rtol=1e-04, atol=1e-04)
-    # assert np.allclose(abs(ifa_sys), abs(NT.A), rtol=1e-04, atol=1e-04)
+    assert np.allclose(abs(iff_sys), abs(NT.F), rtol=1e-04, atol=1e-04)
+    assert np.allclose(abs(ifa_sys), abs(NT.A), rtol=1e-04, atol=1e-04)
