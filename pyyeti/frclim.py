@@ -75,6 +75,12 @@ def calcAM(S, freq):
         Frc = np.zeros((r, lf))
         Acc = np.empty((r, lf, r), dtype=complex)
         fs = ode.SolveUnc(m, b, k, pre_eig=True)
+        if hasattr(fs.pc, "eig_success") and not fs.pc.eig_success:
+            print(
+                "Switching from `SolveUnc` to `FreqDirect` because complex"
+                " eigensolver failed; see messages above."
+            )
+            fs = ode.FreqDirect(m, b, k)
         for direc in range(r):
             Frc[direc, :] = 1.0
             sol = fs.fsolve(T.T @ Frc, freq)

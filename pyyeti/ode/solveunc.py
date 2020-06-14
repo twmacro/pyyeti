@@ -1565,8 +1565,7 @@ class SolveUnc(_BaseODE):
         return flex
 
     def get_su_eig(self, delcc):
-        """
-        Does pre-calcs for the `SolveUnc` solver via the complex
+        """Does pre-calcs for the `SolveUnc` solver via the complex
         eigenvalue approach.
 
         Parameters
@@ -1631,6 +1630,11 @@ class SolveUnc(_BaseODE):
             :func:`ode.get_freq_damping`
         zeta : 1d ndarray
             Critical damping ratios. See :func:`ode.get_freq_damping`
+        eig_success : bool
+            True if routine is successful. False if the eigenvectors
+            form a singular matrix or they do not diagonalize `A`; in
+            that case, ODE solution (if computed) is most likely
+            wrong.
 
         Notes
         -----
@@ -1640,6 +1644,7 @@ class SolveUnc(_BaseODE):
         See also
         --------
         :class:`SolveUnc`
+
         """
         pc = SimpleNamespace()
         h = self.h
@@ -1669,6 +1674,7 @@ class SolveUnc(_BaseODE):
             eig_info = eigss(A, delcc)
             pc.wn = eig_info.wn
             pc.zeta = eig_info.zeta
+            pc.eig_success = eig_info.eig_success
             if h:
                 self._get_complex_su_coefs(pc, eig_info.lam, h)
             self._add_partition_copies(pc, eig_info.lam, eig_info.ur, eig_info.ur_inv)
@@ -1702,8 +1708,13 @@ class SolveUnc(_BaseODE):
         pc.ur = ur
         pc.ur_d = pc.ur[ksize:]
         pc.ur_v = pc.ur[:ksize]
-        pc.ur_inv_v = ur_inv[:, :ksize].copy()
-        pc.ur_inv_d = ur_inv[:, ksize:].copy()
+        pc.ur_inv = ur_inv
+        pc.ur_inv_v = ur_inv[:, :ksize]
+        pc.ur_inv_d = ur_inv[:, ksize:]
+        # pc.ur_inv_v = ur_inv[:, :ksize].copy()
+        # pc.ur_inv_d = ur_inv[:, ksize:].copy()
+
+        # real/imag copies are good for speeding things up:
         pc.rur_d = pc.ur_d.real.copy()
         pc.iur_d = pc.ur_d.imag.copy()
         pc.rur_v = pc.ur_v.real.copy()
@@ -1712,8 +1723,8 @@ class SolveUnc(_BaseODE):
     def _addconj(self):
         pc = self.pc
         if 2 * pc.ur_inv_v.shape[1] > pc.ur_d.shape[1]:
-            ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
-            lam, ur, ur_inv = addconj(pc.lam, pc.ur, ur_inv)
+            # ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
+            lam, ur, ur_inv = addconj(pc.lam, pc.ur, pc.ur_inv)
             if self.h:
                 self._get_complex_su_coefs(pc, lam, self.h)
             self._add_partition_copies(pc, lam, ur, ur_inv)
@@ -1721,8 +1732,8 @@ class SolveUnc(_BaseODE):
     def _delconj(self):
         pc = self.pc
         if 2 * pc.ur_inv_v.shape[1] == pc.ur_d.shape[1]:
-            ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
-            lam, ur, ur_inv, _ = delconj(pc.lam, pc.ur, ur_inv, [])
+            # ur_inv = np.hstack((pc.ur_inv_v, pc.ur_inv_d))
+            lam, ur, ur_inv, _ = delconj(pc.lam, pc.ur, pc.ur_inv, [])
             if self.h:
                 self._get_complex_su_coefs(pc, lam, self.h)
             self._add_partition_copies(pc, lam, ur, ur_inv)

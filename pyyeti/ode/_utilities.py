@@ -493,8 +493,7 @@ def get_freq_damping(lam, suppress_warning=False):
 
 
 def eigss(A, delcc):
-    r"""
-    Solve complex eigen problem for state-space formulation.
+    r"""Solve complex eigen problem for state-space formulation.
 
     Parameters
     ----------
@@ -528,6 +527,10 @@ def eigss(A, delcc):
     zeta : 1d ndarray; real
         Vector of critical damping ratios (see
         :func:`get_freq_damping`)
+    eig_success : bool
+        True if routine is successful. False if the eigenvectors form
+        a singular matrix or they do not diagonalize `A`; in that
+        case, ODE solution (if computed) is most likely wrong.
 
     Notes
     -----
@@ -536,8 +539,8 @@ def eigss(A, delcc):
     .. math::
         M \ddot{q} + B \dot{q} + K q = F
 
-    The 2nd order ODE set of equations are transformed into the
-    1st order ODE (see :func:`make_A`):
+    The 2nd order ODE set of equations are transformed into the 1st
+    order ODE (see :func:`make_A`):
 
     .. math::
         \left\{
@@ -576,6 +579,7 @@ def eigss(A, delcc):
     See also
     --------
     :func:`make_A`, :class:`SolveUnc`, :func:`get_freq_damping`.
+
     """
     warn1 = (
         "in :func:`eigss`, the eigenvectors for the state-"
@@ -598,13 +602,17 @@ def eigss(A, delcc):
         "rigid-body modes cannot be detected -- use the "
         "`pre_eig` option\n"
         "\tUse :class:`SolveExp2` instead for time domain, or\n"
-        "\tUse :class:`FreqDirect` instead for frequency domain\n"
+        "\tUse :class:`FreqDirect` instead for frequency domain\n\n"
+        "Setting `eig_success` attribute to False\n"
     )
 
     lam, ur = la.eig(A)
     c = np.linalg.cond(ur)
     if c > 1 / np.finfo(float).eps:
         warnings.warn(warn1.format(c) + note, RuntimeWarning)
+        eig_success = False
+    else:
+        eig_success = True
     ur_inv = la.inv(ur)
     lam, i, dups = _eigc_dups(lam)
     ur = ur[:, i]
@@ -618,11 +626,20 @@ def eigss(A, delcc):
             warnings.warn(
                 warn2.format(max_off, max_on, max_off / max_on) + note, RuntimeWarning
             )
+            eig_success = False
 
     wn, zeta = get_freq_damping(lam, np.iscomplexobj(A))
     if delcc:
         lam, ur, ur_inv, dups = delconj(lam, ur, ur_inv, dups)
-    return SimpleNamespace(lam=lam, ur=ur, ur_inv=ur_inv, dups=dups, wn=wn, zeta=zeta)
+    return SimpleNamespace(
+        lam=lam,
+        ur=ur,
+        ur_inv=ur_inv,
+        dups=dups,
+        wn=wn,
+        zeta=zeta,
+        eig_success=eig_success,
+    )
 
 
 def delconj(lam, ur, ur_inv, dups):
