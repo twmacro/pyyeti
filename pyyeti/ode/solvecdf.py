@@ -73,8 +73,11 @@ class SolveCDF(SolveUnc):
                A_p (P_i - C_{od} \dot{q}_i) +
                B_p (P_{i+1} - C_{od} \dot{q}_{i+1})
           \end{aligned}
-          \begin{aligned} \qquad \qquad (1)
-                       \\ \qquad \qquad (2) \end{aligned}
+          \begin{aligned}
+            \qquad \qquad (1&)
+
+            \qquad \qquad (2&)
+          \end{aligned}
         \end{array}
 
     Equation 2 can be solved for :math:`\dot{q}_{i+1}`:
