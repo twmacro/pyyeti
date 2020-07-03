@@ -101,6 +101,7 @@ def run_setup(with_binary):
         long_description=long_description,
         long_description_content_type="text/markdown",
         packages=find_packages(),
+        scripts=["scripts/lsop2", "scripts/lsop4"],
         include_package_data=True,
         data_files=[
             (
