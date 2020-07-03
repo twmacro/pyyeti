@@ -927,6 +927,12 @@ def srs(
         ``ic = 'zero'`` ('mshift' is okay because it behaves like
         'shift' when there is only one time step).
 
+    .. note::
+        In addition to the example shown below, this routine is
+        demonstrated in the pyYeti :ref:`tutorial`:
+        :doc:`/tutorials/srs`. There is also a link to the source
+        Jupyter notebook at the top of the tutorial.
+
     References
     ----------
     .. [#srs1] “Mechanical vibration and shock – Signal processing –

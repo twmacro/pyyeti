@@ -383,6 +383,13 @@ def fdepsd(
 
         \end{aligned}
 
+    .. note::
+        In addition to the example shown below, this routine is
+        demonstrated in the pyYeti :ref:`tutorial`:
+        :doc:`/tutorials/fatigue`. There is also a link to the source
+        Jupyter notebook at the top of the tutorial.
+
+
     References
     ----------
     .. [#fde1] "Analysis of Nonstationary Vibroacoustic Flight Data

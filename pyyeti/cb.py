@@ -121,6 +121,12 @@ def cbtf(m, b, k, a, freq, bset, save=None):
     :func:`pyyeti.ode.SolveUnc.fsolve`. After solution,
     :math:`F_b(\Omega)` is computed from the top equation above.
 
+    .. note::
+        In addition to the example shown below, this routine is
+        demonstrated in the pyYeti :ref:`tutorial`:
+        :doc:`/tutorials/cbtf`. There is also a link to the source
+        Jupyter notebook at the top of the tutorial.
+
     Examples
     --------
     Use :func:`cbtf` on a very simple 1-D spring mass CB component::
@@ -2463,6 +2469,11 @@ def cbcheck(
         m, k, *_ = mats[0], mats[1]
         b = np.arange(24)
         cb.cbcheck('inboard.cbcheck', m, k, b, b[:6], uset=uset)
+
+    .. note::
+        This routine is demonstrated in the pyYeti :ref:`tutorial`:
+        :doc:`/tutorials/cbcheck`. There is also a link to the source
+        Jupyter notebook at the top of the tutorial.
 
     See also
     --------

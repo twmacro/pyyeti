@@ -11,7 +11,8 @@ from scipy.optimize import brentq
 
 
 def ksingle(p, c, n):
-    """Compute statistical k-factor for a single-sided tolerance limit.
+    """
+    Compute statistical k-factor for a single-sided tolerance limit.
 
     Parameters
     ----------
@@ -47,8 +48,9 @@ def ksingle(p, c, n):
 
     .. note::
         The math behind this routine is covered in the pyYeti
-        :ref:`tutorial`: 'Calculating MPE and Qual statistical levels
-        from "flight" data'.
+        :ref:`tutorial`: :doc:`/tutorials/flight_data_statistics`.
+        There is also a link to the source Jupyter notebook at the top
+        of the tutorial.
 
     See also
     --------
@@ -88,7 +90,6 @@ def ksingle(p, c, n):
     9        1.709060  2.080220  2.421337  3.125390
     10       1.701632  2.070925  2.410323  3.110845
     1000000  1.644854  2.000003  2.326348  2.999978
-
     """
     n = np.asarray(n)
     sn = np.sqrt(n)

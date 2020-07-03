@@ -18,6 +18,11 @@ Notes on sparse matrices:
      format and :mod:`scipy.sparse` matrices will be written in
      "bigmat" sparse format. This can be overridden by specifying the
      `sparse` option in :func:`write`.
+
+.. note::
+    Some features of this module are demonstrated in the pyYeti
+    :ref:`tutorial`: :doc:`/tutorials/op4`. There is also a link to
+    the source Jupyter notebook at the top of the tutorial.
 """
 
 import itertools as it
