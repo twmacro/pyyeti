@@ -3,11 +3,19 @@
 from argparse import ArgumentParser
 from pyyeti.nastran import op2
 
-
 parser = ArgumentParser(description="List contents of op2 file(s)")
 
 parser.add_argument(
     "input_file", metavar="INFILE", help="file to read", type=str, nargs="+"
+)
+
+parser.add_argument(
+    "-w",
+    "--with-headers",
+    dest="with_headers",
+    action="store_true",
+    default=False,
+    help="include print of table record headers",
 )
 
 args = parser.parse_args()
@@ -15,4 +23,4 @@ args = parser.parse_args()
 for name in args.input_file:
     print()
     print(name)
-    op2.OP2(name).directory()
+    op2.OP2(name).directory(with_headers=args.with_headers)

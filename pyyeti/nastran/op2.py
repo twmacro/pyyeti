@@ -253,6 +253,17 @@ class OP2:
             Ordered list of datablock starting byte positions in file.
         dbstops : integer 1d ndarray
             Ordered list of datablock stopping byte positions in file.
+        headers : list
+            Ordered list of header information for records in
+            tables. Each entry that corresponds to a table will be a
+            list (the length of which equals the number of records in
+            the table) of lists::
+
+               [[(3-element record header), record_length],
+                [(3-element record header), record_length],
+                ...]
+
+            The entry for a matrix is an empty list: ``[]``.
         _Str4 : struct.Struct object
             Precompiled for reading 4 byte integers (corresponds to
             `int32str`).
@@ -268,6 +279,7 @@ class OP2:
         self.dblist = []
         self.dbstarts = None
         self.dbstop2 = None
+        self.headers = None
         reclen = struct.unpack("i", self._fileh.read(4))[0]
         self._fileh.seek(0)
 
@@ -344,8 +356,9 @@ class OP2:
             a string, it is the name of the datablock to position to;
             in this case, the `which` parameter is also used.
         which : integer; optional
-            If `pos` is a string, `which` specifies which occurrence
-            of the datablock to seek to. Counting starts at 0.
+            If `pos` is a string, `which` is the index of the
+            datablock to seek to. For example, 0 is the first, -1 is
+            the last.
 
         Returns
         -------
@@ -609,26 +622,36 @@ class OP2:
                 self.skipop2table()
         return mats
 
-    def prtdir(self):
+    def prtdir(self, with_headers=False):
         """
         Prints op2 data block directory. See also :func:`directory`.
         """
-        if len(self.dblist) == 0:
-            self.directory(verbose=False)
-        for s in self.dblist:
-            print(s)
+        if not with_headers:
+            for s in self.dblist:
+                print(s)
+        else:
+            for s, hs in zip(self.dblist, self.headers):
+                print(s)
+                for h in hs:
+                    print(f"\t{h}")
 
-    def directory(self, verbose=True, redo=False):
+    def directory(self, verbose=True, redo=False, with_headers=False):
         """
         Return list of data block names in op2 file.
 
         Parameters
         ----------
-        verbose : bool (or any true/false variable)
-            If True, print names, sizes, and file offsets to screen.
-        redo : bool
+        verbose : bool (or any true/false variable); optional
+            If True, print names, sizes, and file offsets to
+            screen. Also prints record headers if `with_headers` is
+            True.
+        redo : bool; optional
             If True, scan through file and redefine self.dbnames even
             if it is already set.
+        with_headers : bool; optional
+            If True and `verbose` is True, include the table headers
+            and record lengths for each record that belongs to the
+            table when printing.
 
         Returns
         -------
@@ -647,12 +670,21 @@ class OP2:
         dblist : list
             List of strings for printing. Contains the info above
             in formatted and sorted (in file position order) strings.
-
         dbstarts : integer 1d ndarray
             Ordered list of datablock starting byte positions in file.
-
         dbstops : integer 1d ndarray
             Ordered list of datablock stopping byte positions in file.
+        headers : list
+            Ordered list of header information for records in
+            tables. Each entry that corresponds to a table will be a
+            list (the length of which equals the number of records in
+            the table) of lists::
+
+               [[(3-element record header), record_length],
+                [(3-element record header), record_length],
+                ...]
+
+            The entry for a matrix is an empty list: ``[]``.
 
         Notes
         -----
@@ -665,8 +697,7 @@ class OP2:
         For another example, to read in first matrix named 'KAA'::
 
             o2 = op2.OP2('mds.op2')
-            fpos = o2.dbnames['KAA'][0][0][0]
-            o2.set_position(fpos)
+            o2.set_position('KAA')
             name, trailer, rectype = o2.rdop2nt()
             kaa = o2.rdop2matrix(trailer)
 
@@ -674,12 +705,19 @@ class OP2:
         """
         if len(self.dbnames) > 0 and not redo:
             if verbose:
-                self.prtdir()
-            return (self.dbnames, self.dblist, self.dbstarts, self.dbstops)
+                self.prtdir(with_headers=with_headers)
+            return (
+                self.dbnames,
+                self.dblist,
+                self.dbstarts,
+                self.dbstops,
+                self.headers,
+            )
         dbnames = {}
         dblist = []
         dbstarts = []
         dbstops = []
+        headers = []
         self._fileh.seek(self._postheaderpos)
         pos = self._postheaderpos
         while 1:
@@ -688,10 +726,12 @@ class OP2:
                 break
             if dbtype > 0:
                 self.skipop2matrix(trailer)
+                headers.append([])
                 size = [trailer[2], trailer[1]]
                 s = f"Matrix {name:8}"
             else:
-                self.skipop2table()
+                # self.skipop2table()
+                headers.append(self.rdop2tabheaders())
                 size = [0, 0]
                 s = f"Table  {name:8}"
             cur = self._fileh.tell()
@@ -709,9 +749,10 @@ class OP2:
         self.dblist = dblist
         self.dbstarts = np.array(dbstarts)
         self.dbstops = np.array(dbstops)
+        self.headers = headers
         if verbose:
-            self.prtdir()
-        return dbnames, dblist, self.dbstarts, self.dbstops
+            self.prtdir(with_headers=with_headers)
+        return dbnames, dblist, self.dbstarts, self.dbstops, self.headers
 
     def rdop2dynamics(self):
         """
@@ -906,14 +947,9 @@ class OP2:
             key = self._getkey()
         self._skipkey(2)
 
-    def rdop2tabheaders(self, name):
+    def rdop2tabheaders(self):
         """
         Read op2 table headers and echo them to the screen.
-
-        Parameters
-        ----------
-        name : string
-            Name of data block that headers are being read for.
 
         Notes
         -----
@@ -922,26 +958,26 @@ class OP2:
         block::
 
             o2 = op2.OP2('modes.op2')
-            fpos = o2.dbnames['GEOM1S'][-1][0][0]
-            o2.set_position(fpos)
+            o2.set_position('GEOM1S', -1)
             name, trailer, dbtype = o2.rdop2nt()
-            o2.rdop2tabheaders('GEOM1S')
+            o2.rdop2tabheaders()
 
         """
         key = self._getkey()
-        print(f"{name} Headers:")
         Frm = struct.Struct(self._intstru % 3)
         eot = 0
+        headers = []
         while not eot:
             while key > 0:
                 reclen = self._Str4.unpack(self._fileh.read(4))[0]
                 head = Frm.unpack(self._fileh.read(3 * self._ibytes))
-                print(np.hstack((head, reclen)))
+                headers.append([head, reclen])
                 self._fileh.seek((key - 3) * self._ibytes, 1)
                 self._fileh.read(4)
                 key = self._getkey()
             self._skipkey(2)
             eot, key = self.rdop2eot()
+        return headers
 
     def _check_code(self, item_code, funcs, vals, name):
         """
@@ -1318,16 +1354,12 @@ class OP2:
         T is transformation from local to basic for the coordinate
         system.
         """
-        nbytes = 2 * self._ibytes + 12 * self._fbytes
         dtype = np.dtype([("idtype", (self._intstr, 2)), ("xyzT", (self._rfrm, 12))])
         data = self.rdop2record("bytes")
-        # n = len(data) // nbytes
-        if not self.near_db_end():  # n*nbytes != len(data):
+        if not self.near_db_end():
             return self._rdop2cstm(np.fromstring(data, np.dtype(self._intstr)))
-            # raise ValueError("incorrect record length for"
-            #                  " _rdop2cstm68")
         self.rdop2eot()
-        data = np.fromstring(data, dtype=dtype)  # .reshape((-1, 14))
+        data = np.fromstring(data, dtype=dtype)
         return np.hstack((data["idtype"], data["xyzT"]))
 
     def _rdop2geom1cord2(self):
@@ -1360,11 +1392,9 @@ class OP2:
 
         key = self._getkey()
         eot = 0
-        # data = np.zeros(0, dtype=self._intstr)
         while not eot:
             while key > 0:
                 self._fileh.read(4)  # reclen
-                # reclen = self._Str4.unpack(self._fileh.read(4))[0]
                 head = header_Str.unpack(self._fileh.read(hbytes))
                 if head == CORD2R or head == CORD2C or head == CORD2S:
                     n = (key - 3) // 13
@@ -3020,7 +3050,6 @@ def rdpostop2(
                     if verbose:
                         print(f"Reading table {name}...")
                     bgpdt_rec1 = o2._rdop2bgpdt68()
-                    # o2.skipop2table()
                     continue
 
                 if name.find("CSTM") == 0:
@@ -3092,7 +3121,6 @@ def rdpostop2(
                         mo = mats["oef1"]
                     except KeyError:
                         mo = mats["oef1"] = []
-                    # mo += [o2._rdop2drm_old()]
                     mo += [o2._rdop2drm(name)]
                     continue
 

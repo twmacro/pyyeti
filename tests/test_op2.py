@@ -324,7 +324,7 @@ def test_rdop2mats():
     assert len(dct) == 2
 
     with op2.OP2(dr + "double_le.op2") as o2:
-        d, l, starts, stops = o2.directory()
+        d, l, starts, stops, headers = o2.directory()
     assert sorted(d.keys()) == ["CASECC", "ZUZR01", "ZUZR02", "ZUZR03"]
 
 
@@ -435,7 +435,7 @@ def test_rdop2record():
 
         fh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
-        o2.rdop2tabheaders("DYNAMICS")
+        assert len(o2.rdop2tabheaders()) == 3
 
 
 def test_prtdir():
