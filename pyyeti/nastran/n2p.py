@@ -154,7 +154,7 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     unit translations and rotations in the basic coordinate system.
 
     All SPOINTs (scalar points), all EPOINTs (extra points), and GRIDS
-    in the Q-set or in the "left over" C-set will have 0's.
+    in the q-set or in the "left over" c-set will have 0's.
 
     This routine will handle grids in rectangular, cylindrical, and
     spherical coordinates.
@@ -975,25 +975,25 @@ def mkusetmask(nasset=None):
 
         Sets              Supersets
 
-         M  -------------------------------------\
-         S  ------------------------------\       > G --\
-         O  -----------------------\       > N --/       \
-         Q  ----------------\       > F --/       \       \
-         R  ---------\       > A --/       \       \       > P
-         C  --\       > T --/       \       > FE    > NE  /
-         B  ---> L --/               > D   /       /     /
-         E  ------------------------/-----/-------/-----/
+         m  -------------------------------------\
+         s  ------------------------------\       > g --\
+         o  -----------------------\       > n --/       \
+         q  ----------------\       > f --/       \       \
+         r  ---------\       > a --/       \       \       > p
+         c  --\       > t --/       \       > fe    > ne  /
+         b  ---> l --/               > d   /       /     /
+         e  ------------------------/-----/-------/-----/
 
-    User-defined sets: U1, U2, U3, U4, U5, and U6.
+    User-defined sets: u1, u2, u3, u4, u5, and u6.
 
-    Note: MSC.Nastran apparently changes the B-set bitmask not only
+    Note: MSC.Nastran apparently changes the b-set bitmask not only
     between different versions but also between different machines.
-    Sometimes the 2nd bit goes to the B-set and sometimes it goes to
-    the S-set. However, so far, the S-set always has other bits set
+    Sometimes the 2nd bit goes to the b-set and sometimes it goes to
+    the s-set. However, so far, the s-set always has other bits set
     that can be (and are) checked. Therefore, to work around this
     difficulty, the :func:`pyyeti.nastran.op2.OP2.rdn2cop2` routine
-    clears the 2nd bit for all S-set DOF. Because of that, this
-    routine can safely assume that the 2nd bit belongs to the B-set
+    clears the 2nd bit for all s-set DOF. Because of that, this
+    routine can safely assume that the 2nd bit belongs to the b-set
     and no manual changes are required.
 
     See also
@@ -1061,7 +1061,7 @@ def mkusetmask(nasset=None):
     return usetmask
 
 
-def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
+def usetprt(file, uset, printsets="m,s,o,q,r,c,b,e,l,t,a,f,n,g"):
     r"""
     Print Nastran DOF set membership information from USET table.
 
@@ -1090,28 +1090,28 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
     -----
     `printsets` is a comma delimited strings that specifies which sets
     to print. It can be input in lower or upper case. Sets that are
-    identical are printed together (as G and P often are). The value
+    identical are printed together (as g and p often are). The value
     of "*" is equivalent to specifying all sets::
 
-        "M,S,O,Q,R,C,B,E,L,T,A,D,F,FE,N,NE,G,P,U1,U2,U3,U4,U5,U6"
+        "m,s,o,q,r,c,b,e,l,t,a,d,f,fe,n,ne,g,p,u1,u2,u3,u4,u5,u6"
 
-    For example, `printsets` = "R, C, B, A" will print only those sets
+    For example, `printsets` = "r, c, b, a" will print only those sets
     (but not necessarily in that order).
 
     The sets (and supersets) currently accounted for are::
 
        Sets              Supersets
 
-        M  -------------------------------------\
-        S  ------------------------------\       > G --\
-        O  -----------------------\       > N --/       \
-        Q  ----------------\       > F --/       \       \
-        R  ---------\       > A --/       \       \       > P
-        C  --\       > T --/       \       > FE    > NE  /
-        B  ---> L --/               > D   /       /     /
-        E  ------------------------/-----/-------/-----/
+        m  -------------------------------------\
+        s  ------------------------------\       > g --\
+        o  -----------------------\       > n --/       \
+        q  ----------------\       > f --/       \       \
+        r  ---------\       > a --/       \       \       > p
+        c  --\       > t --/       \       > fe    > ne  /
+        b  ---> l --/               > d   /       /     /
+        e  ------------------------/-----/-------/-----/
 
-    User-defined sets: U1, U2, U3, U4, U5, and U6.
+    User-defined sets: u1, u2, u3, u4, u5, and u6.
 
     See also
     --------
@@ -1133,50 +1133,50 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
     ...     [[5, 10, 15], [32, 90, 10]], [0, cylcoord])
     >>> table = nastran.usetprt(
     ...      1, uset, printsets='r, c')  # doctest: +ELLIPSIS
-    R-set
+    r-set
           -None-
     <BLANKLINE>
-    C-set
+    c-set
                  -1-        -2-    ...   -6-     ...  -10-
          1=      200-1      200-2  ...   200-6
     <BLANKLINE>
     >>> table = nastran.usetprt(
     ...      1, uset, printsets='*')  # doctest: +ELLIPSIS
-    M-set, S-set, O-set, Q-set, R-set, E-set, U1-set, ... U6-set
+    m-set, s-set, o-set, q-set, r-set, e-set, u1-set, ... u6-set
           -None-
     <BLANKLINE>
-    C-set
+    c-set
                  -1-        -2-    ...   -6-     ...  -10-
          1=      200-1      200-2  ...   200-6
     <BLANKLINE>
-    B-set
+    b-set
                  -1-        -2-    ...   -6-     ...  -10-
          1=      100-1      100-2  ...   100-6
     <BLANKLINE>
-    L-set, T-set, A-set, D-set, F-set, FE-set, ..., G-set, P-set
+    l-set, t-set, a-set, d-set, f-set, fe-set, ..., g-set, p-set
                  -1-        -2-    ...   -10-
          1=      100-1      100-2  ...    200-4 =    10
         11=      200-5      200-6
     <BLANKLINE>
     >>> table = nastran.usetprt(1, uset)  # doctest: +ELLIPSIS
-    M-set, S-set, O-set, Q-set, R-set, E-set
+    m-set, s-set, o-set, q-set, r-set, e-set
           -None-
     <BLANKLINE>
-    C-set
+    c-set
                  -1-        -2-    ...   -6-     ...  -10-
          1=      200-1      200-2  ...   200-6
     <BLANKLINE>
-    B-set
+    b-set
                  -1-        -2-    ...   -6-     ...  -10-
          1=      100-1      100-2  ...   100-6
     <BLANKLINE>
-    L-set, T-set, A-set, F-set, N-set, G-set
+    l-set, t-set, a-set, f-set, n-set, g-set
                  -1-        -2-    ...   -10-
          1=      100-1      100-2  ...    200-4 =    10
         11=      200-5      200-6
     <BLANKLINE>
     >>> table   # doctest: +ELLIPSIS
-                  M  S  O  Q  R  C  B  E   L   T   A   F   N   G
+                  m  s  o  q  r  c  b  e   l   t   a   f   n   g
     id  dof dof#...
     100 1   1     0  0  0  0  0  0  1  0   1   1   1   1   1   1
         2   2     0  0  0  0  0  0  2  0   2   2   2   2   2   2
@@ -1193,18 +1193,18 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
     """
     usetmask = mkusetmask()
     nasset = uset.iloc[:, 0].values
-    allsets = list("MSOQRCBELTADF") + [
-        "FE",
-        "N",
-        "NE",
-        "G",
-        "P",
-        "U1",
-        "U2",
-        "U3",
-        "U4",
-        "U5",
-        "U6",
+    allsets = list("msoqrcbeltadf") + [
+        "fe",
+        "n",
+        "ne",
+        "g",
+        "p",
+        "u1",
+        "u2",
+        "u3",
+        "u4",
+        "u5",
+        "u6",
     ]
     table = []
     for _set in allsets:
@@ -1221,7 +1221,7 @@ def usetprt(file, uset, printsets="M,S,O,Q,R,C,B,E,L,T,A,F,N,G"):
     if printsets == "*":
         printsets = allsets
     else:
-        printsets = ("".join(printsets.split())).upper().split(",")
+        printsets = ("".join(printsets.split())).lower().split(",")
     # keep only columns in table that are printed:
     printpv, pv2 = locate.list_intersect(allsets, printsets)
     # make sure printsets is in order of table:
@@ -1339,16 +1339,16 @@ def mksetpv(uset, major, minor):
 
         Sets              Supersets
 
-         M  -------------------------------------\
-         S  ------------------------------\       > G --\
-         O  -----------------------\       > N --/       \
-         Q  ----------------\       > F --/       \       \
-         R  ---------\       > A --/       \       \       > P
-         C  --\       > T --/       \       > FE    > NE  /
-         B  ---> L --/               > D   /       /     /
-         E  ------------------------/-----/-------/-----/
+         m  -------------------------------------\
+         s  ------------------------------\       > g --\
+         o  -----------------------\       > n --/       \
+         q  ----------------\       > f --/       \       \
+         r  ---------\       > a --/       \       \       > p
+         c  --\       > t --/       \       > fe    > ne  /
+         b  ---> l --/               > d   /       /     /
+         e  ------------------------/-----/-------/-----/
 
-    User-defined sets: U1, U2, U3, U4, U5, and U6.
+    User-defined sets: u1, u2, u3, u4, u5, and u6.
 
     See also
     --------
@@ -1455,7 +1455,7 @@ def mkdofpv(uset, nasset, dof, strict=True):
     --------
     >>> import numpy as np
     >>> from pyyeti import nastran
-    >>> # Want an A-set partition vector for all available a-set dof
+    >>> # Want an a-set partition vector for all available a-set dof
     >>> # of grids 100 and 200:
     >>> ids = np.array([[100], [200]])
     >>> uset = nastran.addgrid(
@@ -1602,6 +1602,27 @@ def mkcordcardinfo(uset, cid=None):
            [ 1234.567,     0.   ,     0.   ],
            [ 1234.567,     1.   ,     0.   ],
            [ 1235.567,     0.   ,     0.   ]])]
+
+    Test routine on cylindrical and spherical coordinate systems
+    following these steps:
+
+    1. Define one of each coordinate system manually.
+
+    2. Call :func:`addgrid` to create a uset table using both
+       systems. This will create nodes 1002 and 1003.
+
+    3. Call this routine to extract coordinate card information for
+       both systems. This will no doubt look different than the
+       manually entered information from step 1. However, nodes
+       created by both sets should be the same. The next two steps
+       will confirm this.
+
+    4. Call :func: `addgrid` to create nodes 2002 and 2003, but this
+       time using the information extracted by this routine.
+
+    5. Confirm that node locations match: 2002 matches 1002 and 2003
+       matches 1003.
+
     >>> # add random-ish cylindrical and spherical systems to test:
     >>> cylcoord = np.array([[601, 2, 501],
     ...                      [10, 20, 30],
@@ -1708,7 +1729,7 @@ def _mkusetcoordinfo_byid(refid, uset):
     raise ValueError(f"reference coordinate id {refid} not found in `uset`.")
 
 
-def mkusetcoordinfo(cord, uset, coordref):
+def mkusetcoordinfo(cord, uset=None, coordref=None):
     """
     Function for getting coordinfo as needed by the USET table.
     Called by addgrid.
@@ -1727,15 +1748,15 @@ def mkusetcoordinfo(cord, uset, coordref):
 
         where type is 0 (rectangular), 1 (cylindrical), or 2
         (spherical).
-    uset : pandas DataFrame or None
+    uset : pandas DataFrame or None; optional
         A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Not used unless
         needed.
-    coordref : dictionary
+    coordref : dictionary or None; optional
         Read/write dictionary with the keys being the coordinate
         system id and the values being the 5x3 matrix returned below.
         For speed reasons, this routine will look in `coordref` before
-        `uset` for a coordinate system. Can be empty.
+        `uset` for a coordinate system. Can be empty or None.
 
     Returns
     -------
@@ -1772,6 +1793,8 @@ def mkusetcoordinfo(cord, uset, coordref):
            [  0.,  -1.,   0.],
            [  1.,   0.,   0.]])
     """
+    if coordref is None:
+        coordref = {}
     if np.size(cord) == 1:
         cid = int(cord)
         try:
@@ -2118,9 +2141,13 @@ def getcoordinates(uset, gid, csys, coordref=None):
     --------
     >>> import numpy as np
     >>> from pyyeti import nastran
+    >>>
     >>> # node 100 in basic is @ [5, 10, 15]
     >>> # node 200 in cylindrical coordinate system is @
-    >>> # [r, th, z] = [32, 90, 10]
+    >>> #   [r, theta, z] = [32, 90, 10]
+    >>> # node 300 in spherical coordinate system is @
+    >>> #   [r, theta, phi] = [50, 90, 90]
+    >>>
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
     >>> sphcoord = np.array([[2, 3, 0], [0, 0, 0], [0, 1, 0],
@@ -2270,6 +2297,12 @@ def make_uset(dof, nasset=0, xyz=None):
 
     Examples
     --------
+    Create a uset table with one GRID (id 1) in the b-set, and one
+    SPOINT (id 2) in the q-set. The GRID is located at (1., 2., 3.) in
+    basic. SPOINTs have no location, so (0., 0., 0.) is used for the
+    SPOINT.
+
+
     >>> from pyyeti.nastran import n2p
     >>> n2p.make_uset(dof=[[1, 123456],
     ...                    [2, 0]],
@@ -2458,14 +2491,14 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
             Sets              Supersets
 
-             M  -------------------------------------\
-             S  ------------------------------\       > G --\
-             O  -----------------------\       > N --/       \
-             Q  ----------------\       > F --/       \       \
-             R  ---------\       > A --/       \       \       > P
-             C  --\       > T --/       \       > FE    > NE  /
-             B  ---> L --/               > D   /       /     /
-             E  ------------------------/-----/-------/-----/
+             m  -------------------------------------\
+             s  ------------------------------\       > g --\
+             o  -----------------------\       > n --/       \
+             q  ----------------\       > f --/       \       \
+             r  ---------\       > a --/       \       \       > p
+             c  --\       > t --/       \       > fe    > ne  /
+             b  ---> l --/               > d   /       /     /
+             e  ------------------------/-----/-------/-----/
 
         See :func:`mkusetmask` for more information on sets.
 
@@ -2714,23 +2747,23 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
             [[dof_ind1, scale], [grids_ind1], dof_ind2, grids_ind2]
 
     UM_List : None or array_like; optional
-        List of M-set grids and DOF's:
+        List of m-set grids and DOF's:
         [GRID_MSET1, DOF_MSET1, GRID_MSET2, DOF_MSET2, ...] where::
 
-              GRID_MSET1 : first grid in the M-set
-              DOF_MSET1  : DOF of first grid in M-set (integer subset
+              GRID_MSET1 : first grid in the m-set
+              DOF_MSET1  : DOF of first grid in m-set (integer subset
                            of 123456). No weighting factors are
                            allowed here.
-              GRID_MSET2 : second grid in the M-set
-              DOF_MSET2  : DOF of second grid in M-set
+              GRID_MSET2 : second grid in the m-set
+              DOF_MSET2  : DOF of second grid in m-set
               ...
 
-        The `UM_List` option changes what is dependent (M-set) and
-        what is independent. The M-set DOF will become the dependent
+        The `UM_List` option changes what is dependent (m-set) and
+        what is independent. The m-set DOF will become the dependent
         DOF instead of `GRID_dep`, `DOF_dep` (though it can include
-        these DOF). The total number of M-set DOF must equal the
+        these DOF). The total number of m-set DOF must equal the
         original amount defined in `GRID_dep`, `DOF_dep` (max of
-        6). All M-set DOF must be within the the set of previously
+        6). All m-set DOF must be within the the set of previously
         entered DOF (either dependent or independent).
 
     Returns
@@ -2756,23 +2789,23 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
         - Partition current rbe3 matrix into four parts to separate:
 
-            - dependent DOF into M-set and non-M-set
-            - independent DOF into M-set and non-M-set
+            - dependent DOF into m-set and non-m-set
+            - independent DOF into m-set and non-m-set
 
-        - Solve for both parts of the M-set and merge.
+        - Solve for both parts of the m-set and merge.
         - Reorder if necessary.
 
-    Simplifications are made if the M-set is completely contained
+    Simplifications are made if the m-set is completely contained
     within either the dependent or independent set.
 
     When the `UM_List` option is used, there will be a matrix
-    inversion, unless the M-set is equal to the dependent set (which
+    inversion, unless the m-set is equal to the dependent set (which
     would be the same as not including the `UM_List` input). This
     matrix must be non-singular. If it is close to singular (or
     singular), this routine will print a warning message and, if
     singular, scipy.linalg will raise the LinAlgError exception. In
     this case, choose a different, non-singular set for the
-    M-set. This is similar to choosing DOF for the SUPORT card in
+    m-set. This is similar to choosing DOF for the SUPORT card in
     Nastran.
 
     Raises
@@ -2869,7 +2902,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         )
         if np.size(mdof, 0) != np.size(ddof, 0):
             raise ValueError(
-                f"incorrect size of M-set DOF ({np.size(mdof, 0)}): "
+                f"incorrect size of m-set DOF ({np.size(mdof, 0)}): "
                 f"must equal size of Dep DOF ({np.size(ddof, 0)})."
             )
         # The rest of the code uses 'mdof' to sort rows of the output
@@ -2937,9 +2970,9 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         return rbe3[:, pv]
 
     # To include UM option:
-    #   Note:  if the M-set is entirely within either the dependent
+    #   Note:  if the m-set is entirely within either the dependent
     #   set or the independent set, simplifications are made (see
-    #   above). The steps here assume the M-set is composed of DOF
+    #   above). The steps here assume the m-set is composed of DOF
     #   from both the dependent and independent sets.
     #
     #   1. partition rbe3 to four parts, A, B, C & D:
@@ -3019,7 +3052,7 @@ def _get_node_ids(uset):
 
 def upasetpv(nas, seup):
     """
-    Form upstream A-set partition vector for a downstream SE
+    Form upstream a-set partition vector for a downstream SE
 
     Parameters
     ----------
@@ -3031,10 +3064,10 @@ def upasetpv(nas, seup):
     Returns
     -------
     pv : 1d ndarray
-        An index partition vector for partitioning the upstream A-set
-        degrees of freedom of superelement SEUP from the P-set of the
+        An index partition vector for partitioning the upstream a-set
+        degrees of freedom of superelement SEUP from the p-set of the
         downstream superelement. This partition vector is not a
-        True/False type because the A-set DOF order may be different
+        True/False type because the a-set DOF order may be different
         downstream than from upstream (from reordering done on a
         CSUPER entry).
 
@@ -3043,7 +3076,7 @@ def upasetpv(nas, seup):
     Example usage::
 
         # External superelement 100 is upstream of the residual. On
-        # the CSUPER entry, the A-set of 100 were assigned new ids and
+        # the CSUPER entry, the a-set of 100 were assigned new ids and
         # the order was changed. Form the ULVS matrix:
         from pyyeti import nastran
         nas = nastran.rdnas2cam('nas2cam')
@@ -3089,7 +3122,7 @@ def upasetpv(nas, seup):
 
 def upqsetpv(nas, sedn=0):
     """
-    Form upstream Q-set partition vector for a downstream SE
+    Form upstream q-set partition vector for a downstream SE
 
     Parameters
     ----------
@@ -3101,25 +3134,25 @@ def upqsetpv(nas, sedn=0):
     Returns
     -------
     pv : 1d ndarray
-        A True/False vector for partitioning upstream Q-set DOF from
-        downstream P-set.
+        A True/False vector for partitioning upstream q-set DOF from
+        downstream p-set.
 
     Notes
     -----
     If necessary, this routine will call itself recursively up the
-    superelement tree to account for all upstream Q-set. This will
-    take care of the Benfield-Hruda case where upstream Q-set go to
-    the B-set of another superelement before going to its ultimate
+    superelement tree to account for all upstream q-set. This will
+    take care of the Benfield-Hruda case where upstream q-set go to
+    the b-set of another superelement before going to its ultimate
     superelement.
 
     Note: if any upstream SEe does not have any DOF assigned to the
-    Q-set (as is quite typical for partitioned SE's), this routine
-    will then assume that all SPOINTs are Q-set DOF.
+    q-set (as is quite typical for partitioned SE's), this routine
+    will then assume that all SPOINTs are q-set DOF.
 
     Example usage::
 
         # Form rigid-body modes for SE 0, and then zero out all DOF
-        # that correspond to upstream Q-set:
+        # that correspond to upstream q-set:
         from pyyeti import nastran
         nas = nastran.rdnas2cam('nas2cam')
         rb = nastran.rbgeom_uset(nas['uset'][0])
@@ -3256,7 +3289,7 @@ def _formtran_0(nas, dof, gset):
         v = locate.mat_intersect(iddof[o], dof)[0]
         if v.size > 0:
             raise RuntimeError(
-                "some of the DOF of SE 0 go to the O-set. Routine not set up for this."
+                "some of the DOF of SE 0 go to the o-set. Routine not set up for this."
             )
 
     a = np.nonzero(mksetpv(uset, "g", "a"))[0]
@@ -3275,8 +3308,8 @@ def _formtran_0(nas, dof, gset):
         if np.any(o_n):
             if np.any(gm[:, o_n]):
                 raise RuntimeError(
-                    "M-set for residual is dependent"
-                    " on O-set (through GM). "
+                    "m-set for residual is dependent"
+                    " on o-set (through GM). "
                     "Routine not set up for this."
                 )
         sets = np.hstack((sets, m))
@@ -3323,7 +3356,7 @@ def _formtran_0(nas, dof, gset):
 
 def formtran(nas, se, dof, gset=False):
     """
-    Make a transformation matrix from A-set DOF to specified DOF
+    Make a transformation matrix from a-set DOF to specified DOF
     within the same SE.
 
     Parameters
@@ -3342,7 +3375,7 @@ def formtran(nas, se, dof, gset=False):
     Returns
     -------
     Tran : ndarray
-        Transformation from the A-set DOF of superelement `se` to
+        Transformation from the a-set DOF of superelement `se` to
         the specified DOF (`dof`) of the same superelement. The
         transformation is as follows::
 
@@ -3351,7 +3384,7 @@ def formtran(nas, se, dof, gset=False):
 
             if sedn == 0:
               {DOF} = Tran * {modal}       (for gset == False)
-              {DOF} = Tran * {G-Set}       (for gset == True)
+              {DOF} = Tran * {g-set}       (for gset == True)
 
     outdof : ndarray
         The expanded version of the `dof` input as returned by
@@ -3539,22 +3572,22 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True, gset=False):
     sedn : integer; optional
         The id of the downstream superelement.
     keepcset : bool; optional
-        If true, keeps any C-set rows/columns in the result. This is
-        useful when the C-set are real (that is, NOT used for 'left-
-        over' DOF after defining the Q-set). Set `keepcset=False` to
-        delete C-set.
+        If True, keeps any c-set rows/columns in the result. This is
+        useful when the c-set are real (that is, NOT used for 'left-
+        over' DOF after defining the q-set). Set `keepcset=False` to
+        delete c-set.
     shortcut : bool; optional
-        If true, use the ULVS already in `nas` if it's there.
+        If True, use the ULVS already in `nas` if it's there.
     gset : bool; optional
-        If true, and `sedn` == 0, transform from g-set instead of
+        If True, and `sedn` == 0, transform from g-set instead of
         modal DOF. See below.
 
     Returns
     -------
     ULVS : 2d numpy ndarray or 1.0
         Transformation from either the modal or physical DOF of the
-        downstream superelement sedn to the T and Q-set DOF of the
-        upstream superelement seup. The transformation (called ULVS
+        downstream superelement `sedn` to the T and q-set DOF of the
+        upstream superelement `seup`. The transformation (called ULVS
         here) is as follows::
 
           if sedn > 0:
@@ -3562,16 +3595,16 @@ def formulvs(nas, seup, sedn=0, keepcset=True, shortcut=True, gset=False):
 
           if sedn == 0:
             {upstream T & Q} = ULVS * {modal}      (for gset == False)
-            {upstream T & Q} = ULVS * {G-Set}      (for gset == True)
+            {upstream T & Q} = ULVS * {g-set}      (for gset == True)
 
-        Returns 1 if seup == sedn.
+        Returns 1 if ``seup == sedn``.
 
     Notes
     -----
-    This routine starts from seup and works down to sedn, forming the
-    appropriate ULVS at each level (by calling formtran()) and
-    multiplying them together to form the total ULVS from sedn DOF to
-    seup T & Q-set DOF.
+    This routine starts from `seup` and works down to `sedn`, forming
+    the appropriate ULVS at each level (by calling formtran()) and
+    multiplying them together to form the total ULVS from `sedn` DOF
+    to seup T & q-set DOF.
 
     The routine :func:`addulvs` is an interface routine to this
     routine that simplifies the creation of the standard ULVS matrices
@@ -3658,7 +3691,7 @@ def formdrm(nas, seup, dof, sedn=0, gset=False):
 
           if sedn == 0:
             {upstream DOF} = DRM * {modal}     (for gset == False)
-            {upstream DOF} = DRM * {G-Set}     (for gset == True)
+            {upstream DOF} = DRM * {g-set}     (for gset == True)
 
     outdof : ndarray
         The expanded version of the `dof` input as returned by
