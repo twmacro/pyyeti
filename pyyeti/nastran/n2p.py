@@ -153,8 +153,8 @@ def rbgeom_uset(uset, refpoint=np.array([[0, 0, 0]])):
     all the local coordinates of the grids. The refpoint is given
     unit translations and rotations in the basic coordinate system.
 
-    All SPOINTs, all EPOINTs, and GRIDS in the Q-set or in the "left
-    over" C-set will have 0's.
+    All SPOINTs (scalar points), all EPOINTs (extra points), and GRIDS
+    in the Q-set or in the "left over" C-set will have 0's.
 
     This routine will handle grids in rectangular, cylindrical, and
     spherical coordinates.
@@ -500,7 +500,7 @@ def rbcoords(rb, verbose=2):
     ----------
     rb : 6 column ndarray
        Rigid-body modes. Nodes can be in any mixture of coordinate
-       systems. Number of rows is assumed to be (6 x nodes) ... other
+       systems. Number of rows is assumed to be (6 x nodes). Other
        DOF (like SPOINTs) must be partitioned out before calling this
        routine.
     verbose : integer
@@ -536,11 +536,11 @@ def rbcoords(rb, verbose=2):
     coordinate transformation matrix (from reference to local) will
     show up in place of the the 3x3 identity matrix shown above. This
     routine will use that 3x3 matrix to convert coordinates to that of
-    the reference before checking for the expected pattern. The
-    matrix inversion is done in a least squares sense. This all means
-    is that the use of local coordinate systems is acceptable for this
-    routine. Zero rows (like what could happen for q-set dof) get
-    zero coordinates.
+    the reference before checking for the expected pattern. The matrix
+    inversion is done in a least squares sense. This means that the
+    use of local coordinate systems is acceptable for this
+    routine. Zero rows (like what could happen for q-set dof) get zero
+    coordinates.
 
     Raises
     ------
@@ -712,6 +712,9 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
 
     >>> import numpy as np
     >>> from pyyeti.nastran import n2p
+    >>>
+    >>> # define rb mode shape matrix for two nodes, both at
+    >>> #  (5, 10, 15) in basic:
     >>> rb = np.array([
     ...     [1.,   0.,   0.,   0.,  15., -10.],
     ...     [0.,   1.,   0., -15.,   0.,   5.],
@@ -723,6 +726,9 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
     ...     [0.,   1.,   0., -15.,   0.,   5.],
     ...     [0.,   0.,   1.,  10.,  -5.,   0.],
     ... ])
+    >>>
+    >>> # change coordinate system and scale for second node, just to
+    >>> # test routine:
     >>> c = 1 / np.sqrt(2)  # a 45 degree angle
     >>> T = np.array([[1., 0., 0.],
     ...               [0., c, c],
@@ -740,8 +746,8 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
            [   0.  ,    7.07,    7.07,  -35.36,  -35.36,   35.36],
            [   0.  ,   -7.07,    7.07,  176.78,  -35.36,  -35.36]])
 
-    Transform `rb` internally (it will also be transformed "by-hand"
-    below):
+    Call `n2p.find_xyz_triples` to transform `rb` internally (it will
+    also be transformed "by-hand" below):
 
     >>> mats = {'rb': rb}
     >>> trips = n2p.find_xyz_triples(rb, get_trans=True, mats=mats)
@@ -766,14 +772,18 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
     array([  1.,   1.,   1.,  nan,  nan,  nan,  10.,  10.,  10.])
     >>> len(trips.Ts)
     2
-    >>> trips.Ts[0]
+    >>>
+    >>> # Show both transforms ... note that scale is included:
+    >>> trips.Ts[0]  # transform for first node
     array([[ 1.,  0., -0.],
            [ 0.,  1., -0.],
            [ 0.,  0.,  1.]])
-    >>> trips.Ts[1]
+    >>> trips.Ts[1]  # transform for second node
     array([[ 0.1   , -0.    , -0.    ],
            [ 0.    ,  0.0707, -0.0707],
            [ 0.    ,  0.0707,  0.0707]])
+    >>>
+    >>> # The transformed rb modes:
     >>> np.allclose(trips.outmats['rb'],
     ...             [[  1.,   0.,   0.,   0.,  15., -10.],
     ...              [  0.,   1.,   0., -15.,   0.,   5.],
@@ -2683,6 +2693,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         Contains all or a subset of the digits 123456 giving the
         dependent component DOF.
     Ind_List : list
+        List of independent grids and DOF's:
         [DOF_Ind1, GRIDS_Ind1, DOF_Ind2, GRIDS_Ind2, ...], where::
 
             DOF_Ind1   : 1 or 2 element 1d array_like containing the
@@ -2693,9 +2704,17 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
             GRIDS_Ind1 : 1d array_like of node ids corresponding to
                          DOF_Ind1
             ...
-            eg:  [[123, 1.2], [95, 195, 1000], 123456, 95]
+
+        For example::
+
+            [[123, 1.2], [95, 195, 1000], 123456, 95]
+
+        follows the pattern::
+
+            [[dof_ind1, scale], [grids_ind1], dof_ind2, grids_ind2]
 
     UM_List : None or array_like; optional
+        List of M-set grids and DOF's:
         [GRID_MSET1, DOF_MSET1, GRID_MSET2, DOF_MSET2, ...] where::
 
               GRID_MSET1 : first grid in the M-set
@@ -2706,13 +2725,13 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
               DOF_MSET2  : DOF of second grid in M-set
               ...
 
-        The `UM_List` option changes what is dependent and what is
-        independent. The M-set DOF will become the dependent DOF
-        instead of `GRID_dep`, `DOF_dep` (though it can include these
-        DOF). The total number of M-set DOF must equal the original
-        amount defined in `GRID_dep`, `DOF_dep` (max of 6). All M-set
-        DOF must be within the the set of previously entered DOF
-        (either dependent or independent).
+        The `UM_List` option changes what is dependent (M-set) and
+        what is independent. The M-set DOF will become the dependent
+        DOF instead of `GRID_dep`, `DOF_dep` (though it can include
+        these DOF). The total number of M-set DOF must equal the
+        original amount defined in `GRID_dep`, `DOF_dep` (max of
+        6). All M-set DOF must be within the the set of previously
+        entered DOF (either dependent or independent).
 
     Returns
     -------
@@ -2746,14 +2765,15 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
     Simplifications are made if the M-set is completely contained
     within either the dependent or independent set.
 
-    When the `UM_List` option is used, unless the M-set is equal to
-    the dependent set (which would be the same as not including the
-    `UM_List` input), there will be a matrix inversion. This matrix
-    must be non-singular. If it is close to singular (or singular),
-    this routine will print a warning message and, if singular,
-    scipy.linalg will raise the LinAlgError exception. In this case,
-    choose a different, non-singular set for the M-set. This is
-    similar to choosing DOF for the SUPORT card in Nastran.
+    When the `UM_List` option is used, there will be a matrix
+    inversion, unless the M-set is equal to the dependent set (which
+    would be the same as not including the `UM_List` input). This
+    matrix must be non-singular. If it is close to singular (or
+    singular), this routine will print a warning message and, if
+    singular, scipy.linalg will raise the LinAlgError exception. In
+    this case, choose a different, non-singular set for the
+    M-set. This is similar to choosing DOF for the SUPORT card in
+    Nastran.
 
     Raises
     ------

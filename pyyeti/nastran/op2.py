@@ -459,7 +459,7 @@ class OP2:
             trailer : tuple
                 Data block trailer.
             type : 0 or 1
-                0 means table, 1 means matrix. I think.
+                0 means table, 1 means matrix.
 
         All outputs will be None for end-of-file.
         """
