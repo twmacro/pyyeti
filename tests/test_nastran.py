@@ -351,6 +351,31 @@ CORD2R       501           300.0    4.0 -10.0000  .56000 .200000   -10.7+
     assert np.all(cords1[501] == cords2[501])
 
 
+def test_rdcord2cards_errors():
+    strs = [
+        """
+    $1111111222222223333333344444444555555556666666677777777888888889999999900000000
+    CORD2R       501           300.0    4.0 -10.0000  .56000 .200000   -10.7+
+    +       310.0000     4.0   -11.7    1.0
+    """,
+        """
+    $1111111222222223333333344444444555555556666666677777777888888889999999900000000
+    CORD2R       501           300.0    4.0 -10.0000  .56000 .200000   -10.7+
+    +       310.0a00     4.0   -11.7
+    """,
+    ]
+
+    for i, s in enumerate(strs):
+        with StringIO(s) as f:
+            try:
+                nastran.rdcord2cards(f)
+            except ValueError as e:
+                if i == 0:
+                    assert e.args[0].startswith("expected 12")
+                else:
+                    assert e.args[0].startswith("could not convert")
+
+
 def test_wtextseout():
     nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101

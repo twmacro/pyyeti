@@ -1348,6 +1348,10 @@ def rdgrids(f):
 
 
 def _convert_card(card):
+    if len(card) != 12:
+        raise ValueError(
+            f"expected 12 fields but got {len(card)}, check: {card[0]}, {card[1]}"
+        )
     char = card[0][5]
     if char in "rR":
         ctype = 1
@@ -1355,7 +1359,18 @@ def _convert_card(card):
         ctype = 2
     else:
         ctype = 3
+
+    # for error message, in case it's needed:
+    name, ident = card[0], card[1]
+
     card[0], card[1] = card[1], ctype
+    try:
+        card = np.array(card).astype(np.float)
+    except ValueError as e:
+        msg = f"{e.args[0]}, check: {name}, {ident}"
+        e.args = (msg,)
+        raise
+
     return card
 
 
