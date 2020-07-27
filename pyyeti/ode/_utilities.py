@@ -335,30 +335,41 @@ def get_freq_damping(lam, suppress_warning=False):
     ----------
     lam : 1d ndarray; shape = (2n,)
         Vector of potentially complex eigenvalues. Pairs are assumed
-        to be adjacent
+        to be adjacent. Furthermore, each pair of values in `lam` is
+        assumed to be: :math:`-\omega_n (\zeta \pm \sqrt {\zeta^2 -
+        1})`. This is the case when `lam` are the eigenvalues of
+        :math:`A`, where :math:`A` is setup as shown in :func:`eigss`
+        (which has a :math:`-K` in it as opposed to a :math:`+K`).
     suppress_warning : bool; optional
         If True, do not print a warning if this routine finds that
         there are complex eigenvalues without an adjacent
         conjugate. Suppressing the warning can be useful for cases
         where the state-space matrix is complex. In that case, this
-        routine may not be that useful, but there's no sense in
-        printing a warning. See also the notes below.
+        routine may not be that useful, but there's no use in printing
+        a warning. See also the notes below.
 
     Returns
     -------
     wn : 1d ndarray; shape = (n,)
         Vector of natural frequencies (rad/sec) in the same order as
-        `lam`.
+        `lam`. `wn` is always greater than or equal to zero.
     zeta : 1d ndarray; shape = (n,)
         Vector of critical damping ratios:
 
-        =======  ====================================================
-        `zeta`   description
-        =======  ====================================================
-         < 1.0   underdamped; eigenvalues are complex conjugate pairs
-         = 1.0   critically damped; eigenvalues are real duplicates
-         > 1.0   overdamped; eigenvalues are real and unequal
-        =======  ====================================================
+        ========  ====================================================
+        \|zeta\|   description of eigenvalue pairs
+        ========  ====================================================
+         < 1.0    underdamped; eigenvalues are complex conjugate pairs
+         = 1.0    critically damped; eigenvalues are real duplicates
+         > 1.0    overdamped; eigenvalues are real and unequal
+        ========  ====================================================
+
+        .. note::
+            If `zeta` comes out negative, it could mean that the sign
+            on `lam` is the opposite of that expected. Or, you have
+            negative damping. If `zeta` should be positive for your
+            problem, just change the sign on `lam` (and see
+            description of the `lam` input).
 
     Notes
     -----
@@ -376,11 +387,11 @@ def get_freq_damping(lam, suppress_warning=False):
 
     .. math::
         \begin{aligned}
-           \lambda_1 &= \omega_n (\zeta + \sqrt {\zeta^2 - 1}) \\
-           \lambda_2 &= \omega_n (\zeta - \sqrt {\zeta^2 - 1})
+           \lambda_1 &= -\omega_n (\zeta + \sqrt {\zeta^2 - 1}) \\
+           \lambda_2 &= -\omega_n (\zeta - \sqrt {\zeta^2 - 1})
         \end{aligned}
 
-    The eigenvalue pairs will be real if :math:`\zeta >= 1.0` and
+    The eigenvalue pairs will be real if :math:`|\zeta| >= 1.0` and
     complex conjugates otherwise.
 
     The natural frequency :math:`\omega_n` is computed by taking the
@@ -406,7 +417,7 @@ def get_freq_damping(lam, suppress_warning=False):
 
     .. math::
         \begin{aligned}
-           \zeta &= \frac{\lambda_1 + \lambda_2}{2 \omega_n} \\
+           \zeta &= -\frac{\lambda_1 + \lambda_2}{2 \omega_n} \\
                  &= \frac{\omega_n (\zeta + \sqrt {\zeta^2 - 1})
                         + \omega_n (\zeta - \sqrt {\zeta^2 - 1})}
                         {2 \omega_n} \\
@@ -456,18 +467,18 @@ def get_freq_damping(lam, suppress_warning=False):
     True
     >>> np.allclose(zeta_extracted[i], zeta)
     True
+
+    Check sign convention. The first input follows the sign convention
+    described above, so should result in a positive 60% damping. The
+    second is the opposite, so should give -60% damping:
+
+    >>> ode.get_freq_damping([-3+4j, -3-4j])
+    (array([ 5.]), array([ 0.6]))
+    >>> ode.get_freq_damping([3+4j, 3-4j])
+    (array([ 5.]), array([-0.6]))
     """
     # find complex conjugate pairs:
     lam = np.atleast_1d(lam)
-
-    # Check for sign on lam ... if we assume lam is computed from A as
-    # defined in eigss (the convention used in pyYeti), then we really
-    # want to compute wn & zeta from -lam. We won't assume that
-    # though; instead, we'll just check the sign on the real part
-    # ... probably could just check one eigenvalue, but it's pretty
-    # cheap to do more of an average:
-    if lam.sum().real < 0:
-        lam = -lam
 
     lam1 = lam[::2]
     lam2 = lam[1::2]
@@ -475,7 +486,7 @@ def get_freq_damping(lam, suppress_warning=False):
         raise ValueError("`lam` must be even length")
 
     mult = lam1 * lam2
-    add = lam1 + lam2
+    add = -(lam1 + lam2)
     if not suppress_warning:
         if (abs(mult.imag).max() > 1e-14) or (abs(add.imag).max() > 1e-14):
             warnings.warn(
@@ -487,8 +498,7 @@ def get_freq_damping(lam, suppress_warning=False):
             )
 
     wn = np.sqrt(abs(mult.real))
-    zeta = (lam1 + lam2).real / (2 * wn)
-
+    zeta = add.real / (2 * wn)
     return wn, zeta
 
 
