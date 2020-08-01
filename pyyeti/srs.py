@@ -913,8 +913,16 @@ def srs(
         \begin{aligned}
         &\text{bias error} = 1 - \left[ \sin \left( \frac{\pi f}{sr}
         \right) / \frac{\pi f}{sr} \right]^2 \\
-        &\text{max peak error} = 1 - \sin \left( \frac{\pi}{2} -
+        &\text{max peak error} = 1 - \cos \left(
         \frac{\pi f}{sr} \right)
+        \end{aligned}
+
+    .. math::
+        \begin{aligned}
+        &\text{bias error} = 1 - \left[ \sin \left( \frac{\pi}{ppc}
+        \right) / \frac{\pi}{ppc} \right]^2 \\
+        &\text{max peak error} = 1 - \cos \left(
+        \frac{\pi}{ppc} \right)
         \end{aligned}
 
     .. note::
