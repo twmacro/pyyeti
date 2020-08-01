@@ -1817,9 +1817,12 @@ def test_merge():
     r1 = {"FLAC": "this is a bad entry"}
     assert_raises(TypeError, results.merge, (r1, r2))
 
+    # ValueError: event with name {event} already exists!
+    assert_raises(ValueError, results.merge, (r2, r2))
+
 
 def mass_spring_system():
-    """
+    r"""
                     |--> x1       |--> x2        |--> x3
 
 

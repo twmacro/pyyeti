@@ -346,20 +346,26 @@ class DR_Results(OrderedDict):
 
         Example usage::
 
-           # merge "liftoff" and "meco" results and rename the
-           # liftoff results from "LO" to "Liftoff":
+            # merge "liftoff" and "meco" results and rename the
+            # liftoff results from "LO" to "Liftoff":
 
-           from pyyeti import cla
-           results = cla.DR_Results()
-           results.merge(
-               (cla.load(fn) for fn in ['../liftoff/results.pgz',
-                                        '../meco/results.pgz']),
-               {'LO': 'Liftoff'}
-               )
-           results.strip_hists()
-           results.form_extreme()
-           results['extreme'].rpttab()
-           cla.save('results.pgz', results)
+            from pyyeti import cla
+
+            results = cla.DR_Results()
+            results.merge(
+                (
+                    cla.load(fn)
+                    for fn in [
+                        "../liftoff/results.pgz",
+                        "../meco/results.pgz",
+                    ]
+                ),
+                {"LO": "Liftoff"},
+            )
+            results.strip_hists()
+            results.form_extreme()
+            results["extreme"].rpttab()
+            cla.save("results.pgz", results)
         """
 
         def _get_event_name(results):
@@ -374,20 +380,20 @@ class DR_Results(OrderedDict):
                     return ", ".join(key for key in results)
                 else:
                     return next(iter(v2.values())).event
-            raise TypeError(f"unexpected type: {str(type(results))}")
+            raise TypeError(f"unexpected type: {type(results)}")
 
         events = []
         for results in results_iter:
             event = _get_event_name(results)
             if rename_dict is not None:
-                try:
-                    newname = rename_dict[event]
-                except KeyError:
-                    pass
-                else:
-                    event = newname
-            events.append(event)
-            self[event] = results
+                event = rename_dict.get(event, event)
+
+            if event in self.keys():
+                raise ValueError(f"Event with name {event} already exists! Aborting.")
+            else:
+                events.append(event)
+                self[event] = results
+
         return events
 
     def split(self):
