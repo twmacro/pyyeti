@@ -150,13 +150,13 @@ class PP(object):
     def _key_string(self, val, isns):
         if isinstance(val, str):
             if isns:
-                s = "." + val
+                s = f".{val}"
             else:
-                s = "'" + val + "'"
+                s = f"'{val}'"
         else:
             s = str(val)
         if len(s) > self._keylen:
-            s = s[: self._keylen - 4] + " ..."
+            s = f"{s[: self._keylen - 4]} ..."
         return s
 
     def _lst_tup_string(self, lst, list_level):
@@ -164,7 +164,7 @@ class PP(object):
         be = "[]" if isinstance(lst, list) else "()"
         s.append(be[0])
         if list_level > self._depth:
-            s.append("..." + be[1])
+            s.append(f"...{be[1]}")
             return s
         list_level += 1
         for i, item in enumerate(lst):
@@ -187,31 +187,28 @@ class PP(object):
 
     def _value_string(self, val, list_level):
         if isinstance(val, str):
-            s = ["'" + val + "'"]
+            s = [f"'{val}'"]
         elif isinstance(val, (list, tuple)):
             s = self._lst_tup_string(val, list_level)
         else:
-            s = [str(val).replace("\n", " ")]
+            s = [f"{val}".replace("\n", " ")]
         s = "".join(s)
         if len(s) > self._strlen:
-            #            s = s[:self._strlen-4] + ' ...'
             n = self._strlen // 2 - 3
-            s = s[:n] + " ... " + s[-n:]
+            s = f"{s[:n]} ... {s[-n:]}"
         return [s]
 
     def _shortarrhdr(self, arr):
-        return [str(arr.dtype) + " ndarray: " + str(arr.shape)]
+        return [f"{arr.dtype} ndarray: {arr.shape}"]
 
     def _getarrhdr(self, arr):
-        s = [str(arr.dtype) + " ndarray "]
-        s.append(str(arr.size) + " elems: " + str(arr.shape))
-        return s
+        return [f"{arr.dtype} ndarray {arr.size} elems: {arr.shape}"]
 
     def _getarrstr(self, arr):
-        s = " " + str(arr).replace("\n", "")
+        s = f" {arr}".replace("\n", "")
         if len(s) > 4 * (self._strlen // 5):
             n = self._strlen // 3
-            s = s[: n - 3] + " <...> " + s[-(n + 3) :]
+            s = f"{s[: n - 3]} <...> {s[-(n + 3) :]}"
         return [s]
 
     def _array_string(self, arr, level):
@@ -245,7 +242,7 @@ class PP(object):
             n = 0
             for k in keys:
                 n = max(n, len(self._key_string(k, isns)))
-            frm = "{:<" + str(n) + "s}: "
+            frm = f"{{:<{n}s}}: "
             for k in keys:
                 s.append(self._lead_string(level))
                 s.append(frm.format(self._key_string(k, isns)))
@@ -253,8 +250,7 @@ class PP(object):
         return s
 
     def _pandas_string(self, var, level, typename):
-        s = ["pandas " + var.__class__.__name__ + ": " + str(var.shape) + "\n"]
-        return s
+        return [f"pandas {var.__class__.__name__}: {var.shape}\n"]
 
     def _print_var(self, var, level):
         try:
@@ -289,6 +285,5 @@ class PP(object):
         s = self._print_var(var, 0)
         self.s = s
         self.output = "".join(s)
-        # print(self.output)
         for line in self.output.split("\n"):
             print(repr(line)[1:-1])
