@@ -2820,6 +2820,7 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
 
     Examples
     --------
+    >>> import numpy as np
     >>> from pyyeti import nastran
     >>> # First, make a uset table using all basic coords to simplify
     >>> # visual inspection:
