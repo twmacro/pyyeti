@@ -116,9 +116,10 @@ class FreqDirect(_BaseODE):
                      (abs(b).max(axis=1) < 0.005)).nonzero()[0]
 
         rf : 1d array or None; optional
-            Index or bool partition vector for res-flex modes; these
-            will be solved statically. As for the `rb` option, the
-            `rf` option only applies to modal space equations.
+            Index or bool partition vector for residual-flexibility
+            modes; these will be solved statically. As for the `rb`
+            option, the `rf` option only applies to modal space
+            equations.
 
         Notes
         -----
@@ -159,7 +160,7 @@ class FreqDirect(_BaseODE):
         self._common_precalcs(m, b, k, h=None, rb=rb, rf=rf)
         self._mk_slices()  # dorbel=False)
 
-    def fsolve(self, force, freq, incrb=2):
+    def fsolve(self, force, freq, incrb=2, rf_disp_only=False):
         """
         Solve equations of motion in frequency domain.
 
@@ -181,6 +182,15 @@ class FreqDirect(_BaseODE):
                2    all of rigid-body is included
             ======  ==============================================
 
+        rf_disp_only : bool; optional
+            This option specifies how to handle the velocity and
+            acceleration terms for residual-flexibility modes. If
+            True, they are set to zero. If False, they are computed
+            from the normal frequency-domain relationships::
+
+                velocity = i * omega * displacement
+                acceleration = -omega ** 2 * displacement
+
         Returns
         -------
         A SimpleNamespace with the members:
@@ -200,10 +210,16 @@ class FreqDirect(_BaseODE):
         response is handled.
         """
         force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(
-            force, d0=None, v0=None, static_ic=False, istime=False
-        )
         freq = np.atleast_1d(freq)
+        d, v, a, force = self._init_dva(
+            force,
+            d0=None,
+            v0=None,
+            static_ic=False,
+            istime=False,
+            freq=freq,
+            rf_disp_only=rf_disp_only,
+        )
 
         if self.ksize == 0:
             return self._solution_freq(d, v, a, freq)
@@ -228,7 +244,7 @@ class FreqDirect(_BaseODE):
             for i, O in enumerate(Omega):
                 Hi = 1j * b * O + k - m * O ** 2
                 d[kdof, i] = la.solve(Hi, force[:, i])
-        a[kdof] = -Omega ** 2 * d[kdof]
+        a[kdof] = -(Omega ** 2) * d[kdof]
         v[kdof] = 1j * Omega * d[kdof]
 
         if incrb < 2:

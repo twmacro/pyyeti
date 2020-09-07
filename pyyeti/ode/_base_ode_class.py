@@ -501,7 +501,9 @@ class _BaseODE:
                 d[self.rf, 0] = la.lu_solve(self.ikrf, F0[self.rf], check_finite=False)
         return d, v, a, f
 
-    def _init_dva(self, force, d0, v0, static_ic, istime=True):
+    def _init_dva(
+        self, force, d0, v0, static_ic, istime=True, freq=None, rf_disp_only=False
+    ):
         if force.shape[0] != self.n:
             raise ValueError(
                 f"Force matrix has {force.shape[0]} rows; {self.n} rows are expected"
@@ -516,10 +518,17 @@ class _BaseODE:
         self._init_dv(d, v, d0, v0, force[:, 0], static_ic)
 
         if self.rfsize:
+            rf = self.rf
             if self.unc:
-                d[self.rf] = self.ikrf * force[self.rf]
+                d[rf] = self.ikrf * force[rf]
             else:
-                d[self.rf] = la.lu_solve(self.ikrf, force[self.rf], check_finite=False)
+                d[rf] = la.lu_solve(self.ikrf, force[rf], check_finite=False)
+            if not istime and not rf_disp_only:
+                freqw = 2 * np.pi * freq
+                freqw2 = freqw ** 2
+                a[rf] = d[rf] * -(freqw2)
+                v[rf] = d[rf] * (1j * freqw)
+
         return d, v, a, force
 
     def _calc_acce_kdof(self, d, v, a, force):

@@ -119,7 +119,7 @@ class SolveUnc(_BaseODE):
     For a static solution:
 
         - rigid-body displacements = zeros
-        - elastic displacments = inv(k[elastic]) * P[elastic]
+        - elastic displacements = inv(k[elastic]) * P[elastic]
         - velocity = zeros
         - rigid-body accelerations = inv(m[rigid]) * P[rigid]
         - elastic accelerations = zeros
@@ -240,10 +240,10 @@ class SolveUnc(_BaseODE):
                 operation. See also `pre_eig`.
 
         rf : 1d array or None; optional
-            Index or bool partition vector for res-flex modes; these
-            will be solved statically. As for the `rb` option, the
-            `rf` option only applies to modal space equations
-            (possibly after the `pre_eig` operation).
+            Index or bool partition vector for residual-flexibility
+            modes; these will be solved statically. As for the `rb`
+            option, the `rf` option only applies to modal space
+            equations (possibly after the `pre_eig` operation).
         order : integer; optional
             Specify which solver to use:
 
@@ -567,7 +567,8 @@ class SolveUnc(_BaseODE):
             raise NotImplementedError(
                 "generator not yet implemented for the case when"
                 " different types of equations are interspersed (eg,"
-                " a res-flex DOF in the middle of the elastic DOFs)"
+                " a residual-flexibility DOF in the middle of the"
+                " elastic DOFs)"
             )
         d, v, a, force = self._init_dva_part(nt, F0, d0, v0, static_ic)
         self._d, self._v, self._a, self._force = d, v, a, force
@@ -688,7 +689,7 @@ class SolveUnc(_BaseODE):
                 flex = self._get_f2x_complex_unc(phi, velo)
         return self._flex(flex, phi)
 
-    def fsolve(self, force, freq, incrb=2):
+    def fsolve(self, force, freq, incrb=2, rf_disp_only=False):
         """
         Solve frequency-domain modal equations of motion using
         uncoupled equations.
@@ -711,6 +712,15 @@ class SolveUnc(_BaseODE):
                2    all of rigid-body is included (see note below)
             ======  ==============================================
 
+        rf_disp_only : bool; optional
+            This option specifies how to handle the velocity and
+            acceleration terms for residual-flexibility modes. If
+            True, they are set to zero. If False, they are computed
+            from the normal frequency-domain relationships::
+
+                velocity = i * omega * displacement
+                acceleration = -omega ** 2 * displacement
+
         Returns
         -------
         A SimpleNamespace with the members:
@@ -727,7 +737,8 @@ class SolveUnc(_BaseODE):
         Notes
         -----
         The rigid-body and residual-flexibility modes are solved
-        independently. The res-flex modes are solved statically.
+        independently. The residual-flexibility modes are solved
+        statically.
 
         Rigid-body velocities and displacements are undefined where
         `freq` is zero. So, if `incrb` is 1 or 2, this routine just
@@ -791,8 +802,10 @@ class SolveUnc(_BaseODE):
             >>> fig.tight_layout()
         """
         force = np.atleast_2d(force)
-        d, v, a, force = self._init_dva(force, None, None, False, istime=False)
         freq = np.atleast_1d(freq)
+        d, v, a, force = self._init_dva(
+            force, None, None, False, istime=False, freq=freq, rf_disp_only=rf_disp_only
+        )
         self._force_freq_compat_chk(force, freq)
         if self.nonrfsz:
             if self.unc:
@@ -1763,7 +1776,7 @@ class SolveUnc(_BaseODE):
         freqw2 = freqw ** 2
 
         # solve rigid-body and elastic parts separately
-        # - res-flex part was already solved in _init_dva
+        # - residual-flexibility part was already solved in _init_dva
 
         # solve rigid-body part:
         self._solve_freq_rb(d, v, a, force, freqw, freqw2, incrb, True)
@@ -1794,7 +1807,7 @@ class SolveUnc(_BaseODE):
         freqw2 = freqw ** 2
 
         # solve rigid-body and elastic parts separately
-        # - res-flex part was already solved in _init_dva
+        # - residual-flexibility part was already solved in _init_dva
 
         # solve rigid-body part:
         self._solve_freq_rb(d, v, a, force, freqw, freqw2, incrb, False)

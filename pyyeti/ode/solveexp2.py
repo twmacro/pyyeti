@@ -198,10 +198,10 @@ class SolveExp2(_BaseODE):
                 in :func:`SolveExp2.tsolve`.
 
         rf : 1d array or None; optional
-            Index or bool partition vector for res-flex modes; these
-            will be solved statically. As for the `rb` option, the
-            `rf` option only applies to modal space equations
-            (possibly after the `pre_eig` operation).
+            Index or bool partition vector for residual-flexibility
+            modes; these will be solved statically. As for the `rb`
+            option, the `rf` option only applies to modal space
+            equations (possibly after the `pre_eig` operation).
         order : integer; optional
             Specify which solver to use:
 
@@ -525,8 +525,8 @@ class SolveExp2(_BaseODE):
             raise NotImplementedError(
                 "generator not yet implemented for the case"
                 " when different types of equations are interspersed"
-                " (eg, a res-flex DOF in the middle of the elastic"
-                " DOFs)"
+                " (eg, a residual-flexibility DOF in the middle of"
+                " the elastic DOFs)"
             )
         d, v, a, force = self._init_dva_part(nt, F0, d0, v0, static_ic)
         self._d, self._v, self._a, self._force = d, v, a, force

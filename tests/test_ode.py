@@ -1948,34 +1948,42 @@ def test_ode_uncoupled_freq():
     )
     # to accommodate a freqw of zero:
     H[rb, 0] = 1.0
-    for rf in (None, [3], [2], np.array([1, 2, 3])):
-        tsu = ode.SolveUnc(m, b, k, rf=rf)
-        tfd = ode.FreqDirect(m, b, k, rf=rf)
-        for incrb in [0, 1, 2]:
-            sol = tsu.fsolve(f, freq, incrb=incrb)
-            sold = tfd.fsolve(f[:, 1:], freq[1:], incrb=incrb)
-            d = f / H
-            d[rb, 0] = 0
-            v = 1j * freqw * d
-            a = 1j * freqw * v
-            a[rb, 0] = f[rb, 0] / m[rb]
-            if rf is not None:
-                d[rf] = f[rf] / (k[rf][:, None])
-                v[rf] = 0
-                a[rf] = 0
-            if incrb < 2:
-                d[rb] = 0
-                if incrb < 1:
-                    a[rb] = 0
-                    v[rb] = 0
-            assert np.allclose(a, sol.a)
-            assert np.allclose(v, sol.v)
-            assert np.allclose(d, sol.d)
-            assert np.all(freq == sol.f)
+    for rf_disp_only in (True, False):
+        for rf in (None, [3], [2], np.array([1, 2, 3])):
+            tsu = ode.SolveUnc(m, b, k, rf=rf)
+            tfd = ode.FreqDirect(m, b, k, rf=rf)
+            for incrb in [0, 1, 2]:
+                sol = tsu.fsolve(f, freq, incrb=incrb, rf_disp_only=rf_disp_only)
+                sold = tfd.fsolve(
+                    f[:, 1:], freq[1:], incrb=incrb, rf_disp_only=rf_disp_only
+                )
+                d = f / H
+                d[rb, 0] = 0
+                v = 1j * freqw * d
+                a = 1j * freqw * v
+                a[rb, 0] = f[rb, 0] / m[rb]
+                if rf is not None:
+                    d[rf] = f[rf] / (k[rf][:, None])
+                    if rf_disp_only:
+                        v[rf] = 0
+                        a[rf] = 0
+                    else:
+                        v[rf] = 1j * freqw * d[rf]
+                        a[rf] = 1j * freqw * v[rf]
 
-            assert np.allclose(sol.a[:, 1:], sold.a)
-            assert np.allclose(sol.v[:, 1:], sold.v)
-            assert np.allclose(sol.d[:, 1:], sold.d)
+                if incrb < 2:
+                    d[rb] = 0
+                    if incrb < 1:
+                        a[rb] = 0
+                        v[rb] = 0
+                assert np.allclose(a, sol.a)
+                assert np.allclose(v, sol.v)
+                assert np.allclose(d, sol.d)
+                assert np.all(freq == sol.f)
+
+                assert np.allclose(sol.a[:, 1:], sold.a)
+                assert np.allclose(sol.v[:, 1:], sold.v)
+                assert np.allclose(sol.d[:, 1:], sold.d)
 
     rf = np.array([0, 1, 2, 3])
     k[0] = k[1]
@@ -2022,8 +2030,9 @@ def test_ode_uncoupled_freq_rblast():
             a[rb, 0] = f[rb, 0] / m[rb]
             if rf is not None:
                 d[rf] = f[rf] / (k[rf][:, None])
-                v[rf] = 0
-                a[rf] = 0
+                v[rf] = 1j * freqw * d[rf]
+                a[rf] = 1j * freqw * v[rf]
+
             if incrb < 2:
                 d[rb] = 0
                 if incrb < 1:
@@ -2072,8 +2081,9 @@ def test_ode_uncoupled_freq_mNone():
             a[rb, 0] = f[rb, 0]
             if rf is not None:
                 d[rf] = f[rf] / (k[rf][:, None])
-                v[rf] = 0
-                a[rf] = 0
+                v[rf] = 1j * freqw * d[rf]
+                a[rf] = 1j * freqw * v[rf]
+
             if incrb < 2:
                 d[rb] = 0
                 if incrb < 1:
@@ -2110,43 +2120,51 @@ def test_ode_coupled_freq():
     f = np.ones((4, freq.size))
 
     freqw = 2 * np.pi * freq
-    for rf in (None, [3], [2], np.array([1, 2, 3])):
-        tsu = ode.SolveUnc(m, b, k, rf=rf)
-        tfd = ode.FreqDirect(m, b, k, rf=rf)
-        for incrb in [0, 1, 2]:
-            sol = tsu.fsolve(f, freq, incrb=incrb)
-            sold = tfd.fsolve(f[:, 1:], freq[1:], incrb=incrb)
+    for rf_disp_only in (True, False):
+        for rf in (None, [3], [2], np.array([1, 2, 3])):
+            tsu = ode.SolveUnc(m, b, k, rf=rf)
+            tfd = ode.FreqDirect(m, b, k, rf=rf)
+            for incrb in [0, 1, 2]:
+                sol = tsu.fsolve(f, freq, incrb=incrb, rf_disp_only=rf_disp_only)
+                sold = tfd.fsolve(
+                    f[:, 1:], freq[1:], incrb=incrb, rf_disp_only=rf_disp_only
+                )
 
-            m2, b2, k2 = decouple_rf((m, b, k), rf)
-            d = np.zeros((4, freqw.size), complex)
-            for i, w in enumerate(freqw):
-                H = (k2 - m2 * w ** 2) + 1j * (b2 * w)
-                if w == 0.0:
-                    H[rb, 0] = 1.0
-                d[:, i] = la.solve(H, f[:, i])
-                if w == 0.0:
-                    d[rb, 0] = 0
+                m2, b2, k2 = decouple_rf((m, b, k), rf)
+                d = np.zeros((4, freqw.size), complex)
+                for i, w in enumerate(freqw):
+                    H = (k2 - m2 * w ** 2) + 1j * (b2 * w)
+                    if w == 0.0:
+                        H[rb, 0] = 1.0
+                    d[:, i] = la.solve(H, f[:, i])
+                    if w == 0.0:
+                        d[rb, 0] = 0
 
-            v = 1j * freqw * d
-            a = 1j * freqw * v
-            a[rb, 0] = f[rb, 0] / m[rb, rb]
-            if rf is not None:
-                d[rf] = la.solve(k[np.ix_(rf, rf)], f[rf])
-                v[rf] = 0
-                a[rf] = 0
-            if incrb < 2:
-                d[rb] = 0
-                if incrb < 1:
-                    a[rb] = 0
-                    v[rb] = 0
-            assert np.allclose(a, sol.a)
-            assert np.allclose(v, sol.v)
-            assert np.allclose(d, sol.d)
-            assert np.all(freq == sol.f)
+                v = 1j * freqw * d
+                a = 1j * freqw * v
+                a[rb, 0] = f[rb, 0] / m[rb, rb]
+                if rf is not None:
+                    d[rf] = la.solve(k[np.ix_(rf, rf)], f[rf])
+                    if rf_disp_only:
+                        v[rf] = 0
+                        a[rf] = 0
+                    else:
+                        v[rf] = 1j * freqw * d[rf]
+                        a[rf] = 1j * freqw * v[rf]
 
-            assert np.allclose(sol.a[:, 1:], sold.a)
-            assert np.allclose(sol.v[:, 1:], sold.v)
-            assert np.allclose(sol.d[:, 1:], sold.d)
+                if incrb < 2:
+                    d[rb] = 0
+                    if incrb < 1:
+                        a[rb] = 0
+                        v[rb] = 0
+                assert np.allclose(a, sol.a)
+                assert np.allclose(v, sol.v)
+                assert np.allclose(d, sol.d)
+                assert np.all(freq == sol.f)
+
+                assert np.allclose(sol.a[:, 1:], sold.a)
+                assert np.allclose(sol.v[:, 1:], sold.v)
+                assert np.allclose(sol.d[:, 1:], sold.d)
 
 
 def test_ode_coupled_freq_cdf():
@@ -2208,8 +2226,9 @@ def test_ode_coupled_freq_mNone():
             a[rb, 0] = f[rb, 0]
             if rf is not None:
                 d[rf] = la.solve(k[np.ix_(rf, rf)], f[rf])
-                v[rf] = 0
-                a[rf] = 0
+                v[rf] = 1j * freqw * d[rf]
+                a[rf] = 1j * freqw * v[rf]
+
             if incrb < 2:
                 d[rb] = 0
                 if incrb < 1:
