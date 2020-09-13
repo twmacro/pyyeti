@@ -46,6 +46,8 @@ extensions = [
     "sphinx.ext.mathjax",
     "matplotlib.sphinxext.plot_directive",
     "sphinx.ext.intersphinx",
+    "sphinx_toggleprompt",
+    "sphinx_copybutton",
     # bug in anaconda package??:
     #  https://github.com/ContinuumIO/anaconda-issues/issues/1430
     # could do: conda update ipython -c conda-forge
@@ -90,6 +92,13 @@ plot_formats = [
 ]
 plot_html_show_formats = False
 plot_html_show_source_link = False
+
+# Defaults to 0 if not provided. Use 25 so toggleprompt and copybutton
+# work together
+toggleprompt_offset_right = 25
+
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+copybutton_prompt_is_regexp = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -238,12 +247,12 @@ html_theme = "nature"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 
-html_static_path = ["_static"]
-
-
-def setup(app):
-    # app.add_javascript("copybutton.js")
-    app.add_js_file("copybutton.js")
+### html_static_path = ["_static"]
+###
+###
+### def setup(app):
+###     # app.add_javascript("copybutton.js")
+###     app.add_js_file("copybutton.js")
 
 
 # Add any extra paths that contain custom files (such as robots.txt or
