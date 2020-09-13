@@ -11,7 +11,6 @@ get-data-from-plot-with-matplotlib
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.offsetbox as offsetbox
 
 
 def form1(x, y, n, ind, ax, line):
@@ -422,7 +421,7 @@ class DataCursor(object):
                     ax.figure.texts.append(an)
                     ax.texts.pop(ax.texts.index(an))
                     # and make it draggable
-                    offsetbox.DraggableAnnotation(an)
+                    an.draggable()
             self._is_on = False
         for fig in self._figs:
             fig.canvas.draw()
@@ -488,7 +487,6 @@ class DataCursor(object):
         vis = False if hasattr(ax, "get_proj") else True
         self.pts.append(ax.scatter(x, y, **self.permdot, visible=vis))
         self.notes.append(self._annotation[ax])
-        # offsetbox.DraggableAnnotation(self._annotation)
         # make a new annotation box so current one is static
         self._annotation[ax] = self._new_annotation(ax, (x, y))
         if self._in_loop and len(self.xypoints) == self._max_points:
@@ -681,7 +679,7 @@ class DataCursor(object):
         inside the axes to continue.
         """
         print(msg)
-        self.on(callbacks="key_only")
+        self.on(callbacks="key_only", reset=False)
         self._in_loop = True
         self._figs[0].canvas.start_event_loop(timeout=-1)
 
