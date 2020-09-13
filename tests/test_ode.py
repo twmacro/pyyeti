@@ -497,20 +497,21 @@ def test_newmark_rbdamp_coupled():
 
 
 def get_rfsol(k, rf, f):
+    rf = np.atleast_1d(rf)
     if k.ndim > 1:
         if np.size(rf) > 1:
             krf = k[np.ix_(rf, rf)]
-            rfsol = la.solve(krf, f[rf, :]).T
+            rfsol = la.solve(krf, f[rf, :])
         else:
             krf = k[rf, rf]
             rfsol = f[rf, :] / krf
     else:
         krf = k[rf]
         if np.size(krf) > 1:
-            rfsol = (f[rf, :] / krf[:, None]).T
+            rfsol = f[rf, :] / krf[:, None]
         else:
             rfsol = f[rf, :] / krf
-    return rfsol
+    return rfsol.T
 
 
 def test_ode_uncoupled():
@@ -582,7 +583,7 @@ def test_ode_uncoupled():
                     rfsol = get_rfsol(k, rf, f)
                     yl[:, rf] = 0.0
                     yl[:, rf + n] = 0.0
-                    yl[:, rf + 2 * n] = rfsol
+                    yl[:, np.atleast_1d(rf + 2 * n)] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
                 assert np.allclose(yl[:, n : 2 * n], sol.v.T)
                 assert np.allclose(yl[:, 2 * n :], sol.d.T)
@@ -670,7 +671,7 @@ def test_ode_uncoupled_2():
                     rfsol = get_rfsol(k, rf, f)
                     yl[:, rf] = 0.0
                     yl[:, rf + n] = 0.0
-                    yl[:, rf + 2 * n] = rfsol
+                    yl[:, np.atleast_1d(rf + 2 * n)] = rfsol
                 assert np.allclose(yl[:, :n], sol.a.T)
                 assert np.allclose(yl[:, n : 2 * n], sol.v.T)
                 assert np.allclose(yl[:, 2 * n :], sol.d.T)
@@ -740,9 +741,9 @@ def test_ode_coupled():
             [False, False, True, False],
             np.array([False, True, True, True]),
         ):
-            if rf is 2 and k.ndim > 1:
+            if (rf == np.array([False, False, True, False])).all() and k.ndim > 1:
                 k = np.diag(k)
-            if rf is 3 and m.ndim > 1:
+            if (rf == np.array([False, False, False, True])).all() and m.ndim > 1:
                 m = np.diag(m)
                 b = np.diag(b)
             for static_ic in (0, 1):
@@ -922,7 +923,8 @@ def test_ode_coupled_2():
 
                     yl[:, rf] = 0.0
                     yl[:, rf + n] = 0.0
-                    yl[:, rf + 2 * n] = rfsol
+                    yl[:, np.atleast_1d(rf + 2 * n)] = rfsol
+
                 assert np.allclose(yl[:, :n], sol.a.T)
                 assert np.allclose(yl[:, n : 2 * n], sol.v.T)
                 assert np.allclose(yl[:, 2 * n :], sol.d.T)
@@ -1050,7 +1052,8 @@ def test_ode_uncoupled_mNone():
                     rfsol = get_rfsol(k, rf, f)
                     yl[:, rf] = 0.0
                     yl[:, rf + n] = 0.0
-                    yl[:, rf + 2 * n] = rfsol
+                    yl[:, np.atleast_1d(rf + 2 * n)] = rfsol
+
                 assert np.allclose(yl[:, :n], sol.a.T)
                 assert np.allclose(yl[:, n : 2 * n], sol.v.T)
                 assert np.allclose(yl[:, 2 * n :], sol.d.T)
@@ -1237,7 +1240,8 @@ def test_ode_coupled_mNone():
 
                     yl[:, rf] = 0.0
                     yl[:, rf + n] = 0.0
-                    yl[:, rf + 2 * n] = rfsol
+                    yl[:, np.atleast_1d(rf + 2 * n)] = rfsol
+
                 assert np.allclose(yl[:, :n], sol.a.T)
                 assert np.allclose(yl[:, n : 2 * n], sol.v.T)
                 assert np.allclose(yl[:, 2 * n :], sol.d.T)
@@ -1462,7 +1466,8 @@ def test_ode_coupled_mNone_rblast():
 
                     yl[:, rf] = 0.0
                     yl[:, rf + n] = 0.0
-                    yl[:, rf + 2 * n] = rfsol
+                    yl[:, np.atleast_1d(rf + 2 * n)] = rfsol
+
                 assert np.allclose(yl[:, :n], sol.a.T)
                 assert np.allclose(yl[:, n : 2 * n], sol.v.T)
                 assert np.allclose(yl[:, 2 * n :], sol.d.T)
@@ -3110,6 +3115,78 @@ def test_ode_solvepsd():
     assert np.allclose(psdduf[2], adpsdduf)
 
 
+def test_ode_solvepsd_rf_disp_only():
+    # uncoupled equations
+    m = np.array([10.0, 30.0, 30.0, 30.0])  # diagonal of mass
+    k = np.array([0.0, 6.0e5, 6.0e5, 6.0e5])  # diagonal of stiffness
+    zeta = np.array([0.0, 0.05, 1.0, 2.0])  # percent damping
+    b = 2.0 * zeta * np.sqrt(k / m) * m  # diagonal of damping
+
+    freq = np.arange(0.1, 35, 0.1)
+
+    forcepsd = 10000 * np.ones((4, freq.size))  # constant PSD forces
+    rf = 3
+    ts = ode.SolveUnc(m, b, k, rf=[rf])
+    atm = np.random.randn(4, 4)
+    vtm = np.random.randn(4, 4)
+    dtm = np.random.randn(4, 4)
+    t_frc = np.eye(4)
+    drms = [[atm, None, None, None], [None, vtm, None, None], [None, None, dtm, None]]
+
+    rms, psd = ode.solvepsd(ts, forcepsd, t_frc, freq, drms)
+    rms_rfd, psd_rfd = ode.solvepsd(ts, forcepsd, t_frc, freq, drms, rf_disp_only=True)
+
+    # solve by hand for comparison:
+    freqw = 2 * np.pi * freq
+    H = (
+        k[:, None]
+        - m[:, None].dot(freqw[None, :] ** 2)
+        + (1j * b[:, None].dot(freqw[None, :]))
+    )
+
+    apsd = 0.0
+    vpsd = 0.0
+    dpsd = 0.0
+
+    apsd_rfd = 0.0
+    vpsd_rfd = 0.0
+
+    unitforce = np.ones((1, len(freq)))
+    for i in range(forcepsd.shape[0]):
+        # solve for unit frequency response function:
+        genforce = t_frc[:, i : i + 1] @ unitforce
+
+        d = genforce / H
+        d[rf] = genforce[rf] / k[rf, None]
+
+        # rf_disp_only=False:
+        v = 1j * freqw * d
+        a = 1j * freqw * v
+
+        apsd = apsd + abs(atm @ a) ** 2 * forcepsd[i]
+        vpsd = vpsd + abs(vtm @ v) ** 2 * forcepsd[i]
+        dpsd = dpsd + abs(dtm @ d) ** 2 * forcepsd[i]
+
+        # rf_disp_only=True:
+        v[rf] = 0.0
+        a[rf] = 0.0
+        apsd_rfd = apsd_rfd + abs(atm @ a) ** 2 * forcepsd[i]
+        vpsd_rfd = vpsd_rfd + abs(vtm @ v) ** 2 * forcepsd[i]
+
+    # rf_disp_only=False:
+    assert np.allclose(psd[0], apsd)
+    assert np.allclose(psd[1], vpsd)
+    assert np.allclose(psd[2], dpsd)
+
+    # rf_disp_only=True:
+    assert np.allclose(psd_rfd[0], apsd_rfd)
+    assert np.allclose(psd_rfd[1], vpsd_rfd)
+    assert np.allclose(psd_rfd[2], dpsd)
+
+    assert not np.allclose(psd_rfd[0], psd[0])
+    assert not np.allclose(psd_rfd[1], psd[1])
+
+
 def test_getmodepart():
     K = [
         [12312.27, -38.20, 611.56, -4608.26, 2845.92],
@@ -3719,7 +3796,7 @@ def test_ode_coupled_generator():
 
     for order in (0, 1):
         for rf in (None, 3, np.array([1, 2, 3])):
-            if rf is 3 and m.ndim > 1:
+            if (rf == np.array([3])).all() and m.ndim > 1:
                 m = np.diag(m)
                 b = np.diag(b)
             for static_ic in (0, 1):

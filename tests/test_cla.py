@@ -3641,6 +3641,43 @@ def test_solvepsd_ltmf():
     assert np.allclose(results["fs_md"].ext, results2["fs_md"].ext)
 
 
+def test_solvepsd_rf_disp_only():
+    mass, damp, stiff, drms, uf_reds, defaults, DR = grounded_mass_spring_system()
+    freq = np.arange(0.1, 30.0, 0.1)
+    n = freq.shape[0]
+
+    # - fpsd[0] on dof 2
+    # - fpsd[1] on dof 1
+    fpv = np.array([2, 1])
+    fpsd = np.zeros((2, n))
+    fpsd[0] = np.interp(freq, [2.0, 12.0, 20.0, 25.0], [0.0, 10.0, 10.0, 0.0])
+    fpsd[1] = np.interp(freq, [2.0, 12.0, 20.0, 25.0], [0.0, 12.0, 12.0, 0.0])
+
+    # "ltmf" recovery matrix must match PSD force (order and size)
+    DR.Vars[0]["ltmf_keep"] = DR.Vars[0]["ltmf"].copy()
+    DR.Vars[0]["ltmf"] = DR.Vars[0]["ltmf_keep"][:, fpv]
+
+    t_frc = np.eye(stiff.shape[0])[fpv].T
+    caseid = "PSDTest"
+    nas = {"nrb": 0}
+    event = "Case 1"
+    fs = ode.SolveUnc(mass, damp, stiff, pre_eig=True, rf=2)
+
+    results = DR.prepare_results("Spring & Damper Forces", event)
+    results.solvepsd(nas, caseid, DR, fs, fpsd, t_frc, freq)
+    results.psd_data_recovery(caseid, DR, 1, 0)
+
+    results_rfd = DR.prepare_results("Spring & Damper Forces", event)
+    results_rfd.solvepsd(nas, caseid, DR, fs, fpsd, t_frc, freq, rf_disp_only=True)
+    results_rfd.psd_data_recovery(caseid, DR, 1, 0)
+
+    # We're not actually checking for correct values here, just that
+    # the rf_disp_only argument was used. The values computed with
+    # rf_disp_only are checked in test_ode.py in a few places.
+    assert np.allclose(results["fs_md"].ext, results_rfd["fs_md"].ext)
+    assert not np.allclose(results["fs_ma"].ext, results_rfd["fs_ma"].ext)
+
+
 def comp_all_na():
     # make up some "external source" CLA results:
     mission = "Rocket / Spacecraft VLC"

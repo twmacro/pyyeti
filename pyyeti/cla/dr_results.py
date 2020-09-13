@@ -1006,9 +1006,9 @@ class DR_Results(OrderedDict):
         forcepsd,
         t_frc,
         freq,
-        incrb=2,
         verbose=False,
         allow_force_trimming=False,
+        **kwargs,
     ):
         """
         Solve equations of motion in frequency domain with PSD forces
@@ -1037,8 +1037,9 @@ class DR_Results(OrderedDict):
             of all combined :class:`DR_Def` objects with all ULVS
             matrices applied.
         fs : class instance
-            An instance of :class:`SolveUnc` or :class:`FreqDirect`
-            (or similar ... must have `.fsolve` method)
+            An instance of :class:`pyyeti.ode.SolveUnc` or
+            :class:`pyyeti.ode.FreqDirect` (or similar ... must have
+            ``.fsolve`` method)
         forcepsd : 2d array_like
             Matrix of force psds; each row is a force
         t_frc : 2d array_like
@@ -1055,18 +1056,6 @@ class DR_Results(OrderedDict):
             `forcepsd`: ``t_frc.shape[1] == forcepsd.shape[0]``
         freq : 1d array_like
             Frequency vector at which solution will be computed
-        incrb : 0, 1, or 2; optional
-            An input to the :func:`fs.fsolve` method, it specifies how
-            to handle rigid-body responses:
-
-            ======  ===============================================
-            incrb   description
-            ======  ===============================================
-               0    no rigid-body is included
-               1    acceleration and velocity rigid-body only
-               2    all of rigid-body is included (see `fs.fsolve`)
-            ======  ===============================================
-
         verbose : bool; optional
             If True, print status messages and timer results.
         allow_force_trimming : bool; optional
@@ -1076,6 +1065,18 @@ class DR_Results(OrderedDict):
             ("drmf"), the default is False. It is advisable to trim
             off zero forces before calling this routine and trim the
             corresponding columns off any "drmf" matrices.
+        **kwargs : keyword arguments for ``fs.fsolve``; optional
+            Currently, there are two arguments available:
+
+            ============  ============================================
+              argument    brief description
+            ============  ============================================
+            incrb         specifies how to handle rigid-body responses
+            rf_disp_only  specifies how to handle residual-flexibility
+                          modes
+            ============  ============================================
+
+            See, for example, :func:`pyyeti.ode.SolveUnc.fsolve`.
 
         Notes
         -----
@@ -1104,7 +1105,7 @@ class DR_Results(OrderedDict):
                 # solve for unit frequency response function for i'th
                 # force:
                 genforce = t_frc[:, [i]] @ unitforce;
-                sol = fs.fsolve(genforce, freq, incrb)
+                sol = fs.fsolve(genforce, freq, **kwargs)
                 sol.pg[:] = 0.0
                 sol.pg[i] = unitforce
                 sol = DR.frf_apply_uf(sol, nas["nrb"])
@@ -1185,7 +1186,7 @@ class DR_Results(OrderedDict):
             # solve for unit FRF for i'th force:
             genforce = t_frc[:, [i]] * unitforce
             t1 = time.time()
-            sol = fs.fsolve(genforce, freq, incrb)
+            sol = fs.fsolve(genforce, freq, **kwargs)
 
             # zeroing line not needed on first loop, but is okay (last
             # row gets re-zeroed)

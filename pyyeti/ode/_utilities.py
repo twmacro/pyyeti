@@ -891,7 +891,7 @@ def make_A(M, B, K):
     return A
 
 
-def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2, rbduf=1.0, elduf=1.0):
+def solvepsd(fs, forcepsd, t_frc, freq, drmlist, rbduf=1.0, elduf=1.0, **kwargs):
     """
     Solve equations of motion in frequency domain with uncorrelated
     PSD forces.
@@ -947,22 +947,22 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2, rbduf=1.0, elduf=1.0):
                [None, None, dtm, None],
                [ltma, ltmv, ltmd, ltmf]]
 
-    incrb : 0, 1, or 2; optional
-        An input to the :func:`fs.fsolve` method, it specifies how to
-        handle rigid-body responses:
-
-        ======  ===============================================
-        incrb   description
-        ======  ===============================================
-           0    no rigid-body is included
-           1    acceleration and velocity rigid-body only
-           2    all of rigid-body is included (see `fs.fsolve`)
-        ======  ===============================================
-
     rbduf : scalar; optional
         Rigid-body uncertainty factor
     elduf : scalar; optional
         Dynamic uncertainty factor
+    **kwargs : keyword arguments for ``fs.fsolve``; optional
+        Currently, there are two arguments available:
+
+        ============  ============================================
+          argument    brief description
+        ============  ============================================
+        incrb         specifies how to handle rigid-body responses
+        rf_disp_only  specifies how to handle residual-flexibility
+                      modes
+        ============  ============================================
+
+        See, for example, :func:`SolveUnc.fsolve`.
 
     Returns
     -------
@@ -979,10 +979,10 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2, rbduf=1.0, elduf=1.0):
 
     Notes
     -----
-    This routine first calls `fs.fsolve` to solve the modal equations
-    of motion. Then, it scales the responses by the corresponding PSD
-    input force. All PSD responses are summed together for the overall
-    response. For example::
+    This routine first calls ``fs.fsolve`` to solve the modal
+    equations of motion. Then, it scales the responses by the
+    corresponding PSD input force. All PSD responses are summed
+    together for the overall response. For example::
 
         resp_psd = 0
         for i in range(forcepsd.shape[0]):
@@ -1059,7 +1059,7 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, incrb=2, rbduf=1.0, elduf=1.0):
     for i in range(rpsd):
         # solve for unit frequency response function for i'th force:
         genforce = t_frc[:, i : i + 1] @ unitforce
-        sol = fs.fsolve(genforce, freq, incrb)
+        sol = fs.fsolve(genforce, freq, **kwargs)
         if rbduf != 1.0:
             sol.a[fs.rb] *= rbduf
             sol.v[fs.rb] *= rbduf
