@@ -20,6 +20,8 @@ import shlex
 import matplotlib as mpl
 import sphinx
 from distutils.version import LooseVersion
+
+sys.path.insert(0, os.path.abspath(".."))
 from pyyeti import __version__
 
 
