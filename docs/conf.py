@@ -13,13 +13,15 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import pkg_resources
+# import pkg_resources
 import sys
 import os
 import shlex
 import matplotlib as mpl
 import sphinx
 from distutils.version import LooseVersion
+from pyyeti import __version__
+
 
 mpl.interactive(False)
 mpl.use("Agg")
@@ -123,21 +125,27 @@ author = "Tim Widrick"
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-# The short X.Y version.
-version = ""
-# The full version, including alpha/beta/rc tags.
-release = ""
+# # The short X.Y version.
+# version = ""
+# # The full version, including alpha/beta/rc tags.
+# release = ""
+#
+# try:
+#     release = pkg_resources.get_distribution("pyyeti").version
+# except pkg_resources.DistributionNotFound:
+#     print(
+#         "To build the documentation, the distribution information "
+#         "of pyYeti must be available. Either install the package "
+#         'or run "python setup.py develop"'
+#     )
+#     sys.exit(1)
+# del pkg_resources
+# version = ".".join(release.split(".")[:2])
+#
+# print(f"{release=}, {version=}")
+# sys.exit(1)
 
-try:
-    release = pkg_resources.get_distribution("pyyeti").version
-except pkg_resources.DistributionNotFound:
-    print(
-        "To build the documentation, the distribution information "
-        "of pyYeti must be available. Either install the package "
-        'or run "python setup.py develop"'
-    )
-    sys.exit(1)
-del pkg_resources
+release = __version__
 version = ".".join(release.split(".")[:2])
 
 
