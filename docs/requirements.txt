@@ -12,4 +12,4 @@ ipython
 notebook
 sphinx-toggleprompt
 sphinx-copybutton
-pygments=2.4.1
+pygments==2.4.1
