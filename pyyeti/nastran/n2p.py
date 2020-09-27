@@ -1795,17 +1795,22 @@ def mkusetcoordinfo(cord, uset=None, coordref=None):
     """
     if coordref is None:
         coordref = {}
-    if np.size(cord) == 1:
-        cid = int(cord)
+
+    try:
+        len(cord)
+    except TypeError:
+        # assume scalar integer
         try:
-            return coordref[cid]
+            return coordref[cord]
         except KeyError:
-            ci = _mkusetcoordinfo_byid(cid, uset)
+            ci = _mkusetcoordinfo_byid(cord, uset)
             coordref[cord] = ci
             return ci
-    cord = np.atleast_2d(cord)
+
+    cord = np.array(cord, dtype=object)
     if cord.shape != (4, 3):
         raise ValueError("incorrectly sized `cord` input")
+    cord = cord.astype(np.float)
     cid, ctype = cord[0, :2].astype(np.int64)
 
     try:
@@ -2880,11 +2885,13 @@ def formrbe3(uset, GRID_dep, DOF_dep, Ind_List, UM_List=None):
         # eg:  [[123, 1.2], [95, 195, 1000], 123456, 95]
         DOF_ind = np.atleast_1d(Ind_List[j])
         GRIDS_ind = np.atleast_1d(Ind_List[j + 1])
+
         if len(DOF_ind) == 2:
             wtcur = DOF_ind[1]
-            DOF_ind = DOF_ind[0]
         else:
             wtcur = 1.0
+
+        DOF_ind = DOF_ind[0]
         newdof = expanddof([[n, DOF_ind] for n in GRIDS_ind])
         idof.extend(newdof)
         wtdof.extend([wtcur for i in range(len(newdof))])

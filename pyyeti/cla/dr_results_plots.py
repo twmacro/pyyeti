@@ -4,8 +4,10 @@ import copy
 import warnings
 import numpy as np
 import scipy.signal as signal
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from distutils.version import LooseVersion
 from pyyeti.nastran import n2p
 from ._utilities import get_marker_cycle
 
@@ -181,11 +183,19 @@ def _add_legend(leg_info, figsize, tight_layout_args):
         # borderaxespad=0.,
         # labelspacing=legspace*.9,
     )
-    legwidth = (
-        leg.get_tightbbox(fig.canvas.get_renderer())
-        .inverse_transformed(fig.transFigure)
-        .width
-    )
+    if LooseVersion(matplotlib.__version__) >= "3.3":
+        legwidth = (
+            leg.get_tightbbox(fig.canvas.get_renderer())
+            .transformed(fig.transFigure.inverted())
+            .width
+        )
+    else:
+        legwidth = (
+            leg.get_tightbbox(fig.canvas.get_renderer())
+            .inverse_transformed(fig.transFigure)
+            .width
+        )
+
     leg_info[0] = leg
     leg_info[1] = legwidth
 

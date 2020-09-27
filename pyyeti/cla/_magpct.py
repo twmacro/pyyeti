@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import itertools
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
+from distutils.version import LooseVersion
 from ._utilities import _proc_filterval, get_marker_cycle
 
 
@@ -270,11 +272,20 @@ def magpct(
 
     if linthreshy > 0.0 and logthreshy > 2 * linthreshy:
         lty = linthreshy
-        # linthreshy = np.ceil(linthreshy)
-        # linthreshy = 10 * np.ceil(linthreshy / 10)
-        ax.set_yscale(
-            "symlog", linthreshy=linthreshy, linscaley=3, subsy=[2, 3, 4, 5, 6, 7, 8, 9]
-        )
+        if LooseVersion(matplotlib.__version__) >= "3.3":
+            ax.set_yscale(
+                "symlog",
+                linthresh=linthreshy,
+                linscale=3,
+                subs=[2, 3, 4, 5, 6, 7, 8, 9],
+            )
+        else:
+            ax.set_yscale(
+                "symlog",
+                linthreshy=linthreshy,
+                linscaley=3,
+                subsy=[2, 3, 4, 5, 6, 7, 8, 9],
+            )
 
         ax.set_facecolor(SHADED)
         ax.axhspan(-lty, lty, facecolor="white", zorder=-2)
@@ -310,28 +321,6 @@ def magpct(
             ax.axvline(
                 -filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
             )
-
-        # # ax.set_xlim(ax.get_xlim())
-        # # left, right = ax.get_xlim()
-        # # print(f"({left}, {right})")
-        # if ref_max > filterval:
-        #     ax.axvline(
-        #         filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
-        #     )
-        #     right = filterval
-        # else:
-        #     right = ref_max
-        # if ref_min < -filterval:
-        #     ax.axvline(
-        #         -filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
-        #     )
-        #     left = -filterval
-        # else:
-        #     left = ref_min
-        # # left1, right1 = ax.get_xlim()
-        # # print(f"({left1}, {right1})")
-        # ax.axvspan(left, right, facecolor=SHADED, zorder=-2)
-        # # ax.axvspan(-filterval, filterval, facecolor=SHADED, zorder=-2)
 
     if apd is not None:
         ax.set_xlabel("Reference Magnitude")
