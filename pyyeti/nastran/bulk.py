@@ -2307,7 +2307,7 @@ def wtrbe2(f, eid, indep, dof, dep):
         An integer concatenation of the DOF (ex: 123456) that applies
         for all the dependent DOF.
     dep : 1d array_like
-        Vector of dependend grid IDs
+        Vector of dependent grid IDs
 
     Returns
     -------
