@@ -2986,7 +2986,7 @@ def rdpostop2(
     verbose : bool
         If True, echo names of tables and matrices to screen
     getougv1 : bool
-        If True, read the OUGV1 or BOPHIG matrices, if any
+        If True, read the OUGV1, OUG1, or BOPHIG matrices, if any
     getoef1 : bool
         If True, read the OEF1* matrices, if any
     getoes1 : bool
@@ -3104,7 +3104,11 @@ def rdpostop2(
                     uset = o2._rdop2uset()
                     continue
 
-                if getougv1 and (name.find("OUGV1") == 0 or name.find("BOPHIG") == 0):
+                if getougv1 and (
+                    name.find("OUGV1") == 0
+                    or name.find("BOPHIG") == 0
+                    or name.find("OUG1") == 0
+                ):
                     if verbose:
                         print(f"Reading table {name}...")
                     try:
