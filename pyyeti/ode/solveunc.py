@@ -737,8 +737,9 @@ class SolveUnc(_BaseODE):
         Notes
         -----
         The rigid-body and residual-flexibility modes are solved
-        independently. The residual-flexibility modes are solved
-        statically.
+        independently. The displacements for the residual-flexibility
+        modes are solved statically, and the velocities and
+        accelerations are determined according to `rf_disp_only`.
 
         Rigid-body velocities and displacements are undefined where
         `freq` is zero. So, if `incrb` is 1 or 2, this routine just
