@@ -229,51 +229,69 @@ def fdepsd(
         column is, by definition, the maximum cycle amplitude for each
         SDOF from the rainflow count (G1 was calculated from
         this). Typically, this should be very close to the raw SRS
-        peaks but a little lower since SRS just grabs peaks without
-        consideration of the opposite peak.
+        peaks contained in the `srs` output but a little lower since
+        SRS just grabs peaks without consideration of the opposite
+        peak.
     binamps : pandas DataFrame; ``len(freq) x nbins``
-        Each row (for a specific frequency SDOF) in `binamps` contains
-        the lower amplitude boundary of each bin. The index is
-        `freq`. Spacing of the bins is linear. The next column for
-        this matrix would be ``peakamp[:, 0]``.
+        A DataFrame of linearly spaced amplitude values defining the
+        cycle counting bins. The index is `freq` and the columns are
+        integers 0 to ``nbins - 1``. The values in each row (for a
+        specific frequency SDOF), range from 0.0 up to
+        ``peakamp.loc[freq, "G1"] * (nbins - 1) / nbins``.  In other
+        words, each value is the left-side amplitude boundary for that
+        bin. The next column for this matrix would be ``peakamp.loc[:,
+        "G1"]``.
     count : pandas DataFrame; ``len(freq) x nbins``
         Summary matrix of the rainflow cycle counts. Size corresponds
         with `binamps` and the count is cumulative; that is, the count
         in each entry includes cycles at the `binamps` amplitude and
         above. Therefore, first column has total cycles for the SDOF.
     bincount : pandas DataFrame; ``len(freq) x nbins``
-        Non-cumulative version of `count`.
+        Non-cumulative version of `count`. In other words, the values
+        are the number of cycles in the bin, left-side inclusive. The
+        last bin includes the count of maximum amplitude cycles.
     di_sig : pandas DataFrame; ``len(freq) x 3``
-        Damage indicators for the `sig` signal. Index is `freq` and
-        columns are ['b=4', 'b=8', 'b=12']. The value for each
-        frequency is the sum of the cycle count for a bin times its
-        amplitude to the b power. That is, for the j-th frequency, the
-        indicator is::
+        Damage indicators computed from SDOF responses to the `sig`
+        signal. Index is `freq` and columns are ['b=4', 'b=8',
+        'b=12']. The value for each frequency is the sum of the cycle
+        count for a bin times its amplitude to the b power. That is,
+        for the j-th frequency, the indicator is::
 
             amps = binamps.loc[freq[j]]
             counts = bincount.loc[freq[j]]
 
-            di = (amps ** b) @ counts
+            di = (amps ** b) @ counts  # dot product of two vectors
 
         Note that this definition is slightly different than equation
         14 from [#fde1]_ (would have to divide by the frequency), but
         the same as equation 10 of [#fde2]_ without the constant.
-    di_test : pandas DataFrame; ``len(freq) x 3``
-        Damage indicators for the test without the variance
-        factor. Same size as `di_sig`. Each value depends only on the
-        frequency, `T0`, and the fatigue exponent ``b``. The ratio of
-        a signal damage indicator to the corresponding test damage
-        indicator is equal to the variance of the single DOF response
-        to `sig` raised to the ``b/2`` power. (This relationship is
-        the basis of determining the amplitude of the test signal.)
-        For example::
+    di_test_part : pandas DataFrame; ``len(freq) x 3``
+        Test damage indicator without including the variance factor
+        (see note). Same size as `di_sig`. Each value depends only on
+        the frequency, `T0`, and the fatigue exponent ``b``. The ratio
+        of a signal damage indicator to the corresponding partial test
+        damage indicator is equal to the variance of the single DOF
+        response to the test raised to the ``b / 2`` power::
 
-           var[freq] ** (b / 2) = di_sig[freq, b] / di_test[freq, b]
+           var_test ** (b / 2) = di_sig / di_test_part
 
+        .. note::
+            If the variance vactor (`var_test`) were included, then
+            the test damage indicator would be the same as
+            `di_sig`. This relationship is the basis of determining
+            the amplitude of the test signal.
+
+    var_test : pandas DataFrame; ``len(freq) x 3``
+        The required SDOF test response variances (see `di_test_part`
+        description). Same size as `di_sig`. The amplitude of the G4,
+        G8, and G12 columns of `psd` are computed from Mile's equation
+        (or similar) and `var_test`.
     sig : 1d ndarray
         The version of the input `sig` that is fed into the fatique
         damage algorithm. This would be after any filtering,
         windowing, and upsampling.
+    sr : scalar
+        The sample rate of the output `sig`.
     srs : pandas Series; length = ``len(freq)``
         The raw SRS peaks version of the first column in `amp`. See
         `amp`. Index is `freq`.
@@ -308,9 +326,12 @@ def fdepsd(
           high counts.  Ignore amplitudes < ``Amax/3``.
       5.  Calculate damage indicators from data with b = 4, 8, 12
           where b is the fatigue exponent.
-      6.  Calculate damage indicators for `T0` second test with
-          b = 4, 8, 12.
-      7.  Solve for `g4`, `g8`, `g12` from results of steps 5 & 6.
+      6.  By equating the theoretical damage from a `T0` second random
+          vibration test to the damage from the input signal (step 5),
+          solve for the required test response variances for b = 4, 8,
+          12.
+      7.  Solve for `g4`, `g8`, `g12` from the results of step 6 using
+          the Mile's equation (or similar); equations are shown below.
 
     No checks are done regarding the suitability of this method for
     the input data. It is recommended to read the references [#fde1]_
@@ -626,7 +647,6 @@ def fdepsd(
             x = BinAmps[j, pv] ** 2
             x2 = G2max[j]
             y = np.log(Count[j, pv])
-            # y1 = np.log(max(Count[j, 0], freq[j]*T0))
             y1 = np.log(Count[j, 0])
             g1y = np.interp(x, [0, x2], [y1, 0])
             tantheta = (y - g1y) / x
@@ -636,18 +656,6 @@ def fdepsd(
                 # where log(count) = 0; ie, solve for x-intercept in
                 # y = m x + b; (x, y) pts are: (0, y1), (x[k], y[k]):
                 G2max[j] = x[k] * y1 / (y1 - y[k])
-                # if j == 10:
-                #     import matplotlib.pyplot as plt
-                #     plt.figure('g2')
-                #     plt.clf()
-                #     plt.semilogy(BinAmps[j]**2, Count[j],
-                #                  label='Data')
-                #     plt.plot([0, Amax[j]**2], [np.exp(y1), 1],
-                #              label='G1')
-                #     plt.plot([0, G2max[j]], [np.exp(y1), 1],
-                #              label='G2')
-                #     plt.plot(x[k], np.exp(y[k]), 'o', label='g2 pt')
-                #     plt.legend(loc='best')
 
     # calculate flight-damage indicators for b = 4, 8 and 12:
     b4 = 4
@@ -739,12 +747,12 @@ def fdepsd(
     di_test = pd.DataFrame(
         np.column_stack((Dt4, Dt8, Dt12)), columns=["b=4", "b=8", "b=12"], index=index
     )
-    # df = pd.concat(
-    #     objs=[Gpsd, Gmax, BinAmps, Count, pd.DataFrame(Var),
-    #           pd.DataFrame(SRSmax)],
-    #     keys=['PSD', 'Peak Amp', 'Bin Amp', 'Count', 'Var', 'SRS'],
-    #     axis=1,
-    #     copy=False)
+    var_test = pd.DataFrame(
+        np.column_stack((sig2_4, sig2_8, sig2_12)),
+        columns=["b=4", "b=8", "b=12"],
+        index=index,
+    )
+
     return SimpleNamespace(
         freq=freq,
         psd=Gpsd,
@@ -758,6 +766,8 @@ def fdepsd(
         ncpu=ncpu,
         di_sig=di_sig,
         di_test=di_test,
+        var_test=var_test,
         resp=resp,
         sig=sig,
+        sr=sr,
     )
