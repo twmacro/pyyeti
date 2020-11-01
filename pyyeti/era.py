@@ -41,7 +41,7 @@ class ERA:
 
     Let there be ``m`` outputs, ``r`` inputs, and ``p`` time steps
     (following the convention in [#era1]_). In ERA, impulse response
-    measurements (accelerometer data, for example) forms a
+    measurements (accelerometer data, for example) form a
     3-dimensional matrix sized ``m x p x r``. This data can be
     partitioned into ``p`` ``m x r`` matrices. These ``m x r``
     matrices are called Markov parameters. ERA computes a set of
@@ -72,7 +72,9 @@ class ERA:
     The ``Y[k]`` matrices are the Markov parameters written as a
     function of the to-be-determined state-space matrices ``A``,
     ``B``, and ``C``. From the above, it can be seen that ``D =
-    Y[0]``.
+    Y[0]``. By equating the input Markov parameters with the
+    expressions for ``Y[k]``, ERA computes a minimum realization for
+    ``A``, ``B``, and ``C``.
 
     References
     ----------
@@ -149,7 +151,7 @@ class ERA:
         FFT_limit     enforces frequency cutoff(s) on FFT plot
         ===========   =========================================================
 
-        The class instance calls following internal functions:
+        The class instance calls the following internal functions:
 
         =============   =======================================================
         Function        Description
@@ -163,6 +165,9 @@ class ERA:
         =============   =======================================================
         """
         self.resp = np.atleast_3d(resp)
+        # (p,)      --> (1, p, 1)
+        # (m, p)    --> (m, p, 1)
+        # (m, p, r) --> (m, p, r)
         self.h = h
         self.tol = tol
         self.time_vector = time_vector
@@ -420,6 +425,7 @@ class ERA:
     def _plot_era(self, n, A_hat, B_hat, C_hat):
         """
         Plots input data against reduced model.
+
         Parameters
         ----------
         n : int
@@ -449,84 +455,88 @@ class ERA:
         are given.
 
         """
-        fig = plt.figure("ERA Fit", clear=True)
-        fig.subplots_adjust(top=0.8)
-
-        if self.FFT:
-            ax1 = fig.add_subplot(211)
-            ax2 = fig.add_subplot(212)
-            fig.tight_layout(pad=3.0)
-        else:
-            ax1 = fig.add_subplot(111)
-
-        x = np.zeros((n, self.r * self.p), dtype=complex)
+        x = np.zeros((n, self.r * self.p), dtype=A_hat.dtype)
         cols = np.arange(0, self.r)
         x[:, cols] = B_hat
         for k in np.arange(0, self.p - 1):
             x[:, cols + self.r] = A_hat @ x[:, cols]
             cols += self.r
-        y = np.real(C_hat @ x)
+        y = np.real(C_hat @ x).reshape(self.m, self.p, self.r)
 
-        # Will execute if the user has specified signal labels
-        if self.input_labels:
-            # Plots original data
-            ax1.plot(self.time_vector, self.resp.T, label="(Data)")
-            # reset color cycle so that the colors line up
-            ax1.set_prop_cycle(None)
-            # Plots ERA fit data
-            ax1.plot(self.time_vector, y.T, "--", label="(ERA fit)")
+        # plot each input in its own window: TODO
+        for j in range(self.r):
+            fig = plt.figure(f"ERA Fit, input {j}", clear=True)
+            fig.subplots_adjust(top=0.8)
 
-            legend = []
-            for i in range(2 * len(self.input_labels)):
-                # First round should be labeled with (Data)
-                if i < len(self.input_labels):
-                    legend.append(self.input_labels[i] + " (Data)")
-                # Second round should be labeled with (ERA Fit)
-                else:
-                    legend.append(
-                        self.input_labels[i - len(self.input_labels)] + " (ERA Fit)"
-                    )
-            # Legend will appear next to plot
-            ax1.legend(legend, bbox_to_anchor=(1.04, 1), loc="upper left")
-        else:
-            # Plots original data
-            ax1.plot(self.time_vector, self.resp.T, label="Data")
-            # reset color cycle so that the colors line up
-            ax1.set_prop_cycle(None)
-            # Plots ERA fit data
-            ax1.plot(self.time_vector, y.T, "--", label="ERA fit")
-
-        # Labeling plot
-        ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Response")
-        ax1.set_title("Data (solid) vs. ERA Reduced Model (dashed)")
-
-        # Will execute if the user requests an FFT
-        if self.FFT:
-            # Recovering magnitude, phase, and frequency FFT data
-            mag, phase, frq = dsp.fftcoef(self.resp.T, 1 / self.h, axis=0, maxdf=0.2)
-            # No defined limits will plot entire FFT
-            if not self.FFT_limit:
-                ax2.plot(frq, mag)
-            # In the case of defined limits, they will be processed
+            if self.FFT:
+                ax1 = fig.add_subplot(211)
+                ax2 = fig.add_subplot(212)
+                fig.tight_layout(pad=3.0)
             else:
-                # Converts integer/float input to a list for indexing purposes
-                if isinstance(self.FFT_limit, numbers.Real):
-                    self.FFT_limit = [self.FFT_limit]
-                # If only one limit is provided, it is taken as a maximum limit
-                if len(self.FFT_limit) == 1:
-                    maxlim = max(np.where(frq <= self.FFT_limit[0])[0])
-                    ax2.plot(frq[:maxlim], mag[:maxlim])
-                # If a pair of limits is provided, it will be used
-                # as minimum/maximum limits
-                elif len(self.FFT_limit) == 2:
-                    minlim = max(np.where(frq <= self.FFT_limit[0])[0])
-                    maxlim = max(np.where(frq <= self.FFT_limit[1])[0])
-                    ax2.plot(frq[minlim:maxlim], mag[minlim:maxlim])
-            # Labeling FFT plot
-            ax2.set_xlabel("Frequency (Hz)")
-            ax2.set_ylabel("Magnitude")
-            ax2.set_title("Magnitude of Frequency Responses of Data")
+                ax1 = fig.add_subplot(111)
+
+            # Will execute if the user has specified signal labels
+            if self.input_labels:
+                # Plots original data
+                ax1.plot(self.time_vector, self.resp[:, :, j].T, label="(Data)")
+                # reset color cycle so that the colors line up
+                ax1.set_prop_cycle(None)
+                # Plots ERA fit data
+                ax1.plot(self.time_vector, y[:, :, j].T, "--", label="(ERA fit)")
+
+                legend = []
+                for i in range(2 * len(self.input_labels)):
+                    # First round should be labeled with (Data)
+                    if i < len(self.input_labels):
+                        legend.append(self.input_labels[i] + " (Data)")
+                    # Second round should be labeled with (ERA Fit)
+                    else:
+                        legend.append(
+                            self.input_labels[i - len(self.input_labels)] + " (ERA Fit)"
+                        )
+                # Legend will appear next to plot
+                ax1.legend(legend, bbox_to_anchor=(1.04, 1), loc="upper left")
+            else:
+                # Plots original data
+                ax1.plot(self.time_vector, self.resp[:, :, j].T, label="Data")
+                # reset color cycle so that the colors line up
+                ax1.set_prop_cycle(None)
+                # Plots ERA fit data
+                ax1.plot(self.time_vector, y[:, :, j].T, "--", label="ERA fit")
+
+            # Labeling plot
+            ax1.set_xlabel("Time (s)")
+            ax1.set_ylabel("Response")
+            ax1.set_title("Data (solid) vs. ERA Reduced Model (dashed)")
+
+            # Will execute if the user requests an FFT
+            if self.FFT:
+                # Recovering magnitude, phase, and frequency FFT data
+                mag, phase, frq = dsp.fftcoef(
+                    self.resp[:, :, j].T, 1 / self.h, axis=0, maxdf=0.2
+                )
+                # No defined limits will plot entire FFT
+                if not self.FFT_limit:
+                    ax2.plot(frq, mag)
+                # In the case of defined limits, they will be processed
+                else:
+                    # Converts integer/float input to a list for indexing purposes
+                    if isinstance(self.FFT_limit, numbers.Real):
+                        self.FFT_limit = [self.FFT_limit]
+                    # If only one limit is provided, it is taken as a maximum limit
+                    if len(self.FFT_limit) == 1:
+                        maxlim = max(np.where(frq <= self.FFT_limit[0])[0])
+                        ax2.plot(frq[:maxlim], mag[:maxlim])
+                    # If a pair of limits is provided, it will be used
+                    # as minimum/maximum limits
+                    elif len(self.FFT_limit) == 2:
+                        minlim = max(np.where(frq <= self.FFT_limit[0])[0])
+                        maxlim = max(np.where(frq <= self.FFT_limit[1])[0])
+                        ax2.plot(frq[minlim:maxlim], mag[minlim:maxlim])
+                # Labeling FFT plot
+                ax2.set_xlabel("Frequency (Hz)")
+                ax2.set_ylabel("Magnitude")
+                ax2.set_title("Magnitude of Frequency Responses of Data")
 
         fig.canvas.draw()
         plt.show()
@@ -641,7 +651,7 @@ class ERA:
 
         """
         # Prints table of model data
-        print(f"  Mode   Freq. (Hz)         Zeta             MAC             MSV")
+        print("  Mode   Freq. (Hz)         Zeta             MAC             MSV")
         print("  -----------------------------------------------------------------")
 
         self.rec_keep = []
@@ -819,13 +829,10 @@ class ERA:
 
 if __name__ == "__main__":
     import numpy.random as rand
-    from scipy.io import matlab
 
     rand.seed(40)
 
     noise = 0.0
-
-    # noise = matlab.loadmat('noise.mat')
 
     M = np.diag(np.ones(3))
     K = np.array(
@@ -859,6 +866,8 @@ if __name__ == "__main__":
 
     resp_veloc = phi @ v + noise * rand.rand(3, len(t))
     # + noise['no'][:, :-1]
+
+    # np.stack((np.ones((2, 2)), np.ones((2, 2))*2), axis=2)
 
     fit_era = ERA(
         resp_veloc,
