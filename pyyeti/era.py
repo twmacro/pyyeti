@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jul  6 15:20:05 2020
+The Eigensystem Realization Algorithm
 
-@author: nhintz
+Identify mode shapes, frequencies, and damping from free-decay
+measurement data.
 """
+# Python ERA class written by Natalie Hintz and Tim Widrick.
+
 import re
 import numpy as np
 import scipy.linalg as la
-from pyyeti import ode, locate, dsp
+from pyyeti import ode, dsp
 import matplotlib.pyplot as plt
 import numbers
 from warnings import warn
@@ -22,13 +25,14 @@ def _string_to_ints(string):
 
 class ERA:
     """
-    Implements the Eigensystem Realization Algorithm (ERA). ERA
-    follows minimum realization theory to identify modal parameters
-    (natural frequencies, mode shapes, and damping) from impulse
-    response (free-decay) data. In the absense of forces, the response
-    is completely determined by the system parameters which allows
-    modal parameter identification to work. This code is based on
-    Chapter 5 of reference [#era1]_.
+    Implements the Eigensystem Realization Algorithm (ERA).
+
+    ERA follows minimum realization theory to identify modal
+    parameters (natural frequencies, mode shapes, and damping) from
+    impulse response (free-decay) data. In the absense of forces, the
+    response is completely determined by the system parameters which
+    allows modal parameter identification to work. This code is based
+    on Chapter 5 of reference [#era1]_.
 
     The discrete (z-domain) state-space equations are::
 
@@ -39,35 +43,37 @@ class ERA:
     ``x[k]`` is the state vector at time step ``k``. ERA determines
     ``A``, ``B``, and ``C``. ``D`` is discussed below.
 
-    Let there be ``m`` outputs, ``r`` inputs, and ``p`` time steps
-    (following the convention in [#era1]_). In ERA, impulse response
-    measurements (accelerometer data, for example) form a
-    3-dimensional matrix sized ``m x p x r``. This data can be
-    partitioned into ``p`` ``m x r`` matrices. These ``m x r``
-    matrices are called Markov parameters. ERA computes a set of
-    state-space matrices from these Markov parameters. To begin to see
-    a relation between the Markov parameters and the state-space
-    matrices, consider the following. Each input ``u[k]`` is assumed
-    to be unity impulse for one DOF and zero elsewhere. For example,
-    if there are two inputs, ``u0[k]`` and ``u1[k]``, they are assumed
-    to be::
+    Let there be ``n_outputs`` outputs, ``n_inputs`` inputs, and
+    ``n_tsteps`` time steps. In ERA, impulse response measurements
+    (accelerometer data, for example) form a 3-dimensional matrix
+    sized ``n_outputs x n_tsteps x n_inputs``. This data can be
+    partitioned into ``n_tsteps`` ``n_outputs x n_inputs``
+    matrices. These ``n_outputs x n_inputs`` matrices are called
+    Markov parameters. ERA computes a set of state-space matrices
+    (``A``, ``B``, and ``C``) from these Markov parameters. To begin
+    to see a relation between the Markov parameters and the
+    state-space matrices, consider the following. Each input ``u[k]``
+    is assumed to be unity impulse for one DOF and zero elsewhere. For
+    example, if there are two inputs, ``u0[k]`` and ``u1[k]``, they
+    are assumed to be (for all ``k``)::
 
-        u0 = [ 1.0, 0.0, 0.0, ... 0.0 ]       # r x p
+        u0 = [ 1.0, 0.0, 0.0, ... 0.0 ]       # n_inputs x n_tsteps
              [ 0.0, 0.0, 0.0, ... 0.0 ]
 
-        u1 = [ 0.0, 0.0, 0.0, ... 0.0 ]       # r x p
+        u1 = [ 0.0, 0.0, 0.0, ... 0.0 ]       # n_inputs x n_tsteps
              [ 1.0, 0.0, 0.0, ... 0.0 ]
 
-    Letting ``x[0]`` be zeros, iterating through the state-space
-    equations yields these definitions for the outputs::
+    Letting ``x[0]`` be zeros (zero initial conditions), iterating
+    through the state-space equations yields these definitions for the
+    outputs::
 
-        y0[k] = C @ A ** (k - 1) @ B[:, 0]    # m x 1
+        y0[k] = C @ A ** (k - 1) @ B[:, 0]    # n_outputs x 1
 
-        y1[k] = C @ A ** (k - 1) @ B[:, 1]    # m x 1
+        y1[k] = C @ A ** (k - 1) @ B[:, 1]    # n_outputs x 1
 
     Putting these together::
 
-       Y[k] = [ y0[k], y1[k] ]                # m x r
+       Y[k] = [ y0[k], y1[k] ]                # n_outputs x n_inputs
 
     The ``Y[k]`` matrices are the Markov parameters written as a
     function of the to-be-determined state-space matrices ``A``,
@@ -83,7 +89,7 @@ class ERA:
        eigenvalues, and there is no way for this routine to know which
        real eigenvalue forms a pair with which other real eigenvalue
        (see :func:`pyyeti.ode.get_freq_damping`). However, the
-       state-space matrices and the fit (see the `resp_era` output)
+       state-space matrices and the fit (see the `resp_era` attribute)
        computed by the ERA algorithm will be correct. Note that for
        underdamped modes, the printed frequency and damping values are
        correct because this routine sorts the complex eigenvalues to
@@ -93,6 +99,112 @@ class ERA:
     ----------
     .. [#era1] Juang, Jer-Nan. Applied System Identification. United
                Kingdom: Prentice Hall, 1994.
+
+    Examples
+    --------
+    The following example demonstrates ERA by comparing to a known
+    system.
+
+    .. plot::
+        :context: close-figs
+
+        Say we had the following mass, damping and stiffness:
+
+        >>> import numpy as np
+        >>> import scipy.linalg as la
+        >>> from pyyeti import era, ode
+        >>> np.set_printoptions(precision=5, suppress=True)
+        >>>
+        >>> M = np.identity(3)
+        >>>
+        >>> K = np.array(
+        ...     [
+        ...         [4185.1498, 576.6947, 3646.8923],
+        ...         [576.6947, 2104.9252, -28.0450],
+        ...         [3646.8923, -28.0450, 3451.5583],
+        ...     ]
+        ... )
+        >>>
+        >>> D = np.array(
+        ...     [
+        ...         [4.96765646, 0.97182432, 4.0162425],
+        ...         [0.97182432, 6.71403672, -0.86138453],
+        ...         [4.0162425, -0.86138453, 4.28850828],
+        ...     ]
+        ... )
+
+        Since we have the system matrices, we can determine the
+        frequencies and damping using the eigensolution. We'll see
+        that the damping is diagonalized (by design):
+
+        >>> (w2, phi) = la.eigh(K, M)
+        >>> omega = np.sqrt(w2)
+        >>> freq_hz = omega / (2 * np.pi)
+        >>> freq_hz
+        array([  1.33603,   7.39083,  13.79671])
+        >>> modal_damping = phi.T @ D @ phi
+        >>> modal_damping
+        array([[ 0.33578, -0.     , -0.     ],
+               [-0.     ,  6.9657 ,  0.     ],
+               [-0.     ,  0.     ,  8.66873]])
+        >>> zeta = np.diag(modal_damping) / (2 * omega)
+        >>> zeta
+        array([ 0.02 ,  0.075,  0.05 ])
+
+        What if we only had the response measurements from an impulse
+        input and didn't have the system matrices? That's where ERA
+        comes in and we'll use it to compute modes and damping. Since
+        there is no noise and all modes are excited, ERA will find the
+        exact modes and damping.
+
+        First, we need to generate an impulse response for ERA to work
+        with. We'll just use an initial velocity condition as the
+        source of the impulse:
+
+        >>> dt = 0.01
+        >>> t = np.arange(0, 1, dt)
+        >>> F = np.zeros((3, len(t)))
+        >>> ts = ode.SolveExp2(M, D, K, dt)
+        >>> sol = ts.tsolve(force=F, v0=[1, 1, 1])
+
+        We can use displacement, velocity or acceleration as the input
+        for ERA. Here, we'll use velocity because all modes are well
+        represented in the response for the one second simulation.
+        Displacement favors the lower frequency modes (so ERA might
+        eliminate the highest frequency mode) and acceleration favors
+        the higher frequency modes (so ERA might eliminate the lowest
+        frequency mode). For those new to ERA, it is a very good
+        exercise to experiment with using each of them.
+
+        >>> era_fit = era.ERA(
+        ...     sol.v,
+        ...     sr=1 / dt,
+        ...     auto=True,
+        ...     input_labels=["x", "y", "z"],
+        ...     FFT=True,
+        ...     FFT_range=30.0,
+        ... )
+        <BLANKLINE>
+        Current fit includes all modes:
+          Mode   Freq. (Hz)         Zeta             MAC             MSV
+          -----------------------------------------------------------------
+        *    1     1.33603         0.02000         1.00000         0.81700
+        *    2     7.39083         0.07500         1.00000         0.83895
+        *    3    13.79671         0.05000         1.00000         1.00000
+        <BLANKLINE>
+        Auto-selected modes fit:
+          Mode   Freq. (Hz)         Zeta             MAC             MSV
+          -----------------------------------------------------------------
+             1     1.33603         0.02000         1.00000         0.81700
+             2     7.39083         0.07500         1.00000         0.83895
+             3    13.79671         0.05000         1.00000         1.00000
+
+        Compare frequencies and damping:
+
+        >>> np.allclose(era_fit.freqs_hz, freq_hz)
+        True
+        >>> np.allclose(era_fit.zeta, zeta)
+        True
     """
 
     def __init__(
@@ -117,12 +229,14 @@ class ERA:
         ----------
         resp : 1d, 2d, or 3d ndarray
             Impulse response measurement data. In the general case,
-            this is a 3d array sized ``m x p x r``, where ``m`` are
-            the number of outputs (measurements), ``p`` is the number
-            of time steps, and ``r`` is the number of inputs. If there
-            is only one input, then `resp` can be input as a 2d array
-            of size ``m x p``. Further, if there is only one output,
-            then `resp` can be input as a 1d array of length `p`.
+            this is a 3d array sized ``n_outputs x n_tsteps x
+            n_inputs``, where ``n_outputs`` are the number of outputs
+            (measurements), ``n_tsteps`` is the number of time steps,
+            and ``n_inputs`` is the number of inputs. If there is only
+            one input (the typical case), then `resp` can be input as
+            a 2d array of size ``n_outputs x n_tsteps``. Further, if
+            there is only one output, then `resp` can be input as a 1d
+            array of length `n_tsteps`.
         sr : scalar
             Sample rate at which `resp` was sampled.
         svd_tol : scalar; optional
@@ -163,6 +277,8 @@ class ERA:
         damp_range : 2-tuple; optional
             Specifies the range (inclusive) of acceptable damping
             values for automatic selection.
+        t0 : scalar; optional
+            The initial time value in `resp`. Only used for plotting.
         show_plot : boolean; optional
             If True, show plot of ERA fit (with or without FFT). The
             default is True.
@@ -176,8 +292,6 @@ class ERA:
             value or list with one term will act as a maximum
             cutoff. A pair of values will act as minimum and maximum
             cutoffs, respectively. The default is None.
-        t0 : scalar; optional
-            The initial time value in `resp`. Only used for plotting.
 
         Notes
         -----
@@ -188,9 +302,9 @@ class ERA:
         ================  ============================================
         resp              impulse response data
         resp_era          final ERA fit to the impulse response data
-        m                 number of outputs
-        p                 number of time-steps
-        r                 number of inputs
+        n_outputs         number of outputs
+        n_tsteps          number of time-steps
+        n_inputs          number of inputs
         sr                sample rate
         t0                initial time value in `resp` (for plotting)
         time              `resp` time vector used for plotting;
@@ -221,31 +335,17 @@ class ERA:
         psi               complex eigenvectors of `A_hat`
         psi_inv           inverse of `psi`
         freqs             mode pair frequencies (rad/sec)
-        freqs_Hz          mode pair frequencies (Hz)
+        freqs_hz          mode pair frequencies (Hz)
         zeta              mode pair percent critical damping
         MAC               MAC values for each mode pair (eq 5.49)
         MSV               MSV values for each mode pair (eq 5.50)
         ================  ============================================
-
-        The class instance calls the following internal functions:
-
-        =============   ==============================================
-        Function        Description
-        =============   ==============================================
-        _H_generate     generates generalized Hankel matrix
-        _state_space    identifies state-space realization of the
-                        system
-        _conv_2_modal   converts system realization from physical
-                        domain into the modal domain
-        _mode_select    identifies true modes and removes noise modes,
-                        can be an automatic or interactive process
-        =============   ==============================================
         """
         self.resp = np.atleast_3d(resp)
-        # (p,)      --> (1, p, 1)
-        # (m, p)    --> (m, p, 1)
-        # (m, p, r) --> (m, p, r)
-        self.m, self.p, self.r = self.resp.shape
+        # 1d --> (1, n_tsteps, 1)
+        # 2d --> (n_outputs, n_tsteps, 1)
+        # 3d --> (n_outputs, n_tsteps, n_inputs)
+        self.n_outputs, self.n_tsteps, self.n_inputs = self.resp.shape
 
         self.sr = sr
         self.svd_tol = svd_tol
@@ -269,16 +369,11 @@ class ERA:
         Given Markov parameters, will generate the system's generalized
         Hankel matrix and time-shifted generalized Hankel matrix.
         """
-        resp = self.resp
-        m = self.m
-        p = self.p
-        r = self.r
-
         # Determining the alpha and beta parameters in order to
         # maximize coverage of data in Hankel matrices
-        alpha = p // 2
-        beta = p - alpha
-        H_dim = (alpha * m, beta * r)
+        alpha = self.n_tsteps // 2
+        beta = self.n_tsteps - alpha
+        H_dim = (alpha * self.n_outputs, beta * self.n_inputs)
 
         # Forming Hankel matrices
         self.H_0 = np.empty(H_dim)
@@ -286,18 +381,18 @@ class ERA:
 
         # Reshaping Markov parameters into form Y = [Y0, Y1, Y2, ..., Yn]
         # Each Y[i] is of shape m x r
-        Markov = resp.reshape(m, -1)
-        rows = np.arange(m)
-        cols = np.arange(beta * r)
+        Markov = self.resp.reshape(self.n_outputs, -1)
+        rows = np.arange(self.n_outputs)
+        cols = np.arange(beta * self.n_inputs)
 
         for _ in range(alpha):
             # Using block indexing to fill Hankel matrices with Markov
             # parameters
             self.H_0[rows] = Markov[:, cols]
-            self.H_1[rows] = Markov[:, cols + r]  # Time shift
+            self.H_1[rows] = Markov[:, cols + self.n_inputs]  # Time shift
             # Advancing row and column indices
-            rows += m
-            cols += r
+            rows += self.n_outputs
+            cols += self.n_inputs
 
     def _state_space(self):
         """
@@ -347,8 +442,8 @@ class ERA:
         self.Q = (sigma_sqrt * ST.T).T
 
         # Recovering identified state matrices: eq 5.34, #era1
-        self.C_hat = self.P[: self.m, :]
-        self.B_hat = self.Q[:, : self.r]
+        self.C_hat = self.P[: self.n_outputs, :]
+        self.B_hat = self.Q[:, : self.n_inputs]
         self.A_hat = (R / sigma_sqrt).T @ self.H_1 @ (ST.T / sigma_sqrt)
 
     def _conv_2_modal(self):
@@ -398,7 +493,7 @@ class ERA:
         self.psi = self.psi[:, index_pairs]
 
         # Deriving the frequencies in Hz
-        self.freqs_Hz = self.freqs / (2 * np.pi)
+        self.freqs_hz = self.freqs / (2 * np.pi)
 
         # Recovering inverse of eigenvector matrix
         self.psi_inv = np.linalg.inv(self.psi)
@@ -439,7 +534,7 @@ class ERA:
 
         n = A_m.shape[0]
         MSV = np.empty(n // 2)
-        max_lam = self.p // self.r
+        max_lam = self.n_tsteps // self.n_inputs
 
         # compute MSV for each mode; eq. 5.50, #era1
         for i, j in enumerate(range(0, n - 1, 2)):
@@ -465,11 +560,11 @@ class ERA:
         # Q_hat: reconstructed time history sequence for each mode
         # eq. 5.42, #era1
         Q_hat = np.empty(Q_bar.shape, dtype=complex)
-        bi_len = np.arange(self.r)
+        bi_len = np.arange(self.n_inputs)
         B_modal = self.B_modal
         eigs = self.eigs
         n = B_modal.shape[0]
-        for i, j in enumerate(range(0, Q_bar.shape[1], self.r)):
+        for i, j in enumerate(range(0, Q_bar.shape[1], self.n_inputs)):
             Q_hat[:, bi_len + j] = B_modal * (eigs.reshape(n, 1) ** i)
 
         # Calculating MAC values; eq 5.49, #era1
@@ -492,13 +587,13 @@ class ERA:
         for consideration.
         """
         if saved_model:
-            freq = self.freqs_Hz_in
-            zeta = self.zeta_in
-            eigs = self.eigs_in
-            psi = self.psi_in
-            psi_inv = self.psi_inv_in
+            freq = self._saved["freqs_hz"]
+            zeta = self._saved["zeta"]
+            eigs = self._saved["eigs"]
+            psi = self._saved["psi"]
+            psi_inv = self._saved["psi_inv"]
         else:
-            freq = self.freqs_Hz
+            freq = self.freqs_hz
             zeta = self.zeta
             eigs = self.eigs
             psi = self.psi
@@ -511,7 +606,7 @@ class ERA:
             self.selected_mode_pairs.append(2 * i + 1)
 
         # Extracting reduced data
-        self.freqs_Hz = freq[selected_modes]
+        self.freqs_hz = freq[selected_modes]
         self.zeta = zeta[selected_modes]
         self.eigs = eigs[self.selected_mode_pairs]
         self.psi = psi[:, self.selected_mode_pairs]
@@ -541,13 +636,15 @@ class ERA:
         """
         # compute the ERA best-fit response:
         n = A.shape[0]
-        x = np.zeros((n, self.r * self.p), dtype=A.dtype)
-        cols = np.arange(0, self.r)
+        x = np.zeros((n, self.n_inputs * self.n_tsteps), dtype=A.dtype)
+        cols = np.arange(0, self.n_inputs)
         x[:, cols] = B
-        for k in range(0, self.p - 1):
-            x[:, cols + self.r] = A @ x[:, cols]
-            cols += self.r
-        self.resp_era = np.real(C @ x).reshape(self.m, self.p, self.r)
+        for k in range(0, self.n_tsteps - 1):
+            x[:, cols + self.n_inputs] = A @ x[:, cols]
+            cols += self.n_inputs
+        self.resp_era = np.real(C @ x).reshape(
+            self.n_outputs, self.n_tsteps, self.n_inputs
+        )
         self._plot_era()
 
     def _plot_era(self):
@@ -577,10 +674,10 @@ class ERA:
 
         y = self.resp_era
         if not hasattr(self, "time"):
-            self.time = np.arange(0, self.p) / self.sr + self.t0
+            self.time = np.arange(0, self.n_tsteps) / self.sr + self.t0
 
         # plot each input in its own window
-        for j in range(self.r):
+        for j in range(self.n_inputs):
             fig = plt.figure(f"ERA Fit, input {j}", clear=True)
 
             if self.FFT:
@@ -699,7 +796,7 @@ class ERA:
             else:
                 ind = " "
             print(
-                "{} {}\t{:{w}.{p}f}\t{:{w}.{p}f}\t{:{w}.{p}f}\t{:{w}.{p}f}".format(
+                ("{} {:4}  {:{w}.{p}f}" + "      {:{w}.{p}f}" * 3).format(
                     ind, i + 1, freq[i], zeta[i], mac[i], msv[i], w=10, p=5
                 )
             )
@@ -707,27 +804,37 @@ class ERA:
     def _show_model(self, title, *, mark, saved_model=False):
         if saved_model:
             self._mode_print(
-                title, self.freqs_Hz_in, self.zeta_in, self.MAC_in, self.MSV_in, mark
+                title,
+                self._saved["freqs_hz"],
+                self._saved["zeta"],
+                self._saved["MAC"],
+                self._saved["MSV"],
+                mark,
             )
-            self._compute_era_fit(self.A_modal_in, self.B_modal_in, self.C_modal_in)
+            self._compute_era_fit(
+                self._saved["A_modal"], self._saved["B_modal"], self._saved["C_modal"]
+            )
         else:
-            self._mode_print(title, self.freqs_Hz, self.zeta, self.MAC, self.MSV, mark)
+            self._mode_print(title, self.freqs_hz, self.zeta, self.MAC, self.MSV, mark)
             self._compute_era_fit(self.A_modal, self.B_modal, self.C_modal)
 
     def _save_model_data(self):
         """
         Saves model data so looping can return to beginning
         """
-        self.freqs_Hz_in = self.freqs_Hz
-        self.zeta_in = self.zeta
-        self.MAC_in = self.MAC
-        self.MSV_in = self.MSV
-        self.A_modal_in = self.A_modal
-        self.B_modal_in = self.B_modal
-        self.C_modal_in = self.C_modal
-        self.eigs_in = self.eigs
-        self.psi_in = self.psi
-        self.psi_inv_in = self.psi_inv
+        names = (
+            "freqs_hz",
+            "zeta",
+            "MAC",
+            "MSV",
+            "A_modal",
+            "B_modal",
+            "C_modal",
+            "eigs",
+            "psi",
+            "psi_inv",
+        )
+        self._saved = {name: getattr(self, name) for name in names}
 
     def _mode_select(self):
         """
@@ -742,7 +849,7 @@ class ERA:
         (determined from MSV and MAC values) will be marked with an *
         symbol.
         """
-        self._show_model("Current fit includes all modes:", mark=True)
+        self._show_model("Current fit includes all modes", mark=True)
 
         # Runs interactive version of mode selection process
         if not self.auto:
@@ -751,7 +858,7 @@ class ERA:
             while done == "n":
                 input_string = (
                     input(
-                        "\nSelect modes for ERA fit:\n"
+                        "\nSelect modes for ERA fit (to keep or remove):\n"
                         "\t- 'Enter' or '*' to keep marked modes\n"
                         "\t- 'a' to keep all modes\n"
                         "\t- mode #s separated by space and/or comma (eg: 1, 2, 5)\n"
@@ -763,7 +870,7 @@ class ERA:
                 if input_string in ("*", ""):
                     selected_modes = np.array(self.rec_keep)
                 elif input_string == "a":
-                    selected_modes = np.arange(len(self.freqs_Hz_in))
+                    selected_modes = np.arange(len(self._saved["freqs_hz"]))
                 else:
                     selected_modes = _string_to_ints(input_string)
 
@@ -772,9 +879,9 @@ class ERA:
                 self._show_model("Reduced model fit", mark=False)
 
                 done = input(
-                    "\nDone? (y/n/r) [Y]:\n"
-                    "\ty = Done\n"
-                    "\tn = Select different modes\n"
+                    "\nDone? (d/s/r) [D]:\n"
+                    "\td = Done\n"
+                    "\ts = Select different modes\n"
                     "\tr = Remove currently selected modes from input"
                     " data and start over\n"
                 ).lower()
@@ -794,63 +901,3 @@ class ERA:
             selected_modes = np.array(self.rec_keep, dtype=int)
             self._trim_2_selected_modes(selected_modes)
             self._show_model("Auto-selected modes fit", mark=False)
-
-
-if __name__ == "__main__":
-    import numpy.random as rand
-
-    rand.seed(40)
-
-    noise = 1.0
-    offset = 3.5
-    M = np.diag(np.ones(3))
-    K = np.array(
-        [
-            [4185.1498, 576.6947, 3646.8923],
-            [576.6947, 2104.9252, -28.0450],
-            [3646.8923, -28.0450, 3451.5583],
-        ]
-    )
-
-    (w2, phi) = la.eigh(K)
-
-    w2 = np.real(abs(w2))
-
-    zetain = np.array([0.02, 0.075, 0.05])
-    Z = np.diag(2 * zetain * np.sqrt(w2))
-    input_fz = [np.sqrt(w2) / (2 * np.pi)]
-
-    # compute system response to initial velocity input:
-    dt = 0.01
-    # t = np.arange(0, 0.6, dt)
-    t = np.arange(0, 1, dt)
-    F = np.zeros((3, len(t)))
-    v0 = 5 * rand.rand(3)
-    v0 = np.linalg.solve(phi, np.array([-9.1303, -2.2950, -6.3252]))
-    sol = ode.SolveExp2(M, Z, w2, dt)
-    sol = sol.tsolve(force=F, v0=v0)
-    a = sol.a
-    v = sol.v
-    d = sol.d
-
-    n_inputs = 4
-    resp_veloc = np.stack(
-        [phi @ v + noise * rand.rand(3, len(t)) for i in range(n_inputs)], axis=2
-    )
-
-    resp_veloc += offset
-
-    fit_era = ERA(
-        resp_veloc,
-        sr=1 / dt,
-        svd_tol=0.01,
-        # auto=True,
-        # MAC_lower_limit=0.1,
-        # MSV_lower_limit=0.1,
-        # damp_range=[0.01, 0.07],
-        # show_plot=False,
-        input_labels=["x", "y", "z"],
-        FFT=True,
-        FFT_range=30.0,
-        # t0=10.0,
-    )

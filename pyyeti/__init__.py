@@ -9,14 +9,15 @@ pyYeti has tools mostly related to structural dynamics:
       frequency domains
     * Shock response spectrum (SRS)
     * Fatigue damage equivalent power spectral densities (PSD)
-    * Force limiting analysis tools
     * Hurty-Craig-Bampton model checks
     * Coupled loads analysis tools
     * Statistics tools for computing k-factors (for tolerance
       bounds and intervals) and for order statistics
+    * A data-cursor for interacting with 2D x-y plots
+    * Eigensystem Realization Algorithm
+    * Force limiting analysis tools
     * Read/write Nastran output4 (.op4) files
     * Limited capability to read Nastran output2 (.op2) files
-    * A data-cursor for interacting with 2D x-y plots
     * Rainflow cycle counting
     * Resample data with the Lanczos method
     * A "vectorized" writing module
@@ -26,4 +27,4 @@ pyYeti has tools mostly related to structural dynamics:
 
 """
 
-__version__ = "0.98.7"
+__version__ = "0.98.8"
