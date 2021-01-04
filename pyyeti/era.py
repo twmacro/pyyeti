@@ -97,8 +97,13 @@ class ERA:
 
     References
     ----------
-    .. [#era1] Juang, Jer-Nan. Applied System Identification. United
+    .. [#era1] Jer-Nan Juang. Applied System Identification. United
                Kingdom: Prentice Hall, 1994.
+
+    .. [#era2] Richard S. Pappa, Kenny B. Elliott, Axel Schenk. "A
+               Consistent-Mode Indicator for the Eigensystem
+               Realization Algorithm", NASA Technical Memorandum
+               107607, April 1992.
 
     Examples
     --------
@@ -167,14 +172,15 @@ class ERA:
         >>> ts = ode.SolveExp2(M, D, K, dt)
         >>> sol = ts.tsolve(force=F, v0=[1, 1, 1])
 
-        We can use displacement, velocity or acceleration as the input
-        for ERA. Here, we'll use velocity because all modes are well
-        represented in the response for the one second simulation.
-        Displacement favors the lower frequency modes (so ERA might
-        eliminate the highest frequency mode) and acceleration favors
-        the higher frequency modes (so ERA might eliminate the lowest
-        frequency mode). For those new to ERA, it is a very good
-        exercise to experiment with using each of them.
+        We can use the displacement, velocity or acceleration response
+        as the input for ERA. Here, we'll use velocity because all
+        modes are well represented in the response for the one second
+        simulation. Displacement favors the lower frequency modes (so
+        ERA might eliminate the highest frequency mode) and
+        acceleration favors the higher frequency modes (so ERA might
+        eliminate the lowest frequency mode). For those new to ERA, it
+        is a very good exercise to experiment with using each of them
+        with this problem.
 
         >>> era_fit = era.ERA(
         ...     sol.v,
@@ -186,18 +192,18 @@ class ERA:
         ... )
         <BLANKLINE>
         Current fit includes all modes:
-          Mode   Freq. (Hz)         Zeta             MAC             MSV
-          -----------------------------------------------------------------
-        *    1     1.33603         0.02000         1.00000         0.81700
-        *    2     7.39083         0.07500         1.00000         0.83895
-        *    3    13.79671         0.05000         1.00000         1.00000
+          Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC
+          --------------------------------------------------------------------
+        *    1     1.33603     0.02000    *0.817    *1.000    *1.000    *1.000
+        *    2     7.39083     0.07500    *0.839    *1.000    *1.000    *1.000
+        *    3    13.79671     0.05000    *1.000    *1.000    *1.000    *1.000
         <BLANKLINE>
         Auto-selected modes fit:
-          Mode   Freq. (Hz)         Zeta             MAC             MSV
-          -----------------------------------------------------------------
-             1     1.33603         0.02000         1.00000         0.81700
-             2     7.39083         0.07500         1.00000         0.83895
-             3    13.79671         0.05000         1.00000         1.00000
+          Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC
+          --------------------------------------------------------------------
+             1     1.33603     0.02000     0.817     1.000     1.000     1.000
+             2     7.39083     0.07500     0.839     1.000     1.000     1.000
+             3    13.79671     0.05000     1.000     1.000     1.000     1.000
 
         Compare frequencies and damping:
 
@@ -205,16 +211,74 @@ class ERA:
         True
         >>> np.allclose(era_fit.zeta, zeta)
         True
+
+    .. plot::
+        :context: close-figs
+
+        For demonstration, add some noise to the signal and rerun
+        ERA. Note that while this example works out nicely for our
+        known system, it will often be necessary to run ERA multiple
+        times with different parameters and different response data
+        selections to gain confidence in which modes are real.
+
+        >>> np.random.seed(1)  # for repeatability
+        >>> era_fit = era.ERA(
+        ...     sol.v + 0.05 * np.random.randn(*sol.v.shape),
+        ...     sr=1 / dt,
+        ...     auto=True,
+        ...     input_labels=["x", "y", "z"],
+        ...     FFT=True,
+        ...     FFT_range=30.0,
+        ... )
+        <BLANKLINE>
+        Current fit includes all modes:
+          Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC
+          --------------------------------------------------------------------
+             1     0.73875     1.28293     0.256     0.013    *1.000    *1.000
+        *    2     1.37239     0.02610    *0.833    *0.927    *0.990    *1.000
+             3     4.61109     0.08532     0.268     0.098     0.588    *1.000
+             4     6.48926     0.58299     0.257     0.000     0.549    *1.000
+        *    5     7.39420     0.07075    *0.853    *0.955    *0.994    *1.000
+             6     9.54517     0.02778     0.203     0.124     0.007    *1.000
+             7    11.60875     0.02303     0.275     0.000    *0.825    *1.000
+        *    8    13.84752     0.05013    *1.000    *0.698    *0.997    *1.000
+             9    15.56279     0.01595     0.248     0.384     0.476    *1.000
+            10    17.63534    -0.01207     0.151     0.192     0.105    *1.000
+            11    20.28144     0.00245     0.264    *0.669    *0.952    *1.000
+            12    21.84685     0.02069     0.208     0.176     0.376    *1.000
+            13    24.08700     0.02537     0.258     0.141     0.584    *1.000
+            14    26.42550     0.01341     0.258     0.083     0.394    *1.000
+            15    28.37983     0.03076     0.232     0.001    *0.827    *1.000
+            16    29.67884     0.02676     0.279     0.036     0.116    *1.000
+            17    32.23488     0.01671     0.216     0.000     0.696    *1.000
+            18    34.27749     0.00929     0.296     0.204    *0.844    *1.000
+            19    36.09656     0.01530     0.274    *0.855     0.631    *1.000
+            20    38.51809     0.01280     0.232     0.179     0.129    *1.000
+            21    40.13913     0.03768     0.224     0.000     0.370    *1.000
+            22    42.11085     0.00934     0.247     0.001    *0.790    *1.000
+            23    44.01415     0.02820     0.264     0.000     0.189    *1.000
+            24    46.19429     0.01336     0.290     0.000     0.254    *1.000
+            25    48.18869     0.01835     0.252     0.162     0.041    *1.000
+        <BLANKLINE>
+        Auto-selected modes fit:
+          Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC
+          --------------------------------------------------------------------
+             1     1.37239     0.02610     0.833     0.871     0.990     1.000
+             2     7.39420     0.07075     0.853     0.787     0.994     1.000
+             3    13.84752     0.05013     1.000     0.665     0.997     1.000
     """
 
     def __init__(
         self,
         resp,
         sr,
+        *,
         svd_tol=0.01,
         auto=False,
-        MAC_lower_limit=0.95,
         MSV_lower_limit=0.35,
+        EMAC_lower_limit=0.5,
+        MPC_lower_limit=0.7,
+        MAC_lower_limit=0.0,
         damp_range=(0.001, 0.999),
         t0=0.0,
         show_plot=True,
@@ -254,6 +318,27 @@ class ERA:
         auto : boolean; optional
             Enables automatic selection of true modes. The default is
             False.
+        MSV_lower_limit : scalar; optional
+            The lower limit for the normalized "mode singular value"
+            for modes to be selected when `auto` is True. The MSV
+            value ranges from 0.0 to 1.0 for each mode and is a
+            measure of contribution to the response. Larger values
+            represent larger contribution.
+        EMAC_lower_limit : scalar; optional
+            The lower limit for the "extended modal amplitude
+            coherence" value for modes to be selected when `auto` is
+            True. The EMAC value ranges from 0.0 to 1.0 for each mode
+            and is a temporal measure indicating the importance of the
+            mode over time to the fit. Higher values indicate more
+            importance. From practice, the is superior to the MAC
+            value (see below). For more information, see [#era2].
+        MPC_lower_limit : scalar; optional
+            The lower limit for the "modal phase collinearity" value
+            for modes to be selected when `auto` is True. The MPC
+            value ranges from 0.0 to 1.0 for each mode and is a
+            spatial measure indicating whether or not the different
+            response locations for a mode are in phase. Higher values
+            indicate more "in-phase" measurements.
         MAC_lower_limit : scalar; optional
             The lower limit for the "modal amplitude coherence" value
             for modes to be selected when `auto` is True. The MAC
@@ -268,12 +353,6 @@ class ERA:
                    the mode after discarding noisy data via singular
                    value decomposition
 
-        MSV_lower_limit : scalar; optional
-            The lower limit for the normalized "mode singular value"
-            for modes to be selected when `auto` is True. The MSV
-            value ranges from 0.0 to 1.0 for each mode and is a
-            measure of contribution to the response. Larger values
-            represent larger contribution.
         damp_range : 2-tuple; optional
             Specifies the range (inclusive) of acceptable damping
             values for automatic selection.
@@ -314,9 +393,11 @@ class ERA:
                           identifying true modes
         show_plot         if True, plots are made
         input_labels      create a legend for approximated fit plot
-        MAC_lower_limit   MAC lower limit for auto-selecting modes
         MSV_lower_limit   normalized MSV lower limit for auto-
                           selecting modes
+        EMAC_lower_limit  EMAC lower limit for auto-selecting modes
+        MPC_lower_limit   MPC lower limit for auto-selecting modes
+        MAC_lower_limit   MAC lower limit for auto-selecting modes
         damp_range        range of acceptable damping values for
                           automatic selection
         FFT               produces an FFT plot of input data for
@@ -324,6 +405,8 @@ class ERA:
         FFT_range         frequency cutoff(s) for FFT plot
         H_0               the H(0) generalized Hankel matrix (eq 5.24)
         H_1               the H(1) generalized Hankel matrix (eq 5.24)
+        alpha             number of block rows (time-steps) in H
+        beta              number of block columns (time-steps) in H
         A_hat             ERA state-space "A" matrix, (eq 5.34)
         B_hat             ERA state-space "B" matrix, (eq 5.34)
         C_hat             ERA state-space "C" matrix, (eq 5.34)
@@ -337,8 +420,10 @@ class ERA:
         freqs             mode pair frequencies (rad/sec)
         freqs_hz          mode pair frequencies (Hz)
         zeta              mode pair percent critical damping
-        MAC               MAC values for each mode pair (eq 5.49)
         MSV               MSV values for each mode pair (eq 5.50)
+        EMAC              EMAC values for each mode pair ([#era2]_)
+        MPC               MPC values for each mode pair ([#era2]_)
+        MAC               MAC values for each mode pair (eq 5.49)
         ================  ============================================
         """
         self.resp = np.atleast_3d(resp)
@@ -350,8 +435,10 @@ class ERA:
         self.sr = sr
         self.svd_tol = svd_tol
         self.auto = auto
-        self.MAC_lower_limit = MAC_lower_limit
         self.MSV_lower_limit = MSV_lower_limit
+        self.EMAC_lower_limit = EMAC_lower_limit
+        self.MPC_lower_limit = MPC_lower_limit
+        self.MAC_lower_limit = MAC_lower_limit
         self.damp_range = damp_range
         self.show_plot = show_plot
         self.input_labels = input_labels
@@ -394,11 +481,13 @@ class ERA:
             rows += self.n_outputs
             cols += self.n_inputs
 
+        self.alpha = alpha
+        self.beta = beta
+
     def _state_space(self):
         """
-        This function computes a state-space representation of a
-        system given its Markov parameters. It transforms the
-        parameters into a Hankel matrix which is decomposed using
+        This function computes a state-space representation of a system
+        given the block Hankel matrix which is decomposed using
         Singular Value Decomposition (SVD) and used to find the
         state-space matrices.
 
@@ -446,16 +535,30 @@ class ERA:
         self.B_hat = self.Q[:, : self.n_inputs]
         self.A_hat = (R / sigma_sqrt).T @ self.H_1 @ (ST.T / sigma_sqrt)
 
+    def _form_modal_realization(self):
+        # Compute modal space state-space matrices
+        self.A_modal = np.diag(self.eigs)
+
+        # include all modes for the EMAC calculation
+        self.B_modal_all = self.psi_inv @ self.Q
+        self.C_modal_all = self.P @ self.psi
+
+        self.B_modal = self.B_modal_all[:, : self.n_inputs]
+        self.C_modal = self.C_modal_all[: self.n_outputs]
+
+        # Calculate indicators:
+        self._MSV()
+        self._EMAC()
+        self._MPC()
+        self._MAC()
+
     def _conv_2_modal(self):
         """
         This routine converts the system realization problem into
         modal space.
         """
-        # Generating modified state vectors and system order
-        A_hat, B_hat, C_hat = self.A_hat, self.B_hat, self.C_hat
-
         # Generating eigenvalues and matrix of eigenvectors
-        self.eigs, self.psi = la.eig(A_hat)
+        self.eigs, self.psi = la.eig(self.A_hat)
 
         # Retrieving sorted index of eigenvalues based on magnitude of
         # imaginary components
@@ -498,14 +601,7 @@ class ERA:
         # Recovering inverse of eigenvector matrix
         self.psi_inv = np.linalg.inv(self.psi)
 
-        # Compute modal space state-space matrices
-        self.A_modal = np.diag(self.eigs)
-        self.B_modal = self.psi_inv @ B_hat
-        self.C_modal = C_hat @ self.psi
-
-        # Calculate indicators:
-        self._MSV()
-        self._MAC()
+        self._form_modal_realization()
 
     def _remove_fit(self):
         """
@@ -518,16 +614,8 @@ class ERA:
 
     def _MSV(self):
         """
-        This routine calculates the Mode Singular Values (MSV) of each
-        detected mode.
-
-        Notes
-        -----
-        MSV serves as an indicator of true modes, but there is no set
-        value which a mode's MSV must achieve in order to be
-        considered true. It is taken as a relative indicator and
-        should be compared against all other detected modes and taken
-        into account with other indicators (e.g. MAC).
+        This routine calculates the normalized Mode Singular Values (MSV)
+        of each detected mode.
         """
         A_m, B_m, C_m = self.A_modal, self.B_modal, self.C_modal
         lamd = np.diag(A_m)
@@ -577,11 +665,152 @@ class ERA:
 
         self.MAC = MAC
 
+    def _calc_emac_in_out(self, modes, z, n_oi, n_tsteps):
+        # the output or input EMAC:
+        n = modes.shape[1]
+        EMAC_oi = np.empty((n // 2, n_oi))
+        for i, j in enumerate(range(0, n - 1, 2)):
+            # initial mode shape components for all outputs (or mode
+            # participation factors for all inputs)
+            phi0_j = modes[:n_oi, j]
+
+            # same at decay time:
+            k = n_tsteps[j] * n_oi
+            phiF_j = modes[k : k + n_oi, j]
+
+            # expected value at decay time:
+            phiF_j_expected = phi0_j * z[j] ** n_tsteps[j]
+
+            Rj = abs(phiF_j) / abs(phiF_j_expected)
+            pv = Rj > 1
+            if pv.any():
+                Rj[pv] = 1 / Rj[pv]
+
+            Pj = abs(np.angle(phiF_j / phiF_j_expected))
+            Wj = 1 - 4 * Pj / np.pi
+            Wj[Wj < 0] = 0.0
+            EMAC_oi[i] = Rj * Wj
+
+        return EMAC_oi
+
+    def _EMAC(self):
+        """
+        This routine calculates the Extended Modal Amplitude Coherence
+        (EMAC) of each detected mode.
+        """
+        # Choose time for decayed value comparisons for both outputs
+        # and inputs, while trying to avoid comparing zeros.
+        #
+        # Outputs: number of time steps is nominally "alpha" (to get
+        # to last block row of Hankel matrix ... see eq 5.24)
+        #
+        # Inputs: number of time steps is nominally "beta" (to get
+        # to last block column of Hankel matrix ... see eq 5.24)
+        #
+        # The alpha and beta values (minus 1) will be used unless the
+        # 90% decay value comes first (assuming underdamped). The
+        # exponential decay term is part of: e^(s n dt), where "s" is
+        # the continuous system eigenvalue.  Expanding s (see
+        # pyyeti.ode.get_freq_damping):
+        #
+        #     s = -omega zeta +/- i omega sqrt(1-zeta^2)
+        #
+        # For simplicity below, let:
+        #
+        #     s = a +/- i b
+        #
+        # Therefore:
+        #
+        #     e^(s dt) = e^(a dt) e^(+/- i b dt)
+        #              = e^(a dt) (cos(b dt) +/- i sin(b dt)
+        #
+        # The e^(a dt) term is the decay term. We can get that term by
+        # using "abs" (because cos^2 + sin^2 = 1):
+        #
+        #     abs(e^(s dt)) = e^(a dt)
+        #
+        # We'll find number of time steps 'n' such that e^(a n dt) is
+        # approximately 0.1:
+        #
+        #     e^(a n dt) = 0.1
+        #     n = ln(0.1) / (a dt)
+        #     n = ln(0.1) / s.real * sr
+        #
+        # We could also use the discrete eigenvalues (z), since z =
+        # e^(s dt):
+        #
+        #     abs(z)^n = e^(a n dt) = 0.1
+        #            n = ln(0.1) / ln(abs(z))
+        #
+        # So, the maximum number of time steps for each underdamped
+        # mode pair is: (these are equivalent as shown above):
+        # n_max = (np.log(0.1) / np.log(abs(self.eigs))).astype(int)
+        n_max = (np.log(0.1) / self.eigs_continuous.real * self.sr).astype(int)
+        n_max[n_max < 2] = 2
+
+        # for outputs, inputs:
+        n_output_tsteps = np.fmin(n_max, self.alpha - 1)
+        n_input_tsteps = np.fmin(n_max, self.beta - 1)
+        z = self.eigs
+
+        EMACo = self._calc_emac_in_out(
+            self.C_modal_all, z, self.n_outputs, n_output_tsteps
+        )
+
+        # "B" is part of Q ... here we want Q for all mode
+        # participation factors
+        EMACi = self._calc_emac_in_out(
+            self.B_modal_all.T, z, self.n_inputs, n_input_tsteps
+        )
+
+        # total EMAC:
+        B_modal = self.B_modal
+        C_modal = self.C_modal
+        n = B_modal.shape[0]
+        EMAC = np.empty(n // 2)
+        for i, j in enumerate(range(0, n - 1, 2)):
+            c2 = abs(C_modal[:, j]) ** 2
+            b2 = abs(B_modal[j, :]) ** 2
+            num = (EMACo[i] @ c2) * (b2 @ EMACi[i])
+            den = c2.sum() * b2.sum()
+            EMAC[i] = num / den
+
+        self.EMACo = EMACo
+        self.EMACi = EMACi
+        self.EMAC = EMAC
+
+    def _MPC(self):
+        """
+        This routine calculates the Modal Phase Colinearity for each
+        detected mode.
+        """
+        C = self.C_modal
+        n = C.shape[1]
+        MPC = np.empty(n // 2)
+        for i, j in enumerate(range(0, n - 1, 2)):
+            re = C[:, j].real
+            im = C[:, j].imag
+            Sxx = re @ re
+            Syy = im @ im
+            Sxy = re @ im
+            # om = la.eigh([[Sxx, Sxy], [Sxy, Syy]], eigvals_only=True)
+            # lam1 = om[1]
+            # lam2 = om[0]
+
+            # from pyyeti.cla._utilities._calc_covariance_sine_cosine:
+            term = np.sqrt((Syy - Sxx) ** 2 + 4 * Sxy ** 2)
+            lam1 = (Sxx + Syy + term) / 2
+            lam2 = (Sxx + Syy - term) / 2
+
+            MPC[i] = (2 * lam1 / (lam1 + lam2) - 1) ** 2
+
+        self.MPC = MPC
+
     def _trim_2_selected_modes(self, selected_modes, saved_model=False):
         """
         This function extracts selected modes and arranges them to be
         presented without excluded modes. It recalculates the modal
-        state space matrices as well as MAC and MSV values for each
+        state space matrices as well as the indicators for each
         extracted mode. This function is responsible for updating
         data with the reduced model based on the modes which are kept
         for consideration.
@@ -612,14 +841,7 @@ class ERA:
         self.psi = psi[:, self.selected_mode_pairs]
         self.psi_inv = psi_inv[self.selected_mode_pairs, :]
 
-        # Producing reduced modal matrices
-        self.A_modal = np.diag(self.eigs)
-        self.B_modal = self.psi_inv @ self.B_hat
-        self.C_modal = self.C_hat @ self.psi
-
-        # Recalculate indicators:
-        self._MSV()
-        self._MAC()
+        self._form_modal_realization()
 
     def _compute_era_fit(self, A, B, C):
         """
@@ -758,7 +980,7 @@ class ERA:
             fig.canvas.draw()
         plt.show()
 
-    def _mode_print(self, title, freq, zeta, mac, msv, mark):
+    def _mode_print(self, title, freq, zeta, msv, emac, mpc, mac, mark):
         """
         This function prints a table of descriptive data for each mode
         of interest.
@@ -771,33 +993,64 @@ class ERA:
             Array of modal frequencies, in Hz.
         zeta : 1d ndarray
             Array of modal damping.
-        mac : 2d ndarray
-            Array of MAC values corresponding with each mode.
         msv : 2d ndarray
             Array of MSV values corresponding with each mode.
+        emac : 2d ndarray
+            Array of EMAC values corresponding with each mode.
+        mpc : 2d ndarray
+            Array of MPC values corresponding with each mode.
+        mac : 2d ndarray
+            Array of MAC values corresponding with each mode.
         mark : boolean
             If True, mark "good" modes with an asterisk ("*")
         """
         # Prints table of model data
         print(f"\n{title}:")
-        print("  Mode   Freq. (Hz)         Zeta             MAC             MSV")
-        print("  -----------------------------------------------------------------")
-
+        print("  Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC")
+        print("  --------------------------------------------------------------------")
         self.rec_keep = []
         n = mac.shape[0]
         for i in range(n):
-            if mark and (
-                mac[i] >= self.MAC_lower_limit
-                and msv[i] >= self.MSV_lower_limit
-                and self.damp_range[0] <= zeta[i] <= self.damp_range[1]
-            ):
-                ind = "*"
-                self.rec_keep.append(i)
+            if mark:
+                stars = []
+                for indicator, limit in (
+                    (msv, self.MSV_lower_limit),
+                    (emac, self.EMAC_lower_limit),
+                    (mpc, self.MPC_lower_limit),
+                    (mac, self.MAC_lower_limit),
+                ):
+                    if indicator[i] >= limit:
+                        stars.append("*")
+                    else:
+                        stars.append(" ")
+
+                if stars.count("*") == 4 and (
+                    self.damp_range[0] <= zeta[i] <= self.damp_range[1]
+                ):
+                    main_star = "*"
+                    self.rec_keep.append(i)
+                else:
+                    main_star = " "
             else:
-                ind = " "
+                main_star = " "
+                stars = "    "
+
             print(
-                ("{} {:4}  {:{w}.{p}f}" + "      {:{w}.{p}f}" * 3).format(
-                    ind, i + 1, freq[i], zeta[i], mac[i], msv[i], w=10, p=5
+                ("{} {:4}  {:10.5f}  {:10.5f}" + "    {}{:{w}.{p}f}" * 4).format(
+                    main_star,
+                    i + 1,
+                    freq[i],
+                    zeta[i],
+                    stars[0],
+                    msv[i],
+                    stars[1],
+                    emac[i],
+                    stars[2],
+                    mpc[i],
+                    stars[3],
+                    mac[i],
+                    w=5,
+                    p=3,
                 )
             )
 
@@ -807,15 +1060,26 @@ class ERA:
                 title,
                 self._saved["freqs_hz"],
                 self._saved["zeta"],
-                self._saved["MAC"],
                 self._saved["MSV"],
+                self._saved["EMAC"],
+                self._saved["MPC"],
+                self._saved["MAC"],
                 mark,
             )
             self._compute_era_fit(
                 self._saved["A_modal"], self._saved["B_modal"], self._saved["C_modal"]
             )
         else:
-            self._mode_print(title, self.freqs_hz, self.zeta, self.MAC, self.MSV, mark)
+            self._mode_print(
+                title,
+                self.freqs_hz,
+                self.zeta,
+                self.MSV,
+                self.EMAC,
+                self.MPC,
+                self.MAC,
+                mark,
+            )
             self._compute_era_fit(self.A_modal, self.B_modal, self.C_modal)
 
     def _save_model_data(self):
@@ -825,8 +1089,10 @@ class ERA:
         names = (
             "freqs_hz",
             "zeta",
-            "MAC",
             "MSV",
+            "EMAC",
+            "MPC",
+            "MAC",
             "A_modal",
             "B_modal",
             "C_modal",
@@ -846,7 +1112,7 @@ class ERA:
         Notes
         -----
         Prompts user to select modes of interest. Recommended modes
-        (determined from MSV and MAC values) will be marked with an *
+        (determined from indicator values) will be marked with an *
         symbol.
         """
         self._show_model("Current fit includes all modes", mark=True)
@@ -854,8 +1120,8 @@ class ERA:
         # Runs interactive version of mode selection process
         if not self.auto:
             self._save_model_data()
-            done = "n"
-            while done == "n":
+            done = "s"  # "s" for "select different modes"
+            while done == "s":
                 input_string = (
                     input(
                         "\nSelect modes for ERA fit (to keep or remove):\n"
@@ -886,7 +1152,7 @@ class ERA:
                     " data and start over\n"
                 ).lower()
 
-                if done == "n":
+                if done == "s":
                     # restart mode selection:
                     self._show_model("Current fit", mark=True, saved_model=True)
                 elif done == "r":
@@ -894,7 +1160,7 @@ class ERA:
                     self._remove_fit()
                     self._show_model("Model data after removing fit", mark=True)
                     self._save_model_data()
-                    done = "n"
+                    done = "s"
 
         else:
             # automatically keep recommended modes
