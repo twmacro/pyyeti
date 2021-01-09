@@ -838,42 +838,46 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
     while j + 2 < n:
         pv = slice(j, j + 3)
         T1 = drmrb[pv, :3]
+        c = np.linalg.cond(T1)
+
+        j += 1
+        if c > 1 / np.finfo(float).eps:
+            # T1 is poorly conditioned
+            continue
+
         # check for a scalar multiplier (like .00259, for example)
         T1tT1 = T1.T @ T1
-        csqr = T1tT1[0, 0]
-        try:
-            T2 = linalg.inv(T1)
-        except linalg.LinAlgError:
-            good = False
-        else:
-            mx = abs(T1).max()
-            good = np.allclose(
-                csqr * T2, T1.T, rtol=0.001, atol=max(0.001 * mx, 1.0e-5)
-            )
-        if good:
-            rbrot = T2 @ drmrb[pv, 3:]
-            x = rbrot[1, 2]
-            y = rbrot[2, 0]
-            z = rbrot[0, 1]
-            rbrot_ideal = np.array([[0, z, -y], [-z, 0, x], [y, -x, 0]])
-            mx = abs(rbrot_ideal).max()
-            if np.allclose(
-                rbrot, rbrot_ideal, rtol=0.001, atol=max(0.001 * mx, 1.0e-5)
-            ):
-                coords[pv, 0] = x
-                coords[pv, 1] = y
-                coords[pv, 2] = z
-                scales[pv] = np.sqrt(csqr)
-                if get_trans:
-                    Ts.append(T2)
-                if outmats:
-                    for val in outmats.values():
-                        val[pv] = T2 @ val[pv]
-                j += 3
-            else:
-                j += 1
-        else:
-            j += 1
+        scale = np.sqrt(T1tT1[0, 0])
+
+        if scale == 0.0:
+            continue
+
+        T1 = T1 / scale
+        rss = np.linalg.norm(T1, axis=0)
+        if not np.allclose(rss, 1.0, rtol=0.001):
+            continue
+
+        T2 = linalg.inv(T1)
+        if not np.allclose(T2, T1.T, rtol=0.001, atol=0.0001):
+            continue
+
+        T2 /= scale
+        rbrot = T2 @ drmrb[pv, 3:]
+        x = (rbrot[1, 2] - rbrot[2, 1]) / 2
+        y = (rbrot[2, 0] - rbrot[0, 2]) / 2
+        z = (rbrot[0, 1] - rbrot[1, 0]) / 2
+
+        coords[pv, 0] = x
+        coords[pv, 1] = y
+        coords[pv, 2] = z
+        scales[pv] = scale
+        if get_trans:
+            Ts.append(T2)
+        if outmats:
+            for val in outmats.values():
+                val[pv] = T2 @ val[pv]
+        j += 2
+
     pv = ~np.isnan(coords[:, 0])
     s = SimpleNamespace(pv=pv, coords=coords, scales=scales)
     if get_trans:
