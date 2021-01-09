@@ -448,21 +448,13 @@ class _BaseODE:
     def _init_dv(self, d, v, d0, v0, F0, static_ic):
         if d0 is not None:
             d[self.nonrf, 0] = d0[self.nonrf]
-        elif static_ic and self.elsize:
+        elif static_ic and self.elsize and F0[self.el].any():
             # el is relative to full size
             # _el is relative to "k" size
             if self.unc:
                 d0 = la.lstsq(np.diag(self.k[self._el]), F0[self.el])
                 d[self.el, 0] = d0[0]
             else:
-                # print(f"{type(self).__name__}")
-                # print(f"self.k.shape = {self.k.shape}")
-                # print(f"F0.shape = {F0.shape}")
-                # # SolveExp2 leaves rb in the equations, which messes
-                # # up the lstsq solution ...
-                # print(f"self.kdof = {self.kdof}")
-                # print(f"self.el = {self.el}")
-                # print(f"self._el = {self._el}")
                 if self.slices:
                     d0 = la.lstsq(self.k[self._el, self._el], F0[self.el])
                 else:
