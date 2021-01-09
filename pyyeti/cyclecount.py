@@ -13,7 +13,8 @@ try:
 except ImportError:
     warnings.warn(
         "Compiled C version of rainflow algorithm failed to "
-        "import. Using MUCH slower plain Python version.",
+        "import. Using plain Python version, which can be very "
+        "slow if 'numba' is not installed.",
         RuntimeWarning,
     )
     import pyyeti.rainflow.py_rain as rain
@@ -25,7 +26,7 @@ except TypeError:
     pass
 
 
-def rainflow(peaks, getoffsets=False):
+def rainflow(peaks, getoffsets=False, use_pandas=True):
     """
     Rainflow cycle counting.
 
@@ -37,10 +38,12 @@ def rainflow(peaks, getoffsets=False):
     getoffsets : bool; optional
         If True, the tuple ``(rf, os)`` is returned; otherwise, only
         `rf` is returned.
+    use_pandas : bool; optional
+        If True, this routine will return pandas DataFrames
 
     Returns
     -------
-    rf : pandas DataFrame
+    rf : pandas DataFrame or 2d ndarray
 
         n x 3 matrix with the rainflow cycle count information with
         the index going from 0 to n-1 and the columns being ['amp',
@@ -51,7 +54,7 @@ def rainflow(peaks, getoffsets=False):
             - count is either 0.5 or 1.0 depending on whether it's
               half or full cycle
 
-    os : pandas DataFrame
+    os : pandas DataFrame or 2d ndarray
 
         Only returned if `getoffsets` is True. n x 2 matrix of cycle
         offsets with index going from 0 to n-1 and the columns being
@@ -109,15 +112,39 @@ def rainflow(peaks, getoffsets=False):
     4      3     6
     5      6     7
     6      7     8
+
+    If not using pandas:
+
+    >>> rf, os = rainflow([-2, 1, -3, 5, -1, 3, -4, 4, -2],
+    ...                   getoffsets=True, use_pandas=False)
+    >>> rf
+    array([[ 1.5, -0.5,  0.5],
+           [ 2. , -1. ,  0.5],
+           [ 2. ,  1. ,  1. ],
+           [ 4. ,  1. ,  0.5],
+           [ 4.5,  0.5,  0.5],
+           [ 4. ,  0. ,  0.5],
+           [ 3. ,  1. ,  0.5]])
+    >>> os
+    array([[0, 1],
+           [1, 2],
+           [4, 5],
+           [2, 3],
+           [3, 6],
+           [6, 7],
+           [7, 8]])
     """
     if getoffsets:
         rf, os = rain.rainflow(peaks, getoffsets)
-        rf = pd.DataFrame(rf, columns=["amp", "mean", "count"])
-        os = pd.DataFrame(os, columns=["start", "stop"])
+        if use_pandas:
+            rf = pd.DataFrame(rf, columns=["amp", "mean", "count"])
+            os = pd.DataFrame(os, columns=["start", "stop"])
         return rf, os
 
     rf = rain.rainflow(peaks, getoffsets)
-    return pd.DataFrame(rf, columns=["amp", "mean", "count"])
+    if use_pandas:
+        rf = pd.DataFrame(rf, columns=["amp", "mean", "count"])
+    return rf
 
 
 def findap(y, tol=1e-6):
@@ -279,7 +306,21 @@ def getbins(bins, mx, mn, right=True):
     return bb
 
 
-def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3, retbins=False):
+def _inbin_right(v, low, upp):
+    return np.logical_and(v > low, v <= upp)
+
+
+def _inbin_left(v, low, upp):
+    return np.logical_and(v >= low, v < upp)
+
+
+def _getlabels(form, bins):
+    return [form.format(i, j) for i, j in zip(bins[:-1], bins[1:])]
+
+
+def binify(
+    rf, ampbins=10, meanbins=1, right=True, precision=3, retbins=False, use_pandas=True
+):
     """
     Summarize cycle count results (as from :func:`rainflow`) into
     bins.
@@ -309,13 +350,17 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3, retbins=False):
         not. If right == True (the default), then the bins [1,2,3,4]
         indicate (1,2], (2,3], (3,4].
     precision : integer; optional
-        Precision to use for DataFrame labels.
+        Precision to use for DataFrame labels; only used if
+        `use_pandas` is True.
     retbins : bool; optional
         If True, return the `ampbins` and `meanbins` vectors.
+    use_pandas : bool; optional
+        If True, this routine will return `table` as a pandas
+        DataFrame.
 
     Returns
     -------
-    table : pandas DataFrame
+    table : pandas DataFrame or 2d ndarray
         A cycle count table (len(`meanbins`) x len(`ampbins`)). Each
         value in `table` entry is the number of cycles in the bin
         (see below).
@@ -356,60 +401,70 @@ def _binify(rf, ampbins=10, meanbins=1, right=True, precision=3, retbins=False):
     5  4.0   0.0    0.5
     6  3.0   1.0    0.5
     >>> format = lambda x: f"{x:.1f}"
-    >>> df = cyclecount._binify(rf, 3, 2)
+    >>> df = cyclecount.binify(rf, 3, 2)
     >>> df.applymap(format)                # doctest: +ELLIPSIS
     Amp             (1.497, 2.500] (2.500, 3.500] (3.500, 4.500]
     Mean...
     (-1.002, 0.000]            1.0            0.0            0.5
     (0.000, 1.000]             1.0            0.5            1.0
-    >>> df = cyclecount._binify(rf, 3, 2, right=0)
+    >>> df = cyclecount.binify(rf, 3, 2, right=0)
     >>> df.applymap(format)                # doctest: +ELLIPSIS
     Amp             [1.500, 2.500) [2.500, 3.500) [3.500, 4.503)
     Mean...
     [-1.000, 0.000)            1.0            0.0            0.0
     [0.000, 1.002)             1.0            0.5            1.5
+
+    If not using pandas:
+
+    >>> cyclecount.binify(rf, 3, 2, use_pandas=False)
+    array([[ 1. ,  0. ,  0.5],
+           [ 1. ,  0.5,  1. ]])
     """
-    ampb = getbins(ampbins, rf["amp"].max(), rf["amp"].min(), right)
-    aveb = getbins(meanbins, rf["mean"].max(), rf["mean"].min(), right)
+    rf = np.atleast_2d(rf)
+    # rf = [amp, mean, count] columns
+    ampb = getbins(ampbins, rf[:, 0].max(), rf[:, 0].min(), right)
+    aveb = getbins(meanbins, rf[:, 1].max(), rf[:, 1].min(), right)
     table = np.zeros((len(aveb) - 1, len(ampb) - 1))
-    f = "{:." + str(precision) + "f}"
-    f = f + ", " + f
+
     if right:
-
-        def _inbin(v, low, upp):
-            return np.logical_and(v > low, v <= upp)
-
-        form = "(" + f + "]"
+        _inbin = _inbin_right
     else:
+        _inbin = _inbin_left
 
-        def _inbin(v, low, upp):
-            return np.logical_and(v >= low, v < upp)
-
-        form = "[" + f + ")"
     for i in range(len(aveb) - 1):
-        rows = _inbin(rf["mean"], aveb[i], aveb[i + 1])
+        rows = _inbin(rf[:, 1], aveb[i], aveb[i + 1])
         if np.any(rows):
             rfrows = rf[rows]
             for j in range(len(ampb) - 1):
-                pv = _inbin(rfrows["amp"], ampb[j], ampb[j + 1])
+                pv = _inbin(rfrows[:, 0], ampb[j], ampb[j + 1])
                 if np.any(pv):
-                    table[i, j] = np.sum(rfrows["count"][pv])
+                    table[i, j] = np.sum(rfrows[:, 2][pv])
 
-    def _getlabels(bins):
-        return [form.format(i, j) for i, j in zip(bins[:-1], bins[1:])]
+    if use_pandas:
+        f = "{:." + str(precision) + "f}"
+        f = f + ", " + f
+        if right:
+            form = "(" + f + "]"
+        else:
+            form = "[" + f + ")"
 
-    index = _getlabels(aveb)
-    columns = _getlabels(ampb)
-    df = pd.DataFrame(table, index=index, columns=columns)
-    df.columns.name = "Amp"
-    df.index.name = "Mean"
+        index = _getlabels(form, aveb)
+        columns = _getlabels(form, ampb)
+        table = pd.DataFrame(table, index=index, columns=columns)
+        table.columns.name = "Amp"
+        table.index.name = "Mean"
+
     if retbins:
-        return df, ampb, aveb
-    return df
+        return table, ampb, aveb
+
+    return table
 
 
-def sigcount(sig, ampbins=10, meanbins=1, right=True, precision=3, retbins=False):
-    """Do rainflow cycle counting on a signal.
+def sigcount(
+    sig, ampbins=10, meanbins=1, right=True, precision=3, retbins=False, use_pandas=True
+):
+    """
+    Do rainflow cycle counting on a signal.
 
     Parameters
     ----------
@@ -438,10 +493,13 @@ def sigcount(sig, ampbins=10, meanbins=1, right=True, precision=3, retbins=False
         Precision to use for DataFrame labels.
     retbins : bool; optional
         If True, return the `ampbins` and `meanbins` vectors.
+    use_pandas : bool; optional
+        If True, this routine will return `table` as a pandas
+        DataFrame.
 
     Returns
     -------
-    table : pandas DataFrame
+    table : pandas DataFrame or 2d ndarray
         A cycle count table (len(`meanbins`) x len(`ampbins`)). Each
         value in `table` entry is the number of cycles in the bin
         (see below).
@@ -504,6 +562,12 @@ def sigcount(sig, ampbins=10, meanbins=1, right=True, precision=3, retbins=False
     (-0.501, 0.000]    24.5
     (0.000, 0.500]     25.0
     dtype: float64
+
+    If not using pandas:
+
+    >>> cyclecount.sigcount(sig, 2, 2, use_pandas=False)
+    array([[ 12.5,  12. ],
+           [ 12.5,  12.5]])
     """
-    rf = rainflow(sig[findap(sig)])
-    return _binify(rf, ampbins, meanbins, right, precision, retbins)
+    rf = rainflow(sig[findap(sig)], use_pandas=False)
+    return binify(rf, ampbins, meanbins, right, precision, retbins, use_pandas)

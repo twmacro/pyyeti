@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from pyyeti import cyclecount
 from pyyeti.rainflow.py_rain import rainflow
 from nose.tools import *
@@ -92,6 +93,45 @@ def test_rainflow_4():
 
     assert np.allclose(rf_shouldbe, rf)
     assert np.allclose(os_shouldbe, os)
+
+
+def test_rainflow_5():
+    rf = cyclecount.rainflow([-2, 1, -3, 5, -1, 3, -4, 4, -2])
+    assert isinstance(rf, pd.DataFrame)
+
+    rf_shouldbe = np.array(
+        [
+            [1.5, -0.5, 0.5],
+            [2.0, -1.0, 0.5],
+            [2.0, 1.0, 1.0],
+            [4.0, 1.0, 0.5],
+            [4.5, 0.5, 0.5],
+            [4.0, 0.0, 0.5],
+            [3.0, 1.0, 0.5],
+        ]
+    )
+
+    os_shouldbe = np.array([[0, 1], [1, 2], [4, 5], [2, 3], [3, 6], [6, 7], [7, 8]])
+
+    assert np.allclose(rf, rf_shouldbe)
+
+    rf = cyclecount.rainflow([-2, 1, -3, 5, -1, 3, -4, 4, -2], use_pandas=False)
+    assert not isinstance(rf, pd.DataFrame)
+    assert np.allclose(rf, rf_shouldbe)
+
+    rf, os = cyclecount.rainflow([-2, 1, -3, 5, -1, 3, -4, 4, -2], getoffsets=True)
+    assert isinstance(rf, pd.DataFrame)
+    assert isinstance(os, pd.DataFrame)
+    assert np.allclose(rf, rf_shouldbe)
+    assert np.allclose(os, os_shouldbe)
+
+    rf, os = cyclecount.rainflow(
+        [-2, 1, -3, 5, -1, 3, -4, 4, -2], getoffsets=True, use_pandas=False
+    )
+    assert not isinstance(rf, pd.DataFrame)
+    assert not isinstance(os, pd.DataFrame)
+    assert np.allclose(rf, rf_shouldbe)
+    assert np.allclose(os, os_shouldbe)
 
 
 def test_rainflow_badinput():
