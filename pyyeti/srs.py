@@ -917,6 +917,8 @@ def srs(
         \frac{\pi f}{sr} \right)
         \end{aligned}
 
+    Or:
+
     .. math::
         \begin{aligned}
         &\text{bias error} = 1 - \left[ \sin \left( \frac{\pi}{ppc}

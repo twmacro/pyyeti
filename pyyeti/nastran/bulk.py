@@ -1862,7 +1862,8 @@ def rdeigen(f, use_pandas=True):
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
     use_pandas : bool; optional
-        If True, the values will be pandas objects
+        If True, the values returned in the dictionary will be pandas
+        DataFrames
 
     Returns
     -------

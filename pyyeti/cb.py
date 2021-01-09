@@ -2141,12 +2141,12 @@ def cbcoordchk(
         restrain all rigid-body motion). `rb_normalizer` defines the
         motion of the `refpoint` DOF relative to some reference
         location. For example, the following creates an
-        `rb_normalizer` relative to the origin of the basic coordinate
-        system::
+        `rb_normalizer` matrix relative to the origin of the basic
+        coordinate system::
 
-            R = [0., 0., 0.]
             rb_normalizer = n2p.rbgeom_uset(
-                uset.iloc[bset], R)[refpoint]
+                uset.iloc[bset], [0., 0., 0.])
+            )[refpoint]
 
         This would cause the returned coordinates (see `coords` below)
         to be relative to the basic origin and in the basic coordinate
