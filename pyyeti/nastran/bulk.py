@@ -37,6 +37,9 @@ __all__ = [
     "wttabled1",
     "bulk2uset",
     "uset2bulk",
+    "rdspoints",
+    "rdseconct",
+    "asm2uset",
     "rdwtbulk",
     "rdeigen",
     "wtnasints",
@@ -52,7 +55,6 @@ __all__ = [
     "wtset",
     "wtrspline",
     "wtrspline_rings",
-    "wtvcomp",
     "wtcoordcards",
     "wtextrn",
     "wtextseout",
@@ -1703,13 +1705,18 @@ def bulk2uset(*args):
     -----
     This is the reverse of :func:`uset2bulk`.
 
+    Note that :func:`asm2uset` is similar to this routine but written
+    specifically for Nastran .asm files. That routine will return a
+    USET table ordered to match the model (according to the SECONCT
+    card); it also returns a b-set boolean partition vector.
+
     All grids are put in the 'b' set. This routine uses
     :func:`pyyeti.nastran.n2p.addgrid` to build the output.
 
     See also
     --------
-    :func:`uset2bulk`, :func:`rdcards`, :func:`rdgrids`,
-    :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
+    :func:`asm2uset`, :func:`uset2bulk`, :func:`rdcards`,
+    :func:`rdgrids`, :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
     :mod:`pyyeti.nastran.n2p`.
     """
     grids = np.zeros((0, 8))
@@ -1787,6 +1794,233 @@ def uset2bulk(f, uset):
     # Write Grid data:
     f.write("$\n$ GRID DATA\n$\n")
     wtgrids(f, grids, 0, xyz, cd)
+
+
+def rdspoints(f):
+    r"""
+    Read Nastran SPOINT cards from a Nastran bulk file.
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+
+    Returns
+    -------
+    spoints : 1d ndarray
+        Array of SPOINT ids. Will be empty if no SPOINT cards found.
+
+    Notes
+    -----
+    This routine uses :func:`rdcards` to load the data.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> from io import StringIO
+    >>> bulkdata = (
+    ...     "SPOINT,1,2,100\n"
+    ...     "SPOINT,200,THRU,202\n"
+    ...     "SPOINT,5\n"
+    ... )
+    >>> with StringIO(bulkdata) as f:
+    ...     spoints = nastran.rdspoints(f)
+    >>> spoints                      # doctest: +ELLIPSIS
+    array([  1,   2, 100, 200, 201, 202,   5]...)
+    >>> with StringIO("no data") as f:
+    ...     spoints = nastran.rdspoints(f)
+    >>> spoints                      # doctest: +ELLIPSIS
+    array([]...)
+
+    """
+    spoint_data = rdcards(f, "spoint", return_var="list")
+    spoints = []
+    if spoint_data is not None:
+        for card in spoint_data:
+            if len(card) > 2 and isinstance(card[1], str) and card[1].lower() == "thru":
+                spoints.extend([i for i in range(card[0], card[2] + 1)])
+            else:
+                spoints.extend(card)
+    return np.array(spoints, dtype=np.int64)
+
+
+def rdseconct(f):
+    r"""
+    Read Nastran SECONCT cards from a Nastran bulk file.
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+
+    Returns
+    -------
+    a_ids, b_ids : 1d ndarrays
+        Array of GRID and SPOINT ids for superelement A and
+        superelement B, respectively. Both outputs will be empty if no
+        SECONCT cards found.
+
+    Notes
+    -----
+    This routine uses :func:`rdcards` to load the data.
+
+    Examples
+    --------
+    >>> from io import StringIO
+    >>> from pyyeti import nastran
+    >>> bulkdata = (
+    ...     "SECONCT,101,0,,NO\n"
+    ...     ",3,30,11,110,19,190,27,270\n"
+    ...     "$\n"
+    ...     "SECONCT,101,0,,NO\n"
+    ...     ",1101,THRU,1104,2101,THRU,2104\n"
+    ... )
+    >>> with StringIO(bulkdata) as f:
+    ...     a_ids, b_ids = nastran.rdseconct(f)
+    >>> a_ids                      # doctest: +ELLIPSIS
+    array([   3,   11,   19,   27, 1101, 1102, 1103, 1104]...)
+    >>> b_ids                      # doctest: +ELLIPSIS
+    array([  30,  110,  190,  270, 2101, 2102, 2103, 2104]...)
+    """
+    seconct_data = rdcards(f, "seconct", return_var="list")
+    a_ids = []
+    b_ids = []
+    if seconct_data is not None:
+        for card in seconct_data:
+            card = card[8:]
+            if len(card) > 5 and isinstance(card[1], str) and card[1].lower() == "thru":
+                a_ids.extend([i for i in range(card[0], card[2] + 1)])
+                b_ids.extend([i for i in range(card[3], card[5] + 1)])
+            else:
+                a_ids.extend(card[::2])
+                b_ids.extend(card[1::2])
+    return np.array(a_ids, dtype=np.int64), np.array(b_ids, dtype=np.int64)
+
+
+def asm2uset(f):
+    r"""
+    Read CORD2* and GRID cards from a ".asm" file to make a USET table
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+
+    Returns
+    -------
+    uset : pandas DataFrame
+        A DataFrame as output by
+        :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Contains all GRID and
+        SPOINT DOF in the .asm file in the order specified on the
+        SECONCT card. This is compatible with the model matrices (eg,
+        in the .op4 file).
+    coordref : dictionary
+        Dictionary with the keys being the coordinate system id and
+        the values being the 5x3 matrix::
+
+            [id  type 0]  # output coord. sys. id and type
+            [xo  yo  zo]  # origin of coord. system
+            [    T     ]  # 3x3 transformation to basic
+            Note that T is for the coordinate system, not a grid
+            (unless type = 1 which means rectangular)
+
+    bset_bool : 1d ndarray
+        A boolean partition vector with True for the b-set. This is
+        created for convenience by::
+
+            from pyyeti import nastran
+            bset_bool = nastran.mksetpv(uset, 'a', 'b')
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from io import StringIO
+    >>> from pyyeti import nastran
+    >>> asm_bulk = (
+    ...    "$ SE101 ASSEMBLY FILE\n"
+    ...    "SEBULK,101,EXTOP4,,MANUAL,,,101\n"
+    ...    "SECONCT,101,0,,NO\n"
+    ...    ",3,3,110,110,19,19,27,27\n"
+    ...    "$ Coordinate 10:\n"
+    ...    "CORD2R,10,0,0.0,0.0,0.0,1.0,0.0,0.0\n"
+    ...    ",0.0,1.0,0.0\n"
+    ...    "GRID,3,0,600.,0.,300.,0\n"
+    ...    "GRID,19,0,600.,300.,0.,0\n"
+    ...    "GRID,27,0,600.,0.,0.\n"
+    ...    "SPOINT,110\n"
+    ... )
+    >>> with StringIO(asm_bulk) as f:
+    ...     u, c, b = nastran.asm2uset(f)
+    >>> u            # doctest: +ELLIPSIS
+              nasset      x      y      z
+    id  dof...
+    3   1    2097154  600.0    0.0  300.0
+        2    2097154    0.0    1.0    0.0
+        3    2097154    0.0    0.0    0.0
+        4    2097154    1.0    0.0    0.0
+        5    2097154    0.0    1.0    0.0
+        6    2097154    0.0    0.0    1.0
+    110 0    4194304    0.0    0.0    0.0
+    19  1    2097154  600.0  300.0    0.0
+        2    2097154    0.0    1.0    0.0
+        3    2097154    0.0    0.0    0.0
+        4    2097154    1.0    0.0    0.0
+        5    2097154    0.0    1.0    0.0
+        6    2097154    0.0    0.0    1.0
+    27  1    2097154  600.0    0.0    0.0
+        2    2097154    0.0    1.0    0.0
+        3    2097154    0.0    0.0    0.0
+        4    2097154    1.0    0.0    0.0
+        5    2097154    0.0    1.0    0.0
+        6    2097154    0.0    0.0    1.0
+    >>> c            # doctest: +SKIP
+    {0: array([[ 0.,  1.,  0.],
+            [ 0.,  0.,  0.],
+            [ 1.,  0.,  0.],
+            [ 0.,  1.,  0.],
+            [ 0.,  0.,  1.]]),
+     10: array([[ 10.,   1.,   0.],
+            [  0.,   0.,   0.],
+            [  0.,   0.,   1.],
+            [  1.,   0.,   0.],
+            [  0.,   1.,   0.]])}
+    >>> np.set_printoptions(linewidth=55)
+    >>> b
+    array([ True,  True,  True,  True,  True,  True, False,
+            True,  True,  True,  True,  True,  True,  True,
+            True,  True,  True,  True,  True], dtype=bool)
+    """
+    uset, coords = bulk2uset(f)
+
+    # add spoints to uset table:
+    spoints = rdspoints(f)
+    if spoints is not None:
+        n = len(spoints)
+        dof = np.zeros((n, 2), np.int64)
+        dof[:, 0] = spoints
+        uset_spoints = n2p.make_uset(dof, n2p.mkusetmask("q"), np.zeros((n, 3)))
+        uset = pd.concat([uset, uset_spoints], axis=0)
+
+    a_ids, b_ids = rdseconct(f)
+    uset_ordered = uset.loc[a_ids]
+    if uset_ordered.shape[0] != uset.shape[0]:
+        raise RuntimeError(
+            "Number of SECONCT superelement 'A' DOF do not match GRID and"
+            " SPOINT cards in file:\n"
+            f"    # DOF on SECONCT = {uset_ordered.shape[0]}\n"
+            f"    # DOF on GRIDS/SPOINTS = {uset.shape[0]}"
+        )
+
+    return uset_ordered, coords, n2p.mksetpv(uset_ordered, "a", "b")
 
 
 def rdwtbulk(fin, fout):
@@ -3260,84 +3494,6 @@ def wtrspline_rings(
         )
 
 
-def wtvcomp(f, baa, kaa, bset, spoint1):
-    """
-    Write VCOMP DMIG bulk data for P. Blelloch's Benfield-Hruda DMAP
-
-    Parameters
-    ----------
-    f : string or file_like or 1 or None
-        Either a name of a file, or is a file_like object as returned
-        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
-        write to stdout. Can also be the name of a directory or None;
-        in these cases, a GUI is opened for file selection.
-    baa : 2d array_like
-        Craig-Bampton damping matrix
-    kaa : 2d array_like
-        Craig-Bampton stiffness matrix
-    bset : 1d array_like
-        Index partition vector for the bset
-    spoint1 : integer
-        Starting value for the SPOINTs (for modal DOF)
-
-    Returns
-    -------
-    None
-
-    Notes
-    -----
-    Typically called by :func:`wtextseout`.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from pyyeti import nastran
-    >>> kaad = np.hstack((np.zeros(6), np.arange(100, 1000, 100.)))
-    >>> zeta = .02
-    >>> baad = 2*zeta*np.sqrt(kaad)
-    >>> kaa = np.diag(kaad)
-    >>> baa = np.diag(baad)
-    >>> b = np.arange(6)
-    >>> nastran.wtvcomp(1, baa, kaa, b, 1001)
-    $ Critical damping ratios:
-    DMIG    VCOMP          0       9       1       1                       1
-    DMIG*   VCOMP                          1               0
-    *                   1001               0            0.02
-    *                   1002               0            0.02
-    *                   1003               0            0.02
-    *                   1004               0            0.02
-    *                   1005               0            0.02
-    *                   1006               0            0.02
-    *                   1007               0            0.02
-    *                   1008               0            0.02
-    *                   1009               0            0.02
-    """
-    baa, kaa = np.atleast_2d(baa, kaa)
-    qset = locate.flippv(bset, kaa.shape[0])
-    qq = np.ix_(qset, qset)
-    kd = np.diag(kaa[qq])
-    bd = np.diag(baa[qq])
-    zeta = bd / (2 * np.sqrt(kd))
-
-    @ytools.write_text_file
-    def _wtvcomp(f, zeta, spoint1):
-        f.write("$ Critical damping ratios:\n")
-        f.write(
-            "DMIG    VCOMP          0       9       1"
-            "       1                       1\n"
-        )
-        f.write("DMIG*   VCOMP                          1               0\n")
-        writer.vecwrite(
-            f,
-            "*       {:16d}{:16d}{:16.10g}\n",
-            spoint1 + np.arange(len(zeta)),
-            0,
-            zeta,
-        )
-
-    _wtvcomp(f, zeta, spoint1)
-
-
 def wtcoordcards(f, ci):
     """
     Write Nastran CORD2* cards to a file
@@ -3438,9 +3594,7 @@ def wtextrn(f, ids, dof):
     wtnasints(f, 2, ints)
 
 
-def wtextseout(
-    name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, bh=False, **kwargs
-):
+def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, **kwargs):
     """
     Write .op4, .asm, .pch and possibly the damping DMIG file for an
     external SE.
@@ -3480,11 +3634,6 @@ def wtextseout(
         Starting value for the SPOINTs (for modal DOF)
     sedn : integer; optional
         Downstream superelement id
-    bh : bool; optional
-        If True, Benfield-Hruda damping is being used and a
-        '.baa_dmig' file will be created with VCOMP DMIG. In this
-        case, the BAA matrix written to the .op4 file is zeroed out to
-        avoid double application of damping.
     **kwargs : optional
         Allows user to input other matrices to be written to the op4
         file. Name must be one of the following to be included (order
@@ -3506,11 +3655,6 @@ def wtextseout(
     bset = np.atleast_1d(bset)
     n = maa.shape[0]
     nq = n - len(bset)
-
-    if bh:
-        # write damping to DMIG VCOMP card for the BH method:
-        wtvcomp(name + ".baa_dmig", baa, kaa, bset, spoint1)
-        baa = np.zeros_like(baa)
 
     # prepare standard Nastran op4 file:
     k4xx = 0.0
