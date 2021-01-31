@@ -6,6 +6,7 @@ Limited set of read/write routines for Nastran bulk data
 .. autosummary::
     :toctree: generated/
 
+    asm2uset
     bulk2uset
     fsearch
     mkcomment
@@ -20,6 +21,8 @@ Limited set of read/write routines for Nastran bulk data
     rdextrn
     rdgpwg
     rdgrids
+    rdseconct
+    rdspoints
     rdtabled1
     rdwtbulk
     uset2bulk
@@ -39,5 +42,4 @@ Limited set of read/write routines for Nastran bulk data
     wtset
     wtspc1
     wttabled1
-    wtvcomp
     wtxset1

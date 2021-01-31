@@ -2709,7 +2709,7 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
 
 def _solve(a, b):
     """This is :func:`scipy.linalg.solve` but with a matrix condition
-    check on `a`. Call by :func:`formrbe3`."""
+    check on `a`. Called by :func:`formrbe3`."""
     c = np.linalg.cond(a)
     if c > 1 / np.finfo(float).eps:
         warnings.warn(

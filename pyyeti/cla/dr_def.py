@@ -444,7 +444,7 @@ class DR_Def(OrderedDict):
             case, the list is formed internally as:
             ``['Row 1', 'Row 2', ...]``. This input is used to
             determine number of rows being recovered. If not a list,
-            it is converted to a list via :func:`list`.
+            it is converted to a list via :class:`list`.
         active : string; optional
             If 'yes', this category will be included when the
             :func:`DR_Event.add` function is called to add categories

@@ -125,14 +125,14 @@ def rainflow(peaks, getoffsets=False, use_pandas=True):
            [ 4.5,  0.5,  0.5],
            [ 4. ,  0. ,  0.5],
            [ 3. ,  1. ,  0.5]])
-    >>> os
+    >>> os                              # doctest: +ELLIPSIS
     array([[0, 1],
            [1, 2],
            [4, 5],
            [2, 3],
            [3, 6],
            [6, 7],
-           [7, 8]])
+           [7, 8]]...)
     """
     if getoffsets:
         rf, os = rain.rainflow(peaks, getoffsets)

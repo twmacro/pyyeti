@@ -929,10 +929,12 @@ def mk_net_drms(
             coupling run.
 
             So, why not have a `lvcoord` input instead? While that
-            would make more sense for this routine, `sccoord` is used
-            simply because that's very likely what is used in the
-            Nastran coupling run, making it more convenient and less
-            error-prone than defining a `lvcoord` input.
+            would likely make more sense for this routine, `sccoord`
+            is used simply because that's what would be used in the
+            Nastran coupling run (for example, `sccoord` should match
+            what's in the Nastran .asm file). That fact makes having
+            `sccoord` more synergistic and therefore less error-prone
+            than defining a `lvcoord` input.
 
     conv : None or 2-element array_like or string; optional
         If None, no unit conversion is done; otherwise, units are

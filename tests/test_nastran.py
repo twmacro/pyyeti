@@ -306,6 +306,124 @@ def test_uset2bulk():
     # T = n2p.build_coords([10, 1, 0, *new_cs_in_basic.ravel()])[10][2:]
 
 
+def test_asm2uset():
+    asm1 = """
+$ SE101 ASSEMBLY FILE FOR RESIDUAL RUN...INCLUDE IN BULK DATA
+$
+SEBULK       101  EXTOP4          MANUAL                     101
+SECONCT      101       0              NO
+               3       3      11      11      19      19      27      27
+$
+$ COORDINATE SYSTEM DATA
+$
+$ Coordinate 10:
+CORD2R*               10               0  0.00000000e+00  0.00000000e+00*
+*         0.00000000e+00  1.00000000e+00  0.00000000e+00  0.00000000e+00*
+*         0.00000000e+00  1.00000000e+00  0.00000000e+00
+$
+$ BOUNDARY GRID DATA
+$
+GRID*                  3               0    600.00000000      0.00000000
+*           300.00000000               0
+GRID*                 11               0    600.00000000    300.00000000
+*           300.00000000              10
+GRID*                 19               0    600.00000000    300.00000000
+*             0.00000000               0
+GRID*                 27               0    600.00000000      0.00000000
+*             0.00000000               0
+$
+SECONCT      101       0              NO
+         9900101    THRU 9900122 9900101    THRU 9900122
+$
+SPOINT   9900101    THRU 9900122
+"""
+    with StringIO(asm1) as f:
+        uset1, cord1, bset1 = nastran.asm2uset(f)
+        cords1 = nastran.rdcord2cards(f)
+
+    # make the uset manually for testing:
+    rng = range(9900101, 9900123)
+    dof = [[3, 123456], [11, 123456], [19, 123456], [27, 123456]] + [
+        [i, 0] for i in rng
+    ]
+    nasset = np.zeros(4 + 22, np.int64)
+    nasset[:4] = n2p.mkusetmask("b")
+    nasset[4:] = n2p.mkusetmask("q")
+    xyz = np.array(
+        [
+            [600.0, 0.0, 300.0],
+            [600.0, 300.0, 300.0],
+            [600.0, 300.0, 0.0],
+            [600.0, 0.0, 0.0],
+        ]
+        + [[0.0, 0.0, 0.0] for i in rng]
+    )
+
+    uset1_man = n2p.make_uset(dof=dof, nasset=nasset, xyz=xyz)
+
+    # fix up grid 11 coords:
+    uset1_man.loc[(11, 2), "x"] = 10
+    uset1_man.loc[(11, 4):(11, 6), "x":"z"] = [
+        [0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+    ]
+    assert uset1.equals(uset1_man)
+    assert (bset1 == n2p.mksetpv(uset1, "a", "b")).all()
+
+    assert len(cords1) == len(cord1)
+    for k, v in cords1.items():
+        assert np.allclose(cord1[k], v)
+
+    asm2 = """
+$ SE101 ASSEMBLY FILE FOR RESIDUAL RUN...INCLUDE IN BULK DATA
+$
+$1111111222222223333333344444444555555556666666677777777888888889999999900000000
+SEBULK       101  EXTOP4          MANUAL                     101
+SECONCT      101       0              NO
+               3       3     110     110      19      19      27      27
+$
+$ COORDINATE SYSTEM DATA
+$
+$ Coordinate 10:
+CORD2R*               10               0  0.00000000e+00  0.00000000e+00*
+*         0.00000000e+00  1.00000000e+00  0.00000000e+00  0.00000000e+00*
+*         0.00000000e+00  1.00000000e+00  0.00000000e+00
+$
+$ BOUNDARY GRID DATA
+$
+GRID*                  3               0    600.00000000      0.00000000
+*           300.00000000               0
+GRID*                 19               0    600.00000000    300.00000000
+*             0.00000000               0
+GRID*                 27               0    600.00000000      0.00000000
+*             0.00000000               0
+$
+SPOINT   110
+"""
+
+    with StringIO(asm2) as f:
+        uset2, cord2, bset2 = nastran.asm2uset(f)
+        cords2 = nastran.rdcord2cards(f)
+
+    # make the uset manually for testing:
+    dof = [[3, 123456], [110, 0], [19, 123456], [27, 123456]]
+    nasset = np.zeros(4, np.int64)
+    nasset[:] = n2p.mkusetmask("b")
+    nasset[1] = n2p.mkusetmask("q")
+    xyz = np.array(
+        [[600.0, 0.0, 300.0], [0.0, 0.0, 0.0], [600.0, 300.0, 0.0], [600.0, 0.0, 0.0]]
+    )
+
+    uset2_man = n2p.make_uset(dof=dof, nasset=nasset, xyz=xyz)
+    assert uset2.equals(uset2_man)
+    assert (bset2 == n2p.mksetpv(uset2, "a", "b")).all()
+
+    assert len(cords2) == len(cord2)
+    for k, v in cords2.items():
+        assert np.allclose(cord2[k], v)
+
+
 def test_rdcord2cards():
     cylcoord = np.array([[50, 2, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]])
     sphcoord = np.array([[51, 3, 0], [0, 0, 0], [0, 1, 0], [0, 0, 1]])
@@ -396,40 +514,35 @@ def test_wtextseout():
     baa[q, q] = 2 * 0.05 * np.sqrt(kaa[q, q])
     name = "_wtextseout_test_"
     pre = "tests/nas2cam_csuper/yeti_outputs/se101y"
-    for bh, nm in zip((True, False), ("_bh", "")):
-        try:
-            nastran.wtextseout(
-                name,
-                se=101,
-                maa=maa,
-                kaa=kaa,
-                baa=baa,
-                bset=b,
-                uset=usetb,
-                spoint1=9900101,
-                bh=bh,
-            )
-            names, mats, f, t = op4.load(name + ".op4", into="list")
-            namesy, matsy, fy, ty = op4.load(pre + nm + ".op4", into="list")
-            assert names == namesy
-            assert f == fy
-            assert t == ty
-            for i, (m, my) in enumerate(zip(mats, matsy)):
-                assert np.allclose(m, my)
-            if bh:
-                lst = (".asm", ".pch", ".baa_dmig")
-            else:
-                lst = (".asm", ".pch")
-            for ext in lst:
-                with open(name + ext) as f:
-                    s = f.read()
-                with open(pre + nm + ext) as f:
-                    sy = f.read()
-                assert s.replace(name.upper(), "SE101") == sy
-        finally:
-            for ext in (".asm", ".pch", ".op4", ".baa_dmig"):
-                if os.path.exists(name + ext):
-                    os.remove(name + ext)
+    try:
+        nastran.wtextseout(
+            name,
+            se=101,
+            maa=maa,
+            kaa=kaa,
+            baa=baa,
+            bset=b,
+            uset=usetb,
+            spoint1=9900101,
+        )
+        names, mats, f, t = op4.load(name + ".op4", into="list")
+        namesy, matsy, fy, ty = op4.load(pre + ".op4", into="list")
+        assert names == namesy
+        assert f == fy
+        assert t == ty
+        for i, (m, my) in enumerate(zip(mats, matsy)):
+            assert np.allclose(m, my)
+        lst = (".asm", ".pch")
+        for ext in lst:
+            with open(name + ext) as f:
+                s = f.read()
+            with open(pre + ext) as f:
+                sy = f.read()
+            assert s.replace(name.upper(), "SE101") == sy
+    finally:
+        for ext in (".asm", ".pch", ".op4"):
+            if os.path.exists(name + ext):
+                os.remove(name + ext)
 
     # test the additional writing of matrices:
     mug1 = np.arange(12).reshape(3, 4)
@@ -461,7 +574,7 @@ def test_wtextseout():
         for ext in lst:
             with open(name + ext) as f:
                 s = f.read()
-            with open(pre + nm + ext) as f:
+            with open(pre + ext) as f:
                 sy = f.read()
             assert s.replace(name.upper(), "SE101") == sy
 
