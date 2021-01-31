@@ -1385,56 +1385,75 @@ class OP2:
         SELOAD = (1127, 11, 461)
 
         cord2 = np.zeros((0, 13))
-        sebulk = np.zeros((1, 8))
-        selist = np.array([[0, 0]], np.int64)
-        seload = np.array([[0, 0, 0]], np.int64)
+        sebulk = np.zeros((0, 8))
+        selist = np.zeros((0, 2), np.int64)
+        seload = np.zeros((0, 3), np.int64)
         seconct = np.array([], np.int64)
 
         key = self._getkey()
         eot = 0
         while not eot:
+            read_header = True  # new record
             while key > 0:
                 self._fileh.read(4)  # reclen
-                head = header_Str.unpack(self._fileh.read(hbytes))
+                if read_header:
+                    head = header_Str.unpack(self._fileh.read(hbytes))
+                    items_read = 3
+                    read_header = False  # assume record continues (key < 0 ends it)
+                else:
+                    items_read = 0
                 if head == CORD2R or head == CORD2C or head == CORD2S:
-                    n = (key - 3) // 13
+                    n = (key - items_read) // 13
                     data = np.empty((n, 13))
                     for i in range(n):
                         data[i] = cord2_Str.unpack(self._fileh.read(cbytes))
                     cord2 = np.vstack((cord2, data))
                 elif head == SEBULK:
-                    n = (key - 3) // 8
-                    sebulk = np.empty((n, 8))
+                    n = (key - items_read) // 8
+                    sebulk1 = np.empty((n, 8))
                     for i in range(n):
-                        sebulk[i] = sebulk_Str.unpack(self._fileh.read(bbytes))
+                        sebulk1[i] = sebulk_Str.unpack(self._fileh.read(bbytes))
+                    sebulk = np.vstack((sebulk, sebulk1))
                 elif head == SECONCT:
-                    n = key - 3
+                    n = key - items_read
                     if n < self._rowsCutoff:
                         nbytes = n * ib
-                        seconct = np.empty(n, int)
-                        seconct[:] = struct.unpack(
+                        seconct1 = np.empty(n, int)
+                        seconct1[:] = struct.unpack(
                             self._intstru % n, self._fileh.read(nbytes)
                         )
                     else:
-                        seconct = np.fromfile(self._fileh, self._intstr, n)
-                    pv = np.nonzero(seconct == -1)[0][1:-2:2] + 1
-                    pv = np.hstack((0, pv))
-                    u = np.unique(seconct[pv], return_index=True)[1]
-                    pv = pv[u]
-                    selist = np.vstack((seconct[pv], seconct[pv + 1])).T
-                    selist = np.vstack((selist, [0, 0]))
+                        seconct1 = np.fromfile(self._fileh, self._intstr, n)
+                    seconct = np.hstack((seconct, seconct1))
                 elif head == SELOAD:
-                    n = (key - 3) // 3
-                    seload = np.empty((n, 3), dtype=np.int64)
+                    n = (key - items_read) // 3
+                    seload1 = np.empty((n, 3), dtype=np.int64)
                     for i in range(n):
-                        seload[i] = seload_Str.unpack(self._fileh.read(lbytes))
+                        seload1[i] = seload_Str.unpack(self._fileh.read(lbytes))
+                    seload = np.vstack((seload, seload1))
                 else:
-                    self._fileh.seek((key - 3) * ib, 1)
+                    self._fileh.seek((key - items_read) * ib, 1)
+
                 self._fileh.read(4)  # endrec
                 key = self._getkey()
+
             self._skipkey(2)
             eot, key = self.rdop2eot()
+
+        # remove 3rd column of cord2 (not used)
         cord2 = np.delete(cord2, 2, axis=1)
+
+        # build selist from seconct:
+        if seconct.size > 0:
+            pv = np.nonzero(seconct == -1)[0][1:-2:2] + 1
+            pv = np.hstack((0, pv))
+            u = np.unique(seconct[pv], return_index=True)[1]
+            pv = pv[u]
+            selist = np.vstack((seconct[pv], seconct[pv + 1])).T
+            selist = np.vstack((selist, [[0, 0]]))
+        else:
+            selist = np.array([[0, 0]], np.int64)
+
         return (n2p.build_coords(cord2), sebulk, selist, seload, seconct)
 
     def _rdop2selist(self):
