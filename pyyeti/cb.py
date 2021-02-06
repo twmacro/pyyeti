@@ -873,7 +873,8 @@ def mk_net_drms(
         boundary DOF that are connected to other superelements, the CG
         recovery transforms are probably not very useful.
     uset : pandas DataFrame or None; optional
-        A DataFrame as output by
+        The b-set USET table (will be trimmed to the b-set internally
+        if necessary). A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Defines the
         Craig-Bampton interface nodes relative to the s/c basic
         coordinate system. Use the `sccoord` option to define the
@@ -1255,6 +1256,15 @@ def mk_net_drms(
     # main routine
     if uset is None:
         uset = n2p.addgrid(None, 1, "b", 0, [0, 0, 0], 0)
+    else:
+        b = n2p.mksetpv(uset, "p", "b")
+        uset = uset[b]
+
+    if len(bset) != uset.shape[0]:
+        raise ValueError(
+            f"number of rows in `uset` is {uset.shape[0]}, but must "
+            f"equal len(b-set) ({len(bset)})"
+        )
 
     # ensure that tau is a 2-tuple:
     if isinstance(tau, str):
@@ -2318,7 +2328,8 @@ def cbcheck(
         based rigid-body modes. If `bref` is not all 6-DOF of a single
         node, you'll also want to set `rb_norm` to True.
     uset : pandas DataFrame; optional for single point interface
-        The b-set USET table. This is a DataFrame as output by
+        The b-set USET table (will be trimmed to the b-set internally
+        if necessary). This is a DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2` or
         :func:`pyyeti.nastran.n2p.addgrid`. For information on the
         format of this matrix, see
@@ -2505,6 +2516,9 @@ def cbcheck(
     if uset is None:
         uset = n2p.addgrid(None, 1, "b", 0, [0, 0, 0], 0)
         uref = 1
+    else:
+        b = n2p.mksetpv(uset, "p", "b")
+        uset = uset[b]
 
     nb = len(bseto)
     if uset.shape[0] != nb:

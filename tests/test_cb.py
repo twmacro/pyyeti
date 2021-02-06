@@ -372,7 +372,7 @@ def test_cbcheck_indeterminate():
     name = f.name
     f.close()
     # m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
-    out = cb.cbcheck(name, maa, kaa, b, b[:6], usetb, em_filt=2)
+    out = cb.cbcheck(name, maa, kaa, b, b[:6], uset, em_filt=2)
     with open(name) as f:
         sfile = f.read()
     os.remove(name)
@@ -1037,7 +1037,21 @@ def test_mk_net_drms():
     net = cb.mk_net_drms(
         maa, kaa, b, uset=uset, ref=ref, sccoord=sccoord, conv=conv, g=g
     )
-    net2 = cb.mk_net_drms(maa, kaa, b, uset=uset, ref=ref, sccoord=Tl2s, conv=conv, g=g)
+
+    usetbq, c, bset = nastran.asm2uset(os.path.join(pth, "inboard.asm"))
+    with assert_raises(ValueError) as cm:
+        cb.mk_net_drms(
+            maa, kaa, b[:3], uset=usetbq, ref=ref, sccoord=Tl2s, conv=conv, g=g
+        )
+    the_msg = str(cm.exception)
+    assert 0 == the_msg.find(
+        f"number of rows in `uset` is {uset.shape[0]}, but must "
+        f"equal len(b-set) (3)"
+    )
+
+    net2 = cb.mk_net_drms(
+        maa, kaa, b, uset=usetbq, ref=ref, sccoord=Tl2s, conv=conv, g=g
+    )
 
     # rb modes in system units:
     uset2, ref2 = cb.uset_convert(uset, ref, conv)
