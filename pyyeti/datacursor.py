@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 def form1(x, y, n, ind, ax, line):
     """Default annotation for plots with 1 line"""
-    return f"x: {x:.5g}\ny: {y:5g}"
+    return f"x: {x:.5g}\ny: {y:.5g}"
 
 
 def form2(x, y, n, ind, ax, line):
@@ -619,7 +619,10 @@ class DataCursor(object):
             else:
                 xy = 0, 0
             self._annotation[ax] = self._new_annotation(ax, xy)
+            xl, yl = ax.get_xlim(), ax.get_ylim()
             self._dot[ax] = ax.scatter(xy[0], xy[1], **self.followdot, visible=False)
+            ax.set_xlim(xl)
+            ax.set_ylim(yl)
 
     def _snap(self, ax, x, y):
         """Return the value in self._points closest to x, y."""
@@ -628,16 +631,8 @@ class DataCursor(object):
         for n, ln in enumerate(ax.lines):
             xdata = ln.get_xdata()
             ydata = ln.get_ydata()
-
-            # print("xdata\n", xdata)
-            # print("ydata\n", ydata)
-            # print("xdata - x\n", xdata - x)
-            # print("np.diff(ax.get_xlim())\n", np.diff(ax.get_xlim()))
-
             dx = (xdata - x) / np.diff(ax.get_xlim())[0]
             dy = (ydata - y) / np.diff(ax.get_ylim())[0]
-            # dx = (xdata-x)
-            # dy = (ydata-y)
             d = np.sqrt(dx ** 2.0 + dy ** 2.0)
             ind = np.argmin(d)
             if d[ind] < dmin:
