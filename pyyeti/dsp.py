@@ -2062,10 +2062,9 @@ def waterfall(
            Setting `which` to None is not the same as setting it to
            0. Using None means that the function only returns
            amplitudes, while a 0 indicates that the output of `func`
-           must be indexed by 0 to get the amplitudes. An example
-           might make this more clear: if the function has ``return
-           amps``, use ``which=None``; if the function has ``return
-           (amps,)``, use ``which=0``.
+           must be indexed by 0 to get the amplitudes. For example: if
+           the function has ``return amps``, use ``which=None``; if
+           the function has ``return (amps,)``, use ``which=0``.
 
     freq : integer or vector
         If integer, it is the index of the output of `func`
@@ -2217,9 +2216,12 @@ def waterfall(
             raise ValueError("`which` cannot be None when `freq` is an integer")
         freq = res[freq]
         flen = len(freq)
+        res_dtype = res[which].dtype
     else:
         flen = len(freq)
-    mp = np.zeros((flen, tlen), res[which].dtype)
+        res_dtype = res.dtype if which is None else res[which].dtype
+
+    mp = np.zeros((flen, tlen), res_dtype)
     mp[:, 0] = res[which]
 
     for j in range(1, tlen):

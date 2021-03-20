@@ -103,6 +103,16 @@ def test_waterfall():
 
     mp, t, f = dsp.waterfall(sig, sr, 2, 0.5, func, which=0, freq=1)
     mp, t, f = dsp.waterfall(sig2, sr, 2, 0.5, func, which=0, freq=1)
+
+    def func2(s):
+        return srs.srs(s, sr, frq, Q)
+
+    mp2, t2, f2 = dsp.waterfall(sig2, sr, 2, 0.5, func2, which=None, freq=frq)
+
+    assert np.allclose(mp, mp2)
+    assert np.allclose(t, t2)
+    assert np.allclose(f, f2)
+
     assert_raises(ValueError, dsp.waterfall, sig, sr, 2, 0.5, func, which=None, freq=1)
     assert_raises(
         ValueError, dsp.waterfall, sig, sr, 2, 1.5, func, which=None, freq=frq
