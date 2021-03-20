@@ -383,7 +383,7 @@ class OP4:
     @staticmethod
     def _sparse_matrix(rows, cols, X):
         I, J, V = X
-        return sp.coo_matrix((V, (I, J)), shape=(rows, cols))
+        return sp.coo_matrix((np.array(V), (I, J)), shape=(rows, cols))
 
     def _rd_dense_ascii(
         self, wper, r, c, rows, cols, line, numlen, perline, linelen, funcs
