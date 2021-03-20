@@ -1888,18 +1888,30 @@ def rdseconct(f):
     >>> b_ids                      # doctest: +ELLIPSIS
     array([  30,  110,  190,  270, 2101, 2102, 2103, 2104]...)
     """
-    seconct_data = rdcards(f, "seconct", return_var="list")
+
+    def _get_pairs(card):
+        # truncate and filter out blanks:
+        card = [i for i in card[8:] if i]
+        it = iter(card)
+        for a, b in zip(it, it):
+            yield a, b
+
+    seconct_data = bulk.rdcards(f, "seconct", return_var="list")
     a_ids = []
     b_ids = []
     if seconct_data is not None:
         for card in seconct_data:
-            card = card[8:]
-            if len(card) > 5 and isinstance(card[1], str) and card[1].lower() == "thru":
-                a_ids.extend([i for i in range(card[0], card[2] + 1)])
-                b_ids.extend([i for i in range(card[3], card[5] + 1)])
-            else:
-                a_ids.extend(card[::2])
-                b_ids.extend(card[1::2])
+            it = iter(_get_pairs(card))
+            for a, b in it:
+                if isinstance(b, str):  # it must be "THRU"
+                    # BTA says I'm a jerk if I don't check for "THRU" :)
+                    a2, b1 = next(it)
+                    thru, b2 = next(it)
+                    a_ids.extend([i for i in range(a, a2 + 1)])
+                    b_ids.extend([i for i in range(b1, b2 + 1)])
+                else:
+                    a_ids.append(a)
+                    b_ids.append(b)
     return np.array(a_ids, dtype=np.int64), np.array(b_ids, dtype=np.int64)
 
 

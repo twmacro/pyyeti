@@ -1172,3 +1172,44 @@ def test_rddmig2():
         "DMIG*   MRANDM                        12               0\n"
         "*                     12               0 6.122600000D+04\n"
     )
+
+
+def test_rdseconct():
+    s = """
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$
+$ ASSEMBLY PUNCH (.ASM) FILE FOR EXTERNAL SUPERELEMENT      200
+$ -------------------------------------------------------------
+$
+$ THIS FILE CONTAINING BULK DATA ENTRIES PERTAINING TO
+$ EXTERNAL SUPERELEMENT      200 IS MEANT FOR INCLUSION
+$ ANYWHERE IN THE MAIN BULK DATA PORTION OF THE ASSEMBLY RUN
+$
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$--------------------------- COLUMN NUMBERS ----------------------------
+$00000000111111111122222222223333333333444444444455555555556666666666777
+$23456789012345678901234567890123456789012345678901234567890123456789012
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+$
+SEBULK       200  EXTOP4          MANUAL                      32
+$
+SECONCT      200       0
+               5       5       7       7      16      16      18      18
+              27      27      29      29
+         9920001    THRU 9920020 9920001    THRU 9920020
+SPOINT   9920001    THRU 9920020
+$
+$ BOUNDARY GRID DATA
+$
+GRID    5               4.      2.      0.                                      
+GRID    7               6.      2.      0.                                      
+GRID    16              4.      1.      0.                                      
+GRID    18              6.      1.      0.                                      
+GRID    27              4.      0.      0.                                      
+GRID    29              6.      0.      0.                                      
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+"""
+    a, b = nastran.rdseconct(StringIO(s))
+    assert (a == b).all()
+    sbe = np.r_[5, 7, 16, 18, 27, 29, 9920001:9920021]
+    assert (a == sbe).all()
