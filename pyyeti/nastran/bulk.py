@@ -1896,7 +1896,7 @@ def rdseconct(f):
         for a, b in zip(it, it):
             yield a, b
 
-    seconct_data = bulk.rdcards(f, "seconct", return_var="list")
+    seconct_data = rdcards(f, "seconct", return_var="list")
     a_ids = []
     b_ids = []
     if seconct_data is not None:
