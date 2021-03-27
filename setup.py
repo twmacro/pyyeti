@@ -4,10 +4,18 @@ from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatfo
 import numpy
 import pyyeti
 import os
-import matplotlib as mpl
 
-mpl.interactive(False)
-mpl.use("Agg")
+
+# the following is here so matplotlib will not open figures during
+# "python setup.py nosetests" ... but don't make this a hard
+# requirement
+try:
+    import matplotlib as mpl
+except ImportError:
+    pass
+else:
+    mpl.interactive(False)
+    mpl.use("Agg")
 
 ext_errors = (
     CCompilerError,
