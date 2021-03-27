@@ -368,7 +368,8 @@ SPOINT   9900101    THRU 9900122
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
     ]
-    assert uset1.equals(uset1_man)
+    # assert uset1.equals(uset1_man)
+    assert np.allclose(uset1.reset_index(), uset1_man.reset_index())
     assert (bset1 == n2p.mksetpv(uset1, "a", "b")).all()
 
     assert len(cords1) == len(cord1)
@@ -416,7 +417,8 @@ SPOINT   110
     )
 
     uset2_man = n2p.make_uset(dof=dof, nasset=nasset, xyz=xyz)
-    assert uset2.equals(uset2_man)
+    # assert uset2.equals(uset2_man)
+    assert np.allclose(uset2.reset_index(), uset2_man.reset_index())
     assert (bset2 == n2p.mksetpv(uset2, "a", "b")).all()
 
     assert len(cords2) == len(cord2)
