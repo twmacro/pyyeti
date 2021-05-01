@@ -1205,51 +1205,79 @@ class OP2:
 
         See :func:`rdn2cop2`.
         """
-        words4bits = trailer[4]
         data1 = self.rdop2record()
         # [se bitpos proc_order dnse bitpos_dnse prim_se se_type]
         data1 = np.reshape(data1[: 7 * nse], (-1, 7))
 
-        # read 2nd record:
-        key = self._getkey()
-        data2 = np.empty(0, dtype="u4")
-        frm = self._endian + "u4"
-        frmu = self._endian + "%dI"
-        mult = self._ibytes // 4
-        while key > 0:
-            self._fileh.read(4)  # reclen
-            if mult * key < self._rowsCutoff:
-                cur = struct.unpack(
-                    frmu % (mult * key), self._fileh.read(4 * mult * key)
-                )
-            else:
-                cur = np.fromfile(self._fileh, frm, mult * key)
-            data2 = np.hstack((data2, cur))
-            self._fileh.read(4)  # endrec
-            key = self._getkey()
-        if self._ibytes == 8:
-            data2 = np.reshape(data2, (-1, 4))
-            data2 = data2[:, [0, 3]].ravel()
-        self._skipkey(2)
+        # skip 2nd record:
+        # - This has the superelement connectivity table ... this is
+        #   probably not what we want to use to form dnids: a grid can
+        #   be on the boundary of se 500, internal to se 100, and yet
+        #   still be connected to se 0 (boundary c-set dof I think can
+        #   do this). So, the following logic using the connectivity
+        #   table would put that grid in the dnids of se 500 AND se
+        #   100.
+        self.skipop2record()
 
-        # [ grid_id [bitmap] ]
-        data2 = np.reshape(data2, (-1, words4bits))
-        # 1 in front need to skip over grid_id (vars are col indices)
-        word4bit_up = 1 + data1[:, 1] // 32
-        word4bit_dn = 1 + data1[:, 4] // 32
-        bitpos_up = 31 - data1[:, 1] % 32
-        bitpos_dn = 31 - data1[:, 4] % 32
-        for j in range(nse - 1):
-            se = data1[j, 0]
-            bitdn = 1 << bitpos_dn[j]
-            bitup = 1 << bitpos_up[j]
-            connected = np.logical_and(
-                data2[:, word4bit_dn[j]] & bitdn, data2[:, word4bit_up[j]] & bitup
-            )
-            grids = data2[connected, 0]
-            nas["dnids"][se] = grids
+        # read 2nd record and make 'dnids' from it:
+        # words4bits = trailer[4]
+        # key = self._getkey()
+        # if self._ibytes == 4:
+        #     data2 = np.empty(0, dtype="u4")
+        #     frm = self._endian + "u4"
+        #     frmu = self._endian + "%dI"
+        #     intsize = 32
+        # else:
+        #     data2 = np.empty(0, dtype="u8")
+        #     frm = self._endian + "u8"
+        #     frmu = self._endian + "%dQ"
+        #     intsize = 64
+        #
+        # while key > 0:
+        #     self._fileh.read(4)  # reclen
+        #     if key < self._rowsCutoff:
+        #         cur = struct.unpack(frmu % key, self._fileh.read(self._ibytes * key))
+        #     else:
+        #         cur = np.fromfile(self._fileh, frm, key)
+        #     data2 = np.hstack((data2, cur))
+        #     self._fileh.read(4)  # endrec
+        #     key = self._getkey()
+        #
+        # self._skipkey(2)
+        #
+        # # [ grid_id [bitmap] ]
+        # data2 = np.reshape(data2, (-1, words4bits))
+        # # 1 in front need to skip over grid_id (vars are col indices)
+        # word4bit_up = 1 + data1[:, 1] // intsize
+        # word4bit_dn = 1 + data1[:, 4] // intsize
+        #
+        # # word4bit_up[:] = 1
+        #
+        # bitpos_up = ((intsize - 1) - data1[:, 1] % intsize).astype(np.uint64)
+        # bitpos_dn = ((intsize - 1) - data1[:, 4] % intsize).astype(np.uint64)
+        # for j in range(nse - 1):
+        #     se = data1[j, 0]
+        #     bitdn = np.uint64(1) << bitpos_dn[j]
+        #     bitup = np.uint64(1) << bitpos_up[j]
+        #     connected = np.logical_and(
+        #         data2[:, word4bit_dn[j]] & bitdn, data2[:, word4bit_up[j]] & bitup
+        #     )
+        #     grids = data2[connected, 0]
+        #     nas["dnids"][se] = grids
+        #
+        # for se, val in nas["dnids"].items():
+        #     assert np.all(val == dn_ids[se])
+
+        # read record 3 and make 'dnids' from it:
+        # - this has the list of boundary grids
         for j in range(nse):  # = 1 to nse:
-            self.skipop2record()
+            rec = self.rdop2record()
+            se = rec[0]
+            if se == 0:
+                continue
+            ng = rec[2]
+            nas["dnids"][se] = rec[8 : 8 + ng]
+
         self._getkey()
 
     def _rdop2bgpdt(self):
