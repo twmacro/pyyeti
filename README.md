@@ -47,7 +47,15 @@ I generally prefer to install from source, doing something like this:
 
     git clone https://github.com/twmacro/pyyeti.git
     cd pyyeti
-    python setup.py install --prefix=$HOME/.python
+    python setup.py install
+
+Or, if you want to clean out old versions automatically:
+
+    git clone https://github.com/twmacro/pyyeti.git
+    cd pyyeti
+    python setup.py bdist_wheel
+    cd dist
+    pip install <filename>.whl
 
 Note that for the C version of the rainflow cycle counter, you also
 need a C compiler installed.
