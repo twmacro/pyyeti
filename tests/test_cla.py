@@ -3131,7 +3131,8 @@ def test_reldisp_dtm():
 
     h1 = results["reldisp1"].hist
     h2 = results["reldisp2"].hist
-    assert np.allclose(h1, h2)
+
+    assert abs(h1 - h2).max() / abs(h1).max() < 0.001
 
 
 def test_set_dr_order():

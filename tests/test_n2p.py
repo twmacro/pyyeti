@@ -1994,3 +1994,52 @@ def test_find_xyz_triples1():
         assert np.allclose(t1, t2)
     for name in ("pv", "coords", "scales"):
         assert np.allclose(getattr(trips, name), getattr(trips2, name), equal_nan=True)
+
+
+def test_find_xyz_triples2():
+    rb = np.array(
+        [
+            [0.99, 0.0, 0.0, 0.0, 15.0, -10.0],
+            [0.0, 1.0, 0.0, -15.0, 0.0, 5.0],
+            [0.0, 0.0, 1.0, 10.0, -5.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0, 35.0, -10.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            [1.0, 0.0, 0.0, 0.0, 15.0, -10.0],
+            [0.0, 1.0, 0.0, -15.0, 0.0, 5.0],
+            [0.0, 0.0, 1.0, 10.0, -5.0, 0.0],
+        ]
+    )
+
+    trips = n2p.find_xyz_triples(rb, tol=0.01)
+
+    loc = np.array(
+        [
+            [5.0, 10.0, 15.0],
+            [5.0, 10.0, 15.0],
+            [5.0, 10.0, 15.0],
+            [np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan],
+            [5.0, 10.0, 15.0],
+            [5.0, 10.0, 15.0],
+            [5.0, 10.0, 15.0],
+        ]
+    )
+
+    assert np.allclose(trips.coords, loc, atol=0.1, equal_nan=True)
+
+    trips = n2p.find_xyz_triples(rb, tol=0.001)
+
+    loc = np.array(
+        [
+            [np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan],
+            [5.0, 10.0, 15.0],
+            [5.0, 10.0, 15.0],
+            [5.0, 10.0, 15.0],
+        ]
+    )
+
+    assert np.allclose(trips.coords, loc, equal_nan=True)

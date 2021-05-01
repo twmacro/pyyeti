@@ -655,13 +655,13 @@ def rbcoords(rb, verbose=2):
     return coords, maxdev, maxerr
 
 
-def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
+def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01):
     """
     Find x, y, z triples in rigid-body motion matrix.
 
     Parameters
     ----------
-    drmrb : 2d array_like
+    drmrb : 2d array_like, n x 6
         Rigid-body modes or, for example, ``drmrb = ATM @ rb``.
     get_trans : bool; optional
         If True, return list of 3x3 transforms that converts each
@@ -677,6 +677,8 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
     inplace : bool; optional
         If True, the `mats` dictionary and matrices will be changed in
         place.
+    tol : scalar; optional
+        Tolerance; default is 0.01 to accept up to 1% errors.
 
     Returns
     -------
@@ -774,12 +776,12 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
     2
     >>>
     >>> # Show both transforms ... note that scale is included:
-    >>> trips.Ts[0]  # transform for first node
-    array([[ 1.,  0., -0.],
-           [ 0.,  1., -0.],
+    >>> trips.Ts[0] + 0  # transform for first node
+    array([[ 1.,  0.,  0.],
+           [ 0.,  1.,  0.],
            [ 0.,  0.,  1.]])
-    >>> trips.Ts[1]  # transform for second node
-    array([[ 0.1   , -0.    , -0.    ],
+    >>> trips.Ts[1] + 0  # transform for second node
+    array([[ 0.1   ,  0.    ,  0.    ],
            [ 0.    ,  0.0707, -0.0707],
            [ 0.    ,  0.0707,  0.0707]])
     >>>
@@ -847,22 +849,33 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False):
 
         # check for a scalar multiplier (like .00259, for example)
         T1tT1 = T1.T @ T1
-        scale = np.sqrt(T1tT1[0, 0])
+        scale = np.sqrt(np.diag(T1tT1).mean())
 
         if scale == 0.0:
             continue
 
         T1 = T1 / scale
         rss = np.linalg.norm(T1, axis=0)
-        if not np.allclose(rss, 1.0, rtol=0.001):
+        if not np.allclose(rss, 1.0, atol=tol):
             continue
 
         T2 = linalg.inv(T1)
-        if not np.allclose(T2, T1.T, rtol=0.001, atol=0.0001):
+        # subtracting here, so double the tolerance (each number can
+        # be within tol, so the diff can be within 2 * tol)
+        if not np.allclose(T2, T1.T, atol=2 * tol):
             continue
 
-        T2 /= scale
+        T2 = T1.T / scale
         rbrot = T2 @ drmrb[pv, 3:]
+
+        # check for standard pattern in rotation columns:
+        #   0,  z, -y
+        #  -z,  0,  x
+        #   y, -x,  0
+        mx = abs(rbrot).max()
+        if not np.allclose(rbrot, -rbrot.T, atol=tol * mx):
+            continue
+
         x = (rbrot[1, 2] - rbrot[2, 1]) / 2
         y = (rbrot[2, 0] - rbrot[0, 2]) / 2
         z = (rbrot[0, 1] - rbrot[1, 0]) / 2
