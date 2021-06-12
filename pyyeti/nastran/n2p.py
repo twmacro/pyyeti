@@ -4,7 +4,7 @@ Tools for working with data that originated in Nastran. Typically,
 a Nastran modes run is executed with the "nas2cam" DMAP (CAM is now
 replaced by Python but the DMAP retains the old name). This creates an
 op2/op4 file pair which is read by
-:func:`pyyeti.nastran.op2.rdnas2cam`.  After that, the tools in this
+:func:`pyyeti.nastran.op2.rdnas2cam`. After that, the tools in this
 module can be used to create rigid-body modes, form data recovery
 matrices, make partition vectors based on sets, form RBE3-like
 interpolation matrices, etc.
@@ -3079,6 +3079,9 @@ def upasetpv(nas, seup):
     """
     Form upstream a-set partition vector for a downstream SE
 
+    This is for a specific upstream superelement, unlike how
+    :func:`upqsetpv` works.
+
     Parameters
     ----------
     nas : dictionary
@@ -3120,34 +3123,38 @@ def upasetpv(nas, seup):
     maps = nas["maps"][seup]
 
     # number of rows in pv should equal size of upstream a-set
-    pv = usetdn.index.isin(dnids, level=0).nonzero()[0]
-    if len(pv) < len(dnids):
+    up_a = usetdn.index.isin(dnids, level="id").nonzero()[0]
+    if len(up_a) < len(dnids):
         # must be an external se, but non-csuper type (the extseout,
         # seconct, etc, type)
         # - see additional comments in upqsetpv
         upids = nas["upids"][sedn]
-        pv = locate.find_vals(upids, dnids)
+        up_a1 = locate.find_vals(upids, dnids)
         ids = _get_node_ids(usetdn)
 
         # number of rows should equal size of upstream a-set
-        pv = usetdn.index.isin(ids[pv], level="id").nonzero()[0]
-        if len(pv) < len(dnids):  # pragma: no cover
+        up_a = usetdn.index.isin(ids[up_a1], level="id").nonzero()[0]
+        if len(up_a) < len(dnids):  # pragma: no cover
             raise ValueError("not all upstream DOF could be found in downstream")
+
     if len(maps) > 0:
         if not np.all(maps[:, 1] == 1):  # pragma: no cover
             raise ValueError(f"column 2 of MAPS for {seup} is not all 1. Stopping.")
-        # definition of maps:  dn = up(maps) ... want up = dn(maps2)
-        # example:
-        # maps = [ 2, 0, 1 ]
-        # maps2 = [ pos_of_1st pos_of_2nd pos_of_3rd ] = [ 1, 2, 0 ]
-        maps2 = np.argsort(maps[:, 0])
-        pv = pv[maps2]
-    return pv
+        # In Nastran: up = maps @ dn, so:
+        #    Kdn = maps.T @ Kup @ maps
+        # The way pyYeti reads maps:
+        #    up = dn[maps]
+        up_a = up_a[maps[:, 0].astype(np.int64)]
+
+    return up_a
 
 
 def upqsetpv(nas, sedn=0):
     """
     Form upstream q-set partition vector for a downstream SE
+
+    This is for all upstream superelements, unlike how
+    :func:`upasetpv` works.
 
     Parameters
     ----------
@@ -3209,6 +3216,7 @@ def upqsetpv(nas, sedn=0):
         dnids = nas["dnids"][seup]
         maps = nas["maps"][seup]
 
+        # qup is bool: length a-set with True for q-set
         qup = mksetpv(usetup, "a", "q")
         if not qup.any():
             # assume any a-set spoints are q-set
@@ -3216,19 +3224,19 @@ def upqsetpv(nas, sedn=0):
             qup = dof[mksetpv(usetup, "p", "a")] == 0
             # qup = usetup[mksetpv(usetup, 'p', 'a'), 1] == 0
 
-        # check to see if the upstream se has upstreams;
-        # if so, include its qup:
+        # check to see if the seup has upstreams; if so, include its
+        # qup:
         if (selist[:, 1] == seup).any():
             qup2 = upqsetpv(nas, seup)
             qup = qup | qup2[mksetpv(usetup, "p", "a")]
 
         if qup.any():
             # expand downstream ids to include all dof:
-            # number of rows in pv1 should equal size of
-            # upstream a-set
-            pv1 = usetdn.index.isin(dnids, level="id")
+            # number of Trues in up_a should equal size of
+            # a-set for seup
+            up_a = usetdn.index.isin(dnids, level="id")
 
-            if np.count_nonzero(pv1) < dnids.size:
+            if np.count_nonzero(up_a) < dnids.size:
                 # must be an external se, but non-csuper type (the
                 # extseout, seconct, etc, type)
 
@@ -3241,12 +3249,12 @@ def upqsetpv(nas, sedn=0):
                 # "dnids" occurs in the p-set of the downstream ...
                 # just what we want.
                 upids = nas["upids"][sedn]
-                pv1 = locate.find_vals(upids, dnids)
+                up_a1 = locate.find_vals(upids, dnids)
                 ids = _get_node_ids(usetdn)
 
-                # length of pv1 should equal size of upstream a-set
-                pv1 = usetdn.index.isin(ids[pv1], level="id")
-                cnt = np.count_nonzero(pv1)
+                # "cnt" should equal size of a-set for seup
+                up_a = usetdn.index.isin(ids[up_a1], level="id")
+                cnt = np.count_nonzero(up_a)
                 if cnt < dnids.size:  # pragma: no cover
                     raise ValueError(
                         "not all upstream DOF could be found in downstream"
@@ -3257,9 +3265,34 @@ def upqsetpv(nas, sedn=0):
                     raise ValueError(
                         f"column 2 of MAPS for {seup} is not all 1. Stopping."
                     )
-                pv[pv1] = qup[maps[:, 0].astype(np.int64)]
+                # In Nastran: up = maps @ dn, so:
+                #    Kdn = maps.T @ Kup @ maps
+                # The way pyYeti reads maps:
+                #    up = dn[maps]
+                mp = maps[:, 0].astype(np.int64)
+                up_a = up_a.nonzero()[0]
+                if mp.shape[0] == up_a.shape[0]:
+                    # there might be some reordering going upstream
+                    # - CSUPER can do this
+                    pv[up_a[mp]] = qup
+                elif (np.diff(mp) > 0).all():
+                    # no reordering, but there might be some dof
+                    # skipped ... EXTSEOUT type SEs can do this
+                    # however, that doesn't really matter here, so:
+                    pv[up_a] = qup
+                else:  # pragma: no cover
+                    # there is a length change and an order change ...
+                    # I don't think this can happen, but raise an
+                    # error and request assistance if it does:
+                    raise ValueError(
+                        f"MAPS for {seup} indicates two things: that not all DOF are"
+                        " present in b-set AND there is reordering of the b-set going"
+                        " downstream. pyYeti does not know how to handle this. Please"
+                        " turn this into a simple problem and report."
+                    )
             else:
-                pv[pv1] = qup
+                pv[up_a] = qup
+
     return pv
 
 
@@ -3268,7 +3301,7 @@ def _proc_mset(nas, se, dof):
     Private utility routine to get m-set information for
     :func:`formtran`.
 
-    Returns: (hasm, m, pvdofm, gm)
+    Returns: (hasm, m, gm)
     """
     # see if any of the DOF are in the m-set
     hasm = 0
@@ -3285,7 +3318,7 @@ def _proc_mset(nas, se, dof):
             # need gm
             gm = nas["gm"][se]
             gm = gm[pvdofm]
-    return hasm, m, pvdofm, gm
+    return hasm, m, gm
 
 
 def _formtran_0(nas, dof, gset):
@@ -3326,7 +3359,7 @@ def _formtran_0(nas, dof, gset):
         a = []
         sets = np.zeros(0, np.int64)
 
-    hasm, m, pvdofm, gm = _proc_mset(nas, 0, dof)
+    hasm, m, gm = _proc_mset(nas, 0, dof)
 
     if hasm:
         o_n = mksetpv(uset, "n", "o")
@@ -3503,7 +3536,7 @@ def formtran(nas, se, dof, gset=False):
 
     ct = got.shape[1]
     cq = goq.shape[1]
-    hasm, m, pvdofm, gm = _proc_mset(nas, se, dof)
+    hasm, m, gm = _proc_mset(nas, se, dof)
     if hasm:
         t_n = np.nonzero(mksetpv(uset, "n", "t"))[0]
         o_n = np.nonzero(mksetpv(uset, "n", "o"))[0]
