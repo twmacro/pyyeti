@@ -413,6 +413,37 @@ def test_rdpostop2_assemble():
         assert np.all(post["sebulk"] == dct["sebulk"])
 
 
+def test_rdpostop2_jsc_cla_model():
+    post = op2.rdpostop2("tests/nas2cam_extseout/cla_test_model.op2")
+
+    assert len(post["geom1"]) == len(post["geom1_list"]) == 2
+
+    grid = np.array(
+        [
+            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [2.0, 0.0, 1.0, 0.0, 0.0, 3.0, 0.0, 0.0],
+            [3.0, 0.0, 2.0, 0.0, 0.0, 4.0, 0.0, 0.0],
+            [4.0, 0.0, 3.0, 0.0, 0.0, 5.0, 0.0, 0.0],
+            [5.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ]
+    )
+    assert (post["geom1"][0]["grid"] == grid).all()
+
+    extrn = np.array(
+        [
+            [5, 123456],
+            [90560001, 1],
+            [90560002, 1],
+            [90560003, 1],
+            [90560004, 1],
+            [90560005, 1],
+            [90560006, 1],
+            [-1, -1],
+        ]
+    )
+    assert (post["geom1"][56]["extrn"] == extrn).all()
+
+
 def test_rdop2record():
     with op2.OP2("tests/nas2cam_extseout/inboard.op2") as o2:
         fpos = o2.dbnames["DYNAMICS"][0][0][0]

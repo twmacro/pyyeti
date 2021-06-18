@@ -1392,129 +1392,6 @@ class OP2:
         data = np.fromstring(data, dtype=dtype)
         return np.hstack((data["idtype"], data["xyzT"]))
 
-    def _rdop2geom1cord2_old(self):
-        e = self._endian
-        i = self._i
-        ib = self._ibytes
-        f = self._f
-        fb = self._fbytes
-        header_Str = struct.Struct(e + i * 3)
-        cord2_Str = struct.Struct(e + "4" + i + "9" + f)
-        extrn_Str = struct.Struct(e + "2" + i)
-        grid_Str = struct.Struct(e + "2" + i + "3" + f + "3" + i)
-        sebulk_Str = struct.Struct(e + "4" + i + f + "3" + i)
-        seload_Str = struct.Struct(e + "3" + i)
-        hbytes = 3 * ib
-        cbytes = 4 * ib + 9 * fb
-        ebytes = 2 * ib
-        gbytes = 5 * ib + 3 * fb
-        bbytes = 7 * ib + fb
-        lbytes = 3 * ib
-
-        CORD2R = (2101, 21, 8)
-        CORD2C = (2001, 20, 9)
-        CORD2S = (2201, 22, 10)
-        EXTRN = (1627, 16, 463)
-        GRID = (4501, 45, 1)
-        SEBULK = (1427, 14, 465)
-        SECONCT = (427, 4, 453)
-        SELOAD = (1127, 11, 461)
-
-        cord2 = np.zeros((0, 13))
-        extrn = np.zeros((0, 2), np.int64)
-        grid = np.zeros((0, 8))
-        sebulk = np.zeros((0, 8))
-        selist = np.zeros((0, 2), np.int64)
-        seload = np.zeros((0, 3), np.int64)
-        seconct = np.array([], np.int64)
-
-        key = self._getkey()
-        eot = 0
-        while not eot:
-            read_header = True  # new record
-            while key > 0:
-                self._fileh.read(4)  # reclen
-                if read_header:
-                    head = header_Str.unpack(self._fileh.read(hbytes))
-                    # print(head)
-                    items_read = 3
-                    read_header = False  # assume record continues (key < 0 ends it)
-                else:
-                    items_read = 0
-                if head == CORD2R or head == CORD2C or head == CORD2S:
-                    n = (key - items_read) // 13
-                    data = np.empty((n, 13))
-                    for i in range(n):
-                        data[i] = cord2_Str.unpack(self._fileh.read(cbytes))
-                    cord2 = np.vstack((cord2, data))
-                elif head == EXTRN:
-                    n = (key - items_read) // 2
-                    extrn1 = np.empty((n, 2), np.int64)
-                    for i in range(n):
-                        extrn1[i] = extrn_Str.unpack(self._fileh.read(ebytes))
-                    extrn = np.vstack((extrn, extrn1))
-                elif head == GRID:
-                    n = (key - items_read) // 8
-                    grid1 = np.empty((n, 8))
-                    for i in range(n):
-                        grid1[i] = grid_Str.unpack(self._fileh.read(gbytes))
-                    grid = np.vstack((grid, grid1))
-                elif head == SEBULK:
-                    n = (key - items_read) // 8
-                    sebulk1 = np.empty((n, 8))
-                    for i in range(n):
-                        sebulk1[i] = sebulk_Str.unpack(self._fileh.read(bbytes))
-                    sebulk = np.vstack((sebulk, sebulk1))
-                elif head == SECONCT:
-                    n = key - items_read
-                    if n < self._rowsCutoff:
-                        nbytes = n * ib
-                        seconct1 = np.empty(n, int)
-                        seconct1[:] = struct.unpack(
-                            self._intstru % n, self._fileh.read(nbytes)
-                        )
-                    else:
-                        seconct1 = np.fromfile(self._fileh, self._intstr, n)
-                    seconct = np.hstack((seconct, seconct1))
-                elif head == SELOAD:
-                    n = (key - items_read) // 3
-                    seload1 = np.empty((n, 3), dtype=np.int64)
-                    for i in range(n):
-                        seload1[i] = seload_Str.unpack(self._fileh.read(lbytes))
-                    seload = np.vstack((seload, seload1))
-                else:
-                    self._fileh.seek((key - items_read) * ib, 1)
-
-                self._fileh.read(4)  # endrec
-                key = self._getkey()
-
-            self._skipkey(2)
-            eot, key = self.rdop2eot()
-
-        # remove 3rd column of cord2 (not used)
-        cord2 = np.delete(cord2, 2, axis=1)
-
-        # build selist from seconct:
-        if seconct.size > 0:
-            pv = np.nonzero(seconct == -1)[0][1:-2:2] + 1
-            pv = np.hstack((0, pv))
-            u = np.unique(seconct[pv], return_index=True)[1]
-            pv = pv[u]
-            selist = np.vstack((seconct[pv], seconct[pv + 1])).T
-            selist = np.vstack((selist, [[0, 0]]))
-        else:
-            selist = np.array([[0, 0]], np.int64)
-
-        return SimpleNamespace(
-            cords=n2p.build_coords(cord2),
-            extrn=extrn,
-            grid=grid,
-            sebulk=sebulk,
-            selist=selist,
-            seload=seload,
-            seconct=seconct,
-        )
-
     def _rdgeom1_record(self, record, key, items_read):
         if isinstance(record.struct, tuple):
             # this is 1d, variable length (SECONCT is one of these)
@@ -1593,12 +1470,12 @@ class OP2:
                 else:
                     items_read = 0
                 if head in format_info:
+                    new_data = self._rdgeom1_record(format_info[head], key, items_read)
                     name = format_info[head].name
                     if name in data:
-                        raise RuntimeError(f"{name} already read in!")
-                    data[name] = self._rdgeom1_record(
-                        format_info[head], key, items_read
-                    )
+                        data[name] = np.concatenate((data[name], new_data))
+                    else:
+                        data[name] = new_data
                 else:
                     self._fileh.seek((key - items_read) * ib, 1)
 
@@ -1802,7 +1679,7 @@ class OP2:
             cstm2 = {**cstm2, **cstm3}
         return uset, cstm, cstm2
 
-    def _rdop2maps(self, trailer):
+    def _rdop2maps(self, trailer, se):
         """
         This is a matrix with a single 1.0 in each row. Here (for now) we
         are only interested in the positions of the 1.0 values.
@@ -1845,8 +1722,12 @@ class OP2:
                     r *= 2
                 n = (reclen - intsize) // bytes_per
 
-                # Fixme: proper raise here
-                assert n == 1
+                if n != 1:  # pragma: no cover
+                    raise ValueError(
+                        "expected 1 value in each column of MAPS matrix "
+                        f"but for SE {se}, found {n} values in column {col}"
+                    )
+
                 matrix[r, 0] = col
                 matrix[r, 1] = struct.unpack(frmu, self._fileh.read(bytes_per))[0]
                 self._fileh.read(4)  # endrec
@@ -1858,26 +1739,6 @@ class OP2:
         if mtype > 2:
             matrix.dtype = complex
         return matrix
-
-    # def _rdop2maps(self):
-    #     """
-    #     Reads and returns the MAPS information for :func:`rdn2cop2`.
-    #     """
-    #     id_Str = struct.Struct(self._endian + self._i + "d")
-    #     id_bytes = self._ibytes + 8
-    #     key = 1
-    #     maps = np.zeros((0, 2))
-    #     while key:
-    #         key = self._getkey()  # 2 (1 integer, 1 double)
-    #         self._fileh.read(4)  # reclen 12 or 16 bytes
-    #         curmap = id_Str.unpack(self._fileh.read(id_bytes))
-    #         maps = np.vstack((maps, curmap))
-    #         self._fileh.read(4)  # endrec
-    #         self._skipkey(2)  # 1st key is mystery negative
-    #         key = self._getkey()  # 1 if cont, 0 if done
-    #     self._getkey()
-    #     maps[:, 0] -= 1
-    #     return maps
 
     def _rdop2drm(self, name):
         """
@@ -2277,7 +2138,7 @@ class OP2:
             nas["cstm2"][se] = cstm2
             name, trailer, dbtype = self.rdop2nt()
             if name == "MAPS":
-                nas["maps"][se] = self._rdop2maps(trailer)
+                nas["maps"][se] = self._rdop2maps(trailer, se)
                 name, trailer, dbtype = self.rdop2nt()
             else:
                 nas["maps"][se] = []
@@ -3270,22 +3131,25 @@ def rdpostop2(
         is the downstream superelement for seid. (dnseid = 0 if seid =
         0).
     'sebulk' : 2d ndarray
-        output record from GEOM1S of SE 0
+        output record from GEOM1 of SE 0
     'seload' : 2d ndarray
-        output record from GEOM1S of SE 0
+        output record from GEOM1 of SE 0
     'seconct' : 1d ndarray
-        output record from GEOM1S of SE 0
+        output record from GEOM1 of SE 0
     'geom1' : dictionary
-        dictionary of GEOM1S data blocks; key is SE
+        Dictionary of GEOM1 data blocks; key is SE. Well not be
+        present if number of GEOM1 data blocks did not line up with
+        the `sebulk` array. See 'geom1_list'.
+    'geom1_list': list
+        List of all GEOM1 data blocks in order. Data also in 'geom1'
+        dictionary.
     """
     # read op2 file:
     op2file = guitools.get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
         mats = {}
         geom1_list = []
-        # selist = uset = cstm2 = sebulk = seload = seconct = None
         uset = None
-
         se = 0
         o2._fileh.seek(o2._postheaderpos)
 
@@ -3324,7 +3188,7 @@ def rdpostop2(
                     cstm = np.vstack((bc, cstm))
                     continue
 
-                if name.find("GEOM1S") == 0:
+                if name.find("GEOM1") == 0:
                     if verbose:
                         print(f"Reading table {name}...")
                     geom1 = o2._rdop2geom1cord2()
@@ -3426,32 +3290,52 @@ def rdpostop2(
         "cstm": cstm,
         "cstm2": cstm2,
         "mats": mats,
+        "geom1_list": geom1_list,
     }
 
-    # some special se 0 datablock handling for backward compatibility:
-    for name in ("selist", "sebulk", "seload", "seconct"):
-        if name in geom1:
-            dct[name] = geom1[name]
-
-    # change geom1_list to dictionary where the se id is the key:
+    # make geom1 dictionary where the se id is the key:
     # - This method of finding the se id is a guess, but a logical one
     #   ... I just hope my logic matches Nastran's
     if "sebulk" in geom1:
         sebulk = geom1["sebulk"]
-        seids = sebulk[:, 0].astype(np.int64)
+        seids = np.r_[sebulk[:, 0].astype(np.int64), 0]
         geom1_dict = {}
-        if len(seids) != len(geom1_list) - 1:
+        nse = len(seids)
+        ngeom1s = len(geom1_list)
+        if nse > ngeom1s:  # pragma: no cover
             warnings.warn(
-                f"number SEs in SE 0 'sebulk' record ({len(seids)}) does not "
-                f"equal number of 'geom1s' datablocks in .op2 file ({len(geom1_list)}"
-                "). Leaving 'geom1_list' in output instead of dict 'geom1'",
+                f"number SEs in SE 0 'sebulk' record ({nse-1}) is greater "
+                "than the number of upstream 'geom1(s)' datablocks in .op2 file "
+                f"({ngeom1s-1}). Not creating the `geom1` dictionary.",
                 RuntimeWarning,
             )
-            dct["geom1_list"] = geom1_list
         else:
+            # fill in dictionary assuming everything lines up:
             for seid, se_geom1 in zip(seids, geom1_list):
                 geom1_dict[seid] = se_geom1
-            geom1_dict[0] = geom1
+
+            # check the lining up assumption:
+            if nse < ngeom1s:  # pragma: no cover
+                warnings.warn(
+                    f"number SEs in SE 0 'sebulk' record ({nse-1}) is less "
+                    "than the number of upstream 'geom1(s)' datablocks in .op2 file "
+                    f"({ngeom1s-1}).",
+                    RuntimeWarning,
+                )
+
+                # check to see if geom1_list[nse-1] (which should be
+                # for se 0) has sebulk:
+                if "sebulk" not in se_geom1:
+                    geom1_dict = {0: geom1}
+
             dct["geom1"] = geom1_dict
+
+        # some special se 0 datablock handling for backward compatibility:
+        for name in ("selist", "sebulk", "seload", "seconct"):
+            if name in geom1:
+                dct[name] = geom1[name]
+
+    elif len(geom1_list) == 1:
+        dct["geom1"] = {0: geom1}
 
     return dct
