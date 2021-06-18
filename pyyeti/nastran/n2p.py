@@ -1028,21 +1028,34 @@ def mkusetmask(nasset=None):
     >>> nastran.mkusetmask('q+b')
     6291458
     """
+
+    # for reference, here are the powers of 2 (info from the NDDL):
+
+    # 0   M      8   L       16  J       24  FR
+    # 1   S      9   SG      17  SA      25  V
+    # 2   O      10  SB      18  K       26  U6
+    # 3   R      11  E       19  KS      27  U5
+    # 4   G      12  P       20  C       28  U4
+    # 5   N      13  NE      21  B       29  U3
+    # 6   F      14  FE      22  Q       30  U2
+    # 7   A      15  D       23  T       31  U1
+
+    # the below values use the info above and set membership
     m = 1
     b = 2 | (1 << 21)
     o = 4
     r = 8
-    s = 1024 | 512
+    s = (1 << 9) | (1 << 10)  # sg, sb
     q = 1 << 22
     c = 1 << 20
     e = 1 << 11
-    a = q | r | b | c
-    l = c | b
-    t = l | r
-    f = a | o
-    n = f | s
-    g = n | m
-    p = g | e
+    a = q | r | b | c | (1 << 7)
+    l = c | b | (1 << 8)
+    t = l | r | (1 << 23)
+    f = a | o | (1 << 6)
+    n = f | s | (1 << 5)
+    g = n | m | (1 << 4)
+    p = g | e | (1 << 12)
     usetmask = {
         "m": m,
         "b": b,
@@ -1059,9 +1072,9 @@ def mkusetmask(nasset=None):
         "n": n,
         "g": g,
         "p": p,
-        "fe": f | e,
-        "d": e | a,
-        "ne": n | e,
+        "fe": f | e | (1 << 14),
+        "d": e | a | (1 << 15),
+        "ne": n | e | (1 << 13),
         "u1": 1 << 31,
         "u2": 1 << 30,
         "u3": 1 << 29,
@@ -1069,6 +1082,7 @@ def mkusetmask(nasset=None):
         "u5": 1 << 27,
         "u6": 1 << 26,
     }
+
     if isinstance(nasset, str):
         sets = nasset.split("+")
         usetmask1 = 0
