@@ -2103,6 +2103,11 @@ class OP2:
         self._fileh.seek(self._postheaderpos)
         # read datablock (slist) header record:
         name, trailer, dbtype = self.rdop2nt()
+        if name not in ("SUPERID", "SLIST"):  # pragma: no cover
+            raise ValueError(
+                "expected 'SUPERID' or 'SLIST' as first data "
+                f"block in nas2cam op2 file, but got {name}"
+            )
         if dbtype > 0:
             selist = np.hstack((self.rdop2matrix(trailer), [[0]]))
             selist = selist.astype(int)
