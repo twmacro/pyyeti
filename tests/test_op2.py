@@ -71,6 +71,15 @@ def test_n2c_extseout():
     runcomp(nas, m)
 
 
+def test_n2c_error():
+    assert_raises(
+        ValueError,
+        op2.rdnas2cam,
+        "tests/nas2cam_extseout/assemble.op2",
+        "tests/nas2cam_extseout/nas2cam.op2",
+    )
+
+
 def test_drm12_reader():
     import numpy as np
 

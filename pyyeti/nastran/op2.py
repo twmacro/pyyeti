@@ -2089,7 +2089,7 @@ class OP2:
         self._fileh.seek(self._postheaderpos)
         # read datablock (slist) header record:
         name, trailer, dbtype = self.rdop2nt()
-        if name not in ("SUPERID", "SLIST"):  # pragma: no cover
+        if name not in ("SUPERID", "SLIST"):
             raise ValueError(
                 "expected 'SUPERID' or 'SLIST' as first data "
                 f"block in nas2cam op2 file, but got {name}"
