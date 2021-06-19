@@ -1392,33 +1392,23 @@ class OP2:
         data = np.fromstring(data, dtype=dtype)
         return np.hstack((data["idtype"], data["xyzT"]))
 
-    def _rdgeom1_record(self, record, key, items_read):
-        if isinstance(record.struct, tuple):
-            # this is 1d, variable length (SECONCT is one of these)
-            n = key - items_read
-            if n < self._rowsCutoff:
-                nbytes = n * record.nbytes
-                data = np.empty(n, record.dtype)
-                data[:] = struct.unpack(record.struct[0] % n, self._fileh.read(nbytes))
-            else:
-                data = np.fromfile(self._fileh, record.struct[1], n)
+    def _proc_geom1_record(self, recinfo, record_bytes):
+        # the 2d arrays all have fixed number of columns with possibly
+        # mixed types
+        # - the mixed types arrays will have named fields
+        data = np.frombuffer(record_bytes, recinfo.dtype_in)
+        if data.dtype.names:
+            data = np.hstack([data[name] for name in data.dtype.names])
         else:
-            # these are all 2d, fixed numbers of columns
-            cols = record.shape[1]
-            rows = (key - items_read) // cols
-            data = np.empty((rows, cols), record.dtype)
-            for i in range(rows):
-                data[i] = record.struct.unpack(self._fileh.read(record.nbytes))
-
+            data = data.reshape(recinfo.shape)
         return data
 
     def _rdop2geom1cord2(self):
-        e = self._endian
-        i = self._i
+        i = self._intstr
         ib = self._ibytes
-        f = self._f
+        f = self._rfrm
         fb = self._fbytes
-        Record = namedtuple("Record", "name header shape dtype struct nbytes")
+        Record = namedtuple("Record", "name header shape dtype_in nbytes")
 
         CORD2R = (2101, 21, 8)
         CORD2C = (2001, 20, 9)
@@ -1431,58 +1421,54 @@ class OP2:
 
         format_info = {}
         cordinfo = (
-            (0, 13),
-            float,
-            struct.Struct(e + "4" + i + "9" + f),
+            (-1, 13),
+            np.dtype([("4i", i, (4,)), ("9f", f, (9,))]),
             4 * ib + 9 * fb,
         )
-        extrn_Str = struct.Struct(e + "2" + i)
-        grid_Str = struct.Struct(e + "2" + i + "3" + f + "3" + i)
-        sebulk_Str = struct.Struct(e + "4" + i + f + "3" + i)
-        seload_Str = struct.Struct(e + "3" + i)
-        for name, header, shape, dtype, _struct, nbytes in (
+        grid_frm = np.dtype([("2i", i, (2,)), ("xyz", f, (3,)), ("3i", i, (3,))])
+        sebulk_frm = np.dtype([("4i", i, (4,)), ("1f", f, (1,)), ("3i", i, (3,))])
+        for name, header, shape, dtype_in, nbytes in (
             ("cord2r", CORD2R, *cordinfo),
             ("cord2c", CORD2C, *cordinfo),
             ("cord2s", CORD2S, *cordinfo),
-            ("extrn", EXTRN, (0, 2), np.int64, extrn_Str, 2 * ib),
-            ("grid", GRID, (0, 8), float, grid_Str, 5 * ib + 3 * fb),
-            ("sebulk", SEBULK, (0, 8), float, sebulk_Str, 7 * ib + fb),
-            ("seconct", SECONCT, (0,), np.int64, (self._intstru, self._intstr), ib),
-            ("seload", SELOAD, (0, 3), np.int64, seload_Str, 3 * ib),
+            ("extrn", EXTRN, (-1, 2), np.dtype(i), 2 * ib),
+            ("grid", GRID, (-1, 8), grid_frm, 5 * ib + 3 * fb),
+            ("sebulk", SEBULK, (-1, 8), sebulk_frm, 7 * ib + fb),
+            ("seconct", SECONCT, (-1,), np.dtype(i), ib),
+            ("seload", SELOAD, (-1, 3), np.dtype(i), 3 * ib),
         ):
-            format_info[header] = Record(name, header, shape, dtype, _struct, nbytes)
+            format_info[header] = Record(name, header, shape, dtype_in, nbytes)
 
-        header_Str = struct.Struct(e + i * 3)
+        header_Str = struct.Struct(self._endian + self._i * 3)
         hbytes = 3 * ib
 
         data = {}
-        key = self._getkey()
         eot = 0
+        key = self._getkey()
+        fh = self._fileh
         while not eot:
-            read_header = True  # new record
+            # The following is very much like: rec =
+            # self.rdop2record("bytes"). The difference is the call to
+            # self._getkey() at the top of rdop2record ... that would
+            # mess up this reader logic.
+
+            # ? For speed, should we just read header, check if
+            # wanted, and if not, use fh.seek to skip ahead? It's
+            # pretty fast as is, so leave it for now.
+            rec = []
             while key > 0:
-                self._fileh.read(4)  # reclen
-                if read_header:
-                    head = header_Str.unpack(self._fileh.read(hbytes))
-                    # print(head)
-                    items_read = 3
-                    read_header = False  # assume record continues (key < 0 ends it)
-                else:
-                    items_read = 0
-                if head in format_info:
-                    new_data = self._rdgeom1_record(format_info[head], key, items_read)
-                    name = format_info[head].name
-                    if name in data:
-                        data[name] = np.concatenate((data[name], new_data))
-                    else:
-                        data[name] = new_data
-                else:
-                    self._fileh.seek((key - items_read) * ib, 1)
-
-                self._fileh.read(4)  # endrec
+                reclen = self._Str4.unpack(fh.read(4))[0]
+                rec.append(fh.read(reclen))
+                fh.read(4)  # endrec
                 key = self._getkey()
-
             self._skipkey(2)
+            rec = b"".join(rec)
+
+            head = header_Str.unpack(rec[:hbytes])
+            if head in format_info:
+                data[format_info[head].name] = self._proc_geom1_record(
+                    format_info[head], rec[hbytes:]
+                )
             eot, key = self.rdop2eot()
 
         # merge the CORD2* cards:

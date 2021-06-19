@@ -444,6 +444,11 @@ def test_rdpostop2_jsc_cla_model():
     assert (post["geom1"][56]["extrn"] == extrn).all()
 
 
+def test_rdpostop2_many_nodes():
+    post = op2.rdpostop2("tests/nas2cam_extseout/cant_beam.op2")
+    assert (post["geom1"][0]["grid"][:, 0].astype(int) == np.arange(8222) + 1).all()
+
+
 def test_rdop2record():
     with op2.OP2("tests/nas2cam_extseout/inboard.op2") as o2:
         fpos = o2.dbnames["DYNAMICS"][0][0][0]
