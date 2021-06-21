@@ -1440,6 +1440,39 @@ def test_upa_upq_not_all_6():
     assert (pvq2.nonzero()[0] == n2p.mkdofpv(n1["uset"][0], "p", qset)[0]).all()
 
 
+def test_upa_upq_not_all_6_2():
+    # The following model uses EXTSEOUT superelements and does not
+    # include all 6 DOF for all boundary grids in the b-set. Test
+    # that:
+
+    n1 = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam_notall6_msc2017_b")
+
+    up_a = n2p.upasetpv(n1, 75)
+    assert up_a.shape == (29,)
+    assert (up_a == (n1["uset"][0]["nasset"] == 2).values.nonzero()[0]).all()
+
+    u = n2p.formulvs(n1, 75)
+    assert u.shape[0] == 29
+    assert (u[:-10, 0] != 0.0).all()
+
+    pvq2 = n2p.upqsetpv(n1)
+    qset = np.array(
+        [
+            [7590001, 0],
+            [7590002, 0],
+            [7590003, 0],
+            [7590004, 0],
+            [7590005, 0],
+            [7590006, 0],
+            [7590007, 0],
+            [7590008, 0],
+            [7590009, 0],
+            [7590010, 0],
+        ]
+    )
+    assert (pvq2.nonzero()[0] == n2p.mkdofpv(n1["uset"][0], "p", qset)[0]).all()
+
+
 def test_formtran1_seup():
     o4 = op4.OP4()
     tug1 = nastran.rddtipch("tests/nas2cam_extseout/outboard.pch")

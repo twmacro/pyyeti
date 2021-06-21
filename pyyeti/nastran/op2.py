@@ -508,9 +508,9 @@ class OP2:
         if mtype > 2:  # complex
             rows *= 2
         if mtype & 1:  # single precision
-            frm = self._endian + "f4"
-            frmu = self._endian + "%df"
-            bytes_per = 4
+            frm = self._rfrm
+            frmu = self._rfrmu
+            bytes_per = self._fbytes
         else:
             frm = self._endian + "f8"
             frmu = self._endian + "%dd"
@@ -1683,8 +1683,8 @@ class OP2:
         if mtype > 2:  # complex
             rows *= 2
         if mtype & 1:  # single precision
-            frmu = self._endian + "f"
-            bytes_per = 4
+            frmu = self._endian + self._f
+            bytes_per = self._fbytes
         else:
             frmu = self._endian + "d"
             bytes_per = 8
