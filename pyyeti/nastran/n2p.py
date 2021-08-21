@@ -2671,7 +2671,8 @@ def addgrid(uset, gid, nasset, coordin, xyz, coordout, coordref=None):
     # if uset is not None and np.any(uset[:, 0] == gid):
     gid = _ensure_iter(gid)
     if uset is not None:
-        curgids = uset.index.levels[0]
+        # curgids = uset.index.levels[0]
+        curgids = uset.index.get_level_values("id")
         pv = curgids.isin(gid)
         if pv.any():
             raise ValueError(
