@@ -602,7 +602,7 @@ def rptpct1(
         :func:`magpct` accepts, it can also be set to the string
         "filterval" as in the default case shown above. In that case,
         ``magpct_options['filterval']`` gets internally reset to the
-        initial value of `filterval` (described above).
+        initial value of `filterval` (which is None by default).
 
         .. note::
             The call to :func:`magpct` is *after* applying `ignorepv`
@@ -616,6 +616,13 @@ def rptpct1(
            replaced by 1.e-6 while for `magpct_filterval`, None means
            that the "magpct" plot will not have any filters applied at
            all.
+
+        .. note::
+            The above means that, if you accept the default values for
+            `filterval` and for ``magpct_options['filterval']``, then
+            tables and the histogram plots will use a `filterval` of
+            1.e-6 while the "magpct" plots will use no filter (it
+            compares everything except perfect zeros).
 
     doabsmax : bool; must be named; optional
         If True, compare only absolute maximums.
