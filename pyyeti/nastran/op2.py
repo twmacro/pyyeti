@@ -3139,6 +3139,7 @@ def rdpostop2(
     op2file = guitools.get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
         mats = {}
+        geom1 = {}
         geom1_list = []
         uset = None
         se = 0
@@ -3148,7 +3149,8 @@ def rdpostop2(
         bgpdt_rec1 = None
         dof = None
         Uset = None
-        cstm = None
+        cstm, cstm2 = None, None
+
         while 1:
             name, trailer, dbtype = o2.rdop2nt()
             if name is None:
