@@ -162,7 +162,7 @@ def findap(y, tol=1e-6):
     Returns
     -------
     pv : ndarray
-        Index vector for the alternating peaks in `y`.
+        Boolean vector for the alternating peaks in `y`.
 
     Notes
     -----
@@ -194,11 +194,11 @@ def findap(y, tol=1e-6):
     >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
     array([0, 3, 4]...)
     """
-    if len(y) == 1:
-        return np.array([True])
-
     y = np.atleast_1d(y).ravel()
     # example: [1, 2, 3, 4, 4, -2, -2, -2]
+
+    if len(y) == 1:
+        return np.array([True])
 
     # first, find unique values (1st of series is unique)
     u = locate.find_unique(y, tol)
