@@ -118,7 +118,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pyYeti"
-copyright = "2015-2020, Tim Widrick"
+copyright = "2015-2021, Tim Widrick"
 author = "Tim Widrick"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -521,9 +521,12 @@ epub_exclude_files = ["search.html"]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "numpy": ("https://docs.scipy.org/doc/numpy", None),
+    # "numpy": ("https://docs.scipy.org/doc/numpy", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
     "matplotlib": ("https://matplotlib.org", None),
     "h5py": ("https://docs.h5py.org/en/latest/", None),
-    "sphinx": ("https://www.sphinx-doc.org/en/stable/", None),
+    # "sphinx": ("https://www.sphinx-doc.org/en/stable/", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master", None),
+    "sympy": ("https://docs.sympy.org/latest/", None),
 }
