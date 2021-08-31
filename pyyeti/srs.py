@@ -1466,51 +1466,126 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
         \begin{aligned}
         \ddot{z} &= sig \\
         M &= 1 \\
-        K &= \omega^2 \\
-        C &= 2\zeta\omega \\
+        K &= \omega_n^2 \\
+        C &= 2\zeta\omega_n \\
         \end{aligned}
 
-    Note that :math:`\omega=2 \pi f` where :math:`f` is a frequency in
-    Hz from the input `srs_frq`. The equation of motion is:
+    Note that :math:`\omega_n=2 \pi f_n` where :math:`f_n` is a
+    frequency in Hz from the input `srs_frq`. The equation of motion
+    is:
 
     .. math::
         \begin{aligned}
         \ddot{x} &= \sum Forces\; on\; M \\
-        &= \omega^2(z-x)+2\zeta\omega(\dot{z}-\dot{x})
+        &= \omega_n^2(z-x)+2\zeta\omega_n(\dot{z}-\dot{x})
         \end{aligned}
 
     Define a relative coordinate :math:`u = x - z`. Then:
 
     .. math::
         \begin{aligned}
-        \ddot{x}+2\zeta\omega\dot{u}+\omega^2 u &= 0 \\
-        \ddot{u}+2\zeta\omega\dot{u}+\omega^2 u &= -\ddot{z}
+        \ddot{x}+2\zeta\omega_n\dot{u}+\omega_n^2 u &= 0 \\
+        \ddot{u}+2\zeta\omega_n\dot{u}+\omega_n^2 u &= -\ddot{z}
         \end{aligned}
 
     Using the Fourier transform :math:`\mathcal{F}[x(t)] = X(\Omega)`:
 
     .. math::
         \begin{aligned}
-        (-\Omega^2+2\zeta\omega\Omega j + \omega^2) U(\Omega) &=
+        (-\Omega^2+2\zeta\omega_n\Omega j + \omega_n^2) U(\Omega) &=
         -Z_{acce}(\Omega) \\
         U(\Omega) &= -Z_{acce}(\Omega) /
-        (-\Omega^2+2\zeta\omega\Omega j + \omega^2) \\
+        (-\Omega^2+2\zeta\omega_n\Omega j + \omega_n^2) \\
         U_{acce}(\Omega) &= \Omega^2 Z_{acce}(\Omega) /
-        (-\Omega^2+2\zeta\omega\Omega j + \omega^2)
+        (-\Omega^2+2\zeta\omega_n\Omega j + \omega_n^2)
         \end{aligned}
 
     Then:
 
     .. math::
-        X_{acce}(\Omega) = U_{acce}(\Omega) + Z_{acce}(\Omega)
+        \begin{aligned}
+        X_{acce}(\Omega) &= U_{acce}(\Omega) + Z_{acce}(\Omega) \\
+        &= \left ( \frac{\Omega^2}
+        {\omega_n^2-\Omega^2+2\zeta\omega_n\Omega j} + 1 \right)
+        Z_{acce}(\Omega)
+        \end{aligned}
 
     The return value `sh` contains the peak of the absolute value of
-    :math:`X_{acce}(\Omega)`.
+    :math:`X_{acce}(\Omega)` for all frequencies analyzed.
+
+    **At what frequency is the amplitude of the transfer function
+    maximized?**
+
+    Letting :math:`p = \Omega / \omega_n` and collecting terms, the
+    transfer function is:
+
+    .. math::
+        \begin{aligned}
+        H(p) = \frac{X_{acce}(p)}{Z_{acce}(p)}
+        &= \left ( \frac{p^2}{1-p^2+2\zeta p j} + 1 \right) \\
+        H(p) &= \left ( \frac{1 + 2\zeta p j}{1-p^2+2\zeta p j}\right)
+        \end{aligned}
+
+    If we just want the amplitude of the output over the input,
+    multiply by the complex conjugate:
+
+    .. math::
+        |H(p)|^2 = \left ( \frac{1 + (2\zeta p)^2}{(1-p^2)^2
+        +(2\zeta p)^2} \right)
+
+    For small damping values, the peak of :math:`|H(p)|` occurs near
+    :math:`p = 1`:
+
+    .. math::
+        |H(p = 1)| = \sqrt{\frac{1}{(2\zeta)^2} + 1} = \sqrt{Q^2 + 1}
+
+    To find precisely where :math:`|H(p)|^2` is maximized, set
+    derivate with respect to :math:`p^2` equal to zero and solve for
+    :math:`p^2` and then take the square root (:obj:`sympy` can be
+    helpful here). The result is:
+
+    .. math::
+        p_{peak} = \frac{\sqrt{ \sqrt{1 + 8 \zeta^2} - 1}}{2 \zeta}
+                 = Q \sqrt{ \sqrt{1 + 2 / Q^2} - 1}
+
+    A Taylor series expansion of :math:`p^2_{peak}` was done to get
+    the following very good approximate expression for
+    :math:`p_{peak}`:
+
+    .. math::
+        p_{peak} \approx \sqrt{1 - 2 \zeta^2}
+                 = \sqrt{1 - \frac{1}{2 Q^2}}
+
+    This routine uses the exact expression above for :math:`p_{peak}`
+    to add the maximizing analysis frequency for each SDOF:
+
+    .. math::
+        \Omega_{peak} = p_{peak} \cdot \omega_n
+
+    It is important to note however that this will not necessarily
+    maximize :math:`X_{acce}(\Omega)` because that also depends on the
+    input :math:`Z_{acce}(\Omega)`. To get the theoretical maximum
+    SDOF response for a given :math:`Z_{acce}(\Omega)`, the frequency
+    of the SDOF (which is the `srs_frq` input to this routine) would
+    need to be computed from the above expression:
+
+    .. math::
+        \omega_n = \frac{\Omega}{p_{peak}}
+
+    Or, in terms of the input variable names:
+
+    .. math::
+        srs{\_}frq = \frac{frf{\_}frq}{p_{peak}}
+
+    Therefore, if you want the theoretical maximum SDOF response from
+    a given :math:`Z_{acce}(\Omega)`, compute `srs_frq` from the above
+    equation before calling this routine.
 
     Examples
     --------
     Make up a complex FRF and compute the shock response spectrum
-    (srs). The peak srs value is at the peak FRF value and can be
+    (srs). In this case, the analysis frequencies include the natural
+    frequencies The peak srs value is at the peak FRF value and can be
     shown to be: ``srs_peak = frf_peak * sqrt(Q**2 + 1)``.
 
     >>> from pyyeti import srs
@@ -1539,8 +1614,13 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
     nfrf = frf.shape[1]
     frf = np.abs(frf)
 
-    # include ks frequencies (srs_frq) in the forcing function
-    ffreq = np.sort(np.hstack((frf_frq, srs_frq)))
+    # # include ks frequencies (srs_frq) in the forcing function
+    # ffreq = np.sort(np.hstack((frf_frq, srs_frq)))
+
+    # include transfer function peak frequencies in the forcing
+    # function:
+    p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q ** 2) - 1)
+    ffreq = np.sort(np.hstack((frf_frq, p_peak * srs_frq)))
     df = np.diff(ffreq)
     pv = np.ones(len(ffreq), bool)
     pv[1:] = df > 1.0e-5
