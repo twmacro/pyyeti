@@ -1057,13 +1057,29 @@ def mk_net_drms(
         The acceleration-dependent portion of the net CG load factor
         data recovery matrix in s/c and l/v coordinates. The first 5
         rows are in s/c coordinates and the next 5 rows are in l/v
-        coordinates. The last 4 rows are blank, reserved for
-        time-consistent root-sum-squaring. Recovers axial, shear, and
-        moment-based load factors. Row order is *independent* of the
-        models' coordinates and the units are 'g'. The signs of the
-        moment based lateral CG load factors are set to match the
-        lateral directions (to match the shear-based directions). See
-        the `cglf_labels` output for the row descriptions.
+        coordinates (but see following note!). The last 4 rows are
+        blank, reserved for time-consistent root-sum-squaring.
+        Recovers axial, shear, and moment-based load factors. Row
+        order is *independent* of the models' coordinates and the
+        units are 'g'. The signs of the moment based lateral CG load
+        factors are set to match the lateral directions (to match the
+        shear-based directions). See the `cglf_labels` output for the
+        row descriptions.
+
+        .. note::
+            In the case where the no l/v axis lines up with the s/c
+            axial axis (which could be a common case for secondary
+            s/c), the following warning message is printed which
+            explains what this routine does:
+
+            For 'cglf', no l/v axis lines up with "s/c axial". S/C
+            axial should be normal to separation plane and through the
+            CG. Rows 6-10 of `cglfa` and `cglfd` (corresponding to l/v
+            coordinates) will therefore be thrown out since they don't
+            make sense. Those rows are replaced with the s/c rows
+            1-5. Also, " lv" in `cglf_labels` will be replaced with
+            "!lv" as a reminder of the change.
+
     cglfd : 2d ndarray with 14 rows
         The displacement-dependent portion of the net CG load factor
         data recovery matrix. Should be zero unless `bsubset` is used.
@@ -1168,6 +1184,7 @@ def mk_net_drms(
         scaxial_lv,
         weight_lv,
         height_lv,
+        replace_lv_cglf_rows,
     ):
         wh_sc = weight_sc * height_sc
         wh_lv = weight_lv * height_lv
@@ -1195,6 +1212,9 @@ def mk_net_drms(
         cglfd = np.zeros((14, ifltmd_sc.shape[1]))
         cglfd[3:5] = sign_sc * ifltmd_sc[lat_sc[::-1] + 3] / wh_sc
         cglfd[8:10] = sign_lv * ifltmd_lv[lat_lv[::-1] + 3] / wh_lv
+        if replace_lv_cglf_rows:
+            cglfa[5:10] = cglfa[:5]
+            cglfd[5:10] = cglfd[:5]
         return cglfa, cglfd
 
     def _putaxial(labels, ax, s, t_old, t_new, r_old, r_new):
@@ -1203,7 +1223,7 @@ def mk_net_drms(
         lbls[ax + 3] = lbls[ax + 3].replace(r_old, r_new)
         return lbls
 
-    def _get_labels(scaxial_sc, scaxial_lv, tau):
+    def _get_labels(scaxial_sc, scaxial_lv, tau, replace_lv_cglf_rows):
         labels = [
             "I/F Lateral Frc FX {}",
             "I/F Lateral Frc FY {}",
@@ -1251,6 +1271,8 @@ def mk_net_drms(
             "S/C CG Shear Lat RSS lv",
             "S/C CG Mom. Lat RSS  lv",
         ]
+        if replace_lv_cglf_rows:
+            cglf_labels = [lbl.replace(" lv", "!lv") for lbl in cglf_labels]
         return ifltm_labels, ifatm_labels, cglf_labels
 
     # main routine
@@ -1303,10 +1325,10 @@ def mk_net_drms(
     grfrc = Kcb[bb] @ rb_all
     if abs(grfrc).max() > abs(Kcb[bb]).max() * 1e-8:
         warn(
-            "Rigid-body grounding forces need to be checked. Correct `uset`?",
+            "Rigid-body grounding forces need to be checked. Correct `uset`?\n"
+            f"\tMax grounding forces =\n{abs(grfrc).max(axis=0)}",
             RuntimeWarning,
         )
-        print("max grounding forces =\n", abs(grfrc).max(axis=0))
 
     if conv is not None:
         # make s/c version of ifltm compatible with system
@@ -1354,6 +1376,22 @@ def mk_net_drms(
     # calculate cg location and mass @ cg (l/v units but s/c coords):
     Mif = rb_all.T @ Mcb[bb] @ rb_all
     Mcg, cg_sc = cgmass(Mif)  # cg is relative to ref
+    cg_lv = Tsc2lv[:3, :3] @ cg_sc
+
+    if not np.allclose(abs(cg_sc).max(), abs(cg_lv).max()):
+        warn(
+            "For 'cglf', no l/v axis lines up with \"s/c axial\". S/C "
+            "axial should be normal to separation plane and through the "
+            "CG. Rows 6-10 of `cglfa` and `cglfd` (corresponding to l/v "
+            "coordinates) will therefore be thrown out since they don't "
+            "make sense. Those rows are replaced with the s/c rows "
+            '1-5. Also, " lv" in `cglf_labels` will be replaced with '
+            '"!lv" as a reminder of the change.',
+            RuntimeWarning,
+        )
+        replace_lv_cglf_rows = True
+    else:
+        replace_lv_cglf_rows = False
 
     # form rigid-body modes relative to CG:
     rbcg = n2p.rbgeom_uset(uset_if, cg_sc)
@@ -1372,7 +1410,6 @@ def mk_net_drms(
         weight_sc = weight_lv
         height_sc = height_lv
     scaxial_sc = np.argmax(abs(cg_sc))
-    cg_lv = Tsc2lv[:3, :3] @ cg_sc
     scaxial_lv = np.argmax(abs(cg_lv))
     ifltma_lv = Tsc2lv @ ifltma_lv
     ifltmd_lv = Tsc2lv @ ifltmd_lv
@@ -1395,6 +1432,7 @@ def mk_net_drms(
         scaxial_lv,
         weight_lv,
         height_lv,
+        replace_lv_cglf_rows,
     )
 
     # check tau:
@@ -1418,7 +1456,9 @@ def mk_net_drms(
     ifltma = np.vstack((ifltma_sc, ifltma_lv))
     ifltmd = np.vstack((ifltmd_sc, ifltmd_lv))
     ifatm = np.vstack((ifatm_sc, ifatm_lv))
-    (ifltm_labels, ifatm_labels, cglf_labels) = _get_labels(scaxial_sc, scaxial_lv, tau)
+    (ifltm_labels, ifatm_labels, cglf_labels) = _get_labels(
+        scaxial_sc, scaxial_lv, tau, replace_lv_cglf_rows,
+    )
 
     # make output variable:
     namelist = [
