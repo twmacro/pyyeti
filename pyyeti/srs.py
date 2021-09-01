@@ -1407,12 +1407,12 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
     ----------
     frf : 2d array_like
         Columns of FRF data defining base motion in frequency domain:
-        [FRF1, FRF2, ... FRFn].  The FRFs can be complex; if so, this
+        [FRF1, FRF2, ... FRFn]. The FRFs can be complex; if so, this
         routine uses the absolute value of each column before
         interpolating to a frequency vector that includes system
         frequencies (note that using the absolute value gives
         equivalent results).  Number of rows must equal
-        ``len(frf_frq)``.  If it is 1d, it is reshaped into a single
+        ``len(frf_frq)``. If it is 1d, it is reshaped into a single
         column: [FRF1].
     frf_frq : 1d array_like
         Frequency vector in Hz for the FRF data.
@@ -1534,7 +1534,8 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
         +(2\zeta p)^2} \right)
 
     For small damping values, the peak of :math:`|H(p)|` occurs near
-    :math:`p = 1`:
+    :math:`p = 1` (this is easy to see in the approximate expression
+    below for the maximizing value of :math:`p` (:math:`p_{peak}`)):
 
     .. math::
         |H(p = 1)| = \sqrt{\frac{1}{(2\zeta)^2} + 1} = \sqrt{Q^2 + 1}
@@ -1567,7 +1568,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
     input :math:`Z_{acce}(\Omega)`. To get the theoretical maximum
     SDOF response for a given :math:`Z_{acce}(\Omega)`, the frequency
     of the SDOF (which is the `srs_frq` input to this routine) would
-    need to be computed from the above expression:
+    need to be computed from:
 
     .. math::
         \omega_n = \frac{\Omega}{p_{peak}}
@@ -1579,7 +1580,10 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
 
     Therefore, if you want the theoretical maximum SDOF response from
     a given :math:`Z_{acce}(\Omega)`, compute `srs_frq` from the above
-    equation before calling this routine.
+    equation before calling this routine. Alternatively, you can input
+    `srs_frq` as ``None``; in that case, the routine computes
+    `srs_frq` from `frf_frq` internally according to the above
+    equation.
 
     Examples
     --------
@@ -1600,14 +1604,19 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
     >>> np.abs(sh.max() - pk_should_be) < 1e-13
     True
     """
-    srs_frq = np.asarray(srs_frq)
+    # compute maximizing Omega / omega_n ratio (see math in docstr):
+    p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q ** 2) - 1)
+    frf_frq = np.asarray(frf_frq)
+    if srs_frq is None:
+        srs_frq = frf_frq / p_peak
+    else:
+        srs_frq = np.asarray(srs_frq)
     ws = 2.0 * np.pi * srs_frq
     n = len(ws)
     ms = np.ones(n, float)
     bs = 1 / Q * ws
     ks = ws ** 2
 
-    frf_frq = np.asarray(frf_frq)
     frf = np.asarray(frf)
     if frf.ndim == 1:
         frf = frf.reshape(-1, 1)
@@ -1619,7 +1628,6 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
 
     # include transfer function peak frequencies in the forcing
     # function:
-    p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q ** 2) - 1)
     ffreq = np.sort(np.hstack((frf_frq, p_peak * srs_frq)))
     df = np.diff(ffreq)
     pv = np.ones(len(ffreq), bool)
@@ -1668,6 +1676,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
             a[pvrb] = -fs  # / ms ... since ms == 1
         if el:
             a[pvel] = (fs * freqw ** 2) / H
+        # from relative to absolute acceleration:
         a += fs
         if getresp:
             frfs[:, j, :] = a.T
