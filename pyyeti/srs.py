@@ -1392,6 +1392,7 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
         p2z2 = (2 * zeta * p) ** 2
         t = ((1 + p2z2) / ((1 - p ** 2) ** 2 + p2z2) * df) * psdfull.T
         z_vrs[i] = np.sqrt(np.sum(t, axis=1))
+
     if PSD.ndim == 1:
         z_vrs = z_vrs.ravel()
     if getmiles:
@@ -1399,7 +1400,7 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     return z_vrs
 
 
-def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
+def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     r"""
     Compute SRS from frequency response functions.
 
@@ -1416,14 +1417,35 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
         column: [FRF1].
     frf_frq : 1d array_like
         Frequency vector in Hz for the FRF data.
-    srs_frq : 1d array_like
-        Frequency vector in Hz for the SRS.
+    srs_frq : 1d array_like or None
+        Frequency vector in Hz for the SRS. These are the SDOF
+        frequencies for which to compute responses. If input as None,
+        `srs_frq` is computed from `frf_frq` such that the maximum
+        theoretical response for the input at the FRF frequency is
+        obtained. In this case, the computed SDOF frequency will be a
+        little higher than the corresponding FRF frequency. How much
+        higher depends on the damping: lower damping (higher Q) means
+        the SDOF frequency will be closer to the FRF frequency. The
+        equations are derived and discussed below.
     Q : scalar
         Dynamic amplification factor :math:`Q = 1/(2\zeta)` where
-        :math:`\zeta` is the fraction of critical damping.
+        :math:`\zeta` is the critical damping ratio.
     getresp : bool; optional
         If True, return the complex response frfs (see `resp` output
         below).
+    return_srs_frq : bool or None; optional
+        Determines whether or not to return `srs_frq`:
+
+        =======   ====================================================
+        Setting   Description
+        =======   ====================================================
+         None     `return_srs_frq` will be internally reset to True if
+                  and only if the input `srs_frq` is None; otherwise,
+                  it is set to False
+         True     Return `srs_frq` (default if `srs_frq` is None)
+         False    Do not return `srs_frq` (default if `srs_frq` is not
+                  None)
+        =======   ====================================================
 
     Returns
     -------
@@ -1431,6 +1453,9 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
         The SRS results: [SRS1, SRS2, .... SRSn];
         ``sh.shape = (len(srs_frq), n)`` where n is the number of
         FRFs.
+    srs_frq : 1d ndarray; optional
+        The SRS frequency vector that goes with `sh`. See
+        `return_srs_frq` description avove.
     resp : dictionary; optional
         Only returned if `getresp` is True. Members:
 
@@ -1565,10 +1590,13 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
 
     It is important to note however that this will not necessarily
     maximize :math:`X_{acce}(\Omega)` because that also depends on the
-    input :math:`Z_{acce}(\Omega)`. To get the theoretical maximum
-    SDOF response for a given :math:`Z_{acce}(\Omega)`, the frequency
-    of the SDOF (which is the `srs_frq` input to this routine) would
-    need to be computed from:
+    input :math:`Z_{acce}(\Omega)`. If :math:`Z_{acce}(\Omega)` is
+    flat, then the above expression will maximize
+    :math:`X_{acce}(\Omega)`. In the general case where
+    :math:`Z_{acce}(\Omega)` has a peak at a some frequency, to get
+    the theoretical maximum SDOF response, the frequency of the SDOF
+    (which is the `srs_frq` input to this routine) would need to be
+    computed from:
 
     .. math::
         \omega_n = \frac{\Omega}{p_{peak}}
@@ -1578,39 +1606,66 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
     .. math::
         srs{\_}frq = \frac{frf{\_}frq}{p_{peak}}
 
-    Therefore, if you want the theoretical maximum SDOF response from
-    a given :math:`Z_{acce}(\Omega)`, compute `srs_frq` from the above
-    equation before calling this routine. Alternatively, you can input
-    `srs_frq` as ``None``; in that case, the routine computes
-    `srs_frq` from `frf_frq` internally according to the above
-    equation.
+    To get the theoretical maximum SDOF response from a given
+    :math:`Z_{acce}(\Omega)`, either compute `srs_frq` from the above
+    equation before calling this routine or, alternatively, you can
+    input `srs_frq` as ``None`` and let the routine internally perform
+    that calculation.
 
     Examples
     --------
-    Make up a complex FRF and compute the shock response spectrum
-    (srs). In this case, the analysis frequencies include the natural
-    frequencies The peak srs value is at the peak FRF value and can be
-    shown to be: ``srs_peak = frf_peak * sqrt(Q**2 + 1)``.
+    Make up simple problem to demonstrate a couple of the equations
+    derived above.
 
     >>> from pyyeti import srs
     >>> import numpy as np
-    >>> frf = np.array([1, 1, 1, 1, 1.2, 1.4, 2.6, 1, .7, .8, 1])
-    >>> frf = frf + 1j * np.random.randn(len(frf))*.05
-    >>> frf_frq = .5 * np.arange(len(frf)) + 1.
-    >>> srs_frq = np.arange(.1, 8, .1)
+    >>> pk_input = 3.0
+    >>> pk_frq = 15.0
+    >>> frf = np.array([pk_input / 3, pk_input, pk_input / 3])
+    >>> frf_frq = np.array([pk_frq - 5, pk_frq, pk_frq + 5])
+    >>> srs_frq = np.array([pk_frq])
     >>> Q = 20
     >>> sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
-    >>> pk_should_be = np.abs(frf).max() * np.sqrt(Q**2+1)
-    >>> np.abs(sh.max() - pk_should_be) < 1e-13
+
+    Because the input has a peak @ 15 hz and that is also the SDOF
+    frequency, the peak response will occur @ p = 1 instead of
+    "p_peak" as derived above. From the equations above, the absolute
+    peak response should be: ``pk_input * np.sqrt(Q ** 2 + 1)``:
+
+    >>> pk_should_be = pk_input * np.sqrt(Q ** 2 + 1)
+    >>> sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
+    >>> abs(pk_should_be - sh[0, 0]) < 1e-10
+    True
+
+    If we let the routine compute the SDOF frequencies, we can get the
+    theoretical maximum as derived above. Here, we'll check the peak
+    response value and the frequency of the maximizing SDOF:
+
+    >>> p_peak = Q * np.sqrt((np.sqrt(1 + 2 / Q ** 2) - 1))
+    >>> frq_should_be = pk_frq / p_peak
+    >>> num = 1 + (p_peak / Q) ** 2
+    >>> den = (1 - p_peak ** 2) ** 2 + num - 1
+    >>> pk_should_be = pk_input * np.sqrt(num / den)
+    >>> sh, frq = srs.srs_frf(frf, frf_frq, None, Q)
+    >>> i = sh[:, 0].argmax()
+    >>> abs(pk_should_be - sh[i, 0]) < 1e-10
+    True
+    >>> abs(frq_should_be - frq[i]) < 1e-10
     True
     """
     # compute maximizing Omega / omega_n ratio (see math in docstr):
     p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q ** 2) - 1)
     frf_frq = np.asarray(frf_frq)
+
     if srs_frq is None:
         srs_frq = frf_frq / p_peak
+        if return_srs_frq is None:
+            return_srs_frq = True
     else:
         srs_frq = np.asarray(srs_frq)
+        if return_srs_frq is None:
+            return_srs_frq = False
+
     ws = 2.0 * np.pi * srs_frq
     n = len(ws)
     ms = np.ones(n, float)
@@ -1684,8 +1739,12 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False):
 
     if getresp:
         resp = {"freq": ffreq, "frfs": frfs}
+        if return_srs_frq:
+            return shk, srs_frq, resp
         return shk, resp
 
+    if return_srs_frq:
+        return shk, srs_frq
     return shk
 
 
