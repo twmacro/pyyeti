@@ -1459,13 +1459,15 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     resp : dictionary; optional
         Only returned if `getresp` is True. Members:
 
-        ======   =====================================================
-         key     value
-        ======   =====================================================
-        'freq'   frequency vector for responses; this is a superset of
-                 `frf_frq` and `srs_frf` with near-duplicates removed
-        'frfs'   3-D array; shape = ``(len(freq), n, len(srs_frq))``
-        ======   =====================================================
+        =========   ==================================================
+         key        value
+        =========   ==================================================
+        'freq'      frequency vector for responses; this is a superset
+                    of `frf_frq` and `srs_frf` with near-duplicates
+                    removed
+        'frfs'      3-D array; shape = ``(len(freq), n, len(srs_frq))``
+        'srs_frq'   SRS frequency vector (here for convenience)
+        =========   =====================================================
 
     Notes
     -----
@@ -1633,7 +1635,11 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     peak response should be: ``pk_input * np.sqrt(Q ** 2 + 1)``:
 
     >>> pk_should_be = pk_input * np.sqrt(Q ** 2 + 1)
+    >>> pk_should_be                          # doctest: +SKIP
+    60.074953183502359
     >>> sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
+    >>> sh                                    # doctest: +SKIP
+    array([[ 60.07495318]])
     >>> abs(pk_should_be - sh[0, 0]) < 1e-10
     True
 
@@ -1648,10 +1654,78 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     >>> pk_should_be = pk_input * np.sqrt(num / den)
     >>> sh, frq = srs.srs_frf(frf, frf_frq, None, Q)
     >>> i = sh[:, 0].argmax()
+    >>> pk_should_be                          # doctest: +SKIP
+    60.093641865335883
+    >>> sh                                    # doctest: +SKIP
+    array([[ 20.03121396],
+           [ 60.09364187],
+           [ 20.03121396]])
     >>> abs(pk_should_be - sh[i, 0]) < 1e-10
     True
+    >>> frq_should_be                         # doctest: +SKIP
+    15.009360389892359
+    >>> frq                                   # doctest: +SKIP
+    array([ 10.00624026,  15.00936039,  20.01248052])
     >>> abs(frq_should_be - frq[i]) < 1e-10
     True
+
+    For the next example, the "equivalent sine" (SRS/Q) will be
+    computed for a sawtooth input for several Q values.
+
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
+        >>> from pyyeti import srs
+        >>>
+        >>> # saw tooth input:
+        >>> sdof = 44.5
+        >>> n = 10
+        >>> frf = np.ones(n)
+        >>> frf[::2] = 0.5
+        >>> frf_frq = np.arange(n) * 1.0 + 40.0
+        >>> srs_cutoff = frf_frq[-1]
+        >>> fstep = 0.01
+        >>>
+        >>> # add sdof frequency to frf_frq:
+        >>> new_frf_frq = np.sort(np.r_[frf_frq, sdof])
+        >>> new_frf = np.interp(new_frf_frq, frf_frq, frf)
+        >>> frf, frf_frq = new_frf, new_frf_frq
+        >>>
+        >>> srs_frq = np.arange(frf_frq[0], srs_cutoff, fstep)
+        >>>
+        >>> fig, ax = plt.subplots(
+        ...     3, 1, num="Example", clear=True,
+        ...     figsize=(9, 10), sharex=True
+        ... )
+        >>> _ = ax[0].plot(frf_frq, frf)
+        >>>
+        >>> for Q in (5, 10, 20, 30, 40, 50):
+        ...     p_peak2 = Q ** 2 * (np.sqrt(1 + 2 / Q ** 2) - 1)
+        ...     num = 1 + p_peak2 / Q ** 2
+        ...     den = (1 - p_peak2) ** 2 + num - 1
+        ...     pk_should_be = np.abs(frf).max() * np.sqrt(num / den)
+        ...     sh, resp = srs.srs_frf(frf, frf_frq, srs_frq, Q, getresp=True)
+        ...
+        ...     _ = ax[1].plot(srs_frq, sh / Q, label=f"{Q = }")
+        ...     _ = ax[1].legend()
+        ...
+        ...     i = np.searchsorted(srs_frq, sdof)
+        ...     _ = ax[2].plot(
+        ...         resp["freq"], abs(resp["frfs"][:, 0, i]) / Q, label=f"{Q = }",
+        ...     )
+        ...     _ = ax[2].legend()
+        >>>
+        >>> _ = ax[0].set_title("Base Input")
+        >>> _ = ax[0].set_ylabel("Acceleration (G)")
+        >>> _ = ax[1].set_title("Eq-Sine (Abs-Acce/Q)")
+        >>> _ = ax[1].set_ylabel("Abs-Acce Eq-Sine (G)")
+        >>> _ = ax[2].set_title(f"(Abs-Acce |FRF| Response of {sdof} Hz SDOF)/Q")
+        >>> _ = ax[2].set_ylabel("Abs-Acce |FRF| / Q (G)")
+        >>> _ = ax[2].set_xlabel("Frequency (Hz)")
+        >>> fig.tight_layout()
+
     """
     # compute maximizing Omega / omega_n ratio (see math in docstr):
     p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q ** 2) - 1)
@@ -1738,7 +1812,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         shk[:, j] = abs(a).max(axis=1)
 
     if getresp:
-        resp = {"freq": ffreq, "frfs": frfs}
+        resp = {"freq": ffreq, "frfs": frfs, "srs_frq": srs_frq}
         if return_srs_frq:
             return shk, srs_frq, resp
         return shk, resp
