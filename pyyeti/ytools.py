@@ -17,7 +17,6 @@ import numpy as np
 import scipy.linalg as linalg
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from pyyeti import guitools
 
 
@@ -53,7 +52,7 @@ def _check_makeplot(
         if makeplot == "add":
             fig = plt.gcf()
             if not fig.get_axes() and need3d:
-                return plt.gca(projection="3d")
+                return fig.add_subplot(projection="3d")
             ax = plt.gca()
             return _check_3d(ax, need3d)
 
@@ -61,7 +60,8 @@ def _check_makeplot(
             plt.clf()
 
         if need3d:
-            return plt.gca(projection="3d")
+            fig = plt.gcf()
+            return fig.add_subplot(projection="3d")
 
         return plt.gca()
 
