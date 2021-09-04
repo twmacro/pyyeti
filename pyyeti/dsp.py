@@ -2134,8 +2134,7 @@ def waterfall(
         ...                          slicefunc=dsp.windowends,
         ...                          sliceargs=[.02],
         ...                          slicekwargs=dict(ends='front'))
-        >>> _ = plt.figure('Example')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', clear=True)
         >>> _ = plt.contour(t, f, mp, 40, cmap=cm.plasma_r)
         >>> cbar = plt.colorbar()
         >>> cbar.filled = True
@@ -2150,10 +2149,8 @@ def waterfall(
 
         Also show results on a 3D surface plot:
 
-        >>> fig = plt.figure('Example 2')
-        >>> fig.clf()
-        >>> from mpl_toolkits.mplot3d import Axes3D
-        >>> ax = fig.gca(projection='3d')
+        >>> fig = plt.figure("Example 2", clear=True)
+        >>> ax = fig.add_subplot(projection="3d")
         >>> x, y = np.meshgrid(t, f)
         >>> surf = ax.plot_surface(x, y, mp, rstride=1, cstride=1,
         ...                        linewidth=0, cmap=cm.plasma_r)

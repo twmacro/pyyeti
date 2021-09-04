@@ -1467,7 +1467,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
                     removed
         'frfs'      3-D array; shape = ``(len(freq), n, len(srs_frq))``
         'srs_frq'   SRS frequency vector (here for convenience)
-        =========   =====================================================
+        =========   ==================================================
 
     Notes
     -----
@@ -1566,9 +1566,10 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
 
     .. math::
         |H(p = 1)| = \sqrt{\frac{1}{(2\zeta)^2} + 1} = \sqrt{Q^2 + 1}
+        \approx Q \text{ (for higher Q)}
 
-    To find precisely where :math:`|H(p)|^2` is maximized, set
-    derivate with respect to :math:`p^2` equal to zero and solve for
+    To find precisely where :math:`|H(p)|^2` is maximized, set the
+    derivative with respect to :math:`p^2` equal to zero and solve for
     :math:`p^2` and then take the square root (:obj:`sympy` can be
     helpful here). The result is:
 
@@ -1608,9 +1609,9 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     .. math::
         srs{\_}frq = \frac{frf{\_}frq}{p_{peak}}
 
-    To get the theoretical maximum SDOF response from a given
-    :math:`Z_{acce}(\Omega)`, either compute `srs_frq` from the above
-    equation before calling this routine or, alternatively, you can
+    In this routine, to get the theoretical maximum SDOF response from
+    a given :math:`Z_{acce}(\Omega)`, either compute `srs_frq` from
+    the above equation before calling this routine or, alternatively,
     input `srs_frq` as ``None`` and let the routine internally perform
     that calculation.
 
@@ -1619,8 +1620,8 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     Make up simple problem to demonstrate a couple of the equations
     derived above.
 
-    >>> from pyyeti import srs
     >>> import numpy as np
+    >>> from pyyeti import srs
     >>> pk_input = 3.0
     >>> pk_frq = 15.0
     >>> frf = np.array([pk_input / 3, pk_input, pk_input / 3])
@@ -1644,8 +1645,8 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     True
 
     If we let the routine compute the SDOF frequencies, we can get the
-    theoretical maximum as derived above. Here, we'll check the peak
-    response value and the frequency of the maximizing SDOF:
+    theoretical maximum as derived above. Here, we'll check both the
+    peak response value and the frequency of the maximizing SDOF:
 
     >>> p_peak = Q * np.sqrt((np.sqrt(1 + 2 / Q ** 2) - 1))
     >>> frq_should_be = pk_frq / p_peak
@@ -1672,6 +1673,61 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     For the next example, the "equivalent sine" (SRS/Q) will be
     computed for a sawtooth input for several Q values.
 
+    .. note::
+        It is noted that dividing by :math:`\sqrt{Q^2 + 1}` would make
+        it more "equivalent" since that's the gain of the transfer
+        function at :math:`p = 1`. However, dividing by :math:`Q` is
+        common, and that's what will be done for the example below.
+
+    The top plot shows the input :math:`Z_{acce}(\Omega)`.
+
+    The second plot shows the equivalent sine curves for different
+    damping values. Each curve has ``len(srs_frq)`` points on it, each
+    point being the maximum value of :math:`|X_{acce}(\Omega)|/Q` for
+    the corresponding SDOF system.
+
+    The third plot shows the actual FRF response curves (divided by Q)
+    for the 44.5 Hz SDOF system with the different damping values. The
+    peak of each of these curves, at whatever frequency it occurs at,
+    forms the corresponding value on the equivalent sine curve @ 44.5
+    Hz.
+
+    The fourth plot shows the transfer functions divided by Q for
+    reference.
+
+    Observations:
+
+       1. Equivalent sine curves with lower damping (higher Q), will
+          tend to follow the input more closely. This is because the
+          high gain of the transfer function near the SDOF natural
+          frequency causes the response to hit its maximum peak near
+          its natural frequency even if the peak of the input occurs
+          at a different frequency. In that scenario, the division by
+          Q (nearly) cancels out the gain of the transfer function,
+          bringing the response back down to the input level. For
+          example, for Q = 50, the FRF peak of the 44.5 Hz SDOF system
+          occurs closest to the natural frequency even though the peak
+          of the input does not occur there (the nearest input peak is
+          at 45.0 Hz). So, the FRF peak is approximately ``Q *
+          input``.
+
+       2. Conversely, equivalent sine curves with higher damping
+          (lower Q), will tend to smooth over the valleys of the
+          input. For these higher damped SDOF systems, the lower gain
+          of the transfer function becomes less important, and the
+          peak response will occur closer to a peak of the input, even
+          if that doesn't match the natural frequency. For example,
+          for Q = 5, the FRF peak of the 44.5 Hz SDOF system occurs at
+          45.0 Hz because that's where the nearest peak of the input
+          is. In that scenario, the division by Q will not bring the
+          curve back down to the input level since the FRF peak is the
+          product of off-peak transfer function (:math:`\neq Q`)
+          multiplied by a higher input at some other frequency. (Note:
+          dividing by Q gets these curves closer to the input where
+          the input has peaks, but still not as well as the lower
+          damped equivalent sine curves ... dividing by
+          :math:`\sqrt{Q^2 + 1}` would fix that.)
+
     .. plot::
         :context: close-figs
 
@@ -1696,8 +1752,11 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         >>> srs_frq = np.arange(frf_frq[0], srs_cutoff, fstep)
         >>>
         >>> fig, ax = plt.subplots(
-        ...     3, 1, num="Example", clear=True,
-        ...     figsize=(9, 10), sharex=True
+        ...     4,
+        ...     1,
+        ...     num="Example",
+        ...     clear=True,
+        ...     figsize=(9, 12),
         ... )
         >>> _ = ax[0].plot(frf_frq, frf)
         >>>
@@ -1706,26 +1765,52 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         ...     num = 1 + p_peak2 / Q ** 2
         ...     den = (1 - p_peak2) ** 2 + num - 1
         ...     pk_should_be = np.abs(frf).max() * np.sqrt(num / den)
-        ...     sh, resp = srs.srs_frf(frf, frf_frq, srs_frq, Q, getresp=True)
-        ...
+        ...     sh, resp = srs.srs_frf(
+        ...         frf, frf_frq, srs_frq, Q, getresp=True
+        ...     )
         ...     _ = ax[1].plot(srs_frq, sh / Q, label=f"{Q = }")
         ...     _ = ax[1].legend()
         ...
         ...     i = np.searchsorted(srs_frq, sdof)
         ...     _ = ax[2].plot(
-        ...         resp["freq"], abs(resp["frfs"][:, 0, i]) / Q, label=f"{Q = }",
+        ...         resp["freq"],
+        ...         abs(resp["frfs"][:, 0, i]) / Q,
+        ...         label=f"{Q = }",
         ...     )
         ...     _ = ax[2].legend()
+        ...
+        ...     # plot the transfer function (by using unity input)
+        ...     n = len(frf)
+        ...     _, resp_unity = srs.srs_frf(
+        ...         np.ones(n), frf_frq, srs_frq, Q, getresp=True
+        ...     )
+        ...     _ = ax[3].plot(
+        ...         resp_unity["freq"],
+        ...         abs(resp_unity["frfs"][:, 0, i]) / Q,
+        ...         label=f"{Q = }",
+        ...     )
+        ...     _ = ax[3].legend()
         >>>
         >>> _ = ax[0].set_title("Base Input")
         >>> _ = ax[0].set_ylabel("Acceleration (G)")
+        >>> _ = ax[0].set_xlabel("$\Omega$ Frequency (Hz)")
         >>> _ = ax[1].set_title("Eq-Sine (Abs-Acce/Q)")
         >>> _ = ax[1].set_ylabel("Abs-Acce Eq-Sine (G)")
-        >>> _ = ax[2].set_title(f"(Abs-Acce |FRF| Response of {sdof} Hz SDOF)/Q")
+        >>> _ = ax[1].set_xlabel("$\omega_n$ Frequency (Hz)")
+        >>> _ = ax[2].set_title(
+        ...         f"(Abs-Acce |FRF| Response of {sdof} Hz SDOF)/Q"
+        ...     )
         >>> _ = ax[2].set_ylabel("Abs-Acce |FRF| / Q (G)")
-        >>> _ = ax[2].set_xlabel("Frequency (Hz)")
+        >>> _ = ax[2].set_xlabel("$\Omega$ Frequency (Hz)")
+        >>> _ = ax[3].set_title(
+        ...         "Transfer function $|H(\Omega)|/Q$ of "
+        ...         f"{sdof} Hz SDOF"
+        ...     )
+        >>> _ = ax[3].set_ylabel("$|H(\Omega)|/Q$")
+        >>> _ = ax[3].set_xlabel("$\Omega$ Frequency (Hz)")
+        >>> for axis in ax:
+        ...    axis.set_xlim(39.5, 49.5)
         >>> fig.tight_layout()
-
     """
     # compute maximizing Omega / omega_n ratio (see math in docstr):
     p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q ** 2) - 1)
@@ -1902,8 +1987,7 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> Q = 20
         >>> mp, t, f = srs.srsmap(2, .5, sig, sr, frq, Q, .02,
         ...                       eqsine=1)
-        >>> _ = plt.figure('Example')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', clear=True)
         >>> _ = plt.contour(t, f, mp, 40, cmap=cm.plasma)
         >>> cbar = plt.colorbar()
         >>> cbar.filled = True
@@ -1918,10 +2002,8 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
     .. plot::
         :context: close-figs
 
-        >>> fig = plt.figure('Example 2')
-        >>> fig.clf()
-        >>> from mpl_toolkits.mplot3d import Axes3D
-        >>> ax = fig.gca(projection='3d')
+        >>> fig = plt.figure("Example 2", clear=True)
+        >>> ax = fig.add_subplot(projection="3d")
         >>> x, y = np.meshgrid(t, f)
         >>> surf = ax.plot_surface(x, y, mp, rstride=1, cstride=1,
         ...                        linewidth=0, cmap=cm.plasma)
