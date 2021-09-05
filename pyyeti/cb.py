@@ -1073,12 +1073,13 @@ def mk_net_drms(
             explains what this routine does:
 
             For 'cglf', no l/v axis lines up with "s/c axial". S/C
-            axial should be normal to separation plane and through the
-            CG. Rows 6-10 of `cglfa` and `cglfd` (corresponding to l/v
-            coordinates) will therefore be thrown out since they don't
-            make sense. Those rows are replaced with the s/c rows
-            1-5. Also, " lv" in `cglf_labels` will be replaced with
-            "!lv" as a reminder of the change.
+            axial should be normal to separation plane and pass
+            approximately through the CG. Rows 6-10 of `cglfa` and
+            `cglfd` (corresponding to l/v coordinates) will therefore
+            be thrown out since they don't make sense. Those rows are
+            replaced with the s/c rows 1-5. Also, " lv" in
+            `cglf_labels` will be replaced with "!lv" as a reminder of
+            the change.
 
     cglfd : 2d ndarray with 14 rows
         The displacement-dependent portion of the net CG load factor
