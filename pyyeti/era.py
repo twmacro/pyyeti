@@ -815,6 +815,9 @@ class ERA:
         data with the reduced model based on the modes which are kept
         for consideration.
         """
+        if len(selected_modes) == 0:
+            raise RuntimeError("No modes selected")
+
         if saved_model:
             freq = self._saved["freqs_hz"]
             zeta = self._saved["zeta"]
