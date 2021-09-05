@@ -866,25 +866,26 @@ def srs(
         \begin{aligned}
         \ddot{z} &= sig \\
         M &= 1 \\
-        K &= \omega^2 \\
-        C &= 2\zeta\omega \\
+        K &= \omega_n^2 \\
+        C &= 2\zeta\omega_n \\
         \end{aligned}
 
-    Note that :math:`\omega=2 \pi f` where :math:`f` is a frequency in
-    Hz from the input `freq`. The equation of motion is:
+    Note that :math:`\omega_n=2 \pi f_n` where :math:`f_n` is the
+    natural frequency in Hz from the input `freq`. The equation of
+    motion is:
 
     .. math::
         \begin{aligned}
         \ddot{x} &= \sum Forces\; on\; M \\
-        &= \omega^2(z-x)+2\zeta\omega(\dot{z}-\dot{x})
+        &= \omega_n^2(z-x)+2\zeta\omega_n(\dot{z}-\dot{x})
         \end{aligned}
 
     Define a relative coordinate :math:`u = x - z`. Then:
 
     .. math::
         \begin{aligned}
-        \ddot{x}+2\zeta\omega\dot{u}+\omega^2 u &= 0 \\
-        \ddot{u}+2\zeta\omega\dot{u}+\omega^2 u &= -\ddot{z}
+        \ddot{x}+2\zeta\omega_n\dot{u}+\omega_n^2 u &= 0 \\
+        \ddot{u}+2\zeta\omega_n\dot{u}+\omega_n^2 u &= -\ddot{z}
         \end{aligned}
 
     In general, that equation is solved for each frequency for each
@@ -907,14 +908,14 @@ def srs(
     from the ramp invariant solver and the maximum error that can
     occur when selecting peaks (since peaks occur between solution
     points).  The error equations are (noting that
-    :math:`sr/f = ppc`):
+    :math:`sr/f_n = ppc`):
 
     .. math::
         \begin{aligned}
-        &\text{bias error} = 1 - \left[ \sin \left( \frac{\pi f}{sr}
-        \right) / \frac{\pi f}{sr} \right]^2 \\
+        &\text{bias error} = 1 - \left[ \sin \left( \frac{\pi f_n}{sr}
+        \right) / \frac{\pi f_n}{sr} \right]^2 \\
         &\text{max peak error} = 1 - \cos \left(
-        \frac{\pi f}{sr} \right)
+        \frac{\pi f_n}{sr} \right)
         \end{aligned}
 
     Or:
@@ -1497,9 +1498,9 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         C &= 2\zeta\omega_n \\
         \end{aligned}
 
-    Note that :math:`\omega_n=2 \pi f_n` where :math:`f_n` is a
-    frequency in Hz from the input `srs_frq`. The equation of motion
-    is:
+    Note that :math:`\omega_n=2 \pi f_n` where :math:`f_n` is the
+    natural frequency in Hz from the input `srs_frq`. The equation of
+    motion is:
 
     .. math::
         \begin{aligned}
@@ -1630,10 +1631,10 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     >>> Q = 20
     >>> sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
 
-    Because the input has a peak @ 15 hz and that is also the SDOF
-    frequency, the peak response will occur @ p = 1 instead of
-    "p_peak" as derived above. From the equations above, the absolute
-    peak response should be: ``pk_input * np.sqrt(Q ** 2 + 1)``:
+    Because the input has a peak at 15 hz and that is also the SDOF
+    frequency, the peak response will occur at :math:`p = 1` instead of
+    :math:`p_{peak}` as derived above. From the equations above, the absolute
+    peak response should be: :math:`pk{\_}input \cdot \sqrt{Q^2 + 1}`:
 
     >>> pk_should_be = pk_input * np.sqrt(Q ** 2 + 1)
     >>> pk_should_be                          # doctest: +SKIP
@@ -1761,10 +1762,6 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         >>> _ = ax[0].plot(frf_frq, frf)
         >>>
         >>> for Q in (5, 10, 20, 30, 40, 50):
-        ...     p_peak2 = Q ** 2 * (np.sqrt(1 + 2 / Q ** 2) - 1)
-        ...     num = 1 + p_peak2 / Q ** 2
-        ...     den = (1 - p_peak2) ** 2 + num - 1
-        ...     pk_should_be = np.abs(frf).max() * np.sqrt(num / den)
         ...     sh, resp = srs.srs_frf(
         ...         frf, frf_frq, srs_frq, Q, getresp=True
         ...     )
@@ -1793,23 +1790,74 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         >>>
         >>> _ = ax[0].set_title("Base Input")
         >>> _ = ax[0].set_ylabel("Acceleration (G)")
-        >>> _ = ax[0].set_xlabel("$\Omega$ Frequency (Hz)")
+        >>> _ = ax[0].set_xlabel(r"$\Omega$ Frequency (Hz)")
         >>> _ = ax[1].set_title("Eq-Sine (Abs-Acce/Q)")
         >>> _ = ax[1].set_ylabel("Abs-Acce Eq-Sine (G)")
-        >>> _ = ax[1].set_xlabel("$\omega_n$ Frequency (Hz)")
+        >>> _ = ax[1].set_xlabel(r"$\omega_n$ Frequency (Hz)")
         >>> _ = ax[2].set_title(
         ...         f"(Abs-Acce |FRF| Response of {sdof} Hz SDOF)/Q"
         ...     )
         >>> _ = ax[2].set_ylabel("Abs-Acce |FRF| / Q (G)")
-        >>> _ = ax[2].set_xlabel("$\Omega$ Frequency (Hz)")
+        >>> _ = ax[2].set_xlabel(r"$\Omega$ Frequency (Hz)")
         >>> _ = ax[3].set_title(
-        ...         "Transfer function $|H(\Omega)|/Q$ of "
+        ...         r"Transfer function $|H(\Omega)|/Q$ of "
         ...         f"{sdof} Hz SDOF"
         ...     )
-        >>> _ = ax[3].set_ylabel("$|H(\Omega)|/Q$")
-        >>> _ = ax[3].set_xlabel("$\Omega$ Frequency (Hz)")
+        >>> _ = ax[3].set_ylabel(r"$|H(\Omega)|/Q$")
+        >>> _ = ax[3].set_xlabel(r"$\Omega$ Frequency (Hz)")
         >>> for axis in ax:
-        ...    axis.set_xlim(39.5, 49.5)
+        ...    _ = axis.set_xlim(39.5, 49.5)
+        >>> fig.tight_layout()
+
+    In the previous example, we saw that the equivalent sine of the
+    input did not give us the original input back, but it was closer
+    for lower damping. Fundamentally, the reason is because only the
+    gain at :math:`p = 1` is considered and, furthermore, the division
+    by "Q" is an approximation of a more correct division by
+    :math:`\sqrt{Q^2 + 1}`. An equivalent sine *could* get back to the
+    original input if the original input was flat and the division was
+    done using the theoretical maximum gain: :math:`|H(p=p_{peak})|`.
+    (That assumes that the routine computing the SDOF responses
+    catches the maximum gain frequency.)
+
+    So, how "equivalent" is the equivalent sine for the example shown
+    above? In this final example, we'll compute the equivalent sine of
+    an equivalent sine for Q = 10. We'll also improve the process a
+    bit by dividing by :math:`\sqrt{Q^2 + 1}` instead of Q. That will
+    ensure that we get the values correct at the peak input
+    frequencies:
+
+    .. plot::
+        :context: close-figs
+
+        >>> fig, ax = plt.subplots(
+        ...     1,
+        ...     1,
+        ...     num="Example 2",
+        ...     clear=True,
+        ...     figsize=(9, 5),
+        ... )
+        >>> _ = ax.plot(frf_frq, frf, label="Original Input")
+        >>>
+        >>> Q = 10
+        >>> factor = np.sqrt(Q ** 2 + 1)
+        >>>
+        >>> eqsine = srs.srs_frf(frf, frf_frq, srs_frq, Q) / factor
+        >>> lbl = f"Eq-Sine0; Eq-Sine of Input, {Q = }"
+        >>> _ = ax.plot(srs_frq, eqsine, label=lbl)
+        >>>
+        >>> for level in range(1):
+        ...     eqsine = srs.srs_frf(
+        ...         eqsine.ravel(), srs_frq, srs_frq, Q
+        ...     ) / factor
+        ...     lbl = f"Eq-Sine{level + 1}; Eq-Sine of Eq-Sine{level}"
+        ...     _ = ax.plot(srs_frq, eqsine, label=lbl)
+        >>>
+        >>> _ = ax.legend()
+        >>> _ = ax.set_title(f"Eq-Sine (Abs-Acce/Q), {Q = }")
+        >>> _ = ax.set_ylabel("Abs-Acce Eq-Sine (G)")
+        >>> _ = ax.set_xlabel(r"$\omega_n$ Frequency (Hz)")
+        >>> _ = ax.set_xlim(39.5, 49.5)
         >>> fig.tight_layout()
     """
     # compute maximizing Omega / omega_n ratio (see math in docstr):
@@ -1837,11 +1885,8 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     nfrf = frf.shape[1]
     frf = np.abs(frf)
 
-    # # include ks frequencies (srs_frq) in the forcing function
-    # ffreq = np.sort(np.hstack((frf_frq, srs_frq)))
-
     # include transfer function peak frequencies in the forcing
-    # function:
+    # function (these are close to the natural frequencies):
     ffreq = np.sort(np.hstack((frf_frq, p_peak * srs_frq)))
     df = np.diff(ffreq)
     pv = np.ones(len(ffreq), bool)

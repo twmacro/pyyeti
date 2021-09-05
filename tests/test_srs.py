@@ -1089,9 +1089,6 @@ def test_vrs():
 
 
 def test_srs_frf():
-    import numpy as np
-    from pyyeti import srs
-
     # scalar frequency test, single frf
     srs_frq = [3]
     frf_frq = np.array(srs_frq)
@@ -1099,17 +1096,6 @@ def test_srs_frf():
     frf = np.random.randn(n) + 1j * np.random.randn(n)
     Q = 20
     srs_frq = frf_frq
-    sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
-    pks_should_be = np.abs(frf) * np.sqrt(Q ** 2 + 1)
-    assert np.abs(sh - pks_should_be) < 1e-12
-
-    # scalar frequency test, single frf, delete near frequency
-    srs_frq = [3]
-    frf_frq = np.array(srs_frq)
-    n = len(frf_frq)
-    frf = np.random.randn(n) + 1j * np.random.randn(n)
-    Q = 20
-    srs_frq = frf_frq - 5.0e-6
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
     pks_should_be = np.abs(frf) * np.sqrt(Q ** 2 + 1)
     assert np.abs(sh - pks_should_be) < 1e-12
@@ -1128,7 +1114,17 @@ def test_srs_frf():
     # multiple frequency test, with zeros
     frf_frq = np.arange(0, 50, 0.1)
     n = len(frf_frq)
-    frf = np.random.randn(n, 3) + 1j * np.random.randn(n, 3)
+    while True:
+        frf = np.random.randn(n, 3) + 1j * np.random.randn(n, 3)
+        # the check below will fail if the 0 frequency system has
+        # maximum frf input:
+        i = abs(frf).argmax(axis=0)
+        if (i > 0).all():
+            break
+    # to ensure that peak input is peaky enough that the peak actually
+    # occurs @ the natural frequency:
+    i = abs(frf).argmax(axis=0)
+    frf[i, [0, 1, 2]] *= 2.0
     Q = 20
     srs_frq = frf_frq
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
@@ -1139,6 +1135,10 @@ def test_srs_frf():
     frf_frq = np.arange(0.1, 50, 0.1)
     n = len(frf_frq)
     frf = np.random.randn(n, 3) + 1j * np.random.randn(n, 3)
+    # to ensure that peak input is peaky enough that the peak actually
+    # occurs @ the natural frequency:
+    i = abs(frf).argmax(axis=0)
+    frf[i, [0, 1, 2]] *= 2.0
     Q = 20
     srs_frq = frf_frq
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
@@ -1153,6 +1153,30 @@ def test_srs_frf():
     assert resp["frfs"].shape[2] == srs_frq[::2].shape[0]
     sh2 = abs(resp["frfs"]).max(axis=0)
     assert np.allclose(sh2.T, sh)
+
+
+def test_srs_frf_2():
+    pk_input = 3.0
+    pk_frq = 15.0
+    frf = np.array([pk_input / 3, pk_input, pk_input / 3])
+    frf_frq = np.array([pk_frq - 5, pk_frq, pk_frq + 5])
+    srs_frq = np.array([pk_frq])
+    Q = 20
+    sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
+
+    pk_should_be = pk_input * np.sqrt(Q ** 2 + 1)
+    sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
+    assert abs(pk_should_be - sh[0, 0]) < 1e-10
+
+    p_peak = Q * np.sqrt((np.sqrt(1 + 2 / Q ** 2) - 1))
+    frq_should_be = pk_frq / p_peak
+    num = 1 + (p_peak / Q) ** 2
+    den = (1 - p_peak ** 2) ** 2 + num - 1
+    pk_should_be = pk_input * np.sqrt(num / den)
+    sh, frq = srs.srs_frf(frf, frf_frq, None, Q)
+    i = sh[:, 0].argmax()
+    assert abs(pk_should_be - sh[i, 0]) < 1e-10
+    assert abs(frq_should_be - frq[i]) < 1e-10
 
 
 def test_srsmap():
