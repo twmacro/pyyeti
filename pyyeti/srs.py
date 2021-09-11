@@ -1675,10 +1675,27 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     computed for a sawtooth input for several Q values.
 
     .. note::
+
+        Since this is a pure sinusoidal analysis, one might think that
+        the "equivalent sine" result should just be equal to the
+        original input. However, because of excitation from nearby
+        frequencies (as discussed in detail below), this will not be
+        the case in general. Even so, depending on how the input was
+        created, it may be valid to consider the input as the
+        equivalent sine and not run this routine at all. For example,
+        if the input is an envelope over SDOF responses from
+        time-domain signals, excitation from nearby frequencies may
+        already be accounted for. Running this routine in that
+        scenario may just add unneeded conservatism.  Think of this
+        routine as a simulation of a sine test of a bunch SDOF
+        systems.
+
+    .. note::
         It is noted that dividing by :math:`\sqrt{Q^2 + 1}` would make
         it more "equivalent" since that's the gain of the transfer
-        function at :math:`p = 1`. However, dividing by :math:`Q` is
-        common, and that's what will be done for the example below.
+        function at :math:`p = 1` (see above). However, dividing by
+        :math:`Q` is common, and that's what will be done for the
+        example below.
 
     The top plot shows the input :math:`Z_{acce}(\Omega)`.
 
