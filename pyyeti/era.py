@@ -1128,7 +1128,7 @@ class ERA:
                 input_string = (
                     input(
                         "\nSelect modes for ERA fit (to keep or remove):\n"
-                        "\t- 'Enter' or '*' to keep marked modes\n"
+                        "\t- <Enter> or '*' to keep marked modes\n"
                         "\t- 'a' to keep all modes\n"
                         "\t- mode #s separated by space and/or comma (eg: 1, 2, 5)\n"
                     )
