@@ -11,6 +11,7 @@ from warnings import warn
 import numpy as np
 import scipy.linalg as linalg
 import scipy.sparse.linalg as sp_la
+import pandas as pd
 from pyyeti import locate, ytools, writer, ode
 from pyyeti.nastran import n2p
 
@@ -2432,16 +2433,22 @@ def cbcheck(
     -------
     A SimpleNamespace with the members:
 
-    m : 2d ndarray
-        Reordered and converted version of Mcb. Will equal Mcb if
-        there is no reordering or unit conversion.
-    k : 2d ndarray
-        Reordered and converted version of Kcb. Will equal Kcb if
-        there is no reordering or unit conversion.
     bset : 1d ndarray
         Vector giving location of reordered b-set. This will equal
         numpy.arange(len(bset)) if `reorder` is True. Will equal
         `bseto` if there is no reordering.
+    cb_frq : 1d ndarray
+        Vector of the fixed-base (Craig-Bampton) frequencies
+    effmass : pandas DataFrame
+        Modal effective mass table in mass units (Mcb[q, b]**2)
+    effmass_percent : pandas DataFrame
+        Modal effective mass table in percent of total
+    k : 2d ndarray
+        Reordered and converted version of Kcb. Will equal Kcb if
+        there is no reordering or unit conversion.
+    m : 2d ndarray
+        Reordered and converted version of Mcb. Will equal Mcb if
+        there is no reordering or unit conversion.
     rbs : 2d ndarray
         The stiffness-based rigid-body modes (b+q x 6). DOF order is
         consistent with returned `m` and `k`.
@@ -2913,12 +2920,14 @@ def cbcheck(
     )
 
     # compute modal-effective mass:
+    dirstr = "    T1      T2      T3      R1      R2      R3\n"
     if nq > 0:
+        effmass = (m[QB] @ rbg) ** 2
         # effective mass in percent of total mass:
-        effmass = (m[QB] @ rbg) ** 2 * (100 / np.diag(mg))
+        effmass_percent = effmass * (100 / np.diag(mg))
         num = np.arange(nq) + 1
         frq = np.sqrt(np.abs(np.diag(kqq))) / (2 * math.pi)
-        summ = np.sum(effmass, axis=0)
+        summ = np.sum(effmass_percent, axis=0)
         f.write("\n\nFIXED-BASE MODES w/ Percent Modal Effective Mass:\n\n")
         f.write("Using geometry-based rb modes for effective mass calcs.\n")
         if em_filt > 0:
@@ -2926,17 +2935,38 @@ def cbcheck(
                 f"\nPrinting only the modes with at least {em_filt:.1f}% effective "
                 "mass.\nThe sum includes all modes.\n"
             )
-            pv = np.any(effmass > em_filt, axis=1)
+            pv = np.any(effmass_percent > em_filt, axis=1)
             num = num[pv]
-            frq = frq[pv]
-            effmass = effmass[pv]
+            frq_filtered = frq[pv]
+            effmass_percent_filtered = effmass_percent[pv]
         frm = "{:6d}     {:10.3f}    " + "  {:6.2f}" * 6 + "\n"
-        dirstr = "    T1      T2      T3      R1      R2      R3\n"
         linestr = "  ------  ------  ------  ------  ------  ------\n"
         f.write("\nMode No.  Frequency (Hz) " + dirstr)
         f.write("--------  -------------- " + linestr)
-        writer.vecwrite(f, frm, num, frq, effmass)
+        writer.vecwrite(f, frm, num, frq_filtered, effmass_percent_filtered)
         f.write(("\nTotal Effective Mass:    " + "  {:6.2f}" * 6 + "\n").format(*summ))
     else:
         f.write("\n\nThere are no modes for the modal-effective-mass check.\n")
-    return SimpleNamespace(m=m, k=k, bset=bset, rbs=rbs, rbg=rbg, rbe=rbe, uset=uset)
+        effmass = effmass_percent = np.zeros((0, 6))
+        frq = np.zeros(0)
+
+    cols = dirstr.split()
+    effmass = pd.DataFrame(effmass, index=frq, columns=cols).rename_axis(
+        "Frq (Hz)", axis="index"
+    )
+    effmass_percent = pd.DataFrame(
+        effmass_percent, index=frq, columns=cols,
+    ).rename_axis("Frq (Hz)", axis="index")
+
+    return SimpleNamespace(
+        m=m,
+        k=k,
+        bset=bset,
+        rbs=rbs,
+        rbg=rbg,
+        rbe=rbe,
+        uset=uset,
+        effmass=effmass,
+        effmass_percent=effmass_percent,
+        cb_frq=frq,
+    )
