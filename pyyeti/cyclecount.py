@@ -9,6 +9,15 @@ import pandas as pd
 from pyyeti import locate
 
 try:
+    import numba
+except ImportError:
+    HAVE_NUMBA = False
+    numba_bool = bool
+else:
+    HAVE_NUMBA = True
+    numba_bool = numba.types.bool_
+
+try:
     import pyyeti.rainflow.c_rain as rain
 except ImportError:
     warnings.warn(
@@ -147,114 +156,229 @@ def rainflow(peaks, getoffsets=False, use_pandas=True):
     return rf
 
 
-def findap(y, tol=1e-6):
-    """
-    Find alternating local maximum and minimum points in a vector.
+if not HAVE_NUMBA:
 
-    Parameters
-    ----------
-    y : array_like
-        y-axis data vector
-    tol : scalar; optional
-        Tolerance value for detecting unique values; see
-        :func:`pyyeti.locate.find_unique`
+    def findap(y, tol=1e-6):
+        """
+        Find alternating local maximum and minimum points in a vector.
 
-    Returns
-    -------
-    pv : ndarray
-        Boolean vector for the alternating peaks in `y`.
+        Parameters
+        ----------
+        y : ndarray
+            y-axis data vector
+        tol : scalar; optional
+            Tolerance value for detecting unique values; see
+            :func:`pyyeti.locate.find_unique`
 
-    Notes
-    -----
-    `y` is flattened to one dimension before operations.
+        Returns
+        -------
+        pv : ndarray
+            Boolean vector for the alternating peaks in `y`.
 
-    When `y` has a series of equal points, the first of the series is
-    considered the peak. The first value in `y` is always considered a
-    peak. The last point is a peak if and only if it is not equal to
-    the point before it.
+        Notes
+        -----
+        `y` is flattened to one dimension before operations.
 
-    This routine is typically used to prepare a signal for cycle
-    counting.
+        When `y` has a series of equal points, the first of the series is
+        considered the peak. The first value in `y` is always considered a
+        peak. The last point is a peak if and only if it is not equal to
+        the point before it.
 
-    Examples
-    --------
-    >>> from pyyeti import cyclecount
-    >>> import numpy as np
-    >>> cyclecount.findap([1])
-    array([ True], dtype=bool)
-    >>> cyclecount.findap([1, 1, 1, 1])
-    array([ True, False, False, False], dtype=bool)
-    >>> tf = cyclecount.findap([1, 2, 3, 4, 4, -2, -2, 0])
-    >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-    array([0, 3, 5, 7]...)
-    >>> tf = cyclecount.findap([1, 2, 3, 4, 4, -2, -2, -2])
-    >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-    array([0, 3, 5]...)
-    >>> tf = cyclecount.findap([1, 2, 3, 4, -2])
-    >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-    array([0, 3, 4]...)
-    """
-    y = np.atleast_1d(y).ravel()
-    # example: [1, 2, 3, 4, 4, -2, -2, -2]
+        This routine is typically used to prepare a signal for cycle
+        counting.
 
-    if len(y) == 1:
-        return np.array([True])
+        Examples
+        --------
+        >>> from pyyeti import cyclecount
+        >>> import numpy as np
+        >>> cyclecount.findap(np.array([1]))
+        array([ True], dtype=bool)
+        >>> cyclecount.findap(np.array([1, 1, 1, 1]))
+        array([ True, False, False, False], dtype=bool)
+        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, 0]))
+        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+        array([0, 3, 5, 7]...)
+        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, -2]))
+        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+        array([0, 3, 5]...)
+        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, -2]))
+        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+        array([0, 3, 4]...)
+        """
+        y = y.ravel()
+        # example: [1, 2, 3, 4, 4, -2, -2, -2]
 
-    # first, find unique values (1st of series is unique)
-    u = locate.find_unique(y, tol)
-    # [ True,  True,  True,  True, False,  True, False, False]
+        if y.size == 1:
+            return np.array([True])
 
-    # work with unique values only:
-    if np.all(u):
-        yu = y
-        allu = True
-    else:
-        yu = y[u]
-        # [ 1,  2,  3,  4, -2]
-        allu = False
+        # first, find unique values (1st of series is unique)
+        u = locate.find_unique(y, tol)
+        # [ True,  True,  True,  True, False,  True, False, False]
 
-    # find signs of slopes to locate local max/mins:
-    s = np.sign(np.diff(yu))
-    # [ 1,  1,  1, -1]
+        # work with unique values only:
+        if np.all(u):
+            yu = y
+            allu = True
+        else:
+            yu = y[u]
+            # [ 1,  2,  3,  4, -2]
+            allu = False
 
-    # locate local max/mins:
-    pv = np.ones(len(yu), bool)
-    pv[1:-1] = abs(np.diff(s)) == 2
-    if len(yu) > 2:
-        pv[-1] = yu[-1] != yu[-2]
-    # [ True, False, False,  True,  True]
+        # find signs of slopes to locate local max/mins:
+        s = np.sign(np.diff(yu))
+        # [ 1,  1,  1, -1]
 
-    if allu:
-        return pv
+        # locate local max/mins:
+        pv = np.ones(yu.size, bool)
+        pv[1:-1] = np.abs(np.diff(s)) == 2
+        if yu.size > 2:
+            pv[-1] = yu[-1] != yu[-2]
+        # [ True, False, False,  True,  True]
 
-    # expand to full size:
-    PV = np.zeros(len(y), bool)  # non-uniques are not peaks
-    PV[u] = pv
-    # [ True, False, False,  True, False,  True, False, False]
-    return PV
+        if allu:
+            return pv
+
+        # expand to full size:
+        PV = np.zeros(y.size, bool)  # non-uniques are not peaks
+        PV[u] = pv
+        # [ True, False, False,  True, False,  True, False, False]
+        return PV
 
 
-def getbins(bins, mx, mn, right=True):
+else:
+
+    def findap(y, tol=1e-6):
+        """
+        Find alternating local maximum and minimum points in a vector.
+
+        Parameters
+        ----------
+        y : ndarray
+            y-axis data vector
+        tol : scalar; optional
+            Tolerance value for detecting unique values; see
+            :func:`pyyeti.locate.find_unique`
+
+        Returns
+        -------
+        pv : ndarray
+            Boolean vector for the alternating peaks in `y`.
+
+        Notes
+        -----
+        `y` is flattened to one dimension before operations.
+
+        When `y` has a series of equal points, the first of the series is
+        considered the peak. The first value in `y` is always considered a
+        peak. The last point is a peak if and only if it is not equal to
+        the point before it.
+
+        This routine is typically used to prepare a signal for cycle
+        counting.
+
+        Examples
+        --------
+        >>> from pyyeti import cyclecount
+        >>> import numpy as np
+        >>> cyclecount.findap(np.array([1]))
+        array([ True], dtype=bool)
+        >>> cyclecount.findap(np.array([1, 1, 1, 1]))
+        array([ True, False, False, False], dtype=bool)
+        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, 0]))
+        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+        array([0, 3, 5, 7]...)
+        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, -2]))
+        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+        array([0, 3, 5]...)
+        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, -2]))
+        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+        array([0, 3, 4]...)
+        """
+        y = y.ravel()
+        # example: [1, 2, 3, 4, 4, -2, -2, -2]
+
+        if y.size == 1:
+            return np.array([True])
+
+        if y.size == 2:
+            if y[1] == y[0]:
+                return np.array([True, False])
+            return np.array([True, True])
+
+        stol = np.abs(tol * np.abs(np.diff(y)).max())
+
+        PV = np.zeros(y.size, numba_bool)
+        PV[0] = True
+        prv = y[0]
+        i = 1
+        while i < y.size:
+            if np.abs(y[i] - prv) > stol:
+                break
+            i += 1
+
+        if i == y.size:
+            return PV
+
+        j = i
+        cur = y[j]
+        if cur > prv:
+            mountain = True  # find mountain peak
+        else:
+            mountain = False  # find valley floor
+
+        for i in range(i + 1, y.size):
+            nxt = y[i]
+            if np.abs(nxt - cur) > stol:
+                if mountain:
+                    if nxt < cur:
+                        PV[j] = True
+                        mountain = False
+                else:
+                    if nxt > cur:
+                        PV[j] = True
+                        mountain = True
+                cur = nxt
+                j = i
+
+        if np.abs(nxt - y[-2]) > stol:
+            PV[-1] = True
+        else:
+            PV[j] = True
+
+        return PV
+
+
+def getbins(bins, mx, mn, right=True, check_bounds=False):
     """
     Utility routine used by :func:`sigcount` to get bin boundaries.
 
     Parameters
     ----------
     bins : scalar integer or 1d array_like
-        Used to define bin boundaries. See description below.
+        Used to define bin boundaries. If array_like, must be
+        monotonically increasing. See description below.
     mx, mn : scalar
         Maximum and minimum values of data to be put in bins. `mx` and
         `mn` may be input in either order. If `bins` is a 1d
-        array_like, `mx` and `mn` are ignored.
+        array_like, `mx` and `mn` are ignored unless `check_bounds`
+        is True; see below.
     right : bool; optional
-        Indicates whether the bins include the rightmost edge or
-        not. If right == True (the default), then the bins [1,2,3,4]
-        indicate (1,2], (2,3], (3,4].
+        Indicates whether the bins include the rightmost edge or the
+        leftmost edge. If right == True (the default), then the bins
+        [1,2,3,4] indicate (1,2], (2,3], (3,4].
+    check_bounds : bool; optional
+        If True, routine will check to see if the final bin boundaries
+        cover the `mn` to `mx` range. Note that the range is guaranteed to be
+        covered if `bins` is a scalar.
 
     Returns
     -------
     bb : 1d ndarray
         The bin boundaries; ``length = bins + 1``
+    out_of_bounds : bool; optional
+        True if either `mx` or `mn` will fall out of range of the bins
+        (according to `right`). Only returned if `check_bounds` is
+        True.
 
     Notes
     -----
@@ -271,7 +395,14 @@ def getbins(bins, mx, mn, right=True):
     If `bins` is a vector, it defines the boundaries directly and is
     returned as is::
 
-        bb = bins
+        bb = np.array(bins)
+
+    Raises
+    ------
+    ValueError
+        If `mx` and `mn` are equal
+    ValueError
+        If `bins` is a vector but is not monotonically increasing
 
     Examples
     --------
@@ -280,8 +411,8 @@ def getbins(bins, mx, mn, right=True):
     array([  3.992,   6.   ,   8.   ,  10.   ,  12.   ])
     >>> cyclecount.getbins(4, 12, 4, right=False)
     array([  4.   ,   6.   ,   8.   ,  10.   ,  12.008])
-    >>> cyclecount.getbins([1, 2, 3, 4], 12, 4)
-    array([1, 2, 3, 4])
+    >>> cyclecount.getbins([1, 2, 3, 4], 12, 4, check_bounds=True)
+    (array([1, 2, 3, 4]), True)
     """
     bins = np.atleast_1d(bins)
     if mx < mn:
@@ -296,30 +427,88 @@ def getbins(bins, mx, mn, right=True):
             bb[0] -= p
         else:
             bb[-1] += p
+        out_of_bounds = False
     elif bins.ndim == 1:
         if np.any(np.diff(bins) <= 0):
             raise ValueError(
                 "when `bins` is input as a vector, it "
                 "must be monotonically increasing"
             )
-        bb = bins
+        bb = np.array(bins)
+        if check_bounds:
+            if right:
+                if mn <= bb[0] or mx > bb[-1]:
+                    out_of_bounds = True
+                else:
+                    out_of_bounds = False
+            else:
+                if mn < bb[0] or mx >= bb[-1]:
+                    out_of_bounds = True
+                else:
+                    out_of_bounds = False
+
+    if check_bounds:
+        return bb, out_of_bounds
+
     return bb
-
-
-def _inbin_right(v, low, upp):
-    return np.logical_and(v > low, v <= upp)
-
-
-def _inbin_left(v, low, upp):
-    return np.logical_and(v >= low, v < upp)
 
 
 def _getlabels(form, bins):
     return [form.format(i, j) for i, j in zip(bins[:-1], bins[1:])]
 
 
+# @njit(cache=True)
+def _binify(cycles, bins_range, bins_mean, right, ensure_boundaries=True):
+    num_bins_mean = len(bins_mean) - 1
+    num_bins_range = len(bins_range) - 1
+
+    bin_indices_range = np.digitize(cycles[:, 0], bins_range, right=right) - 1
+    bin_indices_mean = np.digitize(cycles[:, 1], bins_mean, right=right) - 1
+
+    markov_matrix = np.zeros((num_bins_mean, num_bins_range), np.float64)
+    if ensure_boundaries:
+        for i in range(len(cycles)):
+            bim = bin_indices_mean[i]
+            bir = bin_indices_range[i]
+            if (0 <= bim < num_bins_mean) and (0 <= bir < num_bins_range):
+                markov_matrix[bim, bir] += cycles[i, 2]
+    else:
+        for i in range(len(cycles)):
+            markov_matrix[bin_indices_mean[i], bin_indices_range[i]] += cycles[i, 2]
+
+    return markov_matrix
+
+
+if HAVE_NUMBA:
+    findap = numba.njit(cache=True)(findap)
+    _binify = numba.njit(cache=True)(_binify)
+
+    @numba.njit(cache=True)
+    def maxmin(x):
+        mn = mx = x[0]
+        for v in x[1:]:
+            if v > mx:
+                mx = v
+            elif v < mn:
+                mn = v
+        return mx, mn
+
+
+else:
+
+    def maxmin(x):
+        return x.max(), x.min()
+
+
 def binify(
-    rf, ampbins=10, meanbins=1, right=True, precision=3, retbins=False, use_pandas=True
+    rf,
+    ampbins=10,
+    meanbins=1,
+    right=True,
+    precision=3,
+    retbins=False,
+    use_pandas=True,
+    check_bounds=True,
 ):
     """
     Summarize cycle count results (as from :func:`rainflow`) into
@@ -330,7 +519,7 @@ def binify(
     rf : 2d array_like
         2d matrix with (at least) 3 columns: [amp, mean, count]. See
         :func:`rainflow`.
-    ampbins : scalar or 1d array_like
+    ampbins : scalar or 1d array_like; optional
         Defines the cycle amplitude bins; see :func:`getbins` for
         more complete description on how bins are defined.
 
@@ -341,14 +530,14 @@ def binify(
            vector        Defines lower bin boundaries
         ==============   =============================================
 
-    meanbins : scalar or 1d array_like
+    meanbins : scalar or 1d array_like; optional
         Defines the cycle mean-value bins; see `ampbins` description
         and :func:`getbins` for more complete description on how bins
         are defined.
     right : bool; optional
-        Indicates whether the bins include the rightmost edge or
-        not. If right == True (the default), then the bins [1,2,3,4]
-        indicate (1,2], (2,3], (3,4].
+        Indicates whether the bins include the rightmost edge or the
+        leftmost edge. If right == True (the default), then the bins
+        [1,2,3,4] indicate (1,2], (2,3], (3,4].
     precision : integer; optional
         Precision to use for DataFrame labels; only used if
         `use_pandas` is True.
@@ -357,6 +546,11 @@ def binify(
     use_pandas : bool; optional
         If True, this routine will return `table` as a pandas
         DataFrame.
+    check_bounds : bool; optional
+        If True, routine will check to see if the final bin boundaries
+        for both the amplitude and mean cover the range of the
+        data. Note that the range is guaranteed to be covered if the
+        `ampbins` and `meanbins` inputs are scalars.
 
     Returns
     -------
@@ -422,23 +616,18 @@ def binify(
     """
     rf = np.atleast_2d(rf)
     # rf = [amp, mean, count] columns
-    ampb = getbins(ampbins, rf[:, 0].max(), rf[:, 0].min(), right)
-    aveb = getbins(meanbins, rf[:, 1].max(), rf[:, 1].min(), right)
-    table = np.zeros((len(aveb) - 1, len(ampb) - 1))
 
-    if right:
-        _inbin = _inbin_right
+    ampb = getbins(ampbins, *maxmin(rf[:, 0]), right, check_bounds)
+    aveb = getbins(meanbins, *maxmin(rf[:, 1]), right, check_bounds)
+
+    if check_bounds:
+        ampb, out_amp = ampb
+        aveb, out_ave = aveb
+        out = out_amp or out_ave
     else:
-        _inbin = _inbin_left
+        out = False
 
-    for i in range(len(aveb) - 1):
-        rows = _inbin(rf[:, 1], aveb[i], aveb[i + 1])
-        if np.any(rows):
-            rfrows = rf[rows]
-            for j in range(len(ampb) - 1):
-                pv = _inbin(rfrows[:, 0], ampb[j], ampb[j + 1])
-                if np.any(pv):
-                    table[i, j] = np.sum(rfrows[:, 2][pv])
+    table = _binify(rf, ampb, aveb, right, out)
 
     if use_pandas:
         f = "{:." + str(precision) + "f}"
@@ -486,9 +675,9 @@ def sigcount(
         and :func:`getbins` for more complete description on how bins
         are defined.
     right : bool; optional
-        Indicates whether the bins include the rightmost edge or
-        not. If right == True (the default), then the bins [1,2,3,4]
-        indicate (1,2], (2,3], (3,4].
+        Indicates whether the bins include the rightmost edge or the
+        leftmost edge. If right == True (the default), then the bins
+        [1,2,3,4] indicate (1,2], (2,3], (3,4].
     precision : integer; optional
         Precision to use for DataFrame labels.
     retbins : bool; optional
