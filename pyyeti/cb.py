@@ -2939,6 +2939,9 @@ def cbcheck(
             num = num[pv]
             frq_filtered = frq[pv]
             effmass_percent_filtered = effmass_percent[pv]
+        else:
+            frq_filtered = frq
+            effmass_percent_filtered = effmass_percent
         frm = "{:6d}     {:10.3f}    " + "  {:6.2f}" * 6 + "\n"
         linestr = "  ------  ------  ------  ------  ------  ------\n"
         f.write("\nMode No.  Frequency (Hz) " + dirstr)

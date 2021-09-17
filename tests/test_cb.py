@@ -468,6 +468,31 @@ def test_cbcheck_determinate():
     assert comptable(s, sy, j, jy, label="KBB =", skip=1)
     compare_cbcheck_output(s, sy)
 
+    # check with no em filter:
+    with StringIO() as f:
+        out2 = cb.cbcheck(f, maa, kaa, b, b[:6])
+        s2 = f.getvalue()
+    s2 = s2.splitlines()
+
+    s_unique = [i for i in s if i not in s2]
+    # ['Printing only the modes with at least 2.0% effective mass.',
+    #  'The sum includes all modes.']
+
+    s2_unique = [i for i in s2 if i not in s]
+    # ['     5          7.025        0.00    0.00    0.00    0.00    0.88    0.00',
+    #  '     6          7.025        0.00    0.00    0.00    0.00    0.00    0.00',
+    #  '     7         10.913        0.00    0.00    0.00    0.00    0.00    1.52',
+    #  '    11         25.135        0.00    0.00    0.00    0.00    0.00    0.42',
+    #  '    12         25.140        1.03    0.00    0.00    0.00    0.00    0.00',
+    #  '    13         42.173        0.00    0.00    0.00    0.51    0.00    0.00',
+    #  '    14         42.193        0.00    0.00    1.04    0.00    1.02    0.00',
+    #  '    16         46.895        0.00    0.00    0.00    0.00    0.00    0.00',
+    #  '    17         69.173        0.00    0.13    0.00    0.00    0.00    0.99']
+
+    assert len(s2) > len(s)
+    assert len(s_unique) == 2
+    assert len(s2_unique) == 9
+
 
 def test_cbcheck_unit_convert():
     nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
