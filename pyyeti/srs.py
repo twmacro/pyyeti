@@ -1686,7 +1686,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         if the input is an envelope over SDOF responses from
         time-domain signals, excitation from nearby frequencies may
         already be accounted for. Running this routine in that
-        scenario may just add unneeded conservatism.  Think of this
+        scenario may just add unneeded conservatism. Think of this
         routine as a simulation of a sine test of a bunch SDOF
         systems.
 
