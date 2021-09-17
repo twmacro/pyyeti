@@ -3008,8 +3008,8 @@ def _wt_circle1_coord(f, cord_id, center, basic2local, node0, node_id0, names):
         ]
     }
     comment = (
-        f"Origin of local CORD2R {cord_id} is at center of {names[0]}; z is "
-        "perpendicular to plane of circle, and x is aligned with "
+        f"Origin of local CORD2R {cord_id} is at center of {names[0]} ring;"
+        " z is perpendicular to plane of circle, and x is aligned with "
         f"node {node0} (and new node {node_id0})."
     )
     f.write(mkcomment(comment))
@@ -3355,6 +3355,14 @@ def wtrspline_rings(
         ...     1, ring1, ring2, 1001, 2001,
         ...     makeplot=ax)   # doctest: +SKIP
         $
+        $ Fit of Spacecraft grids:
+        $     Center: [0.000, 0.000, 0.000] (in basic)
+        $     Radius: 50.0
+        $
+        $ Fit of Ring 2 grids:
+        $     Center: [1.000, -1.776e-15, -3.553e-15] (in basic)
+        $     Radius: 45.0
+        $
         $ Origin of local CORD2R 10010 is at center of Spacecraft; z is
         $ perpendicular to plane of circle, and x is aligned with node 1 (and
         $ new node 1001).
@@ -3461,6 +3469,18 @@ def wtrspline_rings(
 
     @ytools.write_text_file
     def _write_file(f):
+        # write circle info for reference:
+        for i in range(2):
+            ctr = circ_parms[i].center
+            ctr_string = f"[{ctr[0]:#.4g}, {ctr[1]:#.4g}, {ctr[2]:#.4g}]"
+            comment = (
+                "$\n"
+                f"$ Fit of {names[i]} grids:\n"
+                f"$     Center: {ctr_string} (in basic)\n"
+                f"$     Radius: {circ_parms[i].radius}\n"
+            )
+            f.write(comment)
+
         # write local coordinate system to file:
         _wt_circle1_coord(f, cord_id, center, basic2local, IDs[0][0], node_id0, names)
 
