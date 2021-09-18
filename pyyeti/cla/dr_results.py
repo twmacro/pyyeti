@@ -1430,22 +1430,6 @@ class DR_Results(OrderedDict):
                     arr = res.srs.srs[Q]
                     res.srs.ext[Q] = arr.mean(axis=0) + k * arr.std(ddof=1, axis=0)
 
-    def form_stat_ext(self, k):
-        """
-        Form statistical extreme response for event results
-
-        Notes
-        -----
-        This routine is deprecated. It has been renamed to
-        :func:`calc_stat_ext` instead.
-        """
-        warnings.warn(
-            "`form_stat_ext` has been renamed to `calc_stat_ext` and will "
-            "removed in a future version.",
-            FutureWarning,
-        )
-        return self.calc_stat_ext(k)
-
     def all_base_events(self, top_level_name="Top Level"):
         """
         A generator for looping over all base events

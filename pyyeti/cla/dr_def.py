@@ -761,8 +761,6 @@ class DR_Def(OrderedDict):
         # get dictionary of inputs and trim out specially handled
         # entries:
         frame = inspect.currentframe()
-        # inspect.getargvalues is deprecated
-        # args, _, _, values = inspect.getargvalues(frame)
         co = frame.f_code
         nargs = co.co_argcount + co.co_kwonlyargcount
         args = co.co_varnames[:nargs]
