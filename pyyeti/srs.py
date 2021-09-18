@@ -1782,14 +1782,14 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         ...     sh, resp = srs.srs_frf(
         ...         frf, frf_frq, srs_frq, Q, getresp=True
         ...     )
-        ...     _ = ax[1].plot(srs_frq, sh / Q, label=f"{Q = }")
+        ...     _ = ax[1].plot(srs_frq, sh / Q, label=f"Q = {Q}")
         ...     _ = ax[1].legend()
         ...
         ...     i = np.searchsorted(srs_frq, sdof)
         ...     _ = ax[2].plot(
         ...         resp["freq"],
         ...         abs(resp["frfs"][:, 0, i]) / Q,
-        ...         label=f"{Q = }",
+        ...         label=f"Q = {Q}",
         ...     )
         ...     _ = ax[2].legend()
         ...
@@ -1801,7 +1801,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         ...     _ = ax[3].plot(
         ...         resp_unity["freq"],
         ...         abs(resp_unity["frfs"][:, 0, i]) / Q,
-        ...         label=f"{Q = }",
+        ...         label=f"Q = {Q}",
         ...     )
         ...     _ = ax[3].legend()
         >>>
@@ -1860,7 +1860,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         >>> factor = np.sqrt(Q ** 2 + 1)
         >>>
         >>> eqsine = srs.srs_frf(frf, frf_frq, srs_frq, Q) / factor
-        >>> lbl = f"Eq-Sine0; Eq-Sine of Input, {Q = }"
+        >>> lbl = f"Eq-Sine0; Eq-Sine of Input, Q = {Q}"
         >>> _ = ax.plot(srs_frq, eqsine, label=lbl)
         >>>
         >>> for level in range(1):
@@ -1871,7 +1871,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         ...     _ = ax.plot(srs_frq, eqsine, label=lbl)
         >>>
         >>> _ = ax.legend()
-        >>> _ = ax.set_title(f"Eq-Sine (Abs-Acce/Q), {Q = }")
+        >>> _ = ax.set_title(f"Eq-Sine (Abs-Acce/Q), Q = {Q}")
         >>> _ = ax.set_ylabel("Abs-Acce Eq-Sine (G)")
         >>> _ = ax.set_xlabel(r"$\omega_n$ Frequency (Hz)")
         >>> _ = ax.set_xlim(39.5, 49.5)
