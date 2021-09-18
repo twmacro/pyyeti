@@ -2,6 +2,7 @@
 import scipy.linalg as la
 import numpy as np
 from ._base_ode_class import _BaseODE
+from ._utilities import _process_incrb
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -160,7 +161,7 @@ class FreqDirect(_BaseODE):
         self._common_precalcs(m, b, k, h=None, rb=rb, rf=rf)
         self._mk_slices()  # dorbel=False)
 
-    def fsolve(self, force, freq, incrb=2, rf_disp_only=False):
+    def fsolve(self, force, freq, incrb="dva", rf_disp_only=False):
         """
         Solve equations of motion in frequency domain.
 
@@ -171,16 +172,29 @@ class FreqDirect(_BaseODE):
         freq : 1d ndarray
             Frequency vector in Hz; solution will be computed at all
             frequencies in `freq`
-        incrb : 0, 1, or 2; optional
-            Specifies how to handle rigid-body responses:
+        incrb : string; optional
+            Specifies how to handle rigid-body responses: can include
+            "a", "v", and/or "d" to specify that the rigid-body
+            response should not be zeroed out for acceleration,
+            velocity, and/or displacement. For example, ``incrb=""``
+            means that no rigid-body responses are included, and
+            ``incrb="va"`` (or ``incrb="av"``) means that the
+            rigid-body response will be included for acceleration and
+            velocity but not displacement. Letters can be included in
+            any order.
 
-            ======  ==============================================
+            For backward compatibility to versions before 0.99.9,
+            `incrb` can also be an integer 0, 1, or 2. This integer
+            format is deprecated and will be removed in a future
+            version:
+
+            ======  =================================================
             incrb   description
-            ======  ==============================================
-               0    no rigid-body is included
-               1    acceleration and velocity rigid-body only
-               2    all of rigid-body is included
-            ======  ==============================================
+            ======  =================================================
+               0    same as "" (no rigid-body is included)
+               1    same as "av"
+               2    same as "dva" (all rigid-body responses included)
+            ======  =================================================
 
         rf_disp_only : bool; optional
             This option specifies how to handle the velocity and
@@ -209,6 +223,7 @@ class FreqDirect(_BaseODE):
         See :class:`FreqDirect` for more discussion on how rigid-body
         response is handled.
         """
+        incrb = _process_incrb(incrb)  # deprecated in v0.99.9
         force = np.atleast_2d(force)
         freq = np.atleast_1d(freq)
         d, v, a, force = self._init_dva(
@@ -247,9 +262,11 @@ class FreqDirect(_BaseODE):
         a[kdof] = -(Omega ** 2) * d[kdof]
         v[kdof] = 1j * Omega * d[kdof]
 
-        if incrb < 2:
+        if "d" not in incrb:
             d[self.rb] = 0
-            if incrb == 0:
-                a[self.rb] = 0
-                v[self.rb] = 0
+        if "v" not in incrb:
+            v[self.rb] = 0
+        if "a" not in incrb:
+            a[self.rb] = 0
+
         return self._solution_freq(d, v, a, freq)

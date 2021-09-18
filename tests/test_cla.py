@@ -701,7 +701,7 @@ def owlab(pth):
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T, axis=1, fill_value=0.0)(freq2)
             if j == 0:
                 results2.solvepsd(
-                    nas, caseid, DR, fs, F, T, freq2, verbose=verbose, incrb=1
+                    nas, caseid, DR, fs, F, T, freq2, verbose=verbose, incrb="av"
                 )
                 verbose = not verbose
                 freq2 = +freq2  # make copy

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import scipy.linalg as la
 import numpy as np
 from ._base_ode_class import _BaseODE
-from ._utilities import get_su_coef, eigss, addconj, delconj
+from ._utilities import get_su_coef, eigss, addconj, delconj, _process_incrb
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -689,7 +689,7 @@ class SolveUnc(_BaseODE):
                 flex = self._get_f2x_complex_unc(phi, velo)
         return self._flex(flex, phi)
 
-    def fsolve(self, force, freq, incrb=2, rf_disp_only=False):
+    def fsolve(self, force, freq, incrb="dva", rf_disp_only=False):
         """
         Solve frequency-domain modal equations of motion using
         uncoupled equations.
@@ -701,16 +701,28 @@ class SolveUnc(_BaseODE):
         freq : 1d ndarray
             Frequency vector in Hz; solution will be computed at all
             frequencies in `freq`
-        incrb : 0, 1, or 2; optional
-            Specifies how to handle rigid-body responses:
+        incrb : string; optional
+            Specifies how to handle rigid-body responses: can include
+            "a", "v", and/or "d" to specify that the rigid-body
+            response should be computed for acceleration, velocity,
+            and/or displacement. For example, ``incrb=""`` means that
+            no rigid-body responses are included, and ``incrb="va"``
+            (or ``incrb="av"``) means that the rigid-body response
+            will be included for acceleration and velocity but not
+            displacement. Letters can be included in any order.
 
-            ======  ==============================================
+            For backward compatibility to versions before 0.99.9,
+            `incrb` can also be an integer 0, 1, or 2. This integer
+            format is deprecated and will be removed in a future
+            version:
+
+            ======  =================================================
             incrb   description
-            ======  ==============================================
-               0    no rigid-body is included
-               1    acceleration and velocity rigid-body only
-               2    all of rigid-body is included (see note below)
-            ======  ==============================================
+            ======  =================================================
+               0    same as "" (no rigid-body is included)
+               1    same as "av"
+               2    same as "dva" (all rigid-body responses included)
+            ======  =================================================
 
         rf_disp_only : bool; optional
             This option specifies how to handle the velocity and
@@ -742,8 +754,9 @@ class SolveUnc(_BaseODE):
         accelerations are determined according to `rf_disp_only`.
 
         Rigid-body velocities and displacements are undefined where
-        `freq` is zero. So, if `incrb` is 1 or 2, this routine just
-        sets these responses to zero.
+        `freq` is zero. So, if those rigid-body responses are
+        requested (with `incrb`), this routine just sets these
+        responses to zero.
 
         See also
         --------
@@ -802,6 +815,7 @@ class SolveUnc(_BaseODE):
             ...     _ = plt.xlabel('Frequency (Hz)')
             >>> fig.tight_layout()
         """
+        incrb = _process_incrb(incrb)  # deprecated in v0.99.9
         force = np.atleast_2d(force)
         freq = np.atleast_1d(freq)
         d, v, a, force = self._init_dva(
@@ -1759,15 +1773,19 @@ class SolveUnc(_BaseODE):
             rb = self.rb
             if self.m is not None:
                 if unc:
-                    a[rb] = self.invm[self._rb] * force[rb]
+                    a_rb = self.invm[self._rb] * force[rb]
                 else:
-                    a[rb] = la.lu_solve(self.imrb, force[rb], check_finite=False)
+                    a_rb = la.lu_solve(self.imrb, force[rb], check_finite=False)
             else:
-                a[rb] = force[rb]
-            pvnz = freqw != 0
-            v[rb, pvnz] = (-1j / freqw[pvnz]) * a[rb, pvnz]
-            if incrb == 2:
-                d[rb, pvnz] = (-1.0 / freqw2[pvnz]) * a[rb, pvnz]
+                a_rb = force[rb]
+            if "d" in incrb or "v" in incrb:
+                pvnz = freqw != 0
+                if "v" in incrb:
+                    v[rb, pvnz] = (-1j / freqw[pvnz]) * a_rb[:, pvnz]
+                if "d" in incrb:
+                    d[rb, pvnz] = (-1.0 / freqw2[pvnz]) * a_rb[:, pvnz]
+            if "a" in incrb:
+                a[rb] = a_rb
 
     def _solve_freq_unc(self, d, v, a, force, freq, incrb):
         """Solve the uncoupled equations for

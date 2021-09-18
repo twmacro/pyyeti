@@ -15,6 +15,7 @@ except TypeError:
 
 
 __all__ = [
+    "_process_incrb",
     "get_su_coef",
     "get_freq_damping",
     "eigss",
@@ -23,6 +24,23 @@ __all__ = [
     "make_A",
     "solvepsd",
 ]
+
+
+def _process_incrb(incrb):
+    if not isinstance(incrb, str):
+        warnings.warn(
+            "the integer form of `incrb` is deprecated and will be "
+            "removed in a future version; use the string format "
+            "instead; eg: 'dva' instead of 2",
+            FutureWarning,
+        )
+        return {0: "", 1: "va", 2: "dva"}[incrb]
+    else:
+        if len(set(incrb).difference(set("dva"))) > 0:
+            raise ValueError(
+                "`incrb` must only contain the letters: 'a', 'v', and/or 'd'"
+            )
+    return incrb
 
 
 def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
@@ -989,7 +1007,7 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, rbduf=1.0, elduf=1.0, **kwargs)
             # solve for unit frequency response function:
             unitforce = np.ones((1, len(freq)))
             genforce = t_frc[:, i:i+1] @ unitforce
-            sol = fs.fsolve(genforce, freq, incrb)
+            sol = fs.fsolve(genforce, freq, incrb="av")
             frf = (drma @ sol.a
                    + drmv @ sol.v
                    + drmd @ sol.d

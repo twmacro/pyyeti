@@ -240,7 +240,7 @@ class SolveCDF(SolveUnc):
         """
         return super().generator(nt, F0, d0, v0, static_ic)
 
-    def fsolve(self, force, freq, incrb=2, rf_disp_only=False):
+    def fsolve(self, force, freq, incrb="dva", rf_disp_only=False):
         """
         Solve frequency-domain modal equations of motion using
         uncoupled equations.
