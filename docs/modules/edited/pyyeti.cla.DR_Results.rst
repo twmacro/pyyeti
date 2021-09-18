@@ -1,4 +1,4 @@
-pyyeti.cla.DR\_Results
+﻿pyyeti.cla.DR\_Results
 ======================
 
 .. currentmodule:: pyyeti.cla
@@ -24,7 +24,6 @@ pyyeti.cla.DR\_Results
       ~DR_Results.copy
       ~DR_Results.delete_extreme
       ~DR_Results.form_extreme
-      ~DR_Results.form_stat_ext
       ~DR_Results.frf_data_recovery
       ~DR_Results.fromkeys
       ~DR_Results.get
