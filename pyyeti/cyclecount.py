@@ -459,6 +459,8 @@ def _getlabels(form, bins):
 
 # @njit(cache=True)
 def _binify(cycles, bins_range, bins_mean, right, ensure_boundaries=True):
+    # Many thanks to Daniel Kowollik for contributing the original
+    # implementation of this routine! :)
     num_bins_mean = len(bins_mean) - 1
     num_bins_range = len(bins_range) - 1
 
