@@ -3010,6 +3010,28 @@ def test_frf_data_recovery():
         results.rptext(direc=direc)
         results.resp_plots(direc=direc)
         assert os.path.exists("temp_frf/Case 1_frf.pdf")
+        assert os.path.exists("temp_frf/kc_forces.ext")
+        assert os.path.exists("temp_frf/accels.ext")
+        assert os.path.exists("temp_frf/accels2.ext")
+        assert not os.path.exists("temp_frf/noaccels.ext")
+    finally:
+        # pass
+        shutil.rmtree("./temp_frf", ignore_errors=True)
+
+    try:
+        direc = "temp_frf"
+        results.rptext(direc=direc, drms=["accels", "kc_forces"])
+        assert not os.path.exists("temp_frf/Case 1_frf.pdf")
+        assert os.path.exists("temp_frf/kc_forces.ext")
+        assert os.path.exists("temp_frf/accels.ext")
+        assert not os.path.exists("temp_frf/accels2.ext")
+        assert not os.path.exists("temp_frf/noaccels.ext")
+
+        results.rpttab(direc=direc, drms=["accels", "accels2"])
+        assert not os.path.exists("temp_frf/kc_forces.tab")
+        assert os.path.exists("temp_frf/accels.tab")
+        assert os.path.exists("temp_frf/accels2.tab")
+        assert not os.path.exists("temp_frf/noaccels.tab")
     finally:
         # pass
         shutil.rmtree("./temp_frf", ignore_errors=True)

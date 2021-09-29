@@ -1942,7 +1942,13 @@ class DR_Results(OrderedDict):
                     pass
 
     def rptext(
-        self, event=None, direc="ext", doabsmax=False, numform="{:13.5e}", perpage=-1
+        self,
+        event=None,
+        drms=None,
+        direc="ext",
+        doabsmax=False,
+        numform="{:13.5e}",
+        perpage=-1,
     ):
         """
         Writes .ext files for all max/min results.
@@ -1952,6 +1958,9 @@ class DR_Results(OrderedDict):
         event : string or None; optional
             String identifying the event; if None, event is taken from
             each ``self[name].event``
+        drms : list of data recovery categories or None; optional
+            Data recovery categories to compare. If None, compare all
+            available.
         direc : string; optional
             Name of directory to put tables; will be created if
             doesn't exist
@@ -1972,13 +1981,16 @@ class DR_Results(OrderedDict):
         """
         if not os.path.exists(direc):
             os.mkdir(direc)
-        for name, res in self.items():
-            self._check_labels_len(name, res)
+        if drms is None:
+            drms = self.keys()
+        for drm in drms:
+            res = self[drm]
+            self._check_labels_len(drm, res)
             mission = res.mission
             if event is None:
                 event = res.event
             title = f"{mission} - {event} Extrema Results"
-            filename = os.path.join(direc, name + ".ext")
+            filename = os.path.join(direc, drm + ".ext")
             rptext1(
                 res,
                 filename,
@@ -1988,7 +2000,9 @@ class DR_Results(OrderedDict):
                 perpage=perpage,
             )
 
-    def rpttab(self, event=None, direc="tab", count_filter=1e-6, excel=False):
+    def rpttab(
+        self, event=None, drms=None, direc="tab", count_filter=1e-6, excel=False
+    ):
         """
         Write results tables with bin count information.
 
@@ -1997,6 +2011,9 @@ class DR_Results(OrderedDict):
         event : string or None; optional
             String identifying the event; if None, event is taken from
             each ``self[name].event``
+        drms : list of data recovery categories or None; optional
+            Data recovery categories to compare. If None, compare all
+            available.
         direc : string; optional
             Name of directory to put tables; will be created if
             doesn't exist
@@ -2033,19 +2050,21 @@ class DR_Results(OrderedDict):
         else:
             workbook = None
         try:
-            for name in sorted(self):
-                res = self[name]
-                self._check_labels_len(name, res)
+            if drms is None:
+                drms = self.keys()
+            for drm in drms:
+                res = self[drm]
+                self._check_labels_len(drm, res)
                 mission = res.mission
                 if event is None:
                     event = res.event
                 ttl = f"{mission} - {event} Extrema Results and Bin Count Tables"
                 if excel:
                     if not isinstance(excel, str):
-                        filename = os.path.join(direc, name + ".xlsx")
+                        filename = os.path.join(direc, drm + ".xlsx")
                 else:
-                    filename = os.path.join(direc, name + ".tab")
-                rpttab1(res, filename, title=ttl, count_filter=count_filter, name=name)
+                    filename = os.path.join(direc, drm + ".tab")
+                rpttab1(res, filename, title=ttl, count_filter=count_filter, name=drm)
         finally:
             if workbook is not None:
                 workbook.close()
