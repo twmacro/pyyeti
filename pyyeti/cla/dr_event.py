@@ -399,8 +399,8 @@ class DR_Event:
         Returns
         -------
         results : :class:`DR_Results` instance
-            Subclass of dict containing categories with results (see
-            :class:`DR_Results`).
+            Subclass of :class:`collections.OrderedDict` containing
+            categories with results (see :class:`DR_Results`).
 
         Notes
         -----
