@@ -3328,7 +3328,6 @@ def wtrspline_rings(
 
         >>> import numpy as np
         >>> import matplotlib.pyplot as plt
-        >>> from mpl_toolkits.mplot3d import Axes3D
         >>> from pyyeti import nastran
         >>> theta1 = np.arange(0, 359, 360/5)*np.pi/180
         >>> rad1 = 50.
