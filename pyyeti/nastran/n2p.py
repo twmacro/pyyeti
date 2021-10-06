@@ -688,14 +688,18 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
         Bool array with True values indicating the rows in `drmrb`
         where xyz triples were found, if any.
     coords : 2d ndarray
-        Contains coordinates of each xyz triplet. Size is n x 3 where
-        n is the number of rows in `drmrb`. The coordinates of each
-        triplet is repeated 3 times; other, non-triplet rows are
-        filled with ``np.nan``.
+        Contains coordinates of each xyz triplet relative to the
+        reference of the rigid-body modes. Size is n x 3 where n is
+        the number of rows in `drmrb`. The coordinates of each triplet
+        is repeated 3 times; other, non-triplet rows are filled with
+        ``np.nan``.
     scales : 1d ndarray
         Length n array containing the scale of each
         triplet. Non-triplet rows are filled with ``np.nan``. `scales`
         is used to handle different output units.
+    model_scale : scalar
+        The maximum model dimension found: ``model_scale =
+        abs(coords).max()``
     Ts : list of 2d ndarrays; optional
         Only returned if `get_trans` is True. List of 3x3 transforms
         that converts each triplet of xyz rows to the coordinate
@@ -836,6 +840,12 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
     else:
         outmats = None
 
+    # first loop through matrix to find potential triples and to get
+    # the scale (maximum dimension)of the model:
+    rows = []  # rows where triples might start
+    transforms = []
+    triplet_scales = []
+    model_scale = -1.0
     j = 0
     while j + 2 < n:
         pv = slice(j, j + 3)
@@ -868,6 +878,12 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
         T2 = T1.T / scale
         rbrot = T2 @ drmrb[pv, 3:]
 
+        # we have a potential triple; save info, get scale if the
+        # pattern matches
+        rows.append(j - 1)  # j was incremented above for next loop
+        transforms.append(T2)
+        triplet_scales.append(scale)
+
         # check for standard pattern in rotation columns:
         #   0,  z, -y
         #  -z,  0,  x
@@ -876,6 +892,23 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
         if not np.allclose(rbrot, -rbrot.T, atol=tol * mx):
             continue
 
+        # triple found:
+        model_scale = max(model_scale, mx)
+        j += 2
+
+    # if no rbrot's matched the pattern, it *could* be because all
+    # nodes are at [0, 0, 0] ... so, as a last ditch effort, just set
+    # scale equal to 1.0:
+    if model_scale == -1.0:
+        model_scale = 1.0
+
+    # final loop to check for true matches amongst
+    # the potential matches:
+    for j, T2, scale in zip(rows, transforms, triplet_scales):
+        pv = slice(j, j + 3)
+        rbrot = T2 @ drmrb[pv, 3:]
+        if not np.allclose(rbrot, -rbrot.T, atol=tol * model_scale):
+            continue
         x = (rbrot[1, 2] - rbrot[2, 1]) / 2
         y = (rbrot[2, 0] - rbrot[0, 2]) / 2
         z = (rbrot[0, 1] - rbrot[1, 0]) / 2
@@ -889,10 +922,9 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
         if outmats:
             for val in outmats.values():
                 val[pv] = T2 @ val[pv]
-        j += 2
 
     pv = ~np.isnan(coords[:, 0])
-    s = SimpleNamespace(pv=pv, coords=coords, scales=scales)
+    s = SimpleNamespace(pv=pv, coords=coords, scales=scales, model_scale=model_scale)
     if get_trans:
         s.Ts = Ts
     if outmats:
