@@ -496,7 +496,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=None):
     frange : 1d array_like or None; optional
         This option can be used to limit the frequency range of the
         output frequencies. If None, this option is ignored for cases
-        where `freq` is used, but is set internally to ``(25.0,
+        where `freq` is used, but is set internally to ``(1.0,
         np.inf))`` for cases where `n_oct` is used. Only the first and
         last elements of `frange` are used. Note that the output
         frequencies will be trimmed further if needed by the first and
@@ -623,7 +623,7 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=None):
 
     if freq is None:
         if frange is None:
-            frange = (25.0, np.inf)
+            frange = (1.0, np.inf)
         frange = _set_frange(frange, 1.0, F[-1])
         Wctr, FL, FU = get_freq_oct(n_oct, exact=True, frange=frange)
     else:

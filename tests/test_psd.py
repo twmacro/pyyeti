@@ -124,7 +124,7 @@ def test_rescale():
     p6, f6, msv6, ms6 = psd.rescale(p, f, n_oct=6)
     p6_2, f6_2, msv6_2, ms6_2 = psd.rescale(p, f, freq=f6)
     p12, f12, msv12, ms12 = psd.rescale(p6, f6, n_oct=12)
-    i = int(25 / 2 ** (1 / 6))
+    i = int(1.0 / 2 ** (1 / 6))
     msv1 = np.sum(p[i:] * (f[1] - f[0]))
     assert abs(msv1 / msv3 - 1) < 0.12
     assert abs(msv1 / msv6 - 1) < 0.06
