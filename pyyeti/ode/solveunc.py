@@ -859,17 +859,17 @@ class SolveUnc(_BaseODE):
         Bp = pc.Bp
         D = d[kdof]
         V = v[kdof]
-        if self.order == 1:
-            ABF = A[:, None] * force[kdof, :-1] + B[:, None] * force[kdof, 1:]
-            ABFp = Ap[:, None] * force[kdof, :-1] + Bp[:, None] * force[kdof, 1:]
-        else:
-            ABF = (A + B)[:, None] * force[kdof, :-1]
-            ABFp = (Ap + Bp)[:, None] * force[kdof, :-1]
         di = D[:, 0]
         vi = V[:, 0]
         for i in range(nt - 1):
-            din = F * di + G * vi + ABF[:, i]
-            vi = V[:, i + 1] = Fp * di + Gp * vi + ABFp[:, i]
+            if self.order == 1:
+                ABFi = A * force[kdof, :-1][:, i] + B * force[kdof, 1:][:, i]
+                ABFpi = Ap * force[kdof, :-1][:, i] + Bp * force[kdof, 1:][:, i]
+            else:
+                ABFi = (A + B) * force[kdof, :-1][:, i]
+                ABFpi = (Ap + Bp) * force[kdof, :-1][:, i]
+            din = F * di + G * vi + ABFi
+            vi = V[:, i + 1] = Fp * di + Gp * vi + ABFpi
             D[:, i + 1] = di = din
         if not self.slices:
             d[kdof] = D
