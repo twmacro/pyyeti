@@ -5,12 +5,47 @@ import numpy as np
 from ._base_ode_class import _BaseODE
 from ._utilities import get_su_coef, eigss, addconj, delconj, _process_incrb
 
+try:
+    import numba
+except ImportError:
+    HAVE_NUMBA = False
+else:
+    HAVE_NUMBA = True
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
     np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
+
+
+def _solve_real_unc_inner_loop(order, D, V, F, G, A, B, Fp, Gp, Ap, Bp, fk, nt):
+    di = D[:, 0]
+    vi = V[:, 0]
+    fki = fk[:, 0]
+    if order == 1:
+        for i in range(1, nt):
+            fki1 = fk[:, i]
+            ABFi = A * fki + B * fki1
+            ABFpi = Ap * fki + Bp * fki1
+            din = F * di + G * vi + ABFi
+            V[:, i] = vi = Fp * di + Gp * vi + ABFpi
+            D[:, i] = di = din
+            fki = fki1
+    else:
+        AB = A + B
+        ABp = Ap + Bp
+        for i in range(1, nt):
+            ABFi = AB * fki
+            ABFpi = ABp * fki
+            din = F * di + G * vi + ABFi
+            V[:, i] = vi = Fp * di + Gp * vi + ABFpi
+            D[:, i] = di = din
+            fki = fk[:, i]
+
+
+if HAVE_NUMBA:
+    _solve_real_unc_inner_loop = numba.njit(cache=True)(_solve_real_unc_inner_loop)
 
 
 class SolveUnc(_BaseODE):
@@ -849,28 +884,25 @@ class SolveUnc(_BaseODE):
             return
         pc = self.pc
         kdof = self.kdof
-        F = pc.F
-        G = pc.G
-        A = pc.A
-        B = pc.B
-        Fp = pc.Fp
-        Gp = pc.Gp
-        Ap = pc.Ap
-        Bp = pc.Bp
         D = d[kdof]
         V = v[kdof]
-        if self.order == 1:
-            ABF = A[:, None] * force[kdof, :-1] + B[:, None] * force[kdof, 1:]
-            ABFp = Ap[:, None] * force[kdof, :-1] + Bp[:, None] * force[kdof, 1:]
-        else:
-            ABF = (A + B)[:, None] * force[kdof, :-1]
-            ABFp = (Ap + Bp)[:, None] * force[kdof, :-1]
-        di = D[:, 0]
-        vi = V[:, 0]
-        for i in range(nt - 1):
-            din = F * di + G * vi + ABF[:, i]
-            vi = V[:, i + 1] = Fp * di + Gp * vi + ABFp[:, i]
-            D[:, i + 1] = di = din
+
+        _solve_real_unc_inner_loop(
+            self.order,
+            D,
+            V,
+            pc.F,
+            pc.G,
+            pc.A,
+            pc.B,
+            pc.Fp,
+            pc.Gp,
+            pc.Ap,
+            pc.Bp,
+            force[kdof],
+            nt,
+        )
+
         if not self.slices:
             d[kdof] = D
             v[kdof] = V
