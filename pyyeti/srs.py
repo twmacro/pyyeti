@@ -1265,11 +1265,10 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
        ``delta_f`` is good since you can compare to the Miles'
        equation results.
 
-    To estimate a peak from the RMS, consider using
-    ``sqrt(2*log(f*T0))`` for the peak factor instead of the common 3
-    (for 3-rms or 3-sigma). This peak factor is explained under the
-    `resp_time` option in
-    :func:`pyyeti.cla.DR_Results.psd_data_recovery`.
+    To estimate a peak from the RMS, consider using :math:`\sqrt{2
+    \ln(f \cdot T_0)}` for the peak factor instead of the common 3
+    (for 3-rms or 3-sigma). This peak factor is derived in the Notes
+    section in :func:`pyyeti.fdepsd.fdepsd`.
 
     See also
     --------

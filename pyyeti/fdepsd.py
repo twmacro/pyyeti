@@ -380,25 +380,25 @@ def fdepsd(
 
     To estimate the maximum peak for the response of a single DOF
     system with frequency :math:`f`, find the amplitude that would be
-    expected to occur once within the allotted time (:math:`T_0`). That
-    is, set the product of the probability of a cycle amplitude being
-    greater than :math:`A` and the number of cycles equal to 1.0. The
-    number of cycles of :math:`f` Hz is:
+    expected to occur once within the allotted time
+    (:math:`T_0`). That is, set the product of the probability of a
+    cycle amplitude being greater than :math:`A` and the number of
+    cycles equal to 1.0, and then solve for :math:`A`.
 
-    .. math::
-        N = f \cdot T_0
+    The number of cycles of :math:`f` Hz is :math:`N = f \cdot T_0`.
 
     Therefore:
 
     .. math::
         \begin{aligned}
+
+        Prob[peak > A] \cdot N &= 1.0
+
         e ^ {\frac{-A^2}{2 \sigma^2}} f \cdot T_0 &= 1.0
 
         \frac{-A^2}{2 \sigma^2} &= \ln(1.0) - \ln(f \cdot T_0)
 
         \frac{A^2}{2 \sigma^2} &= \ln(f \cdot T_0)
-
-        A^2 &= 2 \sigma^2 \ln(f \cdot T_0)
 
         A &= \sqrt{2 \ln(f \cdot T_0)} \sigma
 
