@@ -1,0 +1,46 @@
+assign master = 'dummy.master', delete, temp $
+assign dball  = 'dummy.dball', delete, temp $
+init dball,logical=(dball(10000)) $
+$
+assign inputt4 = 'big_bigmat_binary.op4' unit=11, form=unformatted $
+
+$ ascii:
+assign output4 = 'nas_big_dense_ascii.op4', status=new,
+                 unit=30,form=formatted,delete $
+assign output4 = 'nas_big_bigmat_ascii.op4', status=new,
+                 unit=31,form=formatted,delete $
+assign output4 = 'nas_big_nonbigmat_ascii.op4', status=new,
+                 unit=32,form=formatted,delete $
+
+$ binary:
+assign output4 = 'nas_big_dense_binary.op4', status=new,
+                 unit=40,form=unformatted,delete $
+assign output4 = 'nas_big_bigmat_binary.op4', status=new,
+                 unit=41,form=unformatted,delete $
+assign output4 = 'nas_big_nonbigmat_binary.op4', status=new,
+                 unit=42,form=unformatted,delete $
+$
+DIAG 8                      $  DIAGNOSTIC OUTPUT
+SOL 100                     $  USER SOLUTION
+$
+COMPILE USERDMAP,LIST,NOREF    $  COMPILE USER SOLUTION
+ALTER 2 $
+$
+INPUTT4  /ALLZ,ALLZC,SPARSE,SPARSEC/4/11/0/0 $   READ RS (ASCII)
+$
+$ ASCII:
+OUTPUT4   ALLZ,ALLZC,SPARSE,SPARSEC//-1/30///16 $  ASCII
+OUTPUT4   ALLZ,ALLZC,SPARSE,SPARSEC//-1/-31//TRUE/16 $  ASCII, BIGMAT
+OUTPUT4   ALLZ,ALLZC,SPARSE,SPARSEC//-1/-32//FALSE/16 $  ASCII, NONBIGMAT
+
+$ BINARY:
+OUTPUT4   ALLZ,ALLZC,SPARSE,SPARSEC//-1/40///16 $  ASCII
+OUTPUT4   ALLZ,ALLZC,SPARSE,SPARSEC//-1/-41//TRUE/16 $  ASCII, BIGMAT
+OUTPUT4   ALLZ,ALLZC,SPARSE,SPARSEC//-1/-42//FALSE/16 $  ASCII, NONBIGMAT
+END $
+$
+CEND
+TITLE = DBWRITE
+$
+BEGIN BULK
+ENDDATA

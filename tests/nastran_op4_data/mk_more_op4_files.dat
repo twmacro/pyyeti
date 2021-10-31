@@ -1,0 +1,29 @@
+assign master = 'dummy.master', delete, temp $
+assign dball  = 'dummy.dball', delete, temp $
+init dball,logical=(dball(10000)) $
+$
+assign inputt4 = 'cd.op4' unit=11, form=formatted $
+assign output4 = 'cdbin_ascii_sparse_bigmat.op4', status=new,
+                 unit=30,form=formatted,delete $
+assign output4 = 'cdbin_ascii_sparse_nonbigmat.op4', status=new,
+                 unit=31,form=formatted,delete $
+$
+DIAG 8                      $  DIAGNOSTIC OUTPUT
+SOL 100                     $  USER SOLUTION
+$
+COMPILE USERDMAP,LIST,NOREF    $  COMPILE USER SOLUTION
+ALTER 2 $
+$
+INPUTT4  /C1,C2,C3,C4,C5/5/11/0/0 $   READ RS (ASCII)
+
+$ bigmat:
+OUTPUT4   C1,C2,C3,C4,C5//-1/-30//TRUE/15 $  OUTPUT4, ASCII
+$ nonbigmat:
+OUTPUT4   C1,C2,C3,C4,C5//-1/-31//FALSE/15 $  OUTPUT4, ASCII
+END $
+$
+CEND
+TITLE = DBWRITE
+$
+BEGIN BULK
+ENDDATA

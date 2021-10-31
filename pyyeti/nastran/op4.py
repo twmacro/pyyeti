@@ -35,12 +35,65 @@ import scipy.sparse as sp
 from pyyeti import guitools
 
 
+def _ensure_dp(m):
+    """
+    Ensure double precision values
+    """
+    if np.iscomplexobj(m):
+        if m.dtype != np.complex128:
+            return m.astype(np.complex128)
+    elif m.dtype != np.float64:
+        return m.astype(np.float64)
+    return m
+
+
+# ensure double precision 2d arrays or tuple as returned by
+# scipy.sparse.find:
+def _ensure_2d_dp(m):
+    """
+    Ensures 2d double precision array or tuple as returned by
+    scipy.sparse.find
+    """
+    if sp.issparse(m):
+        # return m
+        i, j, v = sp.find(m)
+        return m, i, j, _ensure_dp(v)
+    m = np.atleast_2d(m)
+    if m.ndim > 2:
+        raise ValueError("found array with greater than 2 dimensions.")
+    return _ensure_dp(m)
+
+
+def _check_write_names(names):
+    """
+    Ensure valid names
+    """
+    outnames = []
+    for i, name in enumerate(names):
+        if not name.isidentifier():
+            oldname, name = name, f"m{i}"
+            warnings.warn(
+                f"Matrix for output4 write has name: {oldname!r}. "
+                f"Changing to {name!r}.",
+                RuntimeWarning,
+            )
+        elif len(name) > 8:
+            oldname, name = name, name[:8]
+            warnings.warn(
+                f"Matrix for output4 write has name: {oldname!r}. "
+                f"Truncating to {name!r}.",
+                RuntimeWarning,
+            )
+        outnames.append(name)
+    return outnames
+
+
 class OP4:
     """
     Class for reading/writing Nastran output4 (.op4) files.
 
     See demo below and refer to the help on these functions for more
-    information: :func:`write` (or :func:`save`), :func:`load` (or the 
+    information: :func:`write` (or :func:`save`), :func:`load` (or the
     lower level :func:`dctload`, :func:`listload`), and
     :func:`dir`. `save` is an alias for `write`.
 
@@ -278,7 +331,7 @@ class OP4:
                 elems = int(line[16:24])
                 while elems > 0:
                     line = self._fileh.readline()
-                    IS = int(line[:8])
+                    IS = int(line)  # [:8])
                     L = (IS >> 16) - 1  # L
                     elems -= L + 1
                     L //= wper
@@ -442,7 +495,7 @@ class OP4:
             # r = int(line[8:16])
         return retrn(rows, cols, X)
 
-    def _get_funcs(self, a_or_b, rows, r, mtype, sparse):
+    def _get_funcs(self, a_or_b, rows, r, mtype, sparse, allzeros):
         if a_or_b == "ascii":
             rd_dense = self._rd_dense_ascii
             rd_bigmat = self._rd_bigmat_ascii
@@ -460,29 +513,44 @@ class OP4:
             put_values_sparse = OP4._put_binary_values_sparse
             put_values_sparse_c = OP4._put_binary_values_sparse_c
 
-        # if self._rows4bigmat > rows > 0 and r > 0:
-        if rows > 0 and r > 0:
-            # dense format
-            rdfunc = rd_dense
-            if sparse is None:
-                sparse = False
+        if r > 0:
+            if allzeros and rows < 0:
+                # assume bigmat sparse format
+                # for example:
+                #      19     -10       2       4C2      1P,3E22.15
+                #      20       1       2
+                # 1.000000000000000E+00
+                rdfunc = rd_bigmat
+                if sparse is None:
+                    sparse = True
+            else:
+                # dense format
+                rdfunc = rd_dense
+                if sparse is None:
+                    sparse = False
         else:
             # either bigmat or nonbigmat sparse format:
             if sparse is None:
                 sparse = True
             if rows < 0 or rows >= self._rows4bigmat:
-                # bigmat sparse format
+                # bigmat sparse format:
+                #       6      -5       2       4C1      1P,3E22.15
+                #       1       0      22
+                #      21       1
+                # 1.233140833282189E+00-1.364201536870681E+00 ...
                 rdfunc = rd_bigmat
             else:
                 # nonbigmat sparse format
+                #       6       5       2       4C1      1P,3E22.15
+                #       1       0      21
+                #    1376257
+                # 1.233140833282189E+00-1.364201536870681E+00 ...
                 rdfunc = rd_nonbigmat
 
         if not sparse:
             if mtype < 3:
                 funcs = (OP4._init_dense_real, put_values, OP4._dense_matrix)
             else:
-                # uses "real" put function because matrix is read as
-                # real and converted at the end to complex via a view
                 funcs = (OP4._init_dense_complex, put_values_c, OP4._dense_matrix)
         else:
             if mtype < 3:
@@ -602,7 +670,7 @@ class OP4:
         r = int(line[8:16])
         sparse, sparsefunc = OP4._get_sparsefunc(sparse)
 
-        rdfunc, funcs = self._get_funcs("ascii", rows, r, mtype, sparse)
+        rdfunc, funcs = self._get_funcs("ascii", rows, r, mtype, sparse, c >= cols)
         X = rdfunc(wper, r, c, abs(rows), cols, line, numlen, perline, linelen, funcs)
 
         if sparsefunc and sp.issparse(X):
@@ -868,7 +936,7 @@ class OP4:
         c -= 1
         sparse, sparsefunc = OP4._get_sparsefunc(sparse)
 
-        rdfunc, funcs = self._get_funcs("binary", rows, r, mtype, sparse)
+        rdfunc, funcs = self._get_funcs("binary", rows, r, mtype, sparse, c >= cols)
         if mtype & 1:
             numform = self._str_sr
             numform2 = self._str_sr_fromfile
@@ -1074,8 +1142,8 @@ class OP4:
         (rows, cols, form, mtype, multiplier) = OP4._get_header_info(matrix, form)
 
         if bigmat:
-            if rows < self._rows4bigmat:
-                rows = -rows
+            # ~~ if rows < self._rows4bigmat:
+            rows = -rows
         f.write(
             f"{cols:8}{rows:8}{form:8}{mtype:8}{name.upper():8s}"
             f"1P,{perline}E{numlen}.{digits}\n"
@@ -1337,8 +1405,8 @@ class OP4:
         # write 1st record (24 bytes: 4 4-byte ints, 1 8-byte string)
         name = (f"{name.upper():<8}").encode()
         if bigmat:
-            if rows < self._rows4bigmat:
-                rows = -rows
+            # ~~ if rows < self._rows4bigmat:
+            rows = -rows
         f.write(struct.pack(endian + "5i8si", 24, cols, rows, form, mtype, name, 24))
         return cols, multiplier
 
@@ -1968,33 +2036,6 @@ class OP4:
         :func:`listload`, :func:`dir`.
         """
 
-        def ensure_dp(m):
-            """
-            Ensure double precision values
-            """
-            if np.iscomplexobj(m):
-                if m.dtype != np.complex128:
-                    return m.astype(np.complex128)
-            elif m.dtype != np.float64:
-                return m.astype(np.float64)
-            return m
-
-        # ensure double precision 2d arrays or tuple as returned by
-        # scipy.sparse.find:
-        def ensure_2d_dp(m):
-            """
-            Ensures 2d double precision array or tuple as returned by
-            scipy.sparse.find
-            """
-            if sp.issparse(m):
-                # return m
-                i, j, v = sp.find(m)
-                return m, i, j, ensure_dp(v)
-            m = np.atleast_2d(m)
-            if m.ndim > 2:
-                raise ValueError("found array with greater than 2 dimensions.")
-            return ensure_dp(m)
-
         if isinstance(names, collections.Mapping):
             _names = []
             matrices = []
@@ -2020,7 +2061,8 @@ class OP4:
         if forms is None:
             forms = [None] * len(names)
 
-        matrices = [ensure_2d_dp(matrix) for matrix in matrices]
+        matrices = [_ensure_2d_dp(matrix) for matrix in matrices]
+        names = _check_write_names(names)
 
         if binary:
             if sparse == "dense":

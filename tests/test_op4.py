@@ -28,15 +28,34 @@ def _check_badname_cm(cm):
 def _rdop4_tst(o4):
     matfile = "tests/nastran_op4_data/r_c_rc.mat"
     filenames = glob("tests/nastran_op4_data/*.op4")
-    nocomp = ["cdbin", "rdbin", "csbin", "rsbin", "cd", "rd", "cs", "rs", "x100000"]
+    nocomp = [
+        "cdbin",
+        "rdbin",
+        "csbin",
+        "rsbin",
+        "cd",
+        "rd",
+        "cs",
+        "rs",
+        "x100000",
+        "cdbin_ascii_sparse_bigmat",
+        "cdbin_ascii_sparse_nonbigmat",
+    ]
     nocomp = [s + ".op4" for s in nocomp]
     m = matlab.loadmat(matfile)
 
     badname_translate = {"m0": "rmat", "m1": "cmat", "m2": "rcmat"}
 
     for filename in filenames:
-        if os.path.basename(filename) in nocomp:
+        # output of dir not checked, but it should work on all these files:
+        op4.dir(filename, verbose=False)
+
+        basename = os.path.basename(filename)
+        if basename in nocomp:
             continue
+        if basename.startswith("big"):
+            continue
+
         if filename.find("badname") > -1:
             with assert_warns(RuntimeWarning) as cm:
                 dct = o4.dctload(filename)
@@ -461,6 +480,11 @@ def test_sparse_read():
 
     for fname in fnames:
         m = op4.read(fname)
+        if fname == "tests/nastran_op4_data/cdbin_ascii_sparse_nonbigmat.op4":
+            # this has an all-zeros matrix that is written the same as
+            # the dense format (so the sparse form is not used by
+            # default)
+            del m["c2"]
         m2 = op4.read(fname, sparse=None)
         m3 = op4.read(fname, sparse=True)
         m4 = op4.read(fname, sparse=False)
@@ -502,6 +526,14 @@ def test_sparse_write():
         "tests/nastran_op4_data/double_bigmat_le.op4",
         "tests/nastran_op4_data/double_nonbigmat_be.op4",
         "tests/nastran_op4_data/single_dense_be.op4",
+        # the nx nastran v9 version of the following files does not
+        # make NR negative ...  not really a big deal, but the tests
+        # below would need to be changed. So, just using the pyYeti
+        # versions directly (nastran read them fine)
+        "tests/nastran_op4_data/big_bigmat_ascii.op4",
+        "tests/nastran_op4_data/big_bigmat_binary.op4",
+        "tests/nastran_op4_data/big_dense_ascii.op4",
+        "tests/nastran_op4_data/big_dense_binary.op4",
     ]
 
     for fname in fnames:
@@ -606,3 +638,37 @@ def test_premature_eof_warning():
         os.remove(fname)
 
     assert (a2["a"] == a).all()
+
+
+def test_invalid_write_name():
+    a = 1.0
+
+    f = tempfile.NamedTemporaryFile(delete=False)
+    name = f.name
+    f.close()
+    with assert_warns(RuntimeWarning) as cm:
+        try:
+            op4.write(name, {"4badname": a})
+        finally:
+            os.remove(name)
+    assert (
+        cm.warnings[0].message.args[0]
+        == "Matrix for output4 write has name: '4badname'. Changing to 'm0'."
+    )
+
+
+def test_too_long_write_name():
+    a = 1.0
+
+    f = tempfile.NamedTemporaryFile(delete=False)
+    name = f.name
+    f.close()
+    with assert_warns(RuntimeWarning) as cm:
+        try:
+            op4.write(name, {"name_is_too_long": a})
+        finally:
+            os.remove(name)
+    assert cm.warnings[0].message.args[0] == (
+        "Matrix for output4 write has name: 'name_is_too_long'. "
+        "Truncating to 'name_is_'."
+    )
