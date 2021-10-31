@@ -522,6 +522,21 @@ def get_freq_damping(lam, suppress_warning=False):
     return wn, zeta
 
 
+def _eigss_note():
+    return (
+        "Solution will likely be inaccurate. "
+        "Possible causes/solutions:\n"
+        "\tThe partition vector for the rigid-body modes is "
+        "incorrect or not set\n"
+        "\tThe equations are not in modal space, and the "
+        "rigid-body modes cannot be detected -- use the "
+        "`pre_eig` option\n"
+        "\tUse :class:`SolveExp2` instead for time domain, or\n"
+        "\tUse :class:`FreqDirect` instead for frequency domain\n\n"
+        "\tSetting `eig_success` attribute to False\n"
+    )
+
+
 def eigss(A, delcc):
     r"""Solve complex eigen problem for state-space formulation.
 
@@ -611,35 +626,14 @@ def eigss(A, delcc):
     :func:`make_A`, :class:`SolveUnc`, :func:`get_freq_damping`.
 
     """
-    warn1 = (
-        "in :func:`eigss`, the eigenvectors for the state-"
-        "space formulation are poorly conditioned (cond={:.3e}).\n"
-    )
-
-    warn2 = (
-        "Repeated roots detected and equations do not appear "
-        "to be diagonalized. Generally, this is a failure "
-        "condition.\n"
-        "\tMax off-diag / on-diag of `inv(ur) @ A @ ur` = {} / {} = {}\n"
-    )
-
-    note = (
-        "Solution will likely be inaccurate. "
-        "Possible causes/solutions:\n"
-        "\tThe partition vector for the rigid-body modes is "
-        "incorrect or not set\n"
-        "\tThe equations are not in modal space, and the "
-        "rigid-body modes cannot be detected -- use the "
-        "`pre_eig` option\n"
-        "\tUse :class:`SolveExp2` instead for time domain, or\n"
-        "\tUse :class:`FreqDirect` instead for frequency domain\n\n"
-        "\tSetting `eig_success` attribute to False\n"
-    )
-
     lam, ur = la.eig(A)
     c = np.linalg.cond(ur)
     if c > 1 / np.finfo(float).eps:
-        warnings.warn(warn1.format(c) + note, RuntimeWarning)
+        warn1 = (
+            "in :func:`eigss`, the eigenvectors for the state-"
+            "space formulation are poorly conditioned (cond={:.3e}).\n"
+        )
+        warnings.warn(warn1.format(c) + _eigss_note(), RuntimeWarning)
         eig_success = False
     else:
         eig_success = True
@@ -653,8 +647,15 @@ def eigss(A, delcc):
         max_off = abs(np.diag(d) - uau).max()
         max_on = abs(d).max()
         if max_off > 1e-8 * max_on:
+            warn2 = (
+                "Repeated roots detected and equations do not appear "
+                "to be diagonalized. Generally, this is a failure "
+                "condition.\n"
+                "\tMax off-diag / on-diag of `inv(ur) @ A @ ur` = {} / {} = {}\n"
+            )
             warnings.warn(
-                warn2.format(max_off, max_on, max_off / max_on) + note, RuntimeWarning
+                warn2.format(max_off, max_on, max_off / max_on) + _eigss_note(),
+                RuntimeWarning,
             )
             eig_success = False
 

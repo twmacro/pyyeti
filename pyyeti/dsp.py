@@ -471,6 +471,153 @@ def exclusive_sgfilter(x, n, exclude_point="first", axis=-1):
     return d
 
 
+def _get_min_limit(x, n, threshold_sigma, threshold_value):
+    if threshold_value is not None:
+        return threshold_value
+    ave = exclusive_sgfilter(x, n, exclude_point=None)
+    return threshold_sigma * np.std(x - ave)
+
+
+def _sweep_out_priors(y, i, limit, ave):
+    # see if we can consider points before the detected outlier
+    # also as outliers:
+    pv = [i]
+    lim = limit[i]
+    av = ave[i]
+    for k in range(i - 1, -1, -1):
+        if abs(y[k] - av) <= lim:
+            break
+        pv.append(k)
+    pv.reverse()
+    return pv
+
+
+def _sweep_out_nexts(y, i, limit, ave):
+    # see if we can consider points after the detected outlier
+    # also as outliers:
+    pv = [i]
+    lim = limit[i]
+    av = ave[i]
+    for k in range(i + 1, y.size):
+        if abs(y[k] - av) <= lim:
+            break
+        pv.append(k)
+    return pv
+
+
+def _get_stats_full(y, n, sigma, min_limit, xp):
+    ave = exclusive_sgfilter(y, n, exclude_point=xp)
+    y_delta = abs(y - ave)
+    var = exclusive_sgfilter(y ** 2, n, exclude_point=xp) - ave ** 2
+    # use abs to care of negative numerical zeros:
+    std = np.sqrt(abs(var))
+    limit = np.fmax(sigma * std, min_limit)
+    return ave, y_delta, var, std, limit
+
+
+def _outs_first(y, n, sigma, min_limit, xp, ave, y_delta, var, std, limit):
+    PV = y_delta > limit
+    while True:
+        pv = PV.nonzero()[0]
+        if pv.size == 0:
+            yield None, ave + limit, ave - limit  # we're done
+        # keep only last one ... previous ones can change
+        pv = _sweep_out_priors(y, pv[-1], limit, ave)
+        yield pv, ave + limit, ave - limit
+        i, j = pv[0], pv[-1]
+        if i == 0:
+            yield None, ave + limit, ave - limit  # we're done
+        PV[i : j + 1] = False
+        # To determine if point before i is a spike, need n-1
+        # valid points after j:
+        k = min(y.size, j + n)
+        count = k - (j + 1)  # n-1 if away from end
+        # shift good points backward in time to get rid of spikes:
+        #            <---
+        # ......ssss+++++   ==>  ......+++++
+        #       i  j
+        y[i : i + count] = y[j + 1 : k]
+
+        # update only sections that need it: from i-n to i
+        j = i
+        i = max(i - n, 0)
+        ave[i:j] = exclusive_sgfilter(y[i:k], n, exclude_point=xp)[: j - i]
+        y_delta[i:j] = abs(y[i:j] - ave[i:j])
+        avsq = exclusive_sgfilter(y[i:k] ** 2, n, exclude_point=xp)[: j - i]
+        var[i:j] = avsq - ave[i:j] ** 2
+        # use abs to care of negative numerical zeros:
+        std[i:j] = np.sqrt(abs(var[i:j]))
+        limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
+        PV[i:j] = y_delta[i:j] > limit[i:j]
+
+
+def _outs_last(y, n, sigma, min_limit, xp, ave, y_delta, var, std, limit):
+    PV = y_delta > limit
+    while True:
+        pv = PV.nonzero()[0]
+        if pv.size == 0:
+            yield None, ave + limit, ave - limit  # we're done
+        # keep only first one ... later ones can change
+        pv = _sweep_out_nexts(y, pv[0], limit, ave)
+        yield pv, ave + limit, ave - limit
+        i, j = pv[0], pv[-1]
+        if j == y.size - 1:
+            yield None, ave + limit, ave - limit  # we're done
+        PV[i : j + 1] = False
+        # To determine if point after j is a spike, need n-1
+        # valid points before i:
+        k = max(0, i - n + 1)
+        count = i - k  # n-1 if away from start
+        # shift good points forward in time to get rid of spikes:
+        #  --->
+        # ......ssss+++++   ==>  ......+++++
+        #       i  j
+        y[j - count + 1 : j + 1] = y[k:i]
+
+        # update only sections that need it: from j to j+n
+        i = j
+        j = min(j + n, y.size)
+        m = i - j  # -(j-i) ... keep last j-i points
+        ave[i:j] = exclusive_sgfilter(y[k:j], n, exclude_point=xp)[m:]
+        y_delta[i:j] = abs(y[i:j] - ave[i:j])
+        avsq = exclusive_sgfilter(y[k:j] ** 2, n, exclude_point=xp)[m:]
+        var[i:j] = avsq - ave[i:j] ** 2
+        # use abs to care of negative numerical zeros:
+        std[i:j] = np.sqrt(abs(var[i:j]))
+        limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
+        PV[i:j] = y_delta[i:j] > limit[i:j]
+
+
+def _outs_gen(y, n, sigma, min_limit, xp, ave, y_delta, limit):
+    PV = np.zeros(y.size, bool)
+    hi = ave + limit
+    lo = ave - limit
+    while True:
+        pv = y_delta > limit
+        if not pv.any():
+            yield None, hi, lo  # we're done
+        PV[~PV] = pv
+        yield PV.nonzero()[0], hi, lo
+        y = y[~pv]
+        ave, y_delta, var, std, limit = _get_stats_full(y, n, sigma, min_limit, xp)
+        hi[~PV] = ave + limit
+        lo[~PV] = ave - limit
+
+
+def _find_outlier_peaks(y, n, sigma, min_limit, xp):
+    ave, y_delta, var, std, limit = _get_stats_full(y, n, sigma, min_limit, xp)
+    if xp in ("first", 0):
+        y = y.copy()
+        yield from _outs_first(
+            y, n, sigma, min_limit, xp, ave, y_delta, var, std, limit
+        )
+    elif xp in ("last", n - 1):
+        y = y.copy()
+        yield from _outs_last(y, n, sigma, min_limit, xp, ave, y_delta, var, std, limit)
+    else:
+        yield from _outs_gen(y, n, sigma, min_limit, xp, ave, y_delta, limit)
+
+
 def despike(
     x,
     n,
@@ -633,148 +780,6 @@ def despike(
         array([ True, False, False,  True,  True,  True, False, False,
                False, False, False,  True], dtype=bool)
     """
-
-    def _get_min_limit(x, n, threshold_sigma, threshold_value):
-        if threshold_value is not None:
-            return threshold_value
-        ave = exclusive_sgfilter(x, n, exclude_point=None)
-        return threshold_sigma * np.std(x - ave)
-
-    def _sweep_out_priors(y, i, limit, ave):
-        # see if we can consider points before the detected outlier
-        # also as outliers:
-        pv = [i]
-        lim = limit[i]
-        av = ave[i]
-        for k in range(i - 1, -1, -1):
-            if abs(y[k] - av) <= lim:
-                break
-            pv.append(k)
-        pv.reverse()
-        return pv
-
-    def _sweep_out_nexts(y, i, limit, ave):
-        # see if we can consider points after the detected outlier
-        # also as outliers:
-        pv = [i]
-        lim = limit[i]
-        av = ave[i]
-        for k in range(i + 1, y.size):
-            if abs(y[k] - av) <= lim:
-                break
-            pv.append(k)
-        return pv
-
-    def _get_stats_full(y, n, sigma, min_limit, xp):
-        ave = exclusive_sgfilter(y, n, exclude_point=xp)
-        y_delta = abs(y - ave)
-        var = exclusive_sgfilter(y ** 2, n, exclude_point=xp) - ave ** 2
-        # use abs to care of negative numerical zeros:
-        std = np.sqrt(abs(var))
-        limit = np.fmax(sigma * std, min_limit)
-        return ave, y_delta, var, std, limit
-
-    def _outs_first(y, n, sigma, min_limit, xp, ave, y_delta, var, std, limit):
-        PV = y_delta > limit
-        while True:
-            pv = PV.nonzero()[0]
-            if pv.size == 0:
-                yield None, ave + limit, ave - limit  # we're done
-            # keep only last one ... previous ones can change
-            pv = _sweep_out_priors(y, pv[-1], limit, ave)
-            yield pv, ave + limit, ave - limit
-            i, j = pv[0], pv[-1]
-            if i == 0:
-                yield None, ave + limit, ave - limit  # we're done
-            PV[i : j + 1] = False
-            # To determine if point before i is a spike, need n-1
-            # valid points after j:
-            k = min(y.size, j + n)
-            count = k - (j + 1)  # n-1 if away from end
-            # shift good points backward in time to get rid of spikes:
-            #            <---
-            # ......ssss+++++   ==>  ......+++++
-            #       i  j
-            y[i : i + count] = y[j + 1 : k]
-
-            # update only sections that need it: from i-n to i
-            j = i
-            i = max(i - n, 0)
-            ave[i:j] = exclusive_sgfilter(y[i:k], n, exclude_point=xp)[: j - i]
-            y_delta[i:j] = abs(y[i:j] - ave[i:j])
-            avsq = exclusive_sgfilter(y[i:k] ** 2, n, exclude_point=xp)[: j - i]
-            var[i:j] = avsq - ave[i:j] ** 2
-            # use abs to care of negative numerical zeros:
-            std[i:j] = np.sqrt(abs(var[i:j]))
-            limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
-            PV[i:j] = y_delta[i:j] > limit[i:j]
-
-    def _outs_last(y, n, sigma, min_limit, xp, ave, y_delta, var, std, limit):
-        PV = y_delta > limit
-        while True:
-            pv = PV.nonzero()[0]
-            if pv.size == 0:
-                yield None, ave + limit, ave - limit  # we're done
-            # keep only first one ... later ones can change
-            pv = _sweep_out_nexts(y, pv[0], limit, ave)
-            yield pv, ave + limit, ave - limit
-            i, j = pv[0], pv[-1]
-            if j == y.size - 1:
-                yield None, ave + limit, ave - limit  # we're done
-            PV[i : j + 1] = False
-            # To determine if point after j is a spike, need n-1
-            # valid points before i:
-            k = max(0, i - n + 1)
-            count = i - k  # n-1 if away from start
-            # shift good points forward in time to get rid of spikes:
-            #  --->
-            # ......ssss+++++   ==>  ......+++++
-            #       i  j
-            y[j - count + 1 : j + 1] = y[k:i]
-
-            # update only sections that need it: from j to j+n
-            i = j
-            j = min(j + n, y.size)
-            m = i - j  # -(j-i) ... keep last j-i points
-            ave[i:j] = exclusive_sgfilter(y[k:j], n, exclude_point=xp)[m:]
-            y_delta[i:j] = abs(y[i:j] - ave[i:j])
-            avsq = exclusive_sgfilter(y[k:j] ** 2, n, exclude_point=xp)[m:]
-            var[i:j] = avsq - ave[i:j] ** 2
-            # use abs to care of negative numerical zeros:
-            std[i:j] = np.sqrt(abs(var[i:j]))
-            limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
-            PV[i:j] = y_delta[i:j] > limit[i:j]
-
-    def _outs_gen(y, n, sigma, min_limit, xp, ave, y_delta, limit):
-        PV = np.zeros(y.size, bool)
-        hi = ave + limit
-        lo = ave - limit
-        while True:
-            pv = y_delta > limit
-            if not pv.any():
-                yield None, hi, lo  # we're done
-            PV[~PV] = pv
-            yield PV.nonzero()[0], hi, lo
-            y = y[~pv]
-            ave, y_delta, var, std, limit = _get_stats_full(y, n, sigma, min_limit, xp)
-            hi[~PV] = ave + limit
-            lo[~PV] = ave - limit
-
-    def _find_outlier_peaks(y, n, sigma, min_limit, xp):
-        ave, y_delta, var, std, limit = _get_stats_full(y, n, sigma, min_limit, xp)
-        if xp in ("first", 0):
-            y = y.copy()
-            yield from _outs_first(
-                y, n, sigma, min_limit, xp, ave, y_delta, var, std, limit
-            )
-        elif xp in ("last", n - 1):
-            y = y.copy()
-            yield from _outs_last(
-                y, n, sigma, min_limit, xp, ave, y_delta, var, std, limit
-            )
-        else:
-            yield from _outs_gen(y, n, sigma, min_limit, xp, ave, y_delta, limit)
-
     x = np.atleast_1d(x)
     if x.ndim > 1:
         raise ValueError("`x` must be 1d")
@@ -792,6 +797,155 @@ def despike(
         if maxiter > 0 and i >= maxiter:
             break
     return SimpleNamespace(x=x[~PV], pv=PV, hilim=hi, lolim=lo, niter=i)
+
+
+def _sweep_out_priors_diff(y, i, limit, ave):
+    # see if we can consider points before the detected outlier
+    # also as outliers:
+    pv = [i]
+    lim = limit[i]
+    av = ave[i]
+    next_y = y[i + 1]
+    for k in range(i - 1, -1, -1):
+        new_dy = next_y - y[k]
+        if abs(new_dy - av) <= lim:
+            break
+        pv.append(k)
+    pv.reverse()
+    return pv
+
+
+def _sweep_out_nexts_diff(y, i, limit, ave):
+    # see if we can consider points after the detected outlier
+    # also as outliers:
+    pv = [i]
+    lim = limit[i - 1]
+    av = ave[i - 1]
+    prev_y = y[i - 1]
+    for k in range(i + 1, y.size):
+        new_dy = y[k] - prev_y
+        if abs(new_dy - av) <= lim:
+            break
+        pv.append(k)
+    return pv
+
+
+def _outs_first_diff(
+    y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv
+):
+    while True:
+        if dpv.any():
+            # keep only last one ... previous ones can change
+            i = dpv.nonzero()[0][-1]
+            # since we're grabbing last spike in dy, that index
+            # is also what we need for y:
+            # dy -> y
+            # 0 -> 1-0
+            # 1 -> 2-1
+            # 2 -> 3-2
+            # say 1 of dy is last spike ... 2 isn't. So 3-2
+            # of original is okay. spike in original has to be 1.
+            pv = _sweep_out_priors_diff(y, i, limit, ave)
+        else:
+            pv = None
+        yield pv
+
+        i, j = pv[0], pv[-1]
+        if i == 0:
+            yield None  # we're done
+        dpv[i : j + 1] = False
+        # To determine if point before i is a spike, need n-1
+        # valid points after j:
+        k = min(y.size, j + n)
+        count = k - (j + 1)  # n-1 if away from end
+        # shift good points backward in time to get rid of
+        # spikes:
+        #            <---
+        # ......ssss+++++   ==>  ......+++++
+        #       i  j
+        y[i : i + count] = y[j + 1 : k]
+
+        # update only sections that need it: from i-n to i
+        j = i
+        i = max(i - n, 0)
+        dy[i:k] = np.diff(y[i : k + 1])
+        ave[i:j] = exclusive_sgfilter(dy[i:k], n, exclude_point=xp)[: j - i]
+        dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
+        avsq = exclusive_sgfilter(dy[i:k] ** 2, n, exclude_point=xp)[: j - i]
+        var[i:j] = avsq - ave[i:j] ** 2
+        # use abs to care of negative numerical zeros:
+        std[i:j] = np.sqrt(abs(var[i:j]))
+        limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
+        dpv[i:j] = dy_delta[i:j] > limit[i:j]
+
+
+def _outs_last_diff(
+    y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv
+):
+    while True:
+        if dpv.any():
+            # keep only first one ... later ones can change
+            i = dpv.nonzero()[0][0]
+            # since we're grabbing first spike in dy, that index
+            # plus 1 is what we need for y:
+            # dy -> y
+            # 0 -> 1-0
+            # 1 -> 2-1
+            # 2 -> 3-2
+            # say 1 of dy is first spike ... 0 isn't. So 1-0
+            # of original is okay. spike in original has to be 2.
+            pv = _sweep_out_nexts_diff(y, i + 1, limit, ave)
+        else:
+            pv = None
+        yield pv
+
+        i, j = pv[0], pv[-1]
+        if j == dy.size:
+            yield None  # we're done
+        dpv[i - 1 : j] = False
+        # To determine if point after j is a spike, need n-1
+        # valid points before i:
+        k = max(0, i - n + 1)
+        count = i - k  # n-1 if away from start
+        # shift good points forward in time to get rid of spikes:
+        #  --->
+        # ......ssss+++++   ==>  ......+++++
+        #       i  j
+        y[j - count + 1 : j + 1] = y[k:i]
+
+        # update only sections that need it: from j to j+n
+        i = j
+        j = min(j + n, dy.size)
+        m = i - j  # -(j-i) ... keep last j-i points
+        dy[k:j] = np.diff(y[k : j + 1])
+        ave[i:j] = exclusive_sgfilter(dy[k:j], n, exclude_point=xp)[m:]
+        dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
+        avsq = exclusive_sgfilter(dy[k:j] ** 2, n, exclude_point=xp)[m:]
+        var[i:j] = avsq - ave[i:j] ** 2
+        # use abs to care of negative numerical zeros:
+        std[i:j] = np.sqrt(abs(var[i:j]))
+        limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
+        dpv[i:j] = dy_delta[i:j] > limit[i:j]
+
+
+def _find_outlier_peaks_diff(y, dy, n, sigma, min_limit, xp):
+    ave = exclusive_sgfilter(dy, n, exclude_point=xp)
+    dy_delta = abs(dy - ave)
+    var = exclusive_sgfilter(dy ** 2, n, exclude_point=xp) - ave ** 2
+    # use abs to care of negative numerical zeros:
+    std = np.sqrt(abs(var))
+    limit = np.fmax(sigma * std, min_limit)
+    dpv = dy_delta > limit
+    if xp in ("first", 0):
+        yield from _outs_first_diff(
+            y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv
+        )
+    elif xp in ("last", n - 1):
+        yield from _outs_last_diff(
+            y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv
+        )
+    else:
+        raise ValueError("invalid `exclude_point` for :func:`despike_diff` routine")
 
 
 def despike_diff(
@@ -906,155 +1060,6 @@ def despike_diff(
     >>> s.niter
     2
     """
-
-    def _get_min_limit(x, n, threshold_sigma, threshold_value):
-        if threshold_value is not None:
-            return threshold_value
-        ave = exclusive_sgfilter(x, n, exclude_point=None)
-        return threshold_sigma * np.std(x - ave)
-
-    def _sweep_out_priors(y, i, limit, ave):
-        # see if we can consider points before the detected outlier
-        # also as outliers:
-        pv = [i]
-        lim = limit[i]
-        av = ave[i]
-        next_y = y[i + 1]
-        for k in range(i - 1, -1, -1):
-            new_dy = next_y - y[k]
-            if abs(new_dy - av) <= lim:
-                break
-            pv.append(k)
-        pv.reverse()
-        return pv
-
-    def _sweep_out_nexts(y, i, limit, ave):
-        # see if we can consider points after the detected outlier
-        # also as outliers:
-        pv = [i]
-        lim = limit[i - 1]
-        av = ave[i - 1]
-        prev_y = y[i - 1]
-        for k in range(i + 1, y.size):
-            new_dy = y[k] - prev_y
-            if abs(new_dy - av) <= lim:
-                break
-            pv.append(k)
-        return pv
-
-    def _outs_first(
-        y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv
-    ):
-        while True:
-            if dpv.any():
-                # keep only last one ... previous ones can change
-                i = dpv.nonzero()[0][-1]
-                # since we're grabbing last spike in dy, that index
-                # is also what we need for y:
-                # dy -> y
-                # 0 -> 1-0
-                # 1 -> 2-1
-                # 2 -> 3-2
-                # say 1 of dy is last spike ... 2 isn't. So 3-2
-                # of original is okay. spike in original has to be 1.
-                pv = _sweep_out_priors(y, i, limit, ave)
-            else:
-                pv = None
-            yield pv
-
-            i, j = pv[0], pv[-1]
-            if i == 0:
-                yield None  # we're done
-            dpv[i : j + 1] = False
-            # To determine if point before i is a spike, need n-1
-            # valid points after j:
-            k = min(y.size, j + n)
-            count = k - (j + 1)  # n-1 if away from end
-            # shift good points backward in time to get rid of
-            # spikes:
-            #            <---
-            # ......ssss+++++   ==>  ......+++++
-            #       i  j
-            y[i : i + count] = y[j + 1 : k]
-
-            # update only sections that need it: from i-n to i
-            j = i
-            i = max(i - n, 0)
-            dy[i:k] = np.diff(y[i : k + 1])
-            ave[i:j] = exclusive_sgfilter(dy[i:k], n, exclude_point=xp)[: j - i]
-            dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
-            avsq = exclusive_sgfilter(dy[i:k] ** 2, n, exclude_point=xp)[: j - i]
-            var[i:j] = avsq - ave[i:j] ** 2
-            # use abs to care of negative numerical zeros:
-            std[i:j] = np.sqrt(abs(var[i:j]))
-            limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
-            dpv[i:j] = dy_delta[i:j] > limit[i:j]
-
-    def _outs_last(y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv):
-        while True:
-            if dpv.any():
-                # keep only first one ... later ones can change
-                i = dpv.nonzero()[0][0]
-                # since we're grabbing first spike in dy, that index
-                # plus 1 is what we need for y:
-                # dy -> y
-                # 0 -> 1-0
-                # 1 -> 2-1
-                # 2 -> 3-2
-                # say 1 of dy is first spike ... 0 isn't. So 1-0
-                # of original is okay. spike in original has to be 2.
-                pv = _sweep_out_nexts(y, i + 1, limit, ave)
-            else:
-                pv = None
-            yield pv
-
-            i, j = pv[0], pv[-1]
-            if j == dy.size:
-                yield None  # we're done
-            dpv[i - 1 : j] = False
-            # To determine if point after j is a spike, need n-1
-            # valid points before i:
-            k = max(0, i - n + 1)
-            count = i - k  # n-1 if away from start
-            # shift good points forward in time to get rid of spikes:
-            #  --->
-            # ......ssss+++++   ==>  ......+++++
-            #       i  j
-            y[j - count + 1 : j + 1] = y[k:i]
-
-            # update only sections that need it: from j to j+n
-            i = j
-            j = min(j + n, dy.size)
-            m = i - j  # -(j-i) ... keep last j-i points
-            dy[k:j] = np.diff(y[k : j + 1])
-            ave[i:j] = exclusive_sgfilter(dy[k:j], n, exclude_point=xp)[m:]
-            dy_delta[i:j] = abs(dy[i:j] - ave[i:j])
-            avsq = exclusive_sgfilter(dy[k:j] ** 2, n, exclude_point=xp)[m:]
-            var[i:j] = avsq - ave[i:j] ** 2
-            # use abs to care of negative numerical zeros:
-            std[i:j] = np.sqrt(abs(var[i:j]))
-            limit[i:j] = np.fmax(sigma * std[i:j], min_limit)
-            dpv[i:j] = dy_delta[i:j] > limit[i:j]
-
-    def _find_outlier_peaks(y, dy, n, sigma, min_limit, xp):
-        ave = exclusive_sgfilter(dy, n, exclude_point=xp)
-        dy_delta = abs(dy - ave)
-        var = exclusive_sgfilter(dy ** 2, n, exclude_point=xp) - ave ** 2
-        # use abs to care of negative numerical zeros:
-        std = np.sqrt(abs(var))
-        limit = np.fmax(sigma * std, min_limit)
-        dpv = dy_delta > limit
-        if xp in ("first", 0):
-            yield from _outs_first(
-                y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv
-            )
-        elif xp in ("last", n - 1):
-            yield from _outs_last(
-                y, dy, n, sigma, min_limit, xp, ave, dy_delta, var, std, limit, dpv
-            )
-        else:
-            raise ValueError("invalid `exclude_point` for :func:`despike_diff` routine")
-
     x = np.atleast_1d(x)
     if x.ndim > 1:
         raise ValueError("`x` must be 1d")
@@ -1065,7 +1070,7 @@ def despike_diff(
 
     PV = np.zeros(x.shape, bool)
     # start generator:
-    gen = _find_outlier_peaks(x.copy(), dx, n, sigma, min_limit, xp=exclude_point)
+    gen = _find_outlier_peaks_diff(x.copy(), dx, n, sigma, min_limit, xp=exclude_point)
     for i, pv in zip(itertools.count(1), gen):
         if pv is None:
             break
@@ -1073,6 +1078,392 @@ def despike_diff(
         if maxiter > 0 and i >= maxiter:
             break
     return SimpleNamespace(x=x[~PV], pv=PV, niter=i)
+
+
+def _chk_negsteps(t, data, negmethod):
+    difft = np.diff(t)
+    negs = difft < 0
+    if negs.any():
+        nneg = np.count_nonzero(negs)
+        npos = difft.size - nneg
+        if npos == 0:
+            raise ValueError(
+                "there are no positive steps in the entire time vector. "
+                "Cannot fix this."
+            )
+        if negmethod == "stop":
+            raise ValueError(f"There are {nneg:d} negative time steps. Stopping.")
+        if negmethod == "sort":
+            warn(
+                f"there are {nneg} negative time steps. Sorting the data. "
+                "This may be a poor way to handle the current data, so "
+                "please check the results carefully.",
+                RuntimeWarning,
+            )
+            j = t.argsort()
+            # unsort = j.argsort()
+            t = t[j]
+            data = data[j]
+            difft = np.diff(t)
+    else:
+        j = None
+    return t, data, difft, j
+
+
+def _find_drops(d, dropval):
+    dropouts = np.logical_or(np.isnan(d), np.isinf(d))
+    if np.isfinite(dropval):
+        d = d[~dropouts]
+        dropouts[~dropouts] = abs(d - dropval) < abs(dropval) / 100
+        # dropouts = np.logical_or(
+        #    dropouts, abs(d-dropval) < abs(dropval)/100)
+    return dropouts
+
+
+def _del_loners(dropouts, n, nz=3):
+    """Delete "loner-ish" points amongst dropouts.
+    dropouts : 1d bool ndarray of dropouts; True for drops
+    n : integer; window size
+    nz : integer; number of points in `n` point range that will
+        cause all points between to True values to be turned to
+        True
+    """
+    pv = dropouts.nonzero()[0]
+    if pv.size > 2:
+        # delete 1-of loners first (this is necessary if
+        # method="despike_diff" because a middle spike
+        # will be left behind if it is smaller than the two
+        # surrounding spikes)
+        loners = (np.diff(pv) == 2).nonzero()[0]
+        if loners.size > 0:
+            dropouts[pv[loners] + 1] = True
+        s = dropouts.size
+        ind = []
+        for i in pv[: -(nz - 1)]:
+            j = i + n
+            j = j if j < s else s
+            d_ij = dropouts[i:j]
+            if d_ij.sum() >= nz:
+                while not dropouts[j - 1]:
+                    j -= 1
+                ind.append(slice(i, j))
+        for ij in ind:
+            dropouts[ij] = True
+
+
+def _del_drops(olddata, dropval, delspikes):
+    dropouts = _find_drops(olddata, dropval)
+    if dropouts.any():
+        if delspikes:
+            _del_loners(dropouts, delspikes["n"])
+    keep = ~dropouts
+    keep = keep.nonzero()[0]
+    dropouts = dropouts.nonzero()[0]
+    if keep.size == 0:
+        warn("there are only drop-outs!", RuntimeWarning)
+    return keep, dropouts
+
+
+def _del_outtimes(told, keep, delouttimes):
+    t = told[keep]
+    mn = t.mean()
+    sig = 3 * t.std(ddof=1)
+    pv = np.logical_or(t < mn - sig, t > mn + sig)
+    outtimes = keep[pv]
+    if pv.any():
+        if delouttimes:
+            warn(
+                f"there are {pv.sum()} outlier times being deleted. These are"
+                " times more than 3-sigma away from the mean. "
+                "This may be a poor way to handle the current data, so "
+                "please check the results carefully.",
+                RuntimeWarning,
+            )
+            keep = keep[~pv]
+        else:
+            warn(
+                f"there are {pv.sum()} outlier times that are NOT being deleted"
+                " because `delouttimes` is False. These are times more than "
+                "3-sigma away from the mean.",
+                RuntimeWarning,
+            )
+    return keep, outtimes
+
+
+def _sr_calcs(difft, sr, verbose):
+    min_ts = difft.min()
+    max_ts = difft.max()
+    ave_ts = difft.mean()
+
+    max_sr = 1 / min_ts
+    min_sr = 1 / max_ts
+    ave_sr = 1 / ave_ts
+
+    # histogram count:
+    Ldiff = len(difft)
+    difft2 = difft[difft != 0]
+    sr_all = 1 / difft2
+    sr1 = sr_all.min()
+    if sr1 > 5:
+        dsr = 5
+    else:
+        dsr = round(10 * max(sr1, 0.1)) / 10
+    bins = np.arange(dsr / 2, sr_all.max() + dsr, dsr)
+    cnt, bins = np.histogram(sr_all, bins)
+    centers = (bins[:-1] + bins[1:]) / 2
+    r = np.argmax(cnt)
+
+    mx = cnt[r] / Ldiff * 100
+    cnt_sr = centers[r]
+    cnt_ts = 1 / cnt_sr
+    sr_stats = np.array([max_sr, min_sr, ave_sr, cnt_sr, mx])
+    if not sr:  # pragma: no cover
+        verbose = True
+    if verbose:
+        print("==> Info: [min, max, ave, count (% occurrence)] time step:")
+        print(
+            f"==>           [{min_ts:g}, {max_ts:g}, {ave_ts:g}, "
+            f"{cnt_ts:g} ({mx:.1f}%)]"
+        )
+        print("==>       Corresponding sample rates:")
+        print("==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]".format(*sr_stats))
+        print('==>       Note: "count" shows most frequent sample rate to')
+        print(f"          nearest {dsr} samples/sec.")
+
+    if mx > 90 or abs(cnt_sr - ave_sr) < dsr:
+        defsr = round(cnt_sr / dsr) * dsr
+    else:
+        defsr = round(ave_sr / dsr) * dsr
+    if sr == "auto":
+        sr = defsr
+    elif not sr:  # pragma: no cover
+        ssr = input(f"==> Enter desired sample rate [{defsr:g}]: ")
+        if not ssr:
+            sr = defsr
+        else:
+            sr = float(ssr)
+    if verbose:
+        print(f"==> Using sample rate = {sr:g}")
+    return sr, sr_stats
+
+
+def _prep_delspikes(delspikes):
+    def _dict_default(dct, **kwargs):
+        for k, v in kwargs.items():
+            if k not in dct:
+                dct[k] = v
+
+    if not isinstance(delspikes, abc.MutableMapping):
+        delspikes = dict()
+    else:
+        delspikes = dict(delspikes)  # make a copy
+    _dict_default(delspikes, sigma=8, n=15, method="despike_diff", maxiter=-1)
+    return delspikes
+
+
+def _post_despike(pv, keep, delspikes, niter):
+    if pv.any():
+        _del_loners(pv, delspikes["n"])
+    spikes = keep[pv]
+    keep = keep[~pv]
+    despike_info = SimpleNamespace(delspikes=delspikes, niter=niter)
+    return keep, spikes, despike_info
+
+
+def _simple_filter(olddata, keep, delspikes):
+    d = olddata[keep]
+    PV = np.ones(d.size, bool)
+    n = delspikes["n"]
+    sigma = delspikes["sigma"]
+    maxiter = delspikes["maxiter"]
+    for i in itertools.count(1):
+        ave = exclusive_sgfilter(
+            d[PV],
+            n,
+            # exclude_point='middle')
+            exclude_point=None,
+        )
+        delta = d[PV] - ave
+        pv = abs(delta) > sigma * np.std(delta)
+        if pv.any():
+            PV[PV] = ~pv
+        else:
+            break
+        if maxiter > 0 and i >= maxiter:
+            break
+    return _post_despike(~PV, keep, delspikes, i + 1)
+
+
+def _del_spikes(olddata, keep, delspikes):
+    method = delspikes["method"]
+    if method == "despike_diff":
+        s = despike_diff(olddata[keep], **delspikes)
+        return _post_despike(s.pv, keep, delspikes, s.niter)
+    elif method == "despike":
+        s = despike(olddata[keep], **delspikes)
+        return _post_despike(s.pv, keep, delspikes, s.niter)
+    elif method == "simple":
+        return _simple_filter(olddata, keep, delspikes)
+    else:
+        raise ValueError(f"unknown `method` ({method})")
+
+
+def _get_alldrops(
+    told, olddata, sortvec, dropouts, outtimes, spikes, despike_info, delouttimes
+):
+    alldrops = np.zeros(told.size, bool)
+    if dropouts is not None:
+        alldrops[dropouts] = True
+    if delouttimes:
+        alldrops[outtimes] = True
+    if spikes is not None:
+        alldrops[spikes] = True
+        _del_loners(alldrops, despike_info.delspikes["n"], 3)
+    else:
+        spikes = None
+    keep = ~alldrops
+    t = told[keep]
+    data = olddata[keep]
+    alldrops = alldrops.nonzero()[0]
+
+    def _apply_sortvec(sortvec, *args):
+        args = list(args)
+        for i, arg in enumerate(args):
+            if arg is not None:
+                args[i] = np.sort(sortvec[arg])
+        return args
+
+    if sortvec is not None:
+        alldrops, dropouts, outtimes, spikes = _apply_sortvec(
+            sortvec, alldrops, dropouts, outtimes, spikes
+        )
+
+    return (
+        t,
+        data,
+        SimpleNamespace(
+            dropouts=dropouts, outtimes=outtimes, spikes=spikes, alldrops=alldrops
+        ),
+    )
+
+
+def _check_dt_size(difft, dt):
+    n = len(difft)
+    nsmall = (difft < 0.93 * dt).sum() / n
+    nlarge = (difft > 1.07 * dt).sum() / n
+    for n, s1, s2 in zip((nsmall, nlarge), ("smaller", "larger"), ("low", "high")):
+        if n > 0.01:
+            warn(
+                f"there are a large ({n * 100:.2f}%) number of time "
+                f"steps {s1:s} than {dt:g} by more than 7%. Double "
+                f"check the sample rate; it might be too {s2:s}.",
+                RuntimeWarning,
+            )
+
+
+def _add_drift_turning_pts(tp, told, dt):
+    # expand turning points if needed to account for drift
+    # (sample rate being slightly off in otherwise good data)
+    tp_drift = []
+    Lold = len(told)
+    for i in range(len(tp) - 1):
+        m, n = tp[i], tp[i + 1]
+        while n - m > 0.1 * Lold:
+            tdiff = np.arange(n - m) * dt - (told[m:n] - told[m])
+            pv = abs(tdiff) > 1.01 * dt / 2
+            if pv[-1]:
+                m += np.nonzero(~pv)[0].max() + 1
+                tp_drift.append(m)
+            else:
+                break
+    return np.sort(np.hstack((tp, tp_drift)))
+
+
+def _get_turning_points(told, dt):
+    tp = np.empty(len(told), bool)
+    tp[0] = True
+    tp[1:] = abs(np.diff(told) - dt) > dt / 4
+    tp[:-1] |= tp[1:]
+    tp[-1] = True
+    tp = np.nonzero(tp)[0]
+
+    if len(tp) - 2 > len(told) // 2:  # -2 to ignore ends
+        align = False
+        p = (len(tp) - 2) / len(told) * 100
+        msg = (
+            f"there are too many turning points ({p:.2f}%) to "
+            "account for drift or align the largest section. "
+            "Skipping steps 11 and 12."
+        )
+        warn(msg, RuntimeWarning)
+    else:
+        align = True
+    return tp, align
+
+
+def _mk_initial_tnew(told, sr, dt, difft, fixdrift):
+    L = int(round((told[-1] - told[0]) * sr)) + 1
+    tnew = np.arange(L) / sr + told[0]
+
+    # get turning points and see if we should try to align:
+    tp, align = _get_turning_points(told, dt)
+
+    if align:
+        if fixdrift:
+            tp = _add_drift_turning_pts(tp, told, dt)
+
+        # align with the "good" range:
+        j = np.argmax(np.diff(tp))
+        t_good = told[tp[j] : tp[j + 1] + 1]
+
+        p = _get_prev_index(tnew, t_good[0] + dt / 2)
+        tnew_good = tnew[p : p + len(t_good)]
+
+        delt = np.mean(t_good[: len(tnew_good)] - tnew_good)
+        adelt = abs(delt)
+        if adelt > dt / 2:
+            sgn = np.sign(delt)
+            factor = int(adelt / delt)
+            dt = sgn * (adelt - factor * delt)
+        tnew += delt
+    return tnew, tp
+
+
+def _best_fit_segments(tnew, tp, told, dt):
+    L = len(tnew)
+    index = np.zeros(L, np.int64) - 1
+    lastp = 0
+    lastn = 0
+    for i in range(len(tp) - 1):
+        m, n = tp[i], tp[i + 1]
+        p = _get_prev_index(tnew, told[m] + dt / 2)
+        index[lastp:p] = lastn
+        if p + n - m > L:
+            n = L + m - p
+        index[p : p + n - m] = np.arange(m, n)
+        lastp, lastn = p + n - m, n - 1
+    if lastp < L:
+        # can last point be considered part of a good segment?
+        if n - m == 1 and abs(told[n] - told[m] - dt) > dt / 4:
+            # no, so find index and fill in before moving on
+            p = _get_prev_index(tnew, told[n] + dt / 2)
+            index[lastp:p] = lastn
+            lastp = p
+        index[lastp:] = n
+    return index
+
+
+def _return(t, data, alldrops, sr_stats, tp, getall, return_ndarray, despike_info):
+    if return_ndarray:
+        newdata = np.vstack((t, data)).T
+    else:
+        newdata = (t, data)
+    if getall:
+        fixinfo = SimpleNamespace(
+            sr_stats=sr_stats, tp=tp, alldrops=alldrops, despike_info=despike_info
+        )
+        return newdata, fixinfo
+    return newdata
 
 
 def fixtime(
@@ -1334,376 +1725,6 @@ def fixtime(
     >>> yn
     array([1, 2, 2, 2, 2, 2, 3, 4])
     """
-    POOR = (
-        "This may be a poor way to handle the current data, so "
-        "please check the results carefully."
-    )
-
-    def _chk_negsteps(t, data, negmethod):
-        difft = np.diff(t)
-        negs = difft < 0
-        if negs.any():
-            nneg = np.count_nonzero(negs)
-            npos = difft.size - nneg
-            if npos == 0:
-                raise ValueError(
-                    "there are no positive steps in the entire time vector. "
-                    "Cannot fix this."
-                )
-            if negmethod == "stop":
-                raise ValueError(f"There are {nneg:d} negative time steps. Stopping.")
-            if negmethod == "sort":
-                warn(
-                    f"there are {nneg} negative time steps. "
-                    f"Sorting the data. {POOR}",
-                    RuntimeWarning,
-                )
-                j = t.argsort()
-                # unsort = j.argsort()
-                t = t[j]
-                data = data[j]
-                difft = np.diff(t)
-        else:
-            j = None
-        return t, data, difft, j
-
-    def _find_drops(d, dropval):
-        dropouts = np.logical_or(np.isnan(d), np.isinf(d))
-        if np.isfinite(dropval):
-            d = d[~dropouts]
-            dropouts[~dropouts] = abs(d - dropval) < abs(dropval) / 100
-            # dropouts = np.logical_or(
-            #    dropouts, abs(d-dropval) < abs(dropval)/100)
-        return dropouts
-
-    def _del_loners(dropouts, n, nz=3):
-        """Delete "loner-ish" points amongst dropouts.
-        dropouts : 1d bool ndarray of dropouts; True for drops
-        n : integer; window size
-        nz : integer; number of points in `n` point range that will
-            cause all points between to True values to be turned to
-            True
-        """
-        pv = dropouts.nonzero()[0]
-        if pv.size > 2:
-            # delete 1-of loners first (this is necessary if
-            # method="despike_diff" because a middle spike
-            # will be left behind if it is smaller than the two
-            # surrounding spikes)
-            loners = (np.diff(pv) == 2).nonzero()[0]
-            if loners.size > 0:
-                dropouts[pv[loners] + 1] = True
-            s = dropouts.size
-            ind = []
-            for i in pv[: -(nz - 1)]:
-                j = i + n
-                j = j if j < s else s
-                d_ij = dropouts[i:j]
-                if d_ij.sum() >= nz:
-                    while not dropouts[j - 1]:
-                        j -= 1
-                    ind.append(slice(i, j))
-            for ij in ind:
-                dropouts[ij] = True
-
-    def _del_drops(olddata, dropval, delspikes):
-        dropouts = _find_drops(olddata, dropval)
-        if dropouts.any():
-            if delspikes:
-                _del_loners(dropouts, delspikes["n"])
-        keep = ~dropouts
-        keep = keep.nonzero()[0]
-        dropouts = dropouts.nonzero()[0]
-        if keep.size == 0:
-            warn("there are only drop-outs!", RuntimeWarning)
-        return keep, dropouts
-
-    def _del_outtimes(told, keep, delouttimes):
-        t = told[keep]
-        mn = t.mean()
-        sig = 3 * t.std(ddof=1)
-        pv = np.logical_or(t < mn - sig, t > mn + sig)
-        outtimes = keep[pv]
-        if pv.any():
-            if delouttimes:
-                warn(
-                    f"there are {pv.sum()} outlier times being deleted. These are"
-                    f" times more than 3-sigma away from the mean. {POOR}",
-                    RuntimeWarning,
-                )
-                keep = keep[~pv]
-            else:
-                warn(
-                    f"there are {pv.sum()} outlier times that are NOT being deleted"
-                    " because `delouttimes` is False. These are times more than "
-                    "3-sigma away from the mean.",
-                    RuntimeWarning,
-                )
-        return keep, outtimes
-
-    def _sr_calcs(difft, sr, verbose):
-        min_ts = difft.min()
-        max_ts = difft.max()
-        ave_ts = difft.mean()
-
-        max_sr = 1 / min_ts
-        min_sr = 1 / max_ts
-        ave_sr = 1 / ave_ts
-
-        # histogram count:
-        Ldiff = len(difft)
-        difft2 = difft[difft != 0]
-        sr_all = 1 / difft2
-        sr1 = sr_all.min()
-        if sr1 > 5:
-            dsr = 5
-        else:
-            dsr = round(10 * max(sr1, 0.1)) / 10
-        bins = np.arange(dsr / 2, sr_all.max() + dsr, dsr)
-        cnt, bins = np.histogram(sr_all, bins)
-        centers = (bins[:-1] + bins[1:]) / 2
-        r = np.argmax(cnt)
-
-        mx = cnt[r] / Ldiff * 100
-        cnt_sr = centers[r]
-        cnt_ts = 1 / cnt_sr
-        sr_stats = np.array([max_sr, min_sr, ave_sr, cnt_sr, mx])
-        if not sr:  # pragma: no cover
-            verbose = True
-        if verbose:
-            print("==> Info: [min, max, ave, count (% occurrence)] time step:")
-            print(
-                f"==>           [{min_ts:g}, {max_ts:g}, {ave_ts:g}, "
-                f"{cnt_ts:g} ({mx:.1f}%)]"
-            )
-            print("==>       Corresponding sample rates:")
-            print("==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]".format(*sr_stats))
-            print('==>       Note: "count" shows most frequent sample rate to')
-            print(f"          nearest {dsr} samples/sec.")
-
-        if mx > 90 or abs(cnt_sr - ave_sr) < dsr:
-            defsr = round(cnt_sr / dsr) * dsr
-        else:
-            defsr = round(ave_sr / dsr) * dsr
-        if sr == "auto":
-            sr = defsr
-        elif not sr:  # pragma: no cover
-            ssr = input(f"==> Enter desired sample rate [{defsr:g}]: ")
-            if not ssr:
-                sr = defsr
-            else:
-                sr = float(ssr)
-        if verbose:
-            print(f"==> Using sample rate = {sr:g}")
-        return sr, sr_stats
-
-    def _prep_delspikes(delspikes):
-        def _dict_default(dct, **kwargs):
-            for k, v in kwargs.items():
-                if k not in dct:
-                    dct[k] = v
-
-        if not isinstance(delspikes, abc.MutableMapping):
-            delspikes = dict()
-        else:
-            delspikes = dict(delspikes)  # make a copy
-        _dict_default(delspikes, sigma=8, n=15, method="despike_diff", maxiter=-1)
-        return delspikes
-
-    def _post_despike(pv, keep, delspikes, niter):
-        if pv.any():
-            _del_loners(pv, delspikes["n"])
-        spikes = keep[pv]
-        keep = keep[~pv]
-        despike_info = SimpleNamespace(delspikes=delspikes, niter=niter)
-        return keep, spikes, despike_info
-
-    def _simple_filter(olddata, keep, delspikes):
-        d = olddata[keep]
-        PV = np.ones(d.size, bool)
-        n = delspikes["n"]
-        sigma = delspikes["sigma"]
-        maxiter = delspikes["maxiter"]
-        for i in itertools.count(1):
-            ave = exclusive_sgfilter(
-                d[PV],
-                n,
-                # exclude_point='middle')
-                exclude_point=None,
-            )
-            delta = d[PV] - ave
-            pv = abs(delta) > sigma * np.std(delta)
-            if pv.any():
-                PV[PV] = ~pv
-            else:
-                break
-            if maxiter > 0 and i >= maxiter:
-                break
-        return _post_despike(~PV, keep, delspikes, i + 1)
-
-    def _del_spikes(olddata, keep, delspikes):
-        method = delspikes["method"]
-        if method == "despike_diff":
-            s = despike_diff(olddata[keep], **delspikes)
-            return _post_despike(s.pv, keep, delspikes, s.niter)
-        elif method == "despike":
-            s = despike(olddata[keep], **delspikes)
-            return _post_despike(s.pv, keep, delspikes, s.niter)
-        elif method == "simple":
-            return _simple_filter(olddata, keep, delspikes)
-        else:
-            raise ValueError(f"unknown `method` ({method})")
-
-    def _get_alldrops(
-        told, olddata, sortvec, dropouts, outtimes, spikes, despike_info, delouttimes
-    ):
-        alldrops = np.zeros(told.size, bool)
-        if dropouts is not None:
-            alldrops[dropouts] = True
-        if delouttimes:
-            alldrops[outtimes] = True
-        if spikes is not None:
-            alldrops[spikes] = True
-            _del_loners(alldrops, despike_info.delspikes["n"], 3)
-        else:
-            spikes = None
-        keep = ~alldrops
-        t = told[keep]
-        data = olddata[keep]
-        alldrops = alldrops.nonzero()[0]
-
-        def _apply_sortvec(sortvec, *args):
-            args = list(args)
-            for i, arg in enumerate(args):
-                if arg is not None:
-                    args[i] = np.sort(sortvec[arg])
-            return args
-
-        if sortvec is not None:
-            alldrops, dropouts, outtimes, spikes = _apply_sortvec(
-                sortvec, alldrops, dropouts, outtimes, spikes
-            )
-
-        return (
-            t,
-            data,
-            SimpleNamespace(
-                dropouts=dropouts, outtimes=outtimes, spikes=spikes, alldrops=alldrops
-            ),
-        )
-
-    def _check_dt_size(difft, dt):
-        n = len(difft)
-        nsmall = (difft < 0.93 * dt).sum() / n
-        nlarge = (difft > 1.07 * dt).sum() / n
-        for n, s1, s2 in zip((nsmall, nlarge), ("smaller", "larger"), ("low", "high")):
-            if n > 0.01:
-                warn(
-                    f"there are a large ({n * 100:.2f}%) number of time "
-                    f"steps {s1:s} than {dt:g} by more than 7%. Double "
-                    f"check the sample rate; it might be too {s2:s}.",
-                    RuntimeWarning,
-                )
-
-    def _add_drift_turning_pts(tp, told, dt):
-        # expand turning points if needed to account for drift
-        # (sample rate being slightly off in otherwise good data)
-        tp_drift = []
-        Lold = len(told)
-        for i in range(len(tp) - 1):
-            m, n = tp[i], tp[i + 1]
-            while n - m > 0.1 * Lold:
-                tdiff = np.arange(n - m) * dt - (told[m:n] - told[m])
-                pv = abs(tdiff) > 1.01 * dt / 2
-                if pv[-1]:
-                    m += np.nonzero(~pv)[0].max() + 1
-                    tp_drift.append(m)
-                else:
-                    break
-        return np.sort(np.hstack((tp, tp_drift)))
-
-    def _get_turning_points(told, dt):
-        tp = np.empty(len(told), bool)
-        tp[0] = True
-        tp[1:] = abs(np.diff(told) - dt) > dt / 4
-        tp[:-1] |= tp[1:]
-        tp[-1] = True
-        tp = np.nonzero(tp)[0]
-
-        if len(tp) - 2 > len(told) // 2:  # -2 to ignore ends
-            align = False
-            p = (len(tp) - 2) / len(told) * 100
-            msg = (
-                f"there are too many turning points ({p:.2f}%) to "
-                "account for drift or align the largest section. "
-                "Skipping steps 11 and 12."
-            )
-            warn(msg, RuntimeWarning)
-        else:
-            align = True
-        return tp, align
-
-    def _mk_initial_tnew(told, sr, dt, difft, fixdrift):
-        L = int(round((told[-1] - told[0]) * sr)) + 1
-        tnew = np.arange(L) / sr + told[0]
-
-        # get turning points and see if we should try to align:
-        tp, align = _get_turning_points(told, dt)
-
-        if align:
-            if fixdrift:
-                tp = _add_drift_turning_pts(tp, told, dt)
-
-            # align with the "good" range:
-            j = np.argmax(np.diff(tp))
-            t_good = told[tp[j] : tp[j + 1] + 1]
-
-            p = _get_prev_index(tnew, t_good[0] + dt / 2)
-            tnew_good = tnew[p : p + len(t_good)]
-
-            delt = np.mean(t_good[: len(tnew_good)] - tnew_good)
-            adelt = abs(delt)
-            if adelt > dt / 2:
-                sgn = np.sign(delt)
-                factor = int(adelt / delt)
-                dt = sgn * (adelt - factor * delt)
-            tnew += delt
-        return tnew, tp
-
-    def _best_fit_segments(tnew, tp, told, dt):
-        L = len(tnew)
-        index = np.zeros(L, np.int64) - 1
-        lastp = 0
-        lastn = 0
-        for i in range(len(tp) - 1):
-            m, n = tp[i], tp[i + 1]
-            p = _get_prev_index(tnew, told[m] + dt / 2)
-            index[lastp:p] = lastn
-            if p + n - m > L:
-                n = L + m - p
-            index[p : p + n - m] = np.arange(m, n)
-            lastp, lastn = p + n - m, n - 1
-        if lastp < L:
-            # can last point be considered part of a good segment?
-            if n - m == 1 and abs(told[n] - told[m] - dt) > dt / 4:
-                # no, so find index and fill in before moving on
-                p = _get_prev_index(tnew, told[n] + dt / 2)
-                index[lastp:p] = lastn
-                lastp = p
-            index[lastp:] = n
-        return index
-
-    def _return(t, data, alldrops, sr_stats, tp, getall, return_ndarray, despike_info):
-        if return_ndarray:
-            newdata = np.vstack((t, data)).T
-        else:
-            newdata = (t, data)
-        if getall:
-            fixinfo = SimpleNamespace(
-                sr_stats=sr_stats, tp=tp, alldrops=alldrops, despike_info=despike_info
-            )
-            return newdata, fixinfo
-        return newdata
 
     # begin main routine
     told, olddata, return_ndarray = _get_timedata(olddata)
