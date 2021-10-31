@@ -578,9 +578,9 @@ def _calc_covariance_sine_cosine(varx, vary, covar):
     pv = abs(covar) <= 1e-12 * np.fmax(varx, vary)
     if pv.any():
         # put in pi/2 where vary > varx, 0.0 for others:
-        y_bigger = varx[pv] < vary[pv]
+        y_bigger = (varx[pv] < vary[pv]).astype(float)
         s[pv] = y_bigger  # where vary > varx: sin(pi/2) = 1
-        c[pv] = 1 - y_bigger
+        c[pv] = 1.0 - y_bigger
 
     pv = ~pv  # where there is a non-zero covariance
     if pv.any():
