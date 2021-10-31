@@ -506,7 +506,9 @@ def get_freq_damping(lam, suppress_warning=False):
     mult = lam1 * lam2
     add = -(lam1 + lam2)
     if not suppress_warning:
-        if (abs(mult.imag) > 1e-14 * mult.real).any() or (abs(add.imag).max() > 1e-14):
+        if (abs(mult.imag) > 1e-14 * abs(mult.real)).any() or (
+            abs(add.imag).max() > 1e-14
+        ):
             warnings.warn(
                 "Eigenvalues pairs in `lam` appear not to be adjacent. Multiplying "
                 "and adding pairs resulted in a non-zero imaginary parts:\n"
