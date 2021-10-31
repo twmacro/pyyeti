@@ -10,6 +10,6 @@ matplotlib
 pandas
 ipython
 notebook
-sphinx - toggleprompt
-sphinx - copybutton
+sphinx-toggleprompt
+sphinx-copybutton
 pygments
