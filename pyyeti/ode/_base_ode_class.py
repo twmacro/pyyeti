@@ -300,7 +300,7 @@ class _BaseODE:
         if err:
             raise ValueError(
                 "`pre_eig` option failed to "
-                "diagonlized the mass and/or "
+                "diagonalize the mass and/or "
                 "stiffness. Check "
                 "for symmetric/hermitian stiffness "
                 "and positive-definite mass"
