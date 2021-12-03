@@ -480,7 +480,7 @@ def test_sparse_read():
 
     for fname in fnames:
         m = op4.read(fname)
-        if fname == "tests/nastran_op4_data/cdbin_ascii_sparse_nonbigmat.op4":
+        if fname.endswith("cdbin_ascii_sparse_nonbigmat.op4"):
             # this has an all-zeros matrix that is written the same as
             # the dense format (so the sparse form is not used by
             # default)
