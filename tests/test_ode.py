@@ -2975,8 +2975,11 @@ def test_ode_pre_eig():
             [k1, 0, -k3, k3],
         ]
     )
-    assert_raises(ValueError, ode.SolveUnc, MASS, DAMP, STIF2, h, pre_eig=True)
-    assert_raises(ValueError, ode.SolveUnc, None, DAMP, STIF2, h, pre_eig=True)
+    assert_raises(la.LinAlgError, ode.SolveUnc, MASS, DAMP, STIF2, h, pre_eig=True)
+    assert_raises(la.LinAlgError, ode.SolveUnc, None, DAMP, STIF2, h, pre_eig=True)
+
+    MASS[0, 0] = 0.0
+    assert_raises(la.LinAlgError, ode.SolveUnc, MASS, DAMP, STIF, h, pre_eig=True)
 
 
 def test_ode_badsize():

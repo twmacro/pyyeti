@@ -281,35 +281,25 @@ class _BaseODE:
 
     def _do_pre_eig(self, m, b, k):
         """Do a "pre" eigensolution to put system in modal space"""
-        err = False
         if k.ndim == 1:
             k = np.diag(k)
+        else:
+            ktype, types = ytools.mattype(k)
+            if not ((ktype & types["symmetric"]) or (ktype & types["hermitian"])):
+                raise la.LinAlgError(
+                    "stiffness matrix must be symmetric or hermitian for the "
+                    "`pre_eig` option."
+                )
         if m is None:
             w, u = la.eigh(k)
-            kdiag = u.T @ k @ u
-            if not ytools.isdiag(kdiag):
-                err = True
         else:
             if m.ndim == 1:
                 m = np.diag(m)
             w, u = la.eigh(k, m)
-            kdiag = u.T @ k @ u
-            mdiag = u.T @ m @ u
-            if not ytools.isdiag(kdiag) or not ytools.isdiag(mdiag):
-                err = True
-        if err:
-            raise ValueError(
-                "`pre_eig` option failed to "
-                "diagonalize the mass and/or "
-                "stiffness. Check "
-                "for symmetric/hermitian stiffness "
-                "and positive-definite mass"
-            )
         self.pre_eig = True
         self.phi = u
-        if m is not None:
-            m = np.diag(mdiag).copy()
-        k = np.diag(kdiag).copy()
+        m = None
+        k = w
         if b.ndim == 1:
             b = (u.T * b) @ u
         else:

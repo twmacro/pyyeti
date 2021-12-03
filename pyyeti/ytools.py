@@ -811,16 +811,18 @@ def mattype(A, mtype=None):
             if np.isrealobj(A):
                 try:
                     linalg.cholesky(A)
-                    Atype |= mattypes["posdef"]
                 except linalg.LinAlgError:
                     pass
+                else:
+                    Atype |= mattypes["posdef"]
         elif np.iscomplexobj(A) and np.allclose(A, A.T.conj()):
             Atype |= mattypes["hermitian"]
             try:
                 linalg.cholesky(A)
-                Atype |= mattypes["posdef"]
             except linalg.LinAlgError:
                 pass
+            else:
+                Atype |= mattypes["posdef"]
         if isdiag(A):
             Atype |= mattypes["diagonal"]
             d = np.diag(A)
