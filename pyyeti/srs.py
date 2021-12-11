@@ -2041,7 +2041,7 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> import matplotlib.pyplot as plt
         >>> from pyyeti import srs
         >>> from pyyeti import ytools
-        >>> from matplotlib import cm
+        >>> from matplotlib import cm, colors
         >>> sig, t, f = ytools.gensweep(10, 1, 50, 4)
         >>> sr = 1/t[1]
         >>> frq = np.arange(1., 50.1)
@@ -2049,10 +2049,18 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> mp, t, f = srs.srsmap(2, .5, sig, sr, frq, Q, .02,
         ...                       eqsine=1)
         >>> _ = plt.figure('Example', clear=True)
-        >>> _ = plt.contour(t, f, mp, 40, cmap=cm.plasma)
-        >>> cbar = plt.colorbar()
-        >>> cbar.filled = True
-        >>> cbar.draw_all()
+        >>> cs = plt.contour(t, f, mp, 40, cmap=cm.plasma)
+        >>> # This doesn't work in matplotlib 3.5.0:
+        >>> #   cbar = plt.colorbar()
+        >>> #   cbar.filled = True
+        >>> #   cbar.draw_all()
+        >>> # But this does:
+        >>> norm = colors.Normalize(
+        ...            vmin=cs.cvalues.min(), vmax=cs.cvalues.max()
+        ...        )
+        >>> sm = plt.cm.ScalarMappable(norm=norm, cmap=cs.cmap)
+        >>> cb = plt.colorbar(sm)  # , ticks=cs.levels)
+        >>> #
         >>> _ = plt.xlabel('Time (s)')
         >>> _ = plt.ylabel('Frequency (Hz)')
         >>> ttl = 'EQSINE Map of Sine-Sweep @ 4 oct/min, Q = 20'

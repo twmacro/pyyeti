@@ -2143,7 +2143,7 @@ def waterfall(
         >>> import numpy as np
         >>> import matplotlib.pyplot as plt
         >>> from pyyeti import srs, ytools, dsp
-        >>> from matplotlib import cm
+        >>> from matplotlib import cm, colors
         >>> sig, t, f = ytools.gensweep(10, 1, 50, 4)
         >>> sr = 1/t[1]
         >>> frq = np.arange(1., 50.1)
@@ -2156,10 +2156,18 @@ def waterfall(
         ...                          sliceargs=[.02],
         ...                          slicekwargs=dict(ends='front'))
         >>> _ = plt.figure('Example', clear=True)
-        >>> _ = plt.contour(t, f, mp, 40, cmap=cm.plasma_r)
-        >>> cbar = plt.colorbar()
-        >>> cbar.filled = True
-        >>> cbar.draw_all()
+        >>> cs = plt.contour(t, f, mp, 40, cmap=cm.plasma_r)
+        >>> # This doesn't work in matplotlib 3.5.0:
+        >>> #   cbar = plt.colorbar()
+        >>> #   cbar.filled = True
+        >>> #   cbar.draw_all()
+        >>> # But this does:
+        >>> norm = colors.Normalize(
+        ...            vmin=cs.cvalues.min(), vmax=cs.cvalues.max()
+        ...        )
+        >>> sm = plt.cm.ScalarMappable(norm=norm, cmap=cs.cmap)
+        >>> cb = plt.colorbar(sm)  # , ticks=cs.levels)
+        >>> #
         >>> _ = plt.xlabel('Time (s)')
         >>> _ = plt.ylabel('Frequency (Hz)')
         >>> ttl = 'EQSINE Map of Sine-Sweep @ 4 oct/min, Q = 20'
@@ -3128,16 +3136,24 @@ def fftmap(
 
         >>> import numpy as np
         >>> import matplotlib.pyplot as plt
-        >>> from matplotlib import cm
+        >>> from matplotlib import cm, colors
         >>> from pyyeti import dsp, ytools
         >>> sig, t, f = ytools.gensweep(10, 1, 50, 4)
         >>> sr = 1/t[1]
         >>> mp, t, f = dsp.fftmap(2, .1, sig, sr)
         >>> pv = f <= 50.0
-        >>> _ = plt.contour(t, f[pv], mp[pv], 40, cmap=cm.plasma)
-        >>> cbar = plt.colorbar()
-        >>> cbar.filled = True
-        >>> cbar.draw_all()
+        >>> cs = plt.contour(t, f[pv], mp[pv], 40, cmap=cm.plasma)
+        >>> # This doesn't work in matplotlib 3.5.0:
+        >>> #   cbar = plt.colorbar()
+        >>> #   cbar.filled = True
+        >>> #   cbar.draw_all()
+        >>> # But this does:
+        >>> norm = colors.Normalize(
+        ...            vmin=cs.cvalues.min(), vmax=cs.cvalues.max()
+        ...        )
+        >>> sm = plt.cm.ScalarMappable(norm=norm, cmap=cs.cmap)
+        >>> cb = plt.colorbar(sm)  # , ticks=cs.levels)
+        >>> #
         >>> _ = plt.xlabel('Time (s)')
         >>> _ = plt.ylabel('Frequency (Hz)')
         >>> ttl = 'FFT Map of Sine-Sweep @ 4 oct/min'
@@ -3302,7 +3318,7 @@ def transmissibility(
 
         >>> import numpy as np
         >>> import matplotlib.pyplot as plt
-        >>> from matplotlib import cm
+        >>> from matplotlib import cm, colors
         >>> import matplotlib.gridspec as gridspec
         >>> from pyyeti import dsp, psd, ode
         >>>
@@ -3337,7 +3353,7 @@ def transmissibility(
         >>> fig = plt.figure('Example', figsize=(8, 11))
         >>> fig.clf()
         >>>
-        >>> # use GridSpec to make a nice layout:
+        >>> # use GridSpec to make a nice layout with colorbars:
         >>> gs = gridspec.GridSpec(5, 2, width_ratios=[30, 1])
         >>>
         >>> ax = ax_time = plt.subplot(gs[0, 0])
@@ -3375,9 +3391,18 @@ def transmissibility(
         >>> _ = ax.set_title("Transmissibility Magnitude Map")
         >>>
         >>> ax = plt.subplot(gs[2, 1])
-        >>> cb = fig.colorbar(c, cax=ax)
-        >>> cb.filled = True
-        >>> cb.draw_all()
+        >>>
+        >>> # This doesn't work in matplotlib 3.5.0:
+        >>> #   cb = fig.colorbar(c, cax=ax)
+        >>> #   cb.filled = True
+        >>> #   cb.draw_all()
+        >>> # But this does:
+        >>> norm = colors.Normalize(
+        ...            vmin=c.cvalues.min(), vmax=c.cvalues.max()
+        ...        )
+        >>> sm = plt.cm.ScalarMappable(norm=norm, cmap=c.cmap)
+        >>> cb = plt.colorbar(sm, cax=ax)  # , ticks=c.levels)
+        >>>
         >>> _ = ax.set_title("TR Magnitude")
         >>>
         >>> # plot phase:
@@ -3397,9 +3422,18 @@ def transmissibility(
         >>> _ = ax.set_title("Transmissibility Phase Map")
         >>>
         >>> ax = plt.subplot(gs[4, 1])
-        >>> cb = fig.colorbar(c, cax=ax)
-        >>> cb.filled = True
-        >>> cb.draw_all()
+        >>>
+        >>> # This doesn't work in matplotlib 3.5.0:
+        >>> #   cb = fig.colorbar(c, cax=ax)
+        >>> #   cb.filled = True
+        >>> #   cb.draw_all()
+        >>> # But this does:
+        >>> norm = colors.Normalize(
+        ...            vmin=c.cvalues.min(), vmax=c.cvalues.max()
+        ...        )
+        >>> sm = plt.cm.ScalarMappable(norm=norm, cmap=c.cmap)
+        >>> cb = plt.colorbar(sm, cax=ax)  # , ticks=c.levels)
+        >>>
         >>> _ = ax.set_title("TR Phase (deg)")
         >>>
         >>> fig.tight_layout()
@@ -3415,12 +3449,11 @@ def transmissibility(
         - a ``peak_factor * sigma`` Miles' peak, where ``peak_factor``
           is determined from the Rayleigh distribution
 
-    The Rayleigh peak factor is ``sqrt(2*log(duration*f))``. This
-    factor is described in more detail under the `resp_time` option in
-    :func:`pyyeti.cla.DR_Results.psd_data_recovery`. In this example,
-    since the number of cycles is quite high, 3 sigma will generally
-    be below the peak. The Rayleigh peak factor allows for a fairly
-    good estimate of the actual peak.
+    The Rayleigh peak factor is ``sqrt(2*log(duration*f))``. See
+    :func:`pyyeti.fdepsd.fdepsd` for the derivation of this factor. In
+    this example, since the number of cycles is quite high, 3 sigma
+    will generally be below the peak. The Rayleigh peak factor allows
+    for a fairly good estimate of the actual peak.
 
     >>> actual = np.sqrt((out_acce ** 2).mean())
     >>> miles = np.sqrt(np.pi / 2 * Q * frq * psd_)

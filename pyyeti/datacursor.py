@@ -414,14 +414,9 @@ class DataCursor(object):
                 if fig in self._bid:
                     fig.canvas.mpl_disconnect(self._bid[fig])
                     fig.canvas.mpl_disconnect(self._aid[fig])
+            # make annotations draggable:
             for an in self.notes:
-                ax = an.axes
-                if an in ax.texts:
-                    # give annotation to figure so it's on top
-                    ax.figure.texts.append(an)
-                    ax.texts.pop(ax.texts.index(an))
-                    # and make it draggable
-                    an.draggable()
+                an.draggable()
             self._is_on = False
         for fig in self._figs:
             fig.canvas.draw()
