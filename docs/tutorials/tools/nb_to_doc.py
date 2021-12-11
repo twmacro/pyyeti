@@ -23,25 +23,28 @@ def convert_nb(nbname):
 
     d, b = os.path.split(nbname)
     tmp = os.path.join(d, "temp_" + b)
-    tmp2 = "temp_" + rst
+    d, b = os.path.split(rst)
+    tmp2 = os.path.join(d, "temp_" + b)
 
     # Execute the notebook:
-    run(
-        [
-            "jupyter",
-            "nbconvert",
-            "--to",
-            "notebook",
-            "--execute",
-            nbname,
-            "--output",
-            tmp,
-        ],
-        check=True,
-    )
+    cmd = [
+        "jupyter",
+        "nbconvert",
+        "--to",
+        "notebook",
+        "--execute",
+        nbname,
+        "--output",
+        tmp,
+    ]
+
+    print(f"running: {cmd}")
+    run(cmd, check=True)
 
     # Convert to .rst for Sphinx:
-    run(["jupyter", "nbconvert", "--to", "rst", tmp, "--output", tmp2], check=True)
+    cmd = ["jupyter", "nbconvert", "--to", "rst", tmp, "--output", tmp2]
+    print(f"running: {cmd}")
+    run(cmd, check=True)
 
     with open(tmp2) as fin:
         with open(rst, "wt") as fout:
