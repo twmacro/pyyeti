@@ -328,12 +328,12 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
         `new_cs_in_basic` is a required input. Otherwise, if 4x3
         matrix, format is as on a Nastran CORD2* card::
 
-            [ id type=0 reference_id=0 ]
+            [ id type=1 reference_id=0 ]
             [ Ax   Ay   Az             ]
             [ Bx   By   Bz             ]
             [ Cx   Cy   Cz             ]
 
-        The type must be 0 (rectangular) and the reference_id must be
+        The type must be 1 (rectangular) and the reference_id must be
         0. The A, B, C points are as defined for a CORD2R bulk card
         for the new coordinate system (which replaces the old basic)
         relative to the basic system. "A" defines the origin of the
@@ -381,8 +381,8 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
     ValueError
         When `new_cs_id` is already in use
     ValueError
-        If ``type`` or ``reference_id`` is not 0 in the `new_cs_id`
-        4 x 3 input.
+        If ``type`` is not 1 or ``reference_id`` is not 0 in the
+        `new_cs_id` 4 x 3 input.
 
     Examples
     --------
@@ -430,7 +430,7 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
     Also, demonstrate the 4x3 input `new_cs_id` and not inputting
     `new_cs_in_basic`
 
-    >>> new_cs_id_2 = np.array([[60, 0, 0],
+    >>> new_cs_id_2 = np.array([[60, 1, 0],
     ...                         [10., 10., 10.],
     ...                         [11., 10., 10.],
     ...                         [10., 10., 11.]])
@@ -447,8 +447,8 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
     """
     new_cs_id = np.atleast_2d(new_cs_id)
     if new_cs_id.shape == (4, 3):
-        if new_cs_id[0, 1] != 0:
-            raise ValueError(f"``type`` in `new_cs_id` must be 0 (rectangular)")
+        if new_cs_id[0, 1] != 1:
+            raise ValueError(f"``type`` in `new_cs_id` must be 1 (rectangular)")
         if new_cs_id[0, 2] != 0:
             raise ValueError(f"``reference_id`` in `new_cs_id` must be 0")
         new_cs_in_basic = new_cs_id[1:]
@@ -1809,7 +1809,7 @@ def mkusetcoordinfo(cord, uset=None, coordref=None):
             [ Bx   By   Bz         ]
             [ Cx   Cy   Cz         ]
 
-        where type is 0 (rectangular), 1 (cylindrical), or 2
+        where type is 1 (rectangular), 2 (cylindrical), or 3
         (spherical).
     uset : pandas DataFrame or None; optional
         A DataFrame as output by
@@ -1873,6 +1873,7 @@ def mkusetcoordinfo(cord, uset=None, coordref=None):
     cord = np.array(cord, dtype=object)
     if cord.shape != (4, 3):
         raise ValueError("incorrectly sized `cord` input")
+
     cord = cord.astype(np.float)
     cid, ctype = cord[0, :2].astype(np.int64)
 
@@ -1893,6 +1894,7 @@ def mkusetcoordinfo(cord, uset=None, coordref=None):
     except KeyError:
         refinfo = _mkusetcoordinfo_byid(cord[0, 2], uset)
         coordref[cord[0, 2]] = refinfo
+
     a = cord[1]
     b = cord[2]
     c = cord[3]

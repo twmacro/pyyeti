@@ -505,21 +505,21 @@ def test_replace_basic_cs_2():
         [[10.0, 10.0, 10.0], [10.0, 10.0, 11.0], [11.0, 10.0, 10.0]]
     )
     uset1 = n2p.replace_basic_cs(uset0, new_cs_id, new_cs_in_basic)
-    uset2 = n2p.replace_basic_cs(uset0, np.vstack(([new_cs_id, 0, 0], new_cs_in_basic)))
+    uset2 = n2p.replace_basic_cs(uset0, np.vstack(([new_cs_id, 1, 0], new_cs_in_basic)))
 
     assert np.all(uset1 == uset2)
     assert_raises(
         ValueError,
         n2p.replace_basic_cs,
         uset0,
-        np.vstack(([new_cs_id, 1, 0], new_cs_in_basic)),
+        np.vstack(([new_cs_id, 0, 0], new_cs_in_basic)),
     )
 
     assert_raises(
         ValueError,
         n2p.replace_basic_cs,
         uset0,
-        np.vstack(([new_cs_id, 0, 1], new_cs_in_basic)),
+        np.vstack(([new_cs_id, 1, 1], new_cs_in_basic)),
     )
 
 
