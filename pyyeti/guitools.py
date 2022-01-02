@@ -6,10 +6,13 @@ http://stackoverflow.com/questions/5286093/\
 display-listbox-with-columns-using-tkinter
 """
 import os
+import sys
+from functools import wraps
 import tkinter as tk
-import tkinter.filedialog as filedialog
+from tkinter import filedialog
 import tkinter.font as tkFont
-import tkinter.ttk as ttk
+from tkinter import ttk
+
 
 LASTOPENDIR = None
 LASTSAVEDIR = None
@@ -18,6 +21,8 @@ __all__ = [
     "get_file_name",
     "askopenfilename",
     "asksaveasfilename",
+    "read_text_file",
+    "write_text_file",
     "MultiColumnListbox",
 ]
 
@@ -158,6 +163,114 @@ def asksaveasfilename(title=None, filetypes=None, initialdir=None):  # pragma: n
     if filename:
         LASTSAVEDIR = os.path.dirname(filename)
     return filename
+
+
+def read_text_file(rdfunc):
+    r"""
+    Decorator that processes the file argument for reading
+
+    Parameters
+    ----------
+    rdfunc : function
+        Function that reads text from a file. The first argument to
+        that function is a file argument. The file argument can be the
+        name of a file, or a file_like object as returned by
+        :func:`open` or :func:`io.StringIO`. It can also be the name
+        of a directory or None; in these cases, a GUI is opened for
+        file selection. For example, see
+        :func:`pyyeti.nastran.bulk.rdgrids`.
+
+    Returns
+    -------
+    function
+        Function that processes the file argument before calling
+        `rdfunc`.
+
+    See also
+    --------
+    :func:`write_text_file`
+
+    Examples
+    --------
+    >>> from pyyeti.guitools import read_text_file, write_text_file
+    >>> from io import StringIO
+    >>> @read_text_file
+    ... def doread(f):
+    ...     return f.readline()
+    >>> @write_text_file
+    ... def dowrite(f, string, number):
+    ...     f.write(f'{string} = {number:.3f}\n')
+    >>> with StringIO() as f:
+    ...     dowrite(f, 'param', number=45.3)
+    ...     _ = f.seek(0, 0)
+    ...     s = doread(f)
+    >>> s
+    'param = 45.300\n'
+    """
+
+    @wraps(rdfunc)
+    def mod_func(f, *args, **kwargs):
+        f = get_file_name(f, read=True)
+        if isinstance(f, str):
+            with open(f, "r") as fin:
+                return rdfunc(fin, *args, **kwargs)
+        else:
+            return rdfunc(f, *args, **kwargs)
+
+    return mod_func
+
+
+def write_text_file(wtfunc):
+    r"""
+    Decorator that processes the file argument for writing
+
+    Parameters
+    ----------
+    wtfunc : function
+        Function that writes text to a file. The first argument to
+        that function is a file argument. The file argument can be the
+        name of a file, or a file_like object as returned by
+        :func:`open` or :func:`io.StringIO`. It can also be input as
+        the integer 1 to write to stdout (or use
+        ``sys.stdout``). Finally, it can also be the name of a
+        directory or None; in these cases, a GUI is opened for file
+        selection. To write to a string, ``import io`` and set ``f =
+        io.StringIO()``; afterwards, retrieve string by
+        ``f.getvalue()``. For example, see
+        :func:`pyyeti.nastran.bulk.wtgrids`.
+
+    Returns
+    -------
+    function
+        Function that processes the file argument before calling
+        `wtfunc`.
+
+    See also
+    --------
+    :func:`read_text_file`
+
+    Examples
+    --------
+    >>> from pyyeti.guitools import write_text_file
+    >>> @write_text_file
+    ... def dowrite(f, string, number):
+    ...     f.write(f'{string} = {number:.3f}\n')
+    >>> dowrite(1, 'param', number=45.3)
+    param = 45.300
+    """
+
+    @wraps(wtfunc)
+    def mod_func(f, *args, **kwargs):
+        f = get_file_name(f, read=False)
+        if isinstance(f, str):
+            with open(f, "w") as fout:
+                return wtfunc(fout, *args, **kwargs)
+        else:
+            if f == 1:
+                f = sys.stdout
+            return wtfunc(f, *args, **kwargs)
+
+    return mod_func
 
 
 class MultiColumnListbox(object):  # pragma: no cover

@@ -5,7 +5,7 @@ via: :func:`cla.DR_Results.rptext`.
 """
 from types import SimpleNamespace
 import numpy as np
-from pyyeti import ytools, writer
+from pyyeti import guitools, writer
 from ._utilities import nan_absmax, _get_rpt_headers
 
 
@@ -29,7 +29,7 @@ def _add_column(hdr, frm, arg, width, sep, just, print_info):
 
 
 # write results
-@ytools.write_text_file
+@guitools.write_text_file
 def _wtext(f, header, frm, printargs, perpage, nrows):
     if perpage < 1:
         # one additional in case nrows is zero

@@ -6,7 +6,7 @@ via: :func:`cla.DR_Results.rpttab`.
 import copy
 import numpy as np
 import xlsxwriter
-from pyyeti import ytools, writer
+from pyyeti import guitools, writer
 from ._utilities import nan_absmax, _get_rpt_headers, _get_numform
 
 
@@ -145,7 +145,7 @@ def _wtxlsx_eventcount(workbook, header, bold, hform, res, ec, name, count_filte
     worksheet.set_column(1, len(headers) - 1, 14)
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def _wttab(
     f, header, hu, frm, res, loop_vars, rows, count_filter, desclen, descfrm, caselen
 ):

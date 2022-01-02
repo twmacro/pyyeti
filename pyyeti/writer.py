@@ -4,7 +4,7 @@ Collection of tools for writing formatted text to files.
 """
 
 import numpy as np
-from pyyeti import ytools
+from pyyeti import guitools
 
 
 def getith(i, args, fncs):
@@ -53,7 +53,7 @@ def getith(i, args, fncs):
     return lst
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def _vecwrite(fout, string, length, args, fncs, postfunc, pfargs, so):
     """Utility routine for :func:`vecwrite`."""
     v = range(length)

@@ -12,7 +12,7 @@ import numpy as np
 import scipy.linalg as linalg
 import scipy.sparse.linalg as sp_la
 import pandas as pd
-from pyyeti import locate, ytools, writer, ode
+from pyyeti import locate, ytools, writer, ode, guitools
 from pyyeti.nastran import n2p
 
 
@@ -1499,7 +1499,7 @@ def mk_net_drms(
     return s
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     """
     Routine used by :func:`rbmultchk`. See documentation for
@@ -1858,7 +1858,7 @@ def rbmultchk(
     return _rbmultchk(f, drm, name, rb, labels, drm2, prtnullrows, bset)
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def _rbdispchk(fout, rbdisp, grids, ttl, verbose, tol):
     """
     Routine used by :func:`rbdispchk`. See documentation for
@@ -2060,7 +2060,7 @@ def rbdispchk(
     return _rbdispchk(f, rbdisp, grids, ttl, verbose, tol)
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def _cbcoordchk(fout, K, bset, refpoint, grids, ttl, verbose, rb_normalizer):
     """
     Routine used by :func:`cbcoordchk`. See documentation for
@@ -2326,7 +2326,7 @@ def _solve_eig(fout, k, m, mtype, ktype, types):
     return w, v
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def cbcheck(
     f,
     Mcb,

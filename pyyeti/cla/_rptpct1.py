@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-from pyyeti import ytools, locate, writer
+from pyyeti import ytools, locate, writer, guitools
 from ._utilities import _get_rpt_headers, _get_numform, _proc_filterval
 from ._magpct import magpct
 
@@ -1035,7 +1035,7 @@ def rptpct1(
         plt.interactive(imode)
 
     # write results
-    @ytools.write_text_file
+    @guitools.write_text_file
     def _wtcmp(f, header, hu, frm, printargs, perpage, prtpv, pctinfo, desc):
         prtpv = prtpv.nonzero()[0]
         if perpage < 1:

@@ -12,12 +12,13 @@ import sys
 import contextlib
 import warnings
 from types import SimpleNamespace
-from functools import wraps
+import operator
 import numpy as np
-import scipy.linalg as linalg
+from scipy import linalg
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
 from pyyeti import guitools
+from pyyeti import writer
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -1215,114 +1216,6 @@ def gensweep(ppc, fstart, fstop, rate):
     return sig, t, f
 
 
-def read_text_file(rdfunc):
-    r"""
-    Decorator that processes the file argument for reading
-
-    Parameters
-    ----------
-    rdfunc : function
-        Function that reads text from a file. The first argument to
-        that function is a file argument. The file argument can be the
-        name of a file, or a file_like object as returned by
-        :func:`open` or :func:`io.StringIO`. It can also be the name
-        of a directory or None; in these cases, a GUI is opened for
-        file selection. For example, see
-        :func:`pyyeti.nastran.bulk.rdgrids`.
-
-    Returns
-    -------
-    function
-        Function that processes the file argument before calling
-        `rdfunc`.
-
-    See also
-    --------
-    :func:`write_text_file`
-
-    Examples
-    --------
-    >>> from pyyeti.ytools import read_text_file, write_text_file
-    >>> from io import StringIO
-    >>> @read_text_file
-    ... def doread(f):
-    ...     return f.readline()
-    >>> @write_text_file
-    ... def dowrite(f, string, number):
-    ...     f.write(f'{string} = {number:.3f}\n')
-    >>> with StringIO() as f:
-    ...     dowrite(f, 'param', number=45.3)
-    ...     _ = f.seek(0, 0)
-    ...     s = doread(f)
-    >>> s
-    'param = 45.300\n'
-    """
-
-    @wraps(rdfunc)
-    def mod_func(f, *args, **kwargs):
-        f = guitools.get_file_name(f, read=True)
-        if isinstance(f, str):
-            with open(f, "r") as fin:
-                return rdfunc(fin, *args, **kwargs)
-        else:
-            return rdfunc(f, *args, **kwargs)
-
-    return mod_func
-
-
-def write_text_file(wtfunc):
-    r"""
-    Decorator that processes the file argument for writing
-
-    Parameters
-    ----------
-    wtfunc : function
-        Function that writes text to a file. The first argument to
-        that function is a file argument. The file argument can be the
-        name of a file, or a file_like object as returned by
-        :func:`open` or :func:`io.StringIO`. It can also be input as
-        the integer 1 to write to stdout (or use
-        ``sys.stdout``). Finally, it can also be the name of a
-        directory or None; in these cases, a GUI is opened for file
-        selection. To write to a string, ``import io`` and set ``f =
-        io.StringIO()``; afterwards, retrieve string by
-        ``f.getvalue()``. For example, see
-        :func:`pyyeti.nastran.bulk.wtgrids`.
-
-    Returns
-    -------
-    function
-        Function that processes the file argument before calling
-        `wtfunc`.
-
-    See also
-    --------
-    :func:`read_text_file`
-
-    Examples
-    --------
-    >>> from pyyeti.ytools import write_text_file
-    >>> @write_text_file
-    ... def dowrite(f, string, number):
-    ...     f.write(f'{string} = {number:.3f}\n')
-    >>> dowrite(1, 'param', number=45.3)
-    param = 45.300
-    """
-
-    @wraps(wtfunc)
-    def mod_func(f, *args, **kwargs):
-        f = guitools.get_file_name(f, read=False)
-        if isinstance(f, str):
-            with open(f, "w") as fout:
-                return wtfunc(fout, *args, **kwargs)
-        else:
-            if f == 1:
-                f = sys.stdout
-            return wtfunc(f, *args, **kwargs)
-
-    return mod_func
-
-
 def _get_fopen(name, read=True):
     """Utility for save/load"""
     name = guitools.get_file_name(name, read)
@@ -1462,3 +1355,265 @@ def reorder_dict(ordered_dict, keys, where):
     return type(ordered_dict)(
         (k, ordered_dict[k]) for k in reorder_keys(ordered_dict, keys, where)
     )
+
+
+def _print_comp(m1, m2, verbose, pdiff, space):
+    # print up to verbose number of values at each end:
+    N = min(m1.size, verbose)
+    sdiff = np.sort(pdiff.ravel())
+
+    nr = len(str(m1.shape[0]))
+    nc = len(str(m1.shape[1]))
+
+    for label, cmp_func, get_ith in (
+        ("Negative", operator.lt, lambda i: sdiff[i]),
+        ("Positive", operator.gt, lambda i: sdiff[-(i + 1)]),
+    ):
+        print(f"{space}Maximum {label} Percent Differences (`b` relative to `a`):")
+        N1 = min(N, np.count_nonzero(cmp_func(sdiff, 0.0)))
+        if N1 == 0:
+            print("     none")
+        else:
+            info = []
+            for i in range(N1):
+                pos = (pdiff == get_ith(i)).nonzero()
+                pos = (pos[0][:1], pos[1][:1])
+                # change the value in pdiff so it is ignored the next
+                # time (might be same as next diff)
+                pdiff[pos] *= 10.0
+                r, c = pos
+                info.append(
+                    [
+                        i + 1,
+                        get_ith(i),
+                        r[0],
+                        c[0],
+                        f"{m2[pos][0]:.6g}",
+                        f"{m1[pos][0]:.6g}",
+                    ]
+                )
+
+            n0 = len(str(N1))
+            n4 = len(max([i[4] for i in info], key=len))
+            n5 = len(max([i[5] for i in info], key=len))
+            frm = (
+                f"{space}   {{:{n0}d}}: {{:10.4g}}% at "
+                f"[{{:{nr}d}}, {{:{nc}d}}]:"
+                f"  {{:>{n4}}} vs. {{:>{n5}}}\n"
+            )
+
+            writer.vecwrite(sys.stdout, frm, info)
+
+
+def _compmat(m1, m2, filterval, method, pdiff_tol, verbose, indent):
+    """
+    Helper routine for :func:`compmat`.
+    """
+    if method == "row":
+        _filterval = (filterval * np.fmax(abs(m1).max(axis=1), abs(m2).max(axis=1)))[
+            :, None
+        ]
+    elif method == "col":
+        _filterval = filterval * np.fmax(abs(m1).max(axis=0), abs(m2).max(axis=0))
+    elif method == "max":
+        _filterval = filterval * np.fmax(abs(m1).max(), abs(m2).max())
+    elif method == "abs":
+        _filterval = filterval
+    else:
+        raise ValueError("invalid `method` setting")
+
+    # vec will point to `a` AND `b` values that are below filter:
+    vec = (abs(m1) <= _filterval) & (abs(m2) <= _filterval)
+    a_mod = m1.copy()
+    b_mod = m2.copy()
+    a_mod[vec] = 1.0
+    b_mod[vec] = 1.0
+
+    pdiff = ((b_mod - a_mod) / a_mod) * 100
+    maxdiff = abs(pdiff).max()
+    space = "   " if indent else ""
+    if maxdiff <= pdiff_tol:
+        mx_pdiff = 0.0
+        stats = [0.0, 0.0, 0.0, 0.0]
+        if verbose > 0:
+            print(f"{space}Matrices match (within compare criteria).")
+    else:
+        mx_pdiff = maxdiff
+
+        # compute statistics on the percent differences:
+        pdiff2 = pdiff[~vec]
+        stats = [pdiff2.min(), pdiff2.max(), pdiff2.mean(), pdiff2.std(ddof=1)]
+
+        if verbose > 0:
+            _print_comp(m1, m2, verbose, pdiff, space)
+            print(f"\n{space}Statistics on Max and Min Percent Differences:")
+            print(
+                f"    {space}[Min, Max, Mean, Std] = "
+                "[{:.4g}%, {:.4g}%, {:.4g}%, {:.4g}%]".format(*stats)
+            )
+
+    return mx_pdiff, stats
+
+
+def _get_part(a, b):
+    if np.iscomplexobj(a):
+        yield a.real, b.real, "REAL part:\n", True
+        yield a.imag, b.imag, "IMAGINARY part:\n", True
+    else:
+        yield a, b, "", False
+
+
+def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
+    """
+    Compare two matrices term-by-term.
+
+    Parameters
+    ----------
+    a : 2d array_like
+        Matrix to compare to `b`
+    b : 2d array_like
+        Matrix to compare to `a`
+    filterval : scalar; optional
+        Used to filter out small numbers; the exact usage depends on
+        `method`. In all cases however, both the `a` and `b` values
+        (absolute value wise) have to be below the filter value for
+        the comparison to be ignored.
+    method : string; optional
+        Specifies how to use filter:
+
+        ========    ==================================================
+        `method`
+        ========    ==================================================
+         'abs'      only numbers in `a` and `b` that are greater
+                    than `filterval` are compared
+         'row'      for each row, only the numbers in `a` and `b` that
+                    are greater than
+                    ``filterval * Max_in_row(a or b)`` are compared
+         'col'      for each column, only the numbers in `a` and `b`
+                    that are greater than
+                    ``filterval * Max_in_col(a or b)`` are compared
+         'max'      only numbers in `a` and `b` that are greater than
+                    ``filter * Max_overall_value(a or b)`` are
+                    compared
+        ========    ==================================================
+
+    pdiff_tol : scalar; optional
+        Percent differences (absolute value wise) that are equal or
+        less than `pdiff_tol` are considered a match.
+    verbose : int; optional
+        If > 0, write messages to the screen showing comparison
+        results. The value specifies the limit to how many specific
+        comparisons are printed. If <= 0, no messages are printed.
+
+    Returns
+    -------
+    max_pdiff : scalar
+        Maximum absolute percent difference after applying filters;
+        will be 0.0 if the two matrices match within the criteria
+    stats : 1d or 2d ndarray
+        4 values of statistics on the percent differences::
+
+             [min(perc), max(perc), mean(perc), std(perc)]
+
+        If comparing complex matrices, `stats` will have two rows of
+        those four values: the first row for the real part and the
+        second row for the imaginary part.
+
+    Raises
+    ------
+    ValueError
+        If `a` and `b` are different sizes
+
+    Notes
+    -----
+    The percent differences are computed by: ``(b - a)/a * 100``
+
+    If `a` and/or `b` are complex, the real and imaginary parts are
+    compared separately.  In this case, `max_pdiff` will be the
+    abs-max over both parts (scalar), but `stats` will have 2 rows in
+    this case, first for the real part, second for the imaginary part.
+
+    Examples
+    --------
+    Compare matrices A and B row-wise, ignoring values less than 10%
+    of the max in the row (over both A and B), and print only percent
+    differences if one is at least 5% different:
+
+    >>> import numpy as np
+    >>> # from pyyeti.ytools import compmat
+    >>> A = np.array([[1,   4, 5, 40], [15, 16, 17, 80]])
+    >>> B = np.array([[2, 4.2, 5, 43], [20, 14, 17, 82]])
+    >>>
+    >>> # compare matching matrices:
+    >>> compmat(A, A)
+    Matrices match (within compare criteria).
+    (0.0, [[0.0, 0.0, 0.0, 0.0]])
+    >>> compmat(A, A, verbose=0)
+    (0.0, [[0.0, 0.0, 0.0, 0.0]])
+    >>>
+    >>> # and non-matching:
+    >>> mx, stats = compmat(A, B, 0.1, method='row', pdiff_tol=5)
+    Maximum Negative Percent Differences (`b` relative to `a`):
+       1:      -12.5% at [1, 1]:  14 vs. 16
+    Maximum Positive Percent Differences (`b` relative to `a`):
+       1:      33.33% at [1, 0]:  20 vs. 15
+       2:        7.5% at [0, 3]:  43 vs. 40
+       3:        2.5% at [1, 3]:  82 vs. 80
+    <BLANKLINE>
+    Statistics on Max and Min Percent Differences:
+        [Min, Max, Mean, Std] = [-12.5%, 33.33%, 5.139%, 15.31%]
+    >>> mx           # doctest: +ELLIPSIS
+    33.3333...
+    >>>
+    >>> # demo a comparison with complex matrices:
+    >>> A = A + B * 1j
+    >>> B = B + A.real * 1j
+    >>> mx, s = compmat(
+    ...          A, B, 0.04, method="row", pdiff_tol=5, verbose=2
+    ...        )
+    REAL part:
+       Maximum Negative Percent Differences (`b` relative to `a`):
+          1:      -12.5% at [1, 1]:  14 vs. 16
+       Maximum Positive Percent Differences (`b` relative to `a`):
+          1:        100% at [0, 0]:   2 vs.  1
+          2:      33.33% at [1, 0]:  20 vs. 15
+    <BLANKLINE>
+       Statistics on Max and Min Percent Differences:
+           [Min, Max, Mean, Std] = [-12.5%, 100%, 16.98%, 35.95%]
+    <BLANKLINE>
+    <BLANKLINE>
+    IMAGINARY part:
+       Maximum Negative Percent Differences (`b` relative to `a`):
+          1:        -50% at [0, 0]:   1 vs.  2
+          2:        -25% at [1, 0]:  15 vs. 20
+       Maximum Positive Percent Differences (`b` relative to `a`):
+          1:      14.29% at [1, 1]:  16 vs. 14
+    <BLANKLINE>
+       Statistics on Max and Min Percent Differences:
+           [Min, Max, Mean, Std] = [-50%, 14.29%, -9.361%, 19.66%]
+    >>> mx           # doctest: +ELLIPSIS
+    100.0...
+    """
+    a, b = np.atleast_2d(a, b)
+    if a.shape != b.shape:
+        raise ValueError(f"matrix sizes do not match: {a.shape=}, {b.shape=}")
+
+    if np.iscomplexobj(a) ^ np.iscomplexobj(b):
+        # if only one is complex:
+        if np.isrealobj(a):
+            a = a + 0.0j
+        else:
+            b = b + 0.0j
+
+    # compare real part and then (if applicable) the imaginary part:
+    max_pdiff = 0.0
+    stats = []
+    for m1, m2, ID, indent in _get_part(a, b):
+        if verbose > 0:
+            print(ID, end="")
+        p, s = _compmat(m1, m2, filterval, method, pdiff_tol, verbose, indent)
+        max_pdiff = max(max_pdiff, abs(p))
+        stats.append(s)
+        if verbose > 0 and indent and "real" in ID.lower():
+            print("\n")
+    return max_pdiff, stats

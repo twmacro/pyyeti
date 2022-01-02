@@ -9,4 +9,6 @@ Graphical user interface tools
     askopenfilename
     asksaveasfilename
     get_file_name
+    read_text_file
+    write_text_file
     MultiColumnListbox

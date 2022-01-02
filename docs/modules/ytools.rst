@@ -10,6 +10,7 @@ Math/utility routines
     :toctree: generated/
 
     axis_equal_3d
+    compmat
     eig_si
     fit_circle_2d
     fit_circle_3d
@@ -30,5 +31,3 @@ I/O helper routines
 
     load
     save
-    read_text_file
-    write_text_file

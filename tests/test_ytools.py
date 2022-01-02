@@ -153,3 +153,58 @@ def test_save_load():
     finally:
         for name in names:
             os.remove(name)
+
+
+def test_compmat():
+    A = np.array([[1, 4, 5, 40], [15, 16, 17, 80]])
+    B = np.array([[2, 4.2, 5, 43], [20, 14, 17, 82]])
+    a, s = ytools.compmat(A, B, 0.1, method="row", pdiff_tol=5, verbose=0)
+    assert np.allclose(a, 33.333333333333)
+
+    A = A + B * 1j
+    B = B + A.real * 1j
+    a, s = ytools.compmat(A, B, 0.04, method="row", pdiff_tol=5, verbose=0)
+
+    # A = array([[ 1. +2.j ,  4. +4.2j,  5. +5.j , 40.+43.j ],
+    #            [15.+20.j , 16.+14.j , 17.+17.j , 80.+82.j ]])
+    #
+    # B = array([[ 2.  +1.j,  4.2 +4.j,  5.  +5.j, 43. +40.j],
+    #            [20. +15.j, 14. +16.j, 17. +17.j, 82. +80.j]])
+
+    real_pdiff = (B.real / A.real - 1) * 100
+    # array([[100.        ,   5.        ,   0.        ,   7.5       ],
+    #        [ 33.33333333, -12.5       ,   0.        ,   2.5       ]])
+
+    imag_pdiff = (B.imag / A.imag - 1) * 100
+    # array([[-50.        ,  -4.76190476,   0.        ,  -6.97674419],
+    #        [-25.        ,  14.28571429,   0.        ,  -2.43902439]])
+
+    assert a == 100
+    real_sbe = np.array(
+        [real_pdiff.min(), real_pdiff.max(), real_pdiff.mean(), real_pdiff.std(ddof=1),]
+    )
+    imag_sbe = np.array(
+        [imag_pdiff.min(), imag_pdiff.max(), imag_pdiff.mean(), imag_pdiff.std(ddof=1),]
+    )
+
+    assert np.allclose(s, np.vstack((real_sbe, imag_sbe)))
+
+    a, s = ytools.compmat(A, B.real, 0.04, method="row", pdiff_tol=5, verbose=0)
+    assert np.allclose(s, np.vstack((real_sbe, [-100.0, -100.0, -100.0, 0.0])))
+
+    a, s = ytools.compmat(
+        A.real, B.real + 0j, 0.04, method="row", pdiff_tol=5, verbose=0
+    )
+    assert a == 100.0
+
+    a, s = ytools.compmat(A, B, 0.2, method="col", pdiff_tol=5, verbose=0)
+    assert np.allclose(a, 33.333333333333)
+
+    a, s = ytools.compmat(A, B, 0.5, method="max", pdiff_tol=5, verbose=0)
+    assert np.allclose(a, 7.5)
+
+    a, s = ytools.compmat(A, B, 40.0, method="abs", pdiff_tol=5, verbose=0)
+    assert np.allclose(a, 7.5)
+
+    assert_raises(ValueError, ytools.compmat, A, A[:2, :2])
+    assert_raises(ValueError, ytools.compmat, A, B, method="badmethod")

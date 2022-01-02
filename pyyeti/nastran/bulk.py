@@ -154,7 +154,7 @@ def fsearch(f, s):
     return None, None
 
 
-@ytools.read_text_file
+@guitools.read_text_file
 def rdgpwg(f, search_strings=None):
     """
     Read a GPWG table from a Nastran F06 file.
@@ -458,7 +458,7 @@ def _rdcomma(fiter, s, conchar, blank, tolist, keep_name):
     return vals
 
 
-@ytools.read_text_file
+@guitools.read_text_file
 def rdcards(
     f,
     name,
@@ -1132,7 +1132,7 @@ def mkcomment(comment, width=72, start="$ ", surround=True):
     return s
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtdmig(f, dct):
     """
     Writes Nastran DMIG cards to a file.
@@ -1564,7 +1564,7 @@ def rdtabled1(f, name="tabled1"):
     return d
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLED1"):
     """
     Writes a Nastran TABLED1 (or similar) card to a file.
@@ -1746,7 +1746,7 @@ def bulk2uset(*args):
     return uset, coords
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def uset2bulk(f, uset):
     """
     Write CORD2* and GRID cards from a USET table
@@ -2069,7 +2069,7 @@ def rdwtbulk(fin, fout):
         nastran.rdwtbulk('meco1.out', 'meco1.blk')
     """
 
-    @ytools.read_text_file
+    @guitools.read_text_file
     def _rdbulk(f):
         fsearch(f, "COUNT        .   1  ..   2  ..   3")
         s = []
@@ -2088,14 +2088,14 @@ def rdwtbulk(fin, fout):
                 s.append(match)
         return "\n".join(s) + "\n"
 
-    @ytools.write_text_file
+    @guitools.write_text_file
     def _wtbulk(f, blk):
         f.write(blk)
 
     _wtbulk(fout, _rdbulk(fin))
 
 
-@ytools.read_text_file
+@guitools.read_text_file
 def rdeigen(f, use_pandas=True):
     """
     Read eigenvalue tables from a Nastran f06 file.
@@ -2190,7 +2190,7 @@ def rdeigen(f, use_pandas=True):
         dct[se] = table
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtnasints(f, start, ints):
     """
     Utility routine for the nastran 'wt*' routines.
@@ -2359,7 +2359,7 @@ def rdextrn(f, expand=True):
     return extrn
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtcsuper(f, superid, grids):
     """
     Writes a Nastran CSUPER card to a file.
@@ -2392,7 +2392,7 @@ def wtcsuper(f, superid, grids):
     wtnasints(f, 4, grids)
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtspc1(f, eid, dof, grids, name="SPC1"):
     """
     Writes a Nastran SPC1 (or similar) card to a file.
@@ -2436,7 +2436,7 @@ def wtspc1(f, eid, dof, grids, name="SPC1"):
     wtnasints(f, 4, grids)
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtxset1(f, dof, grids, name="BSET1"):
     """
     Writes a Nastran BSET1, QSET1 (or similar) card to a file.
@@ -2475,7 +2475,7 @@ def wtxset1(f, dof, grids, name="BSET1"):
     wtnasints(f, 3, grids)
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtqcset(f, startgrid, nq):
     """
     Writes Nastran QSET1 and CSET1 cards for GRID modal DOF for use in
@@ -2533,7 +2533,7 @@ def wtqcset(f, startgrid, nq):
         f.write(f"{'CSET1':<8s}{cdofs:>8s}{endgrid:8d}\n")
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtrbe2(f, eid, indep, dof, dep):
     """
     Writes a Nastran RBE2 card to a file.
@@ -2572,7 +2572,7 @@ def wtrbe2(f, eid, indep, dof, dep):
     wtnasints(f, 5, dep)
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
     """
     Writes a Nastran RBE3 card to a file.
@@ -2692,7 +2692,7 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
         f.write(f"        ALPHA   {alpha:>8s}\n")
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtseset(f, superid, grids):
     """
     Writes a Nastran SESET card to a file.
@@ -2735,7 +2735,7 @@ def wtseset(f, superid, grids):
         f.write(frm.format(superid, *grids[i:]))
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtset(f, setid, ids):
     """
     Writes a Nastran case-control SET card to a file.
@@ -2778,7 +2778,7 @@ def wtset(f, setid, ids):
     f.write(frm.format(*ids[i:]))
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtrspline(f, rid, ids, DoL="0.1"):
     """
     Write Nastran RSPLINE card(s).
@@ -3466,7 +3466,7 @@ def wtrspline_rings(
         if abs(value) < 1e-7 * radius:
             center[i] = 0.0
 
-    @ytools.write_text_file
+    @guitools.write_text_file
     def _write_file(f):
         # write circle info for reference:
         for i in range(2):
@@ -3566,7 +3566,7 @@ def wtcoordcards(f, ci):
     if ci is None or len(ci) == 0:
         return
 
-    @ytools.write_text_file
+    @guitools.write_text_file
     def _wtcoords(f, ci):
         for k in ci:
             data = ci[k]  # [name, [[id, type, ref]; A; B; C]]
@@ -3585,7 +3585,7 @@ def wtcoordcards(f, ci):
     _wtcoords(f, ci)
 
 
-@ytools.write_text_file
+@guitools.write_text_file
 def wtextrn(f, ids, dof):
     """
     Writes a Nastran EXTRN card to a file.
