@@ -1596,7 +1596,9 @@ def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
     """
     a, b = np.atleast_2d(a, b)
     if a.shape != b.shape:
-        raise ValueError(f"matrix sizes do not match: {a.shape=}, {b.shape=}")
+        raise ValueError(
+            f"matrix sizes do not match: a.shape={a.shape}, b.shape={b.shape}"
+        )
 
     if np.iscomplexobj(a) ^ np.iscomplexobj(b):
         # if only one is complex:
