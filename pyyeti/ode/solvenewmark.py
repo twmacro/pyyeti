@@ -66,14 +66,13 @@ class SolveNewmark(_BaseODE):
     .. math::
         \begin{aligned}
         u_{-1} &= u_0 - \dot{u}_0 h \\
-
         F_{-1} &= K u_{-1} + B \dot{u}_0
         \end{aligned}
 
     Also, :math:`F_0` is replaced by:
 
     .. math::
-        F_{0} &= K u_{0} + B \dot{u}_0
+        F_{0} = K u_{0} + B \dot{u}_0
 
     According to [#newmark]_, that is done to avoid ringing of
     massless degrees of freedom that are subjected to step loads. A
@@ -91,7 +90,6 @@ class SolveNewmark(_BaseODE):
         \begin{aligned}
         \dot{u}_n &= \frac{1}{2 h} \left (
             u_{n+1} - u_{n-1} \right ) \\
-
         \ddot{u}_n &= \frac{1}{h^2} \left (
             u_{n+1} - 2 u_n + u_{n-1} \right )
         \end{aligned}
