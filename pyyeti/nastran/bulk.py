@@ -1915,6 +1915,7 @@ def rdseconct(f):
     return np.array(a_ids, dtype=np.int64), np.array(b_ids, dtype=np.int64)
 
 
+@guitools.read_text_file
 def asm2uset(f):
     r"""
     Read CORD2* and GRID cards from a ".asm" file to make a USET table
