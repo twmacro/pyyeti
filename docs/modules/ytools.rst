@@ -18,6 +18,7 @@ Math/utility routines
     histogram
     isdiag
     mattype
+    max_complex_vector_sum
     mkpattvec
     multmd
     np_printoptions
