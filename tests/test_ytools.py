@@ -208,3 +208,22 @@ def test_compmat():
 
     assert_raises(ValueError, ytools.compmat, A, A[:2, :2])
     assert_raises(ValueError, ytools.compmat, A, B, method="badmethod")
+
+
+def test_max_complex_vector_sum():
+    x = [3.0, 1.0 + 2.0j]
+    y = [4.0, 3.0 + 4.0j]
+    h, th, c, s = ytools.max_complex_vector_sum(x, y)
+
+    # check for consistent output:
+    for xi, yi, hi, thi, ci, si in zip(x, y, h, th, c, s):
+        assert np.allclose(xi * ci + yi * si, hi)
+        assert np.allclose(np.cos(thi), ci)
+        assert np.allclose(np.sin(thi), si)
+
+    # check for correct solution:
+    mx = np.zeros(len(x))
+    for i, (xi, yi) in enumerate(zip(x, y)):
+        for a in np.arange(0.0, np.pi, 0.001):
+            mx[i] = max(mx[i], np.abs(np.cos(a) * xi + np.sin(a) * yi))
+    assert (np.abs(h) >= mx).all()

@@ -13,6 +13,7 @@ import contextlib
 import warnings
 from types import SimpleNamespace
 import operator
+import numbers
 import numpy as np
 from scipy import linalg
 from scipy.optimize import leastsq
@@ -1619,3 +1620,142 @@ def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
         if verbose > 0 and indent and "real" in ID.lower():
             print("\n")
     return max_pdiff, stats
+
+
+def _calc_covariance_sine_cosine(varx, vary, covar):
+    # See, for example:
+    # http://www.visiondummy.com/2014/04/
+    #             draw-error-ellipse-representing-covariance-matrix/)
+
+    # Have covariance matrix:
+    #  A = [varx, covar]
+    #      [covar, vary]
+
+    # Need to find the angle from the x-axis to the eigenvector that
+    # maximizes the vector sum response (RSS). The maximizing
+    # eigenvector corresponds to the largest eigenvalue (can think of
+    # this as principal axes too). Could do that with
+    # scipy.linalg.eigh:
+    #     lam, phi = scipy.linalg.eigh(A)
+    #     # since 2nd eigenvalue from `eigh` is biggest:
+    #     theta = np.arctan2(phi[1, 1], phi[0, 1])
+    #
+    # Or, since this is just a 2x2 for each item, we can also solve
+    # this by hand ahead of time.
+
+    # allocate sine and cosine arrays:
+    n = varx.shape[0]
+    s = np.empty(n)
+    c = np.empty(n)
+
+    # check for very small covar:
+    pv = abs(covar) <= 1e-12 * np.fmax(varx, vary)
+    if pv.any():
+        # put in pi/2 where vary > varx, 0.0 for others:
+        y_bigger = (varx[pv] < vary[pv]).astype(float)
+        s[pv] = y_bigger  # where vary > varx: sin(pi/2) = 1
+        c[pv] = 1.0 - y_bigger
+
+    pv = ~pv  # where there is a non-zero covariance
+    if pv.any():
+        varx, vary, covar = varx[pv], vary[pv], covar[pv]
+        # Eigenvalues are (from hand calcs):
+        #   term = sqrt((vary - varx)**2 + 4*covar**2)
+        #   lambda = (varx + vary +- term) / 2
+        #
+        # Note that both eigenvalues are always real. Since all three
+        # values in the lambda expression are positive, the largest
+        # eigenvalue is with the positive sign. The eigenvector
+        # associated with that is (using the top row of
+        # ``(A - lambda_max I) X = 0`` and defining first element as
+        # 1):
+
+        #   X = [                1                 ]
+        #       [(vary - varx + term) / (2 * covar)]
+
+        # get angle to eigenvector: arctan2(x2, x1) = arctan(x2):
+        term = np.sqrt((vary - varx) ** 2 + 4 * covar ** 2)
+        #   theta = np.arctan((vary - varx + term) / (2 * covar))
+        #   s[pv] = np.sin(theta)
+        #   c[pv] = np.cos(theta)
+        # or, equivalently:
+        b = (vary - varx + term) / (2 * covar)
+        c[pv] = 1.0 / np.sqrt(b ** 2 + 1.0)
+        s[pv] = b * c[pv]
+
+    return s, c
+
+
+def max_complex_vector_sum(x, y):
+    """
+    Compute maximum complex vector from `x` and `y` components
+
+    Parameters
+    ----------
+    x, y : complex scalar or 1d array_like
+        The `x` and `y` complex components to sum. If 1d arrays, each
+        element is independently analyzed.
+
+    Returns
+    -------
+    hypot : complex scalar or 1d ndarray
+        The maximum vector sum of the complex vectors `x` and `y`
+    theta : real scalar or 1d ndarray
+        The maximizing angle(s)
+    c : real scalar or 1d ndarray
+        The cosine of the maximizing angle(s)
+    s : real scalar or 1d ndarray
+        The cosine of the maximizing angle(s)
+
+    Notes
+    -----
+    The return value `hypot` is the vector sum::
+
+        hypot = cos(theta) * x + sin(theta) * y
+
+    where, for each element in `x` and `y`, the angle `theta`
+    maximizes the magnitude of `hypot`::
+
+        abs(hypot)
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import ytools
+    >>> x = 1.0 + 2.0j
+    >>> y = 3.0 + 4.0j
+    >>> h, th, c, s = ytools.max_complex_vector_sum(x, y)
+    >>> h                        # doctest: +ELLIPSIS
+    (3.148096...+4.467164...j)
+    >>> th                       # doctest: +ELLIPSIS
+    1.154305...
+    >>> c                        # doctest: +ELLIPSIS
+    0.404553...
+    >>> s                        # doctest: +ELLIPSIS
+    0.914514...
+    >>> with ytools.np_printoptions(precision=6):
+    ...     x = [3.0, 1.0 + 2.0j]
+    ...     y = [4.0, 3.0 + 4.0j]
+    ...     h, th, c, s = ytools.max_complex_vector_sum(x, y)
+    ...     print(h)
+    ...     print(th)
+    ...     print(c)
+    ...     print(s)
+    [ 5.000000+0.j        3.148096+4.467164j]
+    [ 0.927295  1.154306]
+    [ 0.6       0.404554]
+    [ 0.8       0.914514]
+    """
+    if isinstance(x, numbers.Complex) and isinstance(y, numbers.Complex):
+        scalars = True
+    else:
+        scalars = False
+    X, Y = np.atleast_1d(x, y)
+    varx = np.abs(X) ** 2
+    vary = np.abs(Y) ** 2
+    cov = (X * np.conj(Y)).real
+    s, c = _calc_covariance_sine_cosine(varx, vary, cov)
+    if scalars:
+        s, c = s[0], c[0]
+    theta = np.arctan2(s, c)
+    return (c * x + s * y), theta, c, s

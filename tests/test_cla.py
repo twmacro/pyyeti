@@ -13,7 +13,7 @@ import scipy.interpolate as interp
 import scipy.linalg as la
 from nose.tools import *
 import matplotlib.pyplot as plt
-from pyyeti import cla, cb, ode, stats, locate
+from pyyeti import cla, cb, ode, stats, locate, ytools
 from pyyeti import nastran, srs
 from pyyeti.nastran import op2, n2p, op4
 
@@ -2019,7 +2019,7 @@ def test_PSD_consistent2():
                 Vary.append(vary)
                 Covar.append(covar)
 
-    s2, c2 = cla._calc_covariance_sine_cosine(
+    s2, c2 = ytools._calc_covariance_sine_cosine(
         np.array(Varx), np.array(Vary), np.array(Covar)
     )
     s = np.array(s)

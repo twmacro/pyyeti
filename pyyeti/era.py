@@ -797,7 +797,7 @@ class ERA:
             # lam1 = om[1]
             # lam2 = om[0]
 
-            # from pyyeti.cla._utilities._calc_covariance_sine_cosine:
+            # from pyyeti.ytools._calc_covariance_sine_cosine:
             term = np.sqrt((Syy - Sxx) ** 2 + 4 * Sxy ** 2)
             lam1 = (Sxx + Syy + term) / 2
             lam2 = (Sxx + Syy - term) / 2

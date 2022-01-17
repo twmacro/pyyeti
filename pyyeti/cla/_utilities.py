@@ -7,7 +7,7 @@ from keyword import iskeyword
 import datetime
 import importlib
 import numpy as np
-from pyyeti import locate
+from pyyeti import locate, ytools
 
 
 __all__ = [
@@ -25,8 +25,8 @@ __all__ = [
     "nan_argmin",
     "nan_absmax",
     "extrema",
-    #     'reorder',
-    "_calc_covariance_sine_cosine",
+    # "reorder",
+    # "_calc_covariance_sine_cosine",
     "PSD_consistent_rss",
 ]
 
@@ -548,66 +548,6 @@ def extrema(curext, mm, maxcase, mincase=None, casenum=None):
         _put_time(curext, mm, j, 1, 1)
 
 
-def _calc_covariance_sine_cosine(varx, vary, covar):
-    # See, for example:
-    # http://www.visiondummy.com/2014/04/
-    #             draw-error-ellipse-representing-covariance-matrix/)
-
-    # Have covariance matrix:
-    #  A = [varx, covar]
-    #      [covar, vary]
-
-    # Need to find the angle from the x-axis to the eigenvector that
-    # maximizes the vector sum response (RSS). The maximizing
-    # eigenvector corresponds to the largest eigenvalue (can think of
-    # this as principal axes too). Could do that with
-    # scipy.linalg.eigh:
-    #     lam, phi = scipy.linalg.eigh(A)
-    #     # since 2nd eigenvalue from `eigh` is biggest:
-    #     theta = np.arctan2(phi[1, 1], phi[0, 1])
-    #
-    # Or, since this is just a 2x2 for each item, we can also solve
-    # this by hand ahead of time.
-
-    # allocate sine and cosine arrays:
-    n = varx.shape[0]
-    s = np.empty(n)
-    c = np.empty(n)
-
-    # check for very small covar:
-    pv = abs(covar) <= 1e-12 * np.fmax(varx, vary)
-    if pv.any():
-        # put in pi/2 where vary > varx, 0.0 for others:
-        y_bigger = (varx[pv] < vary[pv]).astype(float)
-        s[pv] = y_bigger  # where vary > varx: sin(pi/2) = 1
-        c[pv] = 1.0 - y_bigger
-
-    pv = ~pv  # where there is a non-zero covariance
-    if pv.any():
-        varx, vary, covar = varx[pv], vary[pv], covar[pv]
-        # Eigenvalues are (from hand calcs):
-        #   term = sqrt((vary - varx)**2 + 4*covar**2)
-        #   lambda = (varx + vary +- term) / 2
-        #
-        # Note that both eigenvalues are always real. Since all three
-        # values in the lambda expression are positive, the largest
-        # eigenvalue is with the positive sign. The eigenvector
-        # associated with that is (using the top row of
-        # ``(A - lambda_max I) X = 0`` and defining first element as
-        # 1):
-
-        #   X = [                1                 ]
-        #       [(vary - varx + term) / (2 * covar)]
-
-        # get angle to eigenvector: arctan2(x2, x1) = arctan(x2):
-        term = np.sqrt((vary - varx) ** 2 + 4 * covar ** 2)
-        theta = np.arctan((vary - varx + term) / (2 * covar))
-        s[pv] = np.sin(theta)
-        c[pv] = np.cos(theta)
-
-    return s, c
-
-
 def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres, case, i):
     """
     Compute phase-consistent (time-correlated) root-sum-square (RSS)
@@ -696,8 +636,8 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres, case, i):
     This routine works by computing the maximum length principal axis
     (eigenvector) of the covariance matrix. The RSS results are then
     calculated along the eigenvector direction. See comments in source
-    code of :func:`_calc_covariance_sine_cosine` for more
-    details. Also see, for example, reference [#cov]_.
+    code of :func:`pyyeti.ytools._calc_covariance_sine_cosine` for
+    more details. Also see, for example, reference [#cov]_.
 
     References
     ----------
@@ -730,7 +670,7 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres, case, i):
         varx = np.trapz(tmp.varx, freq)
         vary = np.trapz(tmp.vary, freq)
         covar = np.trapz(tmp.covar, freq)
-        s, c = _calc_covariance_sine_cosine(varx, vary, covar)
+        s, c = ytools._calc_covariance_sine_cosine(varx, vary, covar)
 
         # now have all sines/cosines, compute consistent vector sum
         # results:
