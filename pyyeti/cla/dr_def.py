@@ -813,8 +813,8 @@ class DR_Def(OrderedDict):
             can be dangerous, since multiplie categories can use the
             same `drms` and `nondrms`; use with caution.
         **kwargs : dict; optional
-            Any inputs to amend. Any unrecognized entries are quietly
-            ignored.
+            Any inputs to :func:`add` that are to be amended. Any
+            unrecognized entries are quietly ignored.
 
         Returns
         -------
