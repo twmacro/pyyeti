@@ -228,6 +228,7 @@ def magpct(
     if M1.shape != M2.shape or M1.shape != Ref.shape:
         raise ValueError("`M1`, `M2` and `Ref` must all have the same shape")
 
+    # filterval will be 1d array after this (len=1 or n):
     filterval = _proc_filterval(filterval, M1.shape[0])
 
     if symbols:
@@ -304,7 +305,7 @@ def magpct(
         )
     elif symlogy:
         # no filter, but use symlog on y-axis:
-        ax.set_xscale("symlog")
+        ax.set_yscale("symlog")
 
     if symlogx == "auto":
         symlogx = symlogx_auto
