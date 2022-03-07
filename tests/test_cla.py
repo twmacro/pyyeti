@@ -26,7 +26,15 @@ def test_magpct():
 
     pds = cla.magpct([1, 2], [1, 3], filterval=4, symlogy=False)
     assert len(pds) == 1
-    assert pds[0] is None
+    assert len(pds[0]) == 2
+
+    pds = cla.magpct([1, 2], [1, 3], filterval=4, plot_all=False)
+    assert len(pds) == 1
+    assert len(pds[0]) == 0
+
+    pds = cla.magpct([1, 2], [0, 0], filterval=4)
+    assert len(pds) == 1
+    assert len(pds[0]) == 0
 
     pds = cla.magpct([1, 2], [0, 3], filterval=[2, 2])
     assert np.allclose(pds[0], [-33.3333333])

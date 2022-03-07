@@ -14,9 +14,6 @@ def _getpdiffs(m1, m2, ref, ismax, plot_all, filterval):
     else:
         pv = ref != 0.0
 
-    if not np.any(pv):
-        return None, None, None
-
     a = m1[pv]
     b = m2[pv]
     pdiff = (a - b) / ref[pv] * 100.0
@@ -30,7 +27,7 @@ def _getpdiffs(m1, m2, ref, ismax, plot_all, filterval):
         # find maximum pdiff in filtered region so the region can be
         # highlighted on the plot (also sets the symlog boundary if
         # that is used)
-        if len(filterval) > len(a):
+        if len(filterval) > 1:
             filt = filterval[pv]
         else:
             filt = filterval
@@ -53,11 +50,66 @@ def _get_next_pdiffs(M1, M2, Ref, ismax, plot_all, filterval):
             yield _getpdiffs(M1[:, c], M2[:, c], Ref[:, c], ismax, plot_all, filterval)
 
 
-def _set_symlog(symlog, interval, range_cutoff):
-    if symlog == "auto":
-        big_range = interval[1] - interval[0] > range_cutoff
-        symlog = True if big_range else False
-    return symlog
+def _get_symlog(axis, range_cutoff):
+    interval = axis.get_data_interval()
+    return interval[1] - interval[0] > range_cutoff
+
+
+def _highlight_regions(ax, filterval, max_filt_pdiff):
+    ax.set_facecolor("lightgray")
+    # use blended transform for text: axes coords for x, data coords for y
+    trans = transforms.blended_transform_factory(ax.transAxes, ax.transData)
+    if len(filterval) == 1:
+        mn, mx = ax.get_xlim()
+        points = [[filterval[0], max_filt_pdiff], [-filterval[0], max_filt_pdiff]]
+        axes_points = ax.transAxes.inverted().transform(ax.transData.transform(points))
+
+        if mx > filterval:
+            ax.axhspan(
+                -max_filt_pdiff,
+                max_filt_pdiff,
+                xmin=axes_points[0, 0],
+                facecolor="white",
+                zorder=-2,
+            )
+            ax.axvline(
+                filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1,
+            )
+            # text added below
+        if mn < -filterval:
+            ax.axhspan(
+                -max_filt_pdiff,
+                max_filt_pdiff,
+                xmax=axes_points[1, 0],
+                facecolor="white",
+                zorder=-2,
+            )
+            ax.axvline(
+                -filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1,
+            )
+            ax.text(
+                0.02,  # uses axes coordinates for x-axis
+                0.98 * max_filt_pdiff,  # uses data coordinates for y-axis
+                # "Values > Filter",
+                "Filtered region",
+                va="top",
+                ha="left",
+                transform=trans,
+                fontstyle="italic",
+            )
+    else:
+        ax.axhspan(-max_filt_pdiff, max_filt_pdiff, facecolor="white", zorder=-2)
+
+    ax.text(
+        0.98,  # uses axes coordinates for x-axis
+        0.98 * max_filt_pdiff,  # uses data coordinates for y-axis
+        # "Values > Filter",
+        "Filtered region",
+        va="top",
+        ha="right",
+        transform=trans,
+        fontstyle="italic",
+    )
 
 
 def magpct(
@@ -71,8 +123,8 @@ def magpct(
     plot_all=True,
     symlogx="auto",
     symlogy="auto",
-    symlogx_range_cutoff=100.0,
-    symlogy_range_cutoff=100.0,
+    symlogx_range_cutoff=1000.0,
+    symlogy_range_cutoff=500.0,
     ax=None,
 ):
     """
@@ -100,18 +152,19 @@ def magpct(
     filterval : scalar, 1d array_like or None; optional; must be named
         If None, no filtering is done and all percent differences are
         plotted; in this case, the `plot_all` option is ignored. If
-        not None, percent differences for small numbers are handled in
-        one of two ways depending on the `plot_all` setting (described
-        next).
+        not None, percent differences for values smaller than
+        `filterval` are only plotted if `plot_all` is True. If they
+        are plotted, see the `symlogy` argument for y-axis scaling
+        options.
     plot_all : bool; optional; must be named
         Ignored if `filterval` is None. Otherwise:
 
           ==========   ===============================================
           `plot_all`   Description
           ==========   ===============================================
-           True        All percent differences are plotted and the
-                       filtered region is highlighted and labeled on
-                       the plot.
+           True        All percent differences are plotted. The
+                       filtered region(s) will be highlighted and
+                       labeled on the plot.
 
            False       Plot only values larger (in the absolute sense)
                        than `filterval`.
@@ -135,13 +188,36 @@ def magpct(
            False      Do not use the "symlog" option on the x-axis.
           =========   ================================================
 
-    symlogy : bool; optional; must be named
-        Works just like `symlogx` but for the y-axis
+    symlogy : string or bool; optional; must be named
+        Similar to the `symlogx` input, but treated a little
+        differently due to the nature of the data being plotted (%
+        differences on the y-axis vs reference magnitudes on the
+        x-axis). If the "symlog" option is used for the y-axis, the
+        linear range is set to the filtered values range and this
+        region is highlighted and labeled on the plot.
+
+          =========   ================================================
+          `symlogy`   Description
+          =========   ================================================
+           'auto'     Works same as 'auto' for the `symlogx` input if
+                      `filterval` is None. Otherwise, if values
+                      smaller than `filterval` are to be plotted (see
+                      `plot_all` above), the "symlog" option will be
+                      used for the y-axis only if the maximum %
+                      difference for the small values is greater then
+                      twice the maximum % difference for the filtered
+                      values.
+
+           True       Use the "symlog" option on the x-axis.
+
+           False      Do not use the "symlog" option on the x-axis.
+          =========   ================================================
+
     symlogx_range_cutoff : scalar; optional; must be named
         Used only if ``symlogx == "auto"``; see `symlogx` for
         description.
     symlogy_range_cutoff : scalar; optional; must be named
-        Used only if ``symlogy == "auto"``; see `symlogy` for
+        Used only if ``symlogy == "auto"`` *and* ; see `symlogx` for
         description.
     ax : Axes object or None; must be named
         The axes to plot on. If None, ``ax = plt.gca()``.
@@ -149,12 +225,13 @@ def magpct(
     Returns
     -------
     pdiffs : list
-        List of 1d percent differences, one numpy array for each
-        column in `M1` and `M2`. Each 1d array contains only the
-        percent differences where ``M2 != 0.0``. If `M2` is all zero
-        for a column (or all filtered out and `plot_all` is False),
-        the corresponding 1d array entry in `pdiffs` will be zero
-        size.
+        List of percent differences, one 1d numpy array for each
+        column in `M1` and `M2`. If `plot_all` is True, all percent
+        differences where ``M2 != 0.0`` are included; otherwise, only
+        the values above the filter are included. If `M2` is all zero
+        for a column, or all if all values are filtered out and
+        `plot_all` is False, the corresponding 1d array entry in
+        `pdiffs` will be zero size.
 
     Notes
     -----
@@ -178,22 +255,26 @@ def magpct(
         >>> import matplotlib.pyplot as plt
         >>> from pyyeti import cla
         >>> n = 500
-        >>> m1 = 5 + np.arange(n)[:, None]/5 + np.random.randn(n, 2)
+        >>> m1 = (5 + np.arange(-n, n, 2)[:, None] / 5
+        ...       + np.random.randn(n, 2))
         >>> m2 = m1 + np.random.randn(n, 2)
-        >>> fig = plt.figure('Example', figsize=(6.4, 8))
-        >>> fig.clf()
-        >>> ax = fig.subplots(3, 1, sharex=True)
+        >>> fig = plt.figure("Example", figsize=(6.4, 11), clear=True)
+        >>> ax = fig.subplots(4, 1)  # , sharex=True)
         >>>
-        >>> _ = ax[0].set_title('No Filter')
-        >>> pdiffs = cla.magpct(m1, m2, symbols='ox', ax=ax[0])
+        >>> _ = ax[0].set_title("no filter, default settings")
+        >>> pdiffs = cla.magpct(m1, m2, symbols="ox", ax=ax[0])
         >>>
-        >>> _ = ax[1].set_title('Filter = 45, symlogy=True')
-        >>> pdiffs = cla.magpct(m1, m2, symbols='ox',
-        ...                     filterval=45, ax=ax[1])
+        >>> _ = ax[1].set_title("filterval = 45, default settings")
+        >>> pdiffs = cla.magpct(m1, m2, symbols="ox", filterval=45,
+        ...                     ax=ax[1])
         >>>
-        >>> _ = ax[2].set_title('Filter = 45, symlogy=False')
-        >>> pdiffs = cla.magpct(m1, m2, symbols='ox',
-        ...                     filterval=45, symlogy=False, ax=ax[2])
+        >>> _ = ax[2].set_title("filterval = 45, plot_all=False")
+        >>> pdiffs = cla.magpct(m1, m2, symbols="ox", filterval=45,
+        ...                     ax=ax[2], plot_all=False)
+        >>>
+        >>> _ = ax[3].set_title("filterval = 45, symlogy=False")
+        >>> pdiffs = cla.magpct(m1, m2, symbols="ox", filterval=45,
+        ...                     symlogy=False, ax=ax[3])
         >>>
         >>> fig.tight_layout()
 
@@ -205,31 +286,34 @@ def magpct(
     .. plot::
         :context: close-figs
 
-        >>> m1[n-5:] *= np.linspace(25, 60, 5)[:, None]
-        >>> m2[n-5:] = m1[n-5:] + np.random.randn(5, 2)
-        >>> fig = plt.figure('Example 2', figsize=(6.4, 11))
-        >>> fig.clf()
+        >>> m1[n - 5 :] *= np.linspace(25, 60, 5)[:, None]
+        >>> m2[n - 5 :] = m1[n - 5 :] + np.random.randn(5, 2)
+        >>> m1[:5] *= np.linspace(25, 60, 5)[:, None]
+        >>> m2[:5] = m1[:5] + np.random.randn(5, 2)
+        >>> fig = plt.figure("Example 2", figsize=(6.4, 11),
+        ...                  clear=True)
         >>> ax = fig.subplots(4, 1)
         >>>
-        >>> _ = ax[0].set_title("symlogx=False")
-        >>> pdiffs = cla.magpct(m1, m2, symbols="ox", filterval=45,
-        ...                     ax=ax[0], symlogx=False)
+        >>> _ = ax[0].set_title("no filter, default settings")
+        >>> pdiffs = cla.magpct(m1, m2, symbols="ox", ax=ax[0])
         >>>
-        >>> _ = ax[1].set_title("symlogx=True")
+        >>> _ = ax[1].set_title("filterval = 45, default settings")
         >>> pdiffs = cla.magpct(m1, m2, symbols="ox", filterval=45,
-        ...                     ax=ax[1], symlogx=True)
+        ...                     ax=ax[1])
         >>>
-        >>> _ = ax[2].set_title('symlogx="auto", symlogx_ratio=10;'
-        ...                     ' [Default]')
-        >>> pdiffs = cla.magpct(m1, m2, symbols="ox", filterval=45,
-        ...                     ax=ax[2])
+        >>> _ = ax[2].set_title("filterval = np.ones(m1.shape[0])*45"
+        ...                     ", default settings")
+        >>> pdiffs = cla.magpct(m1, m2, symbols="ox",
+        ...                     filterval=np.ones(m1.shape[0]) * 45,
+        ...                      ax=ax[2])
         >>>
-        >>> _ = ax[3].set_title('symlogx="auto", symlogx_ratio=100')
+        >>> _ = ax[3].set_title("filterval = 45,"
+        ...                     " symlogx_range_cutoff=50000")
         >>> pdiffs = cla.magpct(m1, m2, symbols="ox", filterval=45,
-        ...                     ax=ax[3], symlogx_ratio=100.0)
+        ...                     ax=ax[3], symlogx_range_cutoff=5e5)
+        >>>
         >>> fig.tight_layout()
     """
-    SHADED = "lightgray"
     if Ref is None:
         M1, M2 = np.atleast_1d(M1, M2)
         Ref = M2
@@ -251,7 +335,7 @@ def magpct(
         ax = plt.gca()
 
     pdiffs = []
-    linthreshy, logthreshy = 0.0, 0.0
+    max_filt_pdiff, max_all_pdiff = 0.0, 0.0
     apd = None
     for curpd, ref, mfp in _get_next_pdiffs(M1, M2, Ref, ismax, plot_all, filterval):
         pdiffs.append(curpd)
@@ -267,64 +351,50 @@ def magpct(
         # mfp -> max_filt_pdiff; only not None if plot_all is true and
         # filterval is not None
         if mfp is not None:
-            logthreshy = max(logthreshy, abs(curpd).max())
-            linthreshy = max(linthreshy, mfp)
+            max_filt_pdiff = max(max_filt_pdiff, mfp)
+            max_all_pdiff = max(max_all_pdiff, abs(curpd).max())
 
     if apd is None:
         return pdiffs
 
-    symlogx = _set_symlog(symlogx, ax.xaxis.get_data_interval(), symlogx_range_cutoff)
-    symlogy = _set_symlog(symlogy, ax.yaxis.get_data_interval(), symlogy_range_cutoff)
+    if symlogx == "auto":
+        symlogx = _get_symlog(ax.xaxis, symlogx_range_cutoff)
+
+    if symlogx:
+        ax.set_xscale("symlog")
+
+    # Should we adjust the y-axis symlog setting? (Note: for nonzero
+    # max_filt_pdiff and max_all_pdiff values, plot_all must be True
+    # ... so we don't need to check that here)
+    manual_symlogy = max_filt_pdiff > 0.0 and max_all_pdiff > 2 * max_filt_pdiff
+    if symlogy == "auto":
+        if manual_symlogy:
+            symlogy = True
+        else:
+            symlogy = _get_symlog(ax.yaxis, symlogy_range_cutoff)
 
     if symlogy:
-        if linthreshy > 0.0 and logthreshy > 2 * linthreshy:
+        if manual_symlogy:
             if LooseVersion(matplotlib.__version__) >= "3.3":
                 ax.set_yscale(
                     "symlog",
-                    linthresh=linthreshy,
+                    linthresh=max_filt_pdiff,
                     linscale=2,
                     subs=[2, 3, 4, 5, 6, 7, 8, 9],
                 )
             else:
                 ax.set_yscale(
                     "symlog",
-                    linthreshy=linthreshy,
+                    max_filt_pdiff=max_filt_pdiff,
                     linscaley=2,
                     subsy=[2, 3, 4, 5, 6, 7, 8, 9],
                 )
         else:
+            # no region to highlight, but symlogy is True:
             ax.set_yscale("symlog")
 
-    if filterval is not None and plot_all:
-        ax.set_facecolor(SHADED)
-        ax.axhspan(-linthreshy, linthreshy, facecolor="white", zorder=-2)
-
-        trans = transforms.blended_transform_factory(ax.transAxes, ax.transData)
-        ax.text(
-            0.98,
-            0.98 * linthreshy,
-            # "Values > Filter",
-            # "Significant values %Diff range",
-            "Filtered region",
-            va="top",
-            ha="right",
-            transform=trans,
-            fontstyle="italic",
-        )
-
-    if symlogx:
-        ax.set_xscale("symlog")
-
-    if filterval is not None and len(filterval) == 1:
-        mn, mx = ax.get_xlim()
-        if mx > filterval:
-            ax.axvline(
-                filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
-            )
-        if mn < -filterval:
-            ax.axvline(
-                -filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1
-            )
+    if max_filt_pdiff > 0.0:
+        _highlight_regions(ax, filterval, max_filt_pdiff)
 
     ax.set_xlabel("Reference Magnitude")
     ax.set_ylabel("% Difference")
