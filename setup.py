@@ -133,6 +133,8 @@ def run_setup(with_binary):
             ),
         ],
         platforms="any",
+        setup_requires=["nose>=1.0"],
+        test_suite="nose.collector",
         tests_require=["nose"],
         classifiers=CLASSIFIERS,
         **kw,
