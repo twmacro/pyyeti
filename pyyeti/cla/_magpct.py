@@ -246,7 +246,7 @@ def magpct(
 
     Examples
     --------
-    The first example demos the `symlogy` and `filterval` options.
+    Generate some values to compare, and demo some of the options:
 
     .. plot::
         :context: close-figs
@@ -278,10 +278,10 @@ def magpct(
         >>>
         >>> fig.tight_layout()
 
-    The second example will demo the `symlogx` option by significantly
-    increasing the magnitude of the last 5 elements. Leaving the
-    x-axis scale linear makes it difficult to see how the smaller
-    numbers compare; this is why the `symlogx` option exists.
+    The second example will demo more options after significantly
+    increasing the magnitude of some of the elements. Leaving the
+    x-axis scale linear (as shown on the 4th plot) makes it difficult
+    to see how the smaller numbers compare.
 
     .. plot::
         :context: close-figs
