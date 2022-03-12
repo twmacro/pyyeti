@@ -5,7 +5,7 @@
 #
 sphinx>=4.0
 numpy
-scipy
+scipy=1.7
 matplotlib
 pandas
 ipython
