@@ -16,7 +16,9 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip setuptools numpy scipy matplotlib pandas nose coverage xlsxwriter h5py coveralls
+  # - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip setuptools numpy scipy matplotlib pandas nose coverage xlsxwriter h5py coveralls
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip setuptools numpy scipy matplotlib pandas coverage xlsxwriter h5py coveralls
+  - pip install nose
   - conda activate test-environment
   - python setup.py install
 script:
