@@ -5,7 +5,7 @@ Tools for computing the matrix exponential and the integral.
 
 import warnings
 import numpy as np
-import scipy.sparse.linalg.matfuncs as mf
+import scipy.sparse.linalg as spla
 import scipy.linalg as la
 
 
@@ -14,6 +14,14 @@ try:
     np.set_printoptions(legacy="1.13")
 except TypeError:
     pass
+
+mf = spla.matfuncs
+try:
+    # scipy version 1.7 or older?
+    mf._ExpmPadeHelper
+except AttributeError:
+    # scipy version 1.8 or newer
+    mf = spla._matfuncs
 
 
 class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
