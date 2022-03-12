@@ -4,7 +4,11 @@ import copy
 import warnings
 import numpy as np
 import scipy.signal as signal
+
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
+
 from matplotlib.backends.backend_pdf import PdfPages
 from pyyeti.nastran import n2p
 from ._utilities import get_marker_cycle
@@ -113,20 +117,21 @@ def _prep_subplot(
         )
         filenum += 1
         if show_figures:
-            plt.figure(figname, figsize=figsize)
-            plt.clf()
+            cur_fig = plt.figure(figname, figsize=figsize, clear=True)
         else:
-            cur_fig = plt.figure(figsize=figsize)
-    ax = plt.subplot(rows, cols, sub)
+            cur_fig = Figure(figsize=figsize)
+            FigureCanvasAgg(cur_fig)
+
+    ax = cur_fig.add_subplot(rows, cols, sub)
     ax.ticklabel_format(useOffset=False, style="sci", scilimits=(-3, 4))
     txt = ax.get_yaxis().get_offset_text()
     txt.set_x(-0.22)
     txt.set_va("bottom")
-    plt.grid(True)
-    return sub, filenum, prefix, cur_fig
+    ax.grid(True)
+    return sub, filenum, prefix, cur_fig, ax
 
 
-def _add_title(name, label, maxlen, sname, row, cols, q=None):
+def _add_title(ax, name, label, maxlen, sname, row, cols, q=None):
     def _add_q(ttl, q):
         if q is not None:
             ttl = f"{ttl}, Q={q}"
@@ -144,7 +149,7 @@ def _add_title(name, label, maxlen, sname, row, cols, q=None):
 
     if maxlen > 35:
         ttl = f"{name} {sname}\nRow {row}"
-        plt.annotate(
+        ax.annotate(
             label,
             xy=(0, 1),
             xycoords="axes fraction",
@@ -157,12 +162,11 @@ def _add_title(name, label, maxlen, sname, row, cols, q=None):
     else:
         ttl = f"{name} {sname}\n{label}"
     ttl = _add_q(ttl, q)
-    plt.title(ttl, fontsize=big)
+    ax.set_title(ttl, fontsize=big)
 
 
-def _add_legend(leg_info, figsize, tight_layout_args):
-    ax = plt.gca()
-    fig = plt.gcf()
+def _add_legend(ax, leg_info, figsize, tight_layout_args):
+    fig = ax.get_figure()
     handles, labels = ax.get_legend_handles_labels()
     if "rect" in tight_layout_args:
         lx = tight_layout_args["rect"][2]
@@ -191,7 +195,7 @@ def _add_legend(leg_info, figsize, tight_layout_args):
     leg_info[1] = legwidth
 
 
-def _legend_layout(leg_info, tight_layout_args):
+def _legend_layout(fig, leg_info, tight_layout_args):
     tla = tight_layout_args.copy()
     if leg_info[0]:
         if "rect" in tla:
@@ -208,12 +212,12 @@ def _legend_layout(leg_info, tight_layout_args):
     # the tight_layout calculations:
     # 1: leg_in_layout = leg_info[0].get_in_layout()
     # 2: leg_info[0].set_in_layout(False)
-    plt.tight_layout(**tla)
+    fig.tight_layout(**tla)
     # 3: leg_info[0].set_in_layout(leg_in_layout)
     leg_info[0] = None
 
 
-def _mark_srs(plot, x, y, line, marker, label, **kwargs):
+def _mark_srs(plotfunc, x, y, line, marker, label, **kwargs):
     if len(y) > 1:
         me = list(signal.argrelextrema(y, np.greater)[0])
         # to capture end points too:
@@ -223,12 +227,13 @@ def _mark_srs(plot, x, y, line, marker, label, **kwargs):
             me.append(len(y) - 1)
     else:
         me = [0]
-    return plot(x, y, line, marker=marker, markevery=me, label=label, **kwargs)
+    return plotfunc(x, y, line, marker=marker, markevery=me, label=label, **kwargs)
 
 
 def _plot_all(
+    ax,
     issrs,
-    plot,
+    plotfunc,
     curres,
     q,
     x,
@@ -257,13 +262,15 @@ def _plot_all(
         h = []
         marker = get_marker_cycle()
         for n, case in enumerate(cases):
-            h += _mark_srs(plot, x, srsall[n, j], "-", marker=next(marker), label=case)
+            h += _mark_srs(
+                plotfunc, x, srsall[n, j], "-", marker=next(marker), label=case
+            )
         if showboth:
             # set zorder=-1 ?
             h.insert(
                 0,
                 _mark_srs(
-                    plot,
+                    plotfunc,
                     x,
                     srsext[j],
                     "k-",
@@ -277,28 +284,42 @@ def _plot_all(
         # hist (cases x rows x time | freq)
         h = []
         for n, case in enumerate(cases):
-            h += plot(x, hist[n, j], linestyle="-", label=case)
+            h += plotfunc(x, hist[n, j], linestyle="-", label=case)
 
     if sub == maxcol:
-        _add_legend(leg_info, figsize, tight_layout_args)
-    _add_title(name, label, maxlen, sname, rowpv[j] + 1, cols, q)
+        _add_legend(ax, leg_info, figsize, tight_layout_args)
+    _add_title(ax, name, label, maxlen, sname, rowpv[j] + 1, cols, q)
 
 
 def _plot_ext(
-    plot, curres, q, Qs, frq, sub, cols, maxcol, name, label, maxlen, sname, rowpv, j
+    ax,
+    plotfunc,
+    curres,
+    q,
+    Qs,
+    frq,
+    sub,
+    cols,
+    maxcol,
+    name,
+    label,
+    maxlen,
+    sname,
+    rowpv,
+    j,
 ):
     srsext = curres.srs.ext[q]
     # srsext (each rows x freq)
     if sub == maxcol:
-        plot(frq, srsext[j], label=f"Q={q}")
-        plt.legend(loc="best", fontsize="small", fancybox=True, framealpha=0.5)
+        plotfunc(frq, srsext[j], label=f"Q={q}")
+        ax.legend(loc="best", fontsize="small", fancybox=True, framealpha=0.5)
     else:
-        plot(frq, srsext[j])
+        plotfunc(frq, srsext[j])
     if q == Qs[0]:
-        _add_title(name, label, maxlen, sname, rowpv[j] + 1, cols)
+        _add_title(ax, name, label, maxlen, sname, rowpv[j] + 1, cols)
 
 
-def _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub, srstype):
+def _add_xy_labels(ax, issrs, units, uj, xlab, ylab, nplots, sub, srstype):
     if isinstance(units, str):
         u = units
     else:
@@ -312,19 +333,19 @@ def _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub, srstype):
             uj += 1
     if issrs:
         if srstype == "eqsine":
-            plt.ylabel(f"EQ-Sine ({u})")
+            ax.set_ylabel(f"EQ-Sine ({u})")
         else:
-            plt.ylabel(f"SRS ({u})")
+            ax.set_ylabel(f"SRS ({u})")
     else:
         if ylab.startswith("PSD"):
             if len(u) == 1:
                 uu = f" ({u}$^2$/Hz)"
             else:
                 uu = f" ({u})$^2$/Hz"
-            plt.ylabel(ylab + uu)
+            ax.set_ylabel(ylab + uu)
         else:
-            plt.ylabel(ylab + f" ({u})")
-    plt.xlabel(xlab)
+            ax.set_ylabel(ylab + f" ({u})")
+    ax.set_xlabel(xlab)
     return uj
 
 
@@ -344,7 +365,7 @@ def mk_plots(
     cases=None,
     direc="srs_plots",
     tight_layout_args=None,
-    plot=plt.plot,
+    plot="plot",
     show_figures=False,
 ):
     """
@@ -374,7 +395,7 @@ def mk_plots(
         If `fmt` == "pdf", all plots are written to one PDF file,
         unless `onepdf` is set to False.  If `fmt` is some other
         string, it is used as the `format` parameter in
-        :func:`matplotlib.pyplot.savefig`. If None, no figures
+        :meth:`matplotlib.figure.Figure.savefig`. If None, no figures
         will be saved. Typical values for `fmt` are (from
         ``fig.canvas.get_supported_filetypes()``)::
 
@@ -437,8 +458,8 @@ def mk_plots(
         If None, all cases are plotted. This option is ignored if
         plotting SRS curves and `showall` is True.
     tight_layout_args : dict or None; optional
-        Arguments for :func:`matplotlib.pyplot.tight_layout`. If None,
-        defaults to::
+        Arguments for :meth:`matplotlib.figure.Figure.tight_layout`.
+        If None, defaults to::
 
                 {'pad': 3.0,
                  'w_pad': 2.0,
@@ -448,13 +469,22 @@ def mk_plots(
                           1.0 - 0.3 / figsize[0],
                           1.0 - 0.3 / figsize[1])}
 
-    plot : function; optional
-        The function that will draw each curve. Defaults to
-        :func:`matplotlib.pyplot.plot`. As an example, for a plot with
-        a linear X-axis but a log Y-axis, set `plot` to
-        :func:`matplotlib.pyplot.semilogy`. You can also use a custom
-        function of your own devising, but it is expected to accept
-        the same arguments as :func:`matplotlib.pyplot.plot`.
+    plot : string; optional
+        The name of a function in :class:`matplotlib.axes.Axes` that
+        will draw each curve. Defaults to "plot". Common options:
+
+            +------------+
+            | `plot`     |
+            +============+
+            | "plot"     |
+            +------------+
+            | "loglog"   |
+            +------------+
+            | "semilogx" |
+            +------------+
+            | "semilogy" |
+            +------------+
+
     show_figures : bool; optional
         If True, plot figures will be displayed on the screen for
         interactive viewing. Warning: there may be many figures.
@@ -467,6 +497,9 @@ def mk_plots(
     Used by :func:`DR_Results.srs_plots` and
     :func:`DR_Results.resp_plots` for plot generation.
     """
+
+    if not isinstance(plot, str):
+        raise TypeError(f"`plot` must be a string, not a {type(plot)}")
 
     if tight_layout_args is None:
         tight_layout_args = {
@@ -503,8 +536,6 @@ def mk_plots(
                     alldrms.append(name + "_0rb")
 
     pdffile = None
-    imode = plt.isinteractive()
-    plt.interactive(show_figures)
     cur_fig = None
 
     try:
@@ -569,7 +600,7 @@ def mk_plots(
             prefix = None
             leg_info = [None, 0.0]
             for j in range(nplots):
-                sub, filenum, prefix, cur_fig = _prep_subplot(
+                sub, filenum, prefix, cur_fig, ax = _prep_subplot(
                     rows,
                     cols,
                     sub,
@@ -586,13 +617,15 @@ def mk_plots(
                     show_figures,
                     cur_fig,
                 )
+                plotfunc = getattr(ax, plot)
                 label = " ".join(labels[j].split())
                 if issrs:
                     for q in Qs:
                         if showall:
                             _plot_all(
+                                ax,
                                 issrs,
-                                plot,
+                                plotfunc,
                                 res[name],
                                 q,
                                 x,
@@ -614,7 +647,8 @@ def mk_plots(
                             )
                         else:
                             _plot_ext(
-                                plot,
+                                ax,
+                                plotfunc,
                                 res[name],
                                 q,
                                 Qs,
@@ -631,8 +665,9 @@ def mk_plots(
                             )
                 else:
                     _plot_all(
+                        ax,
                         issrs,
-                        plot,
+                        plotfunc,
                         res[name],
                         None,
                         x,
@@ -653,31 +688,18 @@ def mk_plots(
                         tight_layout_args,
                     )
 
-                _add_xy_labels(issrs, units, uj, xlab, ylab, nplots, sub, srstype)
+                _add_xy_labels(ax, issrs, units, uj, xlab, ylab, nplots, sub, srstype)
 
                 if j + 1 == nplots or (j + 1) % perpage == 0:
-                    _legend_layout(leg_info, tight_layout_args)
+                    _legend_layout(cur_fig, leg_info, tight_layout_args)
 
                     if fmt == "pdf" and onepdf:
-                        pdffile.savefig()
-                        # orientation=orientation,
-                        # papertype='letter')
+                        pdffile.savefig(cur_fig)
                     elif fmt:
                         fname = os.path.join(direc, prefix + "." + fmt)
-                        # The following removed in v0.95.5:
-                        # if fmt != "pdf":
-                        #     kwargs = dict(
-                        #         orientation=orientation, dpi=200, bbox_inches="tight"
-                        #     )
-                        # else:
-                        #     kwargs = {}
-                        plt.savefig(fname, format=fmt)  # , **kwargs)
+                        cur_fig.savefig(fname, format=fmt)
                     if not show_figures:
-                        plt.close(cur_fig)
                         cur_fig = None
     finally:
-        plt.interactive(imode)
         if pdffile:
             pdffile.close()
-        if cur_fig:
-            plt.close(cur_fig)

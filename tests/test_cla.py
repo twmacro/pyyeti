@@ -694,10 +694,18 @@ def owlab(pth):
 
         # save results:
         cla.save("results.pgz", results)
-        results.srs_plots(Q=10, direc="srs_cases", showall=True, plot=plt.semilogy)
+        results.srs_plots(Q=10, direc="srs_cases", showall=True, plot="semilogy")
         results.resp_plots(direc="srs_cases")
         assert os.path.exists("srs_cases/OWLab_srs.pdf")
         assert os.path.exists("srs_cases/OWLab_psd.pdf")
+        assert_raises(
+            TypeError,
+            results.srs_plots,
+            Q=10,
+            direc="srs_cases",
+            showall=True,
+            plot=plt.semilogy,  # has to be a string in v1.0.8
+        )
 
         # for testing:
         results2 = DR.prepare_results(sc["mission"], event)

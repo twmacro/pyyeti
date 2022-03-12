@@ -9,7 +9,6 @@ from types import SimpleNamespace
 import warnings
 import copyreg
 import numpy as np
-import matplotlib.pyplot as plt
 import xlsxwriter
 from pyyeti import locate, srs
 from ._utilities import maxmin, extrema, get_drfunc
@@ -2180,7 +2179,7 @@ class DR_Results(OrderedDict):
         showboth=False,
         direc="srs_plots",
         tight_layout_args=None,
-        plot=plt.plot,
+        plot="plot",
         show_figures=False,
     ):
         """
@@ -2206,8 +2205,8 @@ class DR_Results(OrderedDict):
             If `fmt` == "pdf", all plots are written to one PDF file,
             unless `onepdf` is set to False.  If `fmt` is some other
             string, it is used as the `format` parameter in
-            :func:`matplotlib.pyplot.savefig`. If None, no figures
-            will be saved. Typical values for `fmt` are (from
+            :meth:`matplotlib.figure.Figure.savefig`. If None, no
+            figures will be saved. Typical values for `fmt` are (from
             ``fig.canvas.get_supported_filetypes()``)::
 
                 'eps': 'Encapsulated Postscript',
@@ -2260,8 +2259,9 @@ class DR_Results(OrderedDict):
             Directory name to put all output plot files; will be
             created if it doesn't exist.
         tight_layout_args : dict or None; optional
-            Arguments for :func:`matplotlib.pyplot.tight_layout`. If
-            None, defaults to::
+            Arguments for
+            :meth:`matplotlib.figure.Figure.tight_layout`. If None,
+            defaults to::
 
                 {'pad': 3.0,
                  'w_pad': 2.0,
@@ -2271,14 +2271,23 @@ class DR_Results(OrderedDict):
                           1.0 - 0.3 / figsize[0],
                           1.0 - 0.3 / figsize[1])}
 
-        plot : function; optional
-            The function that will draw each curve. Defaults to
-            :func:`matplotlib.pyplot.plot`. As an example, for a plot
-            with a linear X-axis but a log Y-axis, set `plot` to
-            :func:`matplotlib.pyplot.semilogy`. You can also use a
-            custom function of your own devising, but it is expected
-            to accept the same arguments as
-            :func:`matplotlib.pyplot.plot`.
+        plot : string; optional
+            The name of a function in :class:`matplotlib.axes.Axes`
+            that will draw each curve. Defaults to "plot". Common
+            options:
+
+                +------------+
+                | `plot`     |
+                +============+
+                | "plot"     |
+                +------------+
+                | "loglog"   |
+                +------------+
+                | "semilogx" |
+                +------------+
+                | "semilogy" |
+                +------------+
+
         show_figures : bool; optional
             If True, plot figures will be displayed on the screen for
             interactive viewing. Warning: there may be many figures.
@@ -2334,7 +2343,7 @@ class DR_Results(OrderedDict):
         cases=None,
         direc="resp_plots",
         tight_layout_args=None,
-        plot=plt.plot,
+        plot="plot",
         show_figures=False,
     ):
         """
@@ -2356,8 +2365,8 @@ class DR_Results(OrderedDict):
             If `fmt` == "pdf", all plots are written to one PDF file,
             unless `onepdf` is set to False.  If `fmt` is some other
             string, it is used as the `format` parameter in
-            :func:`matplotlib.pyplot.savefig`. If None, no figures
-            will be saved. Typical values for `fmt` are (from
+            :meth:`matplotlib.figure.Figure.savefig`. If None, no
+            figures will be saved. Typical values for `fmt` are (from
             ``fig.canvas.get_supported_filetypes()``)::
 
                 'eps': 'Encapsulated Postscript',
@@ -2407,8 +2416,9 @@ class DR_Results(OrderedDict):
             Directory name to put all output plot files; will be
             created if it doesn't exist.
         tight_layout_args : dict or None; optional
-            Arguments for :func:`matplotlib.pyplot.tight_layout`. If
-            None, defaults to::
+            Arguments for
+            :meth:`matplotlib.figure.Figure.tight_layout`. If None,
+            defaults to::
 
                 {'pad': 3.0,
                  'w_pad': 2.0,
@@ -2418,14 +2428,23 @@ class DR_Results(OrderedDict):
                           1.0 - 0.3 / figsize[0],
                           1.0 - 0.3 / figsize[1])}
 
-        plot : function; optional
-            The function that will draw each curve. Defaults to
-            :func:`matplotlib.pyplot.plot`. As an example, for a plot
-            with a linear X-axis but a log Y-axis, set `plot` to
-            :func:`matplotlib.pyplot.semilogy`. You can also use a
-            custom function of your own devising, but it is expected
-            to accept the same arguments as
-            :func:`matplotlib.pyplot.plot`.
+        plot : string; optional
+            The name of a function in :class:`matplotlib.axes.Axes`
+            that will draw each curve. Defaults to "plot". Common
+            options:
+
+                +------------+
+                | `plot`     |
+                +============+
+                | "plot"     |
+                +------------+
+                | "loglog"   |
+                +------------+
+                | "semilogx" |
+                +------------+
+                | "semilogy" |
+                +------------+
+
         show_figures : bool; optional
             If True, plot figures will be displayed on the screen for
             interactive viewing. Warning: there may be many figures.
