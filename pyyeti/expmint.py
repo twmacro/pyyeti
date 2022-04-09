@@ -15,13 +15,12 @@ try:
 except TypeError:
     pass
 
-mf = spla.matfuncs
 try:
-    # scipy version 1.7 or older?
-    mf._ExpmPadeHelper
-except AttributeError:
     # scipy version 1.8 or newer
     mf = spla._matfuncs
+except AttributeError:
+    # older versions
+    mf = spla.matfuncs
 
 
 class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
