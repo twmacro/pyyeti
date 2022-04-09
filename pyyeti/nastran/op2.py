@@ -282,7 +282,12 @@ class OP2:
         self.dbstarts = None
         self.dbstop2 = None
         self.headers = None
-        reclen = struct.unpack("i", self._fileh.read(4))[0]
+        bytes = self._fileh.read(4)
+        if len(bytes) < 4:
+            raise RuntimeError(
+                f'"{filename}" is empty or nearly empty (has {len(bytes)} bytes)'
+            )
+        reclen = struct.unpack("i", bytes)[0]
         self._fileh.seek(0)
 
         reclen = np.array(reclen, dtype=np.int32)

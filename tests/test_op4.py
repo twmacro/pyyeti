@@ -672,3 +672,14 @@ def test_too_long_write_name():
         "Matrix for output4 write has name: 'name_is_too_long'. "
         "Truncating to 'name_is_'."
     )
+
+
+def test_empty_file_error():
+    f = tempfile.NamedTemporaryFile(delete=False)
+    fname = f.name
+    f.close()
+
+    try:
+        assert_raises(RuntimeError, op4.load, fname)
+    finally:
+        os.remove(fname)

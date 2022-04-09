@@ -212,6 +212,10 @@ class OP4:
         """
         self._fileh = open(filename, "rb")
         bytes = self._fileh.read(16)
+        if len(bytes) < 16:
+            raise RuntimeError(
+                f'"{filename}" is empty or nearly empty (has {len(bytes)} bytes)'
+            )
         self._endian = ""
         self._dformat = False
         self._matcount = 0

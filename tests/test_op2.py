@@ -1,3 +1,5 @@
+import os
+import tempfile
 import numpy as np
 from pyyeti import ytools, nastran, locate
 from pyyeti.nastran import op4, op2
@@ -507,3 +509,14 @@ def test_rdop2emap():
         o2._rowsCutoff = 0
         nas2 = o2.rdn2cop2()
         compdict(nas1, nas2)
+
+
+def test_empty_file_error():
+    f = tempfile.NamedTemporaryFile(delete=False)
+    fname = f.name
+    f.close()
+
+    try:
+        assert_raises(RuntimeError, op2.OP2, fname)
+    finally:
+        os.remove(fname)
