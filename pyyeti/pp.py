@@ -15,13 +15,16 @@ except TypeError:
     pass
 
 
-class PP(object):
+PP_None = object()
+
+
+class PP:
     """
     A simple class for pretty printing data structures.
     """
 
     def __init__(
-        self, var=None, depth=1, tab=4, keylen=40, strlen=80, show_hidden=False
+        self, var=PP_None, depth=1, tab=4, keylen=40, strlen=80, show_hidden=False
     ):
         """
         Initializer for `PP`.
@@ -29,7 +32,7 @@ class PP(object):
         Parameters
         ----------
         var : any; optional
-            If not None, the variable to pretty print.
+            If not ``PP_None``, the variable to pretty print.
         depth : integer; optional
             Maximum number of levels to print.
         tab : integer; optional
@@ -141,7 +144,7 @@ class PP(object):
             np.ndarray: self._array_string,
             h5py._hl.dataset.Dataset: self._h5data_string,
         }
-        if var is not None:
+        if var is not PP_None:
             self.pp(var)
 
     def _lead_string(self, level):
