@@ -815,17 +815,15 @@ def spl(
 def psd2time(
     spec, ppc, fstart, fstop, df, winends=None, gettime=False, expand_method="interp"
 ):
-    """
+    r"""
     Generate a 'random' time domain signal given a PSD specification.
 
     Parameters
     ----------
     spec : 2d ndarray or 2-element tuple/list
-        If ndarray, its columns are ``[Freq, PSD1, PSD2, ... PSDn]``.
+        If ndarray, it has two columns: ``[Freq, PSD]``.
         Otherwise, it must be a 2-element tuple or list, eg:
-        ``(Freq, PSD)`` where PSD is: ``[PSD1, PSD2, ... PSDn]``. In
-        the second usage, PSD can be 1d; in the first usage, PSD is
-        always considered 2d.
+        ``(Freq, PSD)``.
     ppc : scalar
         Points per cycle at highest (`fstop`) frequency; if < 2, it is
         internally reset to 2.
@@ -834,9 +832,11 @@ def psd2time(
     fstop : scalar
         Stopping frequency in Hz
     df : scalar
-        Frequency step to be represented in the time signal. If
-        routine gives poor results, try refining `df`. If `df` is
-        greater than `fstart`, it is reset internally to `fstart`.
+        Frequency step to be represented in the time signal. This is
+        taken as a hint and will be internally adjusted lower as
+        needed; see Notes section. If routine gives poor results, try
+        refining `df`. If `df` is greater than `fstart`, it is reset
+        internally to `fstart`.
     winends : None or dictionary; optional
         If None, :func:`pyyeti.dsp.windowends` is not
         called. Otherwise, `winends` must be a dictionary of arguments
@@ -861,10 +861,74 @@ def psd2time(
         The sample rate of the signal.
     time : 1d ndarray; optional
         Time vector for the signal starting at zero with step of
-        ``1/sr``: ``time = np.arange(len(sig))/sr``
+        ``1.0 / sr``: ``time = np.arange(len(sig)) / sr``
+
+    Notes
+    -----
+    The following outlines the equations used in this routine.
+
+    If :math:`df` is greater than :math:`fstart`, it is reset to
+    :math:`fstart`:
+
+    .. math::
+        df = \min(df, fstart)
+
+    The total time of the signal :math:`T` is determined by the lowest
+    frequency cycle (at frequency :math:`df`):
+
+    .. math::
+        T = 1 / df
+
+    The number of points needed is determined by the number of cycles
+    at the highest frequency multiplied by the points/cycle
+    :math:`ppc`:
+
+    .. math::
+        N = \lceil {fstop \cdot ppc \cdot T} \rceil
+
+    The frequency step :math:`df` is reset to match :math:`N` (because
+    of the possible round-up in the last equation):
+
+    .. math::
+        df = fstop \cdot ppc / N
+
+    The final downward adjustment to :math:`df` is to make sure we hit
+    the :math:`fstart` frequency exactly:
+
+    .. math::
+        df = fstart / \lfloor fstart / df \rfloor
+
+    The frequency vector is defined by:
+
+    .. math::
+        f = [fstart, fstart+df, ...,
+        \lceil fstop / df \rceil \cdot df]
+
+    A sinusoid is to be defined at each of those frequencies, so we
+    need to compute an amplitude and phase for each.
+
+    The amplitude is determined by the magnitude of the PSD. Since a
+    "power spectral density" is really mean-square spectral density,
+    and since the mean-square value of a sinusoid is the amplitude
+    square over 2, the amplitude of each sinusoid is computed by:
+
+    .. math::
+        amp(f) = \sqrt { 2 \cdot PSD(f) \cdot df }
+
+    The phase is determined by using pseudo-random deviates from a
+    uniform distribution:
+
+    .. math::
+        phase(f) = U(0, 2\pi)
+
+    The amplitude and phase are assembled together in a complex array
+    so that an inverse-FFT will give a real time signal matching the
+    desired mean-square profile defined by the input PSD.
 
     Raises
     ------
+    ValueError
+        If more than one PSD specification is input.
     ValueError
         On invalid setting for `expand_method`.
 
@@ -920,6 +984,13 @@ def psd2time(
         >>> v = plt.axvline(35, color='black', linestyle='--')
         >>> v = plt.axvline(70, color='black', linestyle='--')
     """
+    _freq, _psd, npsds = proc_psd_spec(spec)
+    if npsds > 1:
+        raise ValueError(
+            "only a single PSD specification is currently allowed in "
+            f"`psd2time`, but {npsds} were provided"
+        )
+
     if df > fstart:
         df = fstart
     if ppc < 2:
@@ -935,13 +1006,13 @@ def psd2time(
     odd = N & 1
 
     # define constants
-    freq = np.arange(fstart, fstop + df / 2, df)
+    # freq = np.arange(fstart, fstop + df / 2, df)
+    freq = np.arange(fstart, fstop + df, df)  # 4/9/22
 
     # generate amp(f) vector
     if expand_method == "interp":
         speclevel = interp(spec, freq).ravel()
     elif expand_method == "rescale":
-        _freq, _psd, npsds = proc_psd_spec(spec)
         speclevel, *_ = rescale(_psd.ravel(), _freq, freq=freq)
     else:
         raise ValueError(

@@ -216,6 +216,11 @@ def test_psd2time():
         expand_method="bad expand method",
     )
 
+    multi_spec = np.array([[20, 0.0768, 0.01], [50, 0.48, 0.01], [100, 0.48, 0.01]])
+    assert_raises(
+        ValueError, psd.psd2time, multi_spec, ppc=10, fstart=35, fstop=70, df=0.01
+    )
+
     assert np.allclose(700.0, sr)  # 70*10
     assert sig.size == 700 * 100
     f, p = signal.welch(sig, sr, nperseg=sr)
