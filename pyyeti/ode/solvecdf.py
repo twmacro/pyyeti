@@ -51,7 +51,7 @@ class SolveCDF(SolveUnc):
 
     **Procedure**
 
-    Consider the equation of motion with the off-diagonal damping
+    Consider the equations of motion with the off-diagonal damping
     terms moved to the right-hand-side to be treated as an applied
     force:
 
