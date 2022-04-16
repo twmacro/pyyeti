@@ -826,7 +826,8 @@ def psd2time(
         ``(Freq, PSD)``.
     ppc : scalar
         Points per cycle at highest (`fstop`) frequency; if < 2, it is
-        internally reset to 2.
+        internally reset to 2. With `fstop`, determines the sample
+        rate: ``sr = ppc * fstop``.
     fstart : scalar
         Starting frequency in Hz
     fstop : scalar
@@ -836,7 +837,19 @@ def psd2time(
         taken as a hint and will be internally adjusted lower as
         needed; see Notes section. If routine gives poor results, try
         refining `df`. If `df` is greater than `fstart`, it is reset
-        internally to `fstart`.
+        internally to `fstart`. Determines to total period of the
+        signal.
+
+        .. note::
+
+            As shown below, `df` is used to determine the total period
+            of the signal. Therefore, `df` can be used to indirectly
+            specify the number of cycles desired at the lowest
+            frequency (`fstart`). For example, if ``fstart=5.0`` and
+            you want to have 100 cycles of the 5.0 Hz content
+            (probably a reasonable requirement), then use ``df=0.05``:
+            ``fstart / df == 100``.
+
     winends : None or dictionary; optional
         If None, :func:`pyyeti.dsp.windowends` is not
         called. Otherwise, `winends` must be a dictionary of arguments
@@ -856,12 +869,12 @@ def psd2time(
     -------
     sig : 1d ndarray
         The time domain signal with properties set to match input PSD
-        spectrum.
+        spectrum. Duration of signal: ``1 / df``.
     sr : scalar
-        The sample rate of the signal.
+        The sample rate of the signal (``ppc * fstop``)
     time : 1d ndarray; optional
         Time vector for the signal starting at zero with step of
-        ``1.0 / sr``: ``time = np.arange(len(sig)) / sr``
+        ``1.0 / sr``: ``time = np.arange(len(sig)) / sr``.
 
     Notes
     -----
