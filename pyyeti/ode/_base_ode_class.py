@@ -442,15 +442,14 @@ class _BaseODE:
             # el is relative to full size
             # _el is relative to "k" size
             if self.unc:
-                d0 = la.lstsq(np.diag(self.k[self._el]), F0[self.el])
-                d[self.el, 0] = d0[0]
+                d[self.el, 0] = F0[self.el] / self.k[self._el]
             else:
                 if self.slices:
-                    d0 = la.lstsq(self.k[self._el, self._el], F0[self.el])
+                    k = self.k[self._el, self._el]
                 else:
-                    d0 = la.lstsq(self.k[np.ix_(self._el, self._el)], F0[self.el])
+                    k = self.k[np.ix_(self._el, self._el)]
                 d[self.rb, 0] = 0.0
-                d[self.el, 0] = d0[0]
+                d[self.el, 0] = np.linalg.solve(k, F0[self.el])
         if v0 is not None:
             v[self.nonrf, 0] = v0[self.nonrf]
 
