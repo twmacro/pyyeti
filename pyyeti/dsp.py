@@ -3328,7 +3328,7 @@ def transmissibility(
         >>> fstop = 60.0
         >>> spec = np.array([[0.1, psd_], [100.0, psd_]])
         >>> in_acce, sr, t = psd.psd2time(
-        ...     spec, 10, fstart, fstop, 0.05, gettime=True,
+        ...     spec, fstart, fstop, ppc=10, df=0.05, gettime=True,
         ...     winends={"ends": "both"}
         ... )
         >>>

@@ -813,7 +813,15 @@ def spl(
 
 
 def psd2time(
-    spec, ppc, fstart, fstop, df, winends=None, gettime=False, expand_method="interp"
+    spec,
+    fstart,
+    fstop,
+    *,
+    ppc=10,
+    df=None,
+    winends=None,
+    gettime=False,
+    expand_method="interp",
 ):
     r"""
     Generate a 'random' time domain signal given a PSD specification.
@@ -824,31 +832,33 @@ def psd2time(
         If ndarray, it has two columns: ``[Freq, PSD]``.
         Otherwise, it must be a 2-element tuple or list, eg:
         ``(Freq, PSD)``.
-    ppc : scalar
-        Points per cycle at highest (`fstop`) frequency; if < 2, it is
-        internally reset to 2. With `fstop`, determines the sample
-        rate: ``sr = ppc * fstop``.
     fstart : scalar
         Starting frequency in Hz
     fstop : scalar
         Stopping frequency in Hz
-    df : scalar
-        Frequency step to be represented in the time signal. This is
-        taken as a hint and will be internally adjusted lower as
-        needed; see Notes section. If routine gives poor results, try
-        refining `df`. If `df` is greater than `fstart`, it is reset
-        internally to `fstart`. Determines to total period of the
-        signal.
+    ppc : scalar; optional
+        Points per cycle at highest (`fstop`) frequency; if < 2, it is
+        internally reset to 2. With `fstop`, determines the sample
+        rate: ``sr = ppc * fstop``.
+    df : scalar or None; optional
+        Serves two purposes: it is the frequency step between
+        sinusoids included in the time signal, and it also determines
+        the duration of the signal. If None, it is set to ``fstart /
+        100`` in order to have 100 cycles at the lowest frequency. If
+        input as a scalar value, it is taken as a hint and will be
+        internally adjusted lower as needed; see Notes section. If
+        routine gives poor results, try refining `df`. If `df` is
+        greater than `fstart`, it is reset internally to `fstart` (in
+        that case though, you'll only get 1 cycle at the lowest
+        frequency). Total duration of the signal: ``T = 1 / df`` (see
+        equations below for more details).
 
         .. note::
-
-            As shown below, `df` is used to determine the total period
-            of the signal. Therefore, `df` can be used to indirectly
-            specify the number of cycles desired at the lowest
-            frequency (`fstart`). For example, if ``fstart=5.0`` and
-            you want to have 100 cycles of the 5.0 Hz content
-            (probably a reasonable requirement), then use ``df=0.05``:
-            ``fstart / df == 100``.
+            `df` can be used to indirectly specify the number of
+            cycles desired at the lowest frequency (`fstart`). For
+            example, if ``fstart=5.0`` and you want to have 500 cycles
+            of the 5.0 Hz content, then use ``df=0.01``: ``fstart / df
+            == 500``.
 
     winends : None or dictionary; optional
         If None, :func:`pyyeti.dsp.windowends` is not
@@ -879,6 +889,8 @@ def psd2time(
     Notes
     -----
     The following outlines the equations used in this routine.
+
+    If :math:`df` is None: :math:`df = fstart / 100`.
 
     If :math:`df` is greater than :math:`fstart`, it is reset to
     :math:`fstart`:
@@ -923,7 +935,7 @@ def psd2time(
     The amplitude is determined by the magnitude of the PSD. Since a
     "power spectral density" is really mean-square spectral density,
     and since the mean-square value of a sinusoid is the amplitude
-    square over 2, the amplitude of each sinusoid is computed by:
+    squared over 2, the amplitude of each sinusoid is computed by:
 
     .. math::
         amp(f) = \sqrt { 2 \cdot PSD(f) \cdot df }
@@ -1004,10 +1016,15 @@ def psd2time(
             f"`psd2time`, but {npsds} were provided"
         )
 
+    if df is None:
+        df = fstart / 100
+
     if df > fstart:
         df = fstart
+
     if ppc < 2:
         ppc = 2
+
     # compute parameters
     # 1 cycle of lowest frequency defines length of signal:
     T = 1 / df  # number of seconds for lowest frequency cycle
