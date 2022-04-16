@@ -932,7 +932,7 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
     return s
 
 
-def expanddof(dof):
+def expanddof(dof, strict=True):
     """
     Expands degree of freedom (DOF) specification
 
@@ -941,12 +941,21 @@ def expanddof(dof):
     dof : 1d or 2d array_like
         `dof` can be input in 2 different ways:
 
-         1. 1d array. Each element is assumed to be a GRID ID. All 6
-            DOF associated with the ID will be included in the output.
+         1. 1d array. Each element is assumed to be an ID. If `strict`
+            is True (the default), this routine assumes the DOFs are
+            1-6, so the IDs are only of GRIDs. If `strict` is False,
+            then the DOFs will be 0-6, which enables the routine
+            :func:`mkdofpv` to find both GRIDs and SPOINTs.
+
          2. 2d 2-column DOF array. Each row is: [ID, DOF]. Here, DOF
             specifies which degrees-of-freedom of the ID to find.
             The DOF can be input in the same way as Nastran accepts
             it: 0 or any combo of digits 1-6; eg, 123456 for all 6.
+
+    strict : bool; optional
+        If True, do not include 0 as a possible degree-of-freedom when
+        `dof` is a 1d array (IDs must correspond to GRIDs, not
+        SPOINTs)
 
     Returns
     -------
@@ -974,6 +983,21 @@ def expanddof(dof):
            [2, 4],
            [2, 5],
            [2, 6]]...)
+    >>> nastran.expanddof([1, 2], strict=False)  # doctest: +ELLIPSIS
+    array([[1, 0],
+           [1, 1],
+           [1, 2],
+           [1, 3],
+           [1, 4],
+           [1, 5],
+           [1, 6],
+           [2, 0],
+           [2, 1],
+           [2, 2],
+           [2, 3],
+           [2, 4],
+           [2, 5],
+           [2, 6]]...)
     >>> nastran.expanddof([[1, 34], [2, 156]])   # doctest: +ELLIPSIS
     array([[1, 3],
            [1, 4],
@@ -987,7 +1011,8 @@ def expanddof(dof):
     if dof.size == 0:
         return np.zeros((0, 2), dtype=np.int64)
     if dof.ndim < 2 or dof.shape[1] == 1:
-        return np.array([[n, i] for n in dof.ravel() for i in range(1, 7)])
+        rg = range(1, 7) if strict else range(7)
+        return np.array([[n, i] for n in dof.ravel() for i in rg])
     elif dof[:, 1].max() <= 6:
         return dof
     edof = np.array([[node, int(i)] for node, arg in dof for i in str(arg)])
@@ -1482,19 +1507,20 @@ def mkdofpv(uset, nasset, dof, strict=True):
         The set(s) to partition the dof out of (eg, 'p' or 'b+q').
         May also be an integer bitmask (see :func:`mkusetmask` for
         more information).
-    dof : 1d or 2d array
+    dof : 1d or 2d array_like
         `dof` can be input in 2 different ways:
 
-         1. 1 column, each row is an ID (grid, spoint, etc). All
-            DOF associated with the ID that are in the set will be
-            included. An error will be generated if any ID is
-            missing.
-         2. 2 column DOF array, each row is: [ID DOF]. Here, DOF
+         1. 1d array. Each element is assumed to be an ID. If `strict`
+            is True (the default), this routine assumes the DOFs are
+            1-6, so the IDs are only of GRIDs. If `strict` is False,
+            then the allowed DOFs are any of 0-6, which enables this
+            routine to find both GRIDs and SPOINTs. See also
+            :func:`expanddof`.
+
+         2. 2d 2-column DOF array. Each row is: [ID, DOF]. Here, DOF
             specifies which degrees-of-freedom of the ID to find.
             The DOF can be input in the same way as Nastran accepts
             it: 0 or any combo of digits 1-6; eg, 123456 for all 6.
-            An error is generated if any DOF are missing. See
-            examples.
 
     strict : bool; optional
         If True, raise a ValueError if any DOF in `dof` are not in
@@ -1539,7 +1565,10 @@ def mkdofpv(uset, nasset, dof, strict=True):
            [200,   6]]...))
     >>>
     >>> # add an spoint for testing:
-    >>> uset = uset.append(nastran.make_uset([[991, 0]], 4194304))
+    >>> qset = nastran.mkusetmask("q")
+    >>> uset = pd.concat(
+    ...     (uset, nastran.make_uset([[991, 0]], qset)), axis=0
+    ... )
     >>> # request spoint 991 and dof 123 for grid 100 (in that order):
     >>> ids2 = [[991, 0], [100, 123]]
     >>> nastran.mkdofpv(uset, "a", ids2)        # doctest: +ELLIPSIS
@@ -1561,7 +1590,7 @@ def mkdofpv(uset, nasset, dof, strict=True):
         else:
             raise ValueError('`nasset` must be "p" if `uset` is not a pandas DataFrame')
 
-    dof = expanddof(dof)
+    dof = expanddof(dof, strict)
     _dof = dof[:, 0] * 10 + dof[:, 1]
 
     i = np.argsort(uset_set)
