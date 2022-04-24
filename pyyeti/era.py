@@ -95,6 +95,47 @@ class ERA:
        correct because this routine sorts the complex eigenvalues to
        ensure consecutive ordering of these mode pairs.
 
+
+    Mode indicators:
+
+        =========  ===================================================
+        Indicator  Description
+        =========  ===================================================
+           MSV     Normalized mode singular value. The MSV value
+                   ranges from 0.0 to 1.0 for each mode and is a
+                   measure of contribution to the response. Larger
+                   values represent larger contribution.
+          EMAC     Extended modal amplitude coherence. The EMAC value
+                   ranges from 0.0 to 1.0 for each mode and is a
+                   temporal measure indicating the importance of the
+                   mode over time to the fit. Higher values indicate
+                   more importance. From experience, the EMAC is
+                   superior to the MAC value (see below). For more
+                   information, see [#era2]_.
+           MPC     Modal phase collinearity. The MPC value ranges from
+                   0.0 to 1.0 for each mode and is a spatial measure
+                   indicating whether or not the different response
+                   locations for a mode are in phase. Higher values
+                   indicate more "in-phase" measurements. Only useful
+                   if there are multiple outputs (MPC is 1.0 for
+                   single output).
+           MAC     Modal amplitude coherence. The MAC value ranges
+                   from 0.0 to 1.0 for each mode and is a temporal
+                   measure indicating the importance of the mode over
+                   time to the fit. Higher values indicate more
+                   importance. The MAC value for a mode is the dot
+                   product of two vectors:
+
+                     1. The ideal, reconstructed time history for a
+                        mode
+                     2. The time history extracted from the input data
+                        for the mode after discarding noisy data via
+                        singular value decomposition
+
+                   From experience, this indicator is not as useful as
+                   the EMAC.
+        =========  ===================================================
+
     References
     ----------
     .. [#era1] Jer-Nan Juang. Applied System Identification. United
@@ -113,7 +154,9 @@ class ERA:
     .. plot::
         :context: close-figs
 
-        Say we had the following mass, damping and stiffness:
+        We have the following mass, damping and stiffness matrices
+        (note that the damping has been specially defined to be
+        diagonalized by the modes):
 
         >>> import numpy as np
         >>> import scipy.linalg as la
@@ -139,8 +182,7 @@ class ERA:
         ... )
 
         Since we have the system matrices, we can determine the
-        frequencies and damping using the eigensolution. We'll see
-        that the damping is diagonalized (by design):
+        frequencies and damping using the eigensolution.
 
         >>> (w2, phi) = la.eigh(K, M)
         >>> omega = np.sqrt(w2)
@@ -312,9 +354,11 @@ class ERA:
                   significance of a singular value to be kept
 
             Consider this the master control on removal of noise. To
-            change, you have to rerun. The secondary control is the
-            selection of modes which can be interactive (if `auto` is
-            False) or automatic according to the parameters below.
+            change, you have to rerun. When in doubt, it is
+            recommended to try multiple values of `svd_tol`. The
+            secondary control is the selection of modes which can be
+            interactive (if `auto` is False) or automatic according to
+            the parameters below.
         auto : boolean; optional
             Enables automatic selection of true modes. The default is
             False.
@@ -330,8 +374,8 @@ class ERA:
             True. The EMAC value ranges from 0.0 to 1.0 for each mode
             and is a temporal measure indicating the importance of the
             mode over time to the fit. Higher values indicate more
-            importance. From practice, the is superior to the MAC
-            value (see below). For more information, see [#era2].
+            importance. From experience, the EMAC is superior to the
+            MAC value (see below). For more information, see [#era2]_.
         MPC_lower_limit : scalar; optional
             The lower limit for the "modal phase collinearity" value
             for modes to be selected when `auto` is True. The MPC
@@ -374,7 +418,8 @@ class ERA:
 
         Notes
         -----
-        The class instance is populated with the following members:
+        The class instance is populated with the following members
+        (equation numbers are from Chapter 5 of reference [#era1]_):
 
         ================  ============================================
         Member            Description
