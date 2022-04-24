@@ -859,6 +859,30 @@ def test_mksetpv_mkdofpv():
     assert np.all(np.array([[100, 3], [200, 5], [300, 1], [300, 4]]) == dof)
 
 
+def test_mkdovpv_2():
+    u = n2p.make_uset(
+        dof=[[1, 123456], [2, 0]],
+        nasset=[n2p.mkusetmask("b"), n2p.mkusetmask("q")],
+        xyz=[[1, 2, 3], [0, 0, 0]],
+    )
+
+    # assuming both are grids will fail on strict=True:
+    assert_raises(ValueError, n2p.mkdofpv, u, "p", [1, 2], strict=True, grids_only=True)
+
+    # but not if strict=False, and only the grid will be found:
+    pv = n2p.mkdofpv(u, "p", [1, 2], strict=False, grids_only=True)[0]
+    assert (pv == np.arange(6)).all()
+
+    # this will successfully find everything:
+    pv = n2p.mkdofpv(u, "p", [1, 2], strict=False, grids_only=False)[0]
+    assert (pv == np.arange(7)).all()
+
+    # exception if strict=True but we allow all type of DOF (cannot work)
+    assert_raises(
+        ValueError, n2p.mkdofpv, u, "p", [1, 2], strict=True, grids_only=False
+    )
+
+
 def test_mkcordcardinfo():
     uset = n2p.addgrid(None, 1, "b", 0, [0, 0, 0], 0)
     ci = n2p.mkcordcardinfo(uset)

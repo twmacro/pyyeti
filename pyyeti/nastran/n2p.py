@@ -932,7 +932,7 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
     return s
 
 
-def expanddof(dof, strict=True):
+def expanddof(dof, grids_only=True):
     """
     Expands degree of freedom (DOF) specification
 
@@ -941,21 +941,21 @@ def expanddof(dof, strict=True):
     dof : 1d or 2d array_like
         `dof` can be input in 2 different ways:
 
-         1. 1d array. Each element is assumed to be an ID. If `strict`
-            is True (the default), this routine assumes the DOFs are
-            1-6, so the IDs are only of GRIDs. If `strict` is False,
-            then the DOFs will be 0-6, which enables the routine
-            :func:`mkdofpv` to find both GRIDs and SPOINTs.
+         1. 1d array. Each element is assumed to be an ID. If
+            `grids_only` is True (the default), this routine assumes
+            the DOFs are 1-6, so the IDs are only of GRIDs. If
+            `grids_only` is False, then the DOFs will be 0-6, which
+            enables the routine :func:`mkdofpv` to find both GRIDs and
+            SPOINTs.
 
          2. 2d 2-column DOF array. Each row is: [ID, DOF]. Here, DOF
             specifies which degrees-of-freedom of the ID to find.
             The DOF can be input in the same way as Nastran accepts
             it: 0 or any combo of digits 1-6; eg, 123456 for all 6.
 
-    strict : bool; optional
-        If True, do not include 0 as a possible degree-of-freedom when
-        `dof` is a 1d array (IDs must correspond to GRIDs, not
-        SPOINTs)
+    grids_only : bool; optional
+        Ignored if `dof` has two columns. Otherwise, see option 1 of
+        the `dof` description above and the examples below.
 
     Returns
     -------
@@ -983,7 +983,7 @@ def expanddof(dof, strict=True):
            [2, 4],
            [2, 5],
            [2, 6]]...)
-    >>> nastran.expanddof([1, 2], strict=False)  # doctest: +ELLIPSIS
+    >>> nastran.expanddof([1, 2], grids_only=False)  # doctest: +ELLIPSIS
     array([[1, 0],
            [1, 1],
            [1, 2],
@@ -1011,7 +1011,7 @@ def expanddof(dof, strict=True):
     if dof.size == 0:
         return np.zeros((0, 2), dtype=np.int64)
     if dof.ndim < 2 or dof.shape[1] == 1:
-        rg = range(1, 7) if strict else range(7)
+        rg = range(1, 7) if grids_only else range(7)
         return np.array([[n, i] for n in dof.ravel() for i in rg])
     elif dof[:, 1].max() <= 6:
         return dof
@@ -1490,7 +1490,7 @@ def mksetpv(uset, major, minor):
     return pv
 
 
-def mkdofpv(uset, nasset, dof, strict=True):
+def mkdofpv(uset, nasset, dof, *, strict=True, grids_only=True):
     """
     Make a DOF partition vector for a particular set from a Nastran
     USET table.
@@ -1510,12 +1510,12 @@ def mkdofpv(uset, nasset, dof, strict=True):
     dof : 1d or 2d array_like
         `dof` can be input in 2 different ways:
 
-         1. 1d array. Each element is assumed to be an ID. If `strict`
-            is True (the default), this routine assumes the DOFs are
-            1-6, so the IDs are only of GRIDs. If `strict` is False,
-            then the allowed DOFs are any of 0-6, which enables this
-            routine to find both GRIDs and SPOINTs. See also
-            :func:`expanddof`.
+         1. 1d array. Each element is assumed to be an ID. If
+            `grids_only` is True (the default), this routine assumes
+            the DOFs are 1-6, so the IDs are only of GRIDs. If
+            `grids_only` is False, then the DOFs will be 0-6, which
+            enables this routine to find both GRIDs and
+            SPOINTs. See also :func:`expanddof`.
 
          2. 2d 2-column DOF array. Each row is: [ID, DOF]. Here, DOF
             specifies which degrees-of-freedom of the ID to find.
@@ -1525,6 +1525,16 @@ def mkdofpv(uset, nasset, dof, strict=True):
     strict : bool; optional
         If True, raise a ValueError if any DOF in `dof` are not in
         `uset`.
+    grids_only : bool; optional
+        Ignored if `dof` has two columns. Otherwise, see option 1 of
+        the `dof` description above and the examples shown in
+        :func:`expanddof`.
+
+        .. note::
+            Though not disallowed by this routine, using 1d `dof`,
+            ``strict==True`` and ``grids_only==False`` will raise a
+            ValueError. That's because DOF 0-6 will be assumed for all
+            IDs and all must be found, which is not possible.
 
     Returns
     -------
@@ -1590,7 +1600,7 @@ def mkdofpv(uset, nasset, dof, strict=True):
         else:
             raise ValueError('`nasset` must be "p" if `uset` is not a pandas DataFrame')
 
-    dof = expanddof(dof, strict)
+    dof = expanddof(dof, grids_only)
     _dof = dof[:, 0] * 10 + dof[:, 1]
 
     i = np.argsort(uset_set)
