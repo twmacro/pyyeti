@@ -3860,11 +3860,10 @@ def mknast(
 
     Notes
     -----
-
     If you're in the 'bash' shell, the resulting script can be run in
     the background with, assuming the script name is 'doruns.sh'::
 
-       exec ./doruns.sh > doruns.log 2>&1 &
+       nohup ./doruns.sh > doruns.log 2>&1 &
 
     Example usage::
 
