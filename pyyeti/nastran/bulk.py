@@ -1916,7 +1916,7 @@ def rdseconct(f):
 
 
 @guitools.read_text_file
-def asm2uset(f):
+def asm2uset(f, new=True):
     r"""
     Read CORD2* and GRID cards from a ".asm" file to make a USET table
 
@@ -1952,6 +1952,16 @@ def asm2uset(f):
 
             from pyyeti import nastran
             bset_bool = nastran.mksetpv(uset, 'a', 'b')
+
+    Notes
+    -----
+    This routine will attempt to read the "EXTRN" card from the .pch
+    file in case some b-set nodes do not include all 6 DOF. For
+    example, a model could have 7 b-set DOF and 1 q-set DOF. If the 7
+    b-set DOF are composed of all 6 DOF for node 100 and just the
+    second DOF for node 200, the EXTRN card would like this::
+
+        EXTRN,100,123456,200,2,1001,0
 
     Examples
     --------
@@ -2023,7 +2033,17 @@ def asm2uset(f):
         uset_spoints = n2p.make_uset(dof, n2p.mkusetmask("q"), np.zeros((n, 3)))
         uset = pd.concat([uset, uset_spoints], axis=0)
 
-    a_ids, b_ids = rdseconct(f)
+    if new:
+        try:
+            filename = f.name
+        except AttributeError:
+            pass
+        else:
+            dof = rdextrn(filename.replace(".asm", ".pch"))
+            uset_ordered = uset.loc[list(dof)]
+            return uset_ordered, coords, n2p.mksetpv(uset_ordered, "a", "b")
+
+    a_ids = rdseconct(f)[0]
     uset_ordered = uset.loc[a_ids]
     if uset_ordered.shape[0] != uset.shape[0]:
         raise RuntimeError(

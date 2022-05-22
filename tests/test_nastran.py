@@ -426,6 +426,16 @@ SPOINT   110
         assert np.allclose(cord2[k], v)
 
 
+def test_asm2uset_2():
+    u, c, b = nastran.asm2uset("tests/nas2cam_extseout/reduced_bset_notall6.asm")
+    m = op4.read("tests/nas2cam_extseout/reduced_bset_notall6.op4")
+
+    assert u.shape[0] == 29
+
+    q = ~b
+    assert ((np.diag(m["maa"]) == 1.0) == q).all()
+
+
 def test_rdcord2cards():
     cylcoord = np.array([[50, 2, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]])
     sphcoord = np.array([[51, 3, 0], [0, 0, 0], [0, 1, 0], [0, 0, 1]])
