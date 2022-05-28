@@ -603,7 +603,7 @@ def toes(pth):
             sol.t = t
             sol = DR.apply_uf(sol, *mbk, nas["nrb"], rfmodes)
             caseid = "{} {:2d}".format(event, j + 1)
-            results.time_data_recovery(sol, nas["nrb"], caseid, DR, LC, j)
+            results.time_data_recovery(sol, nas["nrb"], caseid, DR, LC, j, verbose=3)
 
         results.calc_stat_ext(stats.ksingle(0.99, 0.90, LC))
 
@@ -690,7 +690,7 @@ def owlab(pth):
             print("Running {} case {}".format(event, j + 1))
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T, axis=1, fill_value=0.0)(freq)
             results.solvepsd(nas, caseid, DR, fs, F, T, freq)
-            results.psd_data_recovery(caseid, DR, len(rnd), j)
+            results.psd_data_recovery(caseid, DR, len(rnd), j, verbose=3)
 
         # save results:
         cla.save("results.pgz", results)
@@ -3010,7 +3010,7 @@ def test_frf_data_recovery():
     sol = {uf_reds: sol}
 
     # perform data recovery:
-    results.frf_data_recovery(sol, None, event, DR, 1, 0)
+    results.frf_data_recovery(sol, None, event, DR, 1, 0, verbose=3)
 
     assert np.allclose(elforces, results["kc_forces"].frf[0])
     assert np.allclose(fsh.T, results["kc_forces"].srs.srs[20][0])

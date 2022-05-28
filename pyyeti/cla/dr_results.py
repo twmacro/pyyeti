@@ -843,7 +843,7 @@ class DR_Results(OrderedDict):
             else:
                 res.srs.ext[q] = np.fmax(res.srs.ext[q], srs_cur)
 
-    def time_data_recovery(self, sol, nas, case, DR, n, j, dosrs=True):
+    def time_data_recovery(self, sol, nas, case, DR, n, j, dosrs=True, verbose=0):
         """
         Time-domain data recovery function
 
@@ -875,6 +875,17 @@ class DR_Results(OrderedDict):
         dosrs : bool; optional
             If False, do not calculate SRSs; default is to calculate
             them.
+        verbose : integer; optional
+            Sets verbosity level:
+
+            =========  ==============================================
+            `verbose`  Description
+            =========  ==============================================
+                 0     Do not print any status messages
+                 1     Print only the category being processed
+                 2     Add message when SRS's are being calculated
+              >= 3     Add message when done with this category
+            =========  ==============================================
 
         Returns
         -------
@@ -885,7 +896,10 @@ class DR_Results(OrderedDict):
         The `self` results dictionary is updated (see
         :class:`DR_Results` for an example).
         """
+        fname = "time_data_recovery"
         for name, res in self.items():
+            if verbose:
+                print(f"\t{fname} 1: processing category {name}")
             first = res.ext is None
             dr = DR.Info[name]  # record with: .desc, .labels, ...
             uf_reds = dr.uf_reds
@@ -917,9 +931,14 @@ class DR_Results(OrderedDict):
 
             if dr.srspv is not None and dosrs:
                 sr = 1 / SOL.h if SOL.h else None
+                if verbose > 1:
+                    print(f"\t{fname} 2: computing SRS's for category {name}")
                 self._compute_srs(res, dr, resp, "hist", SOL.t, j, first, sr=sr)
 
-    def frf_data_recovery(self, sol, nas, case, DR, n, j, dosrs=True):
+            if verbose > 2:
+                print(f"\t{fname} 3: completed processing category {name}")
+
+    def frf_data_recovery(self, sol, nas, case, DR, n, j, dosrs=True, verbose=0):
         """
         Frequency response data recovery function
 
@@ -951,6 +970,17 @@ class DR_Results(OrderedDict):
         dosrs : bool; optional
             If False, do not calculate SRSs; default is to calculate
             them.
+        verbose : integer; optional
+            Sets verbosity level:
+
+            =========  ==============================================
+            `verbose`  Description
+            =========  ==============================================
+                 0     Do not print any status messages
+                 1     Print only the category being processed
+                 2     Add message when SRS's are being calculated
+              >= 3     Add message when done with this category
+            =========  ==============================================
 
         Returns
         -------
@@ -961,7 +991,10 @@ class DR_Results(OrderedDict):
         The `self` results dictionary is updated (see
         :class:`DR_Results` for an example).
         """
+        fname = "frf_data_recovery"
         for name, res in self.items():
+            if verbose:
+                print(f"\t{fname} 1: processing category {name}")
             first = res.ext is None
             dr = DR.Info[name]  # record with: .desc, .labels, ...
             uf_reds = dr.uf_reds
@@ -994,7 +1027,12 @@ class DR_Results(OrderedDict):
                 res.frf[j] = resp[dr.histpv]
 
             if dr.srspv is not None and dosrs:
+                if verbose > 1:
+                    print(f"\t{fname} 2: computing SRS's for category {name}")
                 self._compute_srs(res, dr, resp, "frf", SOL.f, j, first)
+
+            if verbose > 2:
+                print(f"\t{fname} 3: completed processing category {name}")
 
     def solvepsd(
         self,
@@ -1219,7 +1257,7 @@ class DR_Results(OrderedDict):
             print("timers =", timers)
 
     def psd_data_recovery(
-        self, case, DR, n, j, dosrs=True, peak_factor=3.0, resp_time=None
+        self, case, DR, n, j, dosrs=True, peak_factor=3.0, resp_time=None, verbose=0,
     ):
         """
         PSD data recovery function
@@ -1258,6 +1296,17 @@ class DR_Results(OrderedDict):
             factors for SRS from: ``sqrt(2*log(resp_time*f))``. See
             :func:`pyyeti.fdepsd.fdepsd` for the derivation of this
             factor.
+        verbose : integer; optional
+            Sets verbosity level:
+
+            =========  ==============================================
+            `verbose`  Description
+            =========  ==============================================
+                 0     Do not print any status messages
+                 1     Print only the category being processed
+                 2     Add message when SRS's are being calculated
+              >= 3     Add message when done with this category
+            =========  ==============================================
 
         Returns
         -------
@@ -1287,7 +1336,10 @@ class DR_Results(OrderedDict):
             sumpsd = p[:, :-1] + p[:, 1:]
             return np.sqrt((df * sumpsd).sum(axis=1) / 2)
 
+        fname = "psd_data_recovery"
         for name, res in self.items():
+            if verbose:
+                print(f"\t{fname} 1: processing category {name}")
             first = res.ext is None
             dr = DR.Info[name]  # record with: .desc, .labels, ...
             # compute area under curve (rms):
@@ -1341,7 +1393,12 @@ class DR_Results(OrderedDict):
                 else:
                     pf = peak_factor
                 # spec = (freq, psd[dr.srspv].T)
+                if verbose > 1:
+                    print(f"\t{fname} 2: computing SRS's for category {name}")
                 self._compute_srs(res, dr, psd, "psd", freq, j, first, pf=pf)
+
+            if verbose > 2:
+                print(f"\t{fname} 3: completed processing category {name}")
 
         if j == n - 1:
             del res._psd
