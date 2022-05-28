@@ -1166,6 +1166,8 @@ def do_srs_plots():
             direc="srs2",
             drms=["cglf"],
             showboth=True,
+            layout=(1, 1),
+            legend_args={"ncol": 2},
         )
         assert os.path.exists("srs2/EXTREME_srs.pdf")
 
@@ -1221,8 +1223,8 @@ def test_transfer_orbit_cla():
             do_srs_plots()
             do_time_plots()
     finally:
-        # pass
-        shutil.rmtree("./temp_cla", ignore_errors=True)
+        pass
+        # shutil.rmtree("./temp_cla", ignore_errors=True)
 
 
 def test_maxmin():

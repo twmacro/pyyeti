@@ -2167,6 +2167,7 @@ class DR_Results(OrderedDict):
 
     def srs_plots(
         self,
+        *,
         event=None,
         Q="auto",
         drms=None,
@@ -2179,6 +2180,7 @@ class DR_Results(OrderedDict):
         showboth=False,
         direc="srs_plots",
         tight_layout_args=None,
+        legend_args=None,
         plot="plot",
         show_figures=False,
     ):
@@ -2260,17 +2262,43 @@ class DR_Results(OrderedDict):
             created if it doesn't exist.
         tight_layout_args : dict or None; optional
             Arguments for
-            :meth:`matplotlib.figure.Figure.tight_layout`. If None,
+            :meth:`matplotlib.figure.Figure.tight_layout`.  If None,
             defaults to::
 
-                {'pad': 3.0,
-                 'w_pad': 2.0,
-                 'h_pad': 2.0,
-                 'rect': (0.3 / figsize[0],
-                          0.3 / figsize[1],
-                          1.0 - 0.3 / figsize[0],
-                          1.0 - 0.3 / figsize[1])}
+                {
+                   "pad": 3.0,
+                   "w_pad": 2.0,
+                   "h_pad": 2.0,
+                   "rect": (0.3 / figsize[0],
+                            0.3 / figsize[1],
+                            1.0 - 0.3 / figsize[0],
+                            1.0 - 0.3 / figsize[1]),
+                }
 
+        legend_args : dict or None; optional
+            Arguments for :meth:`matplotlib.figure.Figure.legend` or
+            :meth:`matplotlib.axes.Axes.legend`. The internally set
+            arguments for the legend call depend on `showall`. If
+            `showall` is True, `legend_args` defaults to::
+
+                {
+                   "loc": "upper right",
+                   "bbox_to_anchor": (lx, ly),
+                   "fontsize": "small",
+                   "framealpha": 0.5,
+                }
+
+            If `showall` is False::
+
+                {
+                   "loc": "best",
+                   "fontsize": "small",
+                   "framealpha": 0.5,
+                   "fancybox": True,
+                }
+
+            If `legend_args` is a dictionary, it will update those
+            default settings.
         plot : string; optional
             The name of a function in :class:`matplotlib.axes.Axes`
             that will draw each curve. Defaults to "plot". Common
@@ -2326,6 +2354,7 @@ class DR_Results(OrderedDict):
             showboth=showboth,
             direc=direc,
             tight_layout_args=tight_layout_args,
+            legend_args=legend_args,
             cases=None,
             plot=plot,
             show_figures=show_figures,
@@ -2333,6 +2362,7 @@ class DR_Results(OrderedDict):
 
     def resp_plots(
         self,
+        *,
         event=None,
         drms=None,
         inc0rb=True,
@@ -2343,6 +2373,7 @@ class DR_Results(OrderedDict):
         cases=None,
         direc="resp_plots",
         tight_layout_args=None,
+        legend_args=None,
         plot="plot",
         show_figures=False,
     ):
@@ -2417,17 +2448,32 @@ class DR_Results(OrderedDict):
             created if it doesn't exist.
         tight_layout_args : dict or None; optional
             Arguments for
-            :meth:`matplotlib.figure.Figure.tight_layout`. If None,
+            :meth:`matplotlib.figure.Figure.tight_layout`.  If None,
             defaults to::
 
-                {'pad': 3.0,
-                 'w_pad': 2.0,
-                 'h_pad': 2.0,
-                 'rect': (0.3 / figsize[0],
-                          0.3 / figsize[1],
-                          1.0 - 0.3 / figsize[0],
-                          1.0 - 0.3 / figsize[1])}
+                {
+                   "pad": 3.0,
+                   "w_pad": 2.0,
+                   "h_pad": 2.0,
+                   "rect": (0.3 / figsize[0],
+                            0.3 / figsize[1],
+                            1.0 - 0.3 / figsize[0],
+                            1.0 - 0.3 / figsize[1]),
+                }
 
+        legend_args : dict or None; optional
+            Arguments for :meth:`matplotlib.axes.Axes.legend`. The
+            internally set arguments for the legend call are::
+
+                {
+                   "loc": "upper right",
+                   "bbox_to_anchor": (lx, ly),
+                   "fontsize": "small",
+                   "framealpha": 0.5,
+                }
+
+            If `legend_args` is a dictionary, it will update those
+            default settings.
         plot : string; optional
             The name of a function in :class:`matplotlib.axes.Axes`
             that will draw each curve. Defaults to "plot". Common
@@ -2481,6 +2527,7 @@ class DR_Results(OrderedDict):
             cases=cases,
             direc=direc,
             tight_layout_args=tight_layout_args,
+            legend_args=legend_args,
             Q="auto",
             showall=None,
             showboth=False,

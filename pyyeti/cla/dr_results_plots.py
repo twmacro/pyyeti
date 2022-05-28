@@ -165,7 +165,13 @@ def _add_title(ax, name, label, maxlen, sname, row, cols, q=None):
     ax.set_title(ttl, fontsize=big)
 
 
-def _add_legend(ax, leg_info, figsize, tight_layout_args):
+def _get_legopts(legopts, legend_args):
+    if legend_args:
+        legopts.update(legend_args)
+    return legopts
+
+
+def _add_legend(ax, leg_info, figsize, tight_layout_args, legend_args):
     fig = ax.get_figure()
     handles, labels = ax.get_legend_handles_labels()
     if "rect" in tight_layout_args:
@@ -174,17 +180,17 @@ def _add_legend(ax, leg_info, figsize, tight_layout_args):
     else:
         lx = 1.0 - 0.3 / figsize[0]
         ly = 1.0 - 0.3 / figsize[1]
-    leg = fig.legend(
-        handles,
-        labels,
-        loc="upper right",
-        bbox_to_anchor=(lx, ly),
-        fontsize="small",
-        framealpha=0.5,
-        # fancybox=True,
-        # borderaxespad=0.,
-        # labelspacing=legspace*.9,
-    )
+
+    legopts = {
+        "loc": "upper right",
+        "bbox_to_anchor": (lx, ly),
+        "fontsize": "small",
+        "framealpha": 0.5,
+        # "fancybox": True,
+        # "borderaxespad": 0.,
+        # "labelspacing": legspace * 0.9,
+    }
+    leg = fig.legend(handles, labels, **_get_legopts(legopts, legend_args))
     legwidth = (
         leg.get_tightbbox(fig.canvas.get_renderer())
         .transformed(fig.transFigure.inverted())
@@ -252,6 +258,7 @@ def _plot_all(
     leg_info,
     figsize,
     tight_layout_args,
+    legend_args,
 ):
     # legspace = matplotlib.rcParams['legend.labelspacing']
     if issrs:
@@ -287,7 +294,7 @@ def _plot_all(
             h += plotfunc(x, hist[n, j], linestyle="-", label=case)
 
     if sub == maxcol:
-        _add_legend(ax, leg_info, figsize, tight_layout_args)
+        _add_legend(ax, leg_info, figsize, tight_layout_args, legend_args)
     _add_title(ax, name, label, maxlen, sname, rowpv[j] + 1, cols, q)
 
 
@@ -307,12 +314,19 @@ def _plot_ext(
     sname,
     rowpv,
     j,
+    legend_args,
 ):
     srsext = curres.srs.ext[q]
     # srsext (each rows x freq)
     if sub == maxcol:
         plotfunc(frq, srsext[j], label=f"Q={q}")
-        ax.legend(loc="best", fontsize="small", fancybox=True, framealpha=0.5)
+        legopts = {
+            "loc": "best",
+            "fontsize": "small",
+            "framealpha": 0.5,
+            "fancybox": True,
+        }
+        ax.legend(**_get_legopts(legopts, legend_args))
     else:
         plotfunc(frq, srsext[j])
     if q == Qs[0]:
@@ -351,6 +365,7 @@ def _add_xy_labels(ax, issrs, units, uj, xlab, ylab, nplots, sub, srstype):
 
 def mk_plots(
     res,
+    *,
     event=None,
     issrs=True,
     Q="auto",
@@ -365,6 +380,7 @@ def mk_plots(
     cases=None,
     direc="srs_plots",
     tight_layout_args=None,
+    legend_args=None,
     plot="plot",
     show_figures=False,
 ):
@@ -461,14 +477,42 @@ def mk_plots(
         Arguments for :meth:`matplotlib.figure.Figure.tight_layout`.
         If None, defaults to::
 
-                {'pad': 3.0,
-                 'w_pad': 2.0,
-                 'h_pad': 2.0,
-                 'rect': (0.3 / figsize[0],
-                          0.3 / figsize[1],
-                          1.0 - 0.3 / figsize[0],
-                          1.0 - 0.3 / figsize[1])}
+            {
+               "pad": 3.0,
+               "w_pad": 2.0,
+               "h_pad": 2.0,
+               "rect": (0.3 / figsize[0],
+                        0.3 / figsize[1],
+                        1.0 - 0.3 / figsize[0],
+                        1.0 - 0.3 / figsize[1]),
+            }
 
+    legend_args : dict or None; optional
+        Arguments for :meth:`matplotlib.figure.Figure.legend` or
+        :meth:`matplotlib.axes.Axes.legend`. The internally set
+        arguments for the legend call depend on `showall` and
+        `issrs`. If `issrs` is False and/or `showall` is True,
+        `legend_args` defaults to::
+
+            {
+               "loc": "upper right",
+               "bbox_to_anchor": (lx, ly),
+               "fontsize": "small",
+               "framealpha": 0.5,
+            }
+
+        If `issrs` is True and `showall` is False (only plotting SRS
+        envelopes)::
+
+            {
+               "loc": "best",
+               "fontsize": "small",
+               "framealpha": 0.5,
+               "fancybox": True,
+            }
+
+        If `legend_args` is a dictionary, it will update those default
+        settings.
     plot : string; optional
         The name of a function in :class:`matplotlib.axes.Axes` that
         will draw each curve. Defaults to "plot". Common options:
@@ -644,6 +688,7 @@ def mk_plots(
                                 leg_info,
                                 figsize,
                                 tight_layout_args,
+                                legend_args,
                             )
                         else:
                             _plot_ext(
@@ -662,6 +707,7 @@ def mk_plots(
                                 sname,
                                 rowpv,
                                 j,
+                                legend_args,
                             )
                 else:
                     _plot_all(
@@ -686,6 +732,7 @@ def mk_plots(
                         leg_info,
                         figsize,
                         tight_layout_args,
+                        legend_args,
                     )
 
                 _add_xy_labels(ax, issrs, units, uj, xlab, ylab, nplots, sub, srstype)
