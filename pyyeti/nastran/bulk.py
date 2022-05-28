@@ -1916,7 +1916,7 @@ def rdseconct(f):
 
 
 @guitools.read_text_file
-def asm2uset(f, new=True):
+def asm2uset(f, try_rdextrn=True):
     r"""
     Read CORD2* and GRID cards from a ".asm" file to make a USET table
 
@@ -1927,6 +1927,11 @@ def asm2uset(f, new=True):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    try_rdextrn : bool; optional
+        If True, routine will attempt to read the "EXTRN" card from
+        the ".pch" file. If a filename cannot be determined from `f`,
+        the attempt to the "EXTRN" card is quietly skipped and each
+        b-set node is assumed to have all 6 DOF. See Notes below.
 
     Returns
     -------
@@ -2033,7 +2038,7 @@ def asm2uset(f, new=True):
         uset_spoints = n2p.make_uset(dof, n2p.mkusetmask("q"), np.zeros((n, 3)))
         uset = pd.concat([uset, uset_spoints], axis=0)
 
-    if new:
+    if try_rdextrn:
         try:
             filename = f.name
         except AttributeError:
