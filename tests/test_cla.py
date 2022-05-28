@@ -1223,8 +1223,8 @@ def test_transfer_orbit_cla():
             do_srs_plots()
             do_time_plots()
     finally:
-        pass
-        # shutil.rmtree("./temp_cla", ignore_errors=True)
+        # pass
+        shutil.rmtree("./temp_cla", ignore_errors=True)
 
 
 def test_maxmin():
