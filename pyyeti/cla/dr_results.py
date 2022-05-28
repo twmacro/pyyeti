@@ -1503,6 +1503,9 @@ class DR_Results(OrderedDict):
         base : :class:`DR_Results` instance
             The next base-level :class:`DR_Results` item. Its entries
             are the SimpleNamespace data structures for each category.
+        path : list
+            List of strings showing the path to the base event,
+            including the name of the base event itself.
 
         Notes
         -----
@@ -1517,7 +1520,7 @@ class DR_Results(OrderedDict):
         top level one and "NonBase", and two base events: "Base1" and
         "Base2". "Base1" is under "NonBase" while "Base2" is under the
         top level. We'll also have two data recovery categories for
-        each base event: 'SC_atm' and 'SC_ltm'.
+        each base event: 'ATM' and 'LTM'.
 
         The following demonstrates three generators available for
         :class:`DR_Results`: :func:`all_base_events`,
@@ -1525,48 +1528,67 @@ class DR_Results(OrderedDict):
 
         >>> from types import SimpleNamespace
         >>> from pyyeti import cla
+        >>> from pyyeti.pp import PP
         >>> res = cla.DR_Results()
         >>> res['NonBase'] = cla.DR_Results()
         >>> res['NonBase']['Base1'] = cla.DR_Results()
-        >>> res['NonBase']['Base1']['SC_atm'] = SimpleNamespace()
-        >>> res['NonBase']['Base1']['SC_ltm'] = SimpleNamespace()
+        >>> res['NonBase']['Base1']['ATM'] = SimpleNamespace()
+        >>> res['NonBase']['Base1']['LTM'] = SimpleNamespace()
         >>> res['Base2'] = cla.DR_Results()
-        >>> res['Base2']['SC_atm'] = SimpleNamespace()
-        >>> res['Base2']['SC_ltm'] = SimpleNamespace()
+        >>> res['Base2']['ATM'] = SimpleNamespace()
+        >>> res['Base2']['LTM'] = SimpleNamespace()
+        >>> res['empty'] = cla.DR_Results()  # for testing
+        >>> PP(res, 5)  # doctest: +ELLIPSIS
+        <class 'pyyeti.cla.dr_results.DR_Results'>[n=3]
+            'NonBase': <class 'pyyeti.cla.dr_results.DR_Results'>[n=1]
+                'Base1': <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                    'ATM': <class 'types.SimpleNamespace'>[n=0]
+                    'LTM': <class 'types.SimpleNamespace'>[n=0]
+            'Base2'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                'ATM': <class 'types.SimpleNamespace'>[n=0]
+                'LTM': <class 'types.SimpleNamespace'>[n=0]
+            'empty'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=0]
+        <BLANKLINE>
+        <pyyeti.pp.PP object at ...>
 
         Show the base events:
 
-        >>> for name, base in res.all_base_events():
-        ...     print(name, ':', base)   # doctest: +ELLIPSIS
-        Base1 : DR_Results (...) with 2 keys: ['SC_atm', 'SC_ltm']
-        Base2 : DR_Results (...) with 2 keys: ['SC_atm', 'SC_ltm']
+        >>> for name, base, path in res.all_base_events():
+        ...     print(f"{name}, {base}, {path}")  # doctest: +ELLIPSIS
+        Base1, DR_Results ... ['ATM', 'LTM'], ['NonBase', 'Base1']
+        Base2, DR_Results ... ['ATM', 'LTM'], ['Base2']
 
         Show the non-base events:
 
-        >>> for name, nonbase in res.all_nonbase_events():
-        ...     print(name, ':', nonbase)   # doctest: +ELLIPSIS
-        Top Level : DR_Results (...) with 2 keys: ['NonBase', 'Base2']
-        NonBase : DR_Results (...) with 1 keys: ['Base1']
+        >>> for name, nonb, path in res.all_nonbase_events():
+        ...     print(f"{name}, {nonb}, {path}")  # doctest: +ELLIPSIS
+        Top Level, DR_Results ... ['NonBase', 'Base2', 'empty'], []
+        NonBase, DR_Results ... ['Base1'], ['NonBase']
 
         Show all the data recovery categories:
 
-        >>> for name, cat in res.all_categories():
-        ...     print(name, ':', cat)
-        SC_atm : namespace()
-        SC_ltm : namespace()
-        SC_atm : namespace()
-        SC_ltm : namespace()
+        >>> for name, cat, path in res.all_categories():
+        ...     print(f"{name}, {cat}, {path}")
+        ATM, namespace(), ['NonBase', 'Base1', 'ATM']
+        LTM, namespace(), ['NonBase', 'Base1', 'LTM']
+        ATM, namespace(), ['Base2', 'ATM']
+        LTM, namespace(), ['Base2', 'LTM']
         """
 
-        def _all_bases(dct, topname):
-            value = next(iter(dct.values()))
+        def _all_bases(dct, topname, path):
+            try:
+                value = next(iter(dct.values()))
+            except StopIteration:
+                return
             if isinstance(value, SimpleNamespace):
-                yield topname, dct
+                yield topname, dct, path
             elif isinstance(value, DR_Results):
                 for name, value in dct.items():
-                    yield from _all_bases(value, name)
+                    path_ = path.copy()
+                    path_.append(name)
+                    yield from _all_bases(value, name, path_)
 
-        yield from _all_bases(self, top_level_name)
+        yield from _all_bases(self, top_level_name, [])
 
     def all_nonbase_events(self, top_level_name="Top Level"):
         """
@@ -1585,6 +1607,9 @@ class DR_Results(OrderedDict):
         nonbase : :class:`DR_Results` instance
             The next non-base-level :class:`DR_Results` item. Its
             entries are more :class:`DR_Results` items.
+        path : list
+            List of strings showing the path to the non-base event,
+            including the name of the non-base event itself.
 
         Notes
         -----
@@ -1596,14 +1621,19 @@ class DR_Results(OrderedDict):
         See :func:`all_base_events` for an example.
         """
 
-        def _all_nonbases(dct, topname):
-            value = next(iter(dct.values()))
+        def _all_nonbases(dct, topname, path):
+            try:
+                value = next(iter(dct.values()))
+            except StopIteration:
+                return
             if isinstance(value, DR_Results):
-                yield topname, dct
+                yield topname, dct, path
                 for name, value in dct.items():
-                    yield from _all_nonbases(value, name)
+                    path_ = path.copy()
+                    path_.append(name)
+                    yield from _all_nonbases(value, name, path_)
 
-        yield from _all_nonbases(self, top_level_name)
+        yield from _all_nonbases(self, top_level_name, [])
 
     def all_categories(self):
         """
@@ -1619,6 +1649,9 @@ class DR_Results(OrderedDict):
             ``.ext``, ``.cases``, etc; see
             ``results['MaxQ']['SC_ifa']`` in :class:`DR_Results` for
             an example.
+        path : list
+            List of strings showing the path to the category,
+            including the name of the category itself.
 
         Notes
         -----
@@ -1630,14 +1663,16 @@ class DR_Results(OrderedDict):
         See :func:`all_base_events` for an example.
         """
 
-        def _all_cats(dct):
+        def _all_cats(dct, path):
             for name, value in dct.items():
+                path_ = path.copy()
+                path_.append(name)
                 if isinstance(value, DR_Results):
-                    yield from _all_cats(value)
+                    yield from _all_cats(value, path_)
                 elif isinstance(value, SimpleNamespace):
-                    yield name, value
+                    yield name, value, path_
 
-        yield from _all_cats(self)
+        yield from _all_cats(self, [])
 
     def delete_extreme(self):
         """
@@ -1985,7 +2020,7 @@ class DR_Results(OrderedDict):
 
         See example usage in :func:`DR_Results.merge`.
         """
-        for name, cat in self.all_categories():
+        for name, cat, path in self.all_categories():
             for attr in ("hist", "time", "psd", "freq"):
                 try:
                     delattr(cat, attr)
