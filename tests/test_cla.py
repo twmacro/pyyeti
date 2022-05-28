@@ -616,7 +616,7 @@ def toes(pth):
         results.rpttab(excel="toes")
         results.srs_plots()
         results.srs_plots(fmt="png")
-        results.resp_plots()
+        results.resp_plots(legend_args={"ncol": 2}, layout=(2, 1))
         assert os.path.exists("resp_plots/TOES_hist.pdf")
 
 
