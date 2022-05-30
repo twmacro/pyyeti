@@ -8,6 +8,7 @@ from collections import OrderedDict
 from types import SimpleNamespace
 import warnings
 import copyreg
+import functools
 import numpy as np
 import xlsxwriter
 from pyyeti import locate, srs
@@ -2018,19 +2019,218 @@ class DR_Results(OrderedDict):
         :func:`DR_Results.form_extreme` (or rerun
         :func:`DR_Results.form_extreme` afterward).
 
+        This is an interface to :func:`delete_data`::
+
+            self.delete_data(
+                ("hist", "time", "psd", "freq", "frf", "srs.srs")
+            )
+
+        For more options and control, see :func:`delete_data`.
+
         See example usage in :func:`DR_Results.merge`.
         """
+        self.delete_data(("hist", "time", "psd", "freq", "frf", "srs.srs"))
+
+    def delete_data(
+        self, attributes, pathfunc=None,
+    ):
+        """
+        Recursively deletes data from :class:`DR_Results` structure
+
+        Parameters
+        ----------
+        attributes : string or iterable of strings
+            Names of attributes to delete; may include "." to delete
+            sub-attributes of attributes. Any attributes not found in
+            a category are quietly skipped.
+        pathfunc : callable or None; optional
+            If callable, can act as a filter to determine the
+            categories from which items can be deleted. It must accept
+            the `path` output of :func:`all_categories` and return a
+            "truthy" or "falsy" value. Items will only be deleted from
+            categories for which `pathfunc` returns a true value. If
+            `pathfunc` is None, routine will attempt to delete items
+            from all categories. For example, to only delete items
+            from categories that are at least two DR_Results levels
+            deep::
+
+                pathfunc=lambda path: len(path) > 2
+
+            If the :class:`DR_Results` structure is as follows, the
+            `pathfunc` example shown would allow this routine to
+            delete items from the "ATM" and "LTM" categories that are
+            under "Base1" but not from those under "Base2":
+
+            .. code-block:: none
+
+                <class 'DR_Results'>
+                    'NonBase': <class 'DR_Results'>
+                        'Base1': <class 'DR_Results'>
+                            'ATM': <class 'types.SimpleNamespace'>
+                            'LTM': <class 'types.SimpleNamespace'>
+                    'Base2'  : <class 'DR_Results'>
+                        'ATM': <class 'types.SimpleNamespace'>
+                        'LTM': <class 'types.SimpleNamespace'>
+                    'empty'  : <class 'DR_Results'>
+
+        Notes
+        -----
+        The routine :func:`strip_hists` is an interface to this
+        routine that deletes time and frequency domain histories to
+        reduce file size::
+
+            self.delete_data(
+                ("hist", "time", "psd", "freq", "frf", "srs.srs")
+            )
+
+        Examples
+        --------
+        Make up a :class:`DR_Results` data structure, add some
+        attributes, then delete some of them:
+
+        >>> from types import SimpleNamespace
+        >>> import copy
+        >>> from pyyeti import cla
+        >>> from pyyeti.pp import PP
+        >>>
+        >>> res = cla.DR_Results()
+        >>> res["NonBase"] = cla.DR_Results()
+        >>> res["NonBase"]["Base1"] = cla.DR_Results()
+        >>> res["NonBase"]["Base1"]["ATM"] = SimpleNamespace()
+        >>> res["NonBase"]["Base1"]["LTM"] = SimpleNamespace()
+        >>> res["Base2"] = cla.DR_Results()
+        >>> res["Base2"]["ATM"] = SimpleNamespace()
+        >>> res["Base2"]["LTM"] = SimpleNamespace()
+        >>> res["empty"] = cla.DR_Results()  # for testing
+        >>>
+        >>> # set some values to test delete_data:
+        >>> res["NonBase"]["Base1"]["ATM"].a = 1
+        >>> res["NonBase"]["Base1"]["ATM"].common = 2
+        >>> res["NonBase"]["Base1"]["LTM"].b = SimpleNamespace(c=3)
+        >>> res["NonBase"]["Base1"]["LTM"].common = 4
+        >>> res["Base2"]["ATM"].a = 5
+        >>> res["Base2"]["ATM"].common = 6
+        >>> res["Base2"]["LTM"].b = SimpleNamespace(c=7)
+        >>> res["Base2"]["LTM"].common = 8
+        >>> PP(res, 5)  # doctest: +ELLIPSIS
+        <class 'pyyeti.cla.dr_results.DR_Results'>[n=3]
+            'NonBase': <class 'pyyeti.cla.dr_results.DR_Results'>[n=1]
+                'Base1': <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                    'ATM': <class 'types.SimpleNamespace'>[n=2]
+                        .a     : 1
+                        .common: 2
+                    'LTM': <class 'types.SimpleNamespace'>[n=2]
+                        .b     : <class 'types.SimpleNamespace'>[n=1]
+                            .c: 3
+                        .common: 4
+            'Base2'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                'ATM': <class 'types.SimpleNamespace'>[n=2]
+                    .a     : 5
+                    .common: 6
+                'LTM': <class 'types.SimpleNamespace'>[n=2]
+                    .b     : <class 'types.SimpleNamespace'>[n=1]
+                        .c: 7
+                    .common: 8
+            'empty'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=0]
+        <BLANKLINE>
+        <pyyeti.pp.PP object at ...>
+
+        Delete all "a" attributes:
+
+        >>> res1 = copy.deepcopy(res)
+        >>> res1.delete_data(attributes="a")
+        >>> PP(res1, 5)  # doctest: +ELLIPSIS
+        <class 'pyyeti.cla.dr_results.DR_Results'>[n=3]
+            'NonBase': <class 'pyyeti.cla.dr_results.DR_Results'>[n=1]
+                'Base1': <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                    'ATM': <class 'types.SimpleNamespace'>[n=1]
+                        .common: 2
+                    'LTM': <class 'types.SimpleNamespace'>[n=2]
+                        .b     : <class 'types.SimpleNamespace'>[n=1]
+                            .c: 3
+                        .common: 4
+            'Base2'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                'ATM': <class 'types.SimpleNamespace'>[n=1]
+                    .common: 6
+                'LTM': <class 'types.SimpleNamespace'>[n=2]
+                    .b     : <class 'types.SimpleNamespace'>[n=1]
+                        .c: 7
+                    .common: 8
+            'empty'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=0]
+        <BLANKLINE>
+        <pyyeti.pp.PP object at ...>
+
+        Delete the "c" sub-attribute of "b" and "common" from the
+        deeper objects:
+
+        >>> res1 = copy.deepcopy(res)
+        >>> res1.delete_data(
+        ...     attributes=["b.c", "common"],
+        ...     pathfunc=lambda path: len(path) > 2
+        ... )
+        >>> PP(res1, 5)  # doctest: +ELLIPSIS
+        <class 'pyyeti.cla.dr_results.DR_Results'>[n=3]
+            'NonBase': <class 'pyyeti.cla.dr_results.DR_Results'>[n=1]
+                'Base1': <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                    'ATM': <class 'types.SimpleNamespace'>[n=1]
+                        .a: 1
+                    'LTM': <class 'types.SimpleNamespace'>[n=1]
+                        .b: <class 'types.SimpleNamespace'>[n=0]
+            'Base2'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                'ATM': <class 'types.SimpleNamespace'>[n=2]
+                    .a     : 5
+                    .common: 6
+                'LTM': <class 'types.SimpleNamespace'>[n=2]
+                    .b     : <class 'types.SimpleNamespace'>[n=1]
+                        .c: 7
+                    .common: 8
+            'empty'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=0]
+        <BLANKLINE>
+        <pyyeti.pp.PP object at ...>
+
+        Delete the "common" attribute from all "LTM" categories:
+
+        >>> res1 = copy.deepcopy(res)
+        >>> res1.delete_data(
+        ...     attributes=["common"],
+        ...     pathfunc=lambda path: path[-1] == "LTM"
+        ... )
+        >>> PP(res1, 5)  # doctest: +ELLIPSIS
+        <class 'pyyeti.cla.dr_results.DR_Results'>[n=3]
+            'NonBase': <class 'pyyeti.cla.dr_results.DR_Results'>[n=1]
+                'Base1': <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                    'ATM': <class 'types.SimpleNamespace'>[n=2]
+                        .a     : 1
+                        .common: 2
+                    'LTM': <class 'types.SimpleNamespace'>[n=1]
+                        .b: <class 'types.SimpleNamespace'>[n=1]
+                            .c: 3
+            'Base2'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=2]
+                'ATM': <class 'types.SimpleNamespace'>[n=2]
+                    .a     : 5
+                    .common: 6
+                'LTM': <class 'types.SimpleNamespace'>[n=1]
+                    .b: <class 'types.SimpleNamespace'>[n=1]
+                        .c: 7
+            'empty'  : <class 'pyyeti.cla.dr_results.DR_Results'>[n=0]
+        <BLANKLINE>
+        <pyyeti.pp.PP object at ...>
+        """
+        if isinstance(attributes, str):
+            attrs = set([attributes])
+        else:
+            attrs = set(attributes)
         for name, cat, path in self.all_categories():
-            for attr in ("hist", "time", "psd", "freq"):
-                try:
-                    delattr(cat, attr)
-                except AttributeError:
-                    pass
-            if hasattr(cat, "srs"):
-                try:
-                    delattr(cat.srs, "srs")
-                except AttributeError:  # pragma: no cover
-                    pass
+            if not pathfunc or pathfunc(path):
+                for attr in attrs:
+                    *pars, last = attr.split(".")
+                    try:
+                        # use functools reduce to recursively find
+                        # attributes:
+                        parent = functools.reduce(getattr, pars, cat)
+                        delattr(parent, last)
+                    except AttributeError:
+                        pass
 
     def rptext(
         self,

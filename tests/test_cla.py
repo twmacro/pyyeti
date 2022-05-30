@@ -4,6 +4,7 @@ import shutil
 import inspect
 import re
 import warnings
+import copy
 from types import SimpleNamespace
 from glob import glob
 from io import StringIO
@@ -3764,3 +3765,52 @@ def test_rptpct_all_na():
     finally:
         # pass
         shutil.rmtree("./temp_cla2", ignore_errors=True)
+
+
+def test_delete_data():
+    res = cla.DR_Results()
+    res["NonBase"] = cla.DR_Results()
+    res["NonBase"]["Base1"] = cla.DR_Results()
+    res["NonBase"]["Base1"]["ATM"] = SimpleNamespace()
+    res["NonBase"]["Base1"]["LTM"] = SimpleNamespace()
+    res["Base2"] = cla.DR_Results()
+    res["Base2"]["ATM"] = SimpleNamespace()
+    res["Base2"]["LTM"] = SimpleNamespace()
+    res["empty"] = cla.DR_Results()  # for testing
+
+    # set some values to test delete_data:
+    res["NonBase"]["Base1"]["ATM"].ab = "base1_atm_2"
+    res["NonBase"]["Base1"]["LTM"].ba = SimpleNamespace(cc="base1_ltm_3")
+
+    res["Base2"]["ATM"].ab = "base2_atm_1"
+    res["Base2"]["LTM"].ba = SimpleNamespace(cc="base2_ltm_2")
+
+    res1 = copy.deepcopy(res)
+    res1.delete_data(attributes="ab")
+    assert not hasattr(res1["NonBase"]["Base1"]["ATM"], "ab")
+    assert hasattr(res1["NonBase"]["Base1"]["LTM"], "ba")
+    assert not hasattr(res1["Base2"]["ATM"], "ab")
+    assert hasattr(res1["Base2"]["LTM"], "ba")
+
+    res1 = copy.deepcopy(res)
+    res1.delete_data(attributes=("ab", "ba"), pathfunc=lambda path: len(path) > 2)
+    assert not hasattr(res1["NonBase"]["Base1"]["ATM"], "ab")
+    assert not hasattr(res1["NonBase"]["Base1"]["LTM"], "ba")
+    assert hasattr(res1["Base2"]["ATM"], "ab")
+    assert hasattr(res1["Base2"]["LTM"], "ba")
+
+    res1 = copy.deepcopy(res)
+    res1.delete_data(attributes=set(["ab", "ba"]), pathfunc=lambda path: len(path) < 3)
+    assert hasattr(res1["NonBase"]["Base1"]["ATM"], "ab")
+    assert hasattr(res1["NonBase"]["Base1"]["LTM"], "ba")
+    assert not hasattr(res1["Base2"]["ATM"], "ab")
+    assert not hasattr(res1["Base2"]["LTM"], "ba")
+
+    res1 = copy.deepcopy(res)
+    res1.delete_data(attributes="ba.cc", pathfunc=lambda path: len(path) > 2)
+    assert hasattr(res1["NonBase"]["Base1"]["ATM"], "ab")
+    assert hasattr(res1["NonBase"]["Base1"]["LTM"], "ba")
+    assert not hasattr(res1["NonBase"]["Base1"]["LTM"].ba, "cc")
+    assert hasattr(res1["Base2"]["ATM"], "ab")
+    assert hasattr(res1["Base2"]["LTM"], "ba")
+    assert hasattr(res1["Base2"]["LTM"].ba, "cc")

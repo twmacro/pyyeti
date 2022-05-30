@@ -22,6 +22,7 @@
       ~DR_Results.calc_stat_ext
       ~DR_Results.clear
       ~DR_Results.copy
+      ~DR_Results.delete_data
       ~DR_Results.delete_extreme
       ~DR_Results.form_extreme
       ~DR_Results.frf_data_recovery
