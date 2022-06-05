@@ -622,8 +622,18 @@ class DR_Def(OrderedDict):
             DA: derive from `labels` according to `srspv` if needed;
             otherwise, leave it None.
         srsopts : dict or None; optional
-            Dictionary of options for SRS; eg:
-            ``dict(eqsine=True, ic='steady')``
+            This dictionary can specify options for all three of these
+            SRS calculation routines: :func:`pyyeti.srs.srs`,
+            :func:`pyyeti.srs.srs_frf`, and
+            :func:`pyyeti.srs.vrs`. The "eqsine" option is special in
+            that it enforces equivalent sine output for all three
+            routines even if the routine does not accept "eqsine" as
+            input. Other options are only passed if the function
+            accepts it. For example, to specify equivalent sine for
+            all three ("eqsine" is special, as noted), steady-state
+            initial conditions for :func:`pyyeti.srs.srs` and
+            `scale_by_Q_only` for :func:`pyyeti.srs.srs_frf`, use:
+            ``dict(eqsine=True, ic='steady', scale_by_Q_only=True)``
 
             DA: set to ``{}`` if `srspv` is not None; otherwise, leave
             it None.

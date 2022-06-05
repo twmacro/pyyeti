@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import warnings
 import copyreg
 import functools
+import inspect
 import numpy as np
 import xlsxwriter
 from pyyeti import locate, srs
@@ -816,22 +817,34 @@ class DR_Results(OrderedDict):
             res.srs.type = "srs"
             eqsine = False
 
+        if respname == "hist":
+            func = srs.srs
+        elif respname == "frf":
+            func = srs.srs_frf
+        elif respname == "psd":
+            func = srs.vrs
+
+        sig = inspect.signature(func)
+        srsopts = {k: v for k, v in dr.srsopts.items() if k in sig.parameters}
         rr = resp[dr.srspv].T
         for q in dr.srsQs:
             fact = dr.srsconv
 
             # compute the srs:
             if respname == "hist":
-                srs_cur = fact * srs.srs(rr, sr, dr.srsfrq, q, **dr.srsopts).T
+                srs_cur = fact * srs.srs(rr, sr, dr.srsfrq, q, **srsopts).T
             elif respname == "frf":
                 if eqsine:
                     fact /= q
-                srs_cur = fact * srs.srs_frf(rr, x, dr.srsfrq, q).T
+                srs_cur = fact * srs.srs_frf(rr, x, dr.srsfrq, q, **srsopts).T
             elif respname == "psd":
                 fact *= pf
                 if eqsine:
                     fact /= q
-                srs_cur = fact * srs.vrs((x, rr), x, q, Fn=dr.srsfrq, linear=True).T
+                srs_cur = (
+                    fact
+                    * srs.vrs((x, rr), x, q, Fn=dr.srsfrq, linear=True, **srsopts).T
+                )
             else:  # pragma: no cover
                 raise ValueError(
                     "`respname` must be one of: " '"hist", "frf", or "psd"'

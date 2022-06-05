@@ -1400,7 +1400,16 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     return z_vrs
 
 
-def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
+def srs_frf(
+    frf,
+    frf_frq,
+    srs_frq,
+    Q,
+    *,
+    getresp=False,
+    return_srs_frq=None,
+    scale_by_Q_only=False
+):
     r"""
     Compute SRS from frequency response functions.
 
@@ -1420,19 +1429,30 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     srs_frq : 1d array_like or None
         Frequency vector in Hz for the SRS. These are the SDOF
         frequencies for which to compute responses. If input as None,
-        `srs_frq` is computed from `frf_frq` such that the maximum
-        theoretical response for the input at the FRF frequency is
-        obtained. In this case, the computed SDOF frequency will be a
-        little higher than the corresponding FRF frequency. How much
-        higher depends on the damping: lower damping (higher Q) means
-        the SDOF frequency will be closer to the FRF frequency. The
-        equations are derived and discussed below.
+        `srs_frq` depends on the `scale_by_Q_only` option:
+
+        =================  ===========================================
+        `scale_by_Q_only`  Description
+        =================  ===========================================
+         False (default)   `srs_frq` is computed from `frf_frq` such
+                           that the maximum theoretical response for
+                           the input at the FRF frequency is
+                           obtained. In this case, the computed SDOF
+                           frequency will be a little higher than the
+                           corresponding FRF frequency. How much
+                           higher depends on the damping: lower
+                           damping (higher Q) means the SDOF frequency
+                           will be closer to the FRF frequency. The
+                           equations are derived and discussed below.
+         True              `srs_frq` is set equal to `frf_frq`
+        =================  ===========================================
+
     Q : scalar
         Dynamic amplification factor :math:`Q = 1/(2\zeta)` where
         :math:`\zeta` is the critical damping ratio.
     getresp : bool; optional
-        If True, return the complex response frfs (see `resp` output
-        below).
+        If True, return the complex response FRFs (see `resp` output
+        below). Must be False if `scale_by_Q_only` is True.
     return_srs_frq : bool or None; optional
         Determines whether or not to return `srs_frq`:
 
@@ -1447,6 +1467,13 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
                   None)
         =======   ====================================================
 
+    scale_by_Q_only : bool; optional
+        Set to True to compute SRS as exactly ``Q * FRF`` instead of
+        using the actual transfer function as shown below. This is
+        discussed in some detail below in a "Note:" box in the
+        Examples section. The parameter `getresp` must be False if
+        `scale_by_Q_only` is True.
+
     Returns
     -------
     sh : 2d ndarray
@@ -1455,7 +1482,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         FRFs.
     srs_frq : 1d ndarray; optional
         The SRS frequency vector that goes with `sh`. See
-        `return_srs_frq` description avove.
+        `return_srs_frq` description above.
     resp : dictionary; optional
         Only returned if `getresp` is True. Members:
 
@@ -1674,27 +1701,26 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     computed for a sawtooth input for several Q values.
 
     .. note::
-
         Since this is a pure sinusoidal analysis, one might think that
         the "equivalent sine" result should just be equal to the
-        original input. However, because of excitation from nearby
-        frequencies (as discussed in detail below), this will not be
-        the case in general. Even so, depending on how the input was
-        created, it may be valid to consider the input as the
-        equivalent sine and not run this routine at all. For example,
-        if the input is an envelope over SDOF responses from
-        time-domain signals, excitation from nearby frequencies may
-        already be accounted for. Running this routine in that
-        scenario may just add unneeded conservatism. Think of this
-        routine as a simulation of a sine test of a bunch SDOF
-        systems.
+        original input (and it will be, if `scale_by_Q_only` is
+        True). However, because of excitation from nearby frequencies
+        (as discussed in detail below), this will not be the case in
+        general. Even so, depending on how the input was created, it
+        may be valid to consider the input as the equivalent sine and
+        set `scale_by_Q_only` to True. For example, if the input is an
+        envelope over SDOF responses from time-domain signals,
+        excitation from nearby frequencies may already be accounted
+        for. Running this routine in that scenario with
+        `scale_by_Q_only` set to False may just add unneeded
+        conservatism.
 
     .. note::
-        It is noted that dividing by :math:`\sqrt{Q^2 + 1}` would make
-        it more "equivalent" since that's the gain of the transfer
-        function at :math:`p = 1` (see above). However, dividing by
-        :math:`Q` is common, and that's what will be done for the
-        example below.
+        It is noted that with `scale_by_Q_only` set to False,
+        dividing by :math:`\sqrt{Q^2 + 1}` would make it more
+        "equivalent" since that's the gain of the transfer function at
+        :math:`p = 1` (see above). However, dividing by :math:`Q` is
+        common, and that's what will be done for the example below.
 
     The top plot shows the input :math:`Z_{acce}(\Omega)`.
 
@@ -1712,7 +1738,7 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     The fourth plot shows the transfer functions divided by Q for
     reference.
 
-    Observations:
+    Observations (when `scale_by_Q_only` is False):
 
        1. Equivalent sine curves with lower damping (higher Q), will
           tend to follow the input more closely. This is because the
@@ -1841,7 +1867,9 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
     an equivalent sine for Q = 10. We'll also improve the process a
     bit by dividing by :math:`\sqrt{Q^2 + 1}` instead of Q. That will
     ensure that we get the values correct at the peak input
-    frequencies:
+    frequencies. We'll also include an equivalent sine curve created
+    with the `scale_by_Q_only` option set to True; for this curve
+    only, the division will be by Q.
 
     .. plot::
         :context: close-figs
@@ -1869,19 +1897,36 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         ...     lbl = f"Eq-Sine{level + 1}; Eq-Sine of Eq-Sine{level}"
         ...     _ = ax.plot(srs_frq, eqsine, label=lbl)
         >>>
+        >>> eqsine = srs.srs_frf(
+        ...     frf, frf_frq, srs_frq, Q, scale_by_Q_only=True
+        ... ) / Q
+        >>> lbl = "Eq-Sine with `scale_by_Q_only` = True, any Q"
+        >>> _ = ax.plot(
+        ...    srs_frq, eqsine, "k", linewidth=7, alpha=0.2, label=lbl
+        ... )
+        >>>
         >>> _ = ax.legend()
-        >>> _ = ax.set_title(f"Eq-Sine (Abs-Acce/Q), Q = {Q}")
+        >>> _ = ax.set_title(
+        ...    f"Eq-Sine (Abs-Acce/$\sqrt{{Q^2+1}}$), Q = {Q}"
+        ... )
         >>> _ = ax.set_ylabel("Abs-Acce Eq-Sine (G)")
         >>> _ = ax.set_xlabel(r"$\omega_n$ Frequency (Hz)")
         >>> _ = ax.set_xlim(39.5, 49.5)
+        >>>
         >>> fig.tight_layout()
     """
+    if getresp and scale_by_Q_only:
+        raise ValueError("`getresp` and `scale_by_Q_only` cannot both be True")
+
     # compute maximizing Omega / omega_n ratio (see math in docstr):
     p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q ** 2) - 1)
     frf_frq = np.asarray(frf_frq)
 
     if srs_frq is None:
-        srs_frq = frf_frq / p_peak
+        if scale_by_Q_only:
+            srs_frq = frf_frq
+        else:
+            srs_frq = frf_frq / p_peak
         if return_srs_frq is None:
             return_srs_frq = True
     else:
@@ -1889,25 +1934,30 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         if return_srs_frq is None:
             return_srs_frq = False
 
-    ws = 2.0 * np.pi * srs_frq
-    n = len(ws)
-    ms = np.ones(n, float)
-    bs = 1 / Q * ws
-    ks = ws ** 2
-
     frf = np.asarray(frf)
     if frf.ndim == 1:
         frf = frf.reshape(-1, 1)
     nfrf = frf.shape[1]
     frf = np.abs(frf)
 
-    # include transfer function peak frequencies in the forcing
-    # function (these are close to the natural frequencies):
-    ffreq = np.sort(np.hstack((frf_frq, p_peak * srs_frq)))
-    df = np.diff(ffreq)
-    pv = np.ones(len(ffreq), bool)
-    pv[1:] = df > 1.0e-5
-    ffreq = ffreq[pv]
+    n = len(srs_frq)
+
+    if scale_by_Q_only:
+        ffreq = srs_frq
+    else:
+        ws = 2.0 * np.pi * srs_frq
+        ms = np.ones(n, float)
+        bs = 1 / Q * ws
+        ks = ws ** 2
+
+        # include transfer function peak frequencies in the forcing
+        # function (these are close to the natural frequencies):
+        ffreq = np.sort(np.hstack((frf_frq, p_peak * srs_frq)))
+        df = np.diff(ffreq)
+        pv = np.ones(len(ffreq), bool)
+        pv[1:] = df > 1.0e-5
+        ffreq = ffreq[pv]
+
     nf = len(ffreq)
 
     if len(frf_frq) == 1:
@@ -1923,45 +1973,48 @@ def srs_frf(frf, frf_frq, srs_frq, Q, getresp=False, return_srs_frq=None):
         )
         frf = ifunc(ffreq)
 
-    shk = np.empty((n, nfrf), float)
-    pvrb = ks < 0.005  # ks/ms < .005 ... since ms == 1
-    pvel = np.logical_not(pvrb)
-    rb = np.any(pvrb)
-    el = np.any(pvel)
+    if scale_by_Q_only:
+        shk = frf * Q
+    else:
+        shk = np.empty((n, nfrf), float)
+        pvrb = ks < 0.005  # ks/ms < .005 ... since ms == 1
+        pvel = np.logical_not(pvrb)
+        rb = np.any(pvrb)
+        el = np.any(pvel)
 
-    # setup frequency scale for solution:
-    freqw = 2 * np.pi * ffreq
-    if el:
-        fw = freqw.reshape(1, -1)
-        H = (
-            ks[pvel].reshape(-1, 1)
-            - ms[pvel].reshape(-1, 1) @ fw ** 2
-            + 1j * (bs[pvel].reshape(-1, 1) @ fw)
-        )
-
-    a = np.empty((n, nf), complex)
-    if getresp:
-        frfs = np.empty((nf, nfrf, n), complex)
-
-    for j in range(nfrf):
-        # compute relative response, then absolute (see eqns in srs)
-        a[:] = 0.0
-        fs = frf[:, j]  # len(frf)
-        if rb:
-            a[pvrb] = -fs  # / ms ... since ms == 1
+        # setup frequency scale for solution:
+        freqw = 2 * np.pi * ffreq
         if el:
-            a[pvel] = (fs * freqw ** 2) / H
-        # from relative to absolute acceleration:
-        a += fs
-        if getresp:
-            frfs[:, j, :] = a.T
-        shk[:, j] = abs(a).max(axis=1)
+            fw = freqw.reshape(1, -1)
+            H = (
+                ks[pvel].reshape(-1, 1)
+                - ms[pvel].reshape(-1, 1) @ fw ** 2
+                + 1j * (bs[pvel].reshape(-1, 1) @ fw)
+            )
 
-    if getresp:
-        resp = {"freq": ffreq, "frfs": frfs, "srs_frq": srs_frq}
-        if return_srs_frq:
-            return shk, srs_frq, resp
-        return shk, resp
+        a = np.empty((n, nf), complex)
+        if getresp:
+            frfs = np.empty((nf, nfrf, n), complex)
+
+        for j in range(nfrf):
+            # compute relative response, then absolute (see eqns in srs)
+            a[:] = 0.0
+            fs = frf[:, j]  # len(frf)
+            if rb:
+                a[pvrb] = -fs  # / ms ... since ms == 1
+            if el:
+                a[pvel] = (fs * freqw ** 2) / H
+            # from relative to absolute acceleration:
+            a += fs
+            if getresp:
+                frfs[:, j, :] = a.T
+            shk[:, j] = abs(a).max(axis=1)
+
+        if getresp:
+            resp = {"freq": ffreq, "frfs": frfs, "srs_frq": srs_frq}
+            if return_srs_frq:
+                return shk, srs_frq, resp
+            return shk, resp
 
     if return_srs_frq:
         return shk, srs_frq

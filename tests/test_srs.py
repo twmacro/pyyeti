@@ -1179,6 +1179,32 @@ def test_srs_frf_2():
     assert abs(frq_should_be - frq[i]) < 1e-10
 
 
+def test_srs_frf_3():
+    pk_input = 3.0
+    pk_frq = 15.0
+    frf = np.array([pk_input / 3, pk_input, pk_input / 3])
+    frf_frq = np.array([pk_frq - 5, pk_frq, pk_frq + 5])
+    srs_frq = np.array([pk_frq])
+    Q = 20
+    sh = srs.srs_frf(frf, frf_frq, srs_frq, Q, scale_by_Q_only=True)
+    assert abs(60.0 - sh[0, 0]) < 1e-10
+
+    sh, frq = srs.srs_frf(frf, frf_frq, None, Q, scale_by_Q_only=True)
+    assert np.allclose(frq, frf_frq)
+    assert np.allclose(sh.ravel(), frf * Q)
+
+    assert_raises(
+        ValueError,
+        srs.srs_frf,
+        frf,
+        frf_frq,
+        None,
+        Q,
+        scale_by_Q_only=True,
+        getresp=True,
+    )
+
+
 def test_srsmap():
     from pyyeti import ytools, dsp
 
