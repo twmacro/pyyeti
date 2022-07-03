@@ -664,9 +664,9 @@ def srs(
     Parameters
     ----------
     sig : 1d or 2d array_like
-        Base acceleration signal; vector or matrix where column is a
-        signal. If size is 1 x n (2d), that means there are n signals,
-        each with length 1 (only initial conditions are
+        Base acceleration signal; vector or matrix where each column
+        is a signal. If size is 1 x n (2d), that means there are n
+        signals, each with length 1 (only initial conditions are
         calculated). For length 1 signal(s), you'll probably want to
         set `ic` to 'steady'.
     sr : scalar or None

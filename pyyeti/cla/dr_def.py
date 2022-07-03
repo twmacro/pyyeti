@@ -532,7 +532,7 @@ class DR_Def(OrderedDict):
 
             DA: if `drfile` is set in `self.defaults`, that is used;
             otherwise, it is set to the full name of the file that
-            called this routine (as if it was input as '.').
+            called this routine (as if `drfile` was input as '.').
         se : integer or None; optional
             The superelement number.
 

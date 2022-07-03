@@ -1705,7 +1705,7 @@ def max_complex_vector_sum(x, y):
     c : real scalar or 1d ndarray
         The cosine of the maximizing angle(s)
     s : real scalar or 1d ndarray
-        The cosine of the maximizing angle(s)
+        The sine of the maximizing angle(s)
 
     Notes
     -----
