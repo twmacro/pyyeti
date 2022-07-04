@@ -11,11 +11,12 @@ from collections import abc, OrderedDict
 from types import SimpleNamespace
 import warnings
 import copyreg
+import re
 import numpy as np
 import pandas as pd
 import xlsxwriter
 from pyyeti.nastran import n2p
-from ._utilities import _merge_uf_reds, _is_valid_identifier, get_drfunc
+from ._utilities import _merge_uf_reds, _is_valid_identifier, _compile_strfunc
 
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
@@ -214,28 +215,46 @@ class DR_Def(OrderedDict):
                 curdrms[se] = {}
             _add_drms(curdrms[se], newdrms)
 
-    def _check_for_drfunc(self, filename, funcname):
+    def _check_for_drfunc(self, name, filename, funcname):
         def _get_msg():
-            s0 = f'When checking for the data recovery function "{funcname}",'
+            s0 = f'When checking `drfunc` for category "{name}",'
             s1 = (
                 "This can be safely ignored if you plan to "
                 "implement the data recovery functions later."
             )
             return s0, s1
 
-        try:
-            get_drfunc(filename, funcname)
-        except (FileNotFoundError, ImportError, SyntaxError) as e:
-            s0, s1 = _get_msg()
-            msg = (
-                f'{s0} import of "{filename}" failed. {s1}\nThe exception was: '
-                f"{type(e).__name__}: {e!s}"
-            )
-            warnings.warn(msg, RuntimeWarning)
-        except AttributeError:
-            s0, s1 = _get_msg()
-            msg = f'{s0} "{funcname}" not found in: {filename}. {s1}'
-            warnings.warn(msg, RuntimeWarning)
+        if _is_valid_identifier(funcname):
+            try:
+                # search for "def funcname("
+                with open(filename, "r") as fin:
+                    for line in fin:
+                        if re.match(rf" *def +{funcname} *\(", line):
+                            break
+                    else:
+                        s0, s1 = _get_msg()
+                        msg = (
+                            f'{s0} function "{funcname}" not found in: '
+                            f"{filename}. {s1}"
+                        )
+                        warnings.warn(msg, RuntimeWarning)
+            except FileNotFoundError as e:
+                s0, s1 = _get_msg()
+                msg = (
+                    f'{s0} could not open "{filename}". {s1}\nThe exception was: '
+                    f"{type(e).__name__}: {e!s}"
+                )
+                warnings.warn(msg, RuntimeWarning)
+        else:
+            try:
+                _compile_strfunc(funcname, False)
+            except SyntaxError as e:
+                s0, s1 = _get_msg()
+                msg = (
+                    f'{s0} failed to compile string: "{funcname}".\n'
+                    f"The exception was: {type(e).__name__}: {e!s}"
+                )
+                warnings.warn(msg, RuntimeWarning)
 
     @staticmethod
     def _get_pv(pv, name, length):
@@ -327,7 +346,8 @@ class DR_Def(OrderedDict):
                     callerdir = os.path.dirname(calling_file)
                     ns.drfile = os.path.join(callerdir, drfile)
                 self._drfilemap[drfile] = ns.drfile
-            self._check_for_drfunc(ns.drfile, ns.drfunc)
+
+        self._check_for_drfunc(name, ns.drfile, ns.drfunc)
 
         # ensure uf_reds has no None values:
         ns.uf_reds = _merge_uf_reds((1, 1, 1, 1), ns.uf_reds)

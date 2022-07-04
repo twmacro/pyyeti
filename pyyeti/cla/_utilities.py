@@ -12,6 +12,7 @@ from pyyeti import locate, ytools
 
 __all__ = [
     "_is_valid_identifier",
+    "_compile_strfunc",
     "get_drfunc",
     "_merge_uf_reds",
     "_get_rpt_headers",
@@ -41,6 +42,16 @@ except TypeError:
 def _is_valid_identifier(name):
     "Return True if `name` is valid Python identifier"
     return name.isidentifier() and not iskeyword(name)
+
+
+def _compile_strfunc(s, get_psd):
+    # build function and return it:
+    strfunc = "def _func(sol, nas, Vars, se):\n    return " + s.strip()
+    g = globals()
+    exec(strfunc, g)
+    if get_psd:
+        return g["_func"], None
+    return g["_func"]
 
 
 def get_drfunc(filename, funcname, get_psd=False):
@@ -78,13 +89,7 @@ def get_drfunc(filename, funcname, get_psd=False):
             return func, psdfunc
         return func
 
-    # build function and return it:
-    strfunc = "def _func(sol, nas, Vars, se):\n    return " + funcname.strip()
-    g = globals()
-    exec(strfunc, g)
-    if get_psd:
-        return g["_func"], None
-    return g["_func"]
+    return _compile_strfunc(funcname, get_psd)
 
 
 def _merge_uf_reds(old, new, method="replace"):

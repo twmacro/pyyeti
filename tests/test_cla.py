@@ -193,7 +193,7 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
         desc = "S/C Internal Accelerations"
         units = "m/sec^2, rad/sec^2"
         labels = _get_labels(rows, name)
-        drfunc = "no func"
+        drfunc = "no-func"
         drdefs.add(**locals())
 
     @cla.DR_Def.addcat
@@ -202,7 +202,7 @@ def get_fake_cla_results(ext_name, _get_labels, cyclenumber):
         desc = "S/C Internal Loads"
         units = "N, N-m"
         labels = _get_labels(rows, name)
-        drfunc = "no func"
+        drfunc = "no-func"
         drdefs.add(**locals())
 
     # for checking, make a pandas DataFrame to summarize data
@@ -1400,7 +1400,8 @@ def test_addcat():
     with assert_warns(RuntimeWarning) as cm:
         cla.DR_Def.addcat(_)
     the_warning = str(cm.warning)
-    for s in ("ATM45", "import of", "failed."):
+    # for s in ("ATM45", "import of", "failed."):
+    for s in ("ATM45", "could not open "):
         assert s in the_warning
 
     def _():
@@ -1616,6 +1617,22 @@ def test_addcat_4():
         "ic": "steady",
     }
     assert drdefs["ATM"].srsconv == 2.0
+
+    def _():
+        name = "ATM2"
+        desc = "First set of accelerations"
+        labels = 4
+        drfunc = "blah *"
+        drdefs.add(**locals())
+
+    with assert_warns(RuntimeWarning) as cm:
+        cla.DR_Def.addcat(_)
+    the_warning = str(cm.warning)
+    for s in ("ATM2", "failed to compile string"):
+        assert s in the_warning
+    from pyyeti.pp import PP
+
+    assert drdefs["ATM2"].srsQs is None
 
 
 def test_event_add():
@@ -3208,11 +3225,11 @@ def test_reldisp_dtm():
 def test_set_dr_order():
     drdefs0 = cla.DR_Def()
     for name, nrows in (("atm0", 12), ("ltm0", 30), ("dtm0", 9)):
-        drdefs0.add(name=name, labels=nrows, drfunc="no func")
+        drdefs0.add(name=name, labels=nrows, drfunc="no-func")
 
     drdefs1 = cla.DR_Def()
     for name, nrows in (("atm1", 12), ("ltm1", 30), ("dtm1", 9)):
-        drdefs1.add(name=name, labels=nrows, drfunc="no func")
+        drdefs1.add(name=name, labels=nrows, drfunc="no-func")
 
     DR = cla.DR_Event()
     DR.add(None, drdefs0)
@@ -3768,7 +3785,7 @@ def comp_all_na():
         desc = "S/C Internal Accelerations"
         units = "m/sec^2, rad/sec^2"
         labels = [f"{name} Row {i+1:6d}" for i in range(nrows)]
-        drfunc = "no func"
+        drfunc = "no-func"
         drdefs.add(**locals())
 
     # prepare results data structure:
