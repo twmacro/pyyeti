@@ -354,16 +354,16 @@ class DR_Def(OrderedDict):
 
         ns.ignorepv = self._get_pv(ns.ignorepv, "ignorepv", len(ns.labels))
 
-        if ns.srsconv is None and ns.srsQs is not None:
-            ns.srsconv = 1.0
-
         if ns.srsQs is not None:
             ns.srsQs = n2p._ensure_iter(ns.srsQs)
             if ns.srspv is None:
                 ns.srspv = slice(len(ns.labels))
 
+        if ns.srsconv is None and ns.srsQs is not None:
+            ns.srsconv = self.defaults.get("srsconv", 1.0)
+
         if ns.srspv is not None and ns.srsopts is None:
-            ns.srsopts = {}
+            ns.srsopts = self.defaults.get("srsopts", {})
 
         # fill in hist-labels/units and srs-labels/units if needed:
         for i in ("hist", "srs"):
@@ -613,9 +613,10 @@ class DR_Def(OrderedDict):
             Conversion factor for the SRS; scalar or vector same
             length as `srspv`.
 
-            DA: it is internally reset to 1.0 if `srsQs` is not None
-            (after its default action, if applicable); otherwise,
-            leave it None.
+            DA: if `srsQs` is not None (after its default action, if
+            applicable), either get value for `srsconv` from
+            `self.defaults` (if possible), or set to 1.0. If
+            `srsQs` is None, leave `srsconv` None.
         srslabels : list_like or None; optional
             Analogous to `labels` but just for the `srspv` rows.
 
@@ -635,8 +636,10 @@ class DR_Def(OrderedDict):
             `scale_by_Q_only` for :func:`pyyeti.srs.srs_frf`, use:
             ``dict(eqsine=True, ic='steady', scale_by_Q_only=True)``
 
-            DA: set to ``{}`` if `srspv` is not None; otherwise, leave
-            it None.
+            DA: if `srsQs` is not None (after its default action, if
+            applicable), either get value for `srsopts` from
+            `self.defaults` (if possible), or set to ``{}``. If
+            `srsQs` is None, leave `srsopts` None.
         srspv : 1d array_like or 'all' or slice or None; optional
             Specifies which rows to compute SRS for. See note below
             about inputting partition vectors.

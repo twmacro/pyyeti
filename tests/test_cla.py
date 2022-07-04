@@ -1589,6 +1589,35 @@ def test_addcat_3():
     assert drdefs["ATM2_0rb"].desc == drdefs["ATM2"].desc + " w/o RB"
 
 
+def test_addcat_4():
+    defaults = dict(
+        se=0,
+        uf_reds=(1, 1, 1, 1),
+        srsQs=10,
+        srsfrq=0.0,
+        srsconv=2.0,
+        srsopts={"scale_by_Q_only": True, "eqsine": True, "ic": "steady"},
+    )
+
+    drdefs = cla.DR_Def(defaults)
+
+    @cla.DR_Def.addcat
+    def _():
+        name = "ATM"
+        desc = "First set of accelerations"
+        labels = 4
+        drfunc = "blah * 4"
+        srsQs = 10
+        drdefs.add(**locals())
+
+    assert drdefs["ATM"].srsopts == {
+        "scale_by_Q_only": True,
+        "eqsine": True,
+        "ic": "steady",
+    }
+    assert drdefs["ATM"].srsconv == 2.0
+
+
 def test_event_add():
     #    ext_name = 'FLAC'
     _get_labels = _get_labels0
