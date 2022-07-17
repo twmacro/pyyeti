@@ -624,8 +624,8 @@ class DataCursor(object):
         dmin = np.inf
         xyn = None, None, None, None, None
         for n, ln in enumerate(ax.lines):
-            xdata = ln.get_xdata()
-            ydata = ln.get_ydata()
+            xdata = ln.get_xdata().astype(float)
+            ydata = ln.get_ydata().astype(float)
             dx = (xdata - x) / np.diff(ax.get_xlim())[0]
             dy = (ydata - y) / np.diff(ax.get_ylim())[0]
             d = np.sqrt(dx ** 2.0 + dy ** 2.0)
