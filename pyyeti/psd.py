@@ -702,6 +702,7 @@ def spl(
     fs=3,
     pref=2.9e-9,
     frange=(25.0, np.inf),
+    extendends=True,
 ):
     r"""
     Sound pressure level estimation using PSD.
@@ -752,6 +753,9 @@ def spl(
         to 0.0. If the last value is > ``sr/2``, it is reset to
         ``sr/2``. Note that for octave scales, :func:`rescale` is used
         which enforces a minimum of 1.0 Hz.
+    extendends : bool; optional
+        Passed to :func:`rescale` if an octave scale output is
+        requested. See that routine for more information.
 
     Returns
     -------
@@ -778,15 +782,30 @@ def spl(
 
     Examples
     --------
-    >>> import numpy as np
-    >>> from pyyeti import psd
-    >>> x = np.random.randn(100000)
-    >>> sr = 4000
-    >>> f, spl, oaspl = psd.spl(x, sr, sr, timeslice=len(x)/sr)
-    >>> # oaspl should be around 170.75 (since variance = 1):
-    >>> shouldbe = 10*np.log10(1/(2.9e-9)**2)
-    >>> abs(oaspl/shouldbe - 1) < .01
-    True
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> from pyyeti import psd
+        >>> x = np.random.randn(100000)
+        >>> sr = 4000
+        >>> f, spl, oaspl = psd.spl(x, sr, sr, timeslice=len(x)/sr)
+        >>> # oaspl should be around 170.75 (since variance = 1):
+        >>> shouldbe = 10*np.log10(1/(2.9e-9)**2)
+        >>> abs(oaspl/shouldbe - 1) < .01
+        True
+
+        Plot the 1/3 octave SPL from above with a full octave SPL. The
+        OASPL comes out a little higher for the full octave SPL
+        because of the ``extendends=True`` option:
+
+        >>> import matplotlib.pyplot as plt
+        >>> full = psd.spl(x, sr, sr, timeslice=len(x)/sr, fs=1)
+        >>> lbl = f"1/3 Octave SPL; OASPL={oaspl:.2f}"
+        >>> _ = plt.plot(f, spl, "-o", label=lbl)
+        >>> lbl = f"Full Octave SPL; OASPL={full[2]:.2f}"
+        >>> _ = plt.plot(full[0], full[1], "-o", label=lbl)
+        >>> _ = plt.legend()
     """
     if nperseg is None:
         nperseg = int(sr / 5)
@@ -802,7 +821,7 @@ def spl(
     )
     s, e = _set_frange(frange, 0.0, sr / 2)
     if fs != 0:
-        _, F, _, P = rescale(P, F, n_oct=fs, frange=(s, e))
+        _, F, _, P = rescale(P, F, n_oct=fs, frange=(s, e), extendends=extendends)
     else:
         P = P * F[1]
         pv = (F >= s) & (F <= e)
