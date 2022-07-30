@@ -250,29 +250,42 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
             Bp[pvcrit] = t0 * (1 - ex * (hbeta + 1))
 
         if np.any(pvover):
+            # Original equations in reference use cosh and sinh
+            # functions. These can overflow up with high damping
+            # values, so the equations have been rearranged by
+            # expanding these expressions (noting that beta > w):
+
+            #  exp(-beta h) cosh(w h) -->
+            #       = exp(-beta h) (exp(w h) + exp(-w h)) / 2
+            #       = (exp(-h (beta - w)) + exp(-h (beta + w))) / 2
+            #  exp(-beta h) sinh(w h) -->
+            #       = exp(-beta h) (exp(w h) - exp(-w h)) / 2
+            #       = (exp(-h (beta - w)) - exp(-h (beta + w))) / 2
+
             w = np.sqrt(w2[pvover])
-            cs = np.cosh(w * h)
-            sn = np.sinh(w * h)
             beta = C[pvover]
-            ex = np.exp(-beta * h)
+            ecosh = (np.exp(-h * (beta - w)) + np.exp(-h * (beta + w))) / 2.0
+            esinh = (np.exp(-h * (beta - w)) - np.exp(-h * (beta + w))) / 2.0
+
+            # precompute some other terms that are used multiple times:
             _wo2 = wo2[pvover]
             _w2 = w2[pvover]
             _k = k[pvover]
-
-            # for displacement:
-            F[pvover] = ex * (cs + (beta / w) * sn)
-            G[pvover] = (ex * sn) / w
             t0 = 1 / (h * _k * w)
             t1 = (_w2 + beta * beta) / _wo2
             t2 = (2 * w * beta) / _wo2
-            A[pvover] = t0 * (ex * (-(t1 + h * beta) * sn - (t2 + h * w) * cs) + t2)
-            B[pvover] = t0 * (ex * (t1 * sn + t2 * cs) + w * h - t2)
+
+            # for displacement:
+            F[pvover] = ecosh + beta / w * esinh
+            G[pvover] = esinh / w
+            A[pvover] = t0 * (-(t1 + h * beta) * esinh - (t2 + h * w) * ecosh + t2)
+            B[pvover] = t0 * (t1 * esinh + t2 * ecosh + w * h - t2)
 
             # for velocity:
-            Fp[pvover] = -(_wo2 / w) * ex * sn
-            Gp[pvover] = ex * (cs - (beta / w) * sn)
-            Ap[pvover] = t0 * (ex * ((beta + h * _wo2) * sn + w * cs) - w)
-            Bp[pvover] = t0 * (-ex * (beta * sn + w * cs) + w)
+            Fp[pvover] = -(_wo2 / w) * esinh
+            Gp[pvover] = ecosh - beta / w * esinh
+            Ap[pvover] = t0 * ((beta + h * _wo2) * esinh + w * ecosh - w)
+            Bp[pvover] = t0 * (-beta * esinh - w * ecosh + w)
 
     if rfmodes is not None:
         F[rfmodes] = 0.0
@@ -431,7 +444,7 @@ def get_freq_damping(lam, suppress_warning=False):
         \end{aligned}
 
     Once :math:`\omega_n` is known, :math:`\zeta` can be computed by
-    dividing the sum of the eigenvalue pairs by :math:`2 \omega_n`:
+    dividing the sum of the eigenvalue pairs by :math:`-2 \omega_n`:
 
     .. math::
         \begin{aligned}

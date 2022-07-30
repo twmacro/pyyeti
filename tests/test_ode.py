@@ -5714,3 +5714,30 @@ def test_ode_pre_eig_diagdamp():
         assert np.allclose(sol.a, solu.a, atol=1e-6)
         assert np.allclose(sol.v, solu.v)
         assert np.allclose(sol.d, solu.d)
+
+
+def test_ode_uncoupled_high_damping():
+    # uncoupled equations
+    m = np.array([10.0, 30.0, 30.0, 30.0])  # diagonal of mass
+    k = np.array([0.0, 6.0e5, 6.0e5, 6.0e5])  # diagonal of stiffness
+    zeta = np.array([0.0, 0.05, 1.0, 20000.0])  # percent damping
+    b = 2.0 * zeta * np.sqrt(k / m) * m  # diagonal of damping
+
+    h = 0.001  # time step
+    t = np.arange(0, 0.3001, h)  # time vector
+    c = 2 * np.pi
+    f = (
+        np.vstack(
+            (
+                3 * (1 - np.cos(c * 2 * t)),  # forcing function
+                4 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                5 * (np.cos(np.sqrt(6e5 / 30) * t)),
+                6 * (np.cos(np.sqrt(6e5 / 30) * t)),
+            )
+        )
+        * 1.0e4
+    )
+
+    sol = ode.SolveUnc(m, b, k, h).tsolve(f)
+    new_f = np.diag(m) @ sol.a + np.diag(b) @ sol.v + np.diag(k) @ sol.d
+    assert np.allclose(new_f, f)
