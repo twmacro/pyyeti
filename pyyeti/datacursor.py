@@ -11,6 +11,9 @@ get-data-from-plot-with-matplotlib
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.collections import PathCollection
+from matplotlib.lines import Line2D
+from mpl_toolkits.mplot3d import proj3d
 
 
 def form1(x, y, n, ind, ax, line):
@@ -50,13 +53,29 @@ class DataCursor(object):
 
     form1 : function
         Function to format the x, y data for the annotation. This is
-        called for axes that have only one line. Must accept the four
-        inputs listed and and return a string. The argument `n` is the
-        line number starting at 0 and `ind` is the index into the data
-        vectors. `form1` defaults to::
+        called for axes that have only one line. Must accept the six
+        inputs listed and and return a string. `form1` defaults to::
 
           def form1(x, y, n, ind, ax, line):
               return f"x: {x:.5g}\ny: {y:5g}"
+
+        ======  ==========================================
+         arg    Description
+        ======  ==========================================
+            x   x coordinate of data point
+            y   y coordinate of data point
+            n   Line number starting at 0
+          ind   Index into the data vectors for data point
+           ax   Axes handle
+         line   Line2D or PathCollection handle for line
+        ======  ==========================================
+
+        .. warning::
+            For 3D plots, the x, y data returned is Matplotlib
+            internal "mapped-to-2D" coordinates. For these plots, the
+            `ind` value is often more useful. For example, it can be
+            used to get the actual x, y, z data values from the
+            original data.
 
     form2 : function
         Function to format the x, y data for the annotation. This is
@@ -90,14 +109,18 @@ class DataCursor(object):
         Contains index of [x, y] data pairs for each (non-deleted)
         left-click. Same length as `xypoints`.
     lines : list
-        Contains line object handles for the selected lines. Same
-        length as `xypoints`.
+        Contains Line2D or PathCollection object handles for the
+        selected lines. Same length as `xypoints`.
     linenums : list
         Contains line number for each [x, y] data pair, starting at 0.
         Same length as `xypoints`.
     pts : list
-        Contains the :func:`matplotlib.pyplot.scatter` object handles
-        for the selected points. Same length as `xypoints`.
+        Contains the :func:`matplotlib.pyplot.scatter`
+        (PathCollection) object handles for the selected and annotated
+        points. Same length as `xypoints`. Note that
+        :class:`DataCursor` ignores these added annotation points when
+        moused over; they are identified by the added attribute
+        "_pyyeti_dc_point".
     notes : list
         Contains the annotation object handles for the selected points.
         Same length as `xypoints`.
@@ -311,8 +334,9 @@ class DataCursor(object):
                 return
         maxlines = 0
         for a in self._ax:
-            if len(a.lines) > maxlines:
-                maxlines = len(a.lines)
+            handles = self._get_data_handles(a)
+            if len(handles) > maxlines:
+                maxlines = len(handles)
         if maxlines == 0 and errout:
             raise RuntimeError("no lines; plot something first")
 
@@ -444,7 +468,7 @@ class DataCursor(object):
         ax : axes object
             Axes handle
         line : line object
-            Line handle
+            Line or PathCollection handle
         """
         self.addptfunc = func
 
@@ -468,9 +492,20 @@ class DataCursor(object):
         ax : axes object
             Axes handle
         line : line object
-            Line handle or None; None if the line was deleted
+            Line or PathCollection handle or None; None if the line
+            was deleted
         """
         self.delptfunc = func
+
+    @staticmethod
+    def _add_annotation_point(ax, x, y, dct, vis):
+        h = ax.scatter(x, y, **dct, visible=vis)
+        h._pyyeti_dc_point = True
+        return h
+
+    @staticmethod
+    def _is3d(ax):
+        return hasattr(ax, "get_proj")
 
     def _add_point(self, x, y, n, ind, ax, line):
         self.xypoints.append([x, y])
@@ -479,8 +514,8 @@ class DataCursor(object):
         self.linenums.append(n)
         # if 3d, set visible to False (i don't know how to get proper
         # coordinates for the dot):
-        vis = False if hasattr(ax, "get_proj") else True
-        self.pts.append(ax.scatter(x, y, **self.permdot, visible=vis))
+        vis = False if self._is3d(ax) else True
+        self.pts.append(self._add_annotation_point(ax, x, y, self.permdot, vis))
         self.notes.append(self._annotation[ax])
         # make a new annotation box so current one is static
         self._annotation[ax] = self._new_annotation(ax, (x, y))
@@ -565,26 +600,25 @@ class DataCursor(object):
         if not ax:
             return
         x, y = event.xdata, event.ydata
-        x, y, n, ind, line = self._snap(ax, x, y)
+        x, y, n, ind, handle = self._snap(ax, x, y)
         if x is None:
             return
         annotation = self._annotation[ax]
         dot = self._dot[ax]
         annotation.xy = x, y
-        if len(ax.lines) > 1:
-            annotation.set_text(self.form2(x, y, n, ind, ax, line))
+        if len(self._get_data_handles(ax)) > 1:
+            annotation.set_text(self.form2(x, y, n, ind, ax, handle))
         else:
-            annotation.set_text(self.form1(x, y, n, ind, ax, line))
+            annotation.set_text(self.form1(x, y, n, ind, ax, handle))
         dot.set_offsets((x, y))
         if event.name == "button_press_event":
             if event.button == 1:
-                # dot.set_visible(True)
                 annotation.set_visible(True)
-                self._add_point(x, y, n, ind, ax, line)
+                self._add_point(x, y, n, ind, ax, handle)
             elif event.button == 3 and len(self.xypoints) > 0:
                 self._del_point(ax=ax)
         elif self.hover:
-            if not hasattr(ax, "get_proj"):
+            if not self._is3d(ax):
                 dot.set_visible(True)
             annotation.set_visible(True)
         event.canvas.draw()
@@ -602,20 +636,42 @@ class DataCursor(object):
             visible=False,
         )
 
+    @staticmethod
+    def _get_data_handles(ax):
+        return [
+            child
+            for child in ax.get_children()
+            if isinstance(child, (PathCollection, Line2D))
+            and not hasattr(child, "_pyyeti_dc_point")
+        ]
+
+    @staticmethod
+    def _get_xy_data(ax, h):
+        if isinstance(h, Line2D):
+            return h.get_xdata().astype(float), h.get_ydata().astype(float)
+
+        if hasattr(h, "_offsets3d"):
+            x, y, _ = proj3d.proj_transform(*np.array(h._offsets3d), ax.get_proj())
+            return x, y
+            # return (*h.get_offsets().T,) # returns in unknown order
+
+        return (*h.get_offsets().data.T,)
+
     def _setup_annotations(self):
         """Create the annotation boxes. The string value and the
         position will be set for each event."""
         self._annotation = {}
         self._dot = {}
         for ax in self._ax:
-            if len(ax.lines) > 0:
-                ln = ax.lines[0]
-                xy = ln.get_xdata()[0], ln.get_ydata()[0]
+            handles = self._get_data_handles(ax)
+            if len(handles) > 0:
+                x, y = self._get_xy_data(ax, handles[0])
+                xy = x[0], y[0]
             else:
                 xy = 0, 0
             self._annotation[ax] = self._new_annotation(ax, xy)
             xl, yl = ax.get_xlim(), ax.get_ylim()
-            self._dot[ax] = ax.scatter(xy[0], xy[1], **self.followdot, visible=False)
+            self._dot[ax] = self._add_annotation_point(ax, *xy, self.followdot, False)
             ax.set_xlim(xl)
             ax.set_ylim(yl)
 
@@ -623,16 +679,15 @@ class DataCursor(object):
         """Return the value in self._points closest to x, y."""
         dmin = np.inf
         xyn = None, None, None, None, None
-        for n, ln in enumerate(ax.lines):
-            xdata = ln.get_xdata().astype(float)
-            ydata = ln.get_ydata().astype(float)
+        for n, h in enumerate(self._get_data_handles(ax)):
+            xdata, ydata = self._get_xy_data(ax, h)
             dx = (xdata - x) / np.diff(ax.get_xlim())[0]
             dy = (ydata - y) / np.diff(ax.get_ylim())[0]
             d = np.sqrt(dx ** 2.0 + dy ** 2.0)
             ind = np.argmin(d)
             if d[ind] < dmin:
                 dmin = d[ind]
-                xyn = xdata[ind], ydata[ind], n, ind, ln
+                xyn = xdata[ind], ydata[ind], n, ind, h
         return xyn
 
     def _fake_getdata(self):
