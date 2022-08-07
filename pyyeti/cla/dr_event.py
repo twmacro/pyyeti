@@ -342,13 +342,13 @@ class DR_Event:
         >>> for name, nrows in (('atm0', 12),
         ...                     ('ltm0', 30),
         ...                     ('dtm0', 9)):
-        ...     drdefs0.add(name=name, labels=nrows, drfunc='no func')
+        ...     drdefs0.add(name=name, labels=nrows, drfunc='no-func')
         >>>
         >>> drdefs1 = cla.DR_Def()
         >>> for name, nrows in (('atm1', 12),
         ...                     ('ltm1', 30),
         ...                     ('dtm1', 9)):
-        ...     drdefs1.add(name=name, labels=nrows, drfunc='no func')
+        ...     drdefs1.add(name=name, labels=nrows, drfunc='no-func')
         >>>
         >>> DR = cla.DR_Event()
         >>> DR.add(None, drdefs1)

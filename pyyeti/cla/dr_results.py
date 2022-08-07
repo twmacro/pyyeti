@@ -682,7 +682,7 @@ class DR_Results(OrderedDict):
         ...     desc = 'S/C Internal Accelerations'
         ...     units = 'm/sec^2, rad/sec^2'
         ...     labels = _get_labels(name)
-        ...     drfunc = 'no func'
+        ...     drfunc = 'no-func'
         ...     drdefs.add(**locals())
         >>>
         >>> @cla.DR_Def.addcat
@@ -691,7 +691,7 @@ class DR_Results(OrderedDict):
         ...     desc = 'S/C Internal Loads'
         ...     units = 'N, N-m'
         ...     labels = _get_labels(name)
-        ...     drfunc = 'no func'
+        ...     drfunc = 'no-func'
         ...     drdefs.add(**locals())
         >>>
         >>> # for checking, make a pandas DataFrame to summarize data
@@ -703,7 +703,7 @@ class DR_Results(OrderedDict):
         active                           yes                         -
         desc        S/C Internal Accelera...        S/C Internal Loads
         drfile                          None                         -
-        drfunc                       no func                         -
+        drfunc                       no-func                         -
         filterval                      1e-06                         -
         histlabels                      None                         -
         histpv                          None                         -
