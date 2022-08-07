@@ -306,20 +306,20 @@ def getmodepart(
     modes = []  # list to store modes
     primary = []  # flag to help delete plot objects logically
 
-    def _addpoint(x, y, n, i, axes, ln):
-        if ln not in h:
+    def _addpoint(point):
+        if point.handle not in h:
             print("invalid curve ... ignoring")
             return
 
-        # find n'th (zero offset) Trec, acce, label:
+        # find point.n'th (zero offset) Trec, acce, label:
         j = 0
         for s in sols:
             T = np.atleast_2d(s[0])
             rows = T.shape[0]
-            if j + rows > n:
-                row = n - j
+            if j + rows > point.n:
+                row = point.n - j
                 T = T[row]
-                acce = np.atleast_2d(s[1])[:, i]
+                acce = np.atleast_2d(s[1])[:, point.index]
                 labels = s[2]
                 if isinstance(labels, str):
                     labels = [labels]
@@ -349,7 +349,7 @@ def getmodepart(
             primary.append(i == 0)
         fig.canvas.draw()
 
-    def _deletepoint(x, y, n, i, ax, line):
+    def _deletepoint(point):
         while len(primary) > 0:
             m = modes.pop()
             p = primary.pop()

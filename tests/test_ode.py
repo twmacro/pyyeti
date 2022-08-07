@@ -3274,8 +3274,8 @@ def test_getmodepart():
         # for more complete test coverage, use the 2nd one:
         # self.on(ax, callbacks=False)
         self.on()
-        x, y, n, ind, lineh = self._snap(ax, 7.0, 0.8)
-        self._add_point(x, y, n, ind, ax, lineh)
+        x, y, point = self._snap(ax, 7.0, 0.8)
+        self._add_point(x, y, point)
         self.off()
         return 1
 
