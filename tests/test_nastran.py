@@ -585,6 +585,30 @@ def test_wtextseout():
             if os.path.exists(filename + ext):
                 os.remove(filename + ext)
 
+    try:
+        nastran.wtextseout(
+            filename,
+            se=101,
+            maa=maa,
+            kaa=kaa,
+            baa=baa,
+            bset=b,
+            uset=usetb,
+            spoint1=9900101,
+            namelist=["maa"],
+            mug1=mug1,
+            mef1=mef1,
+        )
+        names, mats, f, t = op4.load(filename + ".op4", into="list")
+        all_names = [
+            "maa",
+        ]
+        assert names == all_names
+    finally:
+        for ext in (".asm", ".pch", ".op4"):
+            if os.path.exists(filename + ext):
+                os.remove(filename + ext)
+
 
 def test_rdeigen():
     e1 = nastran.rdeigen("tests/nas2cam_csuper/assemble.out")

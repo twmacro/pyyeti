@@ -3651,7 +3651,44 @@ def wtextrn(f, ids, dof):
     wtnasints(f, 2, ints)
 
 
-def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, **kwargs):
+def wtextseout(
+    name,
+    *,
+    se,
+    maa,
+    baa,
+    kaa,
+    bset,
+    uset,
+    spoint1,
+    sedn=0,
+    namelist=[
+        "kaa",
+        "maa",
+        "baa",
+        "k4xx",
+        "pa",
+        "gpxx",
+        "gdxx",
+        "rvax",
+        "va",
+        "mug1",
+        "mug1o",
+        "mes1",
+        "mes1o",
+        "mee1",
+        "mee1o",
+        "mgpf",
+        "mgpfo",
+        "mef1",
+        "mef1o",
+        "mqg1",
+        "mqg1o",
+        "mqmg1",
+        "mqmg1o",
+    ],
+    **kwargs,
+):
     """
     Write .op4, .asm, .pch and possibly the damping DMIG file for an
     external SE.
@@ -3691,19 +3728,15 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, **kwargs
         Starting value for the SPOINTs (for modal DOF)
     sedn : integer; optional
         Downstream superelement id
+    namelist : list; optional
+        List, in order, of names to write to the op4 file. Values
+        default to 1x1 zero matrices with these exceptions: "maa",
+        "kaa", "baa", are as input above, "pa" is a vector of zeros
+        and "va" is a vector of ones. The defaults can be overridden
+        in **kwargs.
     **kwargs : optional
         Allows user to input other matrices to be written to the op4
-        file. Name must be one of the following to be included (order
-        is as written to op4)::
-
-            'k4xx', 'pa', 'gpxx', 'gdxx', 'rvax', 'va', 'mug1',
-            'mug1o', 'mes1', 'mes1o', 'mee1', 'mee1o', 'mgpf',
-            'mgpfo', 'mef1', 'mef1o', 'mqg1', 'mqg1o', 'mqmg1',
-            'mqmg1o'
-
-        By default, 1x1 zero matrices are written for all these names
-        except for two: 'pa' is a vector of zeros and 'va' is a vector
-        of ones.
+        file. Name must in `namelist` to be written.
 
     Returns
     -------
@@ -3715,53 +3748,10 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, **kwargs
     nq = n - len(bset)
 
     # prepare standard Nastran op4 file:
-    k4xx = 0.0
     pa = np.zeros((n, 1))
-    gpxx = 0.0
-    gdxx = 0.0
-    rvax = 0.0
     va = np.ones((n, 1))
-    mug1 = 0.0
-    mug1o = 0.0
-    mes1 = 0.0
-    mes1o = 0.0
-    mee1 = 0.0
-    mee1o = 0.0
-    mgpf = 0.0
-    mgpfo = 0.0
-    mef1 = 0.0
-    mef1o = 0.0
-    mqg1 = 0.0
-    mqg1o = 0.0
-    mqmg1 = 0.0
-    mqmg1o = 0.0
-    namelist = [
-        "kaa",
-        "maa",
-        "baa",
-        "k4xx",
-        "pa",
-        "gpxx",
-        "gdxx",
-        "rvax",
-        "va",
-        "mug1",
-        "mug1o",
-        "mes1",
-        "mes1o",
-        "mee1",
-        "mee1o",
-        "mgpf",
-        "mgpfo",
-        "mef1",
-        "mef1o",
-        "mqg1",
-        "mqg1o",
-        "mqmg1",
-        "mqmg1o",
-    ]
     dct = {**locals(), **kwargs}
-    varlist = [dct[i] for i in namelist]
+    varlist = [dct.get(i, 0.0) for i in namelist]
     op4.write(name + ".op4", namelist, varlist)
 
     # Get some data from the uset table:
