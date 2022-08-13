@@ -524,44 +524,14 @@ def test_wtextseout():
     b = np.nonzero(b)[0]
     baa = np.zeros_like(maa)
     baa[q, q] = 2 * 0.05 * np.sqrt(kaa[q, q])
-    name = "_wtextseout_test_"
-    pre = "tests/nas2cam_csuper/yeti_outputs/se101y"
-    try:
-        nastran.wtextseout(
-            name,
-            se=101,
-            maa=maa,
-            kaa=kaa,
-            baa=baa,
-            bset=b,
-            uset=usetb,
-            spoint1=9900101,
-        )
-        names, mats, f, t = op4.load(name + ".op4", into="list")
-        namesy, matsy, fy, ty = op4.load(pre + ".op4", into="list")
-        assert names == namesy
-        assert f == fy
-        assert t == ty
-        for i, (m, my) in enumerate(zip(mats, matsy)):
-            assert np.allclose(m, my)
-        lst = (".asm", ".pch")
-        for ext in lst:
-            with open(name + ext) as f:
-                s = f.read()
-            with open(pre + ext) as f:
-                sy = f.read()
-            assert s.replace(name.upper(), "SE101") == sy
-    finally:
-        for ext in (".asm", ".pch", ".op4"):
-            if os.path.exists(name + ext):
-                os.remove(name + ext)
+    filename = "_wtextseout_test_"
 
     # test the additional writing of matrices:
     mug1 = np.arange(12).reshape(3, 4)
     mef1 = 10 * mug1
     try:
         nastran.wtextseout(
-            name,
+            filename,
             se=101,
             maa=maa,
             kaa=kaa,
@@ -572,28 +542,48 @@ def test_wtextseout():
             mug1=mug1,
             mef1=mef1,
         )
-        names, mats, f, t = op4.load(name + ".op4", into="list")
-        namesy, matsy, fy, ty = op4.load(pre + ".op4", into="list")
-        assert names == namesy
-        for i, (m, my) in enumerate(zip(mats, matsy)):
-            if names[i] in ("mug1", "mef1"):
-                assert np.allclose(m, eval(names[i]))
-            else:
-                assert f[i] == fy[i]
-                assert t[i] == ty[i]
-                assert np.allclose(m, my)
-        lst = (".asm", ".pch")
-        for ext in lst:
-            with open(name + ext) as f:
-                s = f.read()
-            with open(pre + ext) as f:
-                sy = f.read()
-            assert s.replace(name.upper(), "SE101") == sy
+        names, mats, f, t = op4.load(filename + ".op4", into="list")
+        all_names = [
+            "kaa",
+            "maa",
+            "baa",
+            "k4xx",
+            "pa",
+            "gpxx",
+            "gdxx",
+            "rvax",
+            "va",
+            "mug1",
+            "mug1o",
+            "mes1",
+            "mes1o",
+            "mee1",
+            "mee1o",
+            "mgpf",
+            "mgpfo",
+            "mef1",
+            "mef1o",
+            "mqg1",
+            "mqg1o",
+            "mqmg1",
+            "mqmg1o",
+        ]
+        assert names == all_names
 
+        for name, mat in zip(names, mats):
+            if name in ["maa", "kaa", "baa", "mug1", "mef1"]:
+                assert np.allclose(mat, eval(name))
+            elif name == "pa":
+                assert np.allclose(mat, np.zeros((maa.shape[0], 1)))
+            elif name == "va":
+                assert np.allclose(mat, np.ones((maa.shape[0], 1)))
+            else:
+                assert mat.shape == (1, 1)
+                assert mat[0, 0] == 0.0
     finally:
-        for ext in (".asm", ".pch", ".op4", ".baa_dmig"):
-            if os.path.exists(name + ext):
-                os.remove(name + ext)
+        for ext in (".asm", ".pch", ".op4"):
+            if os.path.exists(filename + ext):
+                os.remove(filename + ext)
 
 
 def test_rdeigen():
