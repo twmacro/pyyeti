@@ -100,7 +100,7 @@ class DataCursor(object):
         this gets placed after left clicking.
     points : list
         Contains list of SimpleNamespace objects. Each "point" is as
-        described above under the `mk_lable` attribute.
+        described above under the `mk_label` attribute.
     pts : list
         Contains the :func:`matplotlib.pyplot.scatter`
         (PathCollection) object handles for the selected and annotated
