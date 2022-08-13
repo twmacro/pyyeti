@@ -2,6 +2,17 @@ Interacting with plots
 ======================
 
 .. automodule:: pyyeti.datacursor
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. currentmodule:: pyyeti.datacursor
+
+The DataCursor Class
+--------------------
+.. autosummary::
+    :toctree: generated/
+
+    DataCursor
+    DataCursor.on
+    DataCursor.off
+    DataCursor.addpt_func
+    DataCursor.delpt_func
+    DataCursor.getdata
+    DataCursor.pause

@@ -10,8 +10,4 @@ The PP Class
     :toctree: generated/
 
     PP
-
-.. autosummary::
-    :toctree: generated/
-
     PP.pp
