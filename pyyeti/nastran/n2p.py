@@ -1913,7 +1913,7 @@ def mkusetcoordinfo(cord, uset=None, coordref=None):
     if cord.shape != (4, 3):
         raise ValueError("incorrectly sized `cord` input")
 
-    cord = cord.astype(np.float)
+    cord = cord.astype(float)
     cid, ctype = cord[0, :2].astype(np.int64)
 
     try:

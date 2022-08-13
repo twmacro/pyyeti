@@ -548,7 +548,7 @@ class OP2:
             dtype = self._getkey()
         self.rdop2eot()
         if mtype > 2:
-            matrix.dtype = complex
+            matrix = matrix.T.view(complex).T
         return matrix
 
     def skipop2matrix(self, trailer):
@@ -1174,7 +1174,7 @@ class OP2:
                 #   id*10, type, x, y, z, rx, ry, rz
                 data = self.rdop2record("bytes")  # 1st column
                 n = len(data) // iif6_bytes
-                data = np.fromstring(data, iif6_int)
+                data = np.frombuffer(data, iif6_int)
                 data1 = (data.reshape(n, 8))[:, :2]
                 pvgrids = data1[:, 1] == 1
                 dof = _expanddof(data1[:, 0] // 10, pvgrids)
@@ -1316,7 +1316,7 @@ class OP2:
         n = len(data) // nbytes
         if n * nbytes != len(data):
             raise ValueError("incorrect record length for _rdop2bgpdt")
-        data = np.fromstring(data, dtype=dtype)
+        data = np.frombuffer(data, dtype=dtype)
         return data
 
     def _rdop2bgpdt68(self):
@@ -1340,7 +1340,7 @@ class OP2:
         if n * nbytes != len(data):
             raise ValueError("incorrect record length for _rdop2bgpdt68")
         self.skipop2table()
-        data = np.fromstring(data, dtype=dtype)
+        data = np.frombuffer(data, dtype=dtype)
         return data
 
     def _rdop2cstm(self, data_rec1=None):
@@ -1392,9 +1392,9 @@ class OP2:
         dtype = np.dtype([("idtype", (self._intstr, 2)), ("xyzT", (self._rfrm, 12))])
         data = self.rdop2record("bytes")
         if not self.near_db_end():
-            return self._rdop2cstm(np.fromstring(data, np.dtype(self._intstr)))
+            return self._rdop2cstm(np.frombuffer(data, np.dtype(self._intstr)))
         self.rdop2eot()
-        data = np.fromstring(data, dtype=dtype)
+        data = np.frombuffer(data, dtype=dtype)
         return np.hstack((data["idtype"], data["xyzT"]))
 
     def _proc_geom1_record(self, recinfo, record_bytes):
@@ -1525,7 +1525,7 @@ class OP2:
         data = self.rdop2record(form="bytes")
         self.rdop2eot()
         dtype = np.dtype([("ints", (self._intstr, 2)), ("reals", (self._rfrm, 5))])
-        data = np.fromstring(data, dtype=dtype)
+        data = np.frombuffer(data, dtype=dtype)
         return np.hstack((data["ints"], data["reals"]))
 
     def _rdop2uset(self):

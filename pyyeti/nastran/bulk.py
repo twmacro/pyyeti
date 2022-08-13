@@ -1367,7 +1367,7 @@ def _convert_card(card):
 
     card[0], card[1] = card[1], ctype
     try:
-        card = np.array(card).astype(np.float)
+        card = np.array(card).astype(float)
     except ValueError as e:
         msg = f"{e.args[0]}, check: {name}, {ident}"
         e.args = (msg,)
