@@ -3696,9 +3696,10 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, **kwargs
         file. Name must be one of the following to be included (order
         is as written to op4)::
 
-            'k4xx', 'pa', 'gpxx', 'gdxx', 'va', 'mug1', 'mug1o',
-            'mes1', 'mes1o', 'mee1', 'mee1o', 'mgpf', 'mgpfo', 'mef1',
-            'mef1o', 'mqg1', 'mqg1o', 'mqmg1', 'mqmg1o'
+            'k4xx', 'pa', 'gpxx', 'gdxx', 'rvax', 'va', 'mug1',
+            'mug1o', 'mes1', 'mes1o', 'mee1', 'mee1o', 'mgpf',
+            'mgpfo', 'mef1', 'mef1o', 'mqg1', 'mqg1o', 'mqmg1',
+            'mqmg1o'
 
         By default, 1x1 zero matrices are written for all these names
         except for two: 'pa' is a vector of zeros and 'va' is a vector
@@ -3718,6 +3719,7 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, **kwargs
     pa = np.zeros((n, 1))
     gpxx = 0.0
     gdxx = 0.0
+    rvax = 0.0
     va = np.ones((n, 1))
     mug1 = 0.0
     mug1o = 0.0
@@ -3741,6 +3743,7 @@ def wtextseout(name, *, se, maa, baa, kaa, bset, uset, spoint1, sedn=0, **kwargs
         "pa",
         "gpxx",
         "gdxx",
+        "rvax",
         "va",
         "mug1",
         "mug1o",
