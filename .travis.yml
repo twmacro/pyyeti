@@ -3,7 +3,7 @@ python:
     - "3.6"
     - "3.7"
     - "3.8"
-    # - "3.9"
+    - "3.9"
 install:
   - sudo apt update
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -28,10 +28,7 @@ install:
   - python -m build -n
   - pip install -e .
 script:
-  - coverage erase
-  - pytest --cov --doctest-modules pyyeti
-  - pytest --cov --cov-append tests
-  - coverage report 
+  - /bin/sh run_tests.sh
   # - python setup.py nosetests
 after_success:
     - coveralls
