@@ -2,7 +2,7 @@
 """
 A pretty printer.
 """
-import collections
+from collections.abc import Mapping
 import numpy as np
 import h5py
 import pandas as pd
@@ -264,7 +264,7 @@ class PP:
                 typename = f"<class '{var.__name__}'>"
             else:
                 typename = str(cls)
-            if isinstance(var, collections.Mapping):
+            if isinstance(var, Mapping):
                 s = self._dict_string(var, level, typename=typename)
             elif isinstance(var, pd.core.base.PandasObject):
                 s = self._pandas_string(var, level, typename=typename)

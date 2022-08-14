@@ -4546,7 +4546,7 @@ def test_henkel_mar():
 
 
 def test_newmark_nonlinear():
-    """
+    r"""
     Model a two-mass system with one linear spring and one nonlinear
     spring. The nonlinear spring is only active when compressed. There is
     a gap of 0.01 units before the spring starts being compressed.

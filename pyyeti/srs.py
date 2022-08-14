@@ -1907,7 +1907,7 @@ def srs_frf(
         >>>
         >>> _ = ax.legend()
         >>> _ = ax.set_title(
-        ...    f"Eq-Sine (Abs-Acce/$\sqrt{{Q^2+1}}$), Q = {Q}"
+        ...    rf"Eq-Sine (Abs-Acce/$\sqrt{{Q^2+1}}$), Q = {Q}"
         ... )
         >>> _ = ax.set_ylabel("Abs-Acce Eq-Sine (G)")
         >>> _ = ax.set_xlabel(r"$\omega_n$ Frequency (Hz)")
