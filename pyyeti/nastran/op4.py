@@ -30,6 +30,7 @@ import struct
 import sys
 import warnings
 import collections
+from collections.abc import Mapping
 import numpy as np
 import scipy.sparse as sp
 from pyyeti import guitools
@@ -2040,7 +2041,7 @@ class OP4:
         :func:`listload`, :func:`dir`.
         """
 
-        if isinstance(names, collections.Mapping):
+        if isinstance(names, Mapping):
             _names = []
             matrices = []
             forms = []

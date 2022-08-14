@@ -57,7 +57,15 @@ CLASSIFIERS = [
 
 def check_dependencies():
     install_requires = []
-    packages = ["numpy", "scipy", "matplotlib", "pandas", "xlsxwriter", "h5py"]
+    packages = [
+        "numpy",
+        "scipy",
+        "matplotlib",
+        "pandas",
+        "xlsxwriter",
+        "h5py",
+        "packaging",
+    ]
     for package in packages:
         try:
             exec(f"import {package}")

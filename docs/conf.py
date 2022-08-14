@@ -19,7 +19,6 @@ import os
 import shlex
 import matplotlib as mpl
 import sphinx
-from distutils.version import LooseVersion
 from pyyeti import __version__
 
 
@@ -55,13 +54,6 @@ extensions = [
     # could do: conda update ipython -c conda-forge
     # 'IPython.sphinxext.ipython_console_highlighting',
 ]
-
-# if LooseVersion(sphinx.__version__) <= LooseVersion("1.3.5"):
-#     extensions.append("sphinx.ext.pngmath")
-# else:
-#     extensions.append("sphinx.ext.imgmath")
-#     # imgmath_dvipng_args = ['-gamma', '1.5', '-D', '110', '-bg', 'Transparent']
-#     imgmath_dvipng_args = ["-D", "200"]
 
 highlight_language = "python3"
 

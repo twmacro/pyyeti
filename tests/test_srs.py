@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.integrate import odeint
-from scipy import interp
 from pyyeti import srs
 import scipy.stats as stats
 import scipy.signal as signal
@@ -92,7 +91,7 @@ def deriv(y, t, F, B, K):
 
 def do_odeint_sol(t, zdd, ic, w, B, K, nfreq):
     def F(x):
-        return interp(x, t, -zdd)
+        return np.interp(x, t, -zdd)
 
     zdd = zdd.copy()
     if ic == "steady":

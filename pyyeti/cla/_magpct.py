@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
-from distutils.version import LooseVersion
+from packaging import version
 from ._utilities import _proc_filterval, get_marker_cycle
 
 
@@ -375,7 +375,7 @@ def magpct(
 
     if symlogy:
         if manual_symlogy:
-            if LooseVersion(matplotlib.__version__) >= "3.3":
+            if version.parse(matplotlib.__version__) >= version.parse("3.3"):
                 ax.set_yscale(
                     "symlog",
                     linthresh=max_filt_pdiff,
