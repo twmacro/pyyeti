@@ -659,6 +659,11 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
     """
     Find x, y, z triples in rigid-body motion matrix.
 
+    .. warning::
+        This routine can be tricked and return incorrect results when
+        only 1 or 2 (and not all 3) translational DOF for a node are
+        present. See example.
+
     Parameters
     ----------
     drmrb : 2d array_like, n x 6
@@ -711,10 +716,50 @@ def find_xyz_triples(drmrb, get_trans=False, mats=None, inplace=False, tol=0.01)
 
     Examples
     --------
-    A rigid-body mode shape matrix with two identical nodes is defined
-    by hand. Then, the second node will be transformed into a
-    different coordinate system and scaled up by 10.0. Also, note that
-    the 3 rotation rows for the second grid are not included.
+    Show how this routine can be tricked into returning incorrect
+    results:
+
+    >>> import numpy as np
+    >>> from pyyeti.nastran import n2p
+    >>>
+    >>> # make a rigid-body mode shape matrix with two nodes on the X
+    >>> # axis (one at (2, 0, 0) and the other at (5, 0, 0)):
+    >>> xyz = np.array(
+    ...     [
+    ...         [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    ...         [0.0, 1.0, 0.0, 0.0, 0.0, 2.0],
+    ...         [0.0, 0.0, 1.0, 0.0, -2.0, 0.0],
+    ...         [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    ...         [0.0, 1.0, 0.0, 0.0, 0.0, 5.0],
+    ...         [0.0, 0.0, 1.0, 0.0, -5.0, 0.0],
+    ...     ]
+    ... )
+    >>> n2p.find_xyz_triples(xyz).coords
+    array([[ 2.,  0.,  0.],
+           [ 2.,  0.,  0.],
+           [ 2.,  0.,  0.],
+           [ 5.,  0.,  0.],
+           [ 5.,  0.,  0.],
+           [ 5.,  0.,  0.]])
+
+    In this case, the 4th row is the same as the 1st row, so if we
+    delete the first row, the routine will still find a perfectly
+    valid triple indicating there is a node at (2, 0, 0), but in a
+    rotated coordinate system. However, it won't find the node at (5,
+    0, 0) at all:
+
+    >>> n2p.find_xyz_triples(xyz[1:]).coords
+    array([[  2.,   0.,   0.],
+           [  2.,   0.,   0.],
+           [  2.,   0.,   0.],
+           [ nan,  nan,  nan],
+           [ nan,  nan,  nan]])
+
+    For another example showing more features, a rigid-body mode shape
+    matrix with two identical nodes is defined by hand. Then, the
+    second node will be transformed into a different coordinate system
+    and scaled up by 10.0. Also, note that the 3 rotation rows for the
+    second grid are not included.
 
     >>> import numpy as np
     >>> from pyyeti.nastran import n2p
