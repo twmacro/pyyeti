@@ -2,6 +2,6 @@
 
 # rm -fr .coverag*
 coverage erase
-pytest --cov --doctest-modules pyyeti
-pytest --cov --cov-append tests
+python -m pytest --cov --doctest-modules pyyeti
+python -m pytest --cov --cov-append tests
 coverage report 
