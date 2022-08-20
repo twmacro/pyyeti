@@ -7,7 +7,7 @@ import io
 import os
 from pyyeti import nastran, cb
 from pyyeti.nastran import n2p, op2, op4
-from nose.tools import *
+import pytest
 
 
 def conv_uset(uset):
@@ -491,7 +491,8 @@ def test_replace_basic_cs():
     assert abs(frbres_new).max() < 0.1
 
     # check for ValueError on duplicate CS id:
-    assert_raises(ValueError, n2p.replace_basic_cs, uset, 10, new_cs_in_basic)
+    with pytest.raises(ValueError):
+        n2p.replace_basic_cs(uset, 10, new_cs_in_basic)
 
 
 def test_replace_basic_cs_2():
@@ -508,30 +509,29 @@ def test_replace_basic_cs_2():
     uset2 = n2p.replace_basic_cs(uset0, np.vstack(([new_cs_id, 1, 0], new_cs_in_basic)))
 
     assert np.all(uset1 == uset2)
-    assert_raises(
-        ValueError,
-        n2p.replace_basic_cs,
-        uset0,
-        np.vstack(([new_cs_id, 0, 0], new_cs_in_basic)),
-    )
+    with pytest.raises(ValueError):
+        n2p.replace_basic_cs(
+            uset0, np.vstack(([new_cs_id, 0, 0], new_cs_in_basic)),
+        )
 
-    assert_raises(
-        ValueError,
-        n2p.replace_basic_cs,
-        uset0,
-        np.vstack(([new_cs_id, 1, 1], new_cs_in_basic)),
-    )
+    with pytest.raises(ValueError):
+        n2p.replace_basic_cs(
+            uset0, np.vstack(([new_cs_id, 1, 1], new_cs_in_basic)),
+        )
 
 
 def test_make_uset():
     # improper sized xyz:
-    assert_raises(ValueError, n2p.make_uset, [[1, 123456], [2, 0]], 1, [[1, 1, 1]])
+    with pytest.raises(ValueError):
+        n2p.make_uset([[1, 123456], [2, 0]], 1, [[1, 1, 1]])
 
     # wrong number of dof for grid 1:
-    assert_raises(ValueError, n2p.make_uset, [[1, 13456], [2, 0]], 1)
+    with pytest.raises(ValueError):
+        n2p.make_uset([[1, 13456], [2, 0]], 1)
 
     # improper sized nasset:
-    assert_raises(ValueError, n2p.make_uset, 1, [1, 1])
+    with pytest.raises(ValueError):
+        n2p.make_uset(1, [1, 1])
 
     u = n2p.make_uset(
         dof=[[1, 123456], [2, 0]],
@@ -733,8 +733,10 @@ def test_addgrid():
     assert np.allclose(np.array([10.0, 0, 32.0]), n2p.getcoordinates(uset, 200, 0))
     # reverse:
     assert np.allclose([32, 90, 10], n2p.getcoordinates(uset, [10.0, 0, 32.0], 1))
-    assert_raises(ValueError, n2p.addgrid, None, 555, "b", 555, [0, 0, 0], 555)
-    assert_raises(ValueError, n2p.addgrid, uset, uset.index[0][0], "b", 0, [0, 0, 0], 0)
+    with pytest.raises(ValueError):
+        n2p.addgrid(None, 555, "b", 555, [0, 0, 0], 555)
+    with pytest.raises(ValueError):
+        n2p.addgrid(uset, uset.index[0][0], "b", 0, [0, 0, 0], 0)
     uset = n2p.addgrid(None, 1, "brbccq", 0, [0, 0, 0], 0)
     b = n2p.mkusetmask("b")
     r = n2p.mkusetmask("r")
@@ -811,8 +813,10 @@ def test_getcoordinates():
 
 
 def test_rbcoords():
-    assert_raises(ValueError, n2p.rbcoords, np.random.randn(3, 4))
-    assert_raises(ValueError, n2p.rbcoords, np.random.randn(13, 6))
+    with pytest.raises(ValueError):
+        n2p.rbcoords(np.random.randn(3, 4))
+    with pytest.raises(ValueError):
+        n2p.rbcoords(np.random.randn(13, 6))
 
 
 def gettestuset():
@@ -837,7 +841,8 @@ def gettestuset():
 
 def test_mksetpv_mkdofpv():
     uset = gettestuset()
-    assert_raises(ValueError, n2p.mksetpv, uset, "m", "b")
+    with pytest.raises(ValueError):
+        n2p.mksetpv(uset, "m", "b")
     pv, outdof = n2p.mkdofpv(uset, "f", [[100, 3], [200, 5], [300, 16], [300, 4]])
     assert np.all(pv == np.array([2, 10, 12, 17, 15]))
     assert np.all(
@@ -850,7 +855,8 @@ def test_mksetpv_mkdofpv():
         [300, 4],
         [400, 123],
     ]  # 400 123 is not in f-set
-    assert_raises(ValueError, n2p.mkdofpv, uset, "f", bad_dof)
+    with pytest.raises(ValueError):
+        n2p.mkdofpv(uset, "f", bad_dof)
 
     # but it better work with strict off:
     pv, dof = n2p.mkdofpv(uset, "f", bad_dof, strict=0)
@@ -867,7 +873,8 @@ def test_mkdovpv_2():
     )
 
     # assuming both are grids will fail on strict=True:
-    assert_raises(ValueError, n2p.mkdofpv, u, "p", [1, 2], strict=True, grids_only=True)
+    with pytest.raises(ValueError):
+        n2p.mkdofpv(u, "p", [1, 2], strict=True, grids_only=True)
 
     # but not if strict=False, and only the grid will be found:
     pv = n2p.mkdofpv(u, "p", [1, 2], strict=False, grids_only=True)[0]
@@ -878,19 +885,20 @@ def test_mkdovpv_2():
     assert (pv == np.arange(7)).all()
 
     # exception if strict=True but we allow all type of DOF (cannot work)
-    assert_raises(
-        ValueError, n2p.mkdofpv, u, "p", [1, 2], strict=True, grids_only=False
-    )
+    with pytest.raises(ValueError):
+        n2p.mkdofpv(u, "p", [1, 2], strict=True, grids_only=False)
 
 
 def test_mkcordcardinfo():
     uset = n2p.addgrid(None, 1, "b", 0, [0, 0, 0], 0)
     ci = n2p.mkcordcardinfo(uset)
     assert ci == {}
-    assert_raises(ValueError, n2p.mkcordcardinfo, uset, 5)
+    with pytest.raises(ValueError):
+        n2p.mkcordcardinfo(uset, 5)
 
     uset = gettestuset()
-    assert_raises(ValueError, n2p.mkcordcardinfo, uset, 5)
+    with pytest.raises(ValueError):
+        n2p.mkcordcardinfo(uset, 5)
 
 
 # Testing formrbe3() is tough to do fully.  The docstring has a couple
@@ -1406,7 +1414,8 @@ def test_upqsetpv():
     pv[-4:] = False
     assert np.all(pv == pv_csuper)
 
-    assert_raises(ValueError, nastran.upqsetpv, nas_csuper, 1000)
+    with pytest.raises(ValueError):
+        nastran.upqsetpv(nas_csuper, 1000)
 
 
 def test_upa_upq_not_all_6():
@@ -1737,11 +1746,10 @@ def test_formdrm_1():
     assert np.all(dof101 == dof101_b)
 
     del nas["phg"]
-    with assert_raises(RuntimeError) as cm:
+    with pytest.raises(RuntimeError, match=r"neither nas\['phg'\]\[0\]"):
         ulvs = n2p.formulvs(nas, 101)
-    the_msg = str(cm.exception)
-    assert 0 == the_msg.find("neither nas['phg'][0]")
-    assert_raises(RuntimeError, n2p.formulvs, nas, 101)
+    with pytest.raises(RuntimeError):
+        n2p.formulvs(nas, 101)
 
 
 def test_formdrm_2():
@@ -1815,14 +1823,16 @@ def test_build_coords():
         [20, 2, 10, 0, 0, 0, 0, 0, 1, 1, 1, 0],
     ]
 
-    assert_raises(RuntimeError, n2p.build_coords, cords)
+    with pytest.raises(RuntimeError):
+        n2p.build_coords(cords)
 
     cords = [
         [10, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
         [20, 2, 5, 0, 0, 0, 0, 0, 1, 1, 0, 0],
     ]
 
-    assert_raises(RuntimeError, n2p.build_coords, cords)
+    with pytest.raises(RuntimeError):
+        n2p.build_coords(cords)
 
 
 def test_rbmodes_allq():
@@ -1862,37 +1872,14 @@ def test_formdrm_go_warnings():
     goq = np.zeros((o, q))
     got = np.zeros((o, t))
 
-    # without the following, when pandas is imported, we get:
-    # ERROR: test_n2p_nose.test_badrbe3_error
-    # ----------------------------------------------------------------------
-    # Traceback (most recent call last):
-    #   File "/home/macro/anaconda3/lib/python3.5/site-packages/nose/case.py", line 198, in runTest
-    #     self.test(*self.arg)
-    #   File "/home/macro/code/pyyeti/tests/test_n2p_nose.py", line 1380, in test_badrbe3_error
-    #     with assert_warns(RuntimeWarning) as cm:
-    #   File "/home/macro/anaconda3/lib/python3.5/unittest/case.py", line 225, in __enter__
-    #     for v in sys.modules.values():
-    # RuntimeError: dictionary changed size during iteration
-    #
-    # Reported here: https://github.com/pytest-dev/pytest/issues/1288
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
     nas["got"][300] = got
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(RuntimeWarning, match=r"nas\['goq'\]\[300\] not found"):
         drm, dof = n2p.formdrm(nas, 300, [38, 39])
-    the_warning = str(cm.warning)
-    assert 0 == the_warning.find("nas['goq'][300] not found")
     del nas["got"][300]
 
     nas["goq"][300] = goq
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(RuntimeWarning, match=r"nas\['got'\]\[300\] not found"):
         drm, dof = n2p.formdrm(nas, 300, [38, 39])
-    the_warning = str(cm.warning)
-    assert 0 == the_warning.find("nas['got'][300] not found")
     del nas["goq"][300]
 
 
@@ -1903,27 +1890,11 @@ def test_badrbe3_error():
     y = np.zeros(n)
     # the 'poorly conditioned' message:
     uset = n2p.addgrid(None, np.arange(1, n + 1), "b", 0, np.column_stack((x, y, y)), 0)
-
     uset = n2p.addgrid(uset, 100, "b", 0, [5, 0, 0], 0)
 
-    # the following is documented elsewhere in this file:
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
-    with assert_warns(RuntimeWarning) as cm:
-        assert_raises(
-            la.LinAlgError, n2p.formrbe3, uset, 100, 123456, [123, [1, 2, 3, 4, 5]]
-        )
-    found = False
-    for warning in cm.warnings:
-        msg = str(warning.message)
-        if msg.find("matrix is poorly conditioned") == 0:
-            found = True
-            break
-    assert found
+    with pytest.warns(RuntimeWarning, match="matrix is poorly conditioned"):
+        with pytest.raises(la.LinAlgError):
+            n2p.formrbe3(uset, 100, 123456, [123, [1, 2, 3, 4, 5]])
 
 
 def test_badrbe3_warn():
@@ -1942,10 +1913,8 @@ def test_badrbe3_warn():
         z[i] = _z
     uset = n2p.addgrid(None, np.arange(1, n + 1), "b", 0, np.column_stack((x, y, z)), 0)
     uset = n2p.addgrid(uset, 100, "b", 0, [5, 5, 5], 0)
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(RuntimeWarning, match="matrix is poorly conditioned"):
         rbe3 = n2p.formrbe3(uset, 100, 123456, [123, [1, 2, 3, 4, 5]])
-    the_warning = str(cm.warning)
-    assert 0 == the_warning.find("matrix is poorly conditioned")
 
 
 def test_rbe3_badum():
@@ -1955,15 +1924,14 @@ def test_rbe3_badum():
     z = np.zeros(n)
     uset = n2p.addgrid(None, np.arange(1, n + 1), "b", 0, np.column_stack((x, y, z)), 0)
     uset = n2p.addgrid(uset, 100, "b", 0, [5, 5, 5], 0)
-    with assert_raises(ValueError) as cm:
+    with pytest.raises(ValueError, match="incorrect size of m-set"):
         rbe3 = n2p.formrbe3(uset, 100, 123456, [123456, [1, 2]], [1, 234])
-    the_msg = str(cm.exception)
-    assert 0 == the_msg.find("incorrect size of m-set")
 
 
 def test_bad_se():
     nas = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
-    assert_raises(ValueError, n2p._findse, nas, 345)
+    with pytest.raises(ValueError):
+        n2p._findse(nas, 345)
 
 
 def test_sph_zero_theta():

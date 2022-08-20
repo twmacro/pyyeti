@@ -7,12 +7,13 @@ import os
 import inspect
 from pyyeti import cb, ytools, locate, nastran
 from pyyeti.nastran import op2, n2p, op4
-from nose.tools import *
+import pytest
 
 
 def test_cbreorder():
     drm = np.arange(1, 16).reshape(3, 5)
-    assert_raises(ValueError, cb.cbreorder, drm, [0, 1, 2, 3], drm=False, last=True)
+    with pytest.raises(ValueError, match="`M` must be square when `drm` is false"):
+        cb.cbreorder(drm, [0, 1, 2, 3], drm=False, last=True)
 
 
 def test_uset_convert():
@@ -39,9 +40,11 @@ def test_uset_convert():
 def test_cbconvert():
     b = np.arange(6)
     drm = np.ones((1, 8))
-    assert_raises(ValueError, cb.cbconvert, drm, b, "m2e")
+    with pytest.raises(ValueError, match="`M` must be square when `drm` is false"):
+        cb.cbconvert(drm, b, "m2e")
     b = np.arange(5)
-    assert_raises(ValueError, cb.cbconvert, drm, b, "m2e", drm=True)
+    with pytest.raises(ValueError, match="b-set not a multiple of 6"):
+        cb.cbconvert(drm, b, "m2e", drm=True)
 
 
 def test_cbconvert_2():
@@ -134,9 +137,13 @@ def test_cbtf():
             if not delq:
                 assert np.allclose(f[q], 0)
 
-    assert_raises(ValueError, cb.cbtf, maa, baa1, kaa, a2[:, :3], freq, b)
+    with pytest.raises(ValueError, match="`a` is not compatibly sized with `freq`"):
+        cb.cbtf(maa, baa1, kaa, a2[:, :3], freq, b)
 
-    assert_raises(ValueError, cb.cbtf, maa, baa1, kaa, a2[:3, :], freq, b)
+    with pytest.raises(
+        ValueError, match="number of rows in `a` not compatible with `bset`"
+    ):
+        cb.cbtf(maa, baa1, kaa, a2[:3, :], freq, b)
 
 
 def test_cbreorder_m():
@@ -165,27 +172,9 @@ def test_cbreorder_m():
     )
     assert np.all(mnew == sbe)
 
-    # without the following, when pandas is imported, we get:
-    # ERROR: test_n2p_nose.test_badrbe3_error
-    # ----------------------------------------------------------------------
-    # Traceback (most recent call last):
-    #   File "/home/macro/anaconda3/lib/python3.5/site-packages/nose/case.py", line 198, in runTest
-    #     self.test(*self.arg)
-    #   File "/home/macro/code/pyyeti/tests/test_n2p_nose.py", line 1380, in test_badrbe3_error
-    #     with assert_warns(RuntimeWarning) as cm:
-    #   File "/home/macro/anaconda3/lib/python3.5/unittest/case.py", line 225, in __enter__
-    #     for v in sys.modules.values():
-    # RuntimeError: dictionary changed size during iteration
-    #
-    # Reported here: https://github.com/pytest-dev/pytest/issues/1288
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning, match="b-set not a multiple of 6"):
         mnew = cb.cbreorder(m, np.arange(7, -1, -1))
+
     sbe = np.array(
         [
             [72, 64, 56, 48, 40, 32, 24, 16],
@@ -223,9 +212,10 @@ def test_cbreorder_drm():
     )
     assert np.all(dnew == sbe)
 
-    assert_raises(ValueError, cb.cbreorder, drm, np.arange(7, 1, -1))
+    with pytest.raises(ValueError, match="`M` must be square when `drm` is false"):
+        cb.cbreorder(drm, np.arange(7, 1, -1))
 
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning, match="b-set not a multiple of 6"):
         dnew = cb.cbreorder(drm, np.arange(7, -1, -1), drm=True)
     assert np.all(drm[:, ::-1] == dnew)
 
@@ -233,8 +223,9 @@ def test_cbreorder_drm():
     # array([[ 1,  2,  3,  4,  5],
     #        [ 6,  7,  8,  9, 10],
     #        [11, 12, 13, 14, 15]])
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning, match="b-set not a multiple of 6"):
         dnew = cb.cbreorder(drm, [0, 1, 2, 3], drm=True, last=True)
+
     sbe = np.array([[5, 1, 2, 3, 4], [10, 6, 7, 8, 9], [15, 11, 12, 13, 14]])
     assert np.all(dnew == sbe)
 
@@ -278,7 +269,8 @@ def test_cgmass():
     assert np.all(abs(pI - sbe) < 1e-3)
 
     mass[1, 0] = 4.0
-    assert_raises(ValueError, cb.cgmass, mass)
+    with pytest.raises(ValueError, match="mass matrix is not symmetric"):
+        cb.cgmass(mass)
 
 
 def gettable(lines, j, col=0, label=None, skip=0):
@@ -412,9 +404,8 @@ def test_cbcheck_indeterminate():
 
     # check for error catches:
     with StringIO() as f:
-        assert_raises(
-            ValueError, cb.cbcheck, f, maa, kaa, b, b[:6], usetb.iloc[:-6], em_filt=2
-        )
+        with pytest.raises(ValueError, match="number of rows in `uset`"):
+            cb.cbcheck(f, maa, kaa, b, b[:6], usetb.iloc[:-6], em_filt=2)
 
 
 def test_cbcheck_determinate():
@@ -726,9 +717,8 @@ def test_rbmultchk():
     assert s2 == s
 
     with StringIO() as f:
-        assert_raises(
-            ValueError, cb.rbmultchk, f, drm101, "asdf", rb, bset="bad string"
-        )
+        with pytest.raises(ValueError, match="invalid `bset` string"):
+            cb.rbmultchk(f, drm101, "asdf", rb, bset="bad string")
 
     # trim q-set columns out of drm:
     labels = [str(i[0]) + "  " + str(i[1]) for i in dof101]
@@ -801,9 +791,12 @@ def test_rbmultchk2():
     assert s.find("different set of NULL rows") > -1
 
     with StringIO() as f:
-        assert_raises(ValueError, cb.rbmultchk, f, drm, "drm", 1)
+        with pytest.raises(ValueError, match="`rb` does not have 6 columns"):
+            cb.rbmultchk(f, drm, "drm", 1)
+
     with StringIO() as f:
-        assert_raises(ValueError, cb.rbmultchk, f, drm, "drm", np.zeros((6, 6)))
+        with pytest.raises(ValueError, match="failed to get scale of rb modes"):
+            cb.rbmultchk(f, drm, "drm", np.zeros((6, 6)))
 
 
 def test_rbdispchk():
@@ -937,18 +930,22 @@ def test_rbdispchk():
     assert s == s2
 
     with StringIO() as f:
-        assert_raises(ValueError, cb.rbdispchk, f, rbtrimmed[:, :4])
-        assert_raises(ValueError, cb.rbdispchk, f, rbtrimmed[:5, :])
+        with pytest.raises(ValueError, match="`rbdisp` does not have 6 columns"):
+            cb.rbdispchk(f, rbtrimmed[:, :4])
+        with pytest.raises(ValueError, match="number of rows in `rbdisp`"):
+            cb.rbdispchk(f, rbtrimmed[:5, :])
 
 
 def test_cbcoordchk():
     k = np.random.randn(14, 14)
     k = k.dot(k.T)
     b = np.arange(4)
-    assert_raises(ValueError, cb.cbcoordchk, k, b, b)
+    with pytest.raises(ValueError, match="b-set not a multiple of 6"):
+        cb.cbcoordchk(k, b, b)
 
     b2 = np.arange(6)
-    assert_raises(ValueError, cb.cbcoordchk, k, b2, b)
+    with pytest.raises(ValueError, match="reference point must have length of 6"):
+        cb.cbcoordchk(k, b2, b)
 
 
 def test_cbcoordchk2():
@@ -1064,15 +1061,10 @@ def test_mk_net_drms():
     )
 
     usetbq, c, bset = nastran.asm2uset(os.path.join(pth, "inboard.asm"))
-    with assert_raises(ValueError) as cm:
+    with pytest.raises(ValueError, match="number of rows in `uset`"):
         cb.mk_net_drms(
             maa, kaa, b[:3], uset=usetbq, ref=ref, sccoord=Tl2s, conv=conv, g=g
         )
-    the_msg = str(cm.exception)
-    assert 0 == the_msg.find(
-        f"number of rows in `uset` is {uset.shape[0]}, but must "
-        f"equal len(b-set) (3)"
-    )
 
     net2 = cb.mk_net_drms(
         maa, kaa, b, uset=usetbq, ref=ref, sccoord=Tl2s, conv=conv, g=g
@@ -1256,6 +1248,10 @@ def test_mk_net_drms_6dof():
     trans[6:, n:] = np.eye(len(q))
     maa = trans @ maa @ trans.T
     kaa = trans @ kaa @ trans.T
+
+    assert abs(kaa[:6, :6]).max() < 0.02
+    kaa[:6, :] = 0.0
+    kaa[:, :6] = 0.0
 
     # no conversion, no coordinate change:
     g = 9.80665

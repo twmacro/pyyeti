@@ -4,7 +4,6 @@ import tempfile
 import os
 from collections import OrderedDict
 from pyyeti.pp import PP
-from nose.tools import *
 
 
 def test_h5py():

@@ -1595,7 +1595,19 @@ class OP2:
             upids = bgpdt_rec1["ints"][:, 5]
         return xyz, cid, dof, doftype, nid, upids
 
-    def _buildUset(self, se, dof, doftype, nid, uset, xyz, cid, cstm=None, cstm2=None):
+    def _buildUset(
+        self,
+        se,
+        dof,
+        doftype,
+        nid,
+        uset,
+        xyz,
+        cid,
+        cstm=None,
+        cstm2=None,
+        print_warning=True,
+    ):
         """
         Builds the 6-column uset table for :func:`rdn2cop2` and
         :func:`rdpostop2`.
@@ -1649,9 +1661,11 @@ class OP2:
         idlist = idlist[pv]
         coordinfo = coordinfo[pv, :]
         if uset is None:
-            warnings.warn(
-                "uset information not found. Putting all DOF in b-set.", RuntimeWarning
-            )
+            if print_warning:
+                warnings.warn(
+                    "uset information not found. Putting all DOF in b-set.",
+                    RuntimeWarning,
+                )
             b = n2p.mkusetmask("b")
             uset = np.zeros(len(doflist), int) + b
         uset = n2p.make_uset(np.column_stack((idlist, doflist)), uset, coordinfo)
@@ -2127,7 +2141,7 @@ class OP2:
             (xyz, cid, dof, doftype, nid, upids) = self._proc_bgpdt(eqexin1, eqexin)
             nas["upids"][se] = upids
             Uset, cstm, cstm2 = self._buildUset(
-                se, dof, doftype, nid, uset, xyz, cid, cstm, None
+                se, dof, doftype, nid, uset, xyz, cid, cstm, None, print_warning=True,
             )
             nas["uset"][se] = Uset
             nas["cstm"][se] = cstm
@@ -3280,7 +3294,7 @@ def rdpostop2(
                 eqexin1, eqexin, True, bgpdt_rec1
             )
             Uset, cstm, cstm2 = o2._buildUset(
-                se, dof, doftype, nid, uset, xyz, cid, cstm, cstm2
+                se, dof, doftype, nid, uset, xyz, cid, cstm, cstm2, print_warning=False,
             )
 
     dct = {

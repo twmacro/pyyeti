@@ -3,22 +3,17 @@ import numpy as np
 import scipy.linalg as la
 import scipy.signal
 from scipy.interpolate import interp1d
-from nose.tools import *
+
 from scipy import integrate
 from pyyeti import ode, dsp
 from pyyeti.ssmodel import SSModel
 from pyyeti import expmint
 from pyyeti.nastran import n2p, op2
 
+import pytest
+
 
 def test_expmint():
-    # unittest bug avoidance:
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     for h in [0.0001, 0.001, 0.01, 0.05, 0.1]:
         e, i, i2 = expmint.expmint(A, h, geti2=True)
@@ -30,10 +25,8 @@ def test_expmint():
     # these last 2 use the power series expansion for I2 ... check
     # for the warning
     for h in [0.2, 1]:
-        with assert_warns(RuntimeWarning) as cm:
+        with pytest.warns(RuntimeWarning, match="Using power series expansion"):
             e, i, i2 = expmint.expmint(A, h, geti2=True)
-        the_warning = str(cm.warning)
-        assert 0 == the_warning.find("Using power series expansion")
         et, it, i2t = expmint.expmint_pow(A, h)
         assert np.allclose(et, e)
         assert np.allclose(it, i)
@@ -75,10 +68,8 @@ def test_getEPQ1_2_order1():
     # for the warning
     for h in [0.2, 1]:
         e, p, q = expmint.getEPQ2(A, h, order=order)
-        with assert_warns(RuntimeWarning) as cm:
+        with pytest.warns(RuntimeWarning, match="Using power series expansion"):
             et, pt, qt = expmint.getEPQ1(A, h, order=order)
-        the_warning = str(cm.warning)
-        assert 0 == the_warning.find("Using power series expansion")
         assert np.allclose(e, et)
         assert np.allclose(p, pt)
         assert np.allclose(q, qt)
@@ -286,7 +277,8 @@ def test_newmark_diag():
     assert np.allclose(sole.v, solu.v)
     assert np.allclose(sole.a, solu.a)
 
-    assert_raises(ValueError, nb.tsolve, np.zeros((m.shape[0] + 1, 1)))
+    with pytest.raises(ValueError):
+        nb.tsolve(np.zeros((m.shape[0] + 1, 1)))
 
 
 def test_ode_newmark_uncoupled_mNone():
@@ -441,25 +433,11 @@ def test_rbdamped_modes_coupled():
         assert np.allclose(f, fru)
         assert np.allclose(f, fre)
 
-    # unittest bug avoidance:
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(
+        RuntimeWarning,
+        match="eigenvectors for the state-space formulation are poorly conditioned",
+    ):
         ode.SolveUnc(m, b * 0, k, h, rb=[])
-    found = False
-    for w in cm.warnings:
-        if (
-            str(w.message).find(
-                "eigenvectors for the state-space formulation are poorly conditioned"
-            )
-            > -1
-        ):
-            found = True
-    assert found
 
 
 def test_newmark_rbdamp_coupled():
@@ -1770,11 +1748,10 @@ def test_foh_c2d_d2c():
     ss_sysz = ss_sys.c2d(h, method="foh")
     assert runsim(ss_sysz, sysz)
 
-    # assert_raises(ValueError, ss_sys.d2c)
-    # assert_raises(ValueError, ss_sysz.c2d, h)
-
-    assert_raises(ValueError, ss_sys.c2d, h, method="badmethod")
-    assert_raises(ValueError, ss_sysz.d2c, method="badmethod")
+    with pytest.raises(ValueError):
+        ss_sys.c2d(h, method="badmethod")
+    with pytest.raises(ValueError):
+        ss_sysz.d2c(method="badmethod")
     chk_inverse(ss_sysz, ss_sys)
 
 
@@ -1799,7 +1776,8 @@ def test_get_freq_damping():
     assert np.allclose(wn_extracted[i], wn)
     assert np.allclose(zeta_extracted[i], zeta)
 
-    assert_raises(ValueError, ode.get_freq_damping, lam[1:])
+    with pytest.raises(ValueError):
+        ode.get_freq_damping(lam[1:])
 
 
 def test_eigss():
@@ -1841,10 +1819,13 @@ def test_eigss():
 
     # pure fakery for test coverage:
     lam, ur, uri = luud_d[:3]
-    assert_raises(ValueError, ode.addconj, lam, ur / 2, uri)
-    assert_raises(ValueError, ode.addconj, np.hstack((lam, lam[-1])), ur, uri)
+    with pytest.raises(ValueError):
+        ode.addconj(lam, ur / 2, uri)
+    with pytest.raises(ValueError):
+        ode.addconj(np.hstack((lam, lam[-1])), ur, uri)
     lam = lam[[1, 2, 3, 4, 0]]
-    assert_raises(ValueError, ode.addconj, lam, 2 * ur, uri)
+    with pytest.raises(ValueError):
+        ode.addconj(lam, 2 * ur, uri)
 
     lam, ur, uri = luu2
     urfake = np.vstack((ur, ur[:1]))
@@ -1892,8 +1873,10 @@ def test_getfsucoef():
     assert np.allclose(sol.v, v)
     assert np.allclose(sol.d, d)
 
-    assert_raises(ValueError, ode.get_su_coef, m, b, k, h, rfmodes=[0, 1])
-    assert_raises(ValueError, ode.get_su_coef, m, b, k, h, rfmodes=[0, 1, 2, 3])
+    with pytest.raises(ValueError):
+        ode.get_su_coef(m, b, k, h, rfmodes=[0, 1])
+    with pytest.raises(ValueError):
+        ode.get_su_coef(m, b, k, h, rfmodes=[0, 1, 2, 3])
 
 
 def test_no_h():
@@ -1907,7 +1890,8 @@ def test_no_h():
     ts2 = ode.SolveExp2(m, b, k, h)
     tsu = ode.SolveUnc(m, b, k, h)
 
-    assert_raises(ValueError, ts1.tsolve, [[1], [0], [0]])
+    with pytest.raises(ValueError):
+        ts1.tsolve([[1], [0], [0]])
     sol1 = ts1.tsolve([[1], [0]])
     sol2 = ts2.tsolve(1)
     solu = tsu.tsolve(1, static_ic=0)
@@ -1918,9 +1902,12 @@ def test_no_h():
     f = np.random.randn(1, 10)
     f1 = np.vstack((f, np.zeros((1, 10))))
 
-    assert_raises(RuntimeError, ts1.tsolve, f1)
-    assert_raises(RuntimeError, ts2.tsolve, f)
-    assert_raises(RuntimeError, tsu.tsolve, f)
+    with pytest.raises(RuntimeError):
+        ts1.tsolve(f1)
+    with pytest.raises(RuntimeError):
+        ts2.tsolve(f)
+    with pytest.raises(RuntimeError):
+        tsu.tsolve(f)
 
     ts2 = ode.SolveExp2(m, b, k, h, rf=0)
     tsu = ode.SolveUnc(m, b, k, h, rf=0)
@@ -2003,7 +1990,8 @@ def test_ode_uncoupled_freq():
     assert np.allclose(sol.v[:, 1:], sold.v)
     assert np.allclose(sol.d[:, 1:], sold.d)
 
-    assert_raises(ValueError, tsu.fsolve, f, freq, incrb="r")
+    with pytest.raises(ValueError):
+        tsu.fsolve(f, freq, incrb="r")
 
 
 def test_ode_uncoupled_freq_rblast():
@@ -2198,7 +2186,8 @@ def test_ode_coupled_freq_cdf():
     f = np.ones((4, freq.size))
 
     tcdf = ode.SolveCDF(m, b, k)
-    assert_raises(NotImplementedError, tcdf.fsolve, f, freq)
+    with pytest.raises(NotImplementedError):
+        tcdf.fsolve(f, freq)
 
 
 def test_ode_coupled_freq_mNone():
@@ -2296,7 +2285,8 @@ def test_ode_fsd_1():
     assert np.all(freq == sold.f)
 
     solu = tsu.fsolve(f, freq, incrb="va")
-    sold = tsd.fsolve(f, freq, incrb=1)
+    with pytest.warns(FutureWarning, match="the integer form of `incrb` is deprecated"):
+        sold = tsd.fsolve(f, freq, incrb=1)
     assert np.allclose(sold.a, solu.a)
     assert np.allclose(sold.v, solu.v)
     assert np.allclose(sold.d, solu.d)
@@ -2307,7 +2297,8 @@ def test_ode_fsd_1():
     assert np.allclose(d, solu.d)
 
     solu = tsu.fsolve(f, freq, incrb="")
-    sold = tsd.fsolve(f, freq, incrb=0)
+    with pytest.warns(FutureWarning, match="the integer form of `incrb` is deprecated"):
+        sold = tsd.fsolve(f, freq, incrb=0)
     assert np.allclose(sold.a, solu.a)
     assert np.allclose(sold.v, solu.v)
     assert np.allclose(sold.d, solu.d)
@@ -2715,7 +2706,7 @@ def test_ode_complex_coefficients_mNone():
 #     b = aa.copy()
 #     k = aa.copy()
 #     h = .1
-#     with assert_warns(RuntimeWarning) as cm:
+#     with pytest.warns(RuntimeWarning) as cm:
 #         ode.SolveUnc(m, b, k, h)
 #     wrn0 = str(cm.warnings[0].message)
 #     assert 0 == wrn0.find('Repeated roots detected')
@@ -2818,7 +2809,8 @@ def test_approx_rbmodes():
     check_true_derivatives(solu_sic)
 
     # check for ValueError when force is incorrectly sized:
-    assert_raises(ValueError, se.tsolve, f)
+    with pytest.raises(ValueError):
+        se.tsolve(f)
 
     # solve:
     sole_nosic = se.tsolve(g, static_ic=0)
@@ -2975,11 +2967,14 @@ def test_ode_pre_eig():
             [k1, 0, -k3, k3],
         ]
     )
-    assert_raises(la.LinAlgError, ode.SolveUnc, MASS, DAMP, STIF2, h, pre_eig=True)
-    assert_raises(la.LinAlgError, ode.SolveUnc, None, DAMP, STIF2, h, pre_eig=True)
+    with pytest.raises(la.LinAlgError):
+        ode.SolveUnc(MASS, DAMP, STIF2, h, pre_eig=True)
+    with pytest.raises(la.LinAlgError):
+        ode.SolveUnc(None, DAMP, STIF2, h, pre_eig=True)
 
     MASS[0, 0] = 0.0
-    assert_raises(la.LinAlgError, ode.SolveUnc, MASS, DAMP, STIF, h, pre_eig=True)
+    with pytest.raises(la.LinAlgError):
+        ode.SolveUnc(MASS, DAMP, STIF, h, pre_eig=True)
 
 
 def test_ode_badsize():
@@ -2989,12 +2984,16 @@ def test_ode_badsize():
     h = 0.001  # time step
     t = np.arange(0, 0.3001, h)  # time vector
     f = np.random.randn(3, len(t))
-    assert_raises(ValueError, ode.SolveExp2, m, b, k, h)
-    assert_raises(ValueError, ode.SolveExp2, b[0], b, k, h)
+    with pytest.raises(ValueError):
+        ode.SolveExp2(m, b, k, h)
+    with pytest.raises(ValueError):
+        ode.SolveExp2(b[0], b, k, h)
     b1 = np.random.randn(2, 2)
-    assert_raises(ValueError, ode.SolveExp2, m, b1, k, h)
+    with pytest.raises(ValueError):
+        ode.SolveExp2(m, b1, k, h)
     m1 = np.random.randn(3, 3, 3)
-    assert_raises(ValueError, ode.SolveExp2, m1, b, k, h)
+    with pytest.raises(ValueError):
+        ode.SolveExp2(m1, b, k, h)
 
 
 def test_precalc_warnings():
@@ -3004,16 +3003,12 @@ def test_precalc_warnings():
     b = 2.0 * zeta * np.sqrt(k / m) * m  # diagonal of damping
     h = 0.001  # time step
 
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
-    assert_warns(RuntimeWarning, ode.SolveUnc, m, b, k, h, rf=[2, 3])
+    with pytest.warns(RuntimeWarning):
+        ode.SolveUnc(m, b, k, h, rf=[2, 3])
 
     m = np.array([10e3, 30e-18, 30.0, 30.0])  # diagonal of mass
-    assert_warns(RuntimeWarning, ode.SolveUnc, m, b, k, h, rf=3)
+    with pytest.warns(RuntimeWarning):
+        ode.SolveUnc(m, b, k, h, rf=3)
 
 
 def test_ode_solvepsd():
@@ -3045,8 +3040,10 @@ def test_ode_solvepsd():
     )
     rmsf, psdf = ode.solvepsd(ts, forcepsd, t_frc, freq, drms)
     rmsphi, psdphi = ode.solvepsd(ts, forcepsd, t_frc, freq, drms)
-    assert_raises(ValueError, ode.solvepsd, ts, forcepsd, t_frc, freq[:-1], drms)
-    assert_raises(ValueError, ode.solvepsd, ts, forcepsd, t_frc[:, :-1], freq, drms)
+    with pytest.raises(ValueError):
+        ode.solvepsd(ts, forcepsd, t_frc, freq[:-1], drms)
+    with pytest.raises(ValueError):
+        ode.solvepsd(ts, forcepsd, t_frc[:, :-1], freq, drms)
 
     # solve by hand for comparison:
     freqw = 2 * np.pi * freq
@@ -3301,95 +3298,89 @@ def test_getmodepart():
     assert np.allclose(freqs_sbe, frqs3)
 
     # check for some error conditions:
-    assert_raises(
-        ValueError,
-        ode.getmodepart,
-        freq,
-        4,
-        mfreq,
-        ylog=1,
-        idlabel="getmodepart demo 1",
-        factor=0.1,
-        auto=[1, 0],
-    )
+    with pytest.raises(ValueError):
+        ode.getmodepart(
+            freq,
+            4,
+            mfreq,
+            ylog=1,
+            idlabel="getmodepart demo 1",
+            factor=0.1,
+            auto=[1, 0],
+        )
 
     sols = [
         [Tmid, sol_bot.a],
         [Ttop, sol_bot.a, "Bot to Top"],
         [Ttop, sol_mid.a, "Mid to Top"],
     ]
-    assert_raises(
-        ValueError,
-        ode.getmodepart,
-        freq,
-        sols,
-        mfreq,
-        ylog=1,
-        idlabel="getmodepart demo 1",
-        factor=0.1,
-        auto=[1, 0],
-    )
+    with pytest.raises(ValueError):
+        ode.getmodepart(
+            freq,
+            sols,
+            mfreq,
+            ylog=1,
+            idlabel="getmodepart demo 1",
+            factor=0.1,
+            auto=[1, 0],
+        )
 
     T = np.vstack((Tmid, Ttop))
     sols = [[T, sol_bot.a, "Bot to Mid"], [Ttop, sol_mid.a, "Mid to Top"]]
-    assert_raises(
-        ValueError,
-        ode.getmodepart,
-        freq,
-        sols,
-        mfreq,
-        ylog=1,
-        idlabel="getmodepart demo 1",
-        factor=0.1,
-        auto=[1, 0],
-    )
+    with pytest.raises(ValueError):
+        ode.getmodepart(
+            freq,
+            sols,
+            mfreq,
+            ylog=1,
+            idlabel="getmodepart demo 1",
+            factor=0.1,
+            auto=[1, 0],
+        )
 
     sols = [[T, sol_bot.a, ["Bot to Mid"]], [Ttop, sol_mid.a, "Mid to Top"]]
-    assert_raises(
-        ValueError,
-        ode.getmodepart,
-        freq,
-        sols,
-        mfreq,
-        ylog=1,
-        idlabel="getmodepart demo 1",
-        factor=0.1,
-        auto=[1, 0],
-    )
+    with pytest.raises(ValueError):
+        ode.getmodepart(
+            freq,
+            sols,
+            mfreq,
+            ylog=1,
+            idlabel="getmodepart demo 1",
+            factor=0.1,
+            auto=[1, 0],
+        )
 
     sols = [
         [Tmid, sol_bot.a, "Bot to Mid"],
         [Ttop, sol_bot.a, "Bot to Top"],
         [Ttop, sol_mid.a[:-1, :], "Mid to Top"],
     ]
-    assert_raises(
-        ValueError,
-        ode.getmodepart,
-        freq,
-        sols,
-        mfreq,
-        ylog=1,
-        idlabel="getmodepart demo 1",
-        factor=0.1,
-        auto=[1, 0],
-    )
+    with pytest.raises(ValueError):
+        ode.getmodepart(
+            freq,
+            sols,
+            mfreq,
+            ylog=1,
+            idlabel="getmodepart demo 1",
+            factor=0.1,
+            auto=[1, 0],
+        )
 
     sols = [
         [Tmid, sol_bot.a, ["Bot to Mid", "bad label"]],
         [Ttop, sol_bot.a, "Bot to Top"],
         [Ttop, sol_mid.a, "Mid to Top"],
     ]
-    assert_raises(
-        ValueError,
-        ode.getmodepart,
-        freq,
-        sols,
-        mfreq,
-        ylog=1,
-        idlabel="getmodepart demo 1",
-        factor=0.1,
-        auto=[1, 0],
-    )
+    with pytest.raises(ValueError):
+        ode.getmodepart(
+            freq,
+            sols,
+            mfreq,
+            ylog=1,
+            idlabel="getmodepart demo 1",
+            factor=0.1,
+            auto=[1, 0],
+        )
 
 
 def test_ode_ic_generator():
@@ -3641,16 +3632,20 @@ def test_ode_uncoupled_generator():
 
     nt = f.shape[1]
     tsu = ode.SolveUnc(m, b, k, h, order=order, rf=2)
-    assert_raises(NotImplementedError, tsu.generator, nt, f[:, 0], static_ic=static_ic)
+    with pytest.raises(NotImplementedError):
+        tsu.generator(nt, f[:, 0], static_ic=static_ic)
 
     tse2 = ode.SolveExp2(m, b, k, h, order=order, rf=2)
-    assert_raises(NotImplementedError, tse2.generator, nt, f[:, 0], static_ic=static_ic)
+    with pytest.raises(NotImplementedError):
+        tse2.generator(nt, f[:, 0], static_ic=static_ic)
 
     tsu = ode.SolveUnc(m, b, k, h, order=order)
-    assert_raises(ValueError, tsu.generator, nt, f[:-1, 0], static_ic=static_ic)
+    with pytest.raises(ValueError):
+        tsu.generator(nt, f[:-1, 0], static_ic=static_ic)
 
     tsu = ode.SolveUnc(m, b, np.diag(k), h, order=order, pre_eig=True)
-    assert_raises(NotImplementedError, tsu.generator, nt, f[:, 0], static_ic=static_ic)
+    with pytest.raises(NotImplementedError):
+        tsu.generator(nt, f[:, 0], static_ic=static_ic)
 
 
 def test_ode_uncoupled_2_generator():
@@ -4255,10 +4250,14 @@ def test_abstractness():
     from pyyeti.ode._base_ode_class import _BaseODE
 
     a = _BaseODE()
-    assert_raises(NotImplementedError, a.tsolve)
-    assert_raises(NotImplementedError, a.fsolve)
-    assert_raises(NotImplementedError, a.generator)
-    assert_raises(NotImplementedError, a.get_f2x)
+    with pytest.raises(NotImplementedError):
+        a.tsolve()
+    with pytest.raises(NotImplementedError):
+        a.fsolve()
+    with pytest.raises(NotImplementedError):
+        a.generator()
+    with pytest.raises(NotImplementedError):
+        a.get_f2x()
 
 
 def test_henkel_mar():

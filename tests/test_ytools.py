@@ -2,20 +2,8 @@ import numpy as np
 import tempfile
 import os
 from pyyeti import ytools
-from nose.tools import *
 import scipy.linalg as linalg
-
-
-# def test_fit_circle_2d():
-#     x = np.arange(100)
-#     y = np.arange(100)
-#
-#     import sys
-#     for v in list(sys.modules.values()):
-#         if getattr(v, '__warningregistry__', None):
-#             v.__warningregistry__ = {}
-#
-#     assert_warns(RuntimeWarning, ytools.fit_circle_2d, x, y)
+import pytest
 
 
 def test_fit_circle_3d():
@@ -67,7 +55,8 @@ def test_eig_si():
 
     mmod = m.copy()
     mmod[1, 0] = 2 * mmod[1, 0]
-    assert_raises(ValueError, ytools.eig_si, k, mmod, p=15, Xk=phi4, tol=1e-12)
+    with pytest.raises(ValueError):
+        ytools.eig_si(k, mmod, p=15, Xk=phi4, tol=1e-12)
 
 
 def test_gensweep():
@@ -126,7 +115,8 @@ def test_mattype():
     assert not ytools.mattype(np.random.randn(5, 5), "posdef")
     assert not ytools.mattype(np.random.randn(5, 5) * (2 + 1j), "posdef")
 
-    assert_raises(ValueError, ytools.mattype, c, "badtype")
+    with pytest.raises(ValueError):
+        ytools.mattype(c, "badtype")
 
 
 def test_save_load():
@@ -206,8 +196,10 @@ def test_compmat():
     a, s = ytools.compmat(A, B, 40.0, method="abs", pdiff_tol=5, verbose=0)
     assert np.allclose(a, 7.5)
 
-    assert_raises(ValueError, ytools.compmat, A, A[:2, :2])
-    assert_raises(ValueError, ytools.compmat, A, B, method="badmethod")
+    with pytest.raises(ValueError):
+        ytools.compmat(A, A[:2, :2])
+    with pytest.raises(ValueError):
+        ytools.compmat(A, B, method="badmethod")
 
 
 def test_max_complex_vector_sum():

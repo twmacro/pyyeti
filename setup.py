@@ -6,17 +6,6 @@ import pyyeti
 import os
 
 
-# the following is here so matplotlib will not open figures during
-# "python setup.py nosetests" ... but don't make this a hard
-# requirement
-try:
-    import matplotlib as mpl
-except ImportError:
-    pass
-else:
-    mpl.interactive(False)
-    mpl.use("Agg")
-
 ext_errors = (
     CCompilerError,
     DistutilsExecError,
@@ -141,9 +130,6 @@ def run_setup(with_binary):
             ),
         ],
         platforms="any",
-        setup_requires=["nose>=1.0"],
-        test_suite="nose.collector",
-        tests_require=["nose"],
         classifiers=CLASSIFIERS,
         **kw,
     )

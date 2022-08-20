@@ -1,6 +1,5 @@
 import numpy as np
 from pyyeti import locate
-from nose.tools import *
 
 
 def test_find_rows():

@@ -210,9 +210,9 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         a = np.dot(a.reshape(-1, 1), np.ones((1, lenf)))
     r, c = a.shape
     if c != lenf:
-        raise ValueError("`a` is not compatibly sized with `freq`.")
+        raise ValueError("`a` is not compatibly sized with `freq`")
     if r != len(bset):
-        raise ValueError("number of rows in `a` not compatible with `bset`.")
+        raise ValueError("number of rows in `a` not compatible with `bset`")
     frc = np.zeros((r, lenf), dtype=complex)
     bset = np.atleast_1d(bset).ravel()
     lt = m.shape[0]
@@ -353,7 +353,7 @@ def cbreorder(M, b, drm=False, last=False):
     lq = lt - lb
 
     if (lb // 6) * 6 != lb:
-        warn("b-set not a multiple of 6.", RuntimeWarning)
+        warn("b-set not a multiple of 6", RuntimeWarning)
 
     if lq == 0:
         if drm:
@@ -633,7 +633,7 @@ def cbconvert(M, b, conv="m2e", drm=False):
     lq = lt - lb
 
     if (lb // 6) * 6 != lb:
-        raise ValueError("b-set not a multiple of 6.")
+        raise ValueError("b-set not a multiple of 6")
 
     lengthconv, massconv = _get_conv_factors(conv)
     C = np.ones(lt)
@@ -1534,16 +1534,14 @@ def _rbmultchk(fout, drm, name, rb, labels, drm2, prtnullrows, bset):
     drmrb = drm1 @ rb
 
     # get rb scale:
-    if 0:
-        trips = n2p.find_xyz_triples(rb)
-        if not trips.pv.any():
-            raise ValueError("failed to get scale of rb modes ... check `rb`")
-        rbscale = trips.scales[trips.pv][0]
-    else:
-        xrss = np.sqrt(rb[:-2, 0] ** 2 + rb[1:-1, 0] ** 2 + rb[2:, 0] ** 2)
-        rbscale = abs(xrss).max()
-        if rbscale == 0.0:
-            raise ValueError("failed to get scale of rb modes ... check `rb`")
+    #   trips = n2p.find_xyz_triples(rb)
+    #   if not trips.pv.any():
+    #       raise ValueError("failed to get scale of rb modes ... check `rb`")
+    #   rbscale = trips.scales[trips.pv][0]
+    xrss = np.sqrt(rb[:-2, 0] ** 2 + rb[1:-1, 0] ** 2 + rb[2:, 0] ** 2)
+    rbscale = abs(xrss).max()
+    if rbscale == 0.0:
+        raise ValueError("failed to get scale of rb modes ... check `rb`")
 
     # attempt to find xyz triples:
     trips = n2p.find_xyz_triples(drmrb)
@@ -2056,7 +2054,7 @@ def rbdispchk(
         raise ValueError("`rbdisp` does not have 6 columns")
 
     if (r // 3) * 3 != r:
-        raise ValueError("number of rows in `rbdisp` must be a multiple of 3.")
+        raise ValueError("number of rows in `rbdisp` must be a multiple of 3")
     return _rbdispchk(f, rbdisp, grids, ttl, verbose, tol)
 
 
@@ -2071,10 +2069,10 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl, verbose, rb_normalizer):
     lq = lt - lb
 
     if (lb // 6) * 6 != lb:
-        raise ValueError("b-set not a multiple of 6.")
+        raise ValueError("b-set not a multiple of 6")
 
     if len(refpoint) != 6:
-        raise ValueError("reference point must have length of 6.")
+        raise ValueError("reference point must have length of 6")
 
     # make refpoint be relative to b-set:
     refpoint = refpoint - np.min(bset)

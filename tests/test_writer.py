@@ -4,7 +4,7 @@ import os
 import sys
 from io import StringIO
 from pyyeti import writer
-from nose.tools import *
+import pytest
 
 
 def test_vecwrite():
@@ -14,7 +14,8 @@ def test_vecwrite():
     r = np.array([[1.1, 1.2, 1.3], [10.1, 10.2, 10.3]])
     frm = "{:2}, {:=^25} : " + "  {:6.2f}" * 3 + chr(10)
     r2 = np.vstack((r, [20.1, 20.2, 20.3]))
-    assert_raises(ValueError, writer.vecwrite, sys.stdout, frm, i, v, r2)
+    with pytest.raises(ValueError):
+        writer.vecwrite(sys.stdout, frm, i, v, r2)
 
 
 def test_vecwrite_2file():
@@ -102,9 +103,8 @@ def test_vecwrite_slice():
 
     v = list("too long to be compatible")
     with StringIO() as f:
-        assert_raises(
-            ValueError, writer.vecwrite, f, frm, i, r, v, m, s, so=slice(1, None, 2)
-        )
+        with pytest.raises(ValueError):
+            writer.vecwrite(f, frm, i, r, v, m, s, so=slice(1, None, 2))
 
     with StringIO() as f:
         writer.vecwrite(f, frm, i, r, v, m, s, so=slice(5))
@@ -125,17 +125,14 @@ def test_formheader():
     time = np.array([[1.234], [2.345]])
     formats = ["{:<25s}", "{:10.2f}", "{:8.3f}"]
     widths = [25, 10, 8]
-    assert_raises(
-        ValueError, writer.formheader, 44, widths, formats, sep=[4, 5, 2], just=0
-    )
+    with pytest.raises(ValueError):
+        writer.formheader(44, widths, formats, sep=[4, 5, 2], just=0)
     headers = [["The"] * 3, ["Descriptions", "Maximum", "Time", "BAD"]]
-    assert_raises(
-        ValueError, writer.formheader, headers, widths, formats, sep=[4, 5, 2], just=0
-    )
+    with pytest.raises(ValueError):
+        writer.formheader(headers, widths, formats, sep=[4, 5, 2], just=0)
     headers = [["The"] * 3, ["Descriptions", "Maximum", "Time"]]
-    assert_raises(
-        ValueError, writer.formheader, headers, [25, 10], formats, sep=[4, 5, 2], just=0
-    )
+    with pytest.raises(ValueError):
+        writer.formheader(headers, [25, 10], formats, sep=[4, 5, 2], just=0)
     hu, f = writer.formheader(headers, widths, formats, sep=[4, 5, 2], just=0)
     with StringIO() as fout:
         fout.write(hu)

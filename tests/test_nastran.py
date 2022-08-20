@@ -4,7 +4,7 @@ from io import StringIO
 import matplotlib.pyplot as plt
 from pyyeti import nastran
 from pyyeti.nastran import op2, n2p, op4
-from nose.tools import *
+import pytest
 
 
 def test_rdcards():
@@ -13,13 +13,10 @@ def test_rdcards():
     )
     assert a == "no CCC"
 
-    assert_raises(
-        ValueError,
-        nastran.rdcards,
-        "tests/nas2cam_extseout/assemble.out",
-        "grid",
-        return_var="bad option",
-    )
+    with pytest.raises(ValueError):
+        nastran.rdcards(
+            "tests/nas2cam_extseout/assemble.out", "grid", return_var="bad option",
+        )
 
 
 def test_rdcards2():
@@ -134,7 +131,8 @@ def test_wtgrids():
         "*                   1.30              10"
         "             123             100\n"
     )
-    assert_raises(ValueError, nastran.wtgrids, 1, 100, form="{:9f}")
+    with pytest.raises(ValueError):
+        nastran.wtgrids(1, 100, form="{:9f}")
 
 
 def test_wttabled1():
@@ -159,10 +157,10 @@ def test_wttabled1():
         "*       ENDT\n"
     )
     assert s == sbe
-    assert_raises(ValueError, nastran.wttabled1, 1, 10, [1, 2], 1)
-    assert_raises(
-        ValueError, nastran.wttabled1, 1, 10, [1, 2], [1, 2], form="{:9f}{:9f}"
-    )
+    with pytest.raises(ValueError):
+        nastran.wttabled1(1, 10, [1, 2], 1)
+    with pytest.raises(ValueError):
+        nastran.wttabled1(1, 10, [1, 2], [1, 2], form="{:9f}{:9f}")
 
 
 def test_rdtabled1():
@@ -761,7 +759,8 @@ def test_wtqcset():
 
 
 def test_wtrbe3():
-    assert_raises(ValueError, nastran.wtrbe3, 1, 100, 9900, 123456, [1, 2, 3])
+    with pytest.raises(ValueError):
+        nastran.wtrbe3(1, 100, 9900, 123456, [1, 2, 3])
 
 
 def test_rdgpwg():
@@ -857,7 +856,8 @@ def test_fsearch():
 
 
 def test_wtrspline():
-    assert_raises(ValueError, nastran.wtrspline, 1, 1, 1)
+    with pytest.raises(ValueError):
+        nastran.wtrspline(1, 1, 1)
     ids = np.array(
         [
             [100, 1],
@@ -890,11 +890,13 @@ def test_wtrspline():
 
     # test for first and last must be independent error:
     ids[-1, 1] = 0
-    assert_raises(ValueError, nastran.wtrspline, 1, 10, ids)
+    with pytest.raises(ValueError):
+        nastran.wtrspline(1, 10, ids)
 
     # test for "no independents" error:
     ids[:, 1] = 1
-    assert_raises(ValueError, nastran.wtrspline, 1, 10, ids)
+    with pytest.raises(ValueError):
+        nastran.wtrspline(1, 10, ids)
 
 
 def test_wtrspline_rings():
@@ -975,36 +977,22 @@ def test_wtrspline_rings():
     # independent:
     assert (rsplines2[:, 2] < 1000).all()
 
-    assert_raises(
-        ValueError,
-        nastran.wtrspline_rings,
-        1,
-        uset1,
-        uset2,
-        1001,
-        2001,
-        makeplot="no",
-        independent="badoption",
-    )
+    with pytest.raises(ValueError):
+        nastran.wtrspline_rings(
+            1, uset1, uset2, 1001, 2001, makeplot="no", independent="badoption",
+        )
 
     uset1 = uset1[1]
-    assert_raises(
-        ValueError,
-        nastran.wtrspline_rings,
-        1,
-        uset1[:-1],
-        uset2,
-        1001,
-        2001,
-        makeplot="no",
-    )
+    with pytest.raises(ValueError):
+        nastran.wtrspline_rings(
+            1, uset1[:-1], uset2, 1001, 2001, makeplot="no",
+        )
 
     uset3 = None
     for row in ring2:
         uset3 = n2p.addgrid(uset3, int(row[0]), "b", 0, [row[3], row[1], row[2]], 0)
-    assert_raises(
-        ValueError, nastran.wtrspline_rings, 1, uset1, uset3, 1001, 2001, makeplot="no"
-    )
+    with pytest.raises(ValueError):
+        nastran.wtrspline_rings(1, uset1, uset3, 1001, 2001, makeplot="no")
 
 
 def test_wtcoordcards():

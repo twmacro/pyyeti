@@ -1,8 +1,8 @@
 import numpy as np
-from nose.tools import *
 from pyyeti import psd
 from pyyeti.fdepsd import fdepsd
 import scipy.signal as signal
+import pytest
 
 
 def compare(fde1, fde2):
@@ -144,5 +144,7 @@ def test_fdepsd_error():
     sr = 100
     freq = [1, 2, 3]
     q = 20
-    assert_raises(ValueError, fdepsd, sig, sr, freq, q)
-    assert_raises(ValueError, fdepsd, freq, sr, freq, q, "badresp")
+    with pytest.raises(ValueError):
+        fdepsd(sig, sr, freq, q)
+    with pytest.raises(ValueError):
+        fdepsd(freq, sr, freq, q, "badresp")

@@ -1,7 +1,7 @@
 import numpy as np
 from pyyeti import cb, ytools, frclim, ode
 from pyyeti.nastran import op2, n2p
-from nose.tools import *
+import pytest
 
 
 def test_calcAM():
@@ -98,7 +98,8 @@ def test_ntfl():
     assert np.allclose(25 / 45, abs(r.R[0, 0]))
     assert np.allclose(A_coupled, r.A)
     assert np.allclose(F_coupled, r.F)
-    assert_raises(ValueError, frclim.ntfl, source, load, As, freq[:-1])
+    with pytest.raises(ValueError):
+        frclim.ntfl(source, load, As, freq[:-1])
 
     r2 = frclim.ntfl(r.SAM, r.LAM, As, freq)
     assert r.SAM is r2.SAM

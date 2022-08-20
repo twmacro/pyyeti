@@ -4,7 +4,7 @@ import numpy as np
 from pyyeti import ytools, nastran, locate
 from pyyeti.nastran import op4, op2
 from scipy.io import matlab
-from nose.tools import *
+import pytest
 
 
 def runcomp(nas, m):
@@ -74,12 +74,10 @@ def test_n2c_extseout():
 
 
 def test_n2c_error():
-    assert_raises(
-        ValueError,
-        op2.rdnas2cam,
-        "tests/nas2cam_extseout/assemble.op2",
-        "tests/nas2cam_extseout/nas2cam.op2",
-    )
+    with pytest.raises(ValueError):
+        op2.rdnas2cam(
+            "tests/nas2cam_extseout/assemble.op2", "tests/nas2cam_extseout/nas2cam.op2",
+        )
 
 
 def test_drm12_reader():
@@ -251,11 +249,6 @@ def test_drm12_reader():
 
 
 def test_codefuncs():
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
     with op2.OP2("tests/nastran_drm12/drm12.op2") as o:
         assert o.CodeFuncs[1](7) == 1
         assert o.CodeFuncs[1](3002) == 2
@@ -276,12 +269,17 @@ def test_codefuncs():
         assert o.CodeFuncs["big"](funccode, 18) == val
 
         assert o._check_code(22, [4], [[2]], "test")
-        assert_warns(RuntimeWarning, o._check_code, 22, [4], [[42]], "test")
+        with pytest.warns(RuntimeWarning):
+            o._check_code(22, [4], [[42]], "test")
         assert o._check_code(18, [funccode], [[val]], "test")
-        assert_warns(RuntimeWarning, o._check_code, 18, [funccode], [[1]], "test")
 
-        assert_raises(ValueError, o._check_code, 22, [4, 4], [[2]], "test")
-        assert_raises(ValueError, o._check_code, 18, [77], [[val]], "test")
+        with pytest.warns(RuntimeWarning):
+            o._check_code(18, [funccode], [[1]], "test")
+
+        with pytest.raises(ValueError):
+            o._check_code(22, [4, 4], [[2]], "test")
+        with pytest.raises(ValueError):
+            o._check_code(18, [77], [[val]], "test")
 
 
 def test_bigend():
@@ -300,7 +298,8 @@ def test_bigend():
 
 
 def test_notop2():
-    assert_raises(ValueError, op2.OP2, "tests/nas2cam/no_se.dat")
+    with pytest.raises(ValueError):
+        op2.OP2("tests/nas2cam/no_se.dat")
 
 
 def test_rdop2mats():
@@ -478,7 +477,8 @@ def test_rdop2record():
 
         fh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
-        assert_raises(ValueError, o2.rdop2record, "badform")
+        with pytest.raises(ValueError):
+            o2.rdop2record("badform")
 
         fh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
@@ -517,6 +517,7 @@ def test_empty_file_error():
     f.close()
 
     try:
-        assert_raises(RuntimeError, op2.OP2, fname)
+        with pytest.raises(RuntimeError):
+            op2.OP2(fname)
     finally:
         os.remove(fname)

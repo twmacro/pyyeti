@@ -3,7 +3,6 @@
 # Install the documentation requirements with:
 #     python -m pip install -r requirements.txt
 #
-nose
 # tox
 build
 pytest

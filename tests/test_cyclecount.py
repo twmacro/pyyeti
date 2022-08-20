@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pyyeti import cyclecount
 from pyyeti.rainflow.py_rain import rainflow
-from nose.tools import *
+import pytest
 
 
 def test_rainflow_1():
@@ -135,10 +135,14 @@ def test_rainflow_5():
 
 
 def test_rainflow_badinput():
-    assert_raises(ValueError, cyclecount.rain.rainflow, 1.0)
-    assert_raises(ValueError, rainflow, 1.0)
-    assert_raises(ValueError, cyclecount.rain.rainflow, np.random.randn(2, 2))
-    assert_raises(ValueError, rainflow, np.random.randn(2, 2))
+    with pytest.raises(ValueError):
+        cyclecount.rain.rainflow(1.0)
+    with pytest.raises(ValueError):
+        rainflow(1.0)
+    with pytest.raises(ValueError):
+        cyclecount.rain.rainflow(np.random.randn(2, 2))
+    with pytest.raises(ValueError):
+        rainflow(np.random.randn(2, 2))
 
 
 def test_getbins_1():
@@ -148,7 +152,8 @@ def test_getbins_1():
     assert np.allclose(bb, [3.992, 6.0, 8.0, 10.0, 12.0])
     bb = cyclecount.getbins(4, 4, 12, right=False)
     assert np.allclose(bb, [4.0, 6.0, 8.0, 10.0, 12.008])
-    assert_raises(ValueError, cyclecount.getbins, 4, 3.0, 3.0)
+    with pytest.raises(ValueError):
+        cyclecount.getbins(4, 3.0, 3.0)
 
 
 def test_getbins_2():
@@ -167,7 +172,8 @@ def test_getbins_3():
     bb = cyclecount.getbins(binpts, mn, mx)
     assert np.allclose(bb, binpts)
     binpts = [0.5, 0.1, -10.0, 100]
-    assert_raises(ValueError, cyclecount.getbins, binpts, mn, mx)
+    with pytest.raises(ValueError):
+        cyclecount.getbins(binpts, mn, mx)
 
 
 def test_sigcount_1():

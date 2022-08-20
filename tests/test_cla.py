@@ -12,15 +12,16 @@ import numpy as np
 from scipy.io import matlab
 import scipy.interpolate as interp
 import scipy.linalg as la
-from nose.tools import *
 import matplotlib.pyplot as plt
 from pyyeti import cla, cb, ode, stats, locate, ytools
 from pyyeti import nastran, srs
 from pyyeti.nastran import op2, n2p, op4
+import pytest
 
 
 def test_magpct():
-    assert_raises(ValueError, cla.magpct, [1, 2], [1, 2, 3])
+    with pytest.raises(ValueError):
+        cla.magpct([1, 2], [1, 2, 3])
     pds = cla.magpct([1, 2], [1, 3], filterval=4)
     assert len(pds) == 1
     assert np.allclose(pds[0], [0, -33.3333333])
@@ -290,7 +291,8 @@ def test_form_extreme():
     for e in events:
         lbls = results["FDLC"][e]["ATM"].drminfo.labels
         lbls[1] = lbls[0]
-    assert_raises(ValueError, results.form_extreme)
+    with pytest.raises(ValueError):
+        results.form_extreme()
 
     # change it back to being correct:
     for e in events:
@@ -699,14 +701,13 @@ def owlab(pth):
         results.resp_plots(direc="srs_cases")
         assert os.path.exists("srs_cases/OWLab_srs.pdf")
         assert os.path.exists("srs_cases/OWLab_psd.pdf")
-        assert_raises(
-            TypeError,
-            results.srs_plots,
-            Q=10,
-            direc="srs_cases",
-            showall=True,
-            plot=plt.semilogy,  # has to be a string in v1.0.8
-        )
+        with pytest.raises(TypeError):
+            results.srs_plots(
+                Q=10,
+                direc="srs_cases",
+                showall=True,
+                plot=plt.semilogy,  # has to be a string in v1.0.8
+            )
 
         # for testing:
         results2 = DR.prepare_results(sc["mission"], event)
@@ -725,18 +726,10 @@ def owlab(pth):
                 freq2[-1] = 49.7  # to cause error on next 'solvepsd'
                 results2.psd_data_recovery(caseid, DR, len(rnd), j, resp_time=20)
             else:
-                assert_raises(
-                    ValueError,
-                    results2.solvepsd,
-                    nas,
-                    caseid,
-                    DR,
-                    fs,
-                    F,
-                    T,
-                    freq2,
-                    verbose=verbose,
-                )
+                with pytest.raises(ValueError):
+                    results2.solvepsd(
+                        nas, caseid, DR, fs, F, T, freq2, verbose=verbose,
+                    )
 
         # test for incompatibly sized ValueError:
         T = T[:, :2]  # chop off last column
@@ -745,9 +738,8 @@ def owlab(pth):
             caseid = "{} {:2d}".format(event, j + 1)
             print("Running {} case {}".format(event, j + 1))
             F = interp.interp1d(ff[:, 0], ff[:, 1:].T, axis=1, fill_value=0.0)(freq)
-            assert_raises(
-                ValueError, results3.solvepsd, nas, caseid, DR, fs, F, T, freq
-            )
+            with pytest.raises(ValueError):
+                results3.solvepsd(nas, caseid, DR, fs, F, T, freq)
             break
 
         # compare srs results using 3.0 peak factor and frequency
@@ -906,12 +898,6 @@ def summarize(pth):
 
 
 def compare(pth):
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
     with cd("summary"):
         pth = "../" + pth
         # Load both sets of results and report percent differences:
@@ -996,37 +982,34 @@ def compare(pth):
                 )
         # test for some exceptions:
         magpct_options = {"filterval": mf, "symlogy": ms}
-        assert_raises(
-            IndexError,
-            lsp.rptpct,
-            lvc,
-            names=("LSP", "Contractor"),
-            drms=["scatm"],
-            direc="junk",
-            magpct_options=magpct_options,
-            filterval=[1, 1, 2, 3],
-        )
-        assert_raises(
-            IndexError,
-            lsp.rptpct,
-            lvc,
-            names=("LSP", "Contractor"),
-            drms=["scatm"],
-            direc="junk",
-            magpct_options=magpct_options,
-            filterval=np.ones((3, 4)),
-        )
+        with pytest.raises(IndexError):
+            lsp.rptpct(
+                lvc,
+                names=("LSP", "Contractor"),
+                drms=["scatm"],
+                direc="junk",
+                magpct_options=magpct_options,
+                filterval=[1, 1, 2, 3],
+            )
+        with pytest.raises(IndexError):
+            lsp.rptpct(
+                lvc,
+                names=("LSP", "Contractor"),
+                drms=["scatm"],
+                direc="junk",
+                magpct_options=magpct_options,
+                filterval=np.ones((3, 4)),
+            )
         magpct_options["filterval"] = "bad string"
-        assert_raises(
-            ValueError,
-            lsp.rptpct,
-            lvc,
-            names=("LSP", "Contractor"),
-            drms=["scatm"],
-            direc="junk",
-            magpct_options=magpct_options,
-            filterval=1.0,
-        )
+        with pytest.raises(ValueError):
+            lsp.rptpct(
+                lvc,
+                names=("LSP", "Contractor"),
+                drms=["scatm"],
+                direc="junk",
+                magpct_options=magpct_options,
+                filterval=1.0,
+            )
 
 
 def confirm():
@@ -1090,7 +1073,8 @@ def check_split():
             LC = len(mg)
             mg.form_extreme()
 
-            assert_raises(TypeError, mg.split)
+            with pytest.raises(TypeError):
+                mg.split()
 
             if do_stats:
                 mg["extreme"].calc_stat_ext(stats.ksingle(0.99, 0.90, LC))
@@ -1132,7 +1116,7 @@ def do_srs_plots():
     plt.close("all")
     with cd("summary"):
         results = cla.load("results.pgz")
-        with assert_warns(RuntimeWarning) as cm:
+        with pytest.warns(RuntimeWarning, match="no Q="):
             results["extreme"].srs_plots(
                 Q=33,
                 showall=True,
@@ -1140,25 +1124,16 @@ def do_srs_plots():
                 # drms=['net_ifltm', 'cglf'])
                 drms=["cglf"],
             )
-        the_warning = str(cm.warning)
-        print(the_warning)
-        assert 0 == the_warning.find("no Q=")
 
-        with assert_warns(RuntimeWarning) as cm:
+        with pytest.warns(RuntimeWarning, match="no SRS data"):
             results["extreme"].srs_plots(
                 Q=33, showall=True, direc="srs2", drms=["net_ifltm", "cglf"]
             )
-        the_warning = str(cm.warning)
-        print(the_warning)
-        assert 0 == the_warning.find("no SRS data")
 
-        assert_raises(
-            ValueError,
-            results["extreme"].srs_plots,
-            Q=[10, 33],
-            showall=True,
-            direc="srs2",
-        )
+        with pytest.raises(ValueError):
+            results["extreme"].srs_plots(
+                Q=[10, 33], showall=True, direc="srs2",
+            )
 
         results["extreme"].srs_plots(
             event="EXTREME",
@@ -1197,12 +1172,10 @@ def do_time_plots():
     with cd("toeco"):
         # Load both sets of results and report percent differences:
         results = cla.load("results.pgz")
-        assert_raises(
-            ValueError,
-            results.resp_plots,
-            direc="time2",
-            cases=["TOECO  1", "bad case name"],
-        )
+        with pytest.raises(ValueError):
+            results.resp_plots(
+                direc="time2", cases=["TOECO  1", "bad case name"],
+            )
 
 
 def test_transfer_orbit_cla():
@@ -1229,12 +1202,14 @@ def test_transfer_orbit_cla():
 
 
 def test_maxmin():
-    assert_raises(ValueError, cla.maxmin, np.ones((2, 2)), np.ones((5)))
+    with pytest.raises(ValueError):
+        cla.maxmin(np.ones((2, 2)), np.ones((5)))
 
 
 def test_extrema_1():
     mm = SimpleNamespace(ext=np.ones((5, 3)))
-    assert_raises(ValueError, cla.extrema, [], mm, "test")
+    with pytest.raises(ValueError):
+        cla.extrema([], mm, "test")
 
     rows = 5
     curext = SimpleNamespace(
@@ -1344,7 +1319,8 @@ def test_addcat():
         labels = 12
 
     # doesn't call DR_Def.add:
-    assert_raises(RuntimeError, cla.DR_Def.addcat, _)
+    with pytest.raises(RuntimeError):
+        cla.DR_Def.addcat(_)
 
     defaults = dict(
         # se = 0,
@@ -1369,12 +1345,6 @@ def test_addcat():
     assert drdefs["ATM"].se == 0
     assert np.allclose(drdefs["ATM"].uf_reds, (1, 1, 1, 1))
 
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
     def _():
         name = "LTM"
         labels = 12
@@ -1384,10 +1354,8 @@ def test_addcat():
         drfunc = "ATM"
         drdefs.add(**locals())
 
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(RuntimeWarning, match='"drm" already'):
         cla.DR_Def.addcat(_)
-    the_warning = str(cm.warning)
-    assert 0 == the_warning.find('"drm" already')
 
     assert drdefs["LTM"].drfile == drdefs["ATM"].drfile
 
@@ -1397,12 +1365,8 @@ def test_addcat():
         drfile = "no such file"
         drdefs.add(**locals())
 
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(RuntimeWarning, match=r"ATM45.*could not open"):
         cla.DR_Def.addcat(_)
-    the_warning = str(cm.warning)
-    # for s in ("ATM45", "import of", "failed."):
-    for s in ("ATM45", "could not open "):
-        assert s in the_warning
 
     def _():
         name = "DTM"
@@ -1412,7 +1376,8 @@ def test_addcat():
         drdefs.add(**locals())
 
     # uses a different "drm":
-    assert_raises(ValueError, cla.DR_Def.addcat, _)
+    with pytest.raises(ValueError):
+        cla.DR_Def.addcat(_)
 
     def _():
         name = "DTM"
@@ -1420,7 +1385,8 @@ def test_addcat():
         drdefs.add(**locals())
 
     # already defined data recovery category:
-    assert_raises(ValueError, cla.DR_Def.addcat, _)
+    with pytest.raises(ValueError):
+        cla.DR_Def.addcat(_)
 
     def _():
         name = "SDTM"
@@ -1431,7 +1397,8 @@ def test_addcat():
         drdefs.add(**locals())
 
     # `desc` not in defaults:
-    assert_raises(ValueError, cla.DR_Def.addcat, _)
+    with pytest.raises(ValueError):
+        cla.DR_Def.addcat(_)
 
     def _():
         name = "TDTM"
@@ -1442,7 +1409,8 @@ def test_addcat():
         drdefs.add(**locals())
 
     # length of `filterval` does not match length of labels:
-    assert_raises(ValueError, cla.DR_Def.addcat, _)
+    with pytest.raises(ValueError):
+        cla.DR_Def.addcat(_)
 
     # this length does match, so no error:
     @cla.DR_Def.addcat
@@ -1474,7 +1442,8 @@ def test_addcat():
         drdefs.add(**locals())
 
     # length of `histpv` does not match length of labels:
-    assert_raises(ValueError, cla.DR_Def.addcat, _)
+    with pytest.raises(ValueError):
+        cla.DR_Def.addcat(_)
 
     # a good integer `histpv`
     @cla.DR_Def.addcat
@@ -1497,7 +1466,8 @@ def test_addcat():
         drdefs.add(**locals())
 
     # `histpv` exceeds dimensions:
-    assert_raises(ValueError, cla.DR_Def.addcat, _)
+    with pytest.raises(ValueError):
+        cla.DR_Def.addcat(_)
 
     # a bad type for `histpv`
     def _():
@@ -1505,11 +1475,13 @@ def test_addcat():
         labels = 4
         drms = {"atm6": 1}
         histpv = {}
-        # drfunc = 'ATM' ... so that an error message is triggered
+        # drfunc = 'ATM' ... so that a warning message is triggered
         drdefs.add(**locals())
 
     # `histpv` is bad type:
-    assert_raises(TypeError, cla.DR_Def.addcat, _)
+    with pytest.raises(TypeError, match="`histpv` input not understood"):
+        with pytest.warns(RuntimeWarning, match='function "ATM6" not found'):
+            cla.DR_Def.addcat(_)
 
     # overlapping drms and nondrms names:
     def _():
@@ -1521,17 +1493,20 @@ def test_addcat():
         drdefs.add(**locals())
 
     # overlapping names in `drms` and `nondrms`
-    assert_raises(ValueError, cla.DR_Def.addcat, _)
+    with pytest.raises(ValueError):
+        cla.DR_Def.addcat(_)
 
     drdefs.copycat("ATM", "_dummy", uf_reds=(0, 1, 1.0, 1))
 
     assert drdefs["ATM_dummy"].labels == drdefs["ATM"].labels
 
     # modify category that doesn't exist
-    assert_raises(ValueError, drdefs.copycat, "notexist", "_2", uf_reds=(0, 1, 1.0, 1))
+    with pytest.raises(ValueError):
+        drdefs.copycat("notexist", "_2", uf_reds=(0, 1, 1.0, 1))
 
     # modify parameter that doesn't exist
-    assert_raises(ValueError, drdefs.copycat, "ATM", "_2", notexist=1)
+    with pytest.raises(ValueError):
+        drdefs.copycat("ATM", "_2", notexist=1)
 
     drdefs.copycat("ATM", ["ATM_2"], uf_reds=(0, 1, 1.0, 1))
 
@@ -1542,17 +1517,20 @@ def test_addcat():
     assert np.allclose(drdefs["ATM_3"].uf_reds, (0, 1, 1, 1))
 
     # atm_2 already exists:
-    assert_raises(ValueError, drdefs.copycat, "ATM", "_2")
+    with pytest.raises(ValueError):
+        drdefs.copycat("ATM", "_2")
 
     # add a 0rb version of non-existent category:
-    assert_raises(ValueError, drdefs.add_0rb, "net_ifatm")
+    with pytest.raises(ValueError):
+        drdefs.add_0rb("net_ifatm")
 
 
 def test_addcat_2():
     defaults = dict(se=0, uf_reds=(1, 1, 1, 1), drfile=".", srsQs=10)
     drdefs = cla.DR_Def(defaults)
     # error because there no categories
-    assert_raises(RuntimeError, drdefs.excel_summary, None)
+    with pytest.raises(RuntimeError):
+        drdefs.excel_summary(None)
 
 
 def test_addcat_3():
@@ -1625,12 +1603,8 @@ def test_addcat_4():
         drfunc = "blah *"
         drdefs.add(**locals())
 
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(RuntimeWarning, match=r"ATM2.*failed to compile string"):
         cla.DR_Def.addcat(_)
-    the_warning = str(cm.warning)
-    for s in ("ATM2", "failed to compile string"):
-        assert s in the_warning
-    from pyyeti.pp import PP
 
     assert drdefs["ATM2"].srsQs is None
 
@@ -1720,9 +1694,12 @@ def test_event_add():
     assert len(DR.Info) == 0
 
     DR.add(nas, drdefs, uf_reds=(2, 2, 2, 2))
-    assert_raises(ValueError, DR.add, nas, drdefs2)
-    assert_raises(ValueError, DR.add, nas, drdefs3)
-    assert_raises(ValueError, DR.add, nas, drdefs4)
+    with pytest.raises(ValueError):
+        DR.add(nas, drdefs2)
+    with pytest.raises(ValueError):
+        DR.add(nas, drdefs3)
+    with pytest.raises(ValueError):
+        DR.add(nas, drdefs4)
 
     # for testing apply_uf:
     sol = SimpleNamespace()
@@ -1809,14 +1786,10 @@ def test_event_add_uf_reds_update():
     assert DR.UF_reds[0] == (2, 3, 6, 9)
 
     DR = cla.DR_Event()
-    assert_raises(
-        ValueError,
-        DR.add,
-        nas,
-        drdefs,
-        uf_reds=(None, 1, 4, 7),
-        method="bad method string",
-    )
+    with pytest.raises(ValueError):
+        DR.add(
+            nas, drdefs, uf_reds=(None, 1, 4, 7), method="bad method string",
+        )
 
 
 def test_DR_Results_init():
@@ -1880,10 +1853,12 @@ def test_merge():
 
     results = cla.DR_Results()
     r1 = {"FLAC": "this is a bad entry"}
-    assert_raises(TypeError, results.merge, (r1, r2))
+    with pytest.raises(TypeError):
+        results.merge((r1, r2))
 
     # ValueError: event with name {event} already exists!
-    assert_raises(ValueError, results.merge, (r2, r2))
+    with pytest.raises(ValueError):
+        results.merge((r2, r2))
 
 
 def mass_spring_system():
@@ -2005,7 +1980,8 @@ def test_case_defined():
     # test for some errors:
     results = DR.prepare_results("Spring & Damper Forces", event)
     results.time_data_recovery(sol, None, event, DR, 2, 0)
-    assert_raises(ValueError, results.time_data_recovery, sol, None, event, DR, 2, 1)
+    with pytest.raises(ValueError):
+        results.time_data_recovery(sol, None, event, DR, 2, 1)
 
     # mess the labels up:
     drdefs = cla.DR_Def(defaults)
@@ -2029,7 +2005,8 @@ def test_case_defined():
     results = DR.prepare_results("Spring & Damper Forces", event)
 
     # perform data recovery:
-    assert_raises(ValueError, results.time_data_recovery, sol, None, event, DR, 1, 0)
+    with pytest.raises(ValueError):
+        results.time_data_recovery(sol, None, event, DR, 1, 0)
 
 
 def test_PSD_consistent():
@@ -2158,7 +2135,8 @@ def test_rptext1():
     lbls = results["kc_forces"].drminfo.labels[:]
     results["kc_forces"].drminfo.labels = lbls[:-1]
     with StringIO() as f:
-        assert_raises(ValueError, cla.rptext1, results["kc_forces"], f)
+        with pytest.raises(ValueError):
+            cla.rptext1(results["kc_forces"], f)
 
     results["kc_forces"].drminfo.labels = lbls
     del results["kc_forces"].domain
@@ -2409,10 +2387,12 @@ def test_rpttab1():
     lbls = results["kc_forces"].drminfo.labels[:]
     results["kc_forces"].drminfo.labels = lbls[:-1]
     with StringIO() as f:
-        assert_raises(ValueError, cla.rpttab1, results["kc_forces"], f, "Title")
+        with pytest.raises(ValueError):
+            cla.rpttab1(results["kc_forces"], f, "Title")
 
     results["kc_forces"].drminfo.labels = lbls
-    assert_raises(ValueError, cla.rpttab1, results["kc_forces"], "t.xlsx", "Title")
+    with pytest.raises(ValueError):
+        cla.rpttab1(results["kc_forces"], "t.xlsx", "Title")
 
 
 def test_rptpct1():
@@ -2878,28 +2858,26 @@ def test_rptpct1_2():
 
     with StringIO() as f:
         # mxmn2 has different number of rows:
-        assert_raises(
-            ValueError,
-            cla.rptpct1,
-            results["FFN 0"]["kc_forces"],
-            results["FFN 1"]["kc_forces"].ext[:4],
-            f,
-            **opts,
-        )
+        with pytest.raises(ValueError):
+            cla.rptpct1(
+                results["FFN 0"]["kc_forces"],
+                results["FFN 1"]["kc_forces"].ext[:4],
+                f,
+                **opts,
+            )
 
     drminfo0 = results["FFN 0"]["kc_forces"].drminfo
     drminfo1 = results["FFN 1"]["kc_forces"].drminfo
     drminfo0.labels = drminfo1.labels[:4]
     with StringIO() as f:
         # labels is wrong length
-        assert_raises(
-            ValueError,
-            cla.rptpct1,
-            results["FFN 0"]["kc_forces"],
-            results["FFN 1"]["kc_forces"].ext,
-            f,
-            **opts,
-        )
+        with pytest.raises(ValueError):
+            cla.rptpct1(
+                results["FFN 0"]["kc_forces"],
+                results["FFN 1"]["kc_forces"].ext,
+                f,
+                **opts,
+            )
 
     opts = {
         "domagpct": False,
@@ -3131,7 +3109,8 @@ def test_reldisp_dtm():
     assert np.allclose(L, 300.0 * np.sqrt(2))
     assert rellabels == ["SE101,10 - SE101,3", "SE101,18 - SE0,11"]
 
-    assert_raises(ValueError, cla.relative_displacement_dtm, nas, [[SC, 11, 0, 11]])
+    with pytest.raises(ValueError):
+        cla.relative_displacement_dtm(nas, [[SC, 11, 0, 11]])
 
     # notes:
     # - element 66 runs between 3 & 10
@@ -3253,8 +3232,10 @@ def test_set_dr_order():
     assert "['atm0', 'ltm0', 'dtm1', 'ltm1', 'dtm0', 'atm1']" in r
 
     # check for proper errors:
-    assert_raises(ValueError, DR.set_dr_order, ("scatm",), "first")
-    assert_raises(ValueError, DR.set_dr_order, ("atm0",), "bad where")
+    with pytest.raises(ValueError):
+        DR.set_dr_order(("scatm",), "first")
+    with pytest.raises(ValueError):
+        DR.set_dr_order(("atm0",), "bad where")
 
     # check a couple corner cases:
     DR.set_dr_order([], where="first")
@@ -3368,14 +3349,12 @@ def test_dr_def_merge():
     ]
 
     # should raise ValueError for duplicate categories:
-    assert_raises_regex(
-        ValueError,
-        r"there were duplicate categories:\n.*atm0.*ltm1",
-        cla.DR_Def.merge,
-        drdefs[0],
-        drdefs[1],
-        drdefs[2],
-    )
+    with pytest.raises(
+        ValueError, match=r"there were duplicate categories:\n.*atm0.*ltm1"
+    ):
+        cla.DR_Def.merge(
+            drdefs[0], drdefs[1], drdefs[2],
+        )
 
     drdefs = [
         get_dr_defs(
@@ -3388,14 +3367,13 @@ def test_dr_def_merge():
     ]
 
     # should raise ValueError for duplicate drms:
-    assert_raises_regex(
+    with pytest.raises(
         ValueError,
-        (r'there were duplicate "drms" names. By SE:\n' r"102:.*ltm1_d.*"),
-        cla.DR_Def.merge,
-        drdefs[0],
-        drdefs[1],
-        drdefs[2],
-    )
+        match=(r'there were duplicate "drms" names. By SE:\n102:.*ltm1_d.*'),
+    ):
+        cla.DR_Def.merge(
+            drdefs[0], drdefs[1], drdefs[2],
+        )
 
     drdefs = [
         get_dr_defs(
@@ -3408,14 +3386,13 @@ def test_dr_def_merge():
     ]
 
     # should raise ValueError for duplicate nondrms:
-    assert_raises_regex(
+    with pytest.raises(
         ValueError,
-        (r'there were duplicate "nondrms" names. By SE:\n' r"102:.*ltm1_n.*"),
-        cla.DR_Def.merge,
-        drdefs[0],
-        drdefs[1],
-        drdefs[2],
-    )
+        match=(r'there were duplicate "nondrms" names. By SE:\n102:.*ltm1_n.*'),
+    ):
+        cla.DR_Def.merge(
+            drdefs[0], drdefs[1], drdefs[2],
+        )
 
 
 def test_drdef_importer():
@@ -3489,7 +3466,8 @@ def test_dr_def_amend():
     assert (cat.srspv == [0, 4]).all()
     assert cat.filterval == 1.2
 
-    assert_raises(ValueError, drdefs.amend, **dict(name="scatm", drms={"scatm": 1}))
+    with pytest.raises(ValueError):
+        drdefs.amend(**dict(name="scatm", drms={"scatm": 1}))
 
     drdefs.amend(name="scatm", drms={"scatm": 1}, overwrite_drms=True)
 
@@ -3708,10 +3686,8 @@ def test_solvepsd_ltmf():
     caseid = "PSDTest"
 
     results2 = DR.prepare_results("Spring & Damper Forces", event)
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(RuntimeWarning, match="There are 1 zero forces"):
         results2.solvepsd(nas, caseid, DR, ts, fpsd, t_frc, freq)
-    the_warning = str(cm.warning)
-    assert the_warning.startswith("There are 1 zero forces")
 
     results2.psd_data_recovery(caseid, DR, 1, 0)
 

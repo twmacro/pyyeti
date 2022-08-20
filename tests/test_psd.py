@@ -1,7 +1,7 @@
 import numpy as np
 from pyyeti import psd
-from nose.tools import *
 import scipy.signal as signal
+import pytest
 
 
 def test_get_freq_oct():
@@ -53,16 +53,19 @@ def test_get_freq_oct():
         ),
     )
 
-    assert_raises(ValueError, psd.get_freq_oct, 1, [1, 2.5], trim="badstring")
+    with pytest.raises(ValueError):
+        psd.get_freq_oct(1, [1, 2.5], trim="badstring")
 
 
 def test_proc_psd_spec():
-    assert_raises(ValueError, psd.proc_psd_spec, np.array([1]))
-    assert_raises(ValueError, psd.proc_psd_spec, (1, 2, 3))
-    assert_raises(ValueError, psd.proc_psd_spec, (np.arange(10), np.random.randn(11)))
-    assert_raises(
-        ValueError, psd.proc_psd_spec, (np.arange(10), np.random.randn(10, 2, 2))
-    )
+    with pytest.raises(ValueError):
+        psd.proc_psd_spec(np.array([1]))
+    with pytest.raises(ValueError):
+        psd.proc_psd_spec((1, 2, 3))
+    with pytest.raises(ValueError):
+        psd.proc_psd_spec((np.arange(10), np.random.randn(11)))
+    with pytest.raises(ValueError):
+        psd.proc_psd_spec((np.arange(10), np.random.randn(10, 2, 2)))
 
 
 def test_area():
@@ -180,7 +183,8 @@ def test_spl():
     # oaspl should be greater than the one above:
     assert oaspl > oaspl1 * 1.01
 
-    assert_raises(ValueError, psd.spl, x, sr, sr, timeslice=0.5)
+    with pytest.raises(ValueError):
+        psd.spl(x, sr, sr, timeslice=0.5)
 
 
 def test_psd2time():
@@ -204,22 +208,20 @@ def test_psd2time():
     f2, p2 = psd.psdmod(sig2, sr2, timeslice=f"{len(sig)}")
 
     assert np.trapz(p1, f1) < np.trapz(p2, f2)
-    assert_raises(
-        ValueError,
-        psd.psd2time,
-        spec,
-        ppc=10,
-        fstart=35,
-        fstop=70,
-        df=0.01,
-        winends=dict(portion=0.01),
-        expand_method="bad expand method",
-    )
+    with pytest.raises(ValueError):
+        psd.psd2time(
+            spec,
+            ppc=10,
+            fstart=35,
+            fstop=70,
+            df=0.01,
+            winends=dict(portion=0.01),
+            expand_method="bad expand method",
+        )
 
     multi_spec = np.array([[20, 0.0768, 0.01], [50, 0.48, 0.01], [100, 0.48, 0.01]])
-    assert_raises(
-        ValueError, psd.psd2time, multi_spec, ppc=10, fstart=35, fstop=70, df=0.01
-    )
+    with pytest.raises(ValueError):
+        psd.psd2time(multi_spec, ppc=10, fstart=35, fstop=70, df=0.01)
 
     assert np.allclose(700.0, sr)  # 70*10
     assert sig.size == 700 * 100

@@ -5,23 +5,21 @@ import os
 from glob import glob
 import tempfile
 import scipy.sparse as sp
-from nose.tools import *
+import pytest
 
 
 def _check_badname_cm(cm):
     assert (
-        cm.warnings[0].message.args[0]
+        cm[0].message.args[0]
         == "Output4 file has matrix name: '1mat'. Changing to 'm0'."
     )
 
     assert (
-        cm.warnings[1].message.args[0]
-        == "Output4 file has matrix name: ''. Changing to 'm1'."
+        cm[1].message.args[0] == "Output4 file has matrix name: ''. Changing to 'm1'."
     )
 
     assert (
-        cm.warnings[2].message.args[0]
-        == "Output4 file has matrix name: '09'. Changing to 'm2'."
+        cm[2].message.args[0] == "Output4 file has matrix name: '09'. Changing to 'm2'."
     )
 
 
@@ -48,7 +46,12 @@ def _rdop4_tst(o4):
 
     for filename in filenames:
         # output of dir not checked, but it should work on all these files:
-        op4.dir(filename, verbose=False)
+        if filename.find("badname") > -1:
+            with pytest.warns(RuntimeWarning) as cm:
+                op4.dir(filename, verbose=False)
+            _check_badname_cm(cm)
+        else:
+            op4.dir(filename, verbose=False)
 
         basename = os.path.basename(filename)
         if basename in nocomp:
@@ -57,15 +60,15 @@ def _rdop4_tst(o4):
             continue
 
         if filename.find("badname") > -1:
-            with assert_warns(RuntimeWarning) as cm:
+            with pytest.warns(RuntimeWarning) as cm:
                 dct = o4.dctload(filename)
             _check_badname_cm(cm)
 
-            with assert_warns(RuntimeWarning) as cm:
+            with pytest.warns(RuntimeWarning) as cm:
                 names, mats, forms, mtypes = o4.listload(filename)
             _check_badname_cm(cm)
 
-            with assert_warns(RuntimeWarning) as cm:
+            with pytest.warns(RuntimeWarning) as cm:
                 names2, sizes, forms2, mtypes2 = o4.dir(filename, verbose=False)
             _check_badname_cm(cm)
         else:
@@ -93,7 +96,7 @@ def _rdop4_tst(o4):
             nm2 = "rcmats"
         if filename.find("badname") > -1:
             nm2 = "m2"
-            with assert_warns(RuntimeWarning) as cm:
+            with pytest.warns(RuntimeWarning):
                 dct = o4.dctload(filename, nm2)
                 name, mat, *_ = o4.listload(filename, [nm2])
         else:
@@ -104,13 +107,6 @@ def _rdop4_tst(o4):
 
 
 def test_rdop4():
-    # unittest bug avoidance:
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
     o4 = op4.OP4()
     _rdop4_tst(o4)
 
@@ -425,13 +421,15 @@ def test_wtop4_single_2():
 
 def test_wtop4_single_3():
     matfile = "tests/nastran_op4_data/r_c_rc.mat"
-    assert_raises(ValueError, op4.load, matfile, into="badstring")
+    with pytest.raises(ValueError):
+        op4.load(matfile, into="badstring")
 
 
 def test_wtop4_single_4():
     matfile = "tests/nastran_op4_data/r_c_rc.mat"
     o4 = op4.OP4()
-    assert_raises(ValueError, o4.load, matfile, into="badstring")
+    with pytest.raises(ValueError):
+        o4.load(matfile, into="badstring")
 
 
 def test_forced_bigmat():
@@ -462,16 +460,17 @@ def test_i64():
 def test_bad_sparse():
     matfile = "temp1.op4"
     r = 1.2
-    assert_raises(ValueError, op4.save, matfile, dict(r=r), sparse="badsparsestring")
-    assert_raises(
-        ValueError, op4.save, matfile, dict(r=r), sparse="badsparsestring", binary=False
-    )
+    with pytest.raises(ValueError):
+        op4.save(matfile, dict(r=r), sparse="badsparsestring")
+    with pytest.raises(ValueError):
+        op4.save(matfile, dict(r=r), sparse="badsparsestring", binary=False)
 
 
 def test_bad_dimensions():
     matfile = "temp2.op4"
     r = np.ones((2, 2, 2))
-    assert_raises(ValueError, op4.save, matfile, dict(r=r))
+    with pytest.raises(ValueError):
+        op4.save(matfile, dict(r=r))
 
 
 def test_sparse_read():
@@ -479,6 +478,10 @@ def test_sparse_read():
     fnames = glob(direc + "*.op4") + glob(direc + "*.other")
 
     for fname in fnames:
+        if "badname" in fname:
+            # this test works fine but it doesn't add value and it
+            # triggers annoying-to-catch warnings
+            continue
         m = op4.read(fname)
         if fname.endswith("cdbin_ascii_sparse_nonbigmat.op4"):
             # this has an all-zeros matrix that is written the same as
@@ -630,9 +633,8 @@ def test_premature_eof_warning():
         bufr = open(fname, "rb").read()
         open(fname, "wb").write(bufr[:-6])
 
-        with assert_warns(RuntimeWarning) as cm:
+        with pytest.warns(RuntimeWarning, match="Premature end-of-file"):
             a2 = op4.read(fname)
-            assert cm.warnings[0].message.args[0].startswith("Premature end-of-file")
 
     finally:
         os.remove(fname)
@@ -646,15 +648,14 @@ def test_invalid_write_name():
     f = tempfile.NamedTemporaryFile(delete=False)
     name = f.name
     f.close()
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(
+        RuntimeWarning,
+        match="Matrix for output4 write has name: '4badname'. Changing to 'm0'.",
+    ):
         try:
             op4.write(name, {"4badname": a})
         finally:
             os.remove(name)
-    assert (
-        cm.warnings[0].message.args[0]
-        == "Matrix for output4 write has name: '4badname'. Changing to 'm0'."
-    )
 
 
 def test_too_long_write_name():
@@ -663,15 +664,15 @@ def test_too_long_write_name():
     f = tempfile.NamedTemporaryFile(delete=False)
     name = f.name
     f.close()
-    with assert_warns(RuntimeWarning) as cm:
+    with pytest.warns(
+        RuntimeWarning,
+        match="Matrix for output4 write has name: 'name_is_too_long'. "
+        "Truncating to 'name_is_'.",
+    ):
         try:
             op4.write(name, {"name_is_too_long": a})
         finally:
             os.remove(name)
-    assert cm.warnings[0].message.args[0] == (
-        "Matrix for output4 write has name: 'name_is_too_long'. "
-        "Truncating to 'name_is_'."
-    )
 
 
 def test_empty_file_error():
@@ -680,6 +681,7 @@ def test_empty_file_error():
     f.close()
 
     try:
-        assert_raises(RuntimeError, op4.load, fname)
+        with pytest.raises(RuntimeError):
+            op4.load(fname)
     finally:
         os.remove(fname)

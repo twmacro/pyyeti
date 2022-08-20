@@ -2,7 +2,7 @@ import numpy as np
 import scipy.stats as stats
 import scipy.signal as signal
 from pyyeti import dsp, locate, ytools
-from nose.tools import *
+import pytest
 
 
 def test_resample():
@@ -62,10 +62,10 @@ def test_resample():
 
 
 def test_exclusive_sgfilter():
-    assert_raises(
-        ValueError, dsp.exclusive_sgfilter, [1, 2, 3, 4, 5, 6, 7, 8], 5, "badoption"
-    )
-    assert_raises(ValueError, dsp.exclusive_sgfilter, [1, 2, 3, 4, 5, 6, 7, 8], 5, 6)
+    with pytest.raises(ValueError):
+        dsp.exclusive_sgfilter([1, 2, 3, 4, 5, 6, 7, 8], 5, "badoption")
+    with pytest.raises(ValueError):
+        dsp.exclusive_sgfilter([1, 2, 3, 4, 5, 6, 7, 8], 5, 6)
     x = np.arange(4 * 2 * 150 * 3.0).reshape(4, 2, 150, 3)
     x1 = signal.savgol_filter(x, 11, 0, axis=2)
     x2 = dsp.exclusive_sgfilter(x, 11, exclude_point=None, axis=2)
@@ -113,20 +113,17 @@ def test_waterfall():
     assert np.allclose(t, t2)
     assert np.allclose(f, f2)
 
-    assert_raises(ValueError, dsp.waterfall, sig, sr, 2, 0.5, func, which=None, freq=1)
-    assert_raises(
-        ValueError, dsp.waterfall, sig, sr, 2, 1.5, func, which=None, freq=frq
-    )
-    assert_raises(
-        ValueError, dsp.waterfall, sig, sr, 2, 1.0, func, which=None, freq=frq
-    )
-    assert_raises(
-        ValueError, dsp.waterfall, sig, sr, 2, -0.5, func, which=None, freq=frq
-    )
+    with pytest.raises(ValueError):
+        dsp.waterfall(sig, sr, 2, 0.5, func, which=None, freq=1)
+    with pytest.raises(ValueError):
+        dsp.waterfall(sig, sr, 2, 1.5, func, which=None, freq=frq)
+    with pytest.raises(ValueError):
+        dsp.waterfall(sig, sr, 2, 1.0, func, which=None, freq=frq)
+    with pytest.raises(ValueError):
+        dsp.waterfall(sig, sr, 2, -0.5, func, which=None, freq=frq)
     sig = np.hstack((sig2, sig2))
-    assert_raises(
-        ValueError, dsp.waterfall, sig, sr, 2, 0.5, func, which=None, freq=frq
-    )
+    with pytest.raises(ValueError):
+        dsp.waterfall(sig, sr, 2, 0.5, func, which=None, freq=frq)
 
 
 def test_waterfall2():
@@ -171,8 +168,10 @@ def test_waterfall2():
     tcmp = np.arange(S / 2.0, _t[-1] - S / 2 + step / 2, step)
     assert np.allclose(t, tcmp)
 
-    assert_raises(ValueError, dsp.waterfall, sig, sr, Si, -1, func, which=0, freq=1)
-    assert_raises(ValueError, dsp.waterfall, sig, sr, Si, Si, func, which=0, freq=1)
+    with pytest.raises(ValueError):
+        dsp.waterfall(sig, sr, Si, -1, func, which=0, freq=1)
+    with pytest.raises(ValueError):
+        dsp.waterfall(sig, sr, Si, Si, func, which=0, freq=1)
 
 
 def test_get_turning_pts():
@@ -181,21 +180,26 @@ def test_get_turning_pts():
     assert np.all([1, 3, 5] == x)
     y2 = dsp.get_turning_pts([1, 2, 3, 3, 3], getindex=False)
     assert np.all(y == y2)
-    assert_raises(ValueError, dsp.get_turning_pts, [1, 2, 3, 3, 3], [1, 2, 3, 3, 5])
-    assert_raises(ValueError, dsp.get_turning_pts, [1, 2, 3, 3, 3, 5], [1, 2, 3, 4, 5])
+    with pytest.raises(ValueError):
+        dsp.get_turning_pts([1, 2, 3, 3, 3], [1, 2, 3, 3, 5])
+    with pytest.raises(ValueError):
+        dsp.get_turning_pts([1, 2, 3, 3, 3, 5], [1, 2, 3, 4, 5])
 
 
 def test_calcenv():
     p = 5
     x = [1, 2, 3, 2, 5]
     y = [1, 4, 9, 4, 2]
-    assert_raises(ValueError, dsp.calcenv, x, y, p)
+    with pytest.raises(ValueError):
+        dsp.calcenv(x, y, p)
 
     x = [1, 2, 3, 4, 5]
     y = [1, 4, 9, 16]
-    assert_raises(ValueError, dsp.calcenv, x, y, p)
+    with pytest.raises(ValueError):
+        dsp.calcenv(x, y, p)
 
-    assert_raises(ValueError, dsp.calcenv, [0, 1, 2], [0, 5, 0], method="default")
+    with pytest.raises(ValueError):
+        dsp.calcenv([0, 1, 2], [0, 5, 0], method="default")
 
     xe, ye, *_ = dsp.calcenv([0, 1, 2], [0, 5, 0], makeplot="no")
     x_sb = [0, 0.95, 1.05, 2 * 1.05]
@@ -288,17 +292,12 @@ def test_calcenv():
 
 
 def test_fixtime():
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
-    assert_raises(ValueError, dsp.fixtime, ([1, 2, 3, 4], [1, 2, 3]))
+    with pytest.raises(ValueError):
+        dsp.fixtime(([1, 2, 3, 4], [1, 2, 3]))
 
     t = [0, 1, 6, 7]
     y = [1, 2, 3, 4]
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         tn, yn = dsp.fixtime((t, y), sr=1)
         ty2 = dsp.fixtime(np.vstack([t, y]).T, sr=1)
 
@@ -308,7 +307,7 @@ def test_fixtime():
     assert np.all(tn == np.arange(8))
     assert np.all(yn == [1, 2, 2, 2, 2, 2, 3, 4])
 
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         (t2, y2), info = dsp.fixtime((t, y), getall=True, sr=1)
         # ((t2, y2), pv,
         # sr_stats, tp) = dsp.fixtime((t, y), getall=True,
@@ -319,20 +318,21 @@ def test_fixtime():
     assert np.allclose(info.sr_stats, [1, 0.2, 3 / 7, 1, 200 / 3])
     assert np.all(info.tp == np.arange(4))
     assert info.despike_info is None
-    assert_raises(ValueError, dsp.fixtime, (1, 1, 1))
+    with pytest.raises(ValueError):
+        dsp.fixtime((1, 1, 1))
 
     drop = -1.40130e-45
     t = [0, 0.5, 1, 6, 7]
     y = [1, drop, 2, 3, 4]
 
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         t2, y2 = dsp.fixtime([t, y], sr=1)
     assert np.all(tn == t2)
     assert np.all(yn == y2)
 
     t = [1, 2, 3]
     y = [drop, drop, drop]
-    assert_warns(RuntimeWarning, dsp.fixtime, (t, y), "auto")
+    pytest.warns(RuntimeWarning, dsp.fixtime, (t, y), "auto")
 
     (t2, y2), info = dsp.fixtime((t, y), "auto", deldrops=False, getall=True)
     assert np.all(info.tp == [0, 2])
@@ -343,12 +343,12 @@ def test_fixtime():
     t = np.arange(100.0)
     t = np.hstack((t, 200.0))
     y = np.arange(101)
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         t2, y2 = dsp.fixtime((t, y), "auto")
     assert np.all(t2 == np.arange(100.0))
     assert np.all(y2 == np.arange(100))
 
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         t2, y2 = dsp.fixtime((t, y), "auto", delouttimes=0)
     assert np.all(t2 == np.arange(200.1))
     sbe = np.ones(201, int) * 99
@@ -358,15 +358,17 @@ def test_fixtime():
 
     t = [0, 1, 2, 3, 4, 5, 7, 6]
     y = [0, 1, 2, 3, 4, 5, 7, 6]
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         t2, y2 = dsp.fixtime((t, y), 1)
     assert np.all(t2 == np.arange(8))
     assert np.all(y2 == np.arange(8))
 
-    assert_raises(ValueError, dsp.fixtime, (t, y), 1, negmethod="stop")
+    with pytest.raises(ValueError):
+        dsp.fixtime((t, y), 1, negmethod="stop")
 
     t = np.arange(8)[::-1]
-    assert_raises(ValueError, dsp.fixtime, (t, y), 1)
+    with pytest.raises(ValueError):
+        dsp.fixtime((t, y), 1)
 
     t = np.arange(0, 1, 0.001)
     noise = np.random.randn(t.size)
@@ -380,14 +382,14 @@ def test_fixtime():
     dt[80:] = 0.91 * dt[80:]
     t = dt.cumsum()
     y = np.arange(100)
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         t2, y2 = dsp.fixtime((t, y), 1)
 
     dt = np.ones(100)
     dt[80:] = 1.08 * dt[80:]
     t = dt.cumsum()
     y = np.arange(100)
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         t2, y2 = dsp.fixtime((t, y), 1)
 
 
@@ -488,16 +490,12 @@ def test_fixtime_too_many_tp():
         ]
     )
 
-    import sys
+    with pytest.raises(ValueError):
+        dsp.fixtime(([1, 2, 3, 4], [1, 2, 3]))
+    with pytest.raises(ValueError):
+        dsp.fixtime(np.random.randn(3, 3, 3))
 
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
-    assert_raises(ValueError, dsp.fixtime, ([1, 2, 3, 4], [1, 2, 3]))
-    assert_raises(ValueError, dsp.fixtime, np.random.randn(3, 3, 3))
-
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         t, d = dsp.fixtime((*fd.T,), sr="auto")
     # assert np.all(fd[:, 1] == d)
     assert np.allclose(np.diff(t), 0.002)
@@ -505,16 +503,10 @@ def test_fixtime_too_many_tp():
 
 
 def test_fixtime_naninf():
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
     t = np.arange(15)
     y = [1, 2, 3, 4, np.nan, 6, 7, np.inf, 9, 10, -np.inf, 12, -1.40130e-45, 14, 15]
 
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         (tn, yn), info = dsp.fixtime((t, y), sr=1, getall=1)
 
     d = info.alldrops.dropouts
@@ -524,12 +516,6 @@ def test_fixtime_naninf():
 
 
 def test_fixtime_despike():
-    import sys
-
-    for v in list(sys.modules.values()):
-        if getattr(v, "__warningregistry__", None):
-            v.__warningregistry__ = {}
-
     t = np.arange(16)
     y = [
         1,
@@ -550,7 +536,7 @@ def test_fixtime_despike():
         15,
     ]
 
-    with assert_warns(RuntimeWarning):
+    with pytest.warns(RuntimeWarning):
         (tn, yn), info = dsp.fixtime(
             (t, y), sr=1, getall=1, delspikes=dict(n=9, sigma=2)
         )
@@ -587,14 +573,10 @@ def test_fixtime_perfect_delspike():
     assert np.allclose(t2, t)
     assert np.all(y2 == y)
 
-    assert_raises(
-        ValueError,
-        dsp.fixtime,
-        (t, y),
-        "auto",
-        delspikes=dict(method="badmethod"),
-        getall=1,
-    )
+    with pytest.raises(ValueError):
+        dsp.fixtime(
+            (t, y), "auto", delspikes=dict(method="badmethod"), getall=1,
+        )
 
 
 def test_fixtime_exclude_point_change():
@@ -617,14 +599,10 @@ def test_fixtime_exclude_point_change():
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
 
-    assert_raises(
-        ValueError,
-        dsp.fixtime,
-        (t, y),
-        "auto",
-        delspikes=dict(exclude_point="middle"),
-        verbose=False,
-    )
+    with pytest.raises(ValueError):
+        dsp.fixtime(
+            (t, y), "auto", delspikes=dict(exclude_point="middle"), verbose=False,
+        )
 
     # some of a ramp up should be deleted:
     y[100:105] = np.arange(0.0, 5.0) * 3
@@ -841,7 +819,8 @@ def test_aligntime():
     assert abs(newdct["t"][0] - t3[0]) < 1e-14
     assert abs(newdct["t"][-1] - t3[-1]) < 1e-14
 
-    assert_raises(ValueError, dsp.aligntime, dct, ["ax1", "ax4"])
+    with pytest.raises(ValueError):
+        dsp.aligntime(dct, ["ax1", "ax4"])
 
     newdct = dsp.aligntime(dct, mode="expand")
     assert abs(newdct["t"][0] - t[0]) < 1e-14
@@ -850,7 +829,8 @@ def test_aligntime():
     t4 = np.arange(1200, 1350) * dt
     y4 = np.random.randn(len(t4))
     dct["ax4"] = t4, y4
-    assert_raises(ValueError, dsp.aligntime, dct, ["ax1", "ax4"])
+    with pytest.raises(ValueError):
+        dsp.aligntime(dct, ["ax1", "ax4"])
 
 
 def test_aligntime2():
@@ -863,8 +843,10 @@ def test_aligntime2():
     y2 = np.random.randn(len(t2))
 
     dct = dict(ax1=(t, y), ax2=(t2, y2))
-    assert_raises(ValueError, dsp.aligntime, dct)
-    assert_raises(ValueError, dsp.aligntime, dct, mode="expand")
+    with pytest.raises(ValueError):
+        dsp.aligntime(dct)
+    with pytest.raises(ValueError):
+        dsp.aligntime(dct, mode="expand")
 
 
 def test_fdscale():
@@ -924,8 +906,10 @@ def test_fftfilt():
     assert 1 - stats.pearsonr(yf, y1 + y3)[0] < 0.01
     assert yf.ndim == 1
 
-    assert_raises(ValueError, dsp.fftfilt, y, 2)
-    assert_raises(ValueError, dsp.fftfilt, y, [0.1, 0.3], bw=[0.2, 0.2, 0.2])
+    with pytest.raises(ValueError):
+        dsp.fftfilt(y, 2)
+    with pytest.raises(ValueError):
+        dsp.fftfilt(y, [0.1, 0.3], bw=[0.2, 0.2, 0.2])
 
     y2 = np.column_stack((y, y))
     yf2 = dsp.fftfilt(y2, np.array([7, 18, 45]) / nyq, axis=0)[0]
@@ -957,9 +941,12 @@ def test_fftfilt():
 def test_fftfilt2():
     s = np.random.randn(10000)
     sr = 4100.0
-    assert_raises(ValueError, dsp.fftfilt, s, 2, nyq=sr / 2)
-    assert_raises(ValueError, dsp.fftfilt, s, [300, 310], nyq=sr / 2)
-    assert_raises(ValueError, dsp.fftfilt, s, [300, 4100 / 2 - 2], nyq=sr / 2)
+    with pytest.raises(ValueError):
+        dsp.fftfilt(s, 2, nyq=sr / 2)
+    with pytest.raises(ValueError):
+        dsp.fftfilt(s, [300, 310], nyq=sr / 2)
+    with pytest.raises(ValueError):
+        dsp.fftfilt(s, [300, 4100 / 2 - 2], nyq=sr / 2)
 
 
 def test_despike1():
@@ -974,7 +961,8 @@ def test_despike1():
     pv[-1] = True
     assert (s.pv == pv).all()
     assert (s.x == x[~pv]).all()
-    assert_raises(ValueError, dsp.despike, np.ones((5, 5)), 3)
+    with pytest.raises(ValueError):
+        dsp.despike(np.ones((5, 5)), 3)
 
 
 def test_despike2():
@@ -1060,7 +1048,8 @@ def test_despike_diff():
     assert (s.x == x[~pv]).all()
     assert s.niter == 1
 
-    assert_raises(ValueError, dsp.despike_diff, np.ones((5, 5)), 3)
+    with pytest.raises(ValueError):
+        dsp.despike_diff(np.ones((5, 5)), 3)
 
 
 def test_fftcoef():
@@ -1161,7 +1150,8 @@ def test_fftcoef_detrend():
             x3 = x3 + a * np.cos(k * w * t) + b * np.sin(k * w * t)
         assert np.allclose(xd, x3)
 
-    assert_raises(ValueError, dsp.fftcoef, x, 1 / t[1], window=np.ones(x.size - 1))
+    with pytest.raises(ValueError):
+        dsp.fftcoef(x, 1 / t[1], window=np.ones(x.size - 1))
 
 
 def test_fftcoef_maxdf():

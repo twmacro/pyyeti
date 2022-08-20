@@ -3,7 +3,7 @@ from scipy.integrate import odeint
 from pyyeti import srs
 import scipy.stats as stats
 import scipy.signal as signal
-from nose.tools import *
+import pytest
 
 
 def get_params():
@@ -1030,7 +1030,8 @@ def test_srs_bad_parallel():
     sig = np.sin(2 * np.pi * 15 * t)
     Q = 50
     frq = 5
-    assert_raises(ValueError, srs.srs, sig, sr, frq, Q, parallel=12)
+    with pytest.raises(ValueError):
+        srs.srs(sig, sr, frq, Q, parallel=12)
 
 
 def test_vrs():
@@ -1084,7 +1085,8 @@ def test_vrs():
     )
     assert np.all(np.abs(v5 - [6.38, 11.09, 21.78]) < 0.01)
     assert np.all(np.abs(m5 - [6.47, 11.21, 21.56]) < 0.01)
-    assert_raises(ValueError, srs.vrs, spec[:, :2], frq, Q=0.1, linear=True)
+    with pytest.raises(ValueError):
+        srs.vrs(spec[:, :2], frq, Q=0.1, linear=True)
 
 
 def test_srs_frf():
@@ -1192,16 +1194,10 @@ def test_srs_frf_3():
     assert np.allclose(frq, frf_frq)
     assert np.allclose(sh.ravel(), frf * Q)
 
-    assert_raises(
-        ValueError,
-        srs.srs_frf,
-        frf,
-        frf_frq,
-        None,
-        Q,
-        scale_by_Q_only=True,
-        getresp=True,
-    )
+    with pytest.raises(ValueError):
+        srs.srs_frf(
+            frf, frf_frq, None, Q, scale_by_Q_only=True, getresp=True,
+        )
 
 
 def test_srsmap():
