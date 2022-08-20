@@ -3733,7 +3733,7 @@ def wtextseout(
         default to 1x1 zero matrices with these exceptions: "maa",
         "kaa", "baa", are as input above, "pa" is a vector of zeros
         and "va" is a vector of ones. The defaults can be overridden
-        in **kwargs.
+        in `kwargs`.
     **kwargs : optional
         Allows user to input other matrices to be written to the op4
         file. Name must in `namelist` to be written.
