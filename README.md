@@ -41,24 +41,25 @@ https://www.anaconda.com/distribution/.
 
 You can install pyYeti via `pip`:
 
-    pip install pyyeti
+    python -m pip install pyyeti
+    
+or:
 
-I generally prefer to install from source, doing something like this:
+    python -m pip install --user --upgrade pyyeti
 
-    git clone https://github.com/twmacro/pyyeti.git
-    cd pyyeti
-    python setup.py install
-
-Or, if you want to clean out old versions automatically:
+You can also install from source, doing something like this:
 
     git clone https://github.com/twmacro/pyyeti.git
     cd pyyeti
-    python setup.py bdist_wheel
+    python -m build -n
     cd dist
-    pip install <filename>.whl
+    python -m pip install <filename>.whl
 
 Note that for the C version of the rainflow cycle counter, you also
-need a C compiler installed.
+need a C compiler installed. However, the speed of the pure Python
+version is on par with the C version if you have Numba installed. In
+fact, the C version may be removed in the future after making Numba a
+required dependency.
 
 
 ## Documentation
