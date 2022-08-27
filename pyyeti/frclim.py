@@ -1007,9 +1007,10 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     F[0] = 1.0
     mass = np.array([[m1, 0, 0], [0, M1 + M2, 0], [0, 0, m2]])
     res = minimize_scalar(get_neg_pknfl, bracket=wr)
-    if "message" in res:
+    if not res.success:
+        msg = res.message if "message" in res else "no info"
         raise RuntimeError(
-            f"routine :func:`scipy.optimize.minimize_scalar` failed: {res.message}"
+            f"routine :func:`scipy.optimize.minimize_scalar` failed:\n\t'{msg}'"
         )
     nw2 = res.x
     nfl = -res.fun
