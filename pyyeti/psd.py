@@ -696,7 +696,7 @@ def spl(
     sr,
     nperseg=None,
     overlap=0.5,
-    window="hanning",
+    window="hann",
     timeslice=1.0,
     tsoverlap=0.5,
     fs=3,
