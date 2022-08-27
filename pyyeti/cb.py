@@ -1781,7 +1781,7 @@ def rbmultchk(
     show up in place of the the 3x3 identity matrix shown above. This
     routine will use that 3x3 matrix to convert coordinates to that of
     the reference before checking for the expected pattern. This all
-    means is that the use of local coordinate systems is acceptable
+    means that the use of local coordinate systems is acceptable
     for this routine.
 
     Raises

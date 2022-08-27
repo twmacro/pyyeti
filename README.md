@@ -19,7 +19,7 @@ pyYeti has tools mostly related to structural dynamics:
 * Hurty-Craig-Bampton model checks
 * Coupled loads analysis tools
 * Statistics tools for computing k-factors (for tolerance bounds and intervals) and for order statistics
-* A data-cursor for interacting with 2D x-y plots
+* A data-cursor for interacting with 2D/3D matplotlib plots
 * Eigensystem Realization Algorithm
 * Force limiting analysis tools
 * Read/write Nastran output4 (.op4) files
