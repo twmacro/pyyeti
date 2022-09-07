@@ -28,4 +28,4 @@ pyYeti has tools mostly related to structural dynamics:
 """
 from importlib.metadata import version
 
-__version__ = version()
+__version__ = version("pyyeti")
