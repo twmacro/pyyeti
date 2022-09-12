@@ -2,7 +2,6 @@ from setuptools import setup, find_packages, Extension
 from distutils.command.build_ext import build_ext
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 import numpy
-import pyyeti
 import os
 
 
@@ -97,7 +96,7 @@ def run_setup(with_binary):
     install_requires = check_dependencies()
     setup(
         name="pyyeti",
-        version=pyyeti.__version__,
+        version="1.1.8",
         url="http://github.com/twmacro/pyyeti/",
         license="BSD",
         author="Tim Widrick",
