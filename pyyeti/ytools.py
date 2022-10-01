@@ -1494,7 +1494,7 @@ def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
                     that are greater than
                     ``filterval * Max_in_col(a or b)`` are compared
          'max'      only numbers in `a` and `b` that are greater than
-                    ``filter * Max_overall_value(a or b)`` are
+                    ``filterval * Max_overall_value(a or b)`` are
                     compared
         ========    ==================================================
 

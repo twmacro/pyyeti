@@ -165,9 +165,9 @@ def ntfl(Source, Load, As, freq):
     .. math::
 
         \begin{aligned}
-        R(f) &= diag(T_{AM}(f)^{-1} \cdot L_{AM}(f)) \\
-        A(f) &= T_{AM}(f)^{-1} \cdot L_{AM}(f) \cdot A_s(f) \\
-        F(f) &= S_{AM}(f) \cdot T_{AM}(f)^{-1} \cdot L_{AM}(f) \cdot A_s(f)
+        R(f) &= diag(T_{AM}(f)^{-1} \cdot S_{AM}(f)) \\
+        A(f) &= T_{AM}(f)^{-1} \cdot S_{AM}(f) \cdot A_s(f) \\
+        F(f) &= L_{AM}(f) \cdot T_{AM}(f)^{-1} \cdot S_{AM}(f) \cdot A_s(f)
         \end{aligned}
 
     The `bdof` input defines boundary DOF in one of two ways as
