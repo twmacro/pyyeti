@@ -1,13 +1,9 @@
 Eigensystem Realization Algorithm
 =================================
 
-.. automodule:: pyyeti.era
 .. currentmodule:: pyyeti.era
 
-The ERA class
--------------
-.. autosummary::
-    :toctree: generated/
+.. autoclass:: ERA
 
-    ERA
-
+   
+   .. automethod:: __init__
