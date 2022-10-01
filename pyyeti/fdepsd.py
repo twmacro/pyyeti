@@ -276,7 +276,7 @@ def fdepsd(
            var_test ** (b / 2) = di_sig / di_test_part
 
         .. note::
-            If the variance vactor (`var_test`) were included, then
+            If the variance factor (`var_test`) were included, then
             the test damage indicator would be the same as
             `di_sig`. This relationship is the basis of determining
             the amplitude of the test signal.
@@ -548,7 +548,7 @@ def fdepsd(
         sig = signal.lfilter(b, a, sig2)[n:]
 
     if winends == "auto":
-        sig = dsp.windowends(sig, min(int(0.25 * sr), 50))
+        sig = dsp.windowends(sig, min(int(0.25 * sr), 50, len(sig)))
     elif winends is not None:
         sig = dsp.windowends(sig, **winends)
 
