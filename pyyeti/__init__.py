@@ -26,5 +26,6 @@ pyYeti has tools mostly related to structural dynamics:
     * Other miscellaneous tools
 
 """
+from importlib.metadata import version
 
-__version__ = "1.1.8"
+__version__ = version("pyyeti")
