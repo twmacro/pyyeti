@@ -78,6 +78,7 @@ Miscellaneous
 .. toctree::
    :maxdepth: 1
 
+   tutorials/era
    tutorials/fatigue
    tutorials/op4
    tutorials/srs
