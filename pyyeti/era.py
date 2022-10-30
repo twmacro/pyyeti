@@ -95,6 +95,10 @@ class ERA:
        correct because this routine sorts the complex eigenvalues to
        ensure consecutive ordering of these mode pairs.
 
+    .. note::
+        This routine is demonstrated in the pyYeti :ref:`tutorial`:
+        :doc:`/tutorials/era`. There is also a link to the source
+        Jupyter notebook at the top of the tutorial.
 
     Mode indicators:
 
