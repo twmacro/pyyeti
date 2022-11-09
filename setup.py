@@ -117,6 +117,7 @@ def run_setup(with_binary):
                     "tests/nas2cam_csuper/nas2cam.op4",
                     "tests/nas2cam_csuper/inboard.op4",
                     "tests/nas2cam_csuper/inboard.asm",
+                    "tests/nas2cam_csuper/inboard.pch",
                 ],
             ),
             (

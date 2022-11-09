@@ -2,5 +2,6 @@ include tests/nas2cam_csuper/nas2cam.op2
 include tests/nas2cam_csuper/nas2cam.op4
 include tests/nas2cam_csuper/inboard.op4
 include tests/nas2cam_csuper/inboard.asm
+include tests/nas2cam_csuper/inboard.pch
 include tests/nastran_drm12/*nas2cam.op*
 include tests/nastran_drm12/drm12.op*
