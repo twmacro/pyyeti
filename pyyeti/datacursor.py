@@ -10,6 +10,7 @@ get-data-from-plot-with-matplotlib
 """
 
 from types import SimpleNamespace
+import numbers
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection
@@ -19,9 +20,15 @@ from mpl_toolkits.mplot3d import proj3d
 
 def mk_label(point):
     """Default annotation function"""
-    label = f"x: {point.x:.5g}\ny: {point.y:.5g}"
+
+    def tostr(xyz):
+        if isinstance(xyz, numbers.Number):
+            return f"{xyz:.5g}"
+        return f"{xyz}"
+
+    label = f"x: {tostr(point.x)}\ny: {tostr(point.y)}"
     if point.z is not None:
-        label += f"\nz: {point.z:.5g}"
+        label += f"\nz: {tostr(point.z)}"
     if point.nlines > 1:
         label += f"\n{point.handle.get_label()}"
     return label
@@ -59,9 +66,15 @@ class DataCursor(object):
         defaults to::
 
             def mk_label(point):
-                label = f"x: {point.x:.5g}\ny: {point.y:.5g}"
+
+                def tostr(xyz):
+                    if isinstance(xyz, numbers.Number):
+                        return f"{xyz:.5g}"
+                    return f"{xyz}"
+
+                label = f"x: {tostr(point.x)}\ny: {tostr(point.y)}"
                 if point.z is not None:
-                    label += f"\nz: {point.z:.5g}"
+                    label += f"\nz: {tostr(point.z)}"
                 if point.nlines > 1:
                     label += f"\n{point.handle.get_label()}"
                 return label
@@ -327,7 +340,7 @@ class DataCursor(object):
         if maxlines == 0 and errout:
             raise RuntimeError("no lines; plot something first")
 
-    def on(self, ax=-1, figs=-1, callbacks=True, reset=True):
+    def on(self, ax=None, figs=None, callbacks=True, reset=True):
         """
         Turns on and (re-)initializes the DataCursor for current
         figures.
@@ -408,6 +421,8 @@ class DataCursor(object):
         Note that the keystroke 't' will also turn off the DataCursor;
         in that case, `stop_blocking` is True.
         """
+        self._ax_input = None
+        self._figs_input = None
         self._init_all()
         if self._is_on:
             for ax in self._ax:
@@ -595,14 +610,13 @@ class DataCursor(object):
     @staticmethod
     def _get_xy_data(ax, h):
         if isinstance(h, Line2D):
-            return h.get_xdata().astype(float), h.get_ydata().astype(float)
-
-        if hasattr(h, "_offsets3d"):
+            x = h.get_xdata()
+            y = h.get_ydata()
+        elif hasattr(h, "_offsets3d"):
             x, y, _ = proj3d.proj_transform(*np.array(h._offsets3d), ax.get_proj())
-            return x, y
-            # return (*h.get_offsets().T,) # returns in unknown order
-
-        return (*h.get_offsets().data.T,)
+        else:
+            x, y = (*h.get_offsets().data.T,)
+        return x, y
 
     @staticmethod
     def _get_xyz(ax, h, ind):
@@ -641,10 +655,15 @@ class DataCursor(object):
             return None, None, None
         for n, h in enumerate(lines):
             xdata, ydata = self._get_xy_data(ax, h)
-            dx = (xdata - x) / np.diff(ax.get_xlim())[0]
-            dy = (ydata - y) / np.diff(ax.get_ylim())[0]
+
+            if isinstance(h, Line2D):
+                xdata_float = ax.convert_xunits(xdata)
+                ydata_float = ax.convert_yunits(ydata)
+
+            dx = (xdata_float - x) / np.diff(ax.get_xlim())[0]
+            dy = (ydata_float - y) / np.diff(ax.get_ylim())[0]
             d = dx ** 2.0 + dy ** 2.0
-            ind = np.argmin(d)
+            ind = np.nanargmin(d)
             if d[ind] < dmin:
                 dmin = d[ind]
                 best = xdata[ind], ydata[ind], n, ind, h
