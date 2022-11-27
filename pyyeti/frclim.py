@@ -4,6 +4,7 @@ Tools for force limiting.
 """
 
 from types import SimpleNamespace
+import warnings
 import numpy as np
 import scipy.linalg as la
 from scipy.optimize import minimize_scalar
@@ -76,9 +77,10 @@ def calcAM(S, freq):
         Acc = np.empty((r, lf, r), dtype=complex)
         fs = ode.SolveUnc(m, b, k, pre_eig=True)
         if hasattr(fs.pc, "eig_success") and not fs.pc.eig_success:
-            print(
+            warnings.warn(
                 "Switching from `SolveUnc` to `FreqDirect` because complex"
-                " eigensolver failed; see messages above."
+                " eigensolver failed; see messages above. Solution may be slow.",
+                RuntimeWarning,
             )
             fs = ode.FreqDirect(m, b, k)
         for direc in range(r):

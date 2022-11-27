@@ -15,6 +15,7 @@ True
 import os
 import re
 import textwrap
+import warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -3918,7 +3919,9 @@ def mknast(
                     break
 
             if not os.path.exists(nasfile):
-                print(f"Warning:  file '{nasfile}' not found.\n")
+                warnings.warn(
+                    f"file '{nasfile}' not found", RuntimeWarning,
+                )
 
             f.write(f"\n# ******** File {nasfile} ********\n")
             p = nasfile.rfind("/")
