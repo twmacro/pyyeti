@@ -659,6 +659,9 @@ class DataCursor(object):
             if isinstance(h, Line2D):
                 xdata_float = ax.convert_xunits(xdata)
                 ydata_float = ax.convert_yunits(ydata)
+            else:
+                xdata_float = xdata
+                ydata_float = ydata
 
             dx = (xdata_float - x) / np.diff(ax.get_xlim())[0]
             dy = (ydata_float - y) / np.diff(ax.get_ylim())[0]
