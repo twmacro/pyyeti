@@ -10,6 +10,7 @@ from warnings import warn
 from types import SimpleNamespace
 import numbers
 import numpy as np
+import pandas as pd
 import scipy.signal as signal
 import scipy.interpolate as interp
 import matplotlib.patches as mpatches
@@ -1199,7 +1200,7 @@ def _sr_calcs(difft, sr, verbose):
     min_sr = 1 / max_ts
     ave_sr = 1 / ave_ts
 
-    # histogram count:
+    # get mode of all sample rates:
     Ldiff = len(difft)
     difft2 = difft[difft != 0]
     sr_all = 1 / difft2
@@ -1208,30 +1209,29 @@ def _sr_calcs(difft, sr, verbose):
         dsr = 5
     else:
         dsr = round(10 * max(sr1, 0.1)) / 10
-    bins = np.arange(dsr / 2, sr_all.max() + dsr, dsr)
-    cnt, bins = np.histogram(sr_all, bins)
-    centers = (bins[:-1] + bins[1:]) / 2
-    r = np.argmax(cnt)
 
-    mx = cnt[r] / Ldiff * 100
-    cnt_sr = centers[r]
-    cnt_ts = 1 / cnt_sr
-    sr_stats = np.array([max_sr, min_sr, ave_sr, cnt_sr, mx])
+    # pandas is very fast for computing mode:
+    counts = pd.Series(np.round(sr_all / dsr)).value_counts()
+    mode_sr = counts.index[0] * dsr
+    mode_pct = counts.iat[0] / Ldiff * 100
+    mode_ts = 1 / mode_sr
+
+    sr_stats = np.array([max_sr, min_sr, ave_sr, mode_sr, mode_pct])
     if not sr:  # pragma: no cover
         verbose = True
     if verbose:
         print("==> Info: [min, max, ave, count (% occurrence)] time step:")
         print(
             f"==>           [{min_ts:g}, {max_ts:g}, {ave_ts:g}, "
-            f"{cnt_ts:g} ({mx:.1f}%)]"
+            f"{mode_ts:g} ({mode_pct:.1f}%)]"
         )
         print("==>       Corresponding sample rates:")
         print("==>           [{:g}, {:g}, {:g}, {:g} ({:.1f}%)]".format(*sr_stats))
         print('==>       Note: "count" shows most frequent sample rate to')
         print(f"          nearest {dsr} samples/sec.")
 
-    if mx > 90 or abs(cnt_sr - ave_sr) < dsr:
-        defsr = round(cnt_sr / dsr) * dsr
+    if mode_pct > 90 or abs(mode_sr - ave_sr) < dsr:
+        defsr = round(mode_sr / dsr) * dsr
     else:
         defsr = round(ave_sr / dsr) * dsr
     if sr == "auto":
