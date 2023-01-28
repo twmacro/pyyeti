@@ -38,6 +38,8 @@ def _rdop4_tst(o4):
         "x100000",
         "cdbin_ascii_sparse_bigmat",
         "cdbin_ascii_sparse_nonbigmat",
+        "binary_fabiola",
+        "ascii_fabiola",
     ]
     nocomp = [s + ".op4" for s in nocomp]
     m = matlab.loadmat(matfile)
@@ -685,3 +687,11 @@ def test_empty_file_error():
             op4.load(fname)
     finally:
         os.remove(fname)
+
+
+def test_fabiola_op4():
+    ma = op4.read("tests/nastran_op4_data/ascii_fabiola.op4")
+    mb = op4.read("tests/nastran_op4_data/binary_fabiola.op4")
+    assert np.allclose(ma["maa"], mb["maa"])
+    assert np.allclose(ma["ll"], mb["ll"])
+    assert np.allclose(ma["dd"], mb["dd"])

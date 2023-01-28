@@ -174,6 +174,24 @@ class OP4:
             self._fileh.close()
             self._fileh = None
 
+    def _decode_format(self, bytes_):
+        if min(bytes_[:4]) == 0:
+            self._ascii = False
+            # determine if big-endian or little-endian:
+            reclen = np.frombuffer(bytes_[:4], "<u4")
+            if reclen <= 48:
+                self._endian = "<"
+            else:
+                self._endian = ">"
+                reclen = np.frombuffer(bytes_[:4], ">u4")
+            # determine if 64 bit ints or 32 bit ints:
+            if reclen == 24:
+                self._bit64 = False
+            else:
+                self._bit64 = True
+        else:
+            self._ascii = True
+
     def _op4open_read(self, filename):
         """
         Open binary or ascii op4 file for reading.
@@ -191,8 +209,7 @@ class OP4:
         _bit64 : True or False
             True if 'key' integers are 64-bit in binary op4 files.
         _endian : string
-            Will be '' if no byte-swapping is required; otherwise,
-            either '>' or '<' for big-endian and little-endian,
+            Either '>' or '<' for big-endian and little-endian,
             respectively. Only used for binary files.
         _Str_i4 : struct.Struct object
             Precompiled for reading 4 byte integers
@@ -212,30 +229,30 @@ class OP4:
             Either 1 or 2; 2 if self._bit64 is False.
         """
         self._fileh = open(filename, "rb")
-        bytes = self._fileh.read(16)
-        if len(bytes) < 16:
+        bytes_ = self._fileh.read(16)
+        if len(bytes_) < 16:
             self._op4close()
             raise RuntimeError(
-                f'"{filename}" is empty or nearly empty (has {len(bytes)} bytes)'
+                f'"{filename}" is empty or nearly empty (has {len(bytes_)} bytes)'
             )
-        self._endian = ""
+        self._decode_format(bytes_)
         self._dformat = False
         self._matcount = 0
 
-        # Assuming binary, check for a zero byte in the 'type' field;
-        # will have one at front or back if binary:
-        if bytes[12] == 0 or bytes[15] == 0:
-            self._ascii = False
-            if sys.byteorder == "little":
-                if bytes[12] == 0:
-                    self._endian = ">"
-            else:
-                if bytes[12] != 0:
-                    self._endian = "<"
+        if self._ascii:
+            self._fileh.readline()
+            self._fileh.readline()
+            line = self._fileh.readline().decode()
+            # sparse formats have integer header line:
+            if line.find(".") == -1:
+                line = self._fileh.readline().decode()
+            if line.find("D") > -1:
+                self._dformat = True
+            self._fileh.close()
+            self._fileh = open(filename, "r")
+        else:
             self._Str_i4 = struct.Struct(self._endian + "i")
-            reclen = self._Str_i4.unpack(bytes[:4])[0]
-            if reclen == 48:
-                self._bit64 = True
+            if self._bit64:
                 self._Str_i = struct.Struct(self._endian + "q")
                 self._bytes_i = 8
                 self._Str_ii = struct.Struct(self._endian + "qq")
@@ -249,7 +266,6 @@ class OP4:
                 self._bytes_sr = 8
                 self._wordsperdouble = 1
             else:
-                self._bit64 = False
                 self._Str_i = self._Str_i4
                 self._bytes_i = 4
                 self._Str_ii = struct.Struct(self._endian + "ii")
@@ -265,18 +281,6 @@ class OP4:
             self._str_dr = self._endian + "%dd"
             self._str_dr_fromfile = np.dtype(self._endian + "f8")
             self._fileh.seek(0)
-        else:
-            self._ascii = True
-            self._fileh.readline()
-            self._fileh.readline()
-            line = self._fileh.readline().decode()
-            # sparse formats have integer header line:
-            if line.find(".") == -1:
-                line = self._fileh.readline().decode()
-            if line.find("D") > -1:
-                self._dformat = True
-            self._fileh.close()
-            self._fileh = open(filename, "r")
 
     def _skipop4_ascii(self, perline, rows, cols, mtype):
         """
