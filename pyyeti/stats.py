@@ -270,6 +270,13 @@ def order_stats(which, *, p=None, c=None, n=None, r=None):
 
             number of failures = r - 1
 
+        .. note::
+            Zero will be returned for `r` if there are not enough
+            samples to meet the criteria. For example, it takes at
+            least 230 samples to reach a ``p=0.99, c=0.90`` (P99/90)
+            level. Therefore, ``order_stats("r", p=0.99, c=0.90,
+            n=25)`` will return 0.
+
     Returns
     -------
     One of `p`, `c`, `n`, or `r`; according to `which`.
