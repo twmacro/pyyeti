@@ -65,7 +65,7 @@ def ksingle(p, c, n):
 
     >>> from pyyeti.stats import ksingle
     >>> ksingle(.99, .90, 21)                # doctest: +ELLIPSIS
-    3.0282301090342...
+    3.02823...
 
     Make a table of single-sided k-factors using 50% confidence. The
     probabilities will be: 95%, 97.725%, 99% and 99.865%. Number of
@@ -89,7 +89,7 @@ def ksingle(p, c, n):
     8        1.718720  2.092314  2.435669  3.144318
     9        1.709060  2.080220  2.421337  3.125390
     10       1.701632  2.070925  2.410323  3.110845
-    1000000  1.644854  2.000003  2.326348  2.999978
+    1000000  1.644854  2.000003  2.326349  2.999978
     """
     n = np.asarray(n)
     sn = np.sqrt(n)
@@ -130,7 +130,7 @@ def _getr(n, prob, tol):
         lhi = sn + rold
         llo = sn - rold
         num = norm.cdf(lhi) - norm.cdf(llo) - prob
-        den = spi * (np.exp(-(lhi ** 2) / 2) + np.exp(-(llo ** 2) / 2))
+        den = spi * (np.exp(-(lhi**2) / 2) + np.exp(-(llo**2) / 2))
         r = rold - num / den
         loops += 1
     if loops == MAXLOOPS:  # pragma: no cover

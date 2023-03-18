@@ -499,6 +499,7 @@ def histogram(data, binsize):
     >>> bins
     array([   0.5,    1.5,    2.5,  344.5,  345.5])
     """
+
     # use a generator to simplify the work; only yield a bin
     # if it has data:
     def _get_next_bin(data, binsize):
@@ -920,7 +921,7 @@ def sturm(A, lam):
     d = np.diag(h)
     s = np.diag(h, -1)
     abstol = np.finfo(float).eps
-    ssq = s ** 2
+    ssq = s**2
     pivmin = max(1.0, np.max(s)) * abstol
 
     try:
@@ -1046,7 +1047,7 @@ def eig_si(
     >>> m = np.random.randn(40, 40)
     >>> k = np.dot(k.T, k) * 1000
     >>> m = np.dot(m.T, m) * 10
-    >>> w1, phi1 = linalg.eigh(k, m, eigvals=(0, 14))
+    >>> w1, phi1 = linalg.eigh(k, m, subset_by_index=(0, 14))
     >>> w2, phi2, phiv2 = ytools.eig_si(k, m, p=15, mu=-1, tol=1e-12,
     ...                                 verbose=False)
     >>> fcut = np.sqrt(w2.max())/2/np.pi * 1.001
@@ -1674,13 +1675,13 @@ def _calc_covariance_sine_cosine(varx, vary, covar):
         #       [(vary - varx + term) / (2 * covar)]
 
         # get angle to eigenvector: arctan2(x2, x1) = arctan(x2):
-        term = np.sqrt((vary - varx) ** 2 + 4 * covar ** 2)
+        term = np.sqrt((vary - varx) ** 2 + 4 * covar**2)
         #   theta = np.arctan((vary - varx + term) / (2 * covar))
         #   s[pv] = np.sin(theta)
         #   c[pv] = np.cos(theta)
         # or, equivalently:
         b = (vary - varx + term) / (2 * covar)
-        c[pv] = 1.0 / np.sqrt(b ** 2 + 1.0)
+        c[pv] = 1.0 / np.sqrt(b**2 + 1.0)
         s[pv] = b * c[pv]
 
     return s, c

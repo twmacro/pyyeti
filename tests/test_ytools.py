@@ -37,7 +37,7 @@ def test_eig_si():
     m = np.random.randn(40, 40)
     k = np.dot(k.T, k) * 1000
     m = np.dot(m.T, m) * 10
-    w1, phi1 = linalg.eigh(k, m, eigvals=(0, 14))
+    w1, phi1 = linalg.eigh(k, m, subset_by_index=(0, 14))
     w2, phi2, phiv2 = ytools.eig_si(k, m, p=15, mu=-1, tol=1e-12, verbose=False)
     fcut = np.sqrt(w2.max()) / 2 / np.pi * 1.001
     w3, phi3, phiv3 = ytools.eig_si(k, m, f=fcut, mu=-1, tol=1e-12)
@@ -171,10 +171,20 @@ def test_compmat():
 
     assert a == 100
     real_sbe = np.array(
-        [real_pdiff.min(), real_pdiff.max(), real_pdiff.mean(), real_pdiff.std(ddof=1),]
+        [
+            real_pdiff.min(),
+            real_pdiff.max(),
+            real_pdiff.mean(),
+            real_pdiff.std(ddof=1),
+        ]
     )
     imag_sbe = np.array(
-        [imag_pdiff.min(), imag_pdiff.max(), imag_pdiff.mean(), imag_pdiff.std(ddof=1),]
+        [
+            imag_pdiff.min(),
+            imag_pdiff.max(),
+            imag_pdiff.mean(),
+            imag_pdiff.std(ddof=1),
+        ]
     )
 
     assert np.allclose(s, np.vstack((real_sbe, imag_sbe)))

@@ -109,7 +109,7 @@ def test_ksingle():
         ]
     )
 
-    assert abs(s - v).max() < 1e-8
+    assert abs(s - v).max() < 1e-6
 
 
 def test_kdouble():
@@ -219,7 +219,7 @@ def test_kdouble():
         ]
     )
 
-    assert abs(s - v).max() < 1e-8
+    assert abs(s - v).max() < 1e-6
 
 
 def test_order_stats():

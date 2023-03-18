@@ -2,7 +2,6 @@ from setuptools import setup, find_packages, Extension
 from distutils.command.build_ext import build_ext
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 import numpy
-import os
 
 
 ext_errors = (
