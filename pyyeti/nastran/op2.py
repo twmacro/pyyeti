@@ -19,7 +19,6 @@ import sys
 import os
 import struct
 import warnings
-from types import SimpleNamespace
 from collections import namedtuple
 import numpy as np
 from pyyeti import guitools
