@@ -1287,6 +1287,50 @@ class OP2:
 
         self._getkey()
 
+    def _rdop2dnids(self, nas, nse, trailer):
+        """
+        Read Nastran output2 DNIDS data block.
+
+        Parameters
+        ----------
+        nas : dict
+            Dictionary; has at least {'dnids': {}}.
+        nse : integer
+            Number of superelements.
+        trailer : 1-d array
+            The trailer for the EMAP data block.
+
+        Notes
+        -----
+        Fills in the dnids member of nas. This matrix is an
+        alternative to EMAP. NX Nastran 2021 would not always output
+        EMAP, complaining about it being an unstructured datablock and
+        that it would not be byte-swapped. To work around that, but
+        work for all other cases as well, I wrote a subdmap that
+        extracts the "dnids" information and saves it to a
+        matrix::
+
+            dnids = [ nsupers,
+                      seid1,
+                      ng1,
+                      (ng1 grids),
+                      seid2,
+                      ng2,
+                      (ng2 grids),
+                      ... ]
+
+        This matrix is read in and processed here.
+
+        See :func:`rdn2cop2`.
+        """
+        dnids_all = self.rdop2matrix(trailer).astype(int).ravel()
+        i = 1
+        while i < len(dnids_all):
+            se = dnids_all[i]
+            ngrids = dnids_all[i + 1]
+            nas["dnids"][se] = dnids_all[i + 2 : i + 2 + ngrids]
+            i += 2 + ngrids
+
     def _rdop2bgpdt(self):
         """
         Read record 1 of the Nastran output2 BGPDT data block.
@@ -2124,6 +2168,9 @@ class OP2:
             if name == "EMAP":
                 self._rdop2emap(nas, nse, trailer)
                 name, trailer, dbtype = self.rdop2nt()
+            elif name == "DNIDS":
+                self._rdop2dnids(nas, nse, trailer)
+                name, trailer, dbtype = self.rdop2nt()
 
         # read uset and eqexins tables and do some processing:
         for se in selist[:, 0]:
@@ -2141,7 +2188,16 @@ class OP2:
             (xyz, cid, dof, doftype, nid, upids) = self._proc_bgpdt(eqexin1, eqexin)
             nas["upids"][se] = upids
             Uset, cstm, cstm2 = self._buildUset(
-                se, dof, doftype, nid, uset, xyz, cid, cstm, None, print_warning=True,
+                se,
+                dof,
+                doftype,
+                nid,
+                uset,
+                xyz,
+                cid,
+                cstm,
+                None,
+                print_warning=True,
             )
             nas["uset"][se] = Uset
             nas["cstm"][se] = cstm
@@ -3294,7 +3350,16 @@ def rdpostop2(
                 eqexin1, eqexin, True, bgpdt_rec1
             )
             Uset, cstm, cstm2 = o2._buildUset(
-                se, dof, doftype, nid, uset, xyz, cid, cstm, cstm2, print_warning=False,
+                se,
+                dof,
+                doftype,
+                nid,
+                uset,
+                xyz,
+                cid,
+                cstm,
+                cstm2,
+                print_warning=False,
             )
 
     dct = {

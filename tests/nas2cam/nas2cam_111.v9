@@ -1,0 +1,13 @@
+$ INSERT CALL TO NAS2CAM SUBDMAP INTO SEMFREQ:
+$
+COMPILE SEMFREQ $
+ALTER    'END \$ SEMFREQ'(,-1) $            BEFORE END $ SEMFREQ
+CALL    NAS2CAM  DTI     ,DTINDX  ,MATPOOL ,CASECC  ,PCDB    ,
+                 XYCDB   ,PHA     ,MAA     ,BAA     ,KAA     ,
+                 LAMA    ,MGG     ,KGG     ,PHG     ,EQEXINS ,
+                 USET    ,EMAP    ,SLIST   ,MHH     ,BHH     ,
+                 KHH     ,        ,MAPS    ,GOT     ,GOQ     ,
+                 GM      ,CSTMS   ,BGPDTS  ,CMLAMA  ,LAMAS   ,
+                 LAMAS0  ,DRG     ,PG      ,        ,        ,
+                         ,        ,K4AA    ,GDNTAB  ,GPLS    ,
+                 SILS    // $

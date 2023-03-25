@@ -1,0 +1,1486 @@
+$ ========================= SUBDMAP NAS2CAM ============================
+$
+$  NX VERSION 9 SUBDMAP TO WRITE CERTAIN DATABLOCKS TO OUTPUT2 AND
+$  OUTPUT4 FILES FOR RUNNING ANALYSES (FOLLOWING A MODES RUN)
+$  EXTERNALLY.
+$
+$  THIS DMAP WRITES TWO FILES:
+$    BINARY OUTPUT2 FILE.  (DEFAULT UNIT)
+$       CONTENTS:
+$
+$           SLIST & DNIDS  or  SUPERID
+$           FOR EACH SE:
+$             USET
+$             EQEXINS
+$             CSTMS  (if there are CORD* cards for SE)
+$             BGPDTS
+$             MAPS
+$
+$    BINARY OUTPUT4 FILE.  (UNIT 30)
+$       CONTENTS:
+$
+$           FOR EACH SE:
+$             SE_START - DUMMY SCALAR MARKER MATRIX; REQUIRED
+$             ULVS     - SE PARTITION OF SYSTEM MODE SHAPES; OPTIONAL (SE > 0)
+$             LAMBDA   - OMEGA^2 FOR EACH SE, RAD^2/SEC^2; OPTIONAL
+$             RFMODES  - 0-1 PARTITION VECTOR FOR THE  RES-FLEX MODES; OPTIONAL
+$             GM       - RELATION BETWEEN THE M AND N SET: M = GM N; OPTIONAL
+$             GOT      - CONSTRAINT MODES; OPTIONAL
+$             GOQ      - NORMAL MODES; OPTIONAL
+$             MAA      - A-SET MASS; OPTIONAL
+$             BAA      - A-SET DAMPING; OPTIONAL
+$             KAA      - A-SET STIFFNESS; OPTIONAL
+$             MHH      - H-SET (SYSTEM MODAL) MASS; OPTIONAL
+$             BHH      - H-SET (SYSTEM MODAL) DAMPING; OPTIONAL
+$             KHH      - H-SET (SYSTEM MODAL) STIFFNESS; OPTIONAL
+$             PHA      - A-SET MODE SHAPE MATRIX; OPTIONAL (SE 0 ONLY)
+$             K4AA     - A-SET STRUCTURAL DAMPING
+$             MGG      - G-SET MASS; OPTIONAL
+$             KGG      - G-SET STIFFNESS; OPTIONAL
+$             PHG      - G-SET MODE SHAPE MATRIX; OPTIONAL
+$             RBG      - G-SET RIGID-BODY MODES
+$             DRG      - TRANSPOSE OF G-SET RIGID-BODY MODES FROM VECPLOT
+$             PG       - G-SET LOADS
+$             MDD      - D-SET MASS
+$             BDD      - D-SET DAMPING
+$             KDD      - D-SET STIFFNESS
+$             PDT      - D-SET FORCE
+$             M2GG     - DMIG INPUT MASS (SEE CASE CONTROL BELOW)
+$             K2GG     - DMIG INPUT STIFFNESS
+$             B2GG     - DMIG INPUT DAMPING
+$
+$           LOOP_END   - DUMMY SCALAR MATRIX MARKING END OF SE SECTION
+$           FGRAVH     - GRAVITY FOR ON GENERALIZED DOF FOR SE 0
+$           FGRAVG     - GRAVITY FOR ON G-SET PHYSICAL DOF FOR SE 0
+$
+$
+$  THESE TWO FILES ARE NORMALLY POST-PROCESSED BY THE RDNAS2CAM
+$  ROUTINE.  THE ROUTINE IS FLEXIBLE.  IT EXPECTS THE OUTPUT2 FILE TO
+$  BE AS ABOVE, AND IT KEYS OFF "SE_START" AND "LOOP_END".  IT WILL
+$  AUTOMATICALLY APPEND THE SUPERELEMENT ID TO THE END OF ALL MATRICES
+$  IN THE "FOR EACH SE:" SECTIONS (EXCEPT SE_START, WHICH IS NOT
+$  SAVED).  THERE ARE NO OTHER REQUIREMENTS TO USE RDNAS2CAM.CAM.
+$  BECAUSE OF THIS FLEXIBILITY, NEW DATABLOCK OUTPUTS CAN BE ADDED
+$  EASILY.  JUST MODEL THE DMAP CODE AFTER ONE OF THE ABOVE
+$  DATABLOCKS.  FOR EXAMPLE, IF YOU WANT KQQ, COPY THE KAA CODE.
+$
+$  SPECIAL INSTRUCTIONS TO USE THIS DMAP:
+$-----------------------------------------------------------------------
+$-----------------------------------------------------------------------
+$
+$  EXECUTIVE CONTROL DECK:
+$
+$    SOL 103
+$    INCLUDE 'nas2cam_103.v9'      $ number matches SOL (103, 111, 112)
+$    INCLUDE 'nas2cam_subdmap.v9'
+$
+$-----------------------------------------------------------------------
+$
+$  CASE CONTROL DECK:
+$
+$-----------------------------------------------------------------------
+$
+$  BULK DATA DECK:
+$
+$    OUTPUT OF NEARLY ALL DATA BLOCKS ARE CONTROLLED EITHER THROUGH
+$    PARAMS OR THROUGH SIMPLE DTI BULK CARDS.  THE DEFAULT IS TO OUTPUT
+$    ALL ULVS'S AND ALL LAMBDA'S, BUT NOTHING ELSE.
+$
+$    INCLUDE ANY DESIRED DMIG'S (SEE CASE CONTROL NOTES).  UNLIKE OTHER
+$    DATABLOCKS, THESE ARE NOT REQUESTED VIA PARAM'S OR DTI'S.  THEIR
+$    PRESENCE IS CONSIDERED A REQUEST.
+$
+$    TO REQUEST ANY OF THE DATABLOCKS IN THE "FOR EACH SE:" SECTION (SEE
+$    ABOVE), USE:
+$
+$       DTI,TXXXX,1,SEID1,SEID2,...    $ GET XXXX FOR SEID1, SEID2, ...
+$
+$    OR
+$
+$       PARAM,PXXXX,1                  $ GET XXXX FOR ALL SE'S
+$
+$    NOTICE THAT THE DTI TABLE NAMES HAVE A "T" PREPENDED WHILE THE
+$    PARAM NAMES HAVE A "P" PREPENDED.  IF BOTH A DTI AND A PARAM ARE
+$    PRESENT THAT REFER TO THE SAME DATABLOCK, THE PARAM ENTRY IS
+$    IGNORED.
+$
+$    FOR EXAMPLE, TO REQUEST THE GOT FOR SUPERELEMENTS 50, 100,
+$    AND 250, AND THE MAA FOR ONLY SE 50:
+$
+$       DTI,TGOT,1,50,100,250
+$       DTI,TMAA,1,50
+$
+$    TO GET ALL GOT'S BUT NO ULVS'S:
+$
+$       PARAM,PGOT,1
+$       PARAM,PULVS,0
+$
+$    OTHER PARAMS:
+$
+$       PARAM,CSEID    - SPECIFY WHICH SUPERELEMENT TO PROCESS.  REQUIRED
+$                        IF DATABLOCK 'EMAP' IS NOT PRESENT (SUCH AS FOR
+$                        A NON-SUPERELEMENT RUN).
+$                        (DEFAULT = -2; USE EMAP TO LOOP OVER ALL SE'S)
+$
+$       TO ADD THE GRAVITY OUTPUT (WRITES FGRAVH, FGRAVG, RBG):
+$
+$       PARAM,GRAVDIR  - DIRECTION TO APPLY GRAVITY:  1, 2, OR 3 (IN
+$                        BASIC COORDS).
+$                        (DEFAULT = 0, NO GRAVITY)
+$
+$       PARAM,GRAVFELD - GRAVITY FIELD, EX:  PARAM,GRAVFELD,-386.1
+$                        (DEFAULT = 1.0)
+$
+$
+$
+$       PARAM,RMCSET   - SET TO 1 TO REMOVE C-SET DOF FROM ULVS AND
+$                        UPSTREAM LAMBDA
+$                        (DEFAULT = 0, DO NOT REMOVE C-SET)
+$
+$       PARAM,DBDICT   - SET TO 0 OR 2 TO PRINT DATABASE DICTIONARY AT
+$                        BEGINNING OF RUN
+$                        (DEFAULT = -1 DO NOT PRINT DICTIONARY)
+$
+$       PARAM,WRTDMIG  - SET TO 1 (OR GREATER) TO OUTPUT K2GG, B2GG, AND
+$                        M2GG.
+$                        (DEFAULT = 0 DO NOT OUTPUT THEM)
+$-----------------------------------------------------------------------
+$  EXAMPLE NASTRAN DECK - Uses 111 instead of 103 to get damping matrix
+$
+$    $***********************************************************************
+$    $ SUPERELEMENTS
+$    $***********************************************************************
+$    ASSIGN INPUTT4 ='/loads/CLA/PAF.op4', UNIT=206
+$    ASSIGN INPUTT4 ='/loads/CLA/Fairing.op4', UNIT=204
+$    ASSIGN INPUTT4 ='/loads/CLA/S2.op4', UNIT=201
+$    ASSIGN INPUTT4 ='/loads/CLA/SC.op4', UNIT=501,Formatted
+$
+$    INIT MASTER(S)  $ delete .MASTER and .DBALL files on exit
+$    $ NAS2CAM op2/op4 files:
+$    assign output2 = 'SES1_nas2cam.op2', status=new,
+$                     unit=29,delete $
+$    assign output4 = 'SES1_nas2cam.op4', status=new,
+$                     unit=30,form=unformatted,delete $
+$    SOL 111
+$    include 'nas2cam_111.v9'
+$    include 'nas2cam_subdmap.v9'
+$    include 'getqpart.v9'
+$    include 'dbdalter.v9'
+$    CEND
+$    TITLE = System Modes
+$    ECHO = NONE
+$    WEIGTHCHECK(SET=ALL) = YES
+$    GROUNDCHECK(SET=ALL,DATAREC=YES) = YES
+$    METHOD = 1
+$    FREQ = 1
+$    RESVEC(APPLOD,RVDOF,NORVEL,INRLOD,NODAMP,NODYNRSP)=YES
+$
+$    SUBCASE 1
+$        LABEL = Modes run with BHH matrix
+$        ANALYSIS = MODES
+$        SUPER=0
+$        DISPLACEMENT(PLOT) = ALL
+$        FORCE(PLOT) = ALL
+$    SUBCASE 2
+$        LABEL = Dummy Case
+$        DLOAD = 1
+$
+$    BEGIN BULK
+$    $-------------------------------------------------------------------
+$    $ NAS2CAM input:
+$    PARAM,DBDICT,0
+$    $PARAM,RMCSET,1
+$    PARAM,PRFMODES,1
+$    $
+$    $ TO GENERATE GRAVITY FORCE, SET GRAVDIR EQUAL TO GRAVITY DIRECTION
+$    $  AND SET THE GRAVITY FIELD:
+$    $
+$    $PARAM,GRAVDIR,1
+$    $PARAM,GRAVFELD,-386.1
+$    $
+$    $ $ TO GET THE "GOT" MATRIX FOR SPECIFIED SUPERELEMENTS:
+$    $ DTI,TGOT,1,50  $ WANT GOT FOR SE 50 ONLY
+$    $
+$    $ DTI,TMGG,1,50
+$    $ DTI,TKGG,1,50
+$    $ DTI,TRBG,1,50
+$    $
+$    $
+$    $DTI,TMAA,1,141,142,143,144,145,0
+$    $DTI,TKAA,1,141,142,143,144,145,0
+$    $DTI,TMAA,1,0
+$    $
+$    $ DTI,TKAA,1,0
+$    $ DTI,TGOT,1,100
+$    $ DTI,TGOQ,1,100
+$    $ DTI,TGM,1,0
+$    DTI,TPHG,1,0
+$    $param,pbaa,1
+$    param,pbhh,1
+$    $ end NAS2CAM input
+$    $-------------------------------------------------------------------
+$    $
+$    PARAM,POST,-1
+$    PARAM,OGEOM,YES
+$    PARAM,AUTOSPC,YES
+$    PARAM,MAXRATIO,1.E+8
+$    PARAM,WTMASS,0.00259
+$    PARAM,SESDAMP,YES
+$    PARAM,RESVPGF,0.0
+$    PARAM,RESVRAT,1.0+7
+$    PARAM,RESMETH,AHOU
+$    $ PARAM,RESMETH,LAN
+$    $-------2-------3-------4-------5-------6-------7-------8-------9-------
+$    EIGRL,1,,110.0,,,30,0.5,MASS
+$    SUPORT,2140001,123456
+$    DAREA,1,2140001,1,1.0
+$    $-----------------------------------------------------------------------
+$    $ Fake SEMFREQ inputs
+$    $-----------------------------------------------------------------------
+$    FREQ           1      2.
+$    RLOAD2  99999999       1                       1
+$    TABLED1        1
+$                0.01     1.0   150.0     1.0    ENDT
+$
+$    $***********************************************************************
+$    $ INCLUDE FILES
+$    $***********************************************************************
+$    INCLUDE'/loads/CLA/Connections/PAF_to_S2.blk'
+$    INCLUDE'/loads/CLA/Connections/PAF_to_Fairing.blk'
+$    INCLUDE'/loads/CLA/Connections/PAF_to_Payload.blk'
+$
+$    TABLED1     1001LINEAR  LINEAR
+$            -1000.001.0000001000.0001.000000ENDT
+$    SELOAD         1     20410007011
+$    SELOAD         2     20410007012
+$    SELOAD         3     20410007013
+$    SELOAD         4     20410007014
+$    TLOAD1         1       1                    1001
+$    TLOAD1         2       2                    1001
+$    TLOAD1         3       3                    1001
+$    TLOAD1         4       4                    1001
+$
+$    $***********************************************************************
+$    $ ASM FILES
+$    $***********************************************************************
+$    INCLUDE '/loads/CLA/PAF.asm'
+$    INCLUDE '/loads/CLA/Fairing.asm'
+$    INCLUDE '/loads/CLA/S2.asm'
+$    INCLUDE '/loads/CLA/SC.asm'
+$
+$    $***********************************************************************
+$    $ PCH FILES
+$    $***********************************************************************
+$    INCLUDE '/loads/CLA/PAF.pch'
+$    INCLUDE '/loads/CLA/Fairing.pch'
+$    INCLUDE '/loads/CLA/S2.pch'
+$    INCLUDE '/loads/CLA/SC.pch'
+$    ENDDATA
+$
+$
+COMPILE NAS2CAM $
+$-----------------------------------------------------------------------
+$23456789012345678901234567890123456789012345678901234567890123456789012
+$        1         2         3         4         5         6         7
+SUBDMAP NAS2CAM  DTI     ,DTINDX  ,MATPOOL ,CASECC  ,PCDB    ,
+                 XYCDB   ,PHA     ,MAA     ,BAA     ,KAA     ,
+                 LAMA    ,MGG     ,KGG     ,PHG     ,EQEXINS ,
+                 USET    ,EMAP    ,SLIST   ,MHH     ,BHH     ,
+                 KHH     ,USET0   ,MAPS    ,GOT     ,GOQ     ,
+                 GM      ,CSTMS   ,BGPDTS  ,CMLAMA  ,LAMAS   ,
+                 LAMAS0  ,DRG     ,PG      ,MDD     ,BDD     ,
+                 KDD     ,PDT     ,K4AA    ,GDNTAB  ,GPLS    ,
+                 SILS    // $
+$
+$
+TYPE     PARM,,I,Y,PULVS=1 $
+TYPE     PARM,,I,Y,PLAMBDA=1 $
+TYPE     PARM,,I,Y,PGM=0 $
+TYPE     PARM,,I,Y,PGOT=0 $
+TYPE     PARM,,I,Y,PGOQ=0 $
+TYPE     PARM,,I,Y,PMAA=0 $
+TYPE     PARM,,I,Y,PBAA=0 $
+TYPE     PARM,,I,Y,PKAA=0 $
+TYPE     PARM,,I,Y,PMHH=0 $
+TYPE     PARM,,I,Y,PBHH=0 $
+TYPE     PARM,,I,Y,PKHH=0 $
+TYPE     PARM,,I,Y,PK4AA=0 $
+TYPE     PARM,,I,Y,PPHA=0 $
+TYPE     PARM,,I,Y,PMGG=0 $
+TYPE     PARM,,I,Y,PKGG=0 $
+TYPE     PARM,,I,Y,PPHG=0 $
+TYPE     PARM,,I,Y,PRBG=0 $
+TYPE     PARM,,I,Y,PDRG=0 $
+TYPE     PARM,,I,Y,PPG=0 $
+TYPE     PARM,,I,Y,PMDD=0 $
+TYPE     PARM,,I,Y,PBDD=0 $
+TYPE     PARM,,I,Y,PKDD=0 $
+TYPE     PARM,,I,Y,PPDT=0 $
+TYPE     PARM,,I,Y,PRFMODES=0 $
+TYPE     PARM,,I,Y,GRAVDIR=0 $
+TYPE     PARM,,RS,Y,GRAVFELD=1.0 $
+TYPE     PARM,,I,Y,DBDICT=-1 $                   DB DICT PRINT
+TYPE     PARM,,CHAR8,N,LABL='DBWRITE' $
+TYPE     PARM,,I,Y,UNITOP2=29 $
+TYPE     PARM,,I,Y,UNITOP4=30 $
+TYPE     PARM,,I,N,LPFLG=0 $
+TYPE     PARM,,I,Y,CSEID=-2 $
+TYPE     PARM,,I,Y,RMCSET=0 $
+TYPE     PARM,,I,Y,WRTDMIG=0 $
+$
+FILE ULVS=OVRWRT $
+FILE RBG=OVRWRT $
+FILE LAMBDA=OVRWRT $
+FILE SE_STAR1=OVRWRT $
+FILE SE_START=OVRWRT $
+FILE RFMODES=OVRWRT $
+FILE KQTQT=OVRWRT $
+FILE LAMMTRX=OVRWRT $
+$
+$  SOL 103 QUALIFIERS
+$
+TYPE     PARM,NDDL,I,N,SEID,MTEMP,LOAD,TEMPLD,DEFORM,MPC,SPC,SUPORT,
+                       PEID,METH,DYRD,MFLUID,NCASE,BC,PVALID,NLOOP $
+TYPE     PARM,NDDL,I,Y,HIGHQUAL $
+TYPE     PARM,NDDL,CHAR8,N,K2GG,M2GG,B2GG,P2G $
+$
+MESSAGE //'BEGIN NAS2CAM DMAP'/ $
+IF ( DBDICT=0 OR DBDICT=2 ) CALL DBDICT1 //'     ' $
+$
+TYPE PARM,,I,N,NOULVS $
+TYPE PARM,,I,N,NORBG $
+TYPE PARM,,CS,N,CSEIDX $
+TYPE PARM,,I,N,NSUPERS $
+$
+MESSAGE //'OUTPUT2 UNIT = '/UNITOP2 $
+$
+IF ( CSEID = -2 ) THEN $
+  DBSTATUS EMAP//S,N,NOEMAP $
+  IF ( NOEMAP <> 1 ) THEN $
+    MESSAGE //'FATAL:  NO EMAP FOUND AND PARAM,CSEID NOT SET.' $
+    EXIT $
+  ENDIF $
+  PARAML   EMAP//'TRAILER'/1/S,N,NSUPERS $
+  OUTPUT2  //-1/UNITOP2/LABL $                   START OUTPUT2 FILE, WRITE LABEL
+  OUTPUT2  SLIST//0/UNITOP2 $                    OUTPUT2 SLIST TABLE
+  CALL CONVEMAP EMAP/DNIDS $                     CREATE VECTOR OF 'DNIDS'
+  OUTPUT2 DNIDS//0/UNITOP2///'MATRIX' $
+ELSE $
+  NSUPERS = 1 $
+  $
+  $ GENERATE A 1X1 MATRIX WITH CSEID IN IT
+  $
+  MATGEN   ,/SUPERID1/6/1/0/1 $
+  CSEIDX = CMPLX(CSEID,0) $
+  ADD      SUPERID1,/SUPERID/CSEIDX $
+  OUTPUT2  //-1/UNITOP2/LABL $                   START OUTPUT2 FILE, WRITE LABEL
+  OUTPUT2  SUPERID//0/UNITOP2///'MATRIX' $       OUTPUT2 SUPERID (MATRIX)
+ENDIF $
+$
+MESSAGE  //'NSUPERS = '/NSUPERS $
+$
+DBVIEW   USETX = USET       (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   USET0X= USET0      (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   EQEXINSX = EQEXINS (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   CSTMSX = CSTMS     (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   BGPDTSX = BGPDTS   (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   SILSX = SILS       (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   MAAX = MAA         (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   BAAX = BAA         (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   KAAX = KAA         (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   MHHX = MHH         (WHERE WILDCARD=TRUE) $
+DBVIEW   BHHX = BHH         (WHERE WILDCARD=TRUE) $
+DBVIEW   KHHX = KHH         (WHERE WILDCARD=TRUE) $
+DBVIEW   K4AAX = K4AA       (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   PHAX = PHA         (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   MGGX = MGG         (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   KGGX = KGG         (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   PHGX = PHG         (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   LAMAX = LAMA       (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   GMX  = GM          (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   GOTX = GOT         (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   GOQX = GOQ         (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   CMLAMAX = CMLAMA   (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   CMLAMA1X= CMLAMA1  (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   LAMASX = LAMAS     (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   LAMAS0X= LAMAS0    (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   DRGX = DRG         (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   PGX  = PG          (WHERE PEID=CSEID AND WILDCARD=TRUE) $
+DBVIEW   MDDX = MDD         (WHERE WILDCARD=TRUE) $
+DBVIEW   BDDX = BDD         (WHERE WILDCARD=TRUE) $
+DBVIEW   KDDX = KDD         (WHERE WILDCARD=TRUE) $
+DBVIEW   PDTX = PDT         (WHERE WILDCARD=TRUE) $
+DBVIEW   MAPSX = MAPS       (WHERE SEID=CSEID AND WILDCARD=TRUE) $
+$
+$ CHECK FOR DTI'S:
+$
+DTIIN DTI,DTINDX/TULVS,TLAMBDA,TMAA,TBAA,TKAA,TPHA,TMGG,TKGG,TPHG,TRBG/
+                 S,N,YULVS/S,N,YLAMBDA/S,N,YMAA/S,N,YBAA/
+                 S,N,YKAA/S,N,YPHA/S,N,YMGG/S,N,YKGG/
+                 S,N,YPHG/S,N,YRBG $
+$
+DTIIN DTI,DTINDX/TGM,TGOT,TGOQ,TRFMODES,TDRG,TPG,,,,/
+                 S,N,YGM/S,N,YGOT/S,N,YGOQ/S,N,YRFMODES/
+                 S,N,YDRG/S,N,YPG $
+$
+DTIIN DTI,DTINDX/TMDD,TBDD,TKDD,TPDT,TK4AA,,,,,/
+                 S,N,YMDD/S,N,YBDD/S,N,YKDD/S,N,YPDT/
+                 S,N,YK4AA $
+$
+TYPE PARM,,I,N,WRDNUM=1 $
+TYPE PARM,,I,N,WRTDB $
+$
+$ LOOP OVER SUPERELEMENTS AND WRITE USET AND EQEXINS TABLES
+$
+DO WHILE (LPFLG >= 0) $
+  IF ( NOEMAP <> 1 ) THEN $
+    SEID = CSEID $
+    PEID = CSEID $
+    LPFLG = -1 $
+    EQUIVX CASECC/CASES/ALWAYS $
+  ELSE $
+    SEP2DR   SLIST,EMAP//S,N,SEID/S,N,PEID/S,N,SEDWN/S,N,LPFLG/
+             S,N,NOMAT/S,N,NOASM/S,N,NOLOAD/S,N,NOLASM/S,N,NOUP/
+             S,N,SCNDRY/S,N,EXTRN/S,N,NOMR/SEP2CNTL//SEP2HD/
+             S,N,PARTSE/S,N,SETYPE/S,N,REID/S,N,NSENQSET $
+    CSEID =  SEID $
+    SEP2CT   SLIST,CASECC,PCDB,EMAP,XYCDB/CASES,PCDBS,XYCDBS/
+             'NOAPP'/SEID $
+  ENDIF $
+  MESSAGE //'' $
+  MESSAGE //'' $
+  MESSAGE //'PROCESSING SUPERELEMENT '/CSEID $
+  MESSAGE //'' $
+  MESSAGE //'' $
+  $
+  $ FATAL OUT IF DATABLOCKS DO NOT EXIST
+  $
+  DBSTATUS USETX,EQEXINSX,CSTMSX,BGPDTSX,MAPSX/
+          /S,N,NOUSET/S,N,NOEQE/S,N,NOCSTM/S,N,NOBGPDT/
+          S,N,NOMAPS $
+  IF ( NOUSET <> 1 ) THEN $
+    DBSTATUS USET0X//S,N,NOUSET0 $
+    IF ( NOUSET0 <> 1 ) THEN $
+      MESSAGE //'WARNING:  USET MISSING FOR '/
+              'SUPERELEMENT '/CSEID/'.  SKIPPING REST.' $
+      JUMP  ENDWL $
+    ELSE $
+      MESSAGE //'WARNING:  USET MISSING FOR '/
+              'SUPERELEMENT '/CSEID/'.  USING USET0.' $
+      EQUIVX USET0X/USETTAB/ALWAYS $
+    ENDIF $
+  ELSE $
+    EQUIVX USETX/USETTAB/ALWAYS $
+  ENDIF $
+  IF ( NOEQE <> 1 ) THEN $
+    MESSAGE //'FATAL:  EQEXINS MISSING FOR '/
+            'SUPERELEMENT '/CSEID/'.  EXITING.' $
+    EXIT $
+  ENDIF $
+  IF ( NOCSTM <> 1 ) THEN $
+    MESSAGE //'WARNING:  CSTMS MISSING FOR '/
+            'SUPERELEMENT '/CSEID/'.' $
+    MESSAGE //'FORCES ASSUMPTION OF SINGLE, BASIC C.S.' $
+  ENDIF $
+  IF ( NOBGPDT <> 1 ) THEN $
+    MESSAGE //'FATAL:  BGPDTS MISSING FOR '/
+            'SUPERELEMENT '/CSEID/'.  EXITING.' $
+    EXIT $
+  ENDIF $
+  IF ( NOMAPS <> 1 ) THEN $
+    MESSAGE //'WARNING:  MAPS NOT FOUND FOR '/
+            'SUPERELEMENT '/CSEID/'.  CONTINUING.' $
+  ENDIF $
+  $
+  OUTPUT2  USETTAB,EQEXINSX,CSTMSX,BGPDTSX,MAPSX//0/UNITOP2/
+           //'USET' $
+  $
+  $ WRITE MARKER MATRIX TO SIGNAL START OF A NEW SE
+  $
+  MATGEN   ,/SE_STAR1/6/1/0/1 $
+  CSEIDX = CMPLX(CSEID,0) $
+  ADD      SE_STAR1,/SE_START/CSEIDX $
+  OUTPUT4  SE_START,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+  $
+  $ GET SE DATABLOCKS:
+  $
+  $ -------------------------ULVS--------------------------
+  $
+  WRTDB = 0 $
+  IF ( YULVS ) THEN $
+    PARAML   TULVS//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TULVS//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PULVS > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    CALL     DBFETCH /AULVS,,,,/0/CSEID/1/0/S,NOULVS $   FETCH ULVS
+    IF ( NOULVS = 0 ) THEN $
+      MESSAGE //'WARNING:  ULVS MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ELSE $
+      IF ( RMCSET > 0 ) THEN $
+        UPARTN USETTAB,AULVS/,ULVS,,/'A'/'C'/'Q'/1 $ ROW PARTITION
+      ELSE $
+        EQUIVX AULVS/ULVS/ALWAYS $
+      ENDIF $
+      OUTPUT4  ULVS,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+    ENDIF $
+  ENDIF $
+  $
+  $ ------------------------LAMBDA-------------------------
+  $
+  WRTDB = 0 $
+  IF ( YLAMBDA ) THEN $
+    PARAML   TLAMBDA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TLAMBDA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PLAMBDA > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    IF ( CSEID <> 0 ) THEN $
+      DBSTATUS KAAX//S,N,NOKAA1 $
+      IF ( NOKAA1 <> 1 ) THEN $
+         MESSAGE //'WARNING:  KAA (AND THEREFORE LAMBDA) MISSING '/
+                  'FOR SUPERELEMENT '/CSEID $
+      ELSE $
+        PARAML   USETTAB//'USET'//////'Q'/S,N,NOQSET $ NO. OF Q-SET
+        IF (NOQSET > 0) THEN $
+          UPARTN   USETTAB,KAAX/KQQ,,,/'A'/'Q'/'C'/0 $ SYMMETRIC PARTITION
+          UPARTN   USETTAB,MAAX/MQQ,,,/'A'/'Q'/'C'/0 $ SYMMETRIC PARTITION
+        ELSE $
+          $ EXTSEOUT TYPE SUPERELEMENTS OFTEN DO NOT SPECIFY Q-SET
+          $ EXPLICITLY. BUT, THEY DO USE SPOINTS FOR Q-SET. SO, USE SILS
+          $ TO FIND NON-GRIDS:
+          IF (NOEMAP = 1) THEN $ 
+            MESSAGE //'SCNDRY = '/SCNDRY $
+            MESSAGE //'EXTRN  = '/EXTRN $
+            MESSAGE //'PARTSE = '/PARTSE $
+            MESSAGE //'SETYPE = '/SETYPE $
+          ENDIF $
+          MATGEN   ,/I1/1/6 $                      GENERATE IDENTITY
+          ADD      I1,/I2/2.0 $
+          MATMOD   I2,SILSX,,,,,,,,,,,,,/T2,/5//0 $
+          $ T2 HAS I2 FOR EACH GRID, 1.0 FOR NON-GRIDS
+          DIAGONAL T2/V2/'COLUMN' $                EXTRACT DIAGONAL
+          UPARTN   USETTAB,V2/VA2,,,/'G'/'A'//1 $  ROW PARTITION
+          PARAML   USETTAB//'USET'//////'A'/S,N,NOASET $ NO. OF A-SET
+          MATGEN   ,/ONES/6/NOASET/0/NOASET $      VECTOR OF ONES
+          ADD      VA2,ONES/VA1//-1.0 $            SUBTRACT 1.0 FROM VA2
+          PARTN    KAAX,VA1,/KQQ,,, $              SYMMETRIC PARTITION
+          PARTN    MAAX,VA1,/MQQ,,, $              SYMMETRIC PARTITION
+        ENDIF $
+        DIAGONAL MQQ/PVLAM/'COLUMN' $              FOR PARTITIONING OUT EXTRA Q-SET
+        DIAGONAL KQQ/LAMBDA1/'COLUMN' $
+        PARTN    LAMBDA1,,PVLAM/,LAMBDA,,/1 $      ROW PARTITION
+      ENDIF $
+    ELSE $
+      LAMX     ,,LAMAX/LAMMTRX/-1 $
+      MATMOD   LAMMTRX,,,,,,,,,,,,,,/LAMBDA,/1/1 $        OMEGA^2 TERMS (RAD/SEC)^2
+      DBSTATUS LAMAX//S,N,NOLAMA $
+      IF ( NOLAMA <> 1 ) THEN $
+         MESSAGE //'WARNING:  LAMA (AND THEREFORE LAMBDA) MISSING '/
+                  'FOR SUPERELEMENT '/CSEID $
+      ENDIF $
+    ENDIF $
+    OUTPUT4  LAMBDA,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -------------------------GM----------------------------
+  $
+  WRTDB = 0 $
+  IF ( YGM ) THEN $
+    PARAML   TGM//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TGM//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PGM > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS GMX//S,N,NOGM $
+    IF ( NOGM <> 1 ) THEN $
+       MESSAGE //'WARNING:  GM MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  GMX,,,,//0/UNITOP4/1 $              OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -----------------------RFMODES-------------------------
+  $
+  WRTDB = 0 $
+  IF ( YRFMODES ) THEN $
+    PARAML   TRFMODES//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TRFMODES//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PRFMODES > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    $
+    TYPE PARM,,I,N,NRFMODES $
+    DBSTATUS LAMASX,LAMAS0X//S,N,NOLS/S,N,NOLS0 $
+    IF ( NOLS <> 1 OR NOLS0 <> 1 ) THEN $
+       MESSAGE //'WARNING:  LAMAS OR LAMAS0 MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+       MESSAGE //'          NO RFMODES WILL BE OUTPUT FOR THIS SE' $
+       JUMP  ENDRFM $
+    ENDIF $
+    PARAML   LAMAS0X//'TRAILER'/1/S,N,NMODES $
+    PARAML   LAMASX//'TRAILER'/1/S,N,NMODES2 $
+    NRFMODES = NMODES2 - NMODES $
+    $
+    MESSAGE //'NRFMODES = '/NRFMODES $
+    $
+    $ FOR A 0-1 PARTITION VECTOR FOR THE RF MODES:
+    $
+    MATGEN   ,/RFMODES/6/NMODES2/NMODES/NRFMODES $
+    OUTPUT4  RFMODES,,,,//0/UNITOP4/1 $          OUTPUT4 IN BINARY
+    $
+  ENDIF $
+  LABEL ENDRFM $
+  $
+  $ -------------------------GOT---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YGOT ) THEN $
+    PARAML   TGOT//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TGOT//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PGOT > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS GOTX//S,N,NOGOT $
+    IF ( NOGOT <> 1 ) THEN $
+       MESSAGE //'WARNING:  GOT MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  GOTX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -------------------------GOQ---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YGOQ ) THEN $
+    PARAML   TGOQ//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TGOQ//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PGOQ > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS GOQX//S,N,NOGOQ $
+    IF ( NOGOQ <> 1 ) THEN $
+       MESSAGE //'WARNING:  GOQ MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  GOQX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -------------------------MAA---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YMAA ) THEN $
+    PARAML   TMAA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TMAA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PMAA > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS MAAX//S,N,NOMAA $
+    IF ( NOMAA <> 1 ) THEN $
+       MESSAGE //'WARNING:  MAA MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ELSE $
+      PARAML   USETTAB//'USET'//////'C'/S,N,NOCSET $ NO. OF C-SET
+      IF ( RMCSET > 0 AND NOCSET > 0 ) THEN $
+        UPARTN USETTAB,MAAX/,,,MAA/'A'/'C'/'Q'/0 $   SYMMETRIC PARTITION
+        OUTPUT4 MAA,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+      ELSE $
+        OUTPUT4  MAAX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+      ENDIF $
+    ENDIF $
+  ENDIF $
+  $
+  $ -------------------------BAA---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YBAA ) THEN $
+    PARAML   TBAA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TBAA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PBAA > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS BAAX//S,N,NOBAA $
+    IF ( NOBAA <> 1 ) THEN $
+       MESSAGE //'WARNING:  BAA MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ELSE $
+      PARAML   USETTAB//'USET'//////'C'/S,N,NOCSET $ NO. OF C-SET
+      IF ( RMCSET > 0 AND NOCSET > 0 ) THEN $
+        UPARTN USETTAB,BAAX/,,,BAA/'A'/'C'/'Q'/0 $   SYMMETRIC PARTITION
+        OUTPUT4 BAA,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+      ELSE $
+        OUTPUT4  BAAX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+      ENDIF $
+    ENDIF $
+  ENDIF $
+  $
+  $ -------------------------KAA---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YKAA ) THEN $
+    PARAML   TKAA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TKAA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PKAA > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS KAAX//S,N,NOKAA $
+    IF ( NOKAA <> 1 ) THEN $
+       MESSAGE //'WARNING:  KAA MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ELSE $
+      PARAML   USETTAB//'USET'//////'C'/S,N,NOCSET $ NO. OF C-SET
+      IF ( RMCSET > 0 AND NOCSET > 0 ) THEN $
+        UPARTN USETTAB,KAAX/,,,KAA/'A'/'C'/'Q'/0 $   SYMMETRIC PARTITION
+        OUTPUT4 KAA,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+      ELSE $
+        OUTPUT4  KAAX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+      ENDIF $
+    ENDIF $
+  ENDIF $
+  $
+  $ -------------------------K4AA---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YK4AA ) THEN $
+    PARAML   TK4AA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TK4AA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PK4AA > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS K4AAX//S,N,NOK4AA $
+    IF ( NOK4AA <> 1 ) THEN $
+       MESSAGE //'WARNING:  K4AA MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ELSE $
+      PARAML   USETTAB//'USET'//////'C'/S,N,NOCSET $ NO. OF C-SET
+      IF ( RMCSET > 0 AND NOCSET > 0 ) THEN $
+        UPARTN USETTAB,K4AAX/,,,K4AA/'A'/'C'/'Q'/0 $   SYMMETRIC PARTITION
+        OUTPUT4 K4AA,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+      ELSE $
+        OUTPUT4  K4AAX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+      ENDIF $
+    ENDIF $
+  ENDIF $
+  $
+  $ -------------------------PHA---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YPHA ) THEN $
+    PARAML   TPHA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TPHA//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PPHA > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS PHAX//S,N,NOPHA $
+    IF ( NOPHA <> 1 ) THEN $
+       MESSAGE //'WARNING:  PHA MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  PHAX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -------------------------MGG---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YMGG ) THEN $
+    PARAML   TMGG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TMGG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PMGG > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS MGGX//S,N,NOMGG $
+    IF ( NOMGG <> 1 ) THEN $
+       MESSAGE //'WARNING:  MGG MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  MGGX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -------------------------KGG---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YKGG ) THEN $
+    PARAML   TKGG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TKGG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PKGG > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS KGGX//S,N,NOKGG $
+    IF ( NOKGG <> 1 ) THEN $
+       MESSAGE //'WARNING:  KGG MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  KGGX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -------------------------PHG---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YPHG ) THEN $
+    PARAML   TPHG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TPHG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PPHG > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS PHGX//S,N,NOPHG $
+    IF ( NOPHG <> 1 ) THEN $
+       MESSAGE //'WARNING:  PHG MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  PHGX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -------------------------MDD---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YMDD ) THEN $
+    PARAML   TMDD//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TMDD//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PMDD > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS MDDX//S,N,NOMDD $
+    IF ( NOMDD <> 1 ) THEN $
+       MESSAGE //'WARNING:  MDD MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ELSE $
+      PARAML   USETTAB//'USET'//////'C'/S,N,NOCSET $ NO. OF C-SET
+      IF ( RMCSET > 0 AND NOCSET > 0 ) THEN $
+        UPARTN USETTAB,MDDX/,,,MDD/'A'/'C'/'Q'/0 $   SYMMETRIC PARTITION
+        OUTPUT4 MDD,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+      ELSE $
+        OUTPUT4  MDDX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+      ENDIF $
+    ENDIF $
+  ENDIF $
+  $
+  $ -------------------------BDD---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YBDD ) THEN $
+    PARAML   TBDD//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TBDD//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PBDD > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS BDDX//S,N,NOBDD $
+    IF ( NOBDD <> 1 ) THEN $
+       MESSAGE //'WARNING:  BDD MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ELSE $
+      PARAML   USETTAB//'USET'//////'C'/S,N,NOCSET $ NO. OF C-SET
+      IF ( RMCSET > 0 AND NOCSET > 0 ) THEN $
+        UPARTN USETTAB,BDDX/,,,BDD/'A'/'C'/'Q'/0 $   SYMMETRIC PARTITION
+        OUTPUT4 BDD,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+      ELSE $
+        OUTPUT4  BDDX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+      ENDIF $
+    ENDIF $
+  ENDIF $
+  $
+  $ -------------------------KDD---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YKDD ) THEN $
+    PARAML   TKDD//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TKDD//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PKDD > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS KDDX//S,N,NOKDD $
+    IF ( NOKDD <> 1 ) THEN $
+       MESSAGE //'WARNING:  KDD MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ELSE $
+      PARAML   USETTAB//'USET'//////'C'/S,N,NOCSET $ NO. OF C-SET
+      IF ( RMCSET > 0 AND NOCSET > 0 ) THEN $
+        UPARTN USETTAB,KDDX/,,,KDD/'A'/'C'/'Q'/0 $   SYMMETRIC PARTITION
+        OUTPUT4 KDD,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+      ELSE $
+        OUTPUT4  KDDX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+      ENDIF $
+    ENDIF $
+  ENDIF $
+  $
+  $ -------------------------RBG---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YRBG ) THEN $
+    PARAML   TRBG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TRBG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PRBG > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    CALL     DBFETCH /RBG,,,,/0/CSEID/0/0/S,NORBG $  FETCH RIGID-BODY MODES
+    IF ( NORBG = 0 ) THEN $
+      MESSAGE //'WARNING:  RBG MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  RBG,,,,//0/UNITOP4/1 $              OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ -------------------------DRG---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YDRG ) THEN $
+    PARAML   TDRG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TDRG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PDRG > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS DRGX//S,N,NODRG $
+    IF ( NODRG <> 1 ) THEN $
+       MESSAGE //'WARNING:  DRG MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  DRGX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ --------------------------PG---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YPG ) THEN $
+    PARAML   TPG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TPG//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PPG > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS PGX//S,N,NOPG $
+    IF ( NOPG <> 1 ) THEN $
+       MESSAGE //'WARNING:  PG MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  PGX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ --------------------------PDT---------------------------
+  $
+  WRTDB = 0 $
+  IF ( YPDT ) THEN $
+    PARAML   TPDT//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    DO WHILE (WRDNUM >= 0) $
+      IF (SENUM = CSEID) THEN $
+        WRTDB = 1 $
+      ENDIF $
+      WRDNUM = WRDNUM + 1 $
+      PARAML   TPDT//'DTI'/1/S,N,WRDNUM//S,N,SENUM $
+    ENDDO $
+    WRDNUM = 1 $
+  ELSE IF ( PPDT > 0 ) THEN $
+    WRTDB = 1 $
+  ENDIF $
+  IF ( WRTDB > 0 ) THEN $
+    DBSTATUS PDTX//S,N,NOPDT $
+    IF ( NOPDT <> 1 ) THEN $
+       MESSAGE //'WARNING:  PDT MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+    ENDIF $
+    OUTPUT4  PDTX,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+  ENDIF $
+  $
+  $ ---------------------DO MATPOOL STUFF-------------------
+  $
+  IF ( WRTDMIG>0 ) THEN $
+    PARAML   MATPOOL//'PRES'////S,N,NOMPOOL $
+    MESSAGE //'NOMPOOL = '/NOMPOOL $
+    IF ( NOMPOOL>=0 ) THEN $
+      PARAML   USETTAB//'USET'//////'G'/S,N,NOGSET $ NO. OF G-SET
+      MTRXIN   CASES,MATPOOL,EQEXINSX,,/
+               K2GG,M2GG,B2GG,,/NOGSET/
+               S,N,NOK/S,N,NOM/S,N,NOB///1 $         READ IN MATRICES
+      OUTPUT4  K2GG,M2GG,B2GG,,//0/UNITOP4/1 $       OUTPUT4 IN BINARY
+    ENDIF $ NOMPOOL>=0
+  ENDIF $ WRTDMIG>0
+$
+ENDDO $
+LABEL  ENDWL $
+$
+OUTPUT2  //-9/UNITOP2 $                          WRITE EOF TO OUTPUT2
+$
+$ WRITE MARKER MATRIX TO SIGNAL END OF SE DATA
+$
+MATGEN   ,/LOOP_END/6/1/1 $
+OUTPUT4  LOOP_END,,,,//0/UNITOP4/1 $             OUTPUT4 IN BINARY
+$
+$ WRITE ANY OTHER SYSTEM DATA
+$
+CSEID = 0 $
+$
+$ -------------------------MHH---------------------------
+$
+WRTDB = 0 $
+IF ( PMHH > 0 ) THEN $
+  WRTDB = 1 $
+ENDIF $
+IF ( WRTDB > 0 ) THEN $
+  DBSTATUS MHHX//S,N,NOMHH $
+  IF ( NOMHH <> 1 ) THEN $
+     MESSAGE //'WARNING:  MHH NOT FOUND' $
+  ELSE $
+    OUTPUT4  MHHX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+  ENDIF $
+ENDIF $
+$
+$ -------------------------BHH---------------------------
+$
+WRTDB = 0 $
+IF ( PBHH > 0 ) THEN $
+  WRTDB = 1 $
+ENDIF $
+IF ( WRTDB > 0 ) THEN $
+  DBSTATUS BHHX//S,N,NOBHH $
+  IF ( NOBHH <> 1 ) THEN $
+     MESSAGE //'WARNING:  BHH NOT FOUND' $
+  ELSE $
+    OUTPUT4  BHHX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+  ENDIF $
+ENDIF $
+$
+$ -------------------------KHH---------------------------
+$
+WRTDB = 0 $
+IF ( PKHH > 0 ) THEN $
+  WRTDB = 1 $
+ENDIF $
+IF ( WRTDB > 0 ) THEN $
+  DBSTATUS KHHX//S,N,NOKHH $
+  IF ( NOKHH <> 1 ) THEN $
+     MESSAGE //'WARNING:  KHH NOT FOUND' $
+  ELSE $
+    OUTPUT4  KHHX,,,,//0/UNITOP4/1 $           OUTPUT4 IN BINARY
+  ENDIF $
+ENDIF $
+$
+$ WRITE GRAVITY LOAD IF REQUESTED
+$
+IF ( GRAVDIR > 0 ) THEN $
+  $
+  CALL     DBFETCH /RBG,,,,/0/CSEID/0/0/S,NORBG $ FETCH RIGID-BODY MODES
+  IF ( NORBG = 0 ) THEN $
+    $
+    $  GENERATE NEW RBG - REMOVE Q-SET
+    $
+    TYPE PARM,,I,N,REFPNT $
+    REFPNT=0 $
+    $
+    VECPLOT  ,,BGPDTSX,,CSTMSX,,,,,/
+             RBGT,,,,/S,N,REFPNT//4 $
+    TRNSP    RBGT/RBG1 $
+    TYPE     PARM,,I,N,NOPAR=-1 $
+    TYPE     PARM,,I,N,TEMPSEID $
+    TEMPSEID = SEID $
+    CALL     GETQPART SLIST   ,EMAP    ,BGPDTS  ,MAA     ,MAPS    ,
+                      GDNTAB  /VGPQ/TEMPSEID/S,NOPAR $ FORM Q-SET PART.
+    $
+    IF (NOPAR > -1) THEN $
+      MATGPR  GPLS,USETTAB,SILS,VGPQ//'H'/'G' $      PRINT PARTITION VECTOR
+      PARTN   RBG1,,VGPQ/RBX,RBU1,,/1 $              ROW PARTITION
+      MERGE   RBX,,,,,VGPQ/RBG/1 $                   ROW MERGE WITH NULLS
+    ELSE $
+      EQUIVX  RBG1/RBG/ALWAYS $                      EQUIV IF NO UPSTREAM Q
+    ENDIF $
+  ENDIF $
+  $
+  TYPE     PARM,,I,N,PRIORDIR $                  DECLARE PRIORDIR
+  TYPE     PARM,,CS,N,CGRAVFLD $                 DECLARE CGRAVFLD
+  PRIORDIR = GRAVDIR - 1 $                       PRIORDIR = GRAVDIR - 1
+  CGRAVFLD = CMPLX(GRAVFELD,0.0) $               MAKE COMPLEX FOR ADD
+  $
+  MPYAD    MGGX,RBG,/MGGRBG $
+  ADD      MGGRBG,/FGRAVG1/CGRAVFLD $
+  $
+  PARAML   FGRAVG1//'TRAILER'/1/S,N,NCOLS $      NO. OF COLUMNS
+  MATGEN   ,/PV/6/NCOLS/PRIORDIR/1/NCOLS $       1 FOR GRAVDIR
+  PARTN    FGRAVG1,PV,/,,FGRAVG,/1 $             G-SET GRAVITY FORCE
+  $
+  DBSTATUS PHGX//S,N,NOPHGX $
+  IF ( NOPHGX <> 1 ) THEN $
+    DBSTATUS PHAX//S,N,NOPHA $
+    IF ( NOPHA <> 1 ) THEN $
+       MESSAGE //'WARNING:  PHG AND PHA MISSING '/
+                'FOR SUPERELEMENT '/CSEID $
+       MESSAGE //'NO GRAVITY LOADS WILL BE OUTPUT' $
+       EXIT $
+    ENDIF $
+    $
+    UMERGE USETTAB,PHAX,/PHNX/'N'/'F'/'S' $      ROW MERGE
+    MPYAD  GMX,PHNX,/PHMX $
+    UMERGE USETTAB,PHNX,PHMX/PHG1/'G'/'N'/'M' $
+  ELSE $
+    EQUIVX PHGX/PHG1/ALWAYS $
+  ENDIF $
+  $
+  MPYAD    PHG1,FGRAVG,/FGRAVH/1 $               MODAL GRAVITY FORCE
+  MPYAD    RBG,MGGRBG,/MASS/1 $
+  MATPRT   MASS// $
+  $
+  $ SUM THE GRAVITY LOAD
+  PARTN    RBG,PV,/,,RBGCOL,/1 $                 RB-MODE IN GRAVITY DIR
+  MPYAD    RBGCOL,FGRAVG,/SUMGRAV/1 $            TOTAL GRAVITY LOAD
+  MATPRT   SUMGRAV// $
+  $
+  OUTPUT4  FGRAVH,FGRAVG,,,//0/UNITOP4/1 $       OUTPUT4 IN BINARY
+ENDIF $
+$
+RETURN $
+END $
+
+$ ========================= SUBDMAP CONVEMAP ===========================
+$
+COMPILE CONVEMAP $
+SUBDMAP CONVEMAP EMAP/DNIDS $
+$
+$ READ 'DNIDS' INFO FROM EMAP AND CREATE MATRIX:
+$
+$ DNIDS = [NSUPERS,
+$          SEID1,
+$          NG1,
+$          (NG1 GRIDS),
+$          SEID2,
+$          NG2,
+$          (NG2 GRIDS),
+$          ...]
+
+PARAML   EMAP//'TRAILER'/1/S,N,NSUPERS $
+
+$ MATMOD OPTION 56 CAN REPLACE ELEMENTS IN A MATRIX, BUT IN MY TESTING,
+$ THAT WAS MUCH SLOWER THAN USING APPEND.
+
+TYPE PARM,,I,,RECNUM $
+TYPE PARM,,I,,WRDNUM $
+TYPE PARM,,I,,NGRIDS $
+TYPE PARM,,I,,COUNT $
+TYPE PARM,,CS,,CMPLXV $
+TYPE PARM,,LOGI,,LPFLG $
+
+FILE DNIDS = APPEND $
+FILE ELEM = OVRWRT $
+MATGEN   ,/I11/1/1//0 $ 1 X 1 IDENTITY MTX
+
+$ DNIDS = [NSUPERS, SEID1, NG1, (NG1 GRIDS), SEID2, NG2, (NG2 GRIDS), ...]
+
+$ APPEND NSUPERS:
+CMPLXV = CMPLX(NSUPERS) $
+ADD I11,/ELEM/CMPLXV $
+APPEND ELEM,/DNIDS/2 $
+
+RECNUM = 3
+DO WHILE (RECNUM < NSUPERS + 3) $
+    $ MESSAGE //'READING RECORD '/RECNUM $
+    WRDNUM = 1 $
+    PARAML EMAP//'DTI'/S,N,RECNUM/S,N,WRDNUM//S,N,INTV $
+    IF (INTV <> 0) THEN $  SKIP SE 0
+        MESSAGE //'CONVERTING EMAP DNIDS FOR SE '/INTV $
+        $ APPEND SE NUMBER:
+        CMPLXV = CMPLX(INTV) $
+        ADD I11,/ELEM/CMPLXV $
+        APPEND ELEM,/DNIDS/2 $
+
+        $ APPEND NUMBER OF GRIDS FOR THIS SE:
+        WRDNUM = 3 $
+        PARAML EMAP//'DTI'/S,N,RECNUM/S,N,WRDNUM//S,N,NGRIDS $
+        CMPLXV = CMPLX(NGRIDS) $
+        ADD I11,/ELEM/CMPLXV $
+        APPEND ELEM,/DNIDS/2 $
+
+        $ APPEND THE GRID IDS FOR THIS SE:
+        LPFLG = TRUE $
+        WRDNUM = 8 $ GRID IDS START IN ROW 9
+        DO WHILE ( LPFLG ) $
+            WRDNUM = WRDNUM + 1 $
+            PARAML EMAP//'DTI'/S,N,RECNUM/S,N,WRDNUM//S,N,INTV $
+            IF (WRDNUM > -1 AND WRDNUM < NGRIDS + 9) THEN $
+                CMPLXV = CMPLX(INTV) $
+                ADD I11,/ELEM/CMPLXV $
+                APPEND ELEM,/DNIDS/2 $
+            ELSE
+                LPFLG = FALSE $
+            ENDIF $
+        ENDDO $
+    ENDIF $
+    RECNUM = RECNUM + 1 $
+ENDDO $
+RETURN $
+END $
+
+$ ========================= SUBDMAP GETQPART ===========================
+$
+$  NX VERSION 9 SUBDMAP TO GET PARTITION VECTOR THAT CAN BE USED TO
+$  PARTITION OUT UPSTREAM Q-SET DOF.
+$
+COMPILE GETQPART $
+SUBDMAP GETQPART SLIST   ,EMAP    ,BGPDTS  ,MAA     ,MAPS    ,
+                 GDNTAB  /VGPQ/DNSEID/NOPAR $
+$
+$  GET RID OF UPSTREAM Q-SET BY LOOKING AT THE Q-SET PART. OF MAA
+$
+TYPE PARM,,I,N,LPFLG $
+TYPE PARM,,I,N,CPEID $
+TYPE PARM,,I,N,DNSEID $
+TYPE PARM,,I,N,NOPAR $
+TYPE PARM,NDDL,I,N,SEID,PEID $
+TYPE DB,MLAA $
+TYPE DB,USET0 $
+$
+TYPE     PARM,,I,N,TEMPSEID $
+TYPE     PARM,,I,N,TEMPPEID $
+TEMPSEID = SEID $
+TEMPPEID = PEID $
+$
+DBVIEW   MAAUP1 = MAA WHERE (SEID=CPEID AND WILDCARD) $
+DBVIEW   USETZ  = USET0 WHERE (PEID=CPEID AND WILDCARD) $
+$
+PARAML   EMAP//'TRAILER'/1/S,N,NSUPERS $
+MESSAGE  //'NSUPERS = '/NSUPERS $
+
+IF (NSUPERS > 1) THEN $                          THERE ARE UPSTREAM SUPERELEMENTS
+  NOPAR = -1 $                                   ASSUME NO UPSTREAMS TO CURRENT SE
+  SEID = -1 $
+  LPFLG = 0 $
+  DO WHILE (LPFLG >= 0) $ FORM MLAA FOR EACH SUPERELEMENT
+    SEP2DR   SLIST,EMAP//S,N,SEID/S,N,PEID/S,N,SEDWN/S,N,LPFLG/
+  	     S,N,NOMAT/S,N,NOASM/S,N,NOLOAD/S,N,NOLASM/S,N,NOUP/
+  	     S,N,SCNDRY/S,N,EXTRN/S,N,NOMR/'ALL'//-1 $
+    $
+    PEID  =  SEID $
+    CPEID =  SEID $
+    $
+    IF ( SEID > 0 AND SEDWN = DNSEID ) THEN $
+      DBSTATUS USETZ//S,N,NOUSETZ $
+      NOPAR = 1 $
+      IF ( NOUSETZ > 0 ) THEN $
+        MESSAGE //'GETTING Q-SET FOR SEID = '/
+                  SEID/'  SEDWN = '/SEDWN/
+                  '  DNSEID = '/DNSEID $
+        UPARTN   USETZ,MAAUP1/MQQTEMP,,,/'A'/'Q'/'T' $
+        UMERGE1  USETZ,MQQTEMP,,,/MLAA/'A'/'Q'/'T' $
+
+        $ GET UPSTREAM B-SET PARTITION OF (UP)VGPQ.  THIS WILL BE NON-NULL
+        $ IF ANY OF THE UPSTREAMS (IF ANY) OF THE CURRENT UPSTREAM HAS
+        $ Q-SET THAT ARE GOING DOWNSTREAM (AS FOR BENFIELD-HRUDA METHOD)
+        $ AND ARE THEREFORE IN THE B-SET OF THE CURRENT UPSTREAM.  THIS
+        $ WILL BE ADDED TO MLAA.
+
+        TYPE     PARM,,I,N,GOTIT $
+        CALL DBFETCH /UVGPQ,,,,/0/SEID/1/0/S,GOTIT $ FETCH UPSTREAM VGPQ
+        IF (GOTIT = -1) THEN $
+          MESSAGE //'GOT VGPQ FOR CURRENT UPSTREAM SE '/SEID $
+          UPARTN  USETZ,UVGPQ/UVBPQ,,,/'G'/'B'/'Q'/1 $ ROW PARTITION TO B-SET
+          PARAML  UVBPQ//'TRAILER'/5/S,N,NZWDS $
+          IF ( NZWDS > 0 ) THEN $                MUST BE DOING B-H METHOD
+            MESSAGE //'FOUND UPSTREAM Q-SET IN B-SET.'/
+                      '  LOOKS LIKE BENFIELD-HRUDA.' $
+            $ MERGE UP TO A-SET, DIAGONALIZE, AND ADD TO MLAA
+            UMERGE   USETZ,UVBPQ,/UVAPQ1/'A'/'B'/'Q' $
+            MATMOD   UVAPQ1,,,,,,,,,,,,,,/UVAPQ,/28 $     MAKE DIAGONAL
+            ADD      UVAPQ,MLAA/MLAA1 $          ADD
+            EQUIVX   MLAA1/MLAA/ALWAYS $         MAKE NEW MLAA
+          ELSE $
+            MESSAGE //'NO UPSTREAM Q-SET IN B-SET.'/
+                      '  NOT USING THIS VGPQ.' $
+          ENDIF $
+        ENDIF $
+
+      ENDIF $
+    ELSE IF ( SEID = DNSEID ) THEN $
+      PARAML   USETZ//'USET'//////'G'/S,N,NOGSET $
+      MESSAGE //'NOGSET = '/NOGSET $
+    ENDIF $
+  $
+  ENDDO $
+  $
+  DBVIEW   MLAAUP = MLAA WHERE (SEID=* AND WILDCARD) $
+  DBVIEW   MAPSUP = MAPS WHERE (SEID=* AND WILDCARD) $
+  $
+  SEID = DNSEID $
+  PEID = DNSEID $
+  IF ( NOPAR > -1 ) THEN $
+    SEMA     BGPDTS,SLIST,EMAP,,MLAAUP,MAPSUP,GDNTAB/
+             MPP/SEID/NOGSET/'SEID'/0 $
+    DIAGONAL MPP/VGPQ/'COLUMN'/1. $
+  ENDIF $
+  $
+  $ GET BACK TO ORIGINAL SUPERELEMENT:
+  SEID = -1 $
+  LPFLG = 0 $
+  DO WHILE (LPFLG >= 0 AND SEID <> TEMPSEID) $
+    SEP2DR   SLIST,EMAP//S,N,SEID/S,N,PEID/S,N,SEDWN/S,N,LPFLG/
+  	     S,N,NOMAT/S,N,NOASM/S,N,NOLOAD/S,N,NOLASM/S,N,NOUP/
+  	     S,N,SCNDRY/S,N,EXTRN/S,N,NOMR/'ALL'//-1 $
+  ENDDO $
+  $
+ENDIF $
+PARAML   VGPQ//'TRAILER'/5/S,N,NZWDS $
+DBSTATUS VGPQ//S,N,NOVGPQ $
+IF ( NOVGPQ > -1 AND NZWDS > 0 ) THEN $
+  NOPAR = 1 $                                    THERE ARE UPSTREAM Q-SET
+ELSE $
+  NOPAR = -1 $                                   NO UPSTREAM Q-SET
+ENDIF $
+$
+SEID = TEMPSEID $
+PEID = TEMPPEID $
+$
+RETURN $ END GETQPART
+END $

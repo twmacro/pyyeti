@@ -511,12 +511,14 @@ def test_replace_basic_cs_2():
     assert np.all(uset1 == uset2)
     with pytest.raises(ValueError):
         n2p.replace_basic_cs(
-            uset0, np.vstack(([new_cs_id, 0, 0], new_cs_in_basic)),
+            uset0,
+            np.vstack(([new_cs_id, 0, 0], new_cs_in_basic)),
         )
 
     with pytest.raises(ValueError):
         n2p.replace_basic_cs(
-            uset0, np.vstack(([new_cs_id, 1, 1], new_cs_in_basic)),
+            uset0,
+            np.vstack(([new_cs_id, 1, 1], new_cs_in_basic)),
         )
 
 
@@ -1732,6 +1734,14 @@ def test_formulvs_multilevel():
     assert np.allclose(u300, nas["ulvs"][300])
     u300_100 = n2p.formulvs(nas, seup=300, sedn=100, keepcset=False)
     assert u300_100.shape[1] < nas["ulvs"][100].shape[0]
+
+
+def test_new_dnids_entry():
+    nas_old = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
+    nas_new = op2.rdnas2cam("tests/nas2cam/with_se_convemap_nas2cam")
+    assert len(nas_new["dnids"]) == len(nas_old["dnids"])
+    for k, v in nas_old["dnids"].items():
+        assert np.allclose(nas_new["dnids"][k], v)
 
 
 def test_formdrm_1():

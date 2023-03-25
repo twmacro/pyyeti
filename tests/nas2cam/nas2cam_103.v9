@@ -1,0 +1,13 @@
+$ INSERT CALL TO NAS2CAM SUBDMAP INTO SEMODES:
+$
+COMPILE SEMODES $
+ALTER    'END \$ SEMODES'(,-1) $            BEFORE END $ SEMODES
+CALL    NAS2CAM  DTI     ,DTINDX  ,MATPOOL ,CASECC  ,PCDB    ,
+                 XYCDB   ,PHA     ,MAA     ,BAA     ,KAA     ,
+                 LAMA    ,MGG     ,KGG     ,PHG     ,EQEXINS ,
+                 USET    ,EMAP    ,SLIST   ,        ,        ,
+                         ,USET0   ,MAPS    ,GOT     ,GOQ     ,
+                 GM      ,CSTMS   ,BGPDTS  ,CMLAMA  ,LAMAS   ,
+                 LAMAS0  ,DRG     ,PG      ,        ,        ,
+                         ,        ,K4AA    ,GDNTAB  ,GPLS    ,
+                 SILS    // $
