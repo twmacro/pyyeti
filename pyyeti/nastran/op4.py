@@ -27,7 +27,6 @@ Notes on sparse matrices:
 
 import itertools as it
 import struct
-import sys
 import warnings
 import collections
 from collections.abc import Mapping
@@ -312,22 +311,27 @@ class OP4:
         else:
             wper = 2
         line = self._fileh.readline()
-        c = int(line[:8]) - 1
-        r = int(line[8:16])
+
+        c_slice = slice(0, 8)
+        r_slice = slice(8, 16)
+        e_slice = slice(16, 24)
+
+        c = int(line[c_slice]) - 1
+        r = int(line[r_slice])
         if r > 0:
             while c < cols:
-                elems = int(line[16:24])
+                elems = int(line[e_slice])
                 nlines = (elems + perline - 1) // perline
                 for _ in it.repeat(None, nlines):
                     self._fileh.readline()
                 line = self._fileh.readline()
-                c = int(line[:8]) - 1
+                c = int(line[c_slice]) - 1
         elif bigmat:
             while c < cols:
-                elems = int(line[16:24])
+                elems = int(line[e_slice])
                 while elems > 0:
                     line = self._fileh.readline()
-                    L = int(line[:8]) - 1  # L
+                    L = int(line[c_slice]) - 1  # L
                     elems -= L + 2
                     L //= wper
                     # read column as a long string
@@ -335,13 +339,13 @@ class OP4:
                     for _ in it.repeat(None, nlines):
                         self._fileh.readline()
                 line = self._fileh.readline()
-                c = int(line[:8]) - 1
+                c = int(line[c_slice]) - 1
         else:
             while c < cols:
-                elems = int(line[16:24])
+                elems = int(line[e_slice])
                 while elems > 0:
                     line = self._fileh.readline()
-                    IS = int(line)  # [:8])
+                    IS = int(line)
                     L = (IS >> 16) - 1  # L
                     elems -= L + 1
                     L //= wper
@@ -350,7 +354,7 @@ class OP4:
                     for _ in it.repeat(None, nlines):
                         self._fileh.readline()
                 line = self._fileh.readline()
-                c = int(line[:8]) - 1
+                c = int(line[c_slice]) - 1
         self._fileh.readline()
 
     def _check_name(self, name):
@@ -453,15 +457,20 @@ class OP4:
     ):
         init, put, retrn = funcs
         X = init(rows, cols)
+
+        c_slice = slice(0, 8)
+        r_slice = slice(8, 16)
+        e_slice = slice(16, 24)
+
         while c < cols:
-            elems = int(line[16:24])
+            elems = int(line[e_slice])
             r -= 1
             # read column as a long string
             s = self._get_ascii_block(elems, perline, linelen)
             put(X, r, c, s, elems, numlen)
             line = self._fileh.readline()
-            c = int(line[:8]) - 1
-            r = int(line[8:16])
+            c = int(line[c_slice]) - 1
+            r = int(line[r_slice])
         return retrn(rows, cols, X)
 
     def _rd_bigmat_ascii(
@@ -469,19 +478,23 @@ class OP4:
     ):
         init, put, retrn = funcs
         X = init(rows, cols)
+
+        c_slice = slice(0, 8)
+        r_slice = slice(8, 16)
+        e_slice = slice(16, 24)
+
         while c < cols:
-            elems = int(line[16:24])
+            elems = int(line[e_slice])
             while elems > 0:
                 line = self._fileh.readline()
-                L = int(line[:8]) - 1  # L
-                r = int(line[8:16]) - 1  # irow-1
+                L = int(line[c_slice]) - 1  # L
+                r = int(line[r_slice]) - 1  # irow-1
                 elems -= L + 2
                 L //= wper
                 s = self._get_ascii_block(L, perline, linelen)
                 put(X, r, c, s, L, numlen)
             line = self._fileh.readline()
-            c = int(line[:8]) - 1
-            # r = int(line[8:16])
+            c = int(line[c_slice]) - 1
         return retrn(rows, cols, X)
 
     def _rd_nonbigmat_ascii(
@@ -489,11 +502,16 @@ class OP4:
     ):
         init, put, retrn = funcs
         X = init(rows, cols)
+
+        c_slice = slice(0, 8)
+        # r_slice = slice(8, 16)
+        e_slice = slice(16, 24)
+
         while c < cols:
-            elems = int(line[16:24])
+            elems = int(line[e_slice])
             while elems > 0:
                 line = self._fileh.readline()
-                IS = int(line)  # [:8])
+                IS = int(line)
                 L = (IS >> 16) - 1  # L
                 r = IS - ((L + 1) << 16) - 1  # irow-1
                 elems -= L + 1
@@ -501,8 +519,7 @@ class OP4:
                 s = self._get_ascii_block(L, perline, linelen)
                 put(X, r, c, s, L, numlen)
             line = self._fileh.readline()
-            c = int(line[:8]) - 1
-            # r = int(line[8:16])
+            c = int(line[c_slice]) - 1
         return retrn(rows, cols, X)
 
     def _get_funcs(self, a_or_b, rows, r, mtype, sparse, allzeros):
@@ -644,18 +661,32 @@ class OP4:
             line = line.rstrip()
             if line == "":
                 return None, None, None, None
-            cols = int(line[:8])
-            rows = int(line[8:16])
-            form = int(line[16:24])
-            mtype = int(line[24:32])
+            if line.endswith("|I16"):
+                line = line[:-4]
+                c_slice = slice(0, 16)
+                r_slice = slice(16, 32)
+                f_slice = slice(32, 40)
+                t_slice = slice(40, 48)
+                n_slice = slice(48, 56)
+            else:
+                c_slice = slice(0, 8)
+                r_slice = slice(8, 16)
+                f_slice = slice(16, 24)
+                t_slice = slice(24, 32)
+                n_slice = slice(32, 40)
+
+            cols = int(line[c_slice])
+            rows = int(line[r_slice])
+            form = int(line[f_slice])
+            mtype = int(line[t_slice])
             length = len(line)
-            name = self._check_name(line[32:40])
+            name = self._check_name(line[n_slice])
             perline = 5
             numlen = 16
-            if length > 44:
-                # 1P,3E24.16  <-- starts at position 40
+            if length > n_slice.stop:
+                # 1P,3E24.16  <-- starts at position n_slice.stop
                 # 3e24.16
-                numformat = line[40:].strip().upper()
+                numformat = line[n_slice.stop :].strip().upper()
                 if numformat.startswith("1P,"):
                     numformat = numformat[3:]
                 p = numformat.replace("D", "E").find("E")
@@ -676,8 +707,10 @@ class OP4:
         wper = 1 if mtype & 1 else 2
         line = self._fileh.readline()
         linelen = perline * numlen
-        c = int(line[:8]) - 1
-        r = int(line[8:16])
+        c_slice = slice(0, 8)
+        r_slice = slice(8, 16)
+        c = int(line[c_slice]) - 1
+        r = int(line[r_slice])
         sparse, sparsefunc = OP4._get_sparsefunc(sparse)
 
         rdfunc, funcs = self._get_funcs("ascii", rows, r, mtype, sparse, c >= cols)
@@ -956,7 +989,7 @@ class OP4:
             numform = self._str_dr
             numform2 = self._str_dr_fromfile
             bytesreal = 8
-            wper = self._wordsperdouble
+            wper = self._wordsperdouble  # should this be 2 no matter what?
 
         X, reclen = rdfunc(
             fp,
@@ -1088,13 +1121,36 @@ class OP4:
         return rs, cs, vs, cols_with_data
 
     @staticmethod
-    def _get_header_info(matrix, form=None):
+    def _get_header_info(matrix, form=None, is_ascii=False):
         if isinstance(matrix, tuple):
             mat = matrix[0]
             vals = matrix[3]
         else:
             mat = vals = matrix
         rows, cols = mat.shape
+
+        if is_ascii:
+            # if rows is more than 8 digits or cols + 1 is more than 8
+            # digits, raise error
+            if rows > 99_999_999 or cols > 99_999_998:
+                raise ValueError(
+                    "current maximum matrix dimensions for ascii writes are:"
+                    f" (99999999, 99999998). Have: {mat.shape}."
+                )
+
+            # if rows is more than 7 digits (allowing one extra space
+            # for minus sign on the bigmat format), then use 16
+            # characters for integers for the header
+            int_width = 16 if rows > 9_999_999 else 8
+        else:
+            # if rows or cols are > 2147483647 (2**31 - 1), raise error
+            if rows > 2_147_483_647 or cols > 2_147_483_647:
+                raise ValueError(
+                    "current maximum matrix dimensions for binary writes are:"
+                    f" ({2**31-1}, {2**31-1}). Have: {mat.shape}."
+                )
+            int_width = 4
+
         if form is None:
             if rows == cols:
                 if OP4._is_symmetric(matrix):
@@ -1109,7 +1165,7 @@ class OP4:
         else:
             mtype = 2
             multiplier = 1
-        return rows, cols, form, mtype, multiplier
+        return rows, cols, form, mtype, multiplier, int_width
 
     def _write_ascii_header(self, f, name, matrix, digits, bigmat, form):
         """
@@ -1149,14 +1205,18 @@ class OP4:
         numlen = digits + 5 + self._expdigits  # -1.digitsE-009
         perline = 80 // numlen
 
-        (rows, cols, form, mtype, multiplier) = OP4._get_header_info(matrix, form)
+        (rows, cols, form, mtype, multiplier, int_width) = OP4._get_header_info(
+            matrix,
+            form,
+            True,
+        )
 
         if bigmat:
-            # ~~ if rows < self._rows4bigmat:
             rows = -rows
+        addon = "|I16" if int_width == 16 else ""
         f.write(
-            f"{cols:8}{rows:8}{form:8}{mtype:8}{name.upper():8s}"
-            f"1P,{perline}E{numlen}.{digits}\n"
+            f"{cols:{int_width}}{rows:{int_width}}{form:8}{mtype:8}{name.upper():8s}"
+            f"1P,{perline}E{numlen}.{digits}{addon}\n"
         )
         numform = f"%{numlen}.{digits}E"
         return cols, multiplier, perline, numlen, numform
@@ -1221,7 +1281,7 @@ class OP4:
                 vec.dtype = float
                 _write_col_data(f, vec, c, s, elems, perline, numform)
         f.write(f"{cols + 1:8}{1:8}{1:8}\n")
-        f.write(numform % 2 ** 0.5)
+        f.write(numform % 2**0.5)
         f.write("\n")
 
     @staticmethod
@@ -1263,7 +1323,7 @@ class OP4:
                     string.dtype = float
                     _write_data_string(f, string, r0, r1, multiplier, perline, numform)
         f.write(f"{cols + 1:8}{1:8}{1:8}\n")
-        f.write(numform % 2 ** 0.5)
+        f.write(numform % 2**0.5)
         f.write("\n")
 
     def _write_ascii_nonbigmat(self, f, name, matrix, digits, form):
@@ -1394,7 +1454,7 @@ class OP4:
         matrix : matrix
             Matrix to write.
         endian : string
-            Endian setting for binary output:  '' for native, '>' for
+            Endian setting for binary output: '=' for native, '>' for
             big-endian and '<' for little-endian.
         bigmat : bool
             If true, matrix is to be written in 'bigmat' format.
@@ -1410,7 +1470,9 @@ class OP4:
             multiplier : integer
                 2 for complex, 1 for real.
         """
-        (rows, cols, form, mtype, multiplier) = OP4._get_header_info(matrix, form)
+        (rows, cols, form, mtype, multiplier, int_width) = OP4._get_header_info(
+            matrix, form
+        )
 
         # write 1st record (24 bytes: 4 4-byte ints, 1 8-byte string)
         name = (f"{name.upper():<8}").encode()
@@ -1433,7 +1495,7 @@ class OP4:
         matrix : matrix
             Matrix to write.
         endian : string
-            Endian setting for binary output:  '' for native, '>' for
+            Endian setting for binary output: '=' for native, '>' for
             big-endian and '<' for little-endian.
         form : integer or None
             The matrix form. If None, the form will be determined
@@ -1478,7 +1540,7 @@ class OP4:
                 _write_col_data(f, vec, c, s, elems, endian, colHeader, colTrailer)
         reclen = 3 * 4 + 8
         f.write(colHeader.pack(reclen, cols + 1, 1, 2))
-        f.write(struct.pack(endian + "d", 2 ** 0.5))
+        f.write(struct.pack(endian + "d", 2**0.5))
         f.write(colTrailer.pack(reclen))
 
     @staticmethod
@@ -1525,7 +1587,7 @@ class OP4:
                 f.write(colTrailer.pack(reclen))
         reclen = 3 * 4 + 8
         f.write(colHeader.pack(reclen, cols + 1, 1, 2))
-        f.write(struct.pack(endian + "d", 2 ** 0.5))
+        f.write(struct.pack(endian + "d", 2**0.5))
         f.write(colTrailer.pack(reclen))
 
     def _write_binary_nonbigmat(self, f, name, matrix, endian, form):
@@ -1542,7 +1604,7 @@ class OP4:
         matrix : matrix
             Matrix to write.
         endian : string
-            Endian setting for binary output:  '' for native, '>' for
+            Endian setting for binary output: '=' for native, '>' for
             big-endian and '<' for little-endian.
         form : integer or None
             The matrix form. If None, the form will be determined
@@ -1606,7 +1668,7 @@ class OP4:
         matrix : matrix
             Matrix to write.
         endian : string
-            Endian setting for binary output:  '' for native, '>' for
+            Endian setting for binary output: '=' for native, '>' for
             big-endian and '<' for little-endian.
         form : integer or None
             The matrix form. If None, the form will be determined
@@ -1946,7 +2008,7 @@ class OP4:
         matrices=None,
         binary=True,
         digits=16,
-        endian="",
+        endian="=",
         sparse="auto",
         forms=None,
     ):
@@ -1976,7 +2038,7 @@ class OP4:
             Number of significant digits after the decimal to include
             in the ascii output. Ignored for binary files.
         endian : string; optional
-            Endian setting for binary output:  '' for native, '>' for
+            Endian setting for binary output: '=' for native, '>' for
             big-endian and '<' for little-endian.
         sparse : string; optional
             Specifies the output format:
@@ -2083,6 +2145,8 @@ class OP4:
                 wrtfunc = self._write_binary_nonbigmat
             elif sparse != "auto":
                 raise ValueError("invalid sparse option")
+            if endian == "":
+                endian = "="  # for backwards compatibility
             with open(filename, "wb") as f:
                 for name, matrix, form in zip(names, matrices, forms):
                     if sparse == "auto":
@@ -2343,7 +2407,7 @@ def write(
     matrices=None,
     binary=True,
     digits=16,
-    endian="",
+    endian="=",
     sparse="auto",
     forms=None,
 ):
@@ -2373,7 +2437,7 @@ def write(
         Number of significant digits after the decimal to include
         in the ascii output. Ignored for binary files.
     endian : string; optional
-        Endian setting for binary output:  '' for native, '>' for
+        Endian setting for binary output: '=' for native, '>' for
         big-endian and '<' for little-endian.
     sparse : string; optional
         Specifies the output format:

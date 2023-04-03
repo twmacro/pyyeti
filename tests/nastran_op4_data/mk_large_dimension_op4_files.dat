@@ -1,0 +1,64 @@
+INIT MASTER(S) $
+
+$ ascii:
+assign output4 = 'nas_large_dim_dense_ascii.op4', status=new,
+                 unit=30,form=formatted,delete $
+assign output4 = 'nas_large_dim_bigmat_ascii.op4', status=new,
+                 unit=31,form=formatted,delete $
+assign output4 = 'nas_large_dim_nonbigmat_ascii.op4', status=new,
+                 unit=32,form=formatted,delete $
+
+$ binary:
+assign output4 = 'nas_large_dim_dense_binary.op4', status=new,
+                 unit=40,form=unformatted,delete $
+assign output4 = 'nas_large_dim_bigmat_binary.op4', status=new,
+                 unit=41,form=unformatted,delete $
+assign output4 = 'nas_large_dim_nonbigmat_binary.op4', status=new,
+                 unit=42,form=unformatted,delete $
+
+DIAG 8                      $  DIAGNOSTIC OUTPUT
+SOL 100                     $  USER SOLUTION
+$
+COMPILE USERDMAP,LIST,NOREF    $  COMPILE USER SOLUTION
+ALTER 2 $
+
+MATGEN ,/MATD11/5/18/14/2/100/S,N,IMEAN $
+MATGEN ,/MATD21/5/7/5/2/100/S,N,IMEAN $
+MATGEN ,/MATD22/5/7/7/2/100/S,N,IMEAN $
+
+FILE CP=OVRWRT $
+$ MATGEN ,/CP/6/100000000/18/99999982 $
+MATGEN ,/CP/6/10000001/18/9999983 $
+$ MATGEN ,/CP/6/225/18/207 $
+
+MERGE MATD11,,,,CP,/MATD11A/1/0/0 $
+
+$ MATGEN ,/CP/6/100000000/99999993/7 $
+MATGEN ,/CP/6/10000001/9999993/7 $
+$ MATGEN ,/CP/6/225/218/7 $
+
+MERGE ,,,MATD21,,CP,/MATD21A/1/0/0 $
+MERGE ,,,,MATD22,CP,/MATD22A/-1/0/0 $
+
+MATGEN ,/CP/6/19/14/5 $
+
+MERGE MATD11A,MATD21A,,,,CP/MATD/1/0/0 $
+TRNSP MATD/MATDT $
+
+$ ASCII:
+OUTPUT4   MATD,MATDT,MATD22A,MATD21//-1/30///16 $  ASCII
+OUTPUT4   MATD,MATDT,MATD22A,MATD21//-1/-31//TRUE/16 $  ASCII, BIGMAT
+OUTPUT4   MATD,MATDT,MATD22A,MATD21//-1/-32//FALSE/16 $  ASCII, NONBIGMAT
+ 
+$ BINARY:
+OUTPUT4   MATD,MATDT,MATD22A,MATD21//-1/40///16 $
+OUTPUT4   MATD,MATDT,MATD22A,MATD21//-1/-41//TRUE/16 $ BIGMAT
+OUTPUT4   MATD,MATDT,MATD22A,MATD21//-1/-42//FALSE/16 $ NONBIGMAT
+
+END $
+$
+CEND
+TITLE = LARGE INTEGER OP4
+$
+BEGIN BULK
+ENDDATA

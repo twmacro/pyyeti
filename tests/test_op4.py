@@ -48,7 +48,7 @@ def _rdop4_tst(o4):
 
     for filename in filenames:
         # output of dir not checked, but it should work on all these files:
-        if filename.find("badname") > -1:
+        if "badname" in filename:
             with pytest.warns(RuntimeWarning) as cm:
                 op4.dir(filename, verbose=False)
             _check_badname_cm(cm)
@@ -58,10 +58,12 @@ def _rdop4_tst(o4):
         basename = os.path.basename(filename)
         if basename in nocomp:
             continue
+        if "nas_large_dim" in basename:
+            continue
         if basename.startswith("big"):
             continue
 
-        if filename.find("badname") > -1:
+        if "badname" in filename:
             with pytest.warns(RuntimeWarning) as cm:
                 dct = o4.dctload(filename)
             _check_badname_cm(cm)
@@ -246,7 +248,9 @@ def test_wtop4_nonbigmat_binary():
     )
     o4 = op4.OP4()
     for name in filenames:
-        if name.find("badname") != -1:
+        if "badname" in name:
+            continue
+        if "nas_large_dim" in name:
             continue
         data = o4.listload(name)
         o4.write("temp.op4", data[0], data[1], sparse="nonbigmat")
@@ -263,7 +267,9 @@ def test_wtop4_bigmat_binary():
     )
     o4 = op4.OP4()
     for name in filenames:
-        if name.find("badname") != -1:
+        if "badname" in name:
+            continue
+        if "nas_large_dim" in name:
             continue
         data = o4.listload(name)
         o4.write("temp.op4", data[0], data[1], sparse="bigmat")
@@ -280,7 +286,9 @@ def test_wtop4_nonbigmat_ascii():
     )
     o4 = op4.OP4()
     for name in filenames:
-        if name.find("badname") != -1:
+        if "badname" in name:
+            continue
+        if "nas_large_dim" in name:
             continue
         data = o4.listload(name)
         o4.write("temp.op4", data[0], data[1], sparse="nonbigmat", binary=False)
@@ -297,7 +305,9 @@ def test_wtop4_bigmat_ascii():
     )
     o4 = op4.OP4()
     for name in filenames:
-        if name.find("badname") != -1:
+        if "badname" in name:
+            continue
+        if "nas_large_dim" in name:
             continue
         data = o4.listload(name)
         o4.write("temp.op4", data[0], data[1], sparse="bigmat", binary=False)
@@ -314,7 +324,9 @@ def test_wtop4_bigmat_ascii_1():
     )
     o4 = op4.OP4()
     for name in filenames[:1]:
-        if name.find("badname") != -1:
+        if "badname" in name:
+            continue
+        if "nas_large_dim" in name:
             continue
         data = o4.load(name, into="list")
         o4.write("temp.op4", data[0], data[1], sparse="bigmat", binary=False)
@@ -330,7 +342,9 @@ def test_wtop4_bigmat_ascii_2():
         "tests/nastran_op4_data/*.op4.other"
     )
     for name in filenames[:1]:
-        if name.find("badname") != -1:
+        if "badname" in name:
+            continue
+        if "nas_large_dim" in name:
             continue
         data = op4.load(name, into="list")
         op4.write("temp.op4", data[0], data[1], sparse="bigmat", binary=False)
@@ -483,6 +497,8 @@ def test_sparse_read():
         if "badname" in fname:
             # this test works fine but it doesn't add value and it
             # triggers annoying-to-catch warnings
+            continue
+        if "nas_large_dim" in fname:
             continue
         m = op4.read(fname)
         if fname.endswith("cdbin_ascii_sparse_nonbigmat.op4"):
@@ -690,8 +706,65 @@ def test_empty_file_error():
 
 
 def test_fabiola_op4():
-    ma = op4.read("tests/nastran_op4_data/ascii_fabiola.op4")
-    mb = op4.read("tests/nastran_op4_data/binary_fabiola.op4")
+    fname1 = "tests/nastran_op4_data/ascii_fabiola.op4"
+    fname2 = "tests/nastran_op4_data/binary_fabiola.op4"
+    ma = op4.read(fname1)
+    mb = op4.read(fname2)
     assert np.allclose(ma["maa"], mb["maa"])
     assert np.allclose(ma["ll"], mb["ll"])
     assert np.allclose(ma["dd"], mb["dd"])
+    for fn in (fname1, fname2):
+        names, sizes, forms, mtypes = op4.dir(fn, verbose=False)
+        assert set(names) == set(ma)
+        assert set(names) == set(mb)
+        assert names == ["maa", "ll", "dd"]
+
+
+def test_large_dimension_op4():
+    for which in ("binary", "ascii"):
+        fname1 = f"tests/nastran_op4_data/nas_large_dim_bigmat_{which}.op4"
+        fname2 = f"tests/nastran_op4_data/nas_large_dim_nonbigmat_{which}.op4"
+        fname3 = f"tests/nastran_op4_data/nas_large_dim_dense_{which}.op4"
+
+        b = op4.read(fname1, sparse=True)
+        n = op4.read(fname2, sparse=True)
+        d = op4.read(fname3, sparse=True)
+
+        names1, sizes1, forms1, mtypes1 = op4.dir(fname1, verbose=False)
+        names2, sizes2, forms2, mtypes2 = op4.dir(fname1, verbose=False)
+        names3, sizes3, forms3, mtypes3 = op4.dir(fname1, verbose=False)
+        assert names1 == ["matd", "matdt", "matd22a", "matd21"]
+        assert names2 == names1
+        assert names3 == names1
+
+        assert set(names1) == set(b)
+        assert set(names1) == set(n)
+        assert set(names1) == set(d)
+
+        binary = True if which == "binary" else False
+
+        fname1 = fname1.replace("nas_", "py_")
+        fname2 = fname2.replace("nas_", "py_")
+        fname3 = fname3.replace("nas_", "py_")
+
+        try:
+            op4.write(fname1, b, binary=binary, sparse="bigmat")
+            op4.write(fname2, b, binary=binary, sparse="nonbigmat")
+            op4.write(fname3, b, binary=binary, sparse="dense")
+
+            for name in names1:
+                assert (b[name] != n[name]).nnz == 0
+                assert (b[name] != d[name]).nnz == 0
+
+            pb = op4.read(fname1, sparse=True)
+            pn = op4.read(fname2, sparse=True)
+            pd = op4.read(fname3, sparse=True)
+
+            for name in ("matd", "matdt", "matd21"):
+                assert (pb[name] != b[name]).nnz == 0
+                assert (pn[name] != n[name]).nnz == 0
+                assert (pd[name] != d[name]).nnz == 0
+        finally:
+            os.remove(fname1)
+            os.remove(fname2)
+            os.remove(fname3)
