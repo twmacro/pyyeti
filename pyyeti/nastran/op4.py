@@ -1368,7 +1368,7 @@ class OP4:
         def _write_data_string(f, string, r0, r1, multiplier, perline, numform):
             L = r1 * 2 * multiplier
             IS = (r0 + 1) + ((L + 1) << 16)
-            f.write(f"{IS:12}\n")
+            f.write(f"{IS:11}\n")
             elems = L // 2
             neven = ((elems - 1) // perline) * perline
             for i in range(0, neven, perline):
