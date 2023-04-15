@@ -15,7 +15,9 @@ def test_rdcards():
 
     with pytest.raises(ValueError):
         nastran.rdcards(
-            "tests/nas2cam_extseout/assemble.out", "grid", return_var="bad option",
+            "tests/nas2cam_extseout/assemble.out",
+            "grid",
+            return_var="bad option",
         )
 
 
@@ -504,6 +506,47 @@ def test_rdcord2cards_errors():
                     assert e.args[0].startswith("could not convert")
 
 
+def test_rdcord2cards_13fields():
+    # nastran apparently is okay with an empty 13th field:
+    s = """
+$11111112222222233333333444444445555555566666666777777778888888899999999
+CORD2R*         10020001          4000012404.74921408901-9.0898126100692
+*       33.94550978374462404.74921408901613.371535432961-2289.1118668606*
+*       -.25675367686563-9.089812610069233.9455097837446
+*
+$11111112222222233333333444444445555555566666666777777778888888899999999
+CORD2C*           400001                0.000000000000000.00000000000000
+*       0.000000000000000.000000000000000.000000000000001.00000000000000
+*       1.000000000000000.000000000000000.00000000000000
+*
+"""
+
+    with StringIO(s) as f:
+        c = nastran.rdcord2cards(f)
+
+    assert 10020001 in c
+
+    # adding a 0.0 should cause trouble:
+    s = """
+$11111112222222233333333444444445555555566666666777777778888888899999999
+CORD2R*         10020001          4000012404.74921408901-9.0898126100692
+*       33.94550978374462404.74921408901613.371535432961-2289.1118668606*
+*       -.25675367686563-9.089812610069233.94550978374460.0
+*
+$11111112222222233333333444444445555555566666666777777778888888899999999
+CORD2C*           400001                0.000000000000000.00000000000000
+*       0.000000000000000.000000000000000.000000000000001.00000000000000
+*       1.000000000000000.000000000000000.00000000000000
+*
+"""
+
+    with StringIO(s) as f:
+        try:
+            c = nastran.rdcord2cards(f)
+        except ValueError as e:
+            assert e.args[0].startswith("expected 12")
+
+
 def test_wtextseout():
     nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
     se = 101
@@ -979,13 +1022,24 @@ def test_wtrspline_rings():
 
     with pytest.raises(ValueError):
         nastran.wtrspline_rings(
-            1, uset1, uset2, 1001, 2001, makeplot="no", independent="badoption",
+            1,
+            uset1,
+            uset2,
+            1001,
+            2001,
+            makeplot="no",
+            independent="badoption",
         )
 
     uset1 = uset1[1]
     with pytest.raises(ValueError):
         nastran.wtrspline_rings(
-            1, uset1[:-1], uset2, 1001, 2001, makeplot="no",
+            1,
+            uset1[:-1],
+            uset2,
+            1001,
+            2001,
+            makeplot="no",
         )
 
     uset3 = None

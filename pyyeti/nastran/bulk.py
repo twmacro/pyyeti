@@ -1352,9 +1352,12 @@ def rdgrids(f):
 
 def _convert_card(card):
     if len(card) != 12:
-        raise ValueError(
-            f"expected 12 fields but got {len(card)}, check: {card[0]}, {card[1]}"
-        )
+        if len(card) == 13 and card[12] == 0 and isinstance(card[12], int):
+            card = card[:12]
+        else:
+            raise ValueError(
+                f"expected 12 fields but got {len(card)}, check: {card[0]}, {card[1]}"
+            )
     char = card[0][5]
     if char in "rR":
         ctype = 1
@@ -1401,9 +1404,15 @@ def rdcord2cards(f):
             Note that T is for the coordinate system, not a grid
             (unless type = 1 which means rectangular)
 
+    Notes
+    -----
+    This routine uses :func:`pyyeti.nastran.n2p.build_coords` to build
+    the output.
+
     See also
     --------
-    :func:`bulk2uset`, :func:`rdcards`.
+    :func:`asm2uset`, :func:`bulk2uset`, :func:`rdcards`,
+    :func:`pyyeti.nastran.n2p.build_coords`
     """
     cards = rdcards(
         f, r"(cord2[rcs])\b", return_var="list", regex=True, keep_name=True, blank=0
@@ -1718,7 +1727,7 @@ def bulk2uset(*args):
     --------
     :func:`asm2uset`, :func:`uset2bulk`, :func:`rdcards`,
     :func:`rdgrids`, :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
-    :mod:`pyyeti.nastran.n2p`.
+    :func:`pyyeti.nastran.n2p.addgrid`, :mod:`pyyeti.nastran.n2p`.
     """
     grids = np.zeros((0, 8))
     coords = {}
@@ -2968,7 +2977,7 @@ def _intersect(circA, circB, xyA, draw=False):
         # (mx+b-y3)**2 + (x-x3)**2 = R3**2
         a2 = m * m + 1
         a1 = 2 * (m * (b - y3) - x3) / a2
-        a0 = ((b - y3) ** 2 + x3 ** 2 - R3 ** 2) / a2
+        a0 = ((b - y3) ** 2 + x3**2 - R3**2) / a2
         x1 = -a1 / 2 + np.sqrt((a1 / 2) ** 2 - a0)
         x2 = -a1 / 2 - np.sqrt((a1 / 2) ** 2 - a0)
         y1 = m * x1 + b
@@ -2977,8 +2986,8 @@ def _intersect(circA, circB, xyA, draw=False):
         # line is vertical (x1 & x2 are unchanged)
         #    (y-y3)**2 + (x1-x3)**2 = R3**2
         #    y-y3 = +- np.sqrt(R3**2 - (x1-x3)**2)
-        y1 = y3 + np.sqrt(R3 ** 2 - (x1 - x3) ** 2)
-        y2 = y3 - np.sqrt(R3 ** 2 - (x1 - x3) ** 2)
+        y1 = y3 + np.sqrt(R3**2 - (x1 - x3) ** 2)
+        y2 = y3 - np.sqrt(R3**2 - (x1 - x3) ** 2)
     err1 = abs(xyA[0] - x1) + abs(xyA[1] - y1)
     err2 = abs(xyA[0] - x2) + abs(xyA[1] - y2)
     if err1 < err2:
@@ -3920,7 +3929,8 @@ def mknast(
 
             if not os.path.exists(nasfile):
                 warnings.warn(
-                    f"file '{nasfile}' not found", RuntimeWarning,
+                    f"file '{nasfile}' not found",
+                    RuntimeWarning,
                 )
 
             f.write(f"\n# ******** File {nasfile} ********\n")
