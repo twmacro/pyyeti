@@ -12,7 +12,6 @@ from subprocess import run
 
 
 def convert_nb(nbname):
-
     if not nbname.endswith(".ipynb"):
         nbname = nbname + ".ipynb"
     rst = nbname.replace(".ipynb", ".rst")
@@ -41,6 +40,20 @@ def convert_nb(nbname):
     print(f"running: {cmd}")
     run(cmd, check=True)
 
+    # I don't understand, but on Read the Docs, output name was
+    # 'temp_ode.nbconvert.ipynb' (for example) and NOT
+    # 'temp_ode.ipynb'. Here is the output:
+
+    # running: ['jupyter', 'nbconvert', '--to', 'notebook',
+    #           '--execute', 'ode.ipynb', '--output', 'temp_ode.ipynb']
+    #
+    # Running Sphinx v5.3.0
+    # [NbConvertApp] Converting notebook ode.ipynb to notebook
+    # [NbConvertApp] Writing 366060 bytes to temp_ode.nbconvert.ipynb
+
+    if not os.path.exists(tmp):
+        tmp = tmp.replace(".ipynb", ".nbconvert.ipynb")
+
     # Convert to .rst for Sphinx:
     cmd = ["jupyter", "nbconvert", "--to", "rst", tmp, "--output", tmp2]
     print(f"running: {cmd}")
@@ -57,6 +70,5 @@ def convert_nb(nbname):
 
 
 if __name__ == "__main__":
-
     for nbname in sys.argv[1:]:
         convert_nb(nbname)
