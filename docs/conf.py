@@ -25,6 +25,19 @@ from pyyeti import __version__
 mpl.interactive(False)
 mpl.use("Agg")
 
+# Color cycle by Matthew A. Petroff
+#
+#  https://github.com/matplotlib/matplotlib/issues/9460
+#  https://github.com/mpetroff/accessible-color-cycles
+#
+# The final results of the present analysis are located in the
+# aesthetic-models/top-cycles.json file. The top six-color color cycle
+# is:
+mpl.rcParams["axes.prop_cycle"] = mpl.cycler(
+    "color", ["#5790fc", "#f89c20", "#e42536", "#964a8b", "#9c9ca1", "#7a21dd"]
+)
+mpl.rcParams["axes.grid"] = True
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -323,7 +336,6 @@ htmlhelp_basename = "pyyetidoc"
 USE_PDFLATEX = True
 
 if USE_PDFLATEX:
-
     latex_elements = {
         # The paper size ('letterpaper' or 'a4paper').
         "papersize": "letterpaper",
@@ -343,7 +355,6 @@ if USE_PDFLATEX:
     }
 
 else:
-
     latex_engine = "xelatex"
     latex_elements = {
         "papersize": "letterpaper",
