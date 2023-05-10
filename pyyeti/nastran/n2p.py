@@ -2327,13 +2327,16 @@ def getcoordinates(uset, gid, csys, coordref=None):
     >>> nastran.getcoordinates(uset, 200, 2) - np.array([r, th, phi])
     array([ 0.,  0.,  0.])
     """
+    if len(np.shape(gid)) == 0:  # user passed in a single number
+        gid = [gid]
     n_locations = np.shape(gid)[0]
-    if len(np.shape(gid)) == 1:
+    if len(np.shape(gid)) == 1:  # user passed in a 1-d array
         isgrid = True
-    elif np.shape(gid)[1] == 3:
+    elif np.shape(gid)[1] == 3:  # user passed in a 2-d array w/ 3 col
         isgrid = False
-    else:
+    else: # user passed in a 2-d array w/ non-3 col
         isgrid = True
+        gid = np.array(gid).flatten() 
     result = []
     for igid in gid:
         if isgrid:
