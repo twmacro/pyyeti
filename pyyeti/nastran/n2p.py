@@ -2123,7 +2123,8 @@ def getcoordinates(uset, gid, csys, coordref=None):
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     gid : integer or 3 element vector
         If integer, it is a grid id in `uset`. Otherwise, it is a 3
-        element vector:  [x, y, z] specifiy location in basic.
+        element vector:  [x, y, z] specifiy location in basic. Multiple
+        grids or vectors can be specified as rows
     csys : integer or 4x3 matrix
         Specifies coordinate system to get coordinates of `gid` in.
         If integer, it is the id of the coordinate system which must
@@ -2327,16 +2328,18 @@ def getcoordinates(uset, gid, csys, coordref=None):
     array([ 0.,  0.,  0.])
     """
     n_locations = np.shape(gid)[0]
-    result = []
-    if np.shape(gid)[1] == 1:
+    if len(np.shape(gid)) == 1:
         isgrid = True
-    else:
+    elif np.shape(gid)[1] == 3:
         isgrid = False
-    for i in range(n_locations):
+    else:
+        isgrid = True
+    result = []
+    for igid in gid:
         if isgrid:
-            xyz_basic = uset.loc[(gid, 1), "x":"z"].values
+            xyz_basic = uset.loc[(igid, 1), "x":"z"].values
         else: #is coord
-            xyz_basic = np.asarray(gid).ravel()
+            xyz_basic = np.asarray(igid).ravel()
         if np.size(csys) == 1 and csys == 0:
             return xyz_basic
         # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
@@ -2364,9 +2367,9 @@ def getcoordinates(uset, gid, csys, coordref=None):
                 theta = math.atan2(g[0] / c, g[2])
             result.append(np.array([R, theta * 180 / math.pi, phi * 180 / math.pi]))
     if n_locations == 1:
-        return np.array(result)
-    else: 
         return result[0]
+    else: 
+        return np.array(result)
 
 
 def _get_loc_a_basic(coordinfo, a):
