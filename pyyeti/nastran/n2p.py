@@ -474,10 +474,10 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
     # 1. adjust all node locations:
     #           new_location_in_basic = T @ old_location + A
     A = new_cs_in_basic[0].reshape(3, 1)
-    xyz[::6] = (T @ xyz[::6].T - A).T
+    xyz[::6] = (T @ xyz[::6].T + A).T
 
     # 2. adjust all coord-system origins similarly:
-    xyz[2::6] = (T @ xyz[2::6].T - A).T
+    xyz[2::6] = (T @ xyz[2::6].T + A).T
 
     # 3. fix up all the ids ... 0 --> new_cs_id
     pv = current_cs_ids == 0
