@@ -2344,7 +2344,7 @@ def getcoordinates(uset, gid, csys, coordref=None):
         else: #is coord
             xyz_basic = np.asarray(igid).ravel()
         if np.size(csys) == 1 and csys == 0:
-            return xyz_basic
+            result.append(xyz_basic)
         # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
         if coordref is None:
             coordref = {}
