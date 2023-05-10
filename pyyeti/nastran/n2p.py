@@ -474,10 +474,10 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
     # 1. adjust all node locations:
     #           new_location_in_basic = T @ old_location + A
     A = new_cs_in_basic[0].reshape(3, 1)
-    xyz[::6] = (T @ xyz[::6].T - A).T
+    xyz[::6] = (T @ xyz[::6].T + A).T
 
     # 2. adjust all coord-system origins similarly:
-    xyz[2::6] = (T @ xyz[2::6].T - A).T
+    xyz[2::6] = (T @ xyz[2::6].T + A).T
 
     # 3. fix up all the ids ... 0 --> new_cs_id
     pv = current_cs_ids == 0
@@ -2123,7 +2123,8 @@ def getcoordinates(uset, gid, csys, coordref=None):
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
     gid : integer or 3 element vector
         If integer, it is a grid id in `uset`. Otherwise, it is a 3
-        element vector:  [x, y, z] specifiy location in basic.
+        element vector:  [x, y, z] specifiy location in basic. Multiple
+        grids or vectors can be specified as rows
     csys : integer or 4x3 matrix
         Specifies coordinate system to get coordinates of `gid` in.
         If integer, it is the id of the coordinate system which must
@@ -2326,35 +2327,49 @@ def getcoordinates(uset, gid, csys, coordref=None):
     >>> nastran.getcoordinates(uset, 200, 2) - np.array([r, th, phi])
     array([ 0.,  0.,  0.])
     """
-    if np.size(gid) == 1:
-        xyz_basic = uset.loc[(gid, 1), "x":"z"].values
+    n_locations = np.shape(gid)[0]
+    if len(np.shape(gid)) == 1:
+        isgrid = True
+    elif np.shape(gid)[1] == 3:
+        isgrid = False
     else:
-        xyz_basic = np.asarray(gid).ravel()
-    if np.size(csys) == 1 and csys == 0:
-        return xyz_basic
-    # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
-    if coordref is None:
-        coordref = {}
-    coordinfo = mkusetcoordinfo(csys, uset, coordref)
-    xyz_coord = coordinfo[1]
-    T = coordinfo[2:]  # transform to basic for coordinate system
-    g = T.T @ (xyz_basic - xyz_coord)
-    ctype = coordinfo[0, 1].astype(np.int64)
-    if ctype == 1:
-        return g
-    if ctype == 2:
-        R = math.hypot(g[0], g[1])
-        theta = math.atan2(g[1], g[0])
-        return np.array([R, theta * 180 / math.pi, g[2]])
-    R = linalg.norm(g)
-    phi = math.atan2(g[1], g[0])
-    s = math.sin(phi)
-    c = math.cos(phi)
-    if abs(s) > abs(c):
-        theta = math.atan2(g[1] / s, g[2])
-    else:
-        theta = math.atan2(g[0] / c, g[2])
-    return np.array([R, theta * 180 / math.pi, phi * 180 / math.pi])
+        isgrid = True
+    result = []
+    for igid in gid:
+        if isgrid:
+            xyz_basic = uset.loc[(igid, 1), "x":"z"].values
+        else: #is coord
+            xyz_basic = np.asarray(igid).ravel()
+        if np.size(csys) == 1 and csys == 0:
+            return xyz_basic
+        # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
+        if coordref is None:
+            coordref = {}
+        coordinfo = mkusetcoordinfo(csys, uset, coordref)
+        xyz_coord = coordinfo[1]
+        T = coordinfo[2:]  # transform to basic for coordinate system
+        g = T.T @ (xyz_basic - xyz_coord)
+        ctype = coordinfo[0, 1].astype(np.int64)
+        if ctype == 1:
+            result.append(g)
+        elif ctype == 2:
+            R = math.hypot(g[0], g[1])
+            theta = math.atan2(g[1], g[0])
+            result.append(np.array([R, theta * 180 / math.pi, g[2]]))
+        else:
+            R = linalg.norm(g)
+            phi = math.atan2(g[1], g[0])
+            s = math.sin(phi)
+            c = math.cos(phi)
+            if abs(s) > abs(c):
+                theta = math.atan2(g[1] / s, g[2])
+            else:
+                theta = math.atan2(g[0] / c, g[2])
+            result.append(np.array([R, theta * 180 / math.pi, phi * 180 / math.pi]))
+    if n_locations == 1:
+        return result[0]
+    else: 
+        return np.array(result)
 
 
 def _get_loc_a_basic(coordinfo, a):
