@@ -2345,30 +2345,31 @@ def getcoordinates(uset, gid, csys, coordref=None):
             xyz_basic = np.asarray(igid).ravel()
         if np.size(csys) == 1 and csys == 0:
             result.append(xyz_basic)
-        # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
-        if coordref is None:
-            coordref = {}
-        coordinfo = mkusetcoordinfo(csys, uset, coordref)
-        xyz_coord = coordinfo[1]
-        T = coordinfo[2:]  # transform to basic for coordinate system
-        g = T.T @ (xyz_basic - xyz_coord)
-        ctype = coordinfo[0, 1].astype(np.int64)
-        if ctype == 1:
-            result.append(g)
-        elif ctype == 2:
-            R = math.hypot(g[0], g[1])
-            theta = math.atan2(g[1], g[0])
-            result.append(np.array([R, theta * 180 / math.pi, g[2]]))
         else:
-            R = linalg.norm(g)
-            phi = math.atan2(g[1], g[0])
-            s = math.sin(phi)
-            c = math.cos(phi)
-            if abs(s) > abs(c):
-                theta = math.atan2(g[1] / s, g[2])
+            # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
+            if coordref is None:
+                coordref = {}
+            coordinfo = mkusetcoordinfo(csys, uset, coordref)
+            xyz_coord = coordinfo[1]
+            T = coordinfo[2:]  # transform to basic for coordinate system
+            g = T.T @ (xyz_basic - xyz_coord)
+            ctype = coordinfo[0, 1].astype(np.int64)
+            if ctype == 1:
+                result.append(g)
+            elif ctype == 2:
+                R = math.hypot(g[0], g[1])
+                theta = math.atan2(g[1], g[0])
+                result.append(np.array([R, theta * 180 / math.pi, g[2]]))
             else:
-                theta = math.atan2(g[0] / c, g[2])
-            result.append(np.array([R, theta * 180 / math.pi, phi * 180 / math.pi]))
+                R = linalg.norm(g)
+                phi = math.atan2(g[1], g[0])
+                s = math.sin(phi)
+                c = math.cos(phi)
+                if abs(s) > abs(c):
+                    theta = math.atan2(g[1] / s, g[2])
+                else:
+                    theta = math.atan2(g[0] / c, g[2])
+                result.append(np.array([R, theta * 180 / math.pi, phi * 180 / math.pi]))
     if n_locations == 1:
         return result[0]
     else: 
