@@ -448,9 +448,9 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
     new_cs_id = np.atleast_2d(new_cs_id)
     if new_cs_id.shape == (4, 3):
         if new_cs_id[0, 1] != 1:
-            raise ValueError(f"``type`` in `new_cs_id` must be 1 (rectangular)")
+            raise ValueError("``type`` in `new_cs_id` must be 1 (rectangular)")
         if new_cs_id[0, 2] != 0:
-            raise ValueError(f"``reference_id`` in `new_cs_id` must be 0")
+            raise ValueError("``reference_id`` in `new_cs_id` must be 0")
         new_cs_in_basic = new_cs_id[1:]
     else:
         new_cs_in_basic = np.atleast_2d(new_cs_in_basic)
@@ -2121,9 +2121,11 @@ def getcoordinates(uset, gid, csys, coordref=None):
     uset : pandas DataFrame
         A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
-    gid : integer or 3 element vector
-        If integer, it is a grid id in `uset`. Otherwise, it is a 3
-        element vector:  [x, y, z] specifiy location in basic.
+    gid : integer, 1d array_like, or 2d array_like
+        If integer, it is a grid id in `uset`. If 1d array_like, it is
+        a list of integer grid ids in `uset`. If 2d array_like, it
+        must have 3 columns and each row specifies ``[x, y, z]``
+        location in basic.
     csys : integer or 4x3 matrix
         Specifies coordinate system to get coordinates of `gid` in.
         If integer, it is the id of the coordinate system which must
@@ -2285,6 +2287,13 @@ def getcoordinates(uset, gid, csys, coordref=None):
         &\text{otherwise}
         \end{cases}
 
+    Raises
+    ------
+    ValueError
+        If `gid` is 2d, but does not have 3 columns
+    ValueError
+        If `gid` has more than 2 dimensions
+
     See also
     --------
     :func:`pyyeti.nastran.op2.OP2.rdn2cop2`,
@@ -2294,67 +2303,112 @@ def getcoordinates(uset, gid, csys, coordref=None):
     Examples
     --------
     >>> import numpy as np
-    >>> from pyyeti import nastran
+    >>> from pyyeti.nastran import n2p
     >>>
     >>> # node 100 in basic is @ [5, 10, 15]
     >>> # node 200 in cylindrical coordinate system is @
     >>> #   [r, theta, z] = [32, 90, 10]
     >>> # node 300 in spherical coordinate system is @
-    >>> #   [r, theta, phi] = [50, 90, 90]
+    >>> #   [r, theta, phi] = [50, 45, 90]
     >>>
     >>> cylcoord = np.array([[1, 2, 0], [0, 0, 0], [1, 0, 0],
     ...                     [0, 1, 0]])
     >>> sphcoord = np.array([[2, 3, 0], [0, 0, 0], [0, 1, 0],
     ...                      [0, 0, 1]])
     >>> uset = None
-    >>> uset = nastran.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
-    >>> uset = nastran.addgrid(uset, 200, 'b', cylcoord,
+    >>> uset = n2p.addgrid(uset, 100, 'b', 0, [5, 10, 15], 0)
+    >>> uset = n2p.addgrid(uset, 200, 'b', cylcoord,
     ...                        [32, 90, 10], cylcoord)
-    >>> uset = nastran.addgrid(uset, 300, 'b', sphcoord,
-    ...                        [50, 90, 90], sphcoord)
+    >>> uset = n2p.addgrid(uset, 300, 'b', sphcoord,
+    ...                        [50, 45, 90], sphcoord)
     >>> np.set_printoptions(precision=2, suppress=True)
     >>> # get coordinates of node 200 in basic:
-    >>> nastran.getcoordinates(uset, 200, 0)
+    >>> n2p.getcoordinates(uset, 200, 0)
     array([ 10.,   0.,  32.])
     >>> # get coordinates of node 200 in cylindrical (cid 1):
-    >>> nastran.getcoordinates(uset, 200, 1)
+    >>> n2p.getcoordinates(uset, 200, 1)
     array([ 32.,  90.,  10.])
     >>> # get coordinates of node 200 in spherical (cid 2):
     >>> r = np.hypot(10., 32.)
     >>> th = 90.
     >>> phi = math.atan2(10., 32.)*180/math.pi
-    >>> nastran.getcoordinates(uset, 200, 2) - np.array([r, th, phi])
+    >>> n2p.getcoordinates(uset, 200, 2) - np.array([r, th, phi])
     array([ 0.,  0.,  0.])
+    >>>
+    >>> # manually calculated locations in cid 1:
+    >>> theta100 = math.atan2(15, 10) * 180 / math.pi
+    >>> locs = np.array(
+    ...     [
+    ...         [math.sqrt(10**2 + 15**2), theta100, 5.0],
+    ...         [32.0, 90.0, 10.0],
+    ...         [50.0 / math.sqrt(2), 0.0, 50.0 / math.sqrt(2)],
+    ...     ]
+    ... )
+    >>> np.allclose(locs, n2p.getcoordinates(uset, [100, 200, 300], 1))
+    True
+    >>>
+    >>> # note the difference in the following two calls:
+    >>> # - the 1st gets the coordinates of the 3 nodes in basic
+    >>> # - the 2nd gets the coordinates of [100., 200., 300.] in basic
+    >>> n2p.getcoordinates(uset, [100, 200, 300], 0)
+    array([[  5.  ,  10.  ,  15.  ],
+           [ 10.  ,   0.  ,  32.  ],
+           [ 35.36,  35.36,   0.  ]])
+    >>> n2p.getcoordinates(uset, [[100, 200, 300]], 0)
+    array([100, 200, 300])
     """
-    if np.size(gid) == 1:
-        xyz_basic = uset.loc[(gid, 1), "x":"z"].values
-    else:
-        xyz_basic = np.asarray(gid).ravel()
-    if np.size(csys) == 1 and csys == 0:
-        return xyz_basic
-    # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
-    if coordref is None:
-        coordref = {}
-    coordinfo = mkusetcoordinfo(csys, uset, coordref)
-    xyz_coord = coordinfo[1]
-    T = coordinfo[2:]  # transform to basic for coordinate system
-    g = T.T @ (xyz_basic - xyz_coord)
-    ctype = coordinfo[0, 1].astype(np.int64)
-    if ctype == 1:
-        return g
-    if ctype == 2:
-        R = math.hypot(g[0], g[1])
-        theta = math.atan2(g[1], g[0])
-        return np.array([R, theta * 180 / math.pi, g[2]])
-    R = linalg.norm(g)
-    phi = math.atan2(g[1], g[0])
-    s = math.sin(phi)
-    c = math.cos(phi)
-    if abs(s) > abs(c):
-        theta = math.atan2(g[1] / s, g[2])
-    else:
-        theta = math.atan2(g[0] / c, g[2])
-    return np.array([R, theta * 180 / math.pi, phi * 180 / math.pi])
+    gid = np.atleast_1d(gid)
+
+    if gid.ndim == 1:  # user passed in a 1-d array
+        isgrid = True
+    elif gid.ndim == 2:  # user passed in a 2-d array w/ 3 col
+        if gid.shape[1] != 3:
+            raise ValueError(
+                f"`gid` is 2d but does not have 3 columns (it has {gid.shape[1]})"
+            )
+        isgrid = False
+    else:  # user passed in a higher dimension array
+        raise ValueError(f"`gid` is more than 2d (it has {gid.ndim} dimensions)")
+
+    result = []
+    T = None
+    for igid in gid:
+        if isgrid:
+            xyz_basic = uset.loc[(igid, 1), "x":"z"].values
+        else:  # is coord
+            xyz_basic = igid
+        if np.size(csys) == 1 and csys == 0:
+            result.append(xyz_basic)
+        else:
+            if T is None:
+                # get input "coordinfo" [ cid type 0; location(1x3); T(3x3) ]:
+                if coordref is None:
+                    coordref = {}
+                coordinfo = mkusetcoordinfo(csys, uset, coordref)
+                xyz_coord = coordinfo[1]
+                T = coordinfo[2:]  # transform to basic for coordinate system
+            g = T.T @ (xyz_basic - xyz_coord)
+            ctype = coordinfo[0, 1].astype(np.int64)
+            if ctype == 1:
+                result.append(g)
+            elif ctype == 2:
+                R = math.hypot(g[0], g[1])
+                theta = math.atan2(g[1], g[0])
+                result.append(np.array([R, theta * 180 / math.pi, g[2]]))
+            else:
+                R = linalg.norm(g)
+                phi = math.atan2(g[1], g[0])
+                s = math.sin(phi)
+                c = math.cos(phi)
+                if abs(s) > abs(c):
+                    theta = math.atan2(g[1] / s, g[2])
+                else:
+                    theta = math.atan2(g[0] / c, g[2])
+                result.append(np.array([R, theta * 180 / math.pi, phi * 180 / math.pi]))
+
+    if gid.shape[0] == 1:
+        return result[0]
+    return np.array(result)
 
 
 def _get_loc_a_basic(coordinfo, a):

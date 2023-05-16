@@ -734,7 +734,7 @@ def test_addgrid():
     # get coordinates of node 200 in basic:
     assert np.allclose(np.array([10.0, 0, 32.0]), n2p.getcoordinates(uset, 200, 0))
     # reverse:
-    assert np.allclose([32, 90, 10], n2p.getcoordinates(uset, [10.0, 0, 32.0], 1))
+    assert np.allclose([32, 90, 10], n2p.getcoordinates(uset, [[10.0, 0, 32.0]], 1))
     with pytest.raises(ValueError):
         n2p.addgrid(None, 555, "b", 555, [0, 0, 0], 555)
     with pytest.raises(ValueError):
@@ -812,6 +812,12 @@ def test_getcoordinates():
     xy_rad = np.linalg.norm([5, 10])
     th = 90.0 - math.acos(xy_rad / R) * 180 / math.pi
     assert np.allclose(n2p.getcoordinates(uset, 100, 1), [R, th, phi])
+
+    with pytest.raises(ValueError):
+        n2p.getcoordinates(uset, [[1, 2, 3, 4]], 0)
+
+    with pytest.raises(ValueError):
+        n2p.getcoordinates(uset, [[[1]]], 0)
 
 
 def test_rbcoords():
