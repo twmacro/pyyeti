@@ -962,9 +962,9 @@ def eig_si(
     Parameters
     ----------
     K : ndarray
-        The stiffness (symmetric).
+        The stiffness (assumed symmetric).
     M : ndarray
-        The mass (positive definite).
+        The mass (assumed positive-definite).
     Xk : ndarray or None
         Initial guess @ eigenvectors; # columns > `p`. If None,
         random vectors are used from ``np.random.rand()-.5``.
@@ -1030,6 +1030,14 @@ def eig_si(
     eigenvectors (such as the output `phiv` may be), letting `Xk`
     start as random seems to work well.
 
+    Routine follows the basic algorithm as outlined in [#ss1]_.
+
+    References
+    ----------
+    .. [#ss1] Bathe KJ, Ramaswamy S; "An Accelerated Subspace Iteration
+           Method", Journal of Computer Methods in Applied Mechanics
+           and Engineering, Vol 23, 1980, pp 313–331.
+
     Examples
     --------
     >>> from pyyeti import ytools
@@ -1063,6 +1071,8 @@ def eig_si(
     True
     """
     n = np.size(K, 0)
+    K = (K + K.T) / 2
+    M = (M + M.T) / 2
     if f is not None:
         # use sturm sequence check to determine p:
         lamk = (2 * np.pi * f) ** 2
@@ -1092,39 +1102,45 @@ def eig_si(
             Xk = np.hstack((Xk, np.random.rand(n, q - c) - 0.5))
     elif c > q:
         Xk = Xk[:, :q]
+
     lamk = np.ones(q)
     nconv = 0
     loops = 0
     tolc = 1
-    posdef = mattype(None)["posdef"]
     eps = np.finfo(float).eps
-    while (tolc > tol or nconv < p) and loops < maxiter:
+    # while (tolc > tol or nconv < p) and loops < maxiter:
+    while nconv < p and loops < maxiter:
         loops += 1
         lamo = lamk
-        MXk = np.dot(M, Xk)
-        Xkbar = linalg.lu_solve(Kd, MXk)
-        Mk = np.dot(np.dot(Xkbar.T, M), Xkbar)
-        Kk = np.dot(Xkbar.T, MXk)
+        MXk = M @ Xk
+        Xkbar = linalg.lu_solve(Kd, MXk)  # eq 5
+        Kk = Xkbar.T @ MXk  # eq 6
+        Mk = Xkbar.T @ M @ Xkbar  # eq 7
+
+        Kk = (Kk + Kk.T) / 2
+        Mk = (Mk + Mk.T) / 2
 
         # solve subspace eigenvalue problem:
-        mtp = mattype(Mk)[0]
-        if not mtp & posdef:
+        mtp = mattype(Mk, "posdef")
+        if not mtp:
             factor = 1000 * eps
             pc = 0
             while 1:
                 pc += 1
                 Mk += np.diag(np.diag(Mk) * factor)
                 factor *= 10.0
-                mtp = mattype(Mk)[0]
-                if mtp & posdef or pc > 5:
+                mtp = mattype(Mk, "posdef")
+                if mtp or pc > 5:
                     break
 
-        if mtp & posdef:
-            Mkll = linalg.cholesky(Mk, lower=True)
-            Kkmod = linalg.solve(Mkll, linalg.solve(Mkll, Kk).T).T
+        if mtp:
+            Mkll = linalg.cholesky(Mk, lower=False).T
+            Kkmod = linalg.solve_triangular(
+                Mkll, linalg.solve_triangular(Mkll, Kk, lower=True).T, lower=True
+            )
             Kkmod = (Kkmod + Kkmod.T) / 2
-            lamk, Qmod = linalg.eigh(Kkmod)
-            Q = linalg.solve(Mkll.T, Qmod)
+            lamk, Qmod = linalg.eigh(Kkmod)  # eq 8
+            Q = linalg.solve_triangular(Mkll, Qmod, lower=True, trans="T")
         else:
             raise ValueError(
                 "subspace iteration failed, reduced mass"
@@ -1146,7 +1162,7 @@ def eig_si(
             if verbose:
                 print("Iteration 1 completed")
             nconv = 0
-        Xk = np.dot(Xkbar, Q)
+        Xk = Xkbar @ Q
     return lamk[:p] + mu, Xk[:, :p], Xk
 
 

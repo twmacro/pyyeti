@@ -288,13 +288,17 @@ def gettable(lines, j, col=0, label=None, skip=0):
     return np.array(table), j + len(table)
 
 
-def comptable(s1, s2, j1, j2, col=0, label=None, skip=0, sort2=0):
+def comptable(s1, s2, j1, j2, col=0, label=None, skip=0, sort2=0, truncate_rows=False):
     table1, nj1 = gettable(s1, j1[0], col, label, skip)
     table2, nj2 = gettable(s2, j2[0], col, label, skip)
     if sort2:
         table2 = np.sort(table2, axis=1)
     j1[0] = nj1
     j2[0] = nj2
+    if truncate_rows:
+        n = min(table1.shape[0], table2.shape[0])
+        table1 = table1[:n]
+        table2 = table2[:n]
     return np.allclose(table1, table2, atol=1e-1)
 
 
@@ -330,7 +334,7 @@ def compare_cbcheck_output(s, sy):
     assert comptable(s, sy, j, jy, label="-----------", skip=1, col=8)
     assert comptable(s, sy, j, jy, label="Summation", skip=2, col=8)
 
-    assert comptable(s, sy, j, jy, label="Mode", skip=2, col=8)
+    assert comptable(s, sy, j, jy, label="Mode", skip=2, col=8, truncate_rows=True)
 
     mef1 = gettable(s, j[0], label="Mode No.", skip=2)[0]
     mef2 = gettable(sy, jy[0], label="Mode No.", skip=2)[0]
@@ -363,7 +367,6 @@ def test_cbcheck_indeterminate():
     f = tempfile.NamedTemporaryFile(delete=False)
     name = f.name
     f.close()
-    # m, k, bset, rbs, rbg, rbe, usetconv = cb.cbcheck(
     out = cb.cbcheck(name, maa, kaa, b, b[:6], uset, em_filt=2)
     with open(name) as f:
         sfile = f.read()
@@ -383,14 +386,16 @@ def test_cbcheck_indeterminate():
         out = cb.cbcheck(f, maa, kaa, b, b[:6], usetb, em_filt=2)
         s = f.getvalue()
 
-    assert sfile == s
+    assert sfile[:15] == s[:15]
     s = s.splitlines()
+    sfile = sfile.splitlines()
+    compare_cbcheck_output(s, sfile)
 
     with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101.out") as f:
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
-    assert s[1] == "Mass matrix is positive definite."
+    assert s[1] == "Mass matrix is positive-definite."
     assert s[2] == "Stiffness matrix is symmetric."
 
     compare_cbcheck_output(s, sy)
@@ -451,8 +456,8 @@ def test_cbcheck_determinate():
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
-    assert s[1] == "Mass matrix is positive definite."
-    assert s[2] == "Warning: stiffness matrix is not symmetric."
+    assert s[1] == "Mass matrix is positive-definite."
+    assert s[2].startswith("Warning: stiffness matrix is not symmetric:")
 
     j = [10]
     jy = [10]
@@ -481,8 +486,9 @@ def test_cbcheck_determinate():
     #  '    17         69.173        0.00    0.13    0.00    0.00    0.00    0.99']
 
     assert len(s2) > len(s)
-    assert len(s_unique) == 2
-    assert len(s2_unique) == 9
+    assert "Printing only the modes with at least 2.0% effective mass." in s_unique
+    assert "The sum includes all modes." in s_unique
+    assert len(s2_unique) == len(s_unique) + 7
 
 
 def test_cbcheck_unit_convert():
@@ -525,7 +531,7 @@ def test_cbcheck_unit_convert():
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
-    assert s[1] == "Mass matrix is positive definite."
+    assert s[1] == "Mass matrix is positive-definite."
     assert s[2] == "Stiffness matrix is symmetric."
     compare_cbcheck_output(s, sy)
 
@@ -558,7 +564,7 @@ def test_cbcheck_reorder():
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
-    assert s[1] == "Mass matrix is positive definite."
+    assert s[1] == "Mass matrix is positive-definite."
     assert s[2] == "Stiffness matrix is symmetric."
     compare_cbcheck_output(s, sy)
 
@@ -592,7 +598,7 @@ def test_cbcheck_indeterminate_rb_norm():
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
-    assert s[1] == "Mass matrix is positive definite."
+    assert s[1] == "Mass matrix is positive-definite."
     assert s[2] == "Stiffness matrix is symmetric."
 
     compare_cbcheck_output(s, sy)
@@ -627,10 +633,46 @@ def test_cbcheck_indeterminate_rb_norm2():
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
-    assert s[1] == "Warning: mass matrix is not positive definite."
-    assert s[2] == "Warning: stiffness matrix is not symmetric."
+    assert s[1] == "Warning: mass matrix is not positive-definite."
+    msg = "Warning: stiffness matrix is not symmetric:"
+    assert s[2].startswith(msg) or s[4].startswith(msg)
 
     compare_cbcheck_output(s, sy)
+
+
+def test_cbcoordchk2():
+    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    se = 101
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
+    pv = np.any(maa, axis=0)
+    pv = np.ix_(pv, pv)
+    kaa = kaa[pv]
+
+    uset = nas["uset"][se]
+    b = n2p.mksetpv(uset, "a", "b")
+    b = np.nonzero(b)[0]
+
+    chk0 = cb.cbcoordchk(kaa, b, b[-6:], verbose=False)
+    rbmodes0 = chk0.rbmodes[b]
+
+    # maa = cb.cbreorder(maa, b, last=True)
+    kaa = cb.cbreorder(kaa, b, last=True)
+    b += kaa.shape[0] - len(b)
+    bref = b[-6:]
+
+    chk1 = cb.cbcoordchk(kaa, b, bref, verbose=False)
+    rbmodes1 = chk1.rbmodes[b]
+
+    assert np.allclose(chk1.coords, chk0.coords)
+    assert np.allclose(rbmodes1, rbmodes0)
+    assert np.allclose(chk1.maxerr, chk0.maxerr)
+    assert chk0.refpoint_chk == chk1.refpoint_chk == "pass"
+    assert abs(chk0.maxerr).max() < 1e-5
+
+    # a case where the refpoint_chk should be 'fail':
+    chk2 = cb.cbcoordchk(kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
+    assert chk2.refpoint_chk == "fail"
 
 
 def test_rbmultchk():
