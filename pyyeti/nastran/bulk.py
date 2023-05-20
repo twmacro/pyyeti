@@ -559,7 +559,7 @@ def rdcards(
     case, string fields are kept as is and only blank fields are set
     to `blank`.
 
-    Note: this routine is has no knowledge of any card, which means
+    Note: this routine has no knowledge of any card, which means
     that it will not append trailing blanks to a card. For example, if
     a GRID card is: 'GRID, 1', then this routine would return ``[1]``,
     not ``[1, 0, 0, 0, 0, 0, 0, 0]``. The :func:`rdgrids` routine
