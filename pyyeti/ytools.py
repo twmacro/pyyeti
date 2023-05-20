@@ -1071,8 +1071,8 @@ def eig_si(
     True
     """
     n = np.size(K, 0)
-    K = (K + K.T) / 2
-    M = (M + M.T) / 2
+    # K = (K + K.T) / 2
+    # M = (M + M.T) / 2
     if f is not None:
         # use sturm sequence check to determine p:
         lamk = (2 * np.pi * f) ** 2
@@ -1117,8 +1117,8 @@ def eig_si(
         Kk = Xkbar.T @ MXk  # eq 6
         Mk = Xkbar.T @ M @ Xkbar  # eq 7
 
-        Kk = (Kk + Kk.T) / 2
-        Mk = (Mk + Mk.T) / 2
+        # Kk = (Kk + Kk.T) / 2
+        # Mk = (Mk + Mk.T) / 2
 
         # solve subspace eigenvalue problem:
         mtp = mattype(Mk, "posdef")

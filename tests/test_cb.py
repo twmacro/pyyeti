@@ -367,7 +367,7 @@ def test_cbcheck_indeterminate():
     f = tempfile.NamedTemporaryFile(delete=False)
     name = f.name
     f.close()
-    out = cb.cbcheck(name, maa, kaa, b, b[:6], uset, em_filt=2)
+    out = cb.cbcheck(name, maa, kaa, b, b[:6], uset=uset, em_filt=2)
     with open(name) as f:
         sfile = f.read()
     os.remove(name)

@@ -2281,7 +2281,7 @@ def cbcoordchk(
     return _cbcoordchk(outfile, K, bset, refpoint, grids, ttl, verbose, rb_normalizer)
 
 
-def _solve_eig(fout, k, m, bset):
+def _solve_eig(fout, k, m, bset, n_freefree_modes):
     """
     Utility for cbcheck to solve free-free eigen problem.
     """
@@ -2326,23 +2326,13 @@ def _solve_eig(fout, k, m, bset):
 
     mtype, types = ytools.mattype(m)
     ktype = ytools.mattype(k)[0]
-    #     try:
-    #         w, v, _ = ytools.eig_si(k, m, p=25, mu=-10.0)
-    #     except ValueError:
-    #         fout.write("Subspace iteration failed: solving generalized eigen problem.\n\n")
-    #         subspace_ok = False
-    #         w, v = linalg.eig(k, m, right=True)
-    #         if np.iscomplexobj(w):
-    #             j = np.argsort(np.abs(w))
-    #             w = np.abs(w[j])
-    #             v = np.real(v[:, j])
-    #             normfacs = np.abs(np.diag(v.T @ m @ v))
-    #             v = np.sqrt(1 / normfacs) * v
-    #     else:
-    #         subspace_ok = True
-    #         w = abs(w)
-    subspace_ok = False
-    p = min(k.shape[0], 25)
+    subspace_ok = True
+    if not mtype & types["posdef"]:
+        try:
+            lam, phi, _ = ytools.eig_si(k, m, p=6, mu=-10.0)
+        except ValueError:
+            subspace_ok = False
+    p = min(k.shape[0], n_freefree_modes)
     w, v = sp_la.eigsh(k, p, m, sigma=1.0, mode="normal")
     w = abs(w)
 
@@ -2394,6 +2384,8 @@ def _print_type_info(f, ff_info):
                 "\tHowever, subspace iteration succeeded, which means the mass\n"
                 "\tmust be close to positive-definite.\n"
             )
+        else:
+            f.write("\tSubspace iteration also failed. Check mass.\n")
     if ff_info.ktype & ff_info.types["symmetric"]:
         f.write("Stiffness matrix is symmetric.\n")
     else:
@@ -2605,11 +2597,13 @@ def cbcheck(
     bseto,
     bref,
     uset=None,
+    *,
     uref=(0, 0, 0),
     conv=None,
     em_filt=0,
     rb_norm=None,
     reorder=True,
+    n_freefree_modes=25,
 ):
     """
     Run model checks on Craig-Bampton mass and stiffness matrices.
@@ -2699,6 +2693,8 @@ def cbcheck(
         in :func:`cbcoordchk` for the "rb_normalizer" input.
     reorder : bool; optional
         If True, reordering is allowed.
+    n_freefree_modes : integer; optional
+        Number of free-free modes to compute
 
     Returns
     -------
@@ -2741,26 +2737,34 @@ def cbcheck(
 
        - Converts units and reorders mass, stiffness and uset if
          needed.
+
        - Prepare mass and stiffness for free-free eigenvalue problem:
+
             - Any null rows/cols are partitioned out
             - Massless DOF are statically reduced out
-       - Use :func:`pyyeti.ytools.eig_si` to solve for first 25
-         eigenvalues and eigenvectors.
-            - If that fails, try :func:`scipy.linalg.eig`, which can
-              be very slow for large matrices
+
+       - Use :func:`scipy.sparse.linalg.eigsh` to solve for first
+         `n_freefree_modes` eigenvalues and eigenvectors.
+
        - Checks symmetry of Mcb and Kcb.
+
        - Prints some abs-max values from Mcb and Kcb for visual
          inspection.
+
        - Calculate the 3 types of rigid-body modes (all are relative
          to reordered DOF).
+
        - Calculates coordinates of boundary DOF relative to a
          reference (`bref`) from the stiffness matrix.
+
        - Computes the root-sum-squared distances of motion for each
          boundary grid for each type of rb-mode. These distances
          should be 1.
+
        - Similarly, computes the root-sum-squared rotations for each
          boundary grid for each type of rb-mode. These distances
          should be 1.
+
        - Does various mass property checks using 3 types of rigid-body
          modes: stiffness-, geometry-, and eigensolution-based. The
          following items are printed for checking:
@@ -2776,7 +2780,7 @@ def cbcheck(
 
        - Computes stiffness grounding checks against the three types
          of rb modes.
-       - Computes the free-free modes.
+
        - Computes the fixed-base modes and percent modal effective
          mass.
 
@@ -2865,7 +2869,7 @@ def cbcheck(
             )
 
     # calculate free-free modes:
-    ff_info = _solve_eig(f, k, m, bset)
+    ff_info = _solve_eig(f, k, m, bset, n_freefree_modes)
 
     # check matrix contents:
     _print_type_info(f, ff_info)
