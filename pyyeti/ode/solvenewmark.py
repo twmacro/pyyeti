@@ -439,7 +439,8 @@ class SolveNewmark(_BaseODE):
         That term is used to compute the ``j+1``'th displacement. That
         is appropriate because of the nature of the central finite
         difference formulae used in the Newmark-Beta formation. For
-        reference, here is the equation (from :class:`SolveNewmark`):
+        reference, here is the equation (copied from
+        :class:`SolveNewmark`):
 
         .. math::
             A u_{n+2} = \frac{1}{3}
