@@ -33,11 +33,12 @@ class SolveNewmark(_BaseODE):
     (coupled).
 
     Unlike :class:`SolveUnc` and :class:`SolveExp2`, this solver can
-    handle a singular mass matrix. For most (all?) other cases, the
-    other two solvers are preferred since they are exact assuming
-    piece-wise linear forces (if `order` is 1) or piece-wise constant
-    forces (if `order` is 0). :class:`SolveUnc` is also very likely
-    significantly faster for most problems.
+    handle a singular mass matrix. It can also handle non-linear force
+    terms very well. For most (all?) other cases, the other two
+    solvers are preferred since they are exact assuming piece-wise
+    linear forces (if `order` is 1) or piece-wise constant forces (if
+    `order` is 0). :class:`SolveUnc` is also very likely significantly
+    faster for most problems.
 
     The equations for the non-residual equations are:
 
@@ -419,7 +420,7 @@ class SolveNewmark(_BaseODE):
                        user-supplied function `func_i` to apply the
                        transform internally, is for efficiency: the
                        relatively expensive operation of:
-                       :math:`A^{-1} T_i` is done now, outside the
+                       :math:`A^{-1} T_i` is precomputed outside the
                        integration loop. The matrix :math:`A` is
                        defined in :class:`SolveNewmark`.
 
@@ -435,10 +436,15 @@ class SolveNewmark(_BaseODE):
                    T_1 @ func_1(d, j, h, **optargs_1) +
                    ...)
 
-        That term is used to compute the ``j+1``'th displacement; see
-        equation in :class:`SolveNewmark`. That is appropriate because
-        of the nature of the central finite difference formulae used
-        in the Newmark-Beta formation.
+        That term is used to compute the ``j+1``'th displacement. That
+        is appropriate because of the nature of the central finite
+        difference formulae used in the Newmark-Beta formation. For
+        reference, here is the equation (from :class:`SolveNewmark`):
+
+        .. math::
+            A u_{n+2} = \frac{1}{3}
+            \left ( F_{n+2} + F_{n+1} + F_{n} \right ) + N_{n+1} +
+            A_1 u_{n+1} + A_0 u_{n}
 
         The solution namespace returned by :func:`tsolve` will contain
         the outputs of each user defined function in the dictionary
@@ -510,7 +516,7 @@ class SolveNewmark(_BaseODE):
             ...                    [6,    1000.],
             ...                    [10,   1500.]])
             >>>
-            >>> # force transforming lookup value to forces on the
+            >>> # for transforming lookup value to forces on the
             >>> # masses:
             >>> Tfrc = np.array([[-1.], [1.]])
             >>>
