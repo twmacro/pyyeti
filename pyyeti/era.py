@@ -130,12 +130,15 @@ class ERA:
                    values represent larger contribution.
           EMAC     Extended modal amplitude coherence. The EMAC value
                    ranges from 0.0 to 1.0 for each mode and is a
-                   temporal measure indicating the importance of the
+                   temporal measure indicating the consistency of the
                    mode over time to the fit. Higher values indicate
-                   more importance. From experience, the EMAC is
-                   superior to the MAC value (see below). For more
-                   information, see [#era2]_.
-         EMACO     EMAC from just observability, as opposed to both
+                   higher consistency, meaning that the mode decays as
+                   expected. The EMAC is computed based on both
+                   observability (outputs) and controllability
+                   (inputs). From experience, the EMAC is superior to
+                   the MAC value (see below). For more information,
+                   see [#era2]_. See also `EMACO`.
+          EMACO    EMAC from just observability, as opposed to both
                    observability and controllability. Reference
                    [#era3]_ argues that this is more reliable than
                    EMAC because there are typically more response
@@ -149,6 +152,16 @@ class ERA:
                    on B is highly dependent on the choice of input
                    locations, which may be too few for reliable
                    results.
+
+                   .. note::
+                        Note: this algorithm does not use the equation
+                        in [#era3]_, which is a simple average of all
+                        EMAC values for a mode across all
+                        outputs. Instead, it uses a weighted average
+                        where the weighting factor for each output is
+                        the modeshape coefficient for that output (as
+                        done in [#era2]_).
+
           MPC      Modal phase collinearity. The MPC value ranges from
                    0.0 to 1.0 for each mode and is a spatial measure
                    indicating whether or not the different response
@@ -156,7 +169,8 @@ class ERA:
                    indicate more "in-phase" measurements. Only useful
                    if there are multiple outputs (MPC is 1.0 for
                    single output).
-          CMIO     EMACO * MPC for each mode.
+          CMIO     Consistent mode indicator based on observability.
+                   ``CMIO = EMACO * MPC`` for each mode.
           MAC      Modal amplitude coherence. The MAC value ranges
                    from 0.0 to 1.0 for each mode and is a temporal
                    measure indicating the importance of the mode over
@@ -277,25 +291,31 @@ class ERA:
         ... )
         <BLANKLINE>
         Current fit includes all modes:
-          Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC
-          --------------------------------------------------------------------
-        *    1     1.33603     0.02000    *0.817    *1.000    *1.000    *1.000
-        *    2     7.39083     0.07500    *0.839    *1.000    *1.000    *1.000
-        *    3    13.79671     0.05000    *1.000    *1.000    *1.000    *1.000
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+        *    1     1.3360    2.0000  *0.817  *1.000  *1.000  *1.000  *1.000  *1.000
+        *    2     7.3908    7.5000  *0.839  *1.000  *1.000  *1.000  *1.000  *1.000
+        *    3    13.7967    5.0000  *1.000  *1.000  *1.000  *1.000  *1.000  *1.000
         <BLANKLINE>
         Auto-selected modes fit:
-          Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC
-          --------------------------------------------------------------------
-             1     1.33603     0.02000     0.817     1.000     1.000     1.000
-             2     7.39083     0.07500     0.839     1.000     1.000     1.000
-             3    13.79671     0.05000     1.000     1.000     1.000     1.000
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+             1     1.3360    2.0000   0.817   1.000   1.000   1.000   1.000   1.000
+             2     7.3908    7.5000   0.839   1.000   1.000   1.000   1.000   1.000
+             3    13.7967    5.0000   1.000   1.000   1.000   1.000   1.000   1.000
 
-        Compare frequencies and damping:
+        Compare frequencies, damping, mode shapes, and look at `realness`:
 
         >>> np.allclose(era_fit.freqs_hz, freq_hz)
         True
         >>> np.allclose(era_fit.zeta, zeta)
         True
+        >>> era_fit.phi / phi  # modes will be scaled differently
+        array([[ 1.38989, -1.02337, -1.34712],
+               [ 1.38989, -1.02337, -1.34712],
+               [ 1.38989, -1.02337, -1.34712]])
+        >>> era_fit.realness
+        array([ 1.,  1.,  1.])
 
     .. plot::
         :context: close-figs
@@ -314,43 +334,37 @@ class ERA:
         ...     input_labels=["x", "y", "z"],
         ...     FFT=True,
         ...     FFT_range=30.0,
+        ...     svd_tol=0.05,
         ... )
         <BLANKLINE>
         Current fit includes all modes:
-          Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC
-          --------------------------------------------------------------------
-             1     0.73875     1.28293     0.256     0.013    *1.000    *1.000
-        *    2     1.37239     0.02610    *0.833    *0.927    *0.990    *1.000
-             3     4.61109     0.08532     0.268     0.098     0.588    *1.000
-             4     6.48926     0.58299     0.257     0.000     0.549    *1.000
-        *    5     7.39420     0.07075    *0.853    *0.955    *0.994    *1.000
-             6     9.54517     0.02778     0.203     0.124     0.007    *1.000
-             7    11.60875     0.02303     0.275     0.000    *0.825    *1.000
-        *    8    13.84752     0.05013    *1.000    *0.698    *0.997    *1.000
-             9    15.56279     0.01595     0.248     0.384     0.476    *1.000
-            10    17.63534    -0.01207     0.151     0.192     0.105    *1.000
-            11    20.28144     0.00245     0.264    *0.669    *0.952    *1.000
-            12    21.84685     0.02069     0.208     0.176     0.376    *1.000
-            13    24.08700     0.02537     0.258     0.141     0.584    *1.000
-            14    26.42550     0.01341     0.258     0.083     0.394    *1.000
-            15    28.37983     0.03076     0.232     0.001    *0.827    *1.000
-            16    29.67884     0.02676     0.279     0.036     0.116    *1.000
-            17    32.23488     0.01671     0.216     0.000     0.696    *1.000
-            18    34.27749     0.00929     0.296     0.204    *0.844    *1.000
-            19    36.09656     0.01530     0.274    *0.855     0.631    *1.000
-            20    38.51809     0.01280     0.232     0.179     0.129    *1.000
-            21    40.13913     0.03768     0.224     0.000     0.370    *1.000
-            22    42.11085     0.00934     0.247     0.001    *0.790    *1.000
-            23    44.01415     0.02820     0.264     0.000     0.189    *1.000
-            24    46.19429     0.01336     0.290     0.000     0.254    *1.000
-            25    48.18869     0.01835     0.252     0.162     0.041    *1.000
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+        *    1     1.3529    1.2530  *0.808  *0.890  *0.903  *0.998  *0.901  *1.000
+             2     4.1838   31.8458   0.212   0.025   0.055  *0.698   0.039  *0.880
+        *    3     7.3880    7.0198  *0.847  *0.832  *0.890  *0.989  *0.880  *1.000
+             4     9.6646    5.1517   0.190   0.017   0.057   0.018   0.001  *0.979
+             5    11.6655    2.5487   0.234   0.035   0.057  *0.519   0.030  *0.988
+        *    6    13.8372    5.1240  *1.000  *0.655  *0.682  *0.998  *0.681  *1.000
+             7    15.6667    6.0264   0.207   0.010   0.032   0.019   0.001  *0.897
+             8    17.3887    3.1272   0.157   0.000   0.001   0.457   0.000   0.679
+             9    20.5904    1.0665   0.203   0.317  *0.660  *0.850  *0.561  *0.929
+            10    24.3082    3.0689   0.203   0.024   0.093   0.187   0.017  *0.965
+            11    26.4615    2.0703   0.252   0.080   0.345   0.361   0.124  *0.958
+            12    29.5931    3.8058   0.244   0.031   0.150  *0.687   0.103  *0.967
+            13    34.2570    0.4488   0.260   0.445   0.471  *0.864  *0.407  *0.992
+            14    36.0289    1.0712   0.246   0.380   0.447  *0.763   0.341  *0.985
+            15    41.8090    1.3177   0.231   0.044   0.073   0.431   0.032  *0.904
+            16    44.3820    3.9816   0.207   0.004   0.035  *0.539   0.019  *0.878
+            17    47.1949    2.6987   0.221   0.001   0.003  *0.511   0.001  *0.961
+            18    48.7638    0.9036   0.171   0.000   0.000  *0.652   0.000  *0.912
         <BLANKLINE>
         Auto-selected modes fit:
-          Mode   Freq. (Hz)     Zeta        MSV      EMAC       MPC       MAC
-          --------------------------------------------------------------------
-             1     1.37239     0.02610     0.833     0.871     0.990     1.000
-             2     7.39420     0.07075     0.853     0.787     0.994     1.000
-             3    13.84752     0.05013     1.000     0.665     0.997     1.000
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+             1     1.3529    1.2530   0.808   0.890   0.903   0.998   0.901   1.000
+             2     7.3880    7.0198   0.847   0.832   0.890   0.989   0.880   1.000
+             3    13.8372    5.1240   1.000   0.655   0.682   0.998   0.681   1.000
     """
 
     def __init__(
@@ -360,13 +374,17 @@ class ERA:
         *,
         svd_tol=0.01,
         auto=False,
+        alpha=None,
+        beta=None,
         MSV_lower_limit=0.35,
         EMAC_lower_limit=0.5,
         EMACO_lower_limit=0.5,
-        MPC_lower_limit=0.7,
+        MPC_lower_limit=0.5,
         CMIO_lower_limit=0.35,
-        MAC_lower_limit=0.0,
+        MAC_lower_limit=0.75,
+        all_lower_limits=None,
         damp_range=(0.001, 0.999),
+        freq_range=None,
         t0=0.0,
         show_plot=True,
         input_labels=None,
@@ -407,44 +425,56 @@ class ERA:
         auto : boolean; optional
             Enables automatic selection of true modes. The default is
             False.
+        alpha, beta : integers or None; optional
+            Number of block rows and block columns to use for the
+            Hankel matrix, respectively. If both are None, the Hankel
+            matrix is made roughly square in terms of blocks. If both
+            are set, `alpha` is given precedence over `beta` if there
+            is not enough data to support both settings.
+
+            .. note::
+                 The maximum number of modes that can be detected is
+                 equal to the minimum of `alpha` or `beta` divided by
+                 2. So, be careful not to limit one of these values
+                 too low.
+
         MSV_lower_limit : scalar; optional
             The lower limit for the normalized "mode singular value"
             for modes to be selected when `auto` is True. The MSV
-            value ranges from 0.0 to 1.0 for each mode and is a
-            measure of contribution to the response. Larger values
-            represent larger contribution.
+            value ranges from 0.0 to 1.0 for each mode.
         EMAC_lower_limit : scalar; optional
             The lower limit for the "extended modal amplitude
             coherence" value for modes to be selected when `auto` is
-            True. The EMAC value ranges from 0.0 to 1.0 for each mode
-            and is a temporal measure indicating the importance of the
-            mode over time to the fit. Higher values indicate more
-            importance. From experience, the EMAC is superior to the
-            MAC value (see below). For more information, see [#era2]_.
+            True. The EMAC value ranges from 0.0 to 1.0 for each mode.
+        EMACO_lower_limit : scalar; optional
+            The lower limit for the "extended modal amplitude
+            coherence from observability" value for modes to be
+            selected when `auto` is True. The EMACO value ranges from
+            0.0 to 1.0 for each mode.
         MPC_lower_limit : scalar; optional
             The lower limit for the "modal phase collinearity" value
             for modes to be selected when `auto` is True. The MPC
-            value ranges from 0.0 to 1.0 for each mode and is a
-            spatial measure indicating whether or not the different
-            response locations for a mode are in phase. Higher values
-            indicate more "in-phase" measurements.
+            value ranges from 0.0 to 1.0 for each mode.
+        CMIO_lower_limit : scalar; optional
+            The lower limit for the "consistent mode indicator from
+            observability" value for modes to be selected when `auto`
+            is True. The CMIO value ranges from 0.0 to 1.0 for each
+            mode.
         MAC_lower_limit : scalar; optional
             The lower limit for the "modal amplitude coherence" value
             for modes to be selected when `auto` is True. The MAC
-            value ranges from 0.0 to 1.0 for each mode and is a
-            temporal measure indicating the importance of the mode
-            over time to the fit. Higher values indicate more
-            importance. The MAC value for a mode is the dot product of
-            two vectors:
-
-                1. The ideal, reconstructed time history for a mode
-                2. The time history extracted from the input data for
-                   the mode after discarding noisy data via singular
-                   value decomposition
-
+            value ranges from 0.0 to 1.0 for each mode.
+        all_lower_limits : scalar or None; optional
+            If not None, it sets all the indicator lower limit
+            values and any other lower limit settings are quietly
+            ignored.
         damp_range : 2-tuple; optional
             Specifies the range (inclusive) of acceptable damping
             values for automatic selection.
+        freq_range : 2-tuple or None; optional
+            Specifies the range (inclusive) of acceptable frequencies
+            (in Hz) values for automatic selection. If None (the
+            default), ``freq_range = (0, sr/2)``.
         t0 : scalar; optional
             The initial time value in `resp`. Only used for plotting.
         show_plot : boolean; optional
@@ -469,31 +499,33 @@ class ERA:
         ================  ============================================
         Member            Description
         ================  ============================================
-        resp              impulse response data
-        resp_era          final ERA fit to the impulse response data
-        n_outputs         number of outputs
-        n_tsteps          number of time-steps
-        n_inputs          number of inputs
-        sr                sample rate
-        t0                initial time value in `resp` (for plotting)
+        resp              Impulse response data
+        resp_era          Final ERA fit to the impulse response data
+        n_outputs         Number of outputs
+        n_tsteps          Number of time-steps
+        n_inputs          Number of inputs
+        sr                Sample rate
+        t0                Initial time value in `resp` (for plotting)
         time              `resp` time vector used for plotting;
                           created from `sr` and `t0`
-        svd_tol           singular value tolerance
-        auto              automatic or interactive method of
+        svd_tol           Singular value tolerance
+        auto              Automatic or interactive method of
                           identifying true modes
-        show_plot         if True, plots are made
-        input_labels      create a legend for approximated fit plot
+        show_plot         If True, plots are made
+        input_labels      Create a legend for approximated fit plot
         lower_limits      Dict of lower limits for each indicator for
                           auto-selecting modes
-        damp_range        range of acceptable damping values for
+        damp_range        Range of acceptable damping values for
                           automatic selection
-        FFT               produces an FFT plot of input data for
+        freq_range        Range of acceptable frequencies (Hz) for
+                          automatic selection
+        FFT               Produces an FFT plot of input data for
                           comparison to detected modes
-        FFT_range         frequency cutoff(s) for FFT plot
-        H_0               the H(0) generalized Hankel matrix (eq 5.24)
-        H_1               the H(1) generalized Hankel matrix (eq 5.24)
-        alpha             number of block rows (time-steps) in H
-        beta              number of block columns (time-steps) in H
+        FFT_range         Frequency cutoff(s) for FFT plot
+        H_0               The H(0) generalized Hankel matrix (eq 5.24)
+        H_1               The H(1) generalized Hankel matrix (eq 5.24)
+        alpha             Number of block rows (time-steps) in H
+        beta              Number of block columns (time-steps) in H
         A_hat             ERA state-space "A" matrix, (eq 5.34)
         B_hat             ERA state-space "B" matrix, (eq 5.34)
         C_hat             ERA state-space "C" matrix, (eq 5.34)
@@ -502,14 +534,18 @@ class ERA:
         B_modal           ERA modal state-space "B" matrix
         C_modal           ERA modal state-space "C" matrix (complex
                           mode-shapes)
-        eigs              complex eigenvalues of `A_hat` (discrete)
-        eigs_continuous   continuous version of `eigs`; ln(eigs) * sr
-        psi               complex eigenvectors of `A_hat`
-        psi_inv           inverse of `psi`
-        freqs             real mode frequencies (rad/sec)
-        freqs_hz          real mode frequencies (Hz)
-        zeta              real mode percent critical damping
-        phi               real mode shapes (from `C_modal`)
+        eigs              Complex eigenvalues of `A_hat` (discrete)
+        eigs_continuous   Continuous version of `eigs`; ln(eigs) * sr
+        psi               Complex eigenvectors of `A_hat`
+        psi_inv           Inverse of `psi`
+        freqs             Real mode frequencies (rad/sec)
+        freqs_hz          Real mode frequencies (Hz)
+        zeta              Real mode percent critical damping
+        phi               Real mode shapes (from `C_modal`); see also
+                          `realness`
+        realness          Realness factor for each complex mode pair;
+                          1.0 indicates a 100% real mode (this happens
+                          when the real modes diagonalize the damping)
         indicators        Dict of all indicator values for each mode
                           pair
         ================  ============================================
@@ -531,32 +567,53 @@ class ERA:
             "CMIO": CMIO_lower_limit,
             "MAC": MAC_lower_limit,
         }
+
+        if all_lower_limits is not None:
+            for key in self.lower_limits:
+                self.lower_limits[key] = all_lower_limits
+
         self.damp_range = damp_range
+        if freq_range is None:
+            freq_range = (0.0, sr / 2)
+        self.freq_range = freq_range
         self.show_plot = show_plot
         self.input_labels = input_labels
         self.FFT = FFT
         self.FFT_range = FFT_range
         self.t0 = t0
 
-        self._H_generate()
+        self._H_generate(alpha, beta)
         self._state_space()
         self._conv_2_modal()
         self._mode_select()
 
-    def _H_generate(self):
+    def _H_generate(self, alpha, beta):
         """
         Given Markov parameters, will generate the system's generalized
         Hankel matrix and time-shifted generalized Hankel matrix.
         """
         # Determining the alpha and beta parameters in order to
         # maximize coverage of data in Hankel matrices
-        alpha = self.n_tsteps // 2
-        beta = self.n_tsteps - alpha
+        if alpha is None:
+            if beta is None:
+                alpha = self.n_tsteps // 2
+                beta = self.n_tsteps - alpha
+            else:
+                beta = min(beta, self.n_tsteps - 2)
+                alpha = self.n_tsteps - beta
+        else:
+            alpha = min(alpha, self.n_tsteps - 2)
+            beta_max = self.n_tsteps - alpha
+            if beta is None:
+                beta = beta_max
+            else:
+                beta = min(beta, beta_max)
+
         H_dim = (alpha * self.n_outputs, beta * self.n_inputs)
 
         # Forming Hankel matrices
-        self.H_0 = np.empty(H_dim)
-        self.H_1 = np.empty(H_dim)
+        H_0 = np.empty(H_dim)
+        H_1 = np.empty(H_dim)
 
         # Reshaping Markov parameters into form Y = [Y0, Y1, Y2, ..., Yn]
         # Each Y[i] is of shape m x r
@@ -567,12 +624,14 @@ class ERA:
         for _ in range(alpha):
             # Using block indexing to fill Hankel matrices with Markov
             # parameters
-            self.H_0[rows] = Markov[:, cols]
-            self.H_1[rows] = Markov[:, cols + self.n_inputs]  # Time shift
+            H_0[rows] = Markov[:, cols]
+            H_1[rows] = Markov[:, cols + self.n_inputs]  # Time shift
             # Advancing row and column indices
             rows += self.n_outputs
             cols += self.n_inputs
 
+        self.H_0 = H_0
+        self.H_1 = H_1
         self.alpha = alpha
         self.beta = beta
 
@@ -659,7 +718,7 @@ class ERA:
         self._MAC()
 
         # also calculate the EMACO and CMIO from ref 3:
-        self.EMACO = self.EMACo.mean(axis=1)
+        # self.EMACO = self.EMACo.mean(axis=1)
         self.CMIO = self.EMACO * self.MPC
 
         self.indicators = {
@@ -899,23 +958,30 @@ class ERA:
             self.B_modal_all.T, z, self.n_inputs, n_input_tsteps
         )
 
-        # EMACi[:] = 1.0
-
         # total EMAC:
         B_modal = self.B_modal
         C_modal = self.C_modal
         n = B_modal.shape[0]
         EMAC = np.empty(n // 2)
+        EMACO = np.empty(n // 2)
         for i, j in enumerate(range(0, n - 1, 2)):
             c2 = abs(C_modal[:, j]) ** 2
             b2 = abs(B_modal[j, :]) ** 2
-            num = (EMACo[i] @ c2) * (b2 @ EMACi[i])
-            den = c2.sum() * b2.sum()
+
+            # just based on observability (outputs)
+            num = EMACo[i] @ c2
+            den = c2.sum()
+            EMACO[i] = num / den
+
+            # include controllability (inputs)
+            num *= b2 @ EMACi[i]
+            den *= b2.sum()
             EMAC[i] = num / den
 
         self.EMACo = EMACo
         self.EMACi = EMACi
         self.EMAC = EMAC
+        self.EMACO = EMACO
 
     def _MPC(self):
         """
@@ -931,11 +997,13 @@ class ERA:
             Sxx = re @ re
             Syy = im @ im
             Sxy = re @ im
+            # Can solve for eigenvalues with `la.eigh`:
             # om = la.eigh([[Sxx, Sxy], [Sxy, Syy]], eigvals_only=True)
             # lam1 = om[1]
             # lam2 = om[0]
 
-            # from pyyeti.ytools._calc_covariance_sine_cosine:
+            # Or, since this is just 2x2, we can solve by hand (see eqns
+            # in pyyeti.ytools._calc_covariance_sine_cosine):
             term = np.sqrt((Syy - Sxx) ** 2 + 4 * Sxy**2)
             lam1 = (Sxx + Syy + term) / 2
             lam2 = (Sxx + Syy - term) / 2
@@ -1130,15 +1198,15 @@ class ERA:
             " ",
             "Mode",
             "Freq (Hz)",
-            "Zeta",
+            "% Damp",
             *which,
         ]
         n_indicators = len(which)
-        widths = [1, 4, 10, 10] + [6] * n_indicators
-        formats = ["{}", "{:4}", "{:10.5f}", "{:10.5f}"] + n_indicators * ["{}{:5.3f}"]
+        widths = [1, 4, 9, 8] + [6] * n_indicators
+        formats = ["{}", "{:4}", "{:9.4f}", "{:8.4f}"] + n_indicators * ["{}{:5.3f}"]
         head, frm = writer.formheader(headers, widths, formats, sep=(0, 1, 2), just="c")
         # delete 1st underline:
-        head = "\n".join([" " + line[1:] for line in head.split("\n")])[:-1]
+        head = "\n".join([" " + line[1:] for line in head.split("\n")])[:-2]
         return head, frm
 
     def _get_stars(self, mark, which, dct):
@@ -1158,6 +1226,10 @@ class ERA:
             all_star = all_star & (
                 (self.damp_range[0] <= dct["zeta"])
                 & (dct["zeta"] <= self.damp_range[1])
+            )
+            all_star = all_star & (
+                (self.freq_range[0] <= dct["freqs_hz"])
+                & (dct["freqs_hz"] <= self.freq_range[1])
             )
             rec_keep = all_star.nonzero()[0]
             all_star = ["*" if j else " " for j in all_star]
@@ -1196,7 +1268,7 @@ class ERA:
         stars, all_star, self.rec_keep = self._get_stars(mark, which, dct)
 
         n = len(dct["eigs"]) // 2
-        args = [all_star, np.arange(1, n + 1), dct["freqs_hz"], dct["zeta"]]
+        args = [all_star, np.arange(1, n + 1), dct["freqs_hz"], 100 * dct["zeta"]]
         for indicator in which:
             args.append(stars[indicator])
             args.append(dct["indicators"][indicator])
@@ -1253,9 +1325,9 @@ class ERA:
                         "\nSelect modes for ERA fit (to keep or remove) [*]:\n"
                         "\t* = keep marked modes\n"
                         "\ta = keep all modes\n"
-                        "\tn = remove noise (via `svd_tol` setting)\n\n"
+                        "\tn = remove noise (via `svd_tol` setting; experimental)\n\n"
                         "\tor: mode #s separated by space and/or comma (eg: 1, 2, 5-8),"
-                        " or array_like expression\n"
+                        " or\n\t    array_like Python expression\n"
                     )
                     .strip(", ")
                     .lower()
