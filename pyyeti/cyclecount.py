@@ -53,7 +53,6 @@ def rainflow(peaks, getoffsets=False, use_pandas=True):
     Returns
     -------
     rf : pandas DataFrame or 2d ndarray
-
         n x 3 matrix with the rainflow cycle count information with
         the index going from 0 to n-1 and the columns being ['amp',
         'mean', 'count']:
@@ -64,7 +63,6 @@ def rainflow(peaks, getoffsets=False, use_pandas=True):
               half or full cycle
 
     os : pandas DataFrame or 2d ndarray
-
         Only returned if `getoffsets` is True. n x 2 matrix of cycle
         offsets with index going from 0 to n-1 and the columns being
         ['start', 'stop']:
@@ -75,9 +73,13 @@ def rainflow(peaks, getoffsets=False, use_pandas=True):
     Notes
     -----
     This algorithm is derived from reference [#cc1]_. This routine is
-    a wrapper for either the :func:`pyyeti.rainflow.c_rain` or
-    :func:`pyyeti.rainflow.py_rain` routines. Note that the C version
-    is *much* faster (the algorithms are the same).
+    a wrapper for either the C version
+    (:func:`pyyeti.rainflow.c_rain`) or the Python version
+    (:func:`pyyeti.rainflow.py_rain`) of the algorithm. Both versions
+    give identical results. They also run in comparable times if
+    :func:`numba.jit` is available (if ``import numba`` works). If
+    :func:`numba.jit` is not available, the C version is *much*
+    faster.
 
     References
     ----------
@@ -243,7 +245,6 @@ if not HAVE_NUMBA:
         PV[u] = pv
         # [ True, False, False,  True, False,  True, False, False]
         return PV
-
 
 else:
 
@@ -495,7 +496,6 @@ if HAVE_NUMBA:
                 mn = v
         return mx, mn
 
-
 else:
 
     def maxmin(x):
@@ -704,9 +704,9 @@ def sigcount(
     Notes
     -----
     Steps:
-      1.  calls :func:`findap` to find all local minima and maxima:
+      1.  Calls :func:`findap` to find all local minima and maxima:
           ``peaks = sig[findap(sig)]``
-      2.  calls :func:`rainflow` to do the cycle counting:
+      2.  Calls :func:`rainflow` to do the cycle counting:
           ``rf = rainflow(peaks)``
       3.  Summarizes the rainflow counting by putting the counts in
           bins. For each mean value bin (i'th):

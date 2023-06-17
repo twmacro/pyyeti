@@ -761,9 +761,12 @@ class SolveUnc(_BaseODE):
 
         rf_disp_only : bool; optional
             This option specifies how to handle the velocity and
-            acceleration terms for residual-flexibility modes. If
-            True, they are set to zero. If False, they are computed
-            from the normal frequency-domain relationships::
+            acceleration terms for residual-flexibility modes. (The
+            displacements for these modes is always computed
+            statically.) If True, the velocities and accelerations are
+            set to zero. If False, the default and generally
+            recommended setting, they are computed from the normal
+            frequency-domain relationships::
 
                 velocity = i * omega * displacement
                 acceleration = -omega ** 2 * displacement
@@ -1824,7 +1827,7 @@ class SolveUnc(_BaseODE):
         :func:`SolveUnc.fsolve`"""
         # convert frequency in Hz to radian/sec:
         freqw = 2 * np.pi * freq
-        freqw2 = freqw ** 2
+        freqw2 = freqw**2
 
         # solve rigid-body and elastic parts separately
         # - residual-flexibility part was already solved in _init_dva
@@ -1855,7 +1858,7 @@ class SolveUnc(_BaseODE):
         """Solve the coupled equations for :func:`SolveUnc.fsolve`"""
         # convert frequency in Hz to radian/sec:
         freqw = 2 * np.pi * freq
-        freqw2 = freqw ** 2
+        freqw2 = freqw**2
 
         # solve rigid-body and elastic parts separately
         # - residual-flexibility part was already solved in _init_dva

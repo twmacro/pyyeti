@@ -693,11 +693,11 @@ class DR_Def(OrderedDict):
 
         **Entering partition vectors.** The `histpv`, `srspv` and
         `ignorepv` inputs are all handled similarly. They can be input
-        as either an index or boolean style partition vector. If input
-        as 'all', they are reset internally to ``slice(len(labels))``.
-        They can also be entered as a slice directly. The stored
-        versions are either a slice or an index vector (uses 0-offset
-        for standard Python indexing).
+        as an index or boolean style partition vector, as a slice, or
+        as "all". If input as 'all', they are reset internally to
+        ``slice(len(labels))``. The stored versions are either a slice
+        or an index vector (uses 0-offset for standard Python
+        indexing).
 
         **`drfunc`, `drfile` notes.** If `drfunc` is a valid Python
         identifier (called "Type 2" above), then `drfile` must contain

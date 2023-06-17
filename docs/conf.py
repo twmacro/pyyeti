@@ -530,4 +530,5 @@ intersphinx_mapping = {
     "h5py": ("https://docs.h5py.org/en/latest/", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master", None),
     "sympy": ("https://docs.sympy.org/latest/", None),
+    "numba": ("https://numba.readthedocs.io/en/stable/", None),
 }
