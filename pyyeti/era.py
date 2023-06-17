@@ -168,7 +168,11 @@ class ERA:
                    locations for a mode are in phase. Higher values
                    indicate more "in-phase" measurements. Only useful
                    if there are multiple outputs (MPC is 1.0 for
-                   single output).
+                   single output). MPC will be 1.0 for a mode that is
+                   100% real (this happens when the real mode
+                   diagonalizes the damping). MPC is directly related
+                   to the "Modal Complexity Factor" (MCF): ``MPC = 1 -
+                   MCF``.
           CMIO     Consistent mode indicator based on observability.
                    ``CMIO = EMACO * MPC`` for each mode.
           MAC      Modal amplitude coherence. The MAC value ranges
@@ -304,7 +308,7 @@ class ERA:
              2     7.3908    7.5000   0.839   1.000   1.000   1.000   1.000   1.000
              3    13.7967    5.0000   1.000   1.000   1.000   1.000   1.000   1.000
 
-        Compare frequencies, damping, mode shapes, and look at `realness`:
+        Compare frequencies, damping, mode shapes:
 
         >>> np.allclose(era_fit.freqs_hz, freq_hz)
         True
@@ -314,8 +318,6 @@ class ERA:
         array([[ 1.38989, -1.02337, -1.34712],
                [ 1.38989, -1.02337, -1.34712],
                [ 1.38989, -1.02337, -1.34712]])
-        >>> era_fit.realness
-        array([ 1.,  1.,  1.])
 
     .. plot::
         :context: close-figs
@@ -434,9 +436,9 @@ class ERA:
 
             .. note::
                  The maximum number of modes that can be detected is
-                 equal to the minimum of `alpha` or `beta` divided by
-                 2. So, be careful not to limit one of these values
-                 too low.
+                 equal to the minimum dimension of the Hankel matrix
+                 divided by 2. So, be careful not to limit either
+                 `alpha` or `beta` too low.
 
         MSV_lower_limit : scalar; optional
             The lower limit for the normalized "mode singular value"
@@ -542,10 +544,7 @@ class ERA:
         freqs_hz          Real mode frequencies (Hz)
         zeta              Real mode percent critical damping
         phi               Real mode shapes (from `C_modal`); see also
-                          `realness`
-        realness          Realness factor for each complex mode pair;
-                          1.0 indicates a 100% real mode (this happens
-                          when the real modes diagonalize the damping)
+                          the MPC results for how "real" each mode is
         indicators        Dict of all indicator values for each mode
                           pair
         ================  ============================================
@@ -701,14 +700,10 @@ class ERA:
         self.C_modal = self.C_modal_all[: self.n_outputs]
 
         # form estimate of real mode shapes:
-        # - also calculate a "realness" value for each mode; a realness
-        #   value near 1 is good
         phi = self.C_modal[:, ::2]
         rows = np.abs(phi).argmax(axis=0)
         cols = np.arange(phi.shape[1])
         phi_scaled = phi / phi[rows, cols]
-
-        self.realness = 1 - abs(phi_scaled.imag / phi_scaled.real).max(axis=0)
         self.phi = phi_scaled.real
 
         # Calculate indicators:
@@ -998,17 +993,14 @@ class ERA:
             Syy = im @ im
             Sxy = re @ im
             # Can solve for eigenvalues with `la.eigh`:
-            # om = la.eigh([[Sxx, Sxy], [Sxy, Syy]], eigvals_only=True)
-            # lam1 = om[1]
-            # lam2 = om[0]
-
-            # Or, since this is just 2x2, we can solve by hand (see eqns
-            # in pyyeti.ytools._calc_covariance_sine_cosine):
-            term = np.sqrt((Syy - Sxx) ** 2 + 4 * Sxy**2)
-            lam1 = (Sxx + Syy + term) / 2
-            lam2 = (Sxx + Syy - term) / 2
-
-            MPC[i] = (2 * lam1 / (lam1 + lam2) - 1) ** 2
+            #  om = la.eigh([[Sxx, Sxy], [Sxy, Syy]], eigvals_only=True)
+            #  lam1 = om[1]
+            #  lam2 = om[0]
+            # and then use the equations in the reference ...
+            # Or, since this is just 2x2, we can solve by hand (see
+            # eqns in pyyeti.ytools._calc_covariance_sine_cosine, then
+            # simplify the final eqn by hand)
+            MPC[i] = ((Syy - Sxx) ** 2 + 4 * Sxy**2) / (Sxx + Syy) ** 2
 
         self.MPC = MPC
 
