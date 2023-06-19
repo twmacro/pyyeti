@@ -374,12 +374,12 @@ class ERA:
         resp,
         sr,
         *,
-        svd_tol=0.01,
+        svd_tol=0.05,
         auto=False,
         alpha=None,
         beta=None,
         MSV_lower_limit=0.35,
-        EMAC_lower_limit=0.5,
+        EMAC_lower_limit=0.35,
         EMACO_lower_limit=0.5,
         MPC_lower_limit=0.5,
         CMIO_lower_limit=0.35,
@@ -392,6 +392,7 @@ class ERA:
         input_labels=None,
         FFT=False,
         FFT_range=None,
+        figure_label="ERA Fit",
     ):
         """
         Instantiates a :class:`ERA` solver.
@@ -492,6 +493,9 @@ class ERA:
             value or list with one term will act as a maximum
             cutoff. A pair of values will act as minimum and maximum
             cutoffs, respectively. The default is None.
+        figure_label : string; optional
+            Label to use for opening figures. Handy for comparing
+            different ERA fits side-by-side.
 
         Notes
         -----
@@ -524,6 +528,7 @@ class ERA:
         FFT               Produces an FFT plot of input data for
                           comparison to detected modes
         FFT_range         Frequency cutoff(s) for FFT plot
+        figure_label      Label for figure windows
         H_0               The H(0) generalized Hankel matrix (eq 5.24)
         H_1               The H(1) generalized Hankel matrix (eq 5.24)
         alpha             Number of block rows (time-steps) in H
@@ -580,6 +585,7 @@ class ERA:
         self.FFT = FFT
         self.FFT_range = FFT_range
         self.t0 = t0
+        self.figure_label = figure_label
 
         self._H_generate(alpha, beta)
         self._state_space()
@@ -1104,7 +1110,7 @@ class ERA:
 
         # plot each input in its own window
         for j in range(self.n_inputs):
-            fig = plt.figure(f"ERA Fit, input {j}", clear=True)
+            fig = plt.figure(f"{self.figure_label}, input {j}", clear=True)
 
             if self.FFT:
                 ax1 = fig.add_subplot(211)
