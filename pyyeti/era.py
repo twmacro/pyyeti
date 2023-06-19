@@ -1641,22 +1641,53 @@ def NExT(
         Current fit includes all modes:
           Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
           ----  ---------  --------  ------  ------  ------  ------  ------  ------
-        *    1     1.3455    1.8899  *0.881  *0.992  *0.992  *1.000  *0.992  *1.000
-             2     7.4679    4.5610   0.238  *0.785  *0.873  *0.978  *0.854  *0.998
-        *    3    13.8546    4.9336  *1.000  *0.893  *0.924  *0.999  *0.923  *1.000
-             4    14.5075   -3.7478   0.246  *0.440  *0.604   0.226   0.137  *0.982
+        *    1     1.3262    2.5015  *0.885  *0.987  *0.988  *1.000  *0.988  *1.000
+        *    2    13.8501    4.6575  *1.000  *0.757  *0.874  *0.999  *0.873  *1.000
         <BLANKLINE>
         Auto-selected modes fit:
           Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
           ----  ---------  --------  ------  ------  ------  ------  ------  ------
-             1     1.3455    1.8899   0.881   0.992   0.992   1.000   0.992   1.000
-             2    13.8546    4.9336   1.000   0.893   0.924   0.999   0.923   1.000
+             1     1.3262    2.5015   0.885   0.987   0.988   1.000   0.988   1.000
+             2    13.8501    4.6575   1.000   0.757   0.874   0.999   0.873   1.000
 
-        All three modes were identified, but the 7.4 Hz mode was not
-        auto-selected because the MSV indicator was too low. To
-        successfully auto-select it, we could either lower the MSV
-        value, use a different reference channel, or add more
-        reference channels.
+    .. plot::
+        :context: close-figs
+
+        In that case, the 7.4 Hz mode was not identified. From the
+        plot, a decent fit was found without it. To successfully
+        identify and auto-select that mode with default settings, we
+        would need to either use a different reference channel, or add
+        more reference channels. It is noted that lowering the
+        `svd_tol` value to 0.02 and the `MSV_lower_limit` to 0.2
+        allowed ERA to identify and auto-select a 7.x Hz mode, but
+        this seemed to degrade the overall quality of the fit. For
+        demonstration:
+
+        >>> era_fit = era.ERA(
+        ...     era.NExT(sol.a, sr, lag_stop=75, ref_channels=0),
+        ...     sr=1 / dt,
+        ...     auto=True,
+        ...     input_labels=["x", "y", "z"],
+        ...     figure_label="Time Domain ERA Fit",
+        ...     svd_tol=0.02,
+        ...     MSV_lower_limit=0.2,
+        ... )
+        <BLANKLINE>
+        Current fit includes all modes:
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+        *    1     1.3261    2.4879  *0.842  *0.996  *0.997  *1.000  *0.997  *1.000
+        *    2     7.6821    6.6172  *0.215  *0.585  *0.618  *0.997  *0.617  *1.000
+             3    11.9323   -0.1147   0.111  *0.511  *0.863   0.057   0.049  *0.930
+        *    4    13.9231    4.9083  *1.000  *0.831  *0.854  *0.999  *0.853  *1.000
+             5    14.6636    5.2007  *0.354   0.001   0.002  *0.979   0.002  *0.997
+        <BLANKLINE>
+        Auto-selected modes fit:
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+             1     1.3261    2.4879   0.842   0.996   0.997   1.000   0.997   1.000
+             2     7.6821    6.6172   0.215   0.585   0.618   0.997   0.617   1.000
+             3    13.9231    4.9083   1.000   0.831   0.854   0.999   0.853   1.000
     """
     resp = np.atleast_2d(resp)
     n = resp.shape[1]
