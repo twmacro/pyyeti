@@ -123,7 +123,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pyYeti"
-copyright = "2015-2022, Tim Widrick"
+copyright = "2015-2023, Tim Widrick"
 author = "Tim Widrick"
 
 # The version info for the project you're documenting, acts as replacement for
