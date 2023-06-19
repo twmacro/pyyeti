@@ -1,9 +1,19 @@
 Eigensystem Realization Algorithm
 =================================
 
+.. automodule:: pyyeti.era
 .. currentmodule:: pyyeti.era
 
-.. autoclass:: ERA
+The ERA Class
+-------------
+.. autosummary::
+    :toctree: generated/
 
-   
-   .. automethod:: __init__
+    ERA
+
+The Natural Excitation Technique
+--------------------------------
+.. autosummary::
+    :toctree: generated/
+
+    NExT

@@ -11,6 +11,7 @@ import sys
 import re
 import numpy as np
 import scipy.linalg as la
+from scipy import signal, fft
 from pyyeti import ode, dsp, writer
 import matplotlib.pyplot as plt
 import numbers
@@ -289,9 +290,6 @@ class ERA:
         ...     sol.v,
         ...     sr=1 / dt,
         ...     auto=True,
-        ...     input_labels=["x", "y", "z"],
-        ...     FFT=True,
-        ...     FFT_range=30.0,
         ... )
         <BLANKLINE>
         Current fit includes all modes:
@@ -328,6 +326,9 @@ class ERA:
         times with different parameters and different response data
         selections to gain confidence in which modes are real.
 
+        For this run, we'll also add some labels and some FFT plots up
+        to 30.0 Hz.
+
         >>> np.random.seed(1)  # for repeatability
         >>> era_fit = era.ERA(
         ...     sol.v + 0.05 * np.random.randn(*sol.v.shape),
@@ -336,7 +337,6 @@ class ERA:
         ...     input_labels=["x", "y", "z"],
         ...     FFT=True,
         ...     FFT_range=30.0,
-        ...     svd_tol=0.05,
         ... )
         <BLANKLINE>
         Current fit includes all modes:
@@ -354,8 +354,8 @@ class ERA:
             10    24.3082    3.0689   0.203   0.024   0.093   0.187   0.017  *0.965
             11    26.4615    2.0703   0.252   0.080   0.345   0.361   0.124  *0.958
             12    29.5931    3.8058   0.244   0.031   0.150  *0.687   0.103  *0.967
-            13    34.2570    0.4488   0.260   0.445   0.471  *0.864  *0.407  *0.992
-            14    36.0289    1.0712   0.246   0.380   0.447  *0.763   0.341  *0.985
+            13    34.2570    0.4488   0.260  *0.445   0.471  *0.864  *0.407  *0.992
+            14    36.0289    1.0712   0.246  *0.380   0.447  *0.763   0.341  *0.985
             15    41.8090    1.3177   0.231   0.044   0.073   0.431   0.032  *0.904
             16    44.3820    3.9816   0.207   0.004   0.035  *0.539   0.019  *0.878
             17    47.1949    2.6987   0.221   0.001   0.003  *0.511   0.001  *0.961
@@ -388,6 +388,7 @@ class ERA:
         damp_range=(0.001, 0.999),
         freq_range=None,
         t0=0.0,
+        verbose=True,
         show_plot=True,
         input_labels=None,
         FFT=False,
@@ -480,6 +481,9 @@ class ERA:
             default), ``freq_range = (0, sr/2)``.
         t0 : scalar; optional
             The initial time value in `resp`. Only used for plotting.
+        verbose : bool; optional
+            If True, print tables showing frequencies and
+            indicators. Ignored (treated as True) if `auto` is False.
         show_plot : boolean; optional
             If True, show plot of ERA fit (with or without FFT). The
             default is True.
@@ -580,6 +584,7 @@ class ERA:
         if freq_range is None:
             freq_range = (0.0, sr / 2)
         self.freq_range = freq_range
+        self.verbose = verbose
         self.show_plot = show_plot
         self.input_labels = input_labels
         self.FFT = FFT
@@ -1271,9 +1276,10 @@ class ERA:
             args.append(stars[indicator])
             args.append(dct["indicators"][indicator])
 
-        print(f"\n{title}:")
-        print(head)
-        writer.vecwrite(sys.stdout, frm, *args)
+        if not self.auto or self.verbose:
+            print(f"\n{title}:")
+            print(head)
+            writer.vecwrite(sys.stdout, frm, *args)
 
     def _show_model(self, title, *, mark, saved_model=False):
         dct = self._saved if saved_model else self.__dict__
@@ -1374,3 +1380,327 @@ class ERA:
             selected_modes = np.array(self.rec_keep, dtype=int)
             self._trim_2_selected_modes(selected_modes)
             self._show_model("Auto-selected modes fit", mark=False)
+
+
+def NExT(
+    resp,
+    sr,
+    *,
+    ref_channels="all",
+    lag_start=1,
+    lag_stop,
+    domain="time",
+    nperseg=None,
+    window="hann",
+    nfft=None,
+    noverlap=None,
+):
+    """
+    Use NExT method to prepare measurement data for :class:`ERA`
+
+    **BETA**
+
+    This routine uses the "Natural Excitation Technique" to process
+    response measurements into free-decay-like signals using
+    cross-correlations. This can be done in either the time-domain or
+    the frequency-domain. The resulting signals can then be input to
+    ERA (the Eigensystem Realization Algorithm) for system
+    identification. See references [#nxt1]_ and [#nxt2]_.
+
+    Parameters
+    ----------
+    resp : 1d or 2d ndarray
+        The response signal(s) to process. If 2d, each row is a response
+        measurement. This data is expected to represent ambient
+        vibration responses over a significant period of time. Longer
+        measurements will result in more accurate results.
+    sr : scalar
+        Sample rate at which `resp` was sampled.
+    ref_channels : integer, integer array_like, or "all"; optional
+        If integer or integer array_like, specifies row(s) of `resp`
+        to use as the reference channel(s) for the cross-correlations
+        (starts at 0). Set to "all" to use all rows as reference (the
+        default). Note that the auto-correlation of each reference
+        channel will be included in the output.
+    lag_start : integer; optional
+        Cross-correlation lag for start of decay. This routine will
+        compute auto-correlations, and for those, any noise present in
+        the signal will be included in the 0 lag term. Specifically,
+        the noise will be squared and summed, as if it is perfectly
+        correlated. Therefore, the default `lag_start` is set to 1 to
+        avoid including perfectly correlated noise in the decay
+        signal.
+    lag_stop : integer
+        Cross-correlation lag for end of decay. It is recommended to
+        set this to the minimum viable value based on the lowest
+        frequency you are interested in for the current run. For
+        example, an initial value for `lag_stop` might be computed
+        such that the decay will have time for one full cycle of the
+        estimated lowest frequency (in Hz)::
+
+            lag_stop = lag_start + sr / lowest_est_freq
+
+        .. note::
+
+            `lag_stop` must be less than ``nperseg / 2`` if `domain`
+            is "frequency". This is due to the symmetric nature of the
+            cross-correlations. This shouldn't be much of a
+            restriction however, as the `lag_stop` value will
+            typically be considerably less than this for good results.
+
+    domain : string
+        Either "time" or "frequency" to specify how this routine is to
+        compute the cross-correlations. If "time",
+        :func:`scipy.signal.correlate` is used to compute the
+        correlations using the entire time history for each
+        cross-correlation. If "frequency", :func:`scipy.fft.ifft` and
+        :func:`scipy.signal.csd` are used together to compute the
+        correlations, along with looping and windowing and
+        averaging. If `domain` is "frequency", see the inputs
+        `nperseg`, `window`, `nfft`, and `noverlap`.
+    nperseg : integer
+        Required if `domain` is "frequency". Specifies the window size
+        to pass to :func:`scipy.signal.csd`. If `nperseg` is too
+        small, the damping for the lower frequency modes will likely
+        be inflated. In order to get any benefit that might come from
+        averaging multiple windows, a reasonable initial setting for
+        this value might be to choose the first power-of-2 less than N
+        / 2 where N is the number of time-steps. That would result in
+        the largest power-of-2 size window size (for fast processing)
+        while still giving you 3 windows to average.
+    window, nfft, noverlap : optional
+        These inputs are only used if `domain` is "frequency". The are
+        all passed to :func:`scipy.signal.csd`.
+
+    Returns
+    -------
+    3d ndarray
+        Decay-like responses shaped as expected by :class:`ERA`:
+        ``n_channels x n_decay_tsteps x n_ref_channels``. :class:`ERA`
+        will interpret the number of reference channels as the number
+        of inputs.
+
+    References
+    ----------
+    .. [#nxt1] James, G.H., Carne, T.G., and Lauffer, J.P. "The
+               Natural Excitation Technique (NExT) for Modal Parameter
+               Extraction From Operating Wind Turbines", Sandia
+               National Laboratories, Albuquerque, NM and Livermore,
+               CA, SAND92-1666 (1993).
+
+    .. [#nxt2] James, G.H., Carne, T.G., and Lauffer, J.P. "The
+               Natural Excitation Technique (NExT) for Modal Parameter
+               Extraction from Operating Structures", Modal Analysis
+               10:260–277 (1995).
+
+    Examples
+    --------
+    To generate synthetic ambient vibrations of a simple structure,
+    the same system that was demoed in :class:`ERA` is excited by
+    random forces over 100 seconds. The responses are fed into NExT
+    and then into :class:`ERA`.
+
+    .. plot::
+        :context: close-figs
+
+        We have the following mass, damping and stiffness matrices
+        (note that the damping has been specially defined to be
+        diagonalized by the modes):
+
+        >>> import numpy as np
+        >>> import scipy.linalg as la
+        >>> from pyyeti import era, ode
+        >>> np.set_printoptions(precision=5, suppress=True)
+        >>>
+        >>> M = np.identity(3)
+        >>>
+        >>> K = np.array(
+        ...     [
+        ...         [4185.1498, 576.6947, 3646.8923],
+        ...         [576.6947, 2104.9252, -28.0450],
+        ...         [3646.8923, -28.0450, 3451.5583],
+        ...     ]
+        ... )
+        >>>
+        >>> D = np.array(
+        ...     [
+        ...         [4.96765646, 0.97182432, 4.0162425],
+        ...         [0.97182432, 6.71403672, -0.86138453],
+        ...         [4.0162425, -0.86138453, 4.28850828],
+        ...     ]
+        ... )
+
+        Since we have the system matrices, we can determine the
+        frequencies and damping using the eigensolution.
+
+        >>> (w2, phi) = la.eigh(K, M)
+        >>> omega = np.sqrt(w2)
+        >>> freq_hz = omega / (2 * np.pi)
+        >>> freq_hz
+        array([  1.33603,   7.39083,  13.79671])
+        >>> modal_damping = phi.T @ D @ phi
+        >>> modal_damping
+        array([[ 0.33578, -0.     , -0.     ],
+               [-0.     ,  6.9657 ,  0.     ],
+               [-0.     ,  0.     ,  8.66873]])
+        >>> zeta = np.diag(modal_damping) / (2 * omega)
+        >>> zeta
+        array([ 0.02 ,  0.075,  0.05 ])
+
+        Simulate ambient vibrations over 100 seconds:
+
+        >>> dt = 0.01
+        >>> t = np.arange(0, 100, dt)
+        >>> n = len(t)
+        >>> sr = 1 / dt
+        >>> np.random.seed(1)  # for repeatability
+        >>> F = np.random.randn(3, len(t))
+        >>> ts = ode.SolveUnc(M, D, K, dt)
+        >>> sol = ts.tsolve(force=F)
+
+        Use the time-domain method of NExT and call :class:`ERA` to
+        get estimates of frequency, damping, and mode-shapes. We'll
+        use a `lag_stop` of 75 (from sr / lowest_freq = 100 / 1.33 ~=
+        75).
+
+        >>> era_fit = era.ERA(
+        ...     era.NExT(sol.a, sr, lag_stop=75),
+        ...     sr=1 / dt,
+        ...     auto=True,
+        ...     input_labels=["x", "y", "z"],
+        ...     figure_label="Time Domain ERA Fit",
+        ... )
+        <BLANKLINE>
+        Current fit includes all modes:
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+        *    1     1.3258    2.4155  *0.676  *0.996  *0.998  *1.000  *0.998  *1.000
+        *    2     7.5586    7.0610  *0.656  *0.715  *0.844  *1.000  *0.843  *1.000
+        *    3    13.8643    4.6710  *1.000  *0.721  *0.852  *1.000  *0.852  *1.000
+        <BLANKLINE>
+        Auto-selected modes fit:
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+             1     1.3258    2.4155   0.676   0.996   0.998   1.000   0.998   1.000
+             2     7.5586    7.0610   0.656   0.715   0.844   1.000   0.843   1.000
+             3    13.8643    4.6710   1.000   0.721   0.852   1.000   0.852   1.000
+
+    .. plot::
+        :context: close-figs
+
+        That seemed to work out pretty well! Now we'll try the
+        frequency-domain method of NExT (the increased `svd_tol` gave
+        slightly better results in this case):
+
+        >>> era_fit = era.ERA(
+        ...     era.NExT(
+        ...         sol.a,
+        ...         sr,
+        ...         lag_stop=75,
+        ...         domain="frequency",
+        ...         nperseg=4096,
+        ...     ),
+        ...     sr=1 / dt,
+        ...     svd_tol=0.1,
+        ...     auto=True,
+        ...     input_labels=["x", "y", "z"],
+        ...     figure_label="Frequency Domain ERA Fit",
+        ... )
+        <BLANKLINE>
+        Current fit includes all modes:
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+        *    1     1.3231    2.1499  *0.691  *0.993  *0.997  *1.000  *0.997  *1.000
+        *    2     7.5231    7.1348  *0.626  *0.640  *0.801  *0.997  *0.798  *0.999
+        *    3    13.9075    4.2107  *1.000  *0.684  *0.813  *1.000  *0.813  *0.999
+        <BLANKLINE>
+        Auto-selected modes fit:
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+             1     1.3231    2.1499   0.691   0.993   0.997   1.000   0.997   1.000
+             2     7.5231    7.1348   0.626   0.640   0.801   0.997   0.798   0.999
+             3    13.9075    4.2107   1.000   0.684   0.813   1.000   0.813   0.999
+
+    .. plot::
+        :context: close-figs
+
+        Both of the above examples used all channels as reference
+        channels. The next example uses just the first measurement as
+        the reference channel (which also means that the only
+        auto-correlation that will be included will be for the first
+        measurement):
+
+        >>> era_fit = era.ERA(
+        ...     era.NExT(sol.a, sr, lag_stop=75, ref_channels=0),
+        ...     sr=1 / dt,
+        ...     auto=True,
+        ...     input_labels=["x", "y", "z"],
+        ...     figure_label="Time Domain ERA Fit",
+        ... )
+        <BLANKLINE>
+        Current fit includes all modes:
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+        *    1     1.3455    1.8899  *0.881  *0.992  *0.992  *1.000  *0.992  *1.000
+             2     7.4679    4.5610   0.238  *0.785  *0.873  *0.978  *0.854  *0.998
+        *    3    13.8546    4.9336  *1.000  *0.893  *0.924  *0.999  *0.923  *1.000
+             4    14.5075   -3.7478   0.246  *0.440  *0.604   0.226   0.137  *0.982
+        <BLANKLINE>
+        Auto-selected modes fit:
+          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
+          ----  ---------  --------  ------  ------  ------  ------  ------  ------
+             1     1.3455    1.8899   0.881   0.992   0.992   1.000   0.992   1.000
+             2    13.8546    4.9336   1.000   0.893   0.924   0.999   0.923   1.000
+
+        All three modes were identified, but the 7.4 Hz mode was not
+        auto-selected because the MSV indicator was too low. To
+        successfully auto-select it, we could either lower the MSV
+        value, use a different reference channel, or add more
+        reference channels.
+    """
+    resp = np.atleast_2d(resp)
+    n = resp.shape[1]
+
+    if ref_channels == "all":
+        ref_channels = np.arange(0, resp.shape[0])
+    else:
+        ref_channels = np.atleast_1d(ref_channels)
+
+    # compute cross-correlation functions
+    xc = []
+    if domain == "time":
+        for ref in resp[ref_channels]:
+            xc_ref = []
+            for sig in resp:
+                corr = signal.correlate(ref, sig, mode="same")[n // 2 :]
+                xc_ref.append(corr[lag_start : lag_stop + 1])
+            xc.append(xc_ref)
+    elif domain == "frequency":
+        # csd will scale values down by window.sum() ** 2 ... we don't
+        # need or necessarily want that, so scaling up by nperseg ** 2
+        # is reasonable
+        sc = nperseg**2
+        for ref in resp[ref_channels]:
+            xc_ref = []
+            for sig in resp:
+                f, csd = signal.csd(
+                    ref,
+                    sig,
+                    fs=sr,
+                    window=window,
+                    nperseg=nperseg,
+                    nfft=nfft,
+                    noverlap=noverlap,
+                    scaling="spectrum",
+                    return_onesided=False,
+                )
+                corr = fft.ifft(csd).real * sc
+                xc_ref.append(corr[lag_start : lag_stop + 1])
+            xc.append(xc_ref)
+    else:
+        raise ValueError(
+            "invalid value for `domain`; must be either 'time' or 'frequency'"
+        )
+
+    # put reference channels last instead of first for ERA:
+    return np.moveaxis(xc, 0, -1)
