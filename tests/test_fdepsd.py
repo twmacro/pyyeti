@@ -23,6 +23,7 @@ def compare(fde1, fde2):
 
 
 def test_fdepsd_absacce():
+    np.random.seed(1)
     TF = 60  # make a 60 second signal
     sp = 1.0
     spec = np.array([[20, sp], [50, sp]])

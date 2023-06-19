@@ -9,6 +9,7 @@ def test_resample():
     p = 5
     q = 5
     n = 530
+    np.random.seed(1)
     d = np.random.randn(n) - 55
     x = np.arange(n) + 100
 
@@ -575,7 +576,10 @@ def test_fixtime_perfect_delspike():
 
     with pytest.raises(ValueError):
         dsp.fixtime(
-            (t, y), "auto", delspikes=dict(method="badmethod"), getall=1,
+            (t, y),
+            "auto",
+            delspikes=dict(method="badmethod"),
+            getall=1,
         )
 
 
@@ -601,7 +605,10 @@ def test_fixtime_exclude_point_change():
 
     with pytest.raises(ValueError):
         dsp.fixtime(
-            (t, y), "auto", delspikes=dict(exclude_point="middle"), verbose=False,
+            (t, y),
+            "auto",
+            delspikes=dict(exclude_point="middle"),
+            verbose=False,
         )
 
     # some of a ramp up should be deleted:
