@@ -33,11 +33,12 @@ def get_file_name(f, read):
 
     Parameters
     ----------
-    f : string or None
-        File name or directory name or None. If `f` is not None or is
-        not a directory name, this routine just returns it as is. If
-        it is a directory name, it is used as the `initialdir` option
-        to :func:`askopenfilename` or :func:`asksaveasfilename`.
+    f : :class:`pathlib.Path` object or string or None
+        File name or directory name (something that :func:`os.fspath`
+        accepts) or None. If `f` is not None or is not a directory
+        name, this routine just returns it as is. If it is a directory
+        name, it is used as the `initialdir` option to
+        :func:`askopenfilename` or :func:`asksaveasfilename`.
     read : bool
         If True, calls :func:`askopenfilename` to get file name.
         Otherwise, :func:`asksaveasfilename` is called.
@@ -47,17 +48,25 @@ def get_file_name(f, read):
     filename : string
         The selected filename.
     """
-    if isinstance(f, str) and os.path.isdir(f):  # pragma: no cover
-        initialdir = f
-        f = None
-    else:
+    try:
+        fs = os.fspath(f)
+    except TypeError:
+        fs = f
         initialdir = None
-    if f is None:  # pragma: no cover
+    else:
+        if os.path.isdir(fs):  # pragma: no cover
+            initialdir = fs
+            fs = None
+        else:
+            initialdir = None
+
+    if fs is None:  # pragma: no cover
         if read:
             return askopenfilename(initialdir=initialdir)
         else:
             return asksaveasfilename(initialdir=initialdir)
-    return f
+
+    return fs
 
 
 def askopenfilename(title=None, filetypes=None, initialdir=None):  # pragma: no cover
