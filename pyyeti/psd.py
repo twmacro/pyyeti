@@ -827,7 +827,7 @@ def spl(
         pv = (F >= s) & (F <= e)
         F = F[pv]
         P = P[pv]
-    v = P / pref ** 2
+    v = P / pref**2
     return F, 10 * np.log10(v), 10 * np.log10(np.sum(v))
 
 
@@ -841,6 +841,7 @@ def psd2time(
     winends=None,
     gettime=False,
     expand_method="interp",
+    rng=None,
 ):
     r"""
     Generate a 'random' time domain signal given a PSD specification.
@@ -893,6 +894,17 @@ def psd2time(
         constant dB/octave slopes. Use 'rescale' if `spec` provides
         the PSD levels on a center-band scale. See :func:`interp` and
         :func:`rescale` for more information.
+    rng : :class:`numpy.random.Generator` object or None; optional
+        If not None, uniform deviates are generated via
+        :func:`rng.random`. If None, the singleton generator
+        :func:`numpy.random.rand` is used. Supplying your own `rng`
+        can be handy for parallel applications, for example, when you
+        need repeatability. For illustration, the following creates a
+        Mersenne Twister generator::
+
+            from numpy.random import Generator, MT19937
+            seed = 1
+            rng = Generator(MT19937(seed))
 
     Returns
     -------
@@ -986,13 +998,17 @@ def psd2time(
         :context: close-figs
 
         >>> import numpy as np
+        >>> from numpy.random import Generator, MT19937
         >>> from pyyeti import psd
         >>> spec = np.array([[20,  .0768],
         ...                  [50,  .48],
         ...                  [100, .48]])
-        >>> sig, sr = psd.psd2time(spec, ppc=10, fstart=35,
-        ...                        fstop=70, df=.01,
-        ...                        winends=dict(portion=.01))
+        >>> we = dict(portion=0.01)
+        >>> seed = 1
+        >>> rng = Generator(MT19937(seed))
+        >>> sig, sr = psd.psd2time(
+        ...     spec, 35, 70, ppc=10, df=.01, winends=we, rng=rng,
+        ... )
         >>> sr  # the sample rate should be 70*10 = 700
         700.0
 
@@ -1083,7 +1099,11 @@ def psd2time(
         amp = np.hstack((np.zeros(ntop), amp))
 
     # generate F(t)
-    phi = np.random.rand(m) * np.pi * 2  # random phase angle
+    # - use uniformly distributed random phase angle:
+    if rng is None:
+        phi = np.random.rand(m) * np.pi * 2
+    else:
+        phi = rng.random(m) * np.pi * 2
 
     # force these terms to be pure cosine
     phi[0] = 0.0

@@ -954,7 +954,18 @@ def sturm(A, lam):
 
 
 def eig_si(
-    K, M, Xk=None, f=None, p=10, mu=0, tol=1e-6, pmax=None, maxiter=50, verbose=True
+    K,
+    M,
+    *,
+    Xk=None,
+    f=None,
+    p=10,
+    mu=0,
+    tol=1e-6,
+    pmax=None,
+    maxiter=50,
+    verbose=True,
+    rng=None,
 ):
     r"""
     Perform subspace iteration to calculate eigenvalues and eigenvectors.
@@ -967,7 +978,7 @@ def eig_si(
         The mass (assumed positive-definite).
     Xk : ndarray or None
         Initial guess @ eigenvectors; # columns > `p`. If None,
-        random vectors are used from ``np.random.rand()-.5``.
+        random vectors are generated internally; see `rng` below.
     f : scalar or None
         Desired cutoff frequency in Hz. `pmax` will override this if
         set. Takes precedence over `p` if both are input.
@@ -985,6 +996,18 @@ def eig_si(
         Maximum number of iterations.
     verbose : bool
         If True, print status message for each iteration.
+    rng : :class:`numpy.random.Generator` object or None; optional
+        If not None, uniform deviates are generated via
+        :func:`rng.random`. If None, the singleton generator
+        :func:`numpy.random.rand` is used. The deviates range from
+        ``[-0.5, 0.5)``. Supplying your own `rng` can be handy for
+        parallel applications, for example, when you need
+        repeatability. For illustration, the following creates a
+        Mersenne Twister generator::
+
+            from numpy.random import Generator, MT19937
+            seed = 1
+            rng = Generator(MT19937(seed))
 
     Returns
     -------
@@ -1056,11 +1079,13 @@ def eig_si(
     >>> k = np.dot(k.T, k) * 1000
     >>> m = np.dot(m.T, m) * 10
     >>> w1, phi1 = linalg.eigh(k, m, subset_by_index=(0, 14))
-    >>> w2, phi2, phiv2 = ytools.eig_si(k, m, p=15, mu=-1, tol=1e-12,
-    ...                                 verbose=False)
+    >>> w2, phi2, phiv2 = ytools.eig_si(
+    ...     k, m, p=15, mu=-1, tol=1e-12, verbose=False
+    ... )
     >>> fcut = np.sqrt(w2.max())/2/np.pi * 1.001
-    >>> w3, phi3, phiv3 = ytools.eig_si(k, m, f=fcut, tol=1e-12,
-    ...                                 verbose=False)
+    >>> w3, phi3, phiv3 = ytools.eig_si(
+    ...     k, m, f=fcut, tol=1e-12, verbose=False
+    ... )
     >>> print(np.allclose(w1, w2))
     True
     >>> print(np.allclose(np.abs(phi1), np.abs(phi2)))
@@ -1096,10 +1121,14 @@ def eig_si(
     else:
         c = 0
     if c < q:
-        if Xk is None:
-            Xk = np.random.rand(n, q) - 0.5
+        if rng is None:
+            deviates = np.random.rand(n, q - c) - 0.5
         else:
-            Xk = np.hstack((Xk, np.random.rand(n, q - c) - 0.5))
+            deviates = rng.random((n, q - c)) - 0.5
+        if Xk is None:
+            Xk = deviates
+        else:
+            Xk = np.hstack((Xk, deviates))
     elif c > q:
         Xk = Xk[:, :q]
 

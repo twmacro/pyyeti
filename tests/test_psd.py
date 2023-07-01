@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.random import Generator, MT19937
 from pyyeti import psd
 import scipy.signal as signal
 import pytest
@@ -107,13 +108,13 @@ def test_interp():
 def test_interp_nans():
     Freq = np.arange(1, 10, 2)
     freq = np.arange(1, 10)
-    PSD = (Freq ** 2) / 100
+    PSD = (Freq**2) / 100
 
     nan = [np.nan, np.nan]
     Freq = np.hstack((Freq, nan))
     PSD = np.hstack((PSD, nan))
 
-    plog = (freq ** 2) / 100
+    plog = (freq**2) / 100
     plog2 = psd.interp((Freq, PSD), freq, linear=False)
 
     assert np.allclose(plog, plog2)
@@ -253,7 +254,7 @@ def test_psd2time():
     sig, sr = psd.psd2time(
         spec, ppc=1, fstart=0.1, fstop=5, df=0.2, winends=dict(portion=0.01)
     )
-    assert (np.sum(np.mean(sig ** 2)) - 2.0 * 4.9) / (2.0 * 4.9) < 0.1
+    assert (np.sum(np.mean(sig**2)) - 2.0 * 4.9) / (2.0 * 4.9) < 0.1
 
     # odd length FFT case:
     spec = np.array([[0.1, 2.0], [5, 2.0]])
@@ -262,8 +263,36 @@ def test_psd2time():
     )
     assert np.allclose(5 * 3, sr)
     assert sig.size == 15 * 5
-    assert (np.sum(np.mean(sig ** 2)) - 2.0 * 4.8) / (2.0 * 4.8) < 0.1
+    assert (np.sum(np.mean(sig**2)) - 2.0 * 4.8) / (2.0 * 4.8) < 0.1
     assert np.allclose(t, np.arange(15 * 5) / sr)
+
+
+def test_psd2time2():
+    spec = np.array([[20, 0.0768], [50, 0.48], [100, 0.48]])
+    sig1, sr1 = psd.psd2time(
+        spec,
+        ppc=10,
+        fstart=35,
+        fstop=70,
+        df=0.01,
+        winends=dict(portion=0.01),
+        rng=Generator(MT19937(1)),
+    )
+
+    sig2, sr2 = psd.psd2time(
+        spec,
+        ppc=10,
+        fstart=35,
+        fstop=70,
+        df=0.01,
+        winends=dict(portion=0.01),
+        rng=Generator(MT19937(1)),
+    )
+
+    assert np.allclose(700.0, sr1)  # 70*10
+    assert sig1.size == 700 * 100
+    assert (sig1 == sig2).all()
+    assert sr2 == sr1
 
 
 def test_psdmod():

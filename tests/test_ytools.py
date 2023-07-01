@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.random import Generator, MT19937
 import tempfile
 import os
 from pyyeti import ytools
@@ -38,7 +39,17 @@ def test_eig_si():
     k = np.dot(k.T, k) * 1000
     m = np.dot(m.T, m) * 10
     w1, phi1 = linalg.eigh(k, m, subset_by_index=(0, 14))
-    w2, phi2, phiv2 = ytools.eig_si(k, m, p=15, mu=-1, tol=1e-12, verbose=False)
+    w2, phi2, phiv2 = ytools.eig_si(
+        k, m, p=15, mu=-1, tol=1e-12, verbose=False, rng=Generator(MT19937(1))
+    )
+    w2b, phi2b, phiv2b = ytools.eig_si(
+        k, m, p=15, mu=-1, tol=1e-12, verbose=False, rng=Generator(MT19937(1))
+    )
+
+    assert (w2b == w2).all()
+    assert (phi2b == phi2).all()
+    assert (phiv2b == phiv2).all()
+
     fcut = np.sqrt(w2.max()) / 2 / np.pi * 1.001
     w3, phi3, phiv3 = ytools.eig_si(k, m, f=fcut, mu=-1, tol=1e-12)
     assert np.allclose(w1, w2)
