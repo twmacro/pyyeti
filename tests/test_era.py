@@ -3,15 +3,8 @@ import scipy.linalg as la
 from pyyeti import era, ode
 import pytest
 
-# pyyeti/era.py 412 78 81% 25-32, 41-43, 576-577, 607-615, 666-669,
-# 679-681, 788-791, 797-800, 806-809, 1023, 1026-1031, 1105, 1146-1152,
-# 1167, 1179-1182, 1319-1370, 1650
 
-# 25-32, 41-43, 673-674, 684-686, 793-796, 802-805, 811-814,
-# 1031-1036, 1151-1157, 1172, 1184-1187, 1325-1376
-
-
-def test_era():
+def get_model_data():
     M = np.identity(3)
     K = np.array(
         [
@@ -33,6 +26,12 @@ def test_era():
     freq_hz = omega / (2 * np.pi)
     modal_damping = phi.T @ D @ phi
     zeta = np.diag(modal_damping) / (2 * omega)
+
+    return M, K, D, freq_hz, zeta, phi
+
+
+def test_era():
+    M, K, D, freq_hz, zeta, phi = get_model_data()
 
     dt = 0.01
     t = np.arange(0, 1, dt)
@@ -151,3 +150,67 @@ def test_era():
 def test_NExT():
     with pytest.raises(ValueError, match="invalid value for `domain`"):
         era.NExT([1, 2, 3], 100, lag_stop=5, domain="bad value")
+
+    M, K, D, freq_hz, zeta, phi = get_model_data()
+
+    dt = 0.01
+    t = np.arange(0, 100, dt)
+    sr = 1 / dt
+    np.random.seed(1)  # for repeatability
+    F = np.random.randn(3, len(t))
+    ts = ode.SolveUnc(M, D, K, dt)
+    sol = ts.tsolve(force=F)
+
+    era_fit1 = era.ERA(
+        era.NExT(sol.a, sr, lag_stop=75),
+        sr=sr,
+        auto=True,
+        show_plot=False,
+        verbose=False,
+    )
+
+    # check for equivalence:
+    era_fit2 = era.ERA(
+        era.NExT(
+            sol.a,
+            sr,
+            lag_stop=75,
+            domain="frequency",
+            nperseg=10_000,
+            window="boxcar",
+        ),
+        sr=1 / dt,
+        auto=True,
+        show_plot=False,
+        verbose=False,
+    )
+    assert np.allclose(era_fit1.freqs_hz, era_fit2.freqs_hz)
+
+    # show that unbiased is doing something:
+    era_fit2 = era.ERA(
+        era.NExT(sol.a, sr, lag_stop=75, unbiased=False),
+        sr=1 / dt,
+        auto=True,
+        show_plot=False,
+        verbose=False,
+    )
+    assert not np.allclose(era_fit1.freqs_hz, era_fit2.freqs_hz)
+
+    # show that demeaning is working:
+    era_fit2 = era.ERA(
+        era.NExT(sol.a + 10, sr, lag_stop=75),
+        sr=1 / dt,
+        auto=True,
+        show_plot=False,
+        verbose=False,
+    )
+    assert np.allclose(era_fit1.freqs_hz, era_fit2.freqs_hz)
+
+    era_fit2 = era.ERA(
+        era.NExT(sol.a + 0.1, sr, lag_stop=75, demean=False),
+        sr=1 / dt,
+        auto=True,
+        show_plot=False,
+        verbose=False,
+    )
+    assert not np.allclose(era_fit1.freqs_hz, era_fit2.freqs_hz)

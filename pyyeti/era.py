@@ -1394,7 +1394,6 @@ def NExT(
     demean=True,
     nperseg=None,
     window="hann",
-    nfft=None,
     noverlap=None,
 ):
     """
@@ -1451,10 +1450,16 @@ def NExT(
         :func:`scipy.signal.csd` are used together to compute the
         correlations, along with looping and windowing and
         averaging. If `domain` is "frequency", see the inputs
-        `nperseg`, `window`, `nfft`, and `noverlap`.
+        `nperseg`, `window`, and `noverlap`.
+
+        .. note::
+           To get the frequency domain method to give identical
+           results to the time domain method, set `nperseg` to the
+           entire signal and `window` to "boxcar".
+
     unbiased : bool; optional
         If True, use unbiased estimates for the correlations. This
-        should be True, but is here as an option for now.
+        should be True for ERA.
     demean : bool; optional
         If True (the default), subtract the mean from each signal
         prior to any other processing. Auto and cross correlations
@@ -1462,9 +1467,9 @@ def NExT(
         covariances.
     nperseg : integer
         Required if `domain` is "frequency". Specifies the window size
-        to pass to :func:`scipy.signal.csd`. If `nperseg` is too
-        small, the damping for the lower frequency modes will likely
-        be inflated. In order to get any benefit that might come from
+        to pass to :func:`scipy.signal.csd`. Generally, using higher
+        values for `nperseg` will result in higher quality
+        correlations. In order to get any benefit that might come from
         averaging multiple windows, a reasonable initial setting for
         this value might be to choose the first power-of-2 less than N
         / 2 where N is the number of time-steps. That would result in
@@ -1473,7 +1478,8 @@ def NExT(
     window, noverlap : optional
         These inputs are only used if `domain` is "frequency". The are
         all passed to :func:`scipy.signal.csd`. Note that the ``nfft``
-        input is supplied by this routine.
+        input is supplied by this routine and is set to ``2 *
+        nperseg``.
 
     Returns
     -------
@@ -1561,6 +1567,34 @@ def NExT(
         >>> ts = ode.SolveUnc(M, D, K, dt)
         >>> sol = ts.tsolve(force=F)
 
+        Before calling ERA, we'll plot some auto and cross
+        correlations directly from NExT. These should have the same
+        properties as impulse response functions:
+
+        >>> lag_stop = 200
+        >>> t_irf = t[1 : lag_stop + 1]
+        >>> irf = era.NExT(sol.a, sr, lag_stop=lag_stop)
+        >>>
+        >>> fig = plt.figure("corr comp", clear=True, figsize=(6.4, 6.4))
+        >>> ax = fig.subplots(4, 1)
+        >>>
+        >>> _ = ax[0].plot(t, sol.a.T)
+        >>> _ = ax[0].set_title("Original data")
+        >>> _ = ax[0].set_ylabel("Acce")
+        >>>
+        >>> # loop over all 3 ref channels:
+        >>> for ref in range(irf.shape[2]):
+        ...     # loop over all 3 output channels:
+        ...     for out in range(irf.shape[0]):
+        ...         _ = ax[ref + 1].plot(t_irf, irf[out, :, ref])
+        ...     _ = ax[ref + 1].set_title(f"IRFs with reference channel {ref}")
+        ...     _ = ax[ref + 1].set_ylabel("X-corr IRFs")
+        >>> _ = ax[3].set_xlabel("Time (s)")
+        >>> fig.tight_layout()
+
+    .. plot::
+        :context: close-figs
+
         Use the time-domain method of NExT and call :class:`ERA` to
         get estimates of frequency, damping, and mode-shapes. We'll
         use a `lag_stop` of 75 (from sr / lowest_freq = 100 / 1.33 ~=
@@ -1577,16 +1611,16 @@ def NExT(
         Current fit includes all modes:
           Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
           ----  ---------  --------  ------  ------  ------  ------  ------  ------
-        *    1     1.3258    2.2957  *0.676  *0.996  *0.998  *1.000  *0.998  *1.000
-        *    2     7.5587    7.0410  *0.656  *0.715  *0.844  *1.000  *0.844  *1.000
-        *    3    13.8644    4.6586  *1.000  *0.722  *0.853  *1.000  *0.852  *1.000
+        *    1     1.3258    2.2962  *0.676  *0.994  *0.999  *1.000  *0.999  *1.000
+        *    2     7.5588    7.0415  *0.656  *0.714  *0.859  *1.000  *0.859  *0.999
+        *    3    13.8644    4.6586  *1.000  *0.722  *0.845  *1.000  *0.845  *1.000
         <BLANKLINE>
         Auto-selected modes fit:
           Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
           ----  ---------  --------  ------  ------  ------  ------  ------  ------
-             1     1.3258    2.2957   0.676   0.996   0.998   1.000   0.998   1.000
-             2     7.5587    7.0410   0.656   0.715   0.844   1.000   0.844   1.000
-             3    13.8644    4.6586   1.000   0.722   0.853   1.000   0.852   1.000
+             1     1.3258    2.2962   0.676   0.994   0.999   1.000   0.999   1.000
+             2     7.5588    7.0415   0.656   0.714   0.859   1.000   0.859   0.999
+             3    13.8644    4.6586   1.000   0.722   0.845   1.000   0.845   1.000
 
     .. plot::
         :context: close-figs
@@ -1644,54 +1678,19 @@ def NExT(
         Current fit includes all modes:
           Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
           ----  ---------  --------  ------  ------  ------  ------  ------  ------
-        *    1     1.3261    2.3814  *0.886  *0.987  *0.988  *1.000  *0.988  *1.000
-        *    2    13.8502    4.6453  *1.000  *0.758  *0.874  *0.999  *0.873  *1.000
+        *    1     1.3259    2.2077  *0.888  *0.989  *0.989  *1.000  *0.989  *1.000
+        *    2    13.8740    4.6136  *1.000  *0.688  *0.827  *0.999  *0.826  *1.000
         <BLANKLINE>
         Auto-selected modes fit:
           Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
           ----  ---------  --------  ------  ------  ------  ------  ------  ------
-             1     1.3261    2.3814   0.886   0.987   0.988   1.000   0.988   1.000
-             2    13.8502    4.6453   1.000   0.758   0.874   0.999   0.873   1.000
+             1     1.3259    2.2077   0.888   0.989   0.989   1.000   0.989   1.000
+             2    13.8740    4.6136   1.000   0.688   0.827   0.999   0.826   1.000
 
-    .. plot::
-        :context: close-figs
-
-        In that case, the 7.4 Hz mode was not identified. From the
-        plot, a decent fit was found without it since the 7.x Hz
-        content is not visibly prominent. To successfully identify and
-        auto-select that mode with default settings, we would need to
-        either use a different reference channel, or add more
-        reference channels. It is noted that lowering the `svd_tol`
-        value to 0.02 and the `MSV_lower_limit` to 0.2 allowed ERA to
-        identify and auto-select a 7.x Hz mode, but the overall
-        quality of the fit is clearly not as good as that achieved
-        above:
-
-        >>> era_fit = era.ERA(
-        ...     era.NExT(sol.a, sr, lag_stop=75, ref_channels=0),
-        ...     sr=1 / dt,
-        ...     auto=True,
-        ...     input_labels=["x", "y", "z"],
-        ...     figure_label="Time Domain ERA Fit",
-        ...     svd_tol=0.02,
-        ...     MSV_lower_limit=0.2,
-        ... )
-        <BLANKLINE>
-        Current fit includes all modes:
-          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
-          ----  ---------  --------  ------  ------  ------  ------  ------  ------
-        *    1     1.3260    2.3678  *0.843  *0.996  *0.997  *1.000  *0.997  *1.000
-        *    2     7.6824    6.5916  *0.215  *0.585  *0.619  *0.997  *0.617  *1.000
-             3    11.9369   -0.1305   0.111  *0.508  *0.863   0.055   0.048  *0.929
-        *    4    13.9229    4.8954  *1.000  *0.831  *0.854  *0.999  *0.854  *1.000
-             5    14.6638    5.1955  *0.354   0.000   0.000  *0.979   0.000  *0.997
-        <BLANKLINE>
-        Auto-selected modes fit:
-          Mode  Freq (Hz)   % Damp    MSV     EMAC   EMACO    MPC     CMIO    MAC
-          ----  ---------  --------  ------  ------  ------  ------  ------  ------
-             1     1.3260    2.3678   0.843   0.996   0.997   1.000   0.997   1.000
-             2     7.6824    6.5916   0.215   0.585   0.619   0.997   0.617   1.000
-             3    13.9229    4.8954   1.000   0.831   0.854   0.999   0.854   1.000
+    In that case, the 7.4 Hz mode was not identified. From the plot, a
+    decent fit was found without it since the 7.x Hz content is not
+    visibly prominent. To successfully identify that mode, it would be
+    best to add more reference channels.
     """
     resp = np.atleast_2d(resp)
     if demean:
@@ -1711,7 +1710,7 @@ def NExT(
         for ref in resp[ref_channels]:
             xc_ref = []
             for sig in resp:
-                corr = signal.correlate(ref, sig, mode="full")[n - 1 :]
+                corr = signal.correlate(sig, ref, mode="full")[n - 1 :]
                 xc_ref.append(corr[lags])
             xc.append(xc_ref)
 
@@ -1722,7 +1721,7 @@ def NExT(
     elif domain == "frequency":
         # csd will scale values down by window.sum() ** 2 ... we don't
         # need or necessarily want that, so scaling up by nperseg ** 2
-        # is reasonable
+        # is reasonable (as if window == "boxcar"):
         sc = nperseg**2
         for ref in resp[ref_channels]:
             xc_ref = []
@@ -1745,6 +1744,7 @@ def NExT(
         if unbiased:
             scale = np.arange(nperseg, 0, -1)[lags]
             xc = np.array(xc) / scale
+
     else:
         raise ValueError(
             "invalid value for `domain`; must be either 'time' or 'frequency'"
