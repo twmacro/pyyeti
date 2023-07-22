@@ -1,5 +1,5 @@
 import numpy as np
-from pyyeti import psd
+from pyyeti import psd, dsp
 from pyyeti.fdepsd import fdepsd
 import scipy.signal as signal
 import pytest
@@ -86,9 +86,23 @@ def test_fdepsd_pvelo():
     q = 25
     fde_auto = fdepsd(sig, sr, freq, q, resp="pvelo")
     fde_no = fdepsd(sig, sr, freq, q, resp="pvelo", parallel="no", verbose=True)
+
+    # test some features:
+    sig5 = signal.detrend(sig)
+    sig5 = dsp.windowends(sig5, portion=min(int(0.25 * sr), 50, len(sig5)))
     b, a = signal.butter(3, 5 / (sr / 2), "high")
-    sig5 = signal.lfilter(b, a, sig)
-    fde_yes = fdepsd(sig5, sr, freq, q, resp="pvelo", parallel="yes", hpfilter=None)
+    sig5 = signal.lfilter(b, a, sig5)
+    fde_yes = fdepsd(
+        sig5,
+        sr,
+        freq,
+        q,
+        resp="pvelo",
+        parallel="yes",
+        hpfilter=None,
+        detrend=False,
+        winends=None,
+    )
 
     compare(fde_auto, fde_no)
     compare(fde_auto, fde_yes)
@@ -148,4 +162,18 @@ def test_fdepsd_error():
     with pytest.raises(ValueError):
         fdepsd(sig, sr, freq, q)
     with pytest.raises(ValueError):
-        fdepsd(freq, sr, freq, q, "badresp")
+        fdepsd(freq, sr, freq, q, resp="badresp")
+
+
+def test_ski_slope():
+    # np.random.seed(1)
+    spec = np.array([[20.0, 1.0], [100.0, 1.0], [150.0, 10.0], [1000.0, 10.0]])
+    sig, sr = psd.psd2time(spec, 20, 1000)
+
+    sig[0] = sig.max()
+
+    freq = np.arange(20, 1000.0, 10.0)
+    Q = 10
+
+    d = fdepsd(sig, sr, freq, Q)
+    assert d.psd["G1"].iat[0] < 1.0
