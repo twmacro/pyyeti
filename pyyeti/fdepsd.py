@@ -63,9 +63,11 @@ def fdepsd(
     sr,
     freq,
     Q,
+    *,
     resp="absacce",
-    hpfilter=5.0,
+    detrend=True,
     winends="auto",
+    hpfilter=5.0,
     nbins=300,
     T0=60.0,
     rolloff="lanczos",
@@ -99,17 +101,25 @@ def fdepsd(
         'pvelo'      pseudo velocity [#fde2]_
         =========    =======================================
 
-    hpfilter : scalar or None; optional
-        High pass filter frequency; if None, no filtering is done.
-        If filtering is done, it is a 3rd order butterworth via
-        :func:`scipy.signal.lfilter`.
+    detrend : bool; optional
+        If True, `sig` is detrended via :func:`scipy.signal.detrend`.
+        Option is ignored and treated as True if at least one of the
+        `winends` or `hpfilter` options are used. Detrending is done
+        before either of those options.
     winends : None or 'auto' or dictionary; optional
         If None, :func:`pyyeti.dsp.windowends` is not called. If
         'auto', :func:`pyyeti.dsp.windowends` is called to apply a
         0.25 second window or a 50 point window (whichever is smaller)
         to the front. Otherwise, `winends` must be a dictionary of
         arguments that will be passed to :func:`pyyeti.dsp.windowends`
-        (not including `signal`).
+        (not including `signal`). The signal is detrended prior to
+        calling :func:`pyyeti.dsp.windowends`.
+    hpfilter : scalar or None; optional
+        High pass filter frequency; if None, no filtering is done. If
+        filtering is done, it is after detrending and after any
+        `winends` action was taken. The signal is filtered via
+        :func:`scipy.signal.lfilter` using a 3rd order butterworth
+        filter (:func:`scipy.signal.butter`).
     nbins : integer; optional
         The number of amplitude levels at which to count cycles
     T0 : scalar; optional
@@ -532,25 +542,20 @@ def fdepsd(
         resp, "abs", rolloff, "primary"
     )
 
+    if winends == "auto":
+        winends = {"portion": min(int(0.25 * sr), 50, len(sig))}
+
+    if detrend or winends is not None or hpfilter is not None:
+        sig = signal.detrend(sig)
+
+    if winends is not None:
+        sig = dsp.windowends(sig, **winends)
+
     if hpfilter is not None:
         if verbose:
             print(f"High pass filtering @ {hpfilter} Hz")
         b, a = signal.butter(3, hpfilter / (sr / 2), "high")
-        # to try to get rid of filter transient at the beginning:
-        #  - put a 0.25 second buffer on the front (length from
-        #    looking at impulse response)
-        #  - filter
-        #  - chop off buffer
-        n = int(0.25 * sr)
-        sig2 = np.empty(n + sig.size)
-        sig2[:n] = sig[0]
-        sig2[n:] = sig
-        sig = signal.lfilter(b, a, sig2)[n:]
-
-    if winends == "auto":
-        sig = dsp.windowends(sig, min(int(0.25 * sr), 50, len(sig)))
-    elif winends is not None:
-        sig = dsp.windowends(sig, **winends)
+        sig = signal.lfilter(b, a, sig)
 
     mxfrq = freq.max()
     curppc = sr / mxfrq
@@ -640,7 +645,7 @@ def fdepsd(
     BinCount = np.hstack((Count[:, :-1] - Count[:, 1:], Count[:, -1:]))
 
     # for calculating G2:
-    G2max = Amax ** 2
+    G2max = Amax**2
     for j in range(LF):
         pv = BinAmps[j] >= Amax[j] / 3  # ignore small amp cycles
         if np.any(pv):
@@ -672,12 +677,12 @@ def fdepsd(
     N0 = freq * T0
     lnN0 = np.log(N0)
     if resp == "absacce":
-        G1 = Amax ** 2 / (Q * pi * freq * lnN0)
+        G1 = Amax**2 / (Q * pi * freq * lnN0)
         G2 = G2max / (Q * pi * freq * lnN0)
 
         # calculate test-damage indicators for b = 4, 8 and 12:
         Abar = 2 * lnN0
-        Abar2 = Abar ** 2
+        Abar2 = Abar**2
         Dt4 = N0 * 8 - (Abar2 + 4 * Abar + 8)
         sig2_4 = np.sqrt(Df4 / Dt4)
         G4 = sig2_4 / ((Q * pi / 2) * freq)
@@ -704,7 +709,7 @@ def fdepsd(
 
         Gmax = np.sqrt(np.vstack((G4, G8, G12)) * (Q * pi * freq * lnN0))
     else:
-        G1 = (Amax ** 2 * 4 * pi * freq) / (Q * lnN0)
+        G1 = (Amax**2 * 4 * pi * freq) / (Q * lnN0)
         G2 = (G2max * 4 * pi * freq) / (Q * lnN0)
 
         Dt4 = 2 * N0
