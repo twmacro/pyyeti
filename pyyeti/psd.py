@@ -914,8 +914,9 @@ def psd2time(
     sr : scalar
         The sample rate of the signal (``ppc * fstop``)
     time : 1d ndarray; optional
-        Time vector for the signal starting at zero with step of
-        ``1.0 / sr``: ``time = np.arange(len(sig)) / sr``.
+        Time vector for the signal starting at zero with step of ``1.0
+        / sr``: ``time = np.arange(len(sig)) / sr``. Only returned if
+        `gettime` is True.
 
     Notes
     -----
