@@ -152,8 +152,6 @@ def test_getbins_1():
     assert np.allclose(bb, [3.992, 6.0, 8.0, 10.0, 12.0])
     bb = cyclecount.getbins(4, 4, 12, right=False)
     assert np.allclose(bb, [4.0, 6.0, 8.0, 10.0, 12.008])
-    with pytest.raises(ValueError):
-        cyclecount.getbins(4, 3.0, 3.0)
 
 
 def test_getbins_2():
@@ -210,3 +208,28 @@ def test_sigcount_2():
     assert np.allclose(table.values, [[12.0, 12.5], [12.5, 12.5]])
     assert np.allclose(ampb, [0.500, 49.500, 98.598])
     assert np.allclose(aveb, [-0.500, 0.000, 0.501])
+
+
+def test_sigcount_3():
+    df = cyclecount.sigcount(np.array([10.0, -10.0, 10.0, -10.0]), ampbins=4)
+    assert np.allclose(df.values, [[0.0, 1.5, 0.0, 0.0]])
+    assert list(df.columns) == [
+        "(9.499, 9.750]",
+        "(9.750, 10.000]",
+        "(10.000, 10.250]",
+        "(10.250, 10.500]",
+    ]
+    assert list(df.index) == ["(-0.501, 0.500]"]
+
+    df = cyclecount.sigcount(
+        np.array([10.0, -10.0, 10.0, -10.0]), ampbins=4, right=False
+    )
+
+    assert np.allclose(df.values, [[0.0, 0.0, 1.5, 0.0]])
+    assert list(df.columns) == [
+        "[9.500, 9.750)",
+        "[9.750, 10.000)",
+        "[10.000, 10.250)",
+        "[10.250, 10.501)",
+    ]
+    assert list(df.index) == ["[-0.500, 0.501)"]

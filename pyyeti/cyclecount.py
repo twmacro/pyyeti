@@ -383,6 +383,11 @@ def getbins(bins, mx, mn, right=True, check_bounds=False):
 
     Notes
     -----
+    If `mx` and `mn` are equal, they are reset::
+
+        mx = mx + 0.5
+        mn = mn - 0.5
+
     If `bins` is a scalar, this routine tries to mimic the behavior of
     the :func:`pandas.cut` routine::
 
@@ -401,8 +406,6 @@ def getbins(bins, mx, mn, right=True, check_bounds=False):
     Raises
     ------
     ValueError
-        If `mx` and `mn` are equal
-    ValueError
         If `bins` is a vector but is not monotonically increasing
 
     Examples
@@ -419,7 +422,10 @@ def getbins(bins, mx, mn, right=True, check_bounds=False):
     if mx < mn:
         mx, mn = mn, mx
     elif mx == mn:
-        raise ValueError("`mx` and `mn` must not be equal")
+        mx = mx + 0.5
+        mn = mn - 0.5
+        # raise ValueError("`mx` and `mn` must not be equal")
+
     if bins.size == 1:
         bins = int(bins)
         bb = np.linspace(mn, mx, bins + 1)
