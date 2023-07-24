@@ -47,6 +47,8 @@ __all__ = [
     "rdcsupers",
     "rdextrn",
     "wtcsuper",
+    "wtmpc",
+    "wtspoints",
     "wtspc1",
     "wtxset1",
     "wtqcset",
@@ -2426,6 +2428,82 @@ def wtcsuper(f, superid, grids):
     """
     f.write(f"CSUPER  {superid:8d}{0:8d}")
     wtnasints(f, 4, grids)
+
+
+@guitools.write_text_file
+def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
+    """
+    Writes a Nastran MPC card to a file
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    setid : integer
+        MPC set ID
+    gid_dof_d : 1d array_like
+        A length-2 array containing the dependent grid ID and DOF.
+    coeff_d : float
+        The coefficient applied to the dependent DOF.
+    gid_dof_i : 2d array_like
+        2 column matrix: [grid_ids, DOFs] specifying the independent
+        DOFs
+    coeffs_i : 1d array_like
+        Array of floats containing the coefficient for each independent
+        DOF.  This array much have the same length as the number of rows
+        in gid_dof_i.
+    """
+    if not setid > 0:
+        raise ValueError('setid must be >0')
+    if gid_dof_d.shape[0] != 2:
+        raise ValueError('gid_dof_d must have length 2')
+    n_coeff = coeffs_i.shape[0]
+    if n_coeff < 1:
+        raise ValueError('must have at least one independent DOF')
+    if gid_dof_i.shape[0] != n_coeff:
+        raise ValueError(('number of rows in gid_dof_i must match length '
+                          'of coeffs_i'))
+    if gid_dof_i.shape[1] != 2:
+        raise ValueError('gid_dof_i must have two columns')
+
+    gid_d, dof_d = gid_dof_d
+    f.write(f"MPC*    {setid:16d}{gid_d:16d}{dof_d:16d}{coeff_d:16.9E}\n")
+    for i, (coeff, (gid, dof)) in enumerate(zip(coeffs_i, gid_dof_i)):
+        f.write('*       ')
+        if i % 2 != 0:
+            f.write(' ' * 16)
+        f.write(f"{gid:16d}{dof:16d}{coeff:16.9E}")
+        if i % 2 == 0 and n_coeff > i + 1:
+            f.write(' ' * 16 + '*')
+        f.write('\n')
+    if i % 2 != 0:
+        f.write('*\n')
+
+
+@guitools.write_text_file
+def wtspoints(f, spoints):
+    """
+    Writes Nastran SPOINT cards to a file.
+
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    spoints : 1d array_like
+        Vector of SPOINT IDs.
+    """
+    if not len(spoints) > 0:
+        raise ValueError('spoints must have length >0')
+    f.write('SPOINT  ')
+    for i, spoint in enumerate(spoints):
+        if i > 0 and i % 8 == 0:
+            f.write('\nSPOINT  ')
+        f.write(f"{spoint:8d}")
+    f.write('\n')
 
 
 @guitools.write_text_file

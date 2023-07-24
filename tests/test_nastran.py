@@ -898,6 +898,133 @@ def test_fsearch():
     assert p is None
 
 
+def test_wtmpc_bad_inputs():
+    f = StringIO()
+    setid = 101
+    gid_dof_d = np.array([21, 1], 'i8')
+    coeff_d = -1.0
+    gid_dof_i = np.array([[31, 1], [31, 2], [31, 3]], 'i8')
+    coeffs_i = np.array([.25, .60, .15], 'f8')
+
+    setid = 0
+    with pytest.raises(ValueError,
+                       match=r'setid.*>0'):
+        nastran.wtmpc(f, setid, gid_dof_d, coeff_d,
+                      gid_dof_i, coeffs_i)
+    setid = 101
+
+    gid_dof_d = np.array([0, 0, 0], 'i8')
+    with pytest.raises(ValueError,
+                       match=r'gid_dof.*length 2'):
+        nastran.wtmpc(f, setid, gid_dof_d, coeff_d,
+                      gid_dof_i, coeffs_i)
+    gid_dof_d = np.array([21, 1], 'i8')
+
+    coeffs_i = np.array([], 'f8')
+    with pytest.raises(ValueError,
+                       match=r'must have.*one.*indep.*DOF'):
+        nastran.wtmpc(f, setid, gid_dof_d, coeff_d,
+                      gid_dof_i, coeffs_i)
+    coeffs_i = np.array([.25, .60, .15], 'f8')
+
+
+    gid_dof_i = np.array([[31, 1], [31, 2]], 'i8')
+    with pytest.raises(ValueError,
+                       match=r'rows in gid_dof_i.*coeffs_i'):
+        nastran.wtmpc(f, setid, gid_dof_d, coeff_d,
+                      gid_dof_i, coeffs_i)
+
+    gid_dof_i = np.array([[31, 1, 0], [31, 2, 0], [31, 3, 0]], 'i8')
+    with pytest.raises(ValueError,
+                       match=r'gid_dof_i.*two columns'):
+        nastran.wtmpc(f, setid, gid_dof_d, coeff_d,
+                      gid_dof_i, coeffs_i)
+
+
+def test_wtmpc_1coeff():
+    with StringIO() as f:
+        setid = 101
+        id_dof_d = np.array([21, 1])
+        coeff_d = -1.0
+        id_dof_i = np.array([[31, 1]])
+        coeffs_i = np.array([.75])
+        nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
+        s = f.getvalue()
+    sbe = ('MPC*                 101              21               1-1.000000000E+00\n'
+           '*                     31               1 7.500000000E-01\n')
+    assert s == sbe
+
+
+def test_wtmpc_2coeff():
+    with StringIO() as f:
+        setid = 101
+        id_dof_d = np.array([21, 1])
+        coeff_d = -1.0
+        id_dof_i = np.array([[31, 1], [31, 2]])
+        coeffs_i = np.array([.75, .25])
+        nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
+        s = f.getvalue()
+    sbe = ('MPC*                 101              21               1-1.000000000E+00\n'
+           '*                     31               1 7.500000000E-01                *\n'
+           '*                                     31               2 2.500000000E-01\n'
+           '*\n')
+    assert s == sbe
+
+
+def test_wtmpc_3coeff():
+    with StringIO() as f:
+        setid = 101
+        id_dof_d = np.array([21, 1])
+        coeff_d = -1.0
+        id_dof_i = np.array([[31, 1], [31, 2], [32, 5]])
+        coeffs_i = np.array([.75, .25, 1.65])
+        nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
+        s = f.getvalue()
+    sbe = ('MPC*                 101              21               1-1.000000000E+00\n'
+           '*                     31               1 7.500000000E-01                *\n'
+           '*                                     31               2 2.500000000E-01\n'
+           '*                     32               5 1.650000000E+00\n')
+    assert s == sbe
+
+
+def test_wtspoints_bad_inputs():
+    f = StringIO()
+    spoints = []
+    with pytest.raises(ValueError,
+                       match=r'spoints.*length.*>0'):
+        nastran.wtspoints(f, spoints)
+
+
+def test_wtspoints_1line():
+    with StringIO() as f:
+        spoints = [1001, 1002, 1003]
+        nastran.wtspoints(f, spoints)
+        s = f.getvalue()
+    sbe = ('SPOINT      1001    1002    1003\n')
+    assert s == sbe
+
+
+def test_wtspoints_2line():
+    with StringIO() as f:
+        spoints = list(range(1001, 1016))
+        nastran.wtspoints(f, spoints)
+        s = f.getvalue()
+    sbe = ('SPOINT      1001    1002    1003    1004    1005    1006    1007    1008\n'
+           'SPOINT      1009    1010    1011    1012    1013    1014    1015\n')
+    assert s == sbe
+
+
+def test_wtspoints_3line():
+    with StringIO() as f:
+        spoints = list(range(1001, 1018))
+        nastran.wtspoints(f, spoints)
+        s = f.getvalue()
+    sbe = ('SPOINT      1001    1002    1003    1004    1005    1006    1007    1008\n'
+           'SPOINT      1009    1010    1011    1012    1013    1014    1015    1016\n'
+           'SPOINT      1017\n')
+    assert s == sbe
+
+
 def test_wtrspline():
     with pytest.raises(ValueError):
         nastran.wtrspline(1, 1, 1)
@@ -1269,12 +1396,12 @@ SPOINT   9920001    THRU 9920020
 $
 $ BOUNDARY GRID DATA
 $
-GRID    5               4.      2.      0.                                      
-GRID    7               6.      2.      0.                                      
-GRID    16              4.      1.      0.                                      
-GRID    18              6.      1.      0.                                      
-GRID    27              4.      0.      0.                                      
-GRID    29              6.      0.      0.                                      
+GRID    5               4.      2.      0.
+GRID    7               6.      2.      0.
+GRID    16              4.      1.      0.
+GRID    18              6.      1.      0.
+GRID    27              4.      0.      0.
+GRID    29              6.      0.      0.
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 """
     a, b = nastran.rdseconct(StringIO(s))
