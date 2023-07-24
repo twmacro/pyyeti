@@ -32,7 +32,7 @@ Limited set of read/write routines for Nastran bulk data
     wtdmig
     wtextrn
     wtgrids
-	wtmpc
+    wtmpc
     wtnasints
     wtqcset
     wtrbe2
@@ -42,6 +42,6 @@ Limited set of read/write routines for Nastran bulk data
     wtseset
     wtset
     wtspc1
-	wtspoints
+    wtspoints
     wttabled1
     wtxset1
