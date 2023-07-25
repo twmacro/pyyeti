@@ -2455,32 +2455,46 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
         Array of floats containing the coefficient for each independent
         DOF.  This array much have the same length as the number of rows
         in gid_dof_i.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import nastran
+    >>> setid = 101
+    >>> id_dof_d = np.array([21, 1])
+    >>> coeff_d = -1.0
+    >>> id_dof_i = np.array([[31, 1], [31, 2], [32, 5]])
+    >>> coeffs_i = np.array([0.75, 0.25, 1.65])
+    >>> nastran.wtmpc(1, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
+    MPC*                 101              21               1-1.000000000E+00
+    *                     31               1 7.500000000E-01                *
+    *                                     31               2 2.500000000E-01
+    *                     32               5 1.650000000E+00
     """
     if not setid > 0:
-        raise ValueError('setid must be >0')
+        raise ValueError("setid must be >0")
     if gid_dof_d.shape[0] != 2:
-        raise ValueError('gid_dof_d must have length 2')
+        raise ValueError("gid_dof_d must have length 2")
     n_coeff = coeffs_i.shape[0]
     if n_coeff < 1:
-        raise ValueError('must have at least one independent DOF')
+        raise ValueError("must have at least one independent DOF")
     if gid_dof_i.shape[0] != n_coeff:
-        raise ValueError(('number of rows in gid_dof_i must match length '
-                          'of coeffs_i'))
+        raise ValueError("number of rows in gid_dof_i must match length of coeffs_i")
     if gid_dof_i.shape[1] != 2:
-        raise ValueError('gid_dof_i must have two columns')
+        raise ValueError("gid_dof_i must have two columns")
 
     gid_d, dof_d = gid_dof_d
     f.write(f"MPC*    {setid:16d}{gid_d:16d}{dof_d:16d}{coeff_d:16.9E}\n")
     for i, (coeff, (gid, dof)) in enumerate(zip(coeffs_i, gid_dof_i)):
-        f.write('*       ')
+        f.write("*       ")
         if i % 2 != 0:
-            f.write(' ' * 16)
+            f.write(" " * 16)
         f.write(f"{gid:16d}{dof:16d}{coeff:16.9E}")
         if i % 2 == 0 and n_coeff > i + 1:
-            f.write(' ' * 16 + '*')
-        f.write('\n')
+            f.write(" " * 16 + "*")
+        f.write("\n")
     if i % 2 != 0:
-        f.write('*\n')
+        f.write("*\n")
 
 
 @guitools.write_text_file
@@ -2495,15 +2509,23 @@ def wtspoints(f, spoints):
         in these cases, a GUI is opened for file selection.
     spoints : 1d array_like
         Vector of SPOINT IDs.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti import nastran
+    >>> spoints = [1001, 1002, 1003]
+    >>> nastran.wtspoints(1, spoints)
+    SPOINT      1001    1002    1003
     """
     if not len(spoints) > 0:
-        raise ValueError('spoints must have length >0')
-    f.write('SPOINT  ')
+        raise ValueError("spoints must have length >0")
+    f.write("SPOINT  ")
     for i, spoint in enumerate(spoints):
         if i > 0 and i % 8 == 0:
-            f.write('\nSPOINT  ')
+            f.write("\nSPOINT  ")
         f.write(f"{spoint:8d}")
-    f.write('\n')
+    f.write("\n")
 
 
 @guitools.write_text_file
