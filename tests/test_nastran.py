@@ -1406,3 +1406,122 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
     assert (a == b).all()
     sbe = np.r_[5, 7, 16, 18, 27, 29, 9920001:9920021]
     assert (a == sbe).all()
+
+
+def test_wrap_text_lines_0line():
+    lines = []
+    output = nastran.wrap_text_lines(lines, 12, "/")
+    assert output == lines
+
+
+def test_wrap_text_lines_1line():
+    lines = ['abcdefghijkl']
+    output = nastran.wrap_text_lines(lines, 12, "/")
+    assert output == lines
+
+
+def test_wrap_text_lines_1line_too_long():
+    lines = ["abcdefghijkl"]
+    output = nastran.wrap_text_lines(lines, 10, "/")
+    assert output == ["abcdefghi", "jkl"]
+
+
+def test_wrap_text_lines_path1():
+    path = "/home/abcd/this/is/a/long/path/modes.op4"
+    lines = path.split("/")
+    output = nastran.wrap_text_lines(lines, 14, "/")
+    expected = ["/home/abcd/", "this/is/a/long",
+                "/path/", "modes.op4"]
+    assert output == expected
+
+
+def test_wrap_text_lines_path2():
+    path = "/home/abcd/this/is/a/long/path/modes.op4"
+    lines = path.split("/")
+    output = nastran.wrap_text_lines(lines, 15, "/")
+    expected = ["/home/abcd/this", "/is/a/long/path",
+                "/modes.op4"]
+    assert output == expected
+
+
+def test_wrap_text_lines_path3():
+    path = "/home/abcd/this/is/a/long/path/modes.op4"
+    lines = path.split("/")
+    output = nastran.wrap_text_lines(lines, 20, "/")
+    expected = ["/home/abcd/this/is/a", "/long/path/modes.op4"]
+    assert output == expected
+
+
+def test_wtinclude_path1():
+    path = r"c:\direc\bulk.bdf"
+    current_path = r"c:\direc"
+    output = nastran.wtinclude(path, current_path)
+    expected = "INCLUDE 'bulk.bdf'\n"
+    assert output == expected
+
+
+def test_wtinclude_path1_diffcap():
+    path = r"d:\direc\bulk.bdf"
+    current_path = r"D:\direc"
+    output = nastran.wtinclude(path, current_path)
+    expected = "INCLUDE 'bulk.bdf'\n"
+    assert output == expected
+
+
+def test_wtinclude_path2():
+    path = r"c:\direc\bulk.bdf"
+    current_path = r"c:\\"
+    output = nastran.wtinclude(path, current_path)
+    expected = "INCLUDE 'direc/bulk.bdf'\n"
+    assert output == expected
+
+
+def test_wtinclude_path3():
+    path = r"c:\direc1\direc2\bulk.bdf"
+    current_path = r"c:\direc1\direc3"
+    output = nastran.wtinclude(path, current_path)
+    expected = "INCLUDE '../direc2/bulk.bdf'\n"
+    assert output == expected
+
+
+def test_wtinclude_path4():
+    path = (r"c:\direc1\direc2\direc3\direc4\direc5\direc6\direc7\direc8\direc9"
+            r"\direc10\direc11\bulk.bdf")
+    current_path = r"c:\\"
+    output = nastran.wtinclude(path, current_path)
+    expected = ("INCLUDE 'direc1/direc2/direc3/direc4/direc5/direc6/direc7/"
+                "direc8/direc9/\n"
+                "direc10/direc11/bulk.bdf'\n")
+    assert output == expected
+
+
+def test_wtinclude_path5():
+    path = "/direc1/direc2/bulk3.bdf"
+    current_path = "/direc1"
+    output = nastran.wtinclude(path, current_path)
+    expected = "INCLUDE 'direc2/bulk3.bdf'\n"
+    assert output == expected
+
+
+def test_wtinclude_abspath1():
+    path = r"c:\direc1\direc2\bulk.bdf"
+    current_path = None
+    output = nastran.wtinclude(path, current_path)
+    expected = "INCLUDE 'c:/direc1/direc2/bulk.bdf'\n"
+    assert output == expected
+
+
+def test_wtinclude_abspath2():
+    path = r"/direc1/direc2/bulk.bdf"
+    current_path = None
+    output = nastran.wtinclude(path, current_path)
+    expected = "INCLUDE '/direc1/direc2/bulk.bdf'\n"
+    assert output == expected
+
+
+def test_wtinclude_different_drive_letters():
+    path = r"c:\direc1\bulk.bdf"
+    current_path = r"d:\direc1"
+    output = nastran.wtinclude(path, current_path)
+    expected = "INCLUDE 'c:/direc1/bulk.bdf'\n"
+    assert output == expected

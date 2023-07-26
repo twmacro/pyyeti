@@ -13,6 +13,7 @@ True
 """
 
 import os
+import posixpath
 import re
 import textwrap
 import warnings
@@ -63,6 +64,8 @@ __all__ = [
     "wtextseout",
     "mknast",
     "rddtipch",
+    "wrap_text_lines",
+    "wtinclude",
 ]
 
 
@@ -4143,3 +4146,80 @@ def rddtipch(f, name="TUG1"):
             iddof[pv + j, 1] = pv + 1
             j += m[J, 1]
     return iddof
+
+
+def wrap_text_lines(lines, max_length, separator):
+    """
+    Combines the list of strings in lines into longer strings.  Each will be
+    less than the specified maximum, and will be separated by the specified
+    string.
+
+    Args:
+        lines (_type_): _description_
+        max_columns (_type_): _description_
+        separator (_type_): _description_
+    """
+    sep_len = len(separator)
+    if sep_len > max_length:
+        raise ValueError
+    # add separator between lines and check for individual lines with
+    # length > max_length
+    lines2 = []
+    for i, line in enumerate(lines):
+        line_len = len(line) + sep_len
+        if line_len > max_length:
+            start = 0
+            while start < line_len:
+                end = start + max_length - 1
+                lines2.append(line[start:end])
+                start = end
+        else:
+            lines2.append(line)
+        if i < len(lines) - 1:
+            lines2.append(separator)
+    lines = lines2
+    if len(lines) < 2:
+        return lines
+    output_lines = []
+    current_line = []
+    current_line_length = 0
+    for line in lines:
+        if current_line_length + len(line) > max_length:
+            output_lines.append("".join(current_line))
+            current_line = [line]
+            current_line_length = len(line)
+        else:
+            current_line.append(line)
+            current_line_length += len(line)
+    output_lines.append("".join(current_line))
+    return output_lines
+
+
+def wtinclude(path, current_path=None, col_length_limit=72):
+    """
+
+    Args:
+        path (_type_): _description_
+        current_path (_type_, optional): _description_. Defaults to None.
+    """
+    def standard_path(path):
+        drive, relpath = os.path.splitdrive(path)
+        return "".join([drive.lower(), relpath]).replace(os.sep, "/")
+
+    def diff_drive_letters(path1, path2):
+        (drive1, _), (drive2, _) = [os.path.splitdrive(p) for p in [path1, path2]]
+        if len(drive1) > 0 and len(drive2) > 0 and drive1.lower() != drive2.lower():
+            return True
+        else:
+            return False
+
+    path = standard_path(path)
+    if current_path is None or diff_drive_letters(path, current_path):
+        rel_path = path
+    else:
+        current_path = standard_path(current_path)
+        rel_path = posixpath.relpath(path, current_path)
+    out_string = "INCLUDE '{}'\n".format(rel_path)
+    if len(out_string) < col_length_limit:
+        return out_string
+    return "\n".join(wrap_text_lines(out_string.split("/"), col_length_limit, "/"))
