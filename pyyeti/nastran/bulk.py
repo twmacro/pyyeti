@@ -4154,16 +4154,27 @@ def wrap_text_lines(lines, max_length, separator):
     less than the specified maximum, and will be separated by the specified
     string.
 
-    Args:
-        lines (_type_): _description_
-        max_columns (_type_): _description_
-        separator (_type_): _description_
+    Parameters
+    ----------
+    lines : list_like of strings
+        A list of text lines.
+    max_length : integer
+        The max length of each line in the output.
+    separator : string
+        The separator that will be inserted between each item in lines.
+
+    Returns
+    -------
+    output_lines : list of strings
+        Items in lines, separated by the specified string, and combined to
+        make them as long as possible without exceeding max_length.
     """
     sep_len = len(separator)
     if sep_len > max_length:
         raise ValueError
-    # add separator between lines and check for individual lines with
-    # length > max_length
+    # Add separator between lines
+    # Also check for individual lines with length > max_length.  They will be split
+    # to avoid exceeding max_length.
     lines2 = []
     for i, line in enumerate(lines):
         line_len = len(line) + sep_len
@@ -4195,12 +4206,40 @@ def wrap_text_lines(lines, max_length, separator):
     return output_lines
 
 
-def wtinclude(path, current_path=None, col_length_limit=72):
+def wtinclude(f, path, current_path=None, max_length=72):
     """
+    Write a Nastran INCLUDE statement to a file.
 
-    Args:
-        path (_type_): _description_
-        current_path (_type_, optional): _description_. Defaults to None.
+    If possible, the relative path from current_path to path will be used.  The
+    statment will be wrapped as needed such that no lines exceed the specified
+    col_length_limit.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    path : string
+        The path to the file that will be included.
+    current_path : string
+        The path to the directory where the Nastran input file is located.
+    max_length : integer; optional
+        The max length of each line of the include statment.
+
+    Notes
+    -----
+    Forward slashes will always be used as path separators.  This ensures that
+    relative paths will work on both Windows and Linux.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> path = '/home/user1/model.blk'
+    >>> current_path = '/home/user2'
+    >>> nastran.wtinclude(1, path, current_path)
+    INCLUDE '../user1/model.blk'
     """
     def standard_path(path):
         drive, relpath = os.path.splitdrive(path)
@@ -4220,6 +4259,7 @@ def wtinclude(path, current_path=None, col_length_limit=72):
         current_path = standard_path(current_path)
         rel_path = posixpath.relpath(path, current_path)
     out_string = "INCLUDE '{}'\n".format(rel_path)
-    if len(out_string) < col_length_limit:
-        return out_string
-    return "\n".join(wrap_text_lines(out_string.split("/"), col_length_limit, "/"))
+    if len(out_string) > max_length:
+        lines = out_string.split("/")
+        out_string = "\n".join(wrap_text_lines(lines, max_length, "/"))
+    f.write(out_string)
