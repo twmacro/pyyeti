@@ -341,9 +341,9 @@ def fit_circle_3d(basic, makeplot="no"):
          That equation is actually three equations with two of them
          being independent. Therefore, we can solve for ``alpha`` and
          ``beta`` using a least-squares approach (
-         :func:`np.linalg.lstsq`). Then, we can use either of the two
-         equations above to solve for `center`. Note the `center` is
-         in basic coordinates.
+         :func:`numpy.linalg.lstsq`). Then, we can use either of the
+         two equations above to solve for `center`. Note the `center`
+         is in basic coordinates.
       9. The coordinates of all points can now be calculated in the
          local coordinate system (note that the local z-coordinate is
          0.0 for all points)::
