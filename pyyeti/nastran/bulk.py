@@ -4279,6 +4279,11 @@ def wtinclude(f, path, current_path=None, max_length=72):
 
 def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72):
     """
+    Write a Nastran ASSIGN statement to a file.
+
+    If possible, the relative path from current_path to path will be used.  The
+    statment will be wrapped as needed such that no lines exceed the specified
+    col_length_limit.
 
     Parameters
     ----------
@@ -4291,18 +4296,29 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
         The type of ASSIGN statement.  This can be one of 'input2', 'input4',
         'output2', or 'output4'.
     path : string
-        The path to the file that will be included.
+        The path to the file.
     params : dict; optional
-        XXX
+        Optional "describer" values to add to the assign statment.
     current_path : string
-        XXX
+        The path to the directory where the Nastran input file is located.  If
+        current_path is not specified, the output will use an absolute path.
     max_length : integer; optional
-        The max length of each line of the include statment.
+        The max length of each line of the assign statment.
 
     Notes
     -----
     The max_length parameter must be at least 24 to allow space for the ASSIGN statement
-    itself on one line.
+    and assign type on the first line.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> assign_type = 'output4'
+    >>> path = '/home/user1/out.op4'
+    >>> params = {'unit':101, 'delete':None}
+    >>> current_path = '/home/user2'
+    >>> nastran.wtassign(1, assign_type, path, params, current_path)
+    ASSIGN OUTPUT4 = '../user1/out.op4',UNIT=101,DELETE
     """
     cmd = {"input2": "INPUTT2",
            "input4": "INPUTT4",
@@ -4328,7 +4344,6 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
                 lines.append("{}".format(k.upper()))
             else:
                 lines.append("{}={}".format(k.upper(), v))
-    #breakpoint()
     lines = wrap_text_lines(lines, max_length, ",")
     f.write("\n".join(lines))
     f.write("\n")
