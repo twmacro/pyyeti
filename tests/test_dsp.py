@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import scipy.stats as stats
 import scipy.signal as signal
@@ -292,6 +293,32 @@ def test_calcenv():
     assert np.allclose(yen + base, yenb)
 
 
+def test_find_closest_times():
+    a = np.array([1, 2, 3])
+    b = np.array([0, 2.48, 2.51, 4])
+    i = dsp._find_closest_times(a, b)
+    assert np.all(i == [0, 1, 2, 2])
+
+    v = np.arange(100.0)
+    v2 = np.arange(0.0, 76.0, 0.1)
+    j = dsp._find_closest_times(v, v2)
+    assert 0.1 < (v2 - v[j]).max() < 0.51
+    assert -0.51 < (v2 - v[j]).min() < -0.1
+
+
+def test_find_closest_previous_times():
+    a = np.array([1, 2, 3])
+    b = np.array([0, 2.48, 2.51, 4])
+    i = dsp._find_closest_previous_times(a, b)
+    assert np.all(i == [0, 1, 1, 2])
+
+    v = np.arange(100.0)
+    v2 = np.arange(0.0, 76.0, 0.1)
+    j = dsp._find_closest_previous_times(v, v2)
+    assert 0.51 < (v2 - v[j]).max() < 1.01
+    assert (v2 - v[j]).min() >= 0.0
+
+
 def test_fixtime():
     with pytest.raises(ValueError):
         dsp.fixtime(([1, 2, 3, 4], [1, 2, 3]))
@@ -299,20 +326,17 @@ def test_fixtime():
     t = [0, 1, 6, 7]
     y = [1, 2, 3, 4]
     with pytest.warns(RuntimeWarning):
-        tn, yn = dsp.fixtime((t, y), sr=1)
-        ty2 = dsp.fixtime(np.vstack([t, y]).T, sr=1)
+        tn, yn = dsp.fixtime((t, y), sr=1, verbose=False)
+        ty2 = dsp.fixtime(np.vstack([t, y]).T, sr=1, verbose=False)
 
     t2, y2 = ty2.T
     assert np.all(tn == t2)
     assert np.all(yn == y2)
     assert np.all(tn == np.arange(8))
-    assert np.all(yn == [1, 2, 2, 2, 2, 2, 3, 4])
+    assert np.all(yn == [1, 2, 2, 2, 3, 3, 3, 4])
 
     with pytest.warns(RuntimeWarning):
-        (t2, y2), info = dsp.fixtime((t, y), getall=True, sr=1)
-        # ((t2, y2), pv,
-        # sr_stats, tp) = dsp.fixtime((t, y), getall=True,
-        #                                sr=1)
+        (t2, y2), info = dsp.fixtime((t, y), getall=True, sr=1, verbose=False)
     assert np.all(tn == t2)
     assert np.all(yn == y2)
     assert np.all(info.alldrops.dropouts == [])
@@ -327,7 +351,7 @@ def test_fixtime():
     y = [1, drop, 2, 3, 4]
 
     with pytest.warns(RuntimeWarning):
-        t2, y2 = dsp.fixtime([t, y], sr=1)
+        t2, y2 = dsp.fixtime([t, y], sr=1, verbose=False)
     assert np.all(tn == t2)
     assert np.all(yn == y2)
 
@@ -335,7 +359,9 @@ def test_fixtime():
     y = [drop, drop, drop]
     pytest.warns(RuntimeWarning, dsp.fixtime, (t, y), "auto")
 
-    (t2, y2), info = dsp.fixtime((t, y), "auto", deldrops=False, getall=True)
+    (t2, y2), info = dsp.fixtime(
+        (t, y), "auto", deldrops=False, getall=True, verbose=False
+    )
     assert np.all(info.tp == [0, 2])
     assert np.all(t2 == t)
     assert np.all(y2 == y)
@@ -345,37 +371,47 @@ def test_fixtime():
     t = np.hstack((t, 200.0))
     y = np.arange(101)
     with pytest.warns(RuntimeWarning):
-        t2, y2 = dsp.fixtime((t, y), "auto")
+        t2, y2 = dsp.fixtime((t, y), "auto", verbose=False)
     assert np.all(t2 == np.arange(100.0))
     assert np.all(y2 == np.arange(100))
 
     with pytest.warns(RuntimeWarning):
-        t2, y2 = dsp.fixtime((t, y), "auto", delouttimes=0)
+        t2, y2 = dsp.fixtime(
+            (t, y), "auto", delouttimes=0, hold_previous_value=True, verbose=False
+        )
     assert np.all(t2 == np.arange(200.1))
     sbe = np.ones(201, int) * 99
     sbe[:100] = np.arange(100)
     sbe[-1] = 100
     assert np.all(y2 == sbe)
 
+    with pytest.warns(RuntimeWarning):
+        t2, y2 = dsp.fixtime((t, y), "auto", delouttimes=0, verbose=False)
+    assert np.all(t2 == np.arange(200.1))
+    sbe = np.ones(201, int) * 99
+    sbe[:100] = np.arange(100)
+    sbe[150:] = 100
+    assert np.all(y2 == sbe)
+
     t = [0, 1, 2, 3, 4, 5, 7, 6]
     y = [0, 1, 2, 3, 4, 5, 7, 6]
     with pytest.warns(RuntimeWarning):
-        t2, y2 = dsp.fixtime((t, y), 1)
+        t2, y2 = dsp.fixtime((t, y), 1, verbose=False)
     assert np.all(t2 == np.arange(8))
     assert np.all(y2 == np.arange(8))
 
     with pytest.raises(ValueError):
-        dsp.fixtime((t, y), 1, negmethod="stop")
+        dsp.fixtime((t, y), 1, negmethod="stop", verbose=False)
 
     t = np.arange(8)[::-1]
     with pytest.raises(ValueError):
-        dsp.fixtime((t, y), 1)
+        dsp.fixtime((t, y), 1, verbose=False)
 
     t = np.arange(0, 1, 0.001)
     noise = np.random.randn(t.size)
     noise = noise / noise.max() / 100000
     y = np.random.randn(t.size)
-    t2, y2 = dsp.fixtime((t + noise, y), "auto", base=0)
+    t2, y2 = dsp.fixtime((t + noise, y), "auto", base=0, verbose=False)
     assert np.allclose(t, t2)
     assert np.all(y == y2)
 
@@ -384,62 +420,75 @@ def test_fixtime():
     t = dt.cumsum()
     y = np.arange(100)
     with pytest.warns(RuntimeWarning):
-        t2, y2 = dsp.fixtime((t, y), 1)
+        t2, y2 = dsp.fixtime((t, y), 1, verbose=False)
 
     dt = np.ones(100)
     dt[80:] = 1.08 * dt[80:]
     t = dt.cumsum()
     y = np.arange(100)
     with pytest.warns(RuntimeWarning):
-        t2, y2 = dsp.fixtime((t, y), 1)
+        t2, y2 = dsp.fixtime((t, y), 1, verbose=False)
+
+
+def test_fixtime_prev_val_tol():
+    t = [0, 1, 6.01, 7]
+    y = [1, 2, 3, 4]
+    with pytest.warns(RuntimeWarning):
+        yn = dsp.fixtime((t, y), sr=1, hold_previous_value=True, verbose=False)[1]
+
+    assert np.all(yn == [1, 2, 2, 2, 2, 2, 2, 4])
+
+    with pytest.warns(RuntimeWarning):
+        yn = dsp.fixtime(
+            (t, y),
+            sr=1,
+            hold_previous_value=True,
+            verbose=False,
+            previous_value_tol=0.1,
+        )[1]
+
+    assert np.all(yn == [1, 2, 2, 2, 2, 2, 3, 4])
+
+    t = [0, 1, 2, 3]
+    y = [1, 2, 3, 4]
+    with pytest.raises(ValueError):
+        t2, y2 = dsp.fixtime(
+            (t, y),
+            sr=1,
+            hold_previous_value=True,
+            previous_value_tol=1.5,
+            verbose=False,
+        )
+
+    with pytest.raises(ValueError):
+        t2, y2 = dsp.fixtime(
+            (t, y),
+            sr=1,
+            hold_previous_value=True,
+            previous_value_tol=-0.2,
+            verbose=False,
+        )
 
 
 def test_fixtime2():
     dt = 0.001
-    sr = 1000
     t = np.arange(0, 1, dt)
     t[1:] += dt / 2
     # t[400:] -= dt/2
     noise = np.random.randn(t.size)
     noise = noise / noise.max() / 100000
     y = np.random.randn(t.size)
-    told = t + noise
 
-    t2, y2 = dsp.fixtime((t + noise, y), "auto", base=None)
+    t2, y2 = dsp.fixtime((t + noise, y), "auto", base=None, verbose=False)
     pv = locate.find_subseq(y2, y[1:-1])
     assert pv.size > 0
 
-    t3, y3 = dsp.fixtime((t + noise, y), "auto", base=0.0)
+    t3, y3 = dsp.fixtime((t + noise, y), "auto", base=0.0, verbose=False)
     pv = locate.find_subseq(y2, y[1:-1])
     assert pv.size > 0
     assert not np.allclose(t2[0], t3[0])
     assert np.allclose(t2 - t2[0], t3 - t3[0])
     assert abs(t3 - 0.003).min() < 1e-14
-
-
-def test_fixtime_drift():
-    L = 10000
-    for factor in (0.9995, 1.0005):
-        t = np.arange(L) * (0.001 * factor)
-        y = np.random.randn(L)
-        t2, y2 = dsp.fixtime((t, y), 1000, base=0)
-        t3, y3 = dsp.fixtime((t, y), 1000, fixdrift=1, base=0)
-
-        i = np.argmax(y[3:100])
-        i2 = np.nonzero(y2[:103] == y[i])[0][0]
-        i3 = np.nonzero(y3[:103] == y[i])[0][0]
-        d2 = abs(t2[i2] - t[i])
-        d3 = abs(t3[i3] - t[i])
-
-        L = len(y)
-        i = L - 100 + np.argmax(y[-100:-10])
-        L = len(y2)
-        i2 = L - 110 + np.nonzero(y2[-110:] == y[i])[0][0]
-        L = len(y3)
-        i3 = L - 110 + np.nonzero(y3[-110:] == y[i])[0][0]
-        d2 += abs(t2[i2] - t[i])
-        d3 += abs(t3[i3] - t[i])
-        assert d3 < d2
 
 
 def test_fixtime_too_many_tp():
@@ -492,12 +541,12 @@ def test_fixtime_too_many_tp():
     )
 
     with pytest.raises(ValueError):
-        dsp.fixtime(([1, 2, 3, 4], [1, 2, 3]))
+        dsp.fixtime(([1, 2, 3, 4], [1, 2, 3]), verbose=False)
     with pytest.raises(ValueError):
-        dsp.fixtime(np.random.randn(3, 3, 3))
+        dsp.fixtime(np.random.randn(3, 3, 3), verbose=False)
 
     with pytest.warns(RuntimeWarning):
-        t, d = dsp.fixtime((*fd.T,), sr="auto")
+        t, d = dsp.fixtime((*fd.T,), sr="auto", verbose=False)
     # assert np.all(fd[:, 1] == d)
     assert np.allclose(np.diff(t), 0.002)
     assert np.allclose(t[0], fd[0, 0])
@@ -508,7 +557,7 @@ def test_fixtime_naninf():
     y = [1, 2, 3, 4, np.nan, 6, 7, np.inf, 9, 10, -np.inf, 12, -1.40130e-45, 14, 15]
 
     with pytest.warns(RuntimeWarning):
-        (tn, yn), info = dsp.fixtime((t, y), sr=1, getall=1)
+        (tn, yn), info = dsp.fixtime((t, y), sr=1, getall=1, verbose=False)
 
     d = info.alldrops.dropouts
     assert np.all(d == [4, 7, 10, 12])
@@ -539,9 +588,21 @@ def test_fixtime_despike():
 
     with pytest.warns(RuntimeWarning):
         (tn, yn), info = dsp.fixtime(
-            (t, y), sr=1, getall=1, delspikes=dict(n=9, sigma=2)
+            (t, y),
+            sr=1,
+            getall=1,
+            hold_previous_value=True,
+            delspikes=dict(n=9, sigma=2),
+            verbose=False,
         )
-        (tn2, yn2), info2 = dsp.fixtime((t, y), sr=1, getall=1, delspikes=dict(sigma=2))
+        (tn2, yn2), info2 = dsp.fixtime(
+            (t, y),
+            sr=1,
+            getall=1,
+            hold_previous_value=True,
+            delspikes=dict(sigma=2),
+            verbose=False,
+        )
 
     d = info.alldrops.dropouts
     assert np.all(d == range(4, 13))
@@ -561,7 +622,7 @@ def test_fixtime_perfect():
     dt = 0.001
     t = np.arange(1000) * dt
     y = np.random.randn(len(t))
-    t2, y2 = dsp.fixtime((t, y), "auto")
+    t2, y2 = dsp.fixtime((t, y), "auto", verbose=False)
     assert np.allclose(t2, t)
     assert np.all(y2 == y)
 
@@ -570,7 +631,9 @@ def test_fixtime_perfect_delspike():
     dt = 0.001
     t = np.arange(1000) * dt
     y = np.sin(2 * np.pi * 5 * t)
-    (t2, y2), info = dsp.fixtime((t, y), "auto", delspikes=True, getall=1)
+    (t2, y2), info = dsp.fixtime(
+        (t, y), "auto", delspikes=True, getall=1, verbose=False
+    )
     assert np.allclose(t2, t)
     assert np.all(y2 == y)
 
@@ -580,6 +643,7 @@ def test_fixtime_perfect_delspike():
             "auto",
             delspikes=dict(method="badmethod"),
             getall=1,
+            verbose=False,
         )
 
 
@@ -593,7 +657,12 @@ def test_fixtime_exclude_point_change():
     ycopy[100:105] = y[99]
     y[100:105] = 10.0
 
-    t2, y2 = dsp.fixtime((t, y), "auto", delspikes=True, verbose=False)
+    t2, y2 = dsp.fixtime(
+        (t, y),
+        "auto",
+        delspikes=True,
+        verbose=False,
+    )
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
 
@@ -615,7 +684,13 @@ def test_fixtime_exclude_point_change():
     y[100:105] = np.arange(0.0, 5.0) * 3
     ycopy = y.copy()
     ycopy[102:105] = y[101]
-    t2, y2 = dsp.fixtime((t, y), "auto", delspikes=dict(sigma=18), verbose=False)
+    t2, y2 = dsp.fixtime(
+        (t, y),
+        "auto",
+        delspikes=dict(sigma=18),
+        verbose=False,
+        hold_previous_value=True,
+    )
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
 
@@ -665,7 +740,11 @@ def test_fixtime_exclude_point_change2():
     ycopy = y.copy()
     ycopy[102:105] = y[101]
     t2, y2 = dsp.fixtime(
-        (t, y), "auto", delspikes=dict(sigma=35, method="despike"), verbose=False
+        (t, y),
+        "auto",
+        delspikes=dict(sigma=35, method="despike"),
+        verbose=False,
+        hold_previous_value=True,
     )
     assert np.allclose(t2, t)
     assert np.all(y2 == ycopy)
@@ -719,16 +798,22 @@ def test_fixtime_despike_edge_conditions():
         y[s] = 10.0
 
         # with despike_diff:
-        t2, y2 = dsp.fixtime((t, y), "auto", delspikes=True, verbose=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            t2, y2 = dsp.fixtime((t, y), "auto", delspikes=True, verbose=False)
+
         assert np.allclose(t2, t)
         if i < n - 15:
             assert np.allclose(y2, ycopy)
         else:
             assert np.allclose(y2, y)
 
-        t2, y2 = dsp.fixtime(
-            (t, y), "auto", delspikes=dict(exclude_point="last"), verbose=False
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            t2, y2 = dsp.fixtime(
+                (t, y), "auto", delspikes=dict(exclude_point="last"), verbose=False
+            )
+
         assert np.allclose(t2, t)
         if i > 10:
             assert np.allclose(y2, ycopy)
@@ -736,21 +821,25 @@ def test_fixtime_despike_edge_conditions():
             assert np.allclose(y2, y)
 
         # now with despike:
-        t2, y2 = dsp.fixtime(
-            (t, y), "auto", delspikes=dict(method="despike"), verbose=False
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            t2, y2 = dsp.fixtime(
+                (t, y), "auto", delspikes=dict(method="despike"), verbose=False
+            )
         assert np.allclose(t2, t)
         if i < n - 15 - 3:
             assert np.allclose(y2, ycopy)
         else:
             assert np.allclose(y2, y)
 
-        t2, y2 = dsp.fixtime(
-            (t, y),
-            "auto",
-            delspikes=dict(method="despike", exclude_point="last"),
-            verbose=False,
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            t2, y2 = dsp.fixtime(
+                (t, y),
+                "auto",
+                delspikes=dict(method="despike", exclude_point="last"),
+                verbose=False,
+            )
         assert np.allclose(t2, t)
         if i > 13:
             assert np.allclose(y2, ycopy)
@@ -803,6 +892,24 @@ def test_fix_edges2():
     )
     assert np.allclose(t2, t[n:])
     assert np.all(y2 == y[n:])
+
+
+def test_fixtime_wrong_sr():
+    t = np.arange(10)
+    y = t + 10
+    msg = ".*10 vs 9.*sample rate used too low[?] Only aligning on.*"
+    with pytest.warns(RuntimeWarning, match=msg):
+        (t2, y2), info = dsp.fixtime((t, y), getall=True, sr=0.94, verbose=False)
+
+    assert t2[0] == 0.0
+    assert t2[-1] < 9.0
+
+    msg = ".*10 vs 11.*sample rate used too high[?] Only aligning on.*"
+    with pytest.warns(RuntimeWarning, match=msg):
+        (t2, y2), info = dsp.fixtime((t, y), getall=True, sr=1.06, verbose=False)
+
+    assert t2[0] == 0.0
+    assert t2[-1] > 9.0
 
 
 def test_aligntime():

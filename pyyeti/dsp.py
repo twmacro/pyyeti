@@ -17,6 +17,14 @@ import matplotlib.patches as mpatches
 from pyyeti.ytools import _check_makeplot
 
 
+try:
+    import numba
+except ImportError:
+    HAVE_NUMBA = False
+else:
+    HAVE_NUMBA = True
+
+
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
     np.set_printoptions(legacy="1.13")
@@ -509,7 +517,7 @@ def _sweep_out_nexts(y, i, limit, ave):
 def _get_stats_full(y, n, sigma, min_limit, xp):
     ave = exclusive_sgfilter(y, n, exclude_point=xp)
     y_delta = abs(y - ave)
-    var = exclusive_sgfilter(y ** 2, n, exclude_point=xp) - ave ** 2
+    var = exclusive_sgfilter(y**2, n, exclude_point=xp) - ave**2
     # use abs to care of negative numerical zeros:
     std = np.sqrt(abs(var))
     limit = np.fmax(sigma * std, min_limit)
@@ -711,7 +719,6 @@ def despike(
     `threshold_value` to 0.0).
 
     .. note::
-
         If you plan to use both :func:`fixtime` and :func:`despike`,
         it is recommended that you let :func:`fixtime` call
         :func:`despike` (via the `delspikes` option) instead of
@@ -932,7 +939,7 @@ def _outs_last_diff(
 def _find_outlier_peaks_diff(y, dy, n, sigma, min_limit, xp):
     ave = exclusive_sgfilter(dy, n, exclude_point=xp)
     dy_delta = abs(dy - ave)
-    var = exclusive_sgfilter(dy ** 2, n, exclude_point=xp) - ave ** 2
+    var = exclusive_sgfilter(dy**2, n, exclude_point=xp) - ave**2
     # use abs to care of negative numerical zeros:
     std = np.sqrt(abs(var))
     limit = np.fmax(sigma * std, min_limit)
@@ -1035,7 +1042,6 @@ def despike_diff(
     `threshold_value` to 0.0).
 
     .. note::
-
         If you plan to use both :func:`fixtime` and
         :func:`despike_diff`, it is recommended that you let
         :func:`fixtime` call :func:`despike_diff` (via the `delspikes`
@@ -1361,25 +1367,7 @@ def _check_dt_size(difft, dt):
             )
 
 
-def _add_drift_turning_pts(tp, told, dt):
-    # expand turning points if needed to account for drift
-    # (sample rate being slightly off in otherwise good data)
-    tp_drift = []
-    Lold = len(told)
-    for i in range(len(tp) - 1):
-        m, n = tp[i], tp[i + 1]
-        while n - m > 0.1 * Lold:
-            tdiff = np.arange(n - m) * dt - (told[m:n] - told[m])
-            pv = abs(tdiff) > 1.01 * dt / 2
-            if pv[-1]:
-                m += np.nonzero(~pv)[0].max() + 1
-                tp_drift.append(m)
-            else:
-                break
-    return np.sort(np.hstack((tp, tp_drift)))
-
-
-def _get_turning_points(told, dt):
+def _get_time_shifts(told, dt):
     tp = np.empty(len(told), bool)
     tp[0] = True
     tp[1:] = abs(np.diff(told) - dt) > dt / 4
@@ -1391,9 +1379,8 @@ def _get_turning_points(told, dt):
         align = False
         p = (len(tp) - 2) / len(told) * 100
         msg = (
-            f"there are too many turning points ({p:.2f}%) to "
-            "account for drift or align the largest section. "
-            "Skipping steps 11 and 12."
+            "there are too many time-step changes ('turning points')"
+            f" ({p:.2f}%) to align the largest section."
         )
         warn(msg, RuntimeWarning)
     else:
@@ -1401,56 +1388,136 @@ def _get_turning_points(told, dt):
     return tp, align
 
 
-def _mk_initial_tnew(told, sr, dt, difft, fixdrift):
+def _mk_initial_tnew(told, sr, dt, difft):
     L = int(round((told[-1] - told[0]) * sr)) + 1
     tnew = np.arange(L) / sr + told[0]
 
     # get turning points and see if we should try to align:
-    tp, align = _get_turning_points(told, dt)
+    tp, align = _get_time_shifts(told, dt)
 
     if align:
-        if fixdrift:
-            tp = _add_drift_turning_pts(tp, told, dt)
-
-        # align with the "good" range:
+        # align with the largest "good" range in `told`:
         j = np.argmax(np.diff(tp))
-        t_good = told[tp[j] : tp[j + 1] + 1]
+        told_good = told[tp[j] : tp[j + 1] + 1]
+        lold = len(told_good)
 
-        p = _get_prev_index(tnew, t_good[0] + dt / 2)
-        tnew_good = tnew[p : p + len(t_good)]
-
-        delt = np.mean(t_good[: len(tnew_good)] - tnew_good)
-        adelt = abs(delt)
-        if adelt > dt / 2:
-            sgn = np.sign(delt)
-            factor = int(adelt / delt)
-            dt = sgn * (adelt - factor * delt)
+        p = _get_prev_index(tnew, told_good[0] + dt / 2)
+        n = _get_prev_index(tnew, told_good[-1] + dt / 2)
+        tnew_good = tnew[p : n + 1]
+        if (lnew := len(tnew_good)) != lold:
+            lohi = "low" if lnew < lold else "high"
+            warn(
+                "when trying to align best sections of data, lengths of old"
+                f" time vector and new time vector do not match ({lold} vs "
+                f"{lnew}); sample rate used too {lohi}? Only aligning on "
+                "first data point of 'good' section.",
+                RuntimeWarning,
+            )
+            delt = told_good[0] - tnew_good[0]
+        else:
+            delt = np.mean(told_good - tnew_good)
         tnew += delt
     return tnew, tp
 
 
-def _best_fit_segments(tnew, tp, told, dt):
-    L = len(tnew)
-    index = np.zeros(L, np.int64) - 1
-    lastp = 0
-    lastn = 0
-    for i in range(len(tp) - 1):
-        m, n = tp[i], tp[i + 1]
-        p = _get_prev_index(tnew, told[m] + dt / 2)
-        index[lastp:p] = lastn
-        if p + n - m > L:
-            n = L + m - p
-        index[p : p + n - m] = np.arange(m, n)
-        lastp, lastn = p + n - m, n - 1
-    if lastp < L:
-        # can last point be considered part of a good segment?
-        if n - m == 1 and abs(told[n] - told[m] - dt) > dt / 4:
-            # no, so find index and fill in before moving on
-            p = _get_prev_index(tnew, told[n] + dt / 2)
-            index[lastp:p] = lastn
-            lastp = p
-        index[lastp:] = n
-    return index
+if not HAVE_NUMBA:
+
+    def _find_closest_times(told, tnew):
+        # - note this simple method doesn't work if there are large
+        #   gaps in `told`:
+        #       index = np.searchsorted(told, tnew - dt / 2)
+
+        index = np.searchsorted(told, tnew)
+        # told[index] <= tnew (except possibly at ends)
+
+        lold = len(told)
+        index[index == lold] = lold - 1
+
+        delta = told[index] - tnew
+
+        # check 1 time-step earlier to see if it's closer:
+        delta_1 = told[index - 1] - tnew
+
+        pv = abs(delta_1) <= abs(delta)
+        index[pv] -= 1
+        return index
+
+    def _find_closest_previous_times(told, tnew):
+        index = np.searchsorted(told, tnew) - 1
+        index[index < 0] = 0
+        return index
+
+else:
+
+    @numba.njit(cache=True)
+    def _find_closest_times(told, tnew):
+        # both vectors are monotonically ascending
+        lold = len(told)
+        lnew = len(tnew)
+
+        # find first i such that told[i] >= tnew[0]:
+        v = tnew[0]
+        for i in range(lold):
+            if told[i] >= v:
+                break
+        else:
+            return np.zeros(lnew, np.int64)
+
+        index = np.empty(lnew, np.int64)
+        if i > 0 and v - told[i - 1] <= told[i] - v:
+            index[0] = i - 1
+        else:
+            index[0] = i
+
+        for j in range(1, lnew):
+            v = tnew[j]
+
+            for i in range(i, lold):
+                if told[i] >= v:
+                    break
+
+            if i > 0 and v - told[i - 1] <= told[i] - v:
+                index[j] = i - 1
+            else:
+                index[j] = i
+
+        return index
+
+    @numba.njit(cache=True)
+    def _find_closest_previous_times(told, tnew):
+        # both vectors are monotonically ascending
+        lold = len(told)
+        lnew = len(tnew)
+
+        # find first i such that told[i] > tnew[0]:
+        v = tnew[0]
+        for i in range(lold):
+            if told[i] > v:
+                break
+        else:
+            return np.zeros(lnew, np.int64)
+
+        index = np.empty(lnew, np.int64)
+        if i > 0:
+            index[0] = i - 1
+        else:
+            index[0] = i
+
+        for j in range(1, lnew):
+            v = tnew[j]
+
+            for i in range(i, lold):
+                if told[i] > v:
+                    break
+            else:
+                i = lold
+
+            if i > 0:
+                index[j] = i - 1
+            else:
+                index[j] = i
+
+        return index
 
 
 def _return(t, data, alldrops, sr_stats, tp, getall, return_ndarray, despike_info):
@@ -1469,13 +1536,15 @@ def _return(t, data, alldrops, sr_stats, tp, getall, return_ndarray, despike_inf
 def fixtime(
     olddata,
     sr=None,
+    *,
     negmethod="sort",
     deldrops=True,
     dropval=-1.40130e-45,
     delouttimes=True,
     delspikes=False,
     base=None,
-    fixdrift=False,
+    hold_previous_value=False,
+    previous_value_tol=1e-3,
     getall=False,
     verbose=True,
 ):
@@ -1547,8 +1616,27 @@ def fixtime(
         Scalar value that new time vector would hit exactly if within
         range. If None, new time vector is aligned to longest section
         of "good" data.
-    fixdrift : bool; optional
-        If True, shift data
+    hold_previous_value : bool; optional
+        If True, hold previous value instead of finding closest value
+        (but see `previous_value_tol`). The default is False; find
+        closest value and, in case of a tie, use previous value. For
+        example::
+
+            olddata = ([0.0, 4.0], [10.0, 20])
+            t, y1 = fixtime(olddata, sr=1.0)
+            t, y2 = fixtime(olddata, sr=1.0, hold_previous_value=True)
+
+        Gives::
+
+            t  --> array([  0.,   1.,   2.,   3.,   4.])
+            y1 --> array([ 10.,  10.,  10.,  20.,  20.])
+            y2 --> array([ 10.,  10.,  10.,  10.,  20.])
+
+    previous_value_tol : float; optional
+        If `hold_previous_value` is True, a new time value is
+        considered equal to an old time value if it is within
+        ``previous_value_tol * dt`` of it, where ``dt`` is the new
+        time step. Must be within [0.0, 1.0], inclusive.
     getall : bool; optional
         If True, return `fixinfo`; otherwise only `newdata` is
         returned.
@@ -1579,7 +1667,6 @@ def fixtime(
            `max_count_sr`.
 
         - `tp` : 1d ndarray
-
            Contains indices into old time vector of where time-step
            shifts ("turning points") were done to align the new time
            vector against the old.
@@ -1631,7 +1718,7 @@ def fixtime(
 
        5.  Compute and print sample rates for user review. Perhaps the
            most useful of these printed numbers is the one based on
-           the count. :func:`np.histogram` is used to count which
+           the count. :func:`numpy.histogram` is used to count which
            sample rate occurs most often (to the nearest multiple of 5
            in most cases). If there is a high percentage printed with
            that sample rate, it is likely the correct value to use (at
@@ -1656,30 +1743,25 @@ def fixtime(
            ideal. Will issue warning if the number of turning points
            is greater than 50% of total points.
 
-       11. If `fixdrift` is True, and step 10 did not issue a warning
-           about too many turning points, search for additional
-           turning points to account for drift (when the sample rate
-           in the data is slightly off from the ideal). Note: using
-           `fixdrift` is not recommended; it's probably better to
-           adjust the sample rate instead.
-
-       12. If step 10 did not issue a warning about too many turning
+       11. If step 10 did not issue a warning about too many turning
            points, the new time vector is shifted to align with the
            longest section of "good" old time steps.
 
-       13. Loop over the segments defined by the turning points. Each
+       12. Loop over the segments defined by the turning points. Each
            segment will shifted left or right to fit with the new time
            vector. The longest section is not shifted due to step 12
            (unless that step was skipped because of too many turning
            points).
 
-       14. If `base` is not None, the new time vector is shifted by up
+       13. If `base` is not None, the new time vector is shifted by up
            to a half time step such that it would hit `base` exactly
            (if it was in range).
 
-       15. Fill in new data vector using best fit times. This means
-           that gaps are filled with previous value (flat line). This
-           routine does not do any linear interpolation.
+       14. Fill in new data vector using best fit times. This means
+           that gaps are filled with flat lines using the closest
+           value if `hold_previous_value` is False, or the previous
+           value if `hold_previous_value` is True. This routine
+           does not do any linear interpolation.
 
     If despiking is not producing good results:
 
@@ -1710,22 +1792,31 @@ def fixtime(
     Examples
     --------
     >>> from pyyeti import dsp
-    >>> t = [0, 1, 6, 7]
-    >>> y = [1, 2, 3, 4]
+    >>> t = [0., 1., 5., 6.]
+    >>> y = [1., 2., 3., 4.]
     >>> tn, yn = dsp.fixtime((t, y), sr=1)
     ==> Info: [min, max, ave, count (% occurrence)] time step:
-    ==>           [1, 5, 2.33333, 1 (66.7%)]
+    ==>           [1, 4, 2, 1 (66.7%)]
     ==>       Corresponding sample rates:
-    ==>           [1, 0.2, 0.428571, 1 (66.7%)]
+    ==>           [1, 0.25, 0.5, 1 (66.7%)]
     ==>       Note: "count" shows most frequent sample rate to
               nearest 0.2 samples/sec.
     ==> Using sample rate = 1
     >>> tn
-    array([ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.])
+    array([ 0.,  1.,  2.,  3.,  4.,  5.,  6.])
     >>> yn
-    array([1, 2, 2, 2, 2, 2, 3, 4])
-    """
+    array([ 1.,  2.,  2.,  2.,  3.,  3.,  4.])
 
+    Repeat, but with `hold_previous_value` set to True:
+
+    >>> tn, yn = dsp.fixtime(
+    ...    (t, y), sr=1, hold_previous_value=True, verbose=False
+    ... )
+    >>> tn
+    array([ 0.,  1.,  2.,  3.,  4.,  5.,  6.])
+    >>> yn
+    array([ 1.,  2.,  2.,  2.,  2.,  3.,  4.])
+    """
     # begin main routine
     told, olddata, return_ndarray = _get_timedata(olddata)
 
@@ -1778,12 +1869,21 @@ def fixtime(
 
     # make initial new time vector aligned with longest range in
     # told of "good" time steps (tp: turning points):
-    tnew, tp = _mk_initial_tnew(told, sr, dt, difft, fixdrift)
+    tnew, tp = _mk_initial_tnew(told, sr, dt, difft)
 
-    # build a best-fit index by segments:
-    index = _best_fit_segments(tnew, tp, told, dt)
+    # build a best-fit index by finding closest new time (no
+    # interpolation)
+    if hold_previous_value:
+        if previous_value_tol < 0.0 or previous_value_tol > 1.0:
+            raise ValueError(
+                "`previous_value_tol` must be in [0.0, 1.0];"
+                f" it is {previous_value_tol}"
+            )
+        index = _find_closest_previous_times(told - dt * previous_value_tol, tnew)
+    else:
+        index = _find_closest_times(told, tnew)
 
-    # fill in new data vector with best-fit times (no interpolation):
+    # fill in new data vector with closest old data:
     newdata = olddata[index]
 
     # if want new time to exactly hit base (if base were in range):
@@ -2079,7 +2179,6 @@ def waterfall(
         1 (and `freq` would be 0).
 
         .. note::
-
            Setting `which` to None is not the same as setting it to
            0. Using None means that the function only returns
            amplitudes, while a 0 indicates that the output of `func`
@@ -2483,7 +2582,7 @@ def calcenv(
 
     ax = _check_makeplot(makeplot)
     if ax:
-        envlabel = fr"$\pm${p}% envelope"
+        envlabel = rf"$\pm${p}% envelope"
         ln = ax.plot(x, y, label=label)[0]
         p = mpatches.Patch(color=polycolor, label=envlabel)
         if base is None:
@@ -2513,7 +2612,7 @@ def fdscale(y, sr, scale, axis=-1):
     scale : 2d array_like
         A two column matrix of [freq scale]. It is automatically sized
         to the correct dimensions via linear interpolation (uses
-        :func:`np.interp`).
+        :func:`numpy.interp`).
     axis : int, optional
         Axis along which to operate.
 
@@ -2633,7 +2732,7 @@ def _make_h(freq, w, bw, pass_zero, mag, nyq):
     # position ramps; try to have "mag" point closest to each value
     # in w:
     I = 0
-    for (_w, _bw) in zip(w, bw):
+    for _w, _bw in zip(w, bw):
         j = np.argmin(abs(freq - _w))
         ramp = _get_ramp(df, _bw, on)
         n = ramp.shape[0]
@@ -3058,7 +3157,7 @@ def fftcoef(
         b = np.swapaxes(b, axis, x.ndim - 1)
 
     if coef == "mag":
-        return np.sqrt(a ** 2 + b ** 2), np.arctan2(-a, b), f
+        return np.sqrt(a**2 + b**2), np.arctan2(-a, b), f
     elif coef == "complex":
         return a + 1j * b, None, f
     return a, b, f
