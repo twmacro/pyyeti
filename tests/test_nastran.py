@@ -1452,76 +1452,161 @@ def test_wrap_text_lines_path3():
     assert output == expected
 
 
+def test_wrap_text_lines_wrap():
+    lines = ["a" * 45, "b" * 8, "c" * 6]
+    output = nastran.wrap_text_lines(lines, 24, ",")
+    expected = ["a" * 23, "a" * 22 + "," , "b" * 8 + "," + "c" * 6]
+    assert output == expected
+
+
 def test_wtinclude_path1():
+    f = StringIO()
     path = r"c:\direc\bulk.bdf"
     current_path = r"c:\direc"
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = "INCLUDE 'bulk.bdf'\n"
-    assert output == expected
+    assert f.getvalue() == expected
 
 
 def test_wtinclude_path1_diffcap():
+    f = StringIO()
     path = r"d:\direc\bulk.bdf"
     current_path = r"D:\direc"
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = "INCLUDE 'bulk.bdf'\n"
-    assert output == expected
+    assert f.getvalue() == expected
 
 
 def test_wtinclude_path2():
+    f = StringIO()
     path = r"c:\direc\bulk.bdf"
     current_path = r"c:\\"
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = "INCLUDE 'direc/bulk.bdf'\n"
-    assert output == expected
+    assert f.getvalue() == expected
 
 
 def test_wtinclude_path3():
+    f = StringIO()
     path = r"c:\direc1\direc2\bulk.bdf"
     current_path = r"c:\direc1\direc3"
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = "INCLUDE '../direc2/bulk.bdf'\n"
-    assert output == expected
+    assert f.getvalue() == expected
 
 
 def test_wtinclude_path4():
+    f = StringIO()
     path = (r"c:\direc1\direc2\direc3\direc4\direc5\direc6\direc7\direc8\direc9"
             r"\direc10\direc11\bulk.bdf")
     current_path = r"c:\\"
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = ("INCLUDE 'direc1/direc2/direc3/direc4/direc5/direc6/direc7/"
                 "direc8/direc9/\n"
                 "direc10/direc11/bulk.bdf'\n")
-    assert output == expected
+    assert f.getvalue() == expected
 
 
 def test_wtinclude_path5():
+    f = StringIO()
     path = "/direc1/direc2/bulk3.bdf"
     current_path = "/direc1"
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = "INCLUDE 'direc2/bulk3.bdf'\n"
-    assert output == expected
+    assert f.getvalue() == expected
+
+
+def test_wtinclude_path6():
+    f = StringIO()
+    path = "/direc1/thisisareallylongdirectoryname/bulk3.bdf"
+    nastran.wtinclude(f, path, max_length=25)
+    expected = "INCLUDE 'direc2/bulk3.bdf'\n"
+    expected = ("INCLUDE '/direc1/\n"
+                "thisisareallylongdirecto\n"
+                "ryname/bulk3.bdf'\n")
+    assert f.getvalue() == expected
 
 
 def test_wtinclude_abspath1():
+    f = StringIO()
     path = r"c:\direc1\direc2\bulk.bdf"
     current_path = None
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = "INCLUDE 'c:/direc1/direc2/bulk.bdf'\n"
-    assert output == expected
+    assert f.getvalue() == expected
 
 
 def test_wtinclude_abspath2():
+    f = StringIO()
     path = r"/direc1/direc2/bulk.bdf"
     current_path = None
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = "INCLUDE '/direc1/direc2/bulk.bdf'\n"
-    assert output == expected
+    assert f.getvalue() == expected
 
 
 def test_wtinclude_different_drive_letters():
+    f = StringIO()
     path = r"c:\direc1\bulk.bdf"
     current_path = r"d:\direc1"
-    output = nastran.wtinclude(path, current_path)
+    nastran.wtinclude(f, path, current_path)
     expected = "INCLUDE 'c:/direc1/bulk.bdf'\n"
-    assert output == expected
+    assert f.getvalue() == expected
+
+
+def test_wtassign_case1():
+    f = StringIO()
+    assign_type = "input2"
+    path = "/direc1/direc2/input.op2"
+    nastran.wtassign(f, assign_type, path)
+    expected = "ASSIGN INPUTT2 = '/direc1/direc2/input.op2'\n"
+    assert f.getvalue() == expected
+
+
+def test_wtassign_case2():
+    f = StringIO()
+    assign_type = "input2"
+    path = "/direc1/direc2/input.op2"
+    current_path = "/direc1/direc3"
+    params = {"unit":101}
+    nastran.wtassign(f, assign_type, path, params, current_path)
+    expected = "ASSIGN INPUTT2 = '../direc2/input.op2',UNIT=101\n"
+    assert f.getvalue() == expected
+
+
+def test_wtassign_case3():
+    f = StringIO()
+    assign_type = "output4"
+    path = "/direc1/direc2/output4.op4"
+    params = {"unit":101, "delete":None}
+    max_length = 24
+    nastran.wtassign(f, assign_type, path, params, max_length=max_length)
+    expected = ("ASSIGN OUTPUT4 = '/dire,\n"
+                "c1/direc2/output4.op4',\n"
+                "UNIT=101,DELETE\n")
+    assert f.getvalue() == expected
+
+
+def test_wtassign_case4():
+    f = StringIO()
+    assign_type = "output4"
+    path = "/direc1/direc2/output4.op4"
+    params = {"unit":101, "delete":None}
+    max_length = 50
+    nastran.wtassign(f, assign_type, path, params, max_length=max_length)
+    expected = ("ASSIGN OUTPUT4 = '/direc1/direc2/output4.op4',\n"
+                "UNIT=101,DELETE\n")
+    assert f.getvalue() == expected
+
+
+def test_wtassign_case5():
+    f = StringIO()
+    assign_type = "output4"
+    path = "/direc1/dir2/out4.op4"
+    params = {"unit":101, "delete":None}
+    current_path = "/direc1/direc3/direc4"
+    max_length = 50
+    nastran.wtassign(f, assign_type, path, params, current_path, max_length=max_length)
+    expected = ("ASSIGN OUTPUT4 = '../../dir2/out4.op4',UNIT=101,\n"
+                "DELETE\n")
+    assert f.getvalue() == expected

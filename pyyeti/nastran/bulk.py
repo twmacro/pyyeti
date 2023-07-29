@@ -66,6 +66,7 @@ __all__ = [
     "rddtipch",
     "wrap_text_lines",
     "wtinclude",
+    "wtassign",
 ]
 
 
@@ -4173,8 +4174,8 @@ def wrap_text_lines(lines, max_length, separator):
     if sep_len > max_length:
         raise ValueError
     # Add separator between lines
-    # Also check for individual lines with length > max_length.  They will be split
-    # to avoid exceeding max_length.
+    # Also check for individual lines with length > max_length.  They will be split,
+    # without a separator, to avoid exceeding max_length.
     lines2 = []
     for i, line in enumerate(lines):
         line_len = len(line) + sep_len
@@ -4206,6 +4207,32 @@ def wrap_text_lines(lines, max_length, separator):
     return output_lines
 
 
+def _relative_path(path, current_path):
+    """
+    _summary_
+
+    """
+    def standard_path(path):
+        drive, relpath = os.path.splitdrive(path)
+        return "".join([drive.lower(), relpath]).replace(os.sep, "/")
+
+    def diff_drive_letters(path1, path2):
+        drive1, _ = os.path.splitdrive(path1)
+        drive2, _ = os.path.splitdrive(path2)
+        if len(drive1) > 0 and len(drive2) > 0 and drive1.lower() != drive2.lower():
+            return True
+        else:
+            return False
+
+    path = standard_path(path)
+    if current_path is None or diff_drive_letters(path, current_path):
+        rel_path = path
+    else:
+        current_path = standard_path(current_path)
+        rel_path = posixpath.relpath(path, current_path)
+    return rel_path
+
+
 def wtinclude(f, path, current_path=None, max_length=72):
     """
     Write a Nastran INCLUDE statement to a file.
@@ -4223,8 +4250,9 @@ def wtinclude(f, path, current_path=None, max_length=72):
         in these cases, a GUI is opened for file selection.
     path : string
         The path to the file that will be included.
-    current_path : string
-        The path to the directory where the Nastran input file is located.
+    current_path : string; optional
+        The path to the directory where the Nastran input file is located.  If
+        current_path is not specified, the output will use an absolute path.
     max_length : integer; optional
         The max length of each line of the include statment.
 
@@ -4241,25 +4269,66 @@ def wtinclude(f, path, current_path=None, max_length=72):
     >>> nastran.wtinclude(1, path, current_path)
     INCLUDE '../user1/model.blk'
     """
-    def standard_path(path):
-        drive, relpath = os.path.splitdrive(path)
-        return "".join([drive.lower(), relpath]).replace(os.sep, "/")
-
-    def diff_drive_letters(path1, path2):
-        (drive1, _), (drive2, _) = [os.path.splitdrive(p) for p in [path1, path2]]
-        if len(drive1) > 0 and len(drive2) > 0 and drive1.lower() != drive2.lower():
-            return True
-        else:
-            return False
-
-    path = standard_path(path)
-    if current_path is None or diff_drive_letters(path, current_path):
-        rel_path = path
-    else:
-        current_path = standard_path(current_path)
-        rel_path = posixpath.relpath(path, current_path)
+    rel_path = _relative_path(path, current_path)
     out_string = "INCLUDE '{}'\n".format(rel_path)
     if len(out_string) > max_length:
         lines = out_string.split("/")
         out_string = "\n".join(wrap_text_lines(lines, max_length, "/"))
     f.write(out_string)
+
+
+def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72):
+    """
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    assign_type : str
+        The type of ASSIGN statement.  This can be one of 'input2', 'input4',
+        'output2', or 'output4'.
+    path : string
+        The path to the file that will be included.
+    params : dict; optional
+        XXX
+    current_path : string
+        XXX
+    max_length : integer; optional
+        The max length of each line of the include statment.
+
+    Notes
+    -----
+    The max_length parameter must be at least 24 to allow space for the ASSIGN statement
+    itself on one line.
+    """
+    cmd = {"input2": "INPUTT2",
+           "input4": "INPUTT4",
+           "output2": "OUTPUT2",
+           "output4": "OUTPUT4",
+    }
+    if assign_type not in cmd:
+        raise ValueError
+    if max_length < 24:
+        raise ValueError('max_length must be >24')
+    rel_path = _relative_path(path, current_path)
+    # format path component
+    # line wraps require a comma within the quoted path string
+    line = "ASSIGN {} = '{}'".format(cmd[assign_type], rel_path)
+    if len(line) > max_length:
+        lines = wrap_text_lines([line], max_length, ",")
+    else:
+        lines = [line]
+    # add params, with commas between each
+    if params is not None:
+        for k, v in params.items():
+            if v is None:
+                lines.append("{}".format(k.upper()))
+            else:
+                lines.append("{}={}".format(k.upper(), v))
+    #breakpoint()
+    lines = wrap_text_lines(lines, max_length, ",")
+    f.write("\n".join(lines))
+    f.write("\n")
