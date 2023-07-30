@@ -64,7 +64,6 @@ __all__ = [
     "wtextseout",
     "mknast",
     "rddtipch",
-    "wrap_text_lines",
     "wtinclude",
     "wtassign",
 ]
@@ -4149,7 +4148,7 @@ def rddtipch(f, name="TUG1"):
     return iddof
 
 
-def wrap_text_lines(lines, max_length, separator):
+def _wrap_text_lines(lines, max_length, separator):
     """
     Combines the list of strings in lines into longer strings.  Each will be
     less than the specified maximum, and will be separated by the specified
@@ -4273,7 +4272,7 @@ def wtinclude(f, path, current_path=None, max_length=72):
     out_string = "INCLUDE '{}'\n".format(rel_path)
     if len(out_string) > max_length:
         lines = out_string.split("/")
-        out_string = "\n".join(wrap_text_lines(lines, max_length, "/"))
+        out_string = "\n".join(_wrap_text_lines(lines, max_length, "/"))
     f.write(out_string)
 
 
@@ -4299,7 +4298,7 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
         The path to the file.
     params : dict; optional
         Optional "describer" values to add to the assign statment.
-    current_path : string
+    current_path : string; optional
         The path to the directory where the Nastran input file is located.  If
         current_path is not specified, the output will use an absolute path.
     max_length : integer; optional
@@ -4326,15 +4325,17 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
            "output4": "OUTPUT4",
     }
     if assign_type not in cmd:
-        raise ValueError
-    if max_length < 24:
-        raise ValueError('max_length must be >24')
+        msg = ("invalid assign_type, must be one of 'input2', 'input4', 'output2', or "
+               "'output4', got '{}'")
+        raise ValueError(msg.format(assign_type))
+    if not max_length >= 24:
+        raise ValueError('max_length must be >=24')
     rel_path = _relative_path(path, current_path)
     # format path component
     # line wraps require a comma within the quoted path string
     line = "ASSIGN {} = '{}'".format(cmd[assign_type], rel_path)
     if len(line) > max_length:
-        lines = wrap_text_lines([line], max_length, ",")
+        lines = _wrap_text_lines([line], max_length, ",")
     else:
         lines = [line]
     # add params, with commas between each
@@ -4344,6 +4345,6 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
                 lines.append("{}".format(k.upper()))
             else:
                 lines.append("{}={}".format(k.upper(), v))
-    lines = wrap_text_lines(lines, max_length, ",")
+    lines = _wrap_text_lines(lines, max_length, ",")
     f.write("\n".join(lines))
     f.write("\n")
