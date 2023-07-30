@@ -490,6 +490,21 @@ def test_cbcheck_determinate():
     assert "The sum includes all modes." in s_unique
     assert len(s2_unique) == len(s_unique) + 7
 
+    # make k perfect:
+    kaa[b] = 0.0
+    kaa[:, b] = 0.0
+
+    # write to a string:
+    with StringIO() as f:
+        out2 = cb.cbcheck(f, maa, kaa, b, b[:6], em_filt=2)
+
+    for key, val1 in out.__dict__.items():
+        val2 = getattr(out2, key)
+        if key == "k":
+            assert np.allclose(val1[6:, 6:], val2[6:, 6:], atol=1e-6)
+        else:
+            assert np.allclose(val1, val2, atol=1e-6)
+
 
 def test_cbcheck_unit_convert():
     nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
