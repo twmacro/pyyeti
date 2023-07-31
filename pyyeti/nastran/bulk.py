@@ -4171,7 +4171,7 @@ def _wrap_text_lines(lines, max_length, separator):
     """
     sep_len = len(separator)
     if sep_len > max_length:
-        raise ValueError
+        raise ValueError("length of separator > max_length")
     # Add separator between lines
     # Also check for individual lines with length > max_length.  They will be split,
     # without a separator, to avoid exceeding max_length.
@@ -4208,9 +4208,11 @@ def _wrap_text_lines(lines, max_length, separator):
 
 def _relative_path(path, current_path):
     """
-    _summary_
-
+    Return the relative path from current_path to path.  If current_path is None, the
+    absolute path will be returned.  The path will also be "standardized" to use
+    forward slashes and a lower case drive letter on Windows.
     """
+
     def standard_path(path):
         drive, relpath = os.path.splitdrive(path)
         return "".join([drive.lower(), relpath]).replace(os.sep, "/")
@@ -4232,6 +4234,7 @@ def _relative_path(path, current_path):
     return rel_path
 
 
+@guitools.write_text_file
 def wtinclude(f, path, current_path=None, max_length=72):
     """
     Write a Nastran INCLUDE statement to a file.
@@ -4276,6 +4279,7 @@ def wtinclude(f, path, current_path=None, max_length=72):
     f.write(out_string)
 
 
+@guitools.write_text_file
 def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72):
     """
     Write a Nastran ASSIGN statement to a file.
@@ -4319,32 +4323,32 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
     >>> nastran.wtassign(1, assign_type, path, params, current_path)
     ASSIGN OUTPUT4 = '../user1/out.op4',UNIT=101,DELETE
     """
-    cmd = {"input2": "INPUTT2",
-           "input4": "INPUTT4",
-           "output2": "OUTPUT2",
-           "output4": "OUTPUT4",
+    assign_types = {
+        "input2": "INPUTT2",
+        "input4": "INPUTT4",
+        "output2": "OUTPUT2",
+        "output4": "OUTPUT4",
     }
-    if assign_type not in cmd:
-        msg = ("invalid assign_type, must be one of 'input2', 'input4', 'output2', or "
-               "'output4', got '{}'")
+    if assign_type not in assign_types:
+        msg = (
+            "invalid assign_type, must be one of 'input2', 'input4', 'output2', or "
+            "'output4', got '{}'"
+        )
         raise ValueError(msg.format(assign_type))
     if not max_length >= 24:
-        raise ValueError('max_length must be >=24')
+        raise ValueError("max_length must be >=24")
     rel_path = _relative_path(path, current_path)
-    # format path component
-    # line wraps require a comma within the quoted path string
-    line = "ASSIGN {} = '{}'".format(cmd[assign_type], rel_path)
-    if len(line) > max_length:
-        lines = _wrap_text_lines([line], max_length, ",")
-    else:
-        lines = [line]
-    # add params, with commas between each
+    # format path component, line wraps require a comma within the quoted path string
+    lines = ["ASSIGN {} = '{}'".format(assign_types[assign_type], rel_path)]
+    lines = _wrap_text_lines(lines, max_length, ",")
+    # add params
     if params is not None:
         for k, v in params.items():
             if v is None:
                 lines.append("{}".format(k.upper()))
             else:
                 lines.append("{}={}".format(k.upper(), v))
+    # line wrap params if necessary, with commas between each
     lines = _wrap_text_lines(lines, max_length, ",")
     f.write("\n".join(lines))
     f.write("\n")

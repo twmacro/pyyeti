@@ -1410,28 +1410,39 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
 def test_wrap_text_lines():
     from pyyeti.nastran.bulk import _wrap_text_lines
-    values = ((([], 12, "/"),
-               []),
-              ((["abcdefghijkl"], 12, "/"),
-               ["abcdefghijkl"]),
-              ((["abcdefghijkl"], 10, "/"),
-               ["abcdefghi", "jkl"]),
-              ((["a" * 45, "b" * 8, "c" * 6], 24, ","),
-               ["a" * 23, "a" * 22 + ",",
-                "b" * 8 + "," + "c" * 6]),
+
+    # bad input
+    with pytest.raises(ValueError, match=r"length.*sep.*max_length"):
+        _wrap_text_lines([], 5, "123456")
+
+    # arbitrary strings
+    values = (
+        (([], 12, "/"), []),
+        ((["abcdefghijkl"], 12, "/"), ["abcdefghijkl"]),
+        ((["abcdefghijkl"], 10, "/"), ["abcdefghi", "jkl"]),
+        (
+            (["a" * 45, "b" * 8, "c" * 6], 24, ","),
+            ["a" * 23, "a" * 22 + ",", "b" * 8 + "," + "c" * 6],
+        ),
     )
     for (lines, max_length, sep), expected in values:
         output = _wrap_text_lines(lines, max_length, sep)
         assert output == expected
 
-def test_wrap_text_lines_paths():
-    from pyyeti.nastran.bulk import _wrap_text_lines
-    values = ((("/home/abcd/this/is/a/long/path/modes.op4", 14),
-               ["/home/abcd/", "this/is/a/long", "/path/", "modes.op4"]),
-              (("/home/abcd/this/is/a/long/path/modes.op4", 15),
-               ["/home/abcd/this", "/is/a/long/path", "/modes.op4"]),
-              (("/home/abcd/this/is/a/long/path/modes.op4", 20),
-               ["/home/abcd/this/is/a", "/long/path/modes.op4"]),
+    # paths
+    values = (
+        (
+            ("/home/abcd/this/is/a/long/path/modes.op4", 14),
+            ["/home/abcd/", "this/is/a/long", "/path/", "modes.op4"],
+        ),
+        (
+            ("/home/abcd/this/is/a/long/path/modes.op4", 15),
+            ["/home/abcd/this", "/is/a/long/path", "/modes.op4"],
+        ),
+        (
+            ("/home/abcd/this/is/a/long/path/modes.op4", 20),
+            ["/home/abcd/this/is/a", "/long/path/modes.op4"],
+        ),
     )
     for (path, max_length), expected in values:
         lines = path.split("/")
@@ -1439,38 +1450,59 @@ def test_wrap_text_lines_paths():
         assert output == expected
 
 
+def test_relative_paths():
+    from pyyeti.nastran.bulk import _relative_path
+
+    values = (
+        # Windows, no current_path
+        ((r"C:\direc1\bulk.bdf", None), "c:/direc1/bulk.bdf"),
+        # Windows, current_path
+        ((r"C:\direc1\bulk.bdf", r"c:\direc1"), "bulk.bdf"),
+        # Windows, different drive letters
+        ((r"C:\direc1\bulk.bdf", r"D:\direc1"), "c:/direc1/bulk.bdf"),
+        # Posix, no current_path
+        (("/direc1/bulk.bdf", None), "/direc1/bulk.bdf"),
+        # Posix, current_path
+        (("/direc1/Bulk.bdf", "/direc1/direc2"), "../Bulk.bdf"),
+    )
+    for (path, current_path), expected in values:
+        output = _relative_path(path, current_path)
+        assert output == expected
+
+
 def test_wtinclude():
-    values = (((r"c:\direc\bulk.bdf", r"c:\direc"),
-              "INCLUDE 'bulk.bdf'\n"),
-              # different capitalization
-              ((r"d:\direc\bulk.bdf", r"D:\direc"),
-               "INCLUDE 'bulk.bdf'\n"),
-              ((r"c:\direc\bulk.bdf", r"c:\\"),
-               "INCLUDE 'direc/bulk.bdf'\n"),
-              ((r"c:\direc1\direc2\bulk.bdf", r"c:\direc1\direc3"),
-               "INCLUDE '../direc2/bulk.bdf'\n"),
-              (("/direc1/direc2/bulk3.bdf", "/direc1"),
-                "INCLUDE 'direc2/bulk3.bdf'\n"),
-              # no current path, windows
-              ((r"c:\direc1\direc2\bulk.bdf", None),
-               "INCLUDE 'c:/direc1/direc2/bulk.bdf'\n"),
-              # no current path, posix
-              (("/direc1/direc2/bulk.bdf", None),
-               "INCLUDE '/direc1/direc2/bulk.bdf'\n"),
-              # different drive letters, always use absolute path
-              ((r"c:\direc1\bulk.bdf", r"d:\direc1"),
-               "INCLUDE 'c:/direc1/bulk.bdf'\n"),
-              (((r"c:\direc1\direc2\direc3\direc4\direc5\direc6\direc7\direc8\direc9"
-                 r"\direc10\direc11\bulk.bdf"), r"c:\\"),
-               # long path, wrap at separators
-               ("INCLUDE 'direc1/direc2/direc3/direc4/direc5/direc6/direc7/"
-                "direc8/direc9/\n"
-                "direc10/direc11/bulk.bdf'\n")),
-              # long path, wrap in middle of directory name
-              (("/direc1/thisisareallylongdirectoryname/bulk3.bdf", None, 25),
-               ("INCLUDE '/direc1/\n"
-                "thisisareallylongdirecto\n"
-                "ryname/bulk3.bdf'\n")),
+    values = (
+        ((r"c:\direc\bulk.bdf", r"c:\direc"), "INCLUDE 'bulk.bdf'\n"),
+        # different capitalization
+        ((r"d:\direc\bulk.bdf", r"D:\direc"), "INCLUDE 'bulk.bdf'\n"),
+        ((r"c:\direc\bulk.bdf", r"c:\\"), "INCLUDE 'direc/bulk.bdf'\n"),
+        ((r"c:\dir1\dir2\bulk.bdf", r"c:\dir1\dir3"), "INCLUDE '../dir2/bulk.bdf'\n"),
+        (("/dir1/dir2/bulk3.bdf", "/dir1"), "INCLUDE 'dir2/bulk3.bdf'\n"),
+        # no current path, windows
+        ((r"c:\direc1\direc2\bulk.bdf", None), "INCLUDE 'c:/direc1/direc2/bulk.bdf'\n"),
+        # no current path, posix
+        (("/direc1/direc2/bulk.bdf", None), "INCLUDE '/direc1/direc2/bulk.bdf'\n"),
+        # different drive letters, always use absolute path
+        ((r"c:\direc1\bulk.bdf", r"d:\direc1"), "INCLUDE 'c:/direc1/bulk.bdf'\n"),
+        # long path, wrap at separators, default max_length
+        (
+            (
+                (
+                    r"c:\direc1\direc2\direc3\direc4\direc5\direc6\direc7\direc8\direc9"
+                    r"\direc10\direc11\bulk.bdf"
+                ),
+                r"c:\\",
+            ),
+            (
+                "INCLUDE 'direc1/direc2/direc3/direc4/direc5/direc6/direc7/direc8/direc9/\n"
+                "direc10/direc11/bulk.bdf'\n"
+            ),
+        ),
+        # long path, wrap in middle of directory name
+        (
+            ("/direc1/thisisareallylongdirectoryname/bulk3.bdf", None, 25),
+            "INCLUDE '/direc1/\nthisisareallylongdirecto\nryname/bulk3.bdf'\n",
+        ),
     )
     for args, expected in values:
         f = StringIO()
@@ -1480,35 +1512,62 @@ def test_wtinclude():
 
 def test_wtassign_bad_input():
     f = StringIO()
-    with pytest.raises(ValueError, match=r"invalid assign.*xxx"):
-        nastran.wtassign(f, "xxx", "output.op4")
+    with pytest.raises(ValueError, match=r"invalid assign_type.*'zzz'"):
+        nastran.wtassign(f, "zzz", "output.op4")
     with pytest.raises(ValueError, match=r"max_length.*\>=24"):
         nastran.wtassign(f, "input4", "output.op4", max_length=10)
 
 
 def test_wtassign():
-    values = ((("input2", "/direc1/direc2/input.op2"),
-               "ASSIGN INPUTT2 = '/direc1/direc2/input.op2'\n"),
-              (("input2", "/direc1/direc2/input.op2",
-                {"unit":101}, "/direc1/direc3"),
-               "ASSIGN INPUTT2 = '../direc2/input.op2',UNIT=101\n"),
-              # wrap inside path
-              (("output4", "/direc1/direc2/output4.op4",
-                {"unit":101, "delete":None}, None, 24),
-               ("ASSIGN OUTPUT4 = '/dire,\n"
-                "c1/direc2/output4.op4',\n"
-                "UNIT=101,DELETE\n")),
-              # wrap outside path
-              (("output4", "/direc1/direc2/output4.op4",
-                {"unit":101, "delete":None}, None, 50),
-               ("ASSIGN OUTPUT4 = '/direc1/direc2/output4.op4',\n"
-                "UNIT=101,DELETE\n")),
-              # relative path, wrap outside path
-              (("output4", "/direc1/dir2/out4.op4",
-                {"unit":102, "delete":None}, "/direc1/direc3/direc4",
-                50),
-               ("ASSIGN OUTPUT4 = '../../dir2/out4.op4',UNIT=102,\n"
-                "DELETE\n")),
+    values = (
+        # no params, no current_path
+        (
+            ("input2", "/direc1/direc2/input.op2"),
+            "ASSIGN INPUTT2 = '/direc1/direc2/input.op2'\n",
+        ),
+        # no params, no current_path, Windows path
+        (
+            ("input2", r"c:\direc1\direc2\input.op2"),
+            "ASSIGN INPUTT2 = 'c:/direc1/direc2/input.op2'\n",
+        ),
+        # params, current_path
+        (
+            ("input2", "/direc1/direc2/input.op2", {"unit": 101}, "/direc1/direc3"),
+            "ASSIGN INPUTT2 = '../direc2/input.op2',UNIT=101\n",
+        ),
+        # params, no curren_path, wrap inside path
+        (
+            (
+                "output4",
+                "/direc1/direc2/output4.op4",
+                {"unit": 101, "delete": None},
+                None,
+                24,
+            ),
+            ("ASSIGN OUTPUT4 = '/dire,\nc1/direc2/output4.op4',\nUNIT=101,DELETE\n"),
+        ),
+        # params, no current_path, wrap outside path
+        (
+            (
+                "output4",
+                "/direc1/direc2/output4.op4",
+                {"unit": 101, "delete": None},
+                None,
+                50,
+            ),
+            ("ASSIGN OUTPUT4 = '/direc1/direc2/output4.op4',\nUNIT=101,DELETE\n"),
+        ),
+        # params, current_path, wrap outside path
+        (
+            (
+                "output4",
+                "/direc1/dir2/out4.op4",
+                {"unit": 102, "delete": None},
+                "/direc1/direc3/direc4",
+                50,
+            ),
+            ("ASSIGN OUTPUT4 = '../../dir2/out4.op4',UNIT=102,\nDELETE\n"),
+        ),
     )
     for args, expected in values:
         f = StringIO()
