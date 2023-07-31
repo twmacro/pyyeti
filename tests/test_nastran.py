@@ -1470,6 +1470,12 @@ def test_relative_paths():
         assert output == expected
 
 
+def test_wtinclude_bad_input():
+    f = StringIO()
+    with pytest.raises(ValueError, match=r"max_length.*>=24"):
+        nastran.wtinclude(f, "bulk.bdf", max_length=20)
+
+
 def test_wtinclude():
     values = (
         ((r"c:\direc\bulk.bdf", r"c:\direc"), "INCLUDE 'bulk.bdf'\n"),
@@ -1515,7 +1521,7 @@ def test_wtassign_bad_input():
     with pytest.raises(ValueError, match=r"invalid assign_type.*'zzz'"):
         nastran.wtassign(f, "zzz", "output.op4")
     with pytest.raises(ValueError, match=r"max_length.*\>=24"):
-        nastran.wtassign(f, "input4", "output.op4", max_length=10)
+        nastran.wtassign(f, "input4", "output.op4", max_length=20)
 
 
 def test_wtassign():

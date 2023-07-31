@@ -4241,7 +4241,7 @@ def wtinclude(f, path, current_path=None, max_length=72):
 
     If possible, the relative path from current_path to path will be used.  The
     statment will be wrapped as needed such that no lines exceed the specified
-    col_length_limit.
+    max_length.
 
     Parameters
     ----------
@@ -4260,6 +4260,9 @@ def wtinclude(f, path, current_path=None, max_length=72):
 
     Notes
     -----
+    The max_length parameter must be at least 24 to allow space for the INCLUDE statement
+    on the first line.
+
     Forward slashes will always be used as path separators.  This ensures that
     relative paths will work on both Windows and Linux.
 
@@ -4271,6 +4274,8 @@ def wtinclude(f, path, current_path=None, max_length=72):
     >>> nastran.wtinclude(1, path, current_path)
     INCLUDE '../user1/model.blk'
     """
+    if not max_length >= 24:
+        raise ValueError("max_length must be >=24")
     rel_path = _relative_path(path, current_path)
     out_string = "INCLUDE '{}'\n".format(rel_path)
     if len(out_string) > max_length:
@@ -4286,7 +4291,7 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
 
     If possible, the relative path from current_path to path will be used.  The
     statment will be wrapped as needed such that no lines exceed the specified
-    col_length_limit.
+    max_length.
 
     Parameters
     ----------
@@ -4312,6 +4317,9 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
     -----
     The max_length parameter must be at least 24 to allow space for the ASSIGN statement
     and assign type on the first line.
+
+    Forward slashes will always be used as path separators.  This ensures that
+    relative paths will work on both Windows and Linux.
 
     Examples
     --------
