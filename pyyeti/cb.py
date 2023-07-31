@@ -2077,18 +2077,21 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl, verbose, rb_normalizer):
     refpoint = refpoint - np.min(bset)  # not -= because that can change bset
 
     kbb = K[np.ix_(bset, bset)]
-    # trim out zero rows/cols from kbb:
-    nz = kbb.any(axis=0)
-    z = ~nz
-    if z.any():
-        nz2 = np.ix_(nz, nz)
-        kbb = kbb[nz2]
-        refpoint_bool = np.zeros(lb, dtype=bool)
-        refpoint_bool[refpoint] = True
-        refpoint = refpoint_bool[nz].nonzero()[0]
-        if len(refpoint) != 6:
-            raise RuntimeError("reference point has DOF with zero stiffness")
-        lb = kbb.shape[0]
+
+    lb_orig = lb
+    if lb_orig > 6:
+        # trim out zero rows/cols from kbb:
+        nz = kbb.any(axis=0)
+        z = ~nz
+        if z.any():
+            nz2 = np.ix_(nz, nz)
+            kbb = kbb[nz2]
+            refpoint_bool = np.zeros(lb, dtype=bool)
+            refpoint_bool[refpoint] = True
+            refpoint = refpoint_bool[nz].nonzero()[0]
+            if len(refpoint) != 6:
+                raise RuntimeError("reference point has DOF with zero stiffness")
+            lb = kbb.shape[0]
 
     o = locate.flippv(refpoint, lb)
     rbmodes = np.zeros((lb, 6))
@@ -2138,7 +2141,7 @@ def _cbcoordchk(fout, K, bset, refpoint, grids, ttl, verbose, rb_normalizer):
                 fout.write("The percent difference is:\n\n")
                 _write_matrix((rhs - krr) / krr * 100)
 
-    if z.any():
+    if lb_orig > 6 and z.any():
         rb2 = np.empty((z.shape[0], 6))
         rb2[nz, :] = rbmodes
         rb2[z, :] = 0.0

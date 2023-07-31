@@ -19,14 +19,18 @@ except TypeError:
 
 
 def calcAM(S, freq):
-    """
+    r"""
     Calculate apparent mass
+
+    Apparent mass is also known as "dynamic mass". The inverse of
+    apparent mass is known as "inertance" or "accelerance". See
+    :func:`ntfl` for more discussion.
 
     Parameters
     ----------
     S : list/tuple
         Contains: ``[mass, damp, stiff, bdof]`` for structure. These
-        are the source mass, damping, and stiffness matrices (see
+        are the Source mass, damping, and stiffness matrices (see
         :class:`pyyeti.ode.SolveUnc`) and `bdof`, which is described
         below.
     freq : 1d array_like
@@ -58,12 +62,108 @@ def calcAM(S, freq):
            in Craig-Bampton form (uses :func:`pyyeti.cb.cbtf` to
            compute apparent mass).
 
-    The routine :func:`ntfl` example demonstrates this function.
-
     See also
     --------
     :func:`ntfl`.
+
+    Examples
+    --------
+    Consider the 2 DOF system:
+
+    .. code-block:: none
+
+        |----|    k    |----|
+        |    |--\/\/\--|    |
+        | m1 |         | m2 |
+        |    |---| |---|    |
+        |----|    c    |----|
+
+        Where:
+
+            m1 = 10.0 kg
+            m2 = 4.0 kg
+            k = 5000.0 N/m
+            c = 15.0 N/(m/s)
+
+    The following will plot the apparent mass curves relative to each
+    of the masses, and annotate the plot with three mass values (4,
+    10, & 14 kg) and three frequency values (free-free, with the 4 kg
+    mass fixed, and with the 10 kg mass fixed). The annotations are
+    meant as an aide to guide intuition.
+
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> from scipy.linalg import eigh
+        >>> import matplotlib.pyplot as plt
+        >>> from pyyeti import frclim
+        >>>
+        >>> m1 = 10.0
+        >>> m2 = 4.0
+        >>> k = 5000.0
+        >>> c = 15.0
+        >>>
+        >>> M = np.diag([m1, m2])
+        >>> K = np.array([[k, -k], [-k, k]])
+        >>> C = np.array([[c, -c], [-c, c]])
+        >>>
+        >>> # compute free-free frequencies (1st is 0 Hz rigid-body mode)
+        >>> lam_ff, phi_ff = eigh(K, M)
+        >>> omega_ff = np.sqrt(abs(lam_ff))
+        >>> frq_ff = omega_ff / 2 / np.pi
+        >>>
+        >>> freq = np.geomspace(0.5, 100.0, 500)
+        >>> fig = plt.figure("apparent mass", clear=True)
+        >>> ax = fig.subplots(1, 1)
+        >>>
+        >>> fx_frqs = []
+        >>> for fixed, lbl in (
+        ...     (np.array([True, False]), "Relative to 10 kg Mass"),
+        ...     (np.array([False, True]), "Relative to 4 kg Mass"),
+        ... ):
+        ...     free = ~fixed
+        ...     ff = np.ix_(free, free)
+        ...     lam, phi = eigh(K[ff], M[ff])  # compute fixed frequency
+        ...
+        ...     omega = np.sqrt(lam[0])
+        ...     fx_frqs.append(omega / 2 / np.pi)
+        ...
+        ...     T = np.zeros((1, 2))
+        ...     T[0, fixed] = 1.0
+        ...     am = frclim.calcAM([M, C, K, T], freq)
+        ...     _ = ax.loglog(freq, abs(am[0, :, 0]), label=lbl)
+        >>>
+        >>> _ = ax.set_title("Apparent Mass")
+        >>> _ = ax.set_xlabel("Frequency (Hz)")
+        >>> _ = ax.set_ylabel("Apparent Mass (kg)")
+        >>> _ = ax.legend(loc="upper right")
+        >>>
+        >>> opts = dict(lw=1.5, c="gray", zorder=-10)
+        >>> _ = ax.axhline(14, ls="--", **opts)
+        >>> _ = ax.text(100.0, 14, "14 kg", va="bottom", ha="right")
+        >>>
+        >>> _ = ax.axhline(10, ls="--", **opts)
+        >>> _ = ax.text(100.0, 10, "10 kg", va="top", ha="right")
+        >>>
+        >>> _ = ax.axhline(4, ls="--", **opts)
+        >>> _ = ax.text(100.0, 4, "4 kg", va="bottom", ha="right")
+        >>>
+        >>> _ = ax.axvline(fx_frqs[0], ls="-.", **opts)
+        >>> _ = label = f" {fx_frqs[0]:.3f} Hz\n (10 kg fixed)"
+        >>> _ = ax.text(fx_frqs[0], 50, label, va="bottom", ha="left")
+        >>>
+        >>> _ = ax.axvline(fx_frqs[1], ls="-.", **opts)
+        >>> _ = label = f" {fx_frqs[1]:.3f} Hz\n (4 kg fixed)"
+        >>> _ = ax.text(fx_frqs[1], 115, label, va="bottom", ha="left")
+        >>>
+        >>> _ = ax.axvline(frq_ff[1], ls="-.", **opts)
+        >>> _ = label = f" {frq_ff[1]:.3f} Hz\n (free-free)"
+        >>> _ = ax.text(frq_ff[1], 2.0, label, va="bottom", ha="left")
+        >>>
+        >>> fig.tight_layout()
     """
+
     lf = len(freq)
     m = S[0]
     b = S[1]
@@ -108,25 +208,25 @@ def calcAM(S, freq):
 
 def ntfl(Source, Load, As, freq):
     r"""
-    Norton Thevenin Force Limit
+    Norton-Thevenin Force Limit
 
     Parameters
     ----------
     Source : list/tuple or 3d ndarray
         Can be either:
 
-           1. list/tuple of ``[mass, damp, stiff, bdof]`` for source
-              (eg, launch vehicle). These are the source mass,
+           1. list/tuple of ``[mass, damp, stiff, bdof]`` for Source
+              (eg, launch vehicle). These are the Source mass,
               damping, and stiffness matrices (see
               :class:`pyyeti.ode.SolveUnc`) and `bdof`, which is
               described below.
-           2. SAM, a 3d ndarray of source apparent mass (from a
+           2. SAM, a 3d ndarray of Source apparent mass (from a
               previous run). See description of outputs.
 
     Load :  list/tuple or 3d ndarray
-        Same format as `Source` except for the "load" (eg spacecraft)
+        Same format as `Source` except for the "Load" (eg, spacecraft)
     As : 2d array_like
-        Free acceleration of the source (interface acceleration
+        Free acceleration of the Source (interface acceleration
         without the Load attached).
     freq : 1d array_like
         Frequency vector in Hz for `Source`, `Load`, `As` and all
@@ -136,17 +236,18 @@ def ntfl(Source, Load, As, freq):
     -------
     A SimpleNamespace with the members:
 
-    R : 2d ndarray
-        Norton Thevenin normalized response ratio; complex,
-        # bdof x len(freq). `R` is independent of `As`. Each row of
-        `R` is the ratio of loaded-response over free-response
-        assuming a unit input in that direction (with the other
-        directions fixed).
     A : 2d ndarray
         Coupled system interface acceleration, complex, # bdof x
         len(freq).
     F : 2d ndarray
         Coupled system interface force, complex, # bdof x len(freq)
+    R : 2d ndarray
+        Norton-Thevenin normalized response ratio; complex, # bdof x
+        len(freq). `R` is independent of `As`. Each row of `R` is the
+        diagonal of the ratio of the loaded-response over the
+        free-response, which is the same as the diagonal of the Source
+        apparent mass over the Total apparent mass.
+
     LAM, SAM, TAM : 3d ndarrays
         Load, Source and Total apparent mass matrices:
 
@@ -162,14 +263,189 @@ def ntfl(Source, Load, As, freq):
 
     Notes
     -----
-    The outputs are computed as follows:
+    The Norton-Thevenin (NT) equations couple the Source and Load
+    models together in an exact way in the frequency domain. It is a
+    very convenient formulation for force-limiting applications simply
+    because the Source and Load models are kept separate and coupled
+    system responses are computed by using the "apparent mass" of both
+    models and the "free-acceleration" of the Source. If those
+    quantities are known exactly, the responses computed from the NT
+    equations are also exact.
+
+    *Apparent Mass*
+
+    The term "apparent mass" is very apt. Apparent mass is also known
+    as "dynamic mass", and its inverse is known as "inertance" or
+    "accelerance". If you were to grab some point on a structure and
+    push and pull in a sinusoidal fashion at some frequency, the
+    amount of mass you would feel resisting you is the apparent
+    mass. It varies by frequency. At zero Hz (for rigid-body motion),
+    there is no vibration and the mass you feel is the physical mass
+    of the structure. At frequencies greater than zero, the structure
+    will vibrate and "inertial forces" (mass x acceleration) will come
+    into play. Inertial forces can either push against you -- so
+    apparent mass > physical mass -- or work with you -- so apparent
+    mass < physical mass.
+
+    To compute the apparent mass for the Source (or the Load) relative
+    to the boundary "b" DOF that attach to the Load (or the Source),
+    consider this frequency domain equation:
 
     .. math::
 
+        \ddot{X}_{b}(\Omega) = H_{bb}(\Omega) \cdot F_{b}(\Omega)
+
+    The transfer function :math:`H_{bb}(\Omega)` is known as
+    "inertance" or "accelerance". By applying unit forces to the "b"
+    DOF one at a time (so that :math:`F_{b}(\Omega)` is identity), the
+    response :math:`\ddot{X}_{b}(\Omega)` is equal to
+    :math:`H_{bb}(\Omega)`. The apparent mass :math:`AM_{bb}(\Omega)`
+    is simply the inverse of the accelerance :math:`H_{bb}(\Omega)`:
+
+    .. math::
+
+        \begin{array}{c}
+            AM_{bb}(\Omega) = {H_{bb}(\Omega)}^{-1} \\
+            F_{b} (\Omega) = AM_{bb}(\Omega) \cdot
+                \ddot{X}_{b}(\Omega)
+        \end{array}
+
+    This is Newton's second law (``F = ma``) in the frequency
+    domain. The routine :func:`calcAM` calculates the apparent mass.
+
+    *Free Acceleration*
+
+    The term "free acceleration" is also quite apt. With all Source
+    external forces applied as normal, "free acceleration" is the
+    acceleration response of the Source "b" DOF with those DOF in a
+    free-free boundary condition (that is, without the Load attached).
+
+    *Deriving the NT Coupling Equations*
+
+    Consider the equations of motion for the Source ("S") or the Load
+    ("L"):
+
+    .. math::
+        \left\{
+            \begin{array}{c}
+                \ddot{X}_b(\Omega) \\
+                \ddot{X}_o(\Omega)
+            \end{array}
+        \right\}_{S~or~L} =
+        \left[
+            \begin{array}{cc}
+                H_{bb}(\Omega) & H_{bo}(\Omega) \\
+                H_{ob}(\Omega) & H_{oo}(\Omega)
+            \end{array}
+        \right]_{S~or~L}
+        \left\{
+            \begin{array}{c}
+                F_b(\Omega) + \tilde{F}_b(\Omega) \\
+                F_o(\Omega)
+            \end{array}
+        \right\}_{S~or~L}~~~~~~~(1)
+
+    Here, the "o" DOF are all other DOF (DOF that are not on the
+    boundary), :math:`F_b` and :math:`F_o` are externally applied
+    forces, and :math:`\tilde{F}_b` are forces from the other
+    component.
+
+    For joint compatibility, we need equal accelerations, and equal
+    but opposite forces:
+
+    .. math::
+        \begin{array}{c}
+            \ddot{X}_{b,L}(\Omega) = \ddot{X}_{b,S}(\Omega)
+                = \ddot{X}_b(\Omega) \\
+            \tilde{F}_{b,L}(\Omega) = - \tilde{F}_{b,S}(\Omega)
+                = \tilde{F}_b(\Omega)
+        \end{array}
+
+    For the Load without any externally applied forces, :math:`F_{b,L}
+    = 0` and :math:`F_{o,L} = 0`, the 1st partition of equation (1)
+    becomes:
+
+    .. math::
+        \ddot{X}_b(\Omega) = H_{bb,L}(\Omega) \cdot \tilde{F}_b(\Omega)
+
+    Or:
+
+    .. math::
+         \tilde{F}_b(\Omega) = AM_{bb,L}(\Omega) \cdot
+         \ddot{X}_b(\Omega)~~~~~~~(2)
+
+    To derive an equation for the free acceleration
+    :math:`A_S(\Omega)`, set :math:`\tilde{F}_{b,S} \rightarrow 0`
+    (since there is no Load attached) in equation (1):
+
+    .. math::
+        A_S(\Omega) = \ddot{X}_{b,S,no-Load}(\Omega) =
+            H_{bb,S}(\Omega) \cdot F_{b,S}(\Omega) +
+            H_{bo,S}(\Omega) \cdot F_{o,S}(\Omega)
+
+    Therefore, the top of equation (1) for the Source can be written
+    as (remembering that :math:`\tilde{F}_{b,S}(\Omega) = -
+    \tilde{F}_b(\Omega)`):
+
+    .. math::
+        \ddot{X}_b(\Omega) = - H_{bb,S}(\Omega) \cdot
+            \tilde{F}_{b}(\Omega) + A_S(\Omega)~~~~~~~(3)
+
+    Substituting equation (2) into (3) and collecting terms:
+
+    .. math::
+        \begin{array}{c}
+            \ddot{X}_b(\Omega) = - H_{bb,S}(\Omega) \cdot
+                AM_{bb,L}(\Omega) \cdot
+                \ddot{X}_b(\Omega) + A_S(\Omega) \\
+            (I + H_{bb,S}(\Omega) \cdot AM_{bb,L}(\Omega)) \cdot
+                \ddot{X}_b(\Omega) = A_S(\Omega)
+        \end{array}
+
+    Multiplying that result by the Source apparent mass gives:
+
+    .. math::
+        (AM_{bb,S}(\Omega) + AM_{bb,L}(\Omega)) \cdot
+            \ddot{X}_b(\Omega) = AM_{bb,S}(\Omega) \cdot A_S(\Omega)
+
+    Solving for :math:`\ddot{X}_b(\Omega)`:
+
+    .. math::
+        \ddot{X}_b(\Omega) =
+            (AM_{bb,S}(\Omega) + AM_{bb,L}(\Omega))^{-1} \cdot
+            AM_{bb,S}(\Omega) \cdot A_S(\Omega)~~~~~~~(4)
+
+    After solving for :math:`\ddot{X}_b(\Omega)` from equation (4), we
+    can solve for :math:`\tilde{F}_b(\Omega)` from equation (2). We
+    can also use equation (4) to expand equation (2):
+
+    .. math::
+         \tilde{F}_b(\Omega) = AM_{bb,L}(\Omega) \cdot
+            (AM_{bb,S}(\Omega) + AM_{bb,L}(\Omega))^{-1} \cdot
+            AM_{bb,S}(\Omega) \cdot A_S(\Omega)~~~~~~~(5)
+
+    *Outputs of this routine*
+
+    The outputs are computed as follows:
+
+    .. math::
         \begin{aligned}
-        R(f) &= diag(T_{AM}(f)^{-1} \cdot S_{AM}(f)) \\
-        A(f) &= T_{AM}(f)^{-1} \cdot S_{AM}(f) \cdot A_s(f) \\
-        F(f) &= L_{AM}(f) \cdot T_{AM}(f)^{-1} \cdot S_{AM}(f) \cdot A_s(f)
+            A(\Omega) &= \ddot{X}_b(\Omega) = (AM_{bb,S}(\Omega) +
+                AM_{bb,L}(\Omega))^{-1} \cdot
+                AM_{bb,S}(\Omega) \cdot A_S(\Omega) \\
+            F(\Omega) &= \tilde{F}_b(\Omega) = AM_{bb,L}(\Omega) \cdot
+                A(\Omega) \\
+            R(\Omega) &= diag((AM_{bb,S}(\Omega) +
+                AM_{bb,L}(\Omega))^{-1} \cdot AM_{bb,S}(\Omega)) \\
+        \end{aligned}
+
+    On output, the 3D apparent mass arrays are named as follows:
+
+    .. math::
+        \begin{aligned}
+            AM_{bb,L}(\Omega) & \rightarrow LAM \\
+            AM_{bb,S}(\Omega) & \rightarrow SAM \\
+            AM_{bb,L}(\Omega) + AM_{bb,S}(\Omega) & \rightarrow TAM
         \end{aligned}
 
     The `bdof` input defines boundary DOF in one of two ways as
@@ -190,28 +466,54 @@ def ntfl(Source, Load, As, freq):
     of boundary DOF and both sets of boundary DOF must be in the same
     coordinate system.
 
-    Tips:
+    *Tips*
 
     - If using a free-free model, include residual vectors defined
-      relative to the boundary DOF.
-    - The free acceleration of the source is the complex response of
-      the boundary DOF without the load attached. Frequency envelopes
+      relative to the boundary DOF. These can be critical for
+      retaining the boundary flexibility needed for accurate results
+      even in the lowest system frequencies. This is because boundary
+      stiffness that only participates in very high frequency modes
+      with a free-free boundary condition can participate in the
+      lowest frequency modes when connected to another model.
+
+    - The free acceleration of the Source is the complex response of
+      the boundary DOF without the Load attached. Frequency envelopes
       of flight data, or vibration specifications derived from
       envelopes, are not accurate ways to come up with the free
-      acceleration.
+      acceleration because a Load is attached. However, since this is
+      sometimes the only viable option, is it conservative?
+      Conservatism becomes more and more likely with this approach as
+      the number of enveloped curves increases. This is because, for a
+      given Load, the coupled system response will likely exceed the
+      free acceleration response in some frequency bands. See, for
+      example, the final two subplots in the example below; the
+      coupled system response is higher than the free acceleration
+      response at 12.5 Hz. Such enveloping can therefore lead to a
+      very conservative free acceleration curve, which means
+      conservative results.
 
-    Notional example::
+    - The apparent mass of a structure can be used to perform
+      frequency domain base-drive analyses instead of using a seismic
+      mass. Just compute the force required to meet the acceleration
+      requirement via equation (2) above (:math:`\tilde{F}_b(\Omega) =
+      AM_{bb}(\Omega) \cdot \ddot{X}_b(\Omega)`). Note that a simple
+      matrix multiply will not work for all frequencies at the same
+      time since the apparent mass is a 3D array. You could use a
+      loop, or you could use the remarkable :func:`numpy.einsum`
+      function: ``F = numpy.einsum('ijk,kj->ij', AM, Xdd)``
+
+    *Notional example*::
 
         from pyyeti import frclim
         from pyyeti.nastran op2, n2p, op4
         import pickle
 
-        # Load free acceleration of LV
+        # load free acceleration of LV
         dct = pickle.load('ifresults_free.p')
         As = dct['As']
         freq = dct['freq']
 
-        # Load source free-free model, with residual vectors included
+        # load Source free-free model, with residual vectors included
         nas = op2.rdnas2cam('nas2cam')
         m1 = None
         zeta = 0.01
@@ -222,7 +524,7 @@ def ntfl(Source, Load, As, freq):
         # Transformation to i/f node:
         T, dof = n2p.formdrm(nas, seup=0, sedn=0, dof=888888)
 
-        # Load S/C mass and stiffness:
+        # get S/C mass and stiffness of Load:
         mk = op4.read('mk.op4')
         kgen = mk['kgen']
         mgen = mk['mgen']
@@ -230,13 +532,13 @@ def ntfl(Source, Load, As, freq):
         zeta = 0.01
         bgen = np.diag(2*zeta*np.sqrt(np.diag(kgen)))
 
-        # Norton Thevenin force limit function:
+        # Norton-Thevenin force limit function:
         r = frclim.ntfl([m1, b1, k1, T], [mgen, bgen, kgen,
                         np.arange(6)], As, freq)
 
     See also
     --------
-    :func:`sefl`, :func:`ctdfs`, :func:`stdfs`.
+    :func:`calcAM`, :func:`sefl`, :func:`ctdfs`, :func:`stdfs`.
 
     Examples
     --------
@@ -245,16 +547,16 @@ def ntfl(Source, Load, As, freq):
 
     Steps:
 
-      1. setup a coupled system of a SOURCE and a LOAD
-      2. solve for interface acceleration and force from coupled system
+      1. Setup a coupled system of a SOURCE and a LOAD
+      2. Solve for interface acceleration and force from coupled system
          (frequency domain)
-      3. calculate free acceleration from SOURCE alone and setup LOAD
-      4. use :func:`ntfl` to couple the system
-      5. plot interface acceleration and force to show :func:`ntfl` can
+      3. Calculate free acceleration from SOURCE alone and setup LOAD
+      4. Use :func:`ntfl` to couple the system
+      5. Plot interface acceleration and force to show :func:`ntfl` can
          be an exact coupling method
-      6. plot apparent masses
-      7. plot free acceleration and coupled acceleration
-      8. plot normalized response ratio (can be thought of as force
+      6. Plot apparent masses
+      7. Plot free acceleration and coupled acceleration
+      8. Plot normalized response ratio (can be thought of as force
          limiting factor)
 
     1. Setup system:
@@ -444,10 +746,10 @@ def ntfl(Source, Load, As, freq):
         Ms = SAM[:, j, :]
         Ml = LAM[:, j, :]
         Mr = la.solve(Ms + Ml, Ms)
-        R[:, j] = np.diag(Mr)
         A[:, j] = Mr @ As[:, j]
         F[:, j] = Ml @ A[:, j]
-    return SimpleNamespace(R=R, F=F, A=A, LAM=LAM, SAM=SAM, TAM=TAM, freq=freq)
+        R[:, j] = np.diag(Mr)
+    return SimpleNamespace(F=F, A=A, R=R, LAM=LAM, SAM=SAM, TAM=TAM, freq=freq)
 
 
 def sefl(c, f, f0):
@@ -542,7 +844,7 @@ def stdfs(mr, Q):
         |  base   |            | m1  |            | m2  |
         |  (M)    |----| |-----|     |----| |-----|     |
         |         |     c1     |-----|     c2     |-----|
-        |---------|           (source)            (load)
+        |---------|           (Source)            (Load)
 
     Analysis is done in the frequency domain. Methodology:
 
@@ -618,8 +920,8 @@ def stdfs(mr, Q):
     m1 = m2 / mr
     c1 = 2 * zeta1 * w1 * m1
     c2 = 2 * zeta2 * w2 * m2
-    k1 = w1 ** 2 * m1
-    k2 = w2 ** 2 * m2
+    k1 = w1**2 * m1
+    k2 = w2**2 * m2
 
     # setup system equations of motion:
     mass = np.array([[M, 0, 0], [0, m1, 0], [0, 0, m2]])
@@ -649,13 +951,13 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     Parameters
     ----------
     mmr1 : scalar
-        Modal to residual mass ratio for source; 0.0001 to 10 is
+        Modal to residual mass ratio for Source; 0.0001 to 10 is
         reasonable ``m1/M1``
     mmr2 : scalar
-        Modal to residual mass ratio for load; 0.0001 to 10 is
+        Modal to residual mass ratio for Load; 0.0001 to 10 is
         reasonable ``m2/M2``
     rmr : scalar
-        Residual mass ratio of source over load; 0.0001 to 10 is
+        Residual mass ratio of Source over Load; 0.0001 to 10 is
         reasonable ``M2/M1``
     Q : scalar to 2 element array_like
         Dynamic amplification factor, 1/2/zeta. If a scalar, the same
@@ -777,7 +1079,7 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         m1 = 1e-5
 
     c1 = 2 * zeta1 * w1 * m1
-    k1 = w1 ** 2 * m1
+    k1 = w1**2 * m1
     fl = wr[0]  # low bound
     fh = wr[1]  # high bound
 
@@ -797,7 +1099,7 @@ def _ctdfs_old(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         pknfl = np.zeros_like(wrange)
         for j, w2 in enumerate(wrange * w1):  # tuning loop
             c2 = 2 * zeta2 * w2 * m2
-            k2 = w2 ** 2 * m2
+            k2 = w2**2 * m2
 
             # solve equations of motion at eigenvalues
             damp = np.array([[c1, -c1, 0], [-c1, c1 + c2, -c2], [0, -c2, c2]])
@@ -842,13 +1144,13 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
     Parameters
     ----------
     mmr1 : scalar
-        Modal to residual mass ratio for source; 0.0001 to 10 is
+        Modal to residual mass ratio for Source; 0.0001 to 10 is
         reasonable ``m1/M1``
     mmr2 : scalar
-        Modal to residual mass ratio for load; 0.0001 to 10 is
+        Modal to residual mass ratio for Load; 0.0001 to 10 is
         reasonable ``m2/M2``
     rmr : scalar
-        Residual mass ratio of source over load; 0.0001 to 10 is
+        Residual mass ratio of Source over Load; 0.0001 to 10 is
         reasonable ``M2/M1``
     Q : scalar to 2 element array_like
         Dynamic amplification factor, 1/2/zeta. If a scalar, the same
@@ -973,7 +1275,7 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         m1 = 1e-5
 
     c1 = 2 * zeta1 * w1 * m1
-    k1 = w1 ** 2 * m1
+    k1 = w1**2 * m1
 
     def get_neg_pknfl(nw2):
         """
@@ -982,7 +1284,7 @@ def ctdfs(mmr1, mmr2, rmr, Q, wr=(1 / np.sqrt(2), np.sqrt(2))):
         """
         w2 = nw2 * w1
         c2 = 2 * zeta2 * w2 * m2
-        k2 = w2 ** 2 * m2
+        k2 = w2**2 * m2
 
         # solve equations of motion at eigenvalues
         damp = np.array([[c1, -c1, 0], [-c1, c1 + c2, -c2], [0, -c2, c2]])
