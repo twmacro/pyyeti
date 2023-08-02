@@ -1571,6 +1571,39 @@ class OP2:
         data = np.frombuffer(data, dtype=dtype)
         return np.hstack((data["ints"], data["reals"]))
 
+    def _rdop2gpwg(self):
+        """
+        Read the OGPWG data block, which contains model mass properties.
+
+        Returns a dictionary of grid point weight generator outputs.
+
+        m66 : 6x6 rigid body mass matrix
+        s : The 3x3 transformation from principal mass directions to the basic csys.  This
+            is usually an identity matrix.
+        mass3 : A length-3 vector of the model's mass in each principal mass direction.
+        mass : The model's mass.
+        cg33 : The 3x3 center of mass matrix.
+        cg : A length-3 vector of the model's center of mass
+        Is : The model's 3x3 inertia matrix at the CG using the principal mass directions.
+        Iq : A length-3 vector containing the model's inertia matrix using the principal axes.
+        q : The 3x3 transformation from the basic csys to the principal axes.
+        """
+        self.skipop2record()
+        gpwg = {}
+        data = self.rdop2record(form="single")
+        gpwg["m66"] = np.array(data[0:36], order="F").reshape((6, 6))
+        gpwg["s"] = np.array(data[36:45], order="F").reshape((3, 3))
+        mass_cg = np.array(data[45:57], order="F").reshape((3, 4))
+        gpwg["mass3"] = mass_cg[:, 0].copy()
+        gpwg["mass"] = mass_cg[0, 0]
+        gpwg["cg33"] = mass_cg[:, 1:4].copy()
+        gpwg["cg"] = np.array([mass_cg[1, 1], mass_cg[0, 1], mass_cg[0, 3]])
+        gpwg["Is"] = np.array(data[57:66], order="F").reshape((3, 3))
+        gpwg["Iq"] = np.array(data[66:69], order="F")
+        gpwg["q"] = np.array(data[69:78], order="F").reshape((3, 3))
+        self.rdop2eot()
+        return gpwg
+
     def _rdop2uset(self):
         """
         Read the USET data block.
@@ -3208,6 +3241,9 @@ def rdpostop2(
     'geom1_list': list
         List of all GEOM1 data blocks in order. Data also in 'geom1'
         dictionary.
+    'gpwg': dictionary
+        Dictionary of grid point weight generator output.  Keys are
+        'm66', 's', 'mass3', 'mass', 'cg33', 'Is', 'Iq', and 'q'.
     """
     # read op2 file:
     op2file = guitools.get_file_name(op2file, read=True)
@@ -3224,6 +3260,7 @@ def rdpostop2(
         dof = None
         Uset = None
         cstm, cstm2 = None, None
+        gpwg = None
 
         while 1:
             name, trailer, dbtype = o2.rdop2nt()
@@ -3341,6 +3378,12 @@ def rdpostop2(
                     mo += [o2._rdop2lama()]
                     continue
 
+                if name.find("OGPWG") == 0:
+                    if verbose:
+                        print(f"Reading table {name}...")
+                    gpwg = o2._rdop2gpwg()
+                    continue
+
                 if verbose:
                     print(f"Skipping table {name}...")
                 o2.skipop2table()
@@ -3368,6 +3411,7 @@ def rdpostop2(
         "cstm2": cstm2,
         "mats": mats,
         "geom1_list": geom1_list,
+        "gpwg": gpwg,
     }
 
     # make geom1 dictionary where the se id is the key:
