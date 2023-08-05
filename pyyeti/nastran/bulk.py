@@ -13,6 +13,7 @@ True
 """
 
 import os
+import ntpath
 import posixpath
 import re
 import textwrap
@@ -3803,8 +3804,7 @@ def wtextseout(
     **kwargs,
 ):
     """
-    Write .op4, .asm, .pch and possibly the damping DMIG file for an
-    external SE.
+    Write .op4, .asm, .pch files for an external SE.
 
     Note that all inputs except `name` must be named and can be input
     in any order.
@@ -3813,8 +3813,7 @@ def wtextseout(
     ----------
     name : string
         Basename for files; eg: 'spacecraft'. Files with the
-        extensions '.op4', '.asm', and '.pch' will be created. If `bh`
-        is True, a '.baa_dmig' file will also be created.
+        extensions '.op4', '.asm', and '.pch' will be created.
     se : integer
         Superelement id; also used as the Fortran unit number on the
         SEBULK entry.
@@ -4150,9 +4149,9 @@ def rddtipch(f, name="TUG1"):
 
 def _wrap_text_lines(lines, max_length, separator):
     """
-    Combines the list of strings in lines into longer strings.  Each will be
-    less than the specified maximum, and will be separated by the specified
-    string.
+    Combines the list of strings in lines into longer strings. Each
+    will be less than the specified maximum, and will be separated by
+    the specified string.
 
     Parameters
     ----------
@@ -4166,8 +4165,9 @@ def _wrap_text_lines(lines, max_length, separator):
     Returns
     -------
     output_lines : list of strings
-        Items in lines, separated by the specified string, and combined to
-        make them as long as possible without exceeding max_length.
+        Items in lines, separated by the specified string, and
+        combined to make them as long as possible without exceeding
+        max_length.
     """
     sep_len = len(separator)
     if sep_len > max_length:
@@ -4208,18 +4208,19 @@ def _wrap_text_lines(lines, max_length, separator):
 
 def _relative_path(path, current_path):
     """
-    Return the relative path from current_path to path.  If current_path is None, the
-    absolute path will be returned.  The path will also be "standardized" to use
-    forward slashes and a lower case drive letter on Windows.
+    Return the relative path from current_path to path. If
+    current_path is None, the absolute path will be returned. The
+    path will also be "standardized" to use forward slashes and a
+    lower case drive letter on Windows.
     """
 
     def standard_path(path):
-        drive, relpath = os.path.splitdrive(path)
-        return "".join([drive.lower(), relpath]).replace(os.sep, "/")
+        drive, relpath = ntpath.splitdrive(path)
+        return "".join([drive.lower(), relpath]).replace("\\", "/")
 
     def diff_drive_letters(path1, path2):
-        drive1, _ = os.path.splitdrive(path1)
-        drive2, _ = os.path.splitdrive(path2)
+        drive1, _ = ntpath.splitdrive(path1)
+        drive2, _ = ntpath.splitdrive(path2)
         if len(drive1) > 0 and len(drive2) > 0 and drive1.lower() != drive2.lower():
             return True
         else:
@@ -4239,9 +4240,9 @@ def wtinclude(f, path, current_path=None, max_length=72):
     """
     Write a Nastran INCLUDE statement to a file.
 
-    If possible, the relative path from current_path to path will be used.  The
-    statment will be wrapped as needed such that no lines exceed the specified
-    max_length.
+    If possible, the relative path from current_path to path will be
+    used. The statement will be wrapped as needed such that no lines
+    exceed the specified max_length.
 
     Parameters
     ----------
@@ -4250,21 +4251,22 @@ def wtinclude(f, path, current_path=None, max_length=72):
         by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
-    path : string
+    path : string or object that defines __fspath__
         The path to the file that will be included.
-    current_path : string; optional
-        The path to the directory where the Nastran input file is located.  If
-        current_path is not specified, the output will use an absolute path.
+    current_path : string or object that defines __fspath__; optional
+        The path to the directory where the Nastran input file is
+        located.  If current_path is not specified, the output will
+        use an absolute path.
     max_length : integer; optional
         The max length of each line of the include statment.
 
     Notes
     -----
-    The max_length parameter must be at least 24 to allow space for the INCLUDE statement
-    on the first line.
+    The max_length parameter must be at least 24 to allow space for
+    the INCLUDE statement on the first line.
 
-    Forward slashes will always be used as path separators.  This ensures that
-    relative paths will work on both Windows and Linux.
+    Forward slashes will always be used as path separators.  This
+    ensures that relative paths will work on both Windows and Linux.
 
     Examples
     --------
@@ -4289,7 +4291,7 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
     """
     Write a Nastran ASSIGN statement to a file.
 
-    If possible, the relative path from current_path to path will be used.  The
+    If possible, the relative path from current_path to path will be used. The
     statment will be wrapped as needed such that no lines exceed the specified
     max_length.
 
@@ -4301,25 +4303,26 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
     assign_type : str
-        The type of ASSIGN statement.  This can be one of 'input2', 'input4',
-        'output2', or 'output4'.
-    path : string
+        The type of ASSIGN statement. This can be one of 'input2',
+        'input4', 'output2', or 'output4'.
+    path : string or object that defines __fspath__
         The path to the file.
     params : dict; optional
         Optional "describer" values to add to the assign statment.
-    current_path : string; optional
-        The path to the directory where the Nastran input file is located.  If
-        current_path is not specified, the output will use an absolute path.
+    current_path : string or object that defines __fspath__; optional
+        The path to the directory where the Nastran input file is
+        located. If current_path is not specified, the output will use
+        an absolute path.
     max_length : integer; optional
         The max length of each line of the assign statment.
 
     Notes
     -----
-    The max_length parameter must be at least 24 to allow space for the ASSIGN statement
-    and assign type on the first line.
+    The max_length parameter must be at least 24 to allow space for
+    the ASSIGN statement and assign type on the first line.
 
-    Forward slashes will always be used as path separators.  This ensures that
-    relative paths will work on both Windows and Linux.
+    Forward slashes will always be used as path separators. This
+    ensures that relative paths will work on both Windows and Linux.
 
     Examples
     --------
@@ -4346,7 +4349,8 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
     if not max_length >= 24:
         raise ValueError("max_length must be >=24")
     rel_path = _relative_path(path, current_path)
-    # format path component, line wraps require a comma within the quoted path string
+    # format path component, line wraps require a comma within the
+    # quoted path string
     lines = ["ASSIGN {} = '{}'".format(assign_types[assign_type], rel_path)]
     lines = _wrap_text_lines(lines, max_length, ",")
     # add params
