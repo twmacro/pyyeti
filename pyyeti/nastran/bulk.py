@@ -4240,9 +4240,9 @@ def wtinclude(f, path, current_path=None, max_length=72):
     """
     Write a Nastran INCLUDE statement to a file.
 
-    If possible, the relative path from current_path to path will be
+    If possible, the relative path from `current_path` to path will be
     used. The statement will be wrapped as needed such that no lines
-    exceed the specified max_length.
+    exceed the specified `max_length`.
 
     Parameters
     ----------
@@ -4255,14 +4255,14 @@ def wtinclude(f, path, current_path=None, max_length=72):
         The path to the file that will be included.
     current_path : string or object that defines __fspath__; optional
         The path to the directory where the Nastran input file is
-        located.  If current_path is not specified, the output will
+        located.  If `current_path` is not specified, the output will
         use an absolute path.
     max_length : integer; optional
         The max length of each line of the include statment.
 
     Notes
     -----
-    The max_length parameter must be at least 24 to allow space for
+    The `max_length` parameter must be at least 24 to allow space for
     the INCLUDE statement on the first line.
 
     Forward slashes will always be used as path separators.  This
@@ -4291,9 +4291,9 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
     """
     Write a Nastran ASSIGN statement to a file.
 
-    If possible, the relative path from current_path to path will be used. The
-    statment will be wrapped as needed such that no lines exceed the specified
-    max_length.
+    If possible, the relative path from `current_path` to path will be
+    used. The statment will be wrapped as needed such that no lines
+    exceed the specified `max_length`.
 
     Parameters
     ----------
@@ -4318,7 +4318,7 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
 
     Notes
     -----
-    The max_length parameter must be at least 24 to allow space for
+    The `max_length` parameter must be at least 24 to allow space for
     the ASSIGN statement and assign type on the first line.
 
     Forward slashes will always be used as path separators. This
