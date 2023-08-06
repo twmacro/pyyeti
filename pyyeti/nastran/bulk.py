@@ -66,6 +66,12 @@ __all__ = [
     "rddtipch",
     "wtinclude",
     "wtassign",
+    "wttabdmp1",
+    "wttload1",
+    "wttload2",
+    "wtconm2",
+    "wtcard8",
+    "wtcard16",
 ]
 
 
@@ -2436,7 +2442,7 @@ def wtcsuper(f, superid, grids):
 @guitools.write_text_file
 def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
     """
-    Writes a Nastran MPC card to a file
+    Writes a Nastran MPC card to a file.
 
     Parameters
     ----------
@@ -2458,6 +2464,10 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
         Array of floats containing the coefficient for each independent
         DOF.  This array much have the same length as the number of rows
         in gid_dof_i.
+
+    Notes
+    -----
+    The card will be written in large-field format.
 
     Examples
     --------
@@ -2487,17 +2497,12 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
         raise ValueError("gid_dof_i must have two columns")
 
     gid_d, dof_d = gid_dof_d
-    f.write(f"MPC*    {setid:16d}{gid_d:16d}{dof_d:16d}{coeff_d:16.9E}\n")
+    fields = ["MPC*", int(setid), int(gid_d), int(dof_d), float(coeff_d)]
     for i, (coeff, (gid, dof)) in enumerate(zip(coeffs_i, gid_dof_i)):
-        f.write("*       ")
-        if i % 2 != 0:
-            f.write(" " * 16)
-        f.write(f"{gid:16d}{dof:16d}{coeff:16.9E}")
-        if i % 2 == 0 and n_coeff > i + 1:
-            f.write(" " * 16 + "*")
-        f.write("\n")
-    if i % 2 != 0:
-        f.write("*\n")
+        if (i + 1) % 2 == 0:
+            fields.extend([None, None])
+        fields.extend([int(gid), int(dof), float(coeff)])
+    wtcard16(f, fields)
 
 
 @guitools.write_text_file
@@ -4359,4 +4364,300 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
     # line wrap params if necessary, with commas between each
     lines = _wrap_text_lines(lines, max_length, ",")
     f.write("\n".join(lines))
+    f.write("\n")
+
+
+def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
+    """
+    Write a Nastran TABDMP1 card to a file.
+
+    Parameters
+    ----------
+
+
+    Notes
+    -----
+    The card will be written in large-field format.
+    """
+    n_terms = len(freq)
+    if n_terms < 2:
+        raise ValueError('freq must have length >=2')
+    if len(damp) != n_terms:
+        raise ValueError('freq and damp must have the same length')
+    damping_type = damping_type.upper()
+    if damping_type not in ["G", "CRIT", "Q"]:
+        msg = "damping_type must be 'g', 'crit', or 'q', got '{}'"
+        raise ValueError(msg.format(damping_type))
+    fields = ["TABDMP1*", int(setid), damping_type]
+    fields.extend([None] * 6)
+    for freq_i, damp_i in zip(freq, damp):
+        fields.append(float(freq_i))
+        fields.append(float(damp_i))
+    fields.append("ENDT")
+    wtcard16(f, fields)
+
+
+def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
+    """
+    Write a Nastran TLOAD1 card to a file.
+
+    Parameters
+    ----------
+    fobj : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    setid : integer
+        The load set ID number
+    excite_id : integer
+        The ID of the load set definition (LOAD, SPCD, etc cards).
+    delay : integer or float
+        The time delay.  If this is a float, it represents the delay in seconds. If
+        it is an integer, it references a DELAY card.
+    excite_type : string
+        The type of excitation.  Must be one of 'load', 'disp', 'velo', 'acce'.
+    tabledi_id : integer
+        The ID of a TABLEDi card that defines the transient.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> setid, excite_id = 201, 202
+    >>> delay = .05
+    >>> excite_type = "load"
+    >>> tabledi_id = 1501
+    nastran.wttload1(1, setid, excite_id, delay, excite_type, tabledi_id)
+    TLOAD1       201     203    1504LOAD        1502
+    """
+    excite_type = excite_type.upper()
+    if excite_type not in ["LOAD", "DISP", "VELO", "ACCE"]:
+        msg = "excite_type must be one of 'load', 'disp', 'velo', 'acce', got '{}'"
+        raise ValueError(msg.format(excite_type))
+    fields = ["TLOAD1", int(setid), int(excite_id), delay, excite_type, int(tabledi_id)]
+    wtcard8(f, fields)
+
+
+def wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f=0.0, p=0.0, c=0.0, b=0.0):
+    """
+    Write a Nastran TLOAD2 card to a file.
+
+    Parameters
+    ----------
+    fobj : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    setid : integer
+        The load set ID number
+    excite_id : integer
+        The ID of the load set definition (LOAD, SPCD, etc cards).
+    delay : integer or float
+        The time delay.  If this is a float, it represents the delay in seconds. If
+        it is an integer, it references a DELAY card.
+    excite_type : string
+        The type of excitation.  Must be one of 'load', 'disp', 'velo', 'acce'.
+    t1 : float
+        Time constant 1
+    t2 : float
+        Time constant 2, must be greater than t1
+    f : float; optional
+        Frequency in cycles per unit time.  If not provided, defaults to 0.0.
+    p : float; optional
+        Phase angle in degrees.  If not provided, defaults to 0.0.
+    c : float; optional
+        Exponential coefficient.  If not provided, defaults to 0.0.
+    b : float; optional
+        Growth coefficient.  If not provided, defaults to 0.0.
+
+    Notes
+    -----
+    This card is useful to add a load set to the P matrix when creating an external
+    superelement using EXTSEOUT.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> setid, excite_id = 201, 202
+    >>> delay = .05
+    >>> excite_type = "load"
+    >>> t1, t2 = 0.1, 0.2
+    nastran.wttload2(1, setid, excite_id, delay, excite_type, t1, t2)
+    TLOAD2       201     202 5.00-02LOAD     1.00-01 2.00-01 0.00+00 0.00+00
+    +        0.00+00 0.00+00
+    """
+    excite_type = excite_type.upper()
+    if excite_type not in ["LOAD", "DISP", "VELO", "ACCE"]:
+        msg = "excite_type must be one of 'load', 'disp', 'velo', 'acce', got '{}'"
+        raise ValueError(msg.format(excite_type))
+    if not t2 > t1:
+        raise ValueError("t2 must be greater than t1")
+    fields = ["TLOAD2", int(setid), int(excite_id), delay, excite_type]
+    fields.extend([float(t1), float(t2)])
+    fields.extend([float(x) for x in [f, p, c, b]])
+    wtcard8(fobj, fields)
+
+
+def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
+    """
+    Write a Nastran CONM2 card to a file.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    eid : integer
+        The element ID.
+    gid : integer
+        The ID of the grid to which the mass element is attached.
+    cid : integer
+        The coordinate system ID used to define the mass element.
+    I_diag : 1d array_like
+        The diagonal moment of inertia terms, I11, I22, and I33.
+    I_offdiag : 1d array_like; optional
+        The off-diagonal moment of inertia terma, I21, I31, and I32.
+    offset : 1d array_like; optional
+        Offset of the mass element from the grid to which it is attached.
+    Notes
+    -----
+    This card will be written in large-field format.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> eid, gid, cid = 1, 2, 3
+    >>> mass = 5000.0
+    >>> I_diag = [6000.0, 7000.0, 8000.0]
+    nastran.wtconm2(f, eid, gid, cid, mass, I_diag)
+    CONM2*                 1               2               3 5.0000000000+03
+    *        0.0000000000+00 0.0000000000+00 0.0000000000+00                *
+    *        6.0000000000+03 0.0000000000+00 7.0000000000+03 0.0000000000+00
+    *        0.0000000000+00 8.0000000000+03
+    """
+    I11, I22, I33 = I_diag
+    I21, I31, I32 = I_offdiag if I_offdiag is not None else [0.0, 0.0, 0.0]
+    x1, x2, x3 = offset if offset is not None else [0.0, 0.0, 0.0]
+    fields = ["CONM2*", int(eid), int(gid), int(cid), float(mass)]
+    fields.extend([float(x1), float(x2), float(x3), None])
+    fields.extend([float(I) for I in [I11, I21, I22, I31, I32, I33]])
+    wtcard16(f, fields)
+
+
+def wtcard8(f, fields):
+    """
+    Write a Nastran card formatted in small-field format.
+
+    Line wraps and continuations will be inserted automatically.  Empty fields should be
+    indicated by None.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    fields : 1d array_like
+        List of fields in the card.
+
+    Notes
+    -----
+    The items in fields will be formatted according to their data type.  Python integers
+    will be formated as Nastran integers, and Python floats will be formatted as Nastran
+    reals. Strings will always be left-justified.
+
+    Example
+    -------
+    >>> from pyyeti import nastran
+    >>> fields = ["GRID", 101, 102, 1.0, 2.0, 3.0]
+    >>> nastran.wtcard8(1, fields)
+    GRID         101     102 1.00+00 2.00+00 3.00+00
+    """
+    card_name = fields[0]
+    if len(card_name) > 8:
+        msg = "The first field, the card name, must have a length <8, got {}"
+        raise ValueError(msg.format(card_name))
+    f.write(f"{card_name:<8s}")
+    for i, field in enumerate(fields[1:]):
+        if i > 0 and i % 8 == 0:
+            f.write("\n+       ")
+        if field is None:
+            f.write(" " * 8)
+        elif isinstance(field, str):
+            f.write(f"{field:<8s}")
+        elif isinstance(field, (int, np.int32, np.int64)):
+            f.write(f"{field:8d}")
+        elif isinstance(field, (float, np.float32, np.float64)):
+            # one extra significant figure by eliminating the exponent "E"
+            f.write(f"{field:9.2e}".replace("e", ""))
+        else:
+            raise TypeError("unsupported field type: {}".format(type(field)))
+    f.write("\n")
+
+
+def wtcard16(f, fields):
+    """
+    Write a Nastran card formatted in large-field format.
+
+    Line wraps and continuations will be inserted automatically.  Empty fields should be
+    indicated by None.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    fields : 1d array_like
+        List of fields in the card.
+
+    Notes
+    -----
+    The items in fields will be formatted according to their data type.  Python integers
+    will be formated as Nastran integers, and Python floats will be formatted as Nastran
+    reals.  Strings will always be left-justified.
+
+    Example
+    -------
+    >>> from pyyeti import nastran
+    >>> fields = ["GRID*", 101, 102, 1.0, 2.0, 3.0, 103]
+    >>> nastran.wtcard16(1, fields)
+    GRID*                101             102 1.0000000000+00 2.0000000000+00
+    *        3.0000000000+02             103
+    """
+    card_name = fields[0]
+    if not card_name.endswith("*"):
+        msg = "In large-field format, the card name must end in an asterisk, got {}"
+        raise ValueError(msg.format(card_name))
+    if len(card_name) > 8:
+        msg = "The first field, the card name, must have a length <8, got {}"
+        raise ValueError(msg.format(card_name))
+    f.write(f"{card_name:<8s}")
+    n_lines = 1
+    for i, field in enumerate(fields[1:]):
+        if i > 0 and i % 8 == 0:
+            f.write("*\n*       ")
+            n_lines += 1
+        elif i > 0 and i % 4 == 0:
+            f.write("\n*       ")
+            n_lines += 1
+        if field is None:
+            f.write(" " * 16)
+        elif isinstance(field, str):
+            f.write(f"{field:<16s}")
+        elif isinstance(field, (int, np.int32, np.int64)):
+            f.write(f"{field:16d}")
+        elif isinstance(field, (float, np.float32, np.float64)):
+            # one extra significant figure by eliminating the exponent "E"
+            f.write(f"{field:17.10e}".replace("e", ""))
+        else:
+            raise TypeError("unsupported field type: {}".format(type(field)))
+    # large-field cards must have an even number of lines
+    if n_lines % 2 != 0:
+        f.write("\n*")
     f.write("\n")

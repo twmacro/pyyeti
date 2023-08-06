@@ -940,8 +940,8 @@ def test_wtmpc_1coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.000000000E+00\n"
-        "*                     31               1 7.500000000E-01\n"
+        "MPC*                 101              21               1-1.0000000000+00\n"
+        "*                     31               1 7.5000000000-01\n"
     )
     assert s == sbe
 
@@ -956,9 +956,9 @@ def test_wtmpc_2coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.000000000E+00\n"
-        "*                     31               1 7.500000000E-01                *\n"
-        "*                                     31               2 2.500000000E-01\n"
+        "MPC*                 101              21               1-1.0000000000+00\n"
+        "*                     31               1 7.5000000000-01                *\n"
+        "*                                     31               2 2.5000000000-01\n"
         "*\n"
     )
     assert s == sbe
@@ -974,10 +974,10 @@ def test_wtmpc_3coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.000000000E+00\n"
-        "*                     31               1 7.500000000E-01                *\n"
-        "*                                     31               2 2.500000000E-01\n"
-        "*                     32               5 1.650000000E+00\n"
+        "MPC*                 101              21               1-1.0000000000+00\n"
+        "*                     31               1 7.5000000000-01                *\n"
+        "*                                     31               2 2.5000000000-01\n"
+        "*                     32               5 1.6500000000+00\n"
     )
     assert s == sbe
 
@@ -1578,4 +1578,267 @@ def test_wtassign():
     for args, expected in values:
         f = StringIO()
         nastran.wtassign(f, *args)
+        assert f.getvalue() == expected
+
+
+def test_wttabdmp1_bad_inputs():
+    f = StringIO()
+    setid = 101
+    # not enough terms in freq/damp
+    freq, damp = [1.0], [.01]
+    with pytest.raises(ValueError, match=r"freq.*length.*\>=2"):
+        nastran.wttabdmp1(f, setid, freq, damp)
+    # length mismatch
+    freq, damp = [1.0, 10.0], [.01, .01, .01]
+    with pytest.raises(ValueError, match=r"freq.*damp.*same length"):
+        nastran.wttabdmp1(f, setid, freq, damp)
+    # invalid damping type
+    freq, damp = [1.0, 10.0], [.01, .01]
+    damping_type = "zzz"
+    with pytest.raises(ValueError, match=r"damping_type.*got 'ZZZ'"):
+        nastran.wttabdmp1(f, setid, freq, damp, damping_type)
+
+
+def test_wttabdmp1_two_terms():
+    f = StringIO()
+    setid = 101
+    freq = [.1, 2.5]
+    damp = [.01, .015]
+    nastran.wttabdmp1(f, setid, freq, damp)
+    expected = (
+        "TABDMP1*             101CRIT                                            \n"
+        "*                                                                       *\n"
+        "*        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02\n"
+        "*       ENDT            \n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wttabdmp1_three_terms():
+    f = StringIO()
+    setid = 101.0 # setid is a float, verify it's written as an integer
+    freq = [.1, 2.5, 3] # freq[2] is an integer, verify it's written as a real
+    damp = [.01, .015, .015]
+    damping_type = 'g'
+    nastran.wttabdmp1(f, setid, freq, damp, damping_type)
+    expected = (
+        "TABDMP1*             101G                                               \n"
+        "*                                                                       *\n"
+        "*        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02\n"
+        "*        3.0000000000+00 1.5000000000-02ENDT            \n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wttabdmp1_four_terms():
+    f = StringIO()
+    setid = 101
+    freq = [.1, 2.5, 3.2, 3.4]
+    damp = [.01, .015, .015, .016]
+    damping_type = 'q'
+    nastran.wttabdmp1(f, setid, freq, damp, damping_type)
+    expected = (
+        "TABDMP1*             101Q                                               \n"
+        "*                                                                       *\n"
+        "*        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02\n"
+        "*        3.2000000000+00 1.5000000000-02 3.4000000000+00 1.6000000000-02*\n"
+        "*       ENDT            \n"
+        "*\n" # trailing newline so card had even number of lines
+    )
+    assert f.getvalue() == expected
+
+
+def test_wttload1_bad_input():
+    f = StringIO()
+    setid, excite_id = 201, 202
+    delay = .05
+    excite_type = "zzz"
+    tabledi_id = 1501
+    with pytest.raises(ValueError, match=r"excite_type.*got 'ZZZ'"):
+        nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
+
+
+def test_wttload1_case1():
+    f = StringIO()
+    setid, excite_id = 201, 202
+    delay = .05 # float, represents a time value
+    excite_type = "load"
+    tabledi_id = 1501.0 # float, verify it's written as an integer
+    nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
+    expected = "TLOAD1       201     202 5.00-02LOAD        1501\n"
+    assert f.getvalue() == expected
+
+
+def test_wttload1_case2():
+    f = StringIO()
+    setid, excite_id = 201.0, 203
+    delay = 1504 # integer, represents a DELAY card
+    excite_type = "load"
+    tabledi_id = 1502
+    nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
+    expected = "TLOAD1       201     203    1504LOAD        1502\n"
+    assert f.getvalue() == expected
+
+
+def test_wttload2_bad_input():
+    f = StringIO()
+    setid, excite_id = 201, 202
+    delay = .05
+    excite_type = "zzz"
+    t1, t2 = 0.0, 1.0
+    with pytest.raises(ValueError, match=r"excite_type.*got 'ZZZ'"):
+        nastran.wttload2(f, setid, excite_id, delay, excite_type, t1, t2)
+    excite_type = "load"
+    t1, t2 = 1.0, 1.0
+    with pytest.raises(ValueError, match=r"t2 must.*greater.*t1"):
+        nastran.wttload2(f, setid, excite_id, delay, excite_type, t1, t2)
+
+
+def test_wttload2_case1():
+    f = StringIO()
+    setid, excite_id = 201, 202
+    delay = .05 # float, represents a time value
+    excite_type = "load"
+    t1, t2 = 0.1, 0.2
+    nastran.wttload2(f, setid, excite_id, delay, excite_type, t1, t2)
+    expected = (
+        "TLOAD2       201     202 5.00-02LOAD     1.00-01 2.00-01 0.00+00 0.00+00\n"
+        "+        0.00+00 0.00+00\n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wttload2_case2():
+    fobj = StringIO()
+    setid, excite_id = 201, 202
+    delay = 2 # integer, represents a DELAY card
+    excite_type = "load"
+    t1, t2 = 0.1, 2 # integer, verify it's converted to real
+    f, p, c, b = 11, 12, 13, 14 # integers, verify all are converted to real
+    nastran.wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f, p, c, b)
+    expected = (
+        "TLOAD2       201     202       2LOAD     1.00-01 2.00+00 1.10+01 1.20+01\n"
+        "+        1.30+01 1.40+01\n"
+    )
+    assert fobj.getvalue() == expected
+
+
+def test_wtconm2_case1():
+    f = StringIO()
+    eid, gid, cid = 1, 2, 3
+    mass = 5000
+    I_diag = [6000, 7000, 8000]
+    I_offdiag = [6500, 8500, 7500]
+    offset = [3, 2, 1]
+    nastran.wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag, offset)
+    expected = (
+        "CONM2*                 1               2               3 5.0000000000+03\n"
+        "*        3.0000000000+00 2.0000000000+00 1.0000000000+00                *\n"
+        "*        6.0000000000+03 6.5000000000+03 7.0000000000+03 8.5000000000+03\n"
+        "*        7.5000000000+03 8.0000000000+03\n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wtconm2_case2():
+    f = StringIO()
+    eid, gid, cid = 1, 2, 3.0 # verify this is written as an integer
+    mass = 5000.0
+    I_diag = [6000, 7000, 8000]
+    nastran.wtconm2(f, eid, gid, cid, mass, I_diag)
+    expected = (
+        "CONM2*                 1               2               3 5.0000000000+03\n"
+        "*        0.0000000000+00 0.0000000000+00 0.0000000000+00                *\n"
+        "*        6.0000000000+03 0.0000000000+00 7.0000000000+03 0.0000000000+00\n"
+        "*        0.0000000000+00 8.0000000000+03\n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wtcard8_bad_inputs():
+    f = StringIO()
+    # card name too long
+    fields = ("ABCDEFGHI", 0, 0)
+    with pytest.raises(ValueError, match=r"card name.*\<8.*ABCDEFGHI"):
+        nastran.wtcard8(f, fields)
+
+    # unsupported field type
+    fields = ("ABC", 0, [1, 2, 3])
+    with pytest.raises(TypeError, match=r"unsupported field type.*list"):
+        nastran.wtcard8(f, fields)
+
+
+def test_wtcard8():
+    values = (
+        # 3 fields
+        (("ABC", 0, None, 1.5),
+         "ABC            0         1.50+00\n"),
+        # 4 fields
+        (("ABC", 0, None, 1.5, -2.0),
+         "ABC            0         1.50+00-2.00+00\n"),
+        # 4 fields
+        (("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5),
+         "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"),
+        # 9 fields
+        (("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5, -3.4e-12),
+         "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
+         "+       -3.40-12\n"),
+        # 17 fields
+        (("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5, -3.4e-12, 0, 0, 0, 0, 0, 0, 0, 0),
+         "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
+         "+       -3.40-12       0       0       0       0       0       0       0\n"
+         "+              0\n"),
+    )
+    for fields, expected in values:
+        f = StringIO()
+        nastran.wtcard8(f, fields)
+        assert f.getvalue() == expected
+
+
+def test_wtcard16_bad_inputs():
+    f = StringIO()
+    # card name doesn't end in asterisk
+    fields = ("GRID", 0, 0)
+    with pytest.raises(ValueError, match=r"card name.*asterisk"):
+        nastran.wtcard16(f, fields)
+
+    # card name too long
+    fields = ("ABCDEFGHI*", 0, 0)
+    with pytest.raises(ValueError, match=r"card name.*\<8.*ABCDEFGHI"):
+        nastran.wtcard16(f, fields)
+
+    # unsupported field type
+    fields = ("ABC*", 0, [1, 2, 3])
+    with pytest.raises(TypeError, match=r"unsupported field type.*list"):
+        nastran.wtcard16(f, fields)
+
+
+def test_wtcard16():
+    values = (
+        # three fields
+        (("ABC*", 0, None, 1.5),
+         ("ABC*                   0                 1.5000000000+00\n"
+          "*\n")),
+        # four fields
+        (("ABC*", 0, None, 1.0, -2.0),
+         ("ABC*                   0                 1.0000000000+00-2.0000000000+00\n"
+          "*\n")),
+        # six fields
+        (("GRID*", 7100285, 7100003, 1.24499e3, 5.4e1, -3.94e3, 7100004),
+         ("GRID*            7100285         7100003 1.2449900000+03 5.4000000000+01\n"
+          "*       -3.9400000000+03         7100004\n")),
+        # eight fields
+        (("ABC*", 0, None, 1.0, 2.0, None, 3.0, 4.0e-2, 550),
+         ("ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
+          "*                        3.0000000000+00 4.0000000000-02             550\n")),
+        # nine fields
+        (("ABC*", 0, None, 1.0, 2.0, None, 3.0, 4.0, 550, "ABC"),
+         ("ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
+          "*                        3.0000000000+00 4.0000000000+00             550*\n"
+          "*       ABC             \n"
+          "*\n")),
+    )
+    for fields, expected in values:
+        f = StringIO()
+        nastran.wtcard16(f, fields)
         assert f.getvalue() == expected
