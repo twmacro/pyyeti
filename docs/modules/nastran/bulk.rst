@@ -26,12 +26,14 @@ Limited set of read/write routines for Nastran bulk data
     rdtabled1
     rdwtbulk
     uset2bulk
+    wtassign
     wtextseout
     wtcoordcards
     wtcsuper
     wtdmig
     wtextrn
     wtgrids
+    wtinclude
     wtmpc
     wtnasints
     wtqcset
