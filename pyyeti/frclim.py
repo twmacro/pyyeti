@@ -88,8 +88,10 @@ def calcAM(S, freq):
     The following will plot the apparent mass curves relative to each
     of the masses, and annotate the plot with three mass values (4,
     10, & 14 kg) and three frequency values (free-free, with the 4 kg
-    mass fixed, and with the 10 kg mass fixed). The annotations are
-    meant as an aide to guide intuition.
+    mass fixed, and with the 10 kg mass fixed). The percent critical
+    damping ratio is also included for each of the three boundary
+    conditions. The annotations are meant as an aide to guide
+    intuition.
 
     .. plot::
         :context: close-figs
@@ -113,11 +115,15 @@ def calcAM(S, freq):
         >>> omega_ff = np.sqrt(abs(lam_ff))
         >>> frq_ff = omega_ff / 2 / np.pi
         >>>
+        >>> C_ff = phi_ff.T @ C @ phi_ff
+        >>> zeta_ff = C_ff[1, 1] / 2 / omega_ff[1]
+        >>>
         >>> freq = np.geomspace(0.5, 100.0, 500)
         >>> fig = plt.figure("apparent mass", clear=True)
         >>> ax = fig.subplots(1, 1)
         >>>
         >>> fx_frqs = []
+        >>> fx_zetas = []
         >>> for fixed, lbl in (
         ...     (np.array([True, False]), "Relative to 10 kg Mass"),
         ...     (np.array([False, True]), "Relative to 4 kg Mass"),
@@ -128,6 +134,8 @@ def calcAM(S, freq):
         ...
         ...     omega = np.sqrt(lam[0])
         ...     fx_frqs.append(omega / 2 / np.pi)
+        ...     fx_zeta = (phi.T @ C[ff] @ phi) / (2 * omega)
+        ...     fx_zetas.append(fx_zeta[0, 0])
         ...
         ...     T = np.zeros((1, 2))
         ...     T[0, fixed] = 1.0
@@ -137,7 +145,7 @@ def calcAM(S, freq):
         >>> _ = ax.set_title("Apparent Mass")
         >>> _ = ax.set_xlabel("Frequency (Hz)")
         >>> _ = ax.set_ylabel("Apparent Mass (kg)")
-        >>> _ = ax.legend(loc="upper right")
+        >>> _ = ax.legend(loc="lower right")
         >>>
         >>> opts = dict(lw=1.5, c="gray", zorder=-10)
         >>> _ = ax.axhline(14, ls="--", **opts)
@@ -150,15 +158,27 @@ def calcAM(S, freq):
         >>> _ = ax.text(100.0, 4, "4 kg", va="bottom", ha="right")
         >>>
         >>> _ = ax.axvline(fx_frqs[0], ls="-.", **opts)
-        >>> _ = label = f" {fx_frqs[0]:.3f} Hz\n (10 kg fixed)"
+        >>> z = fx_zetas[0] * 100
+        >>> _ = label = (
+        ...         rf" {fx_frqs[0]:.3f} Hz, $\zeta = {z:.2f}$%"
+        ...         "\n (10 kg fixed)"
+        ...     )
         >>> _ = ax.text(fx_frqs[0], 50, label, va="bottom", ha="left")
         >>>
         >>> _ = ax.axvline(fx_frqs[1], ls="-.", **opts)
-        >>> _ = label = f" {fx_frqs[1]:.3f} Hz\n (4 kg fixed)"
+        >>> z = fx_zetas[1] * 100
+        >>> _ = label = (
+        ...         rf" {fx_frqs[1]:.3f} Hz, $\zeta = {z:.2f}$%"
+        ...         "\n (4 kg fixed)"
+        ...     )
         >>> _ = ax.text(fx_frqs[1], 115, label, va="bottom", ha="left")
         >>>
         >>> _ = ax.axvline(frq_ff[1], ls="-.", **opts)
-        >>> _ = label = f" {frq_ff[1]:.3f} Hz\n (free-free)"
+        >>> z = zeta_ff * 100
+        >>> _ = label = (
+        ...         rf" {frq_ff[1]:.3f} Hz, $\zeta = {z:.2f}$%"
+        ...         "\n (free-free)"
+        ...     )
         >>> _ = ax.text(frq_ff[1], 2.0, label, va="bottom", ha="left")
         >>>
         >>> fig.tight_layout()
@@ -226,7 +246,7 @@ def ntfl(Source, Load, As, freq):
     Load :  list/tuple or 3d ndarray
         Same format as `Source` except for the "Load" (eg, spacecraft)
     As : 2d array_like
-        Free acceleration of the Source (interface acceleration
+        Free-acceleration of the Source (interface acceleration
         without the Load attached).
     freq : 1d array_like
         Frequency vector in Hz for `Source`, `Load`, `As` and all
@@ -313,10 +333,10 @@ def ntfl(Source, Load, As, freq):
     This is Newton's second law (``F = ma``) in the frequency
     domain. The routine :func:`calcAM` calculates the apparent mass.
 
-    *Free Acceleration*
+    *Free-Acceleration*
 
-    The term "free acceleration" is also quite apt. With all Source
-    external forces applied as normal, "free acceleration" is the
+    The term "free-acceleration" is also quite apt. With all Source
+    external forces applied as normal, "free-acceleration" is the
     acceleration response of the Source "b" DOF with those DOF in a
     free-free boundary condition (that is, without the Load attached).
 
@@ -374,7 +394,7 @@ def ntfl(Source, Load, As, freq):
          \tilde{F}_b(\Omega) = AM_{bb,L}(\Omega) \cdot
          \ddot{X}_b(\Omega)~~~~~~~(2)
 
-    To derive an equation for the free acceleration
+    To derive an equation for the free-acceleration
     :math:`A_S(\Omega)`, set :math:`\tilde{F}_{b,S} \rightarrow 0`
     (since there is no Load attached) in equation (1):
 
@@ -476,21 +496,33 @@ def ntfl(Source, Load, As, freq):
       with a free-free boundary condition can participate in the
       lowest frequency modes when connected to another model.
 
-    - The free acceleration of the Source is the complex response of
-      the boundary DOF without the Load attached. Frequency envelopes
-      of flight data, or vibration specifications derived from
-      envelopes, are not accurate ways to come up with the free
-      acceleration because a Load is attached. However, since this is
-      sometimes the only viable option, is it conservative?
+    - The free-acceleration of the Source is the complex response of
+      the boundary DOF without the Load attached. Frequency domain
+      envelopes of flight data, or vibration specifications derived
+      from envelopes, are not accurate ways to come up with the
+      free-acceleration because a Load is attached. However, since
+      this is sometimes the only viable option, is it conservative?
       Conservatism becomes more and more likely with this approach as
       the number of enveloped curves increases. This is because, for a
       given Load, the coupled system response will likely exceed the
-      free acceleration response in some frequency bands. See, for
+      free-acceleration response in some frequency bands. See, for
       example, the final two subplots in the example below; the
-      coupled system response is higher than the free acceleration
+      coupled system response is higher than the free-acceleration
       response at 12.5 Hz. Such enveloping can therefore lead to a
-      very conservative free acceleration curve, which means
+      very conservative free-acceleration curve, which means
       conservative results.
+
+          - As was noted, coupled system responses can exceed
+            free-acceleration in some frequency bands (for example, at
+            12.5 Hz in the system demonstrated below). This means
+            that, in cases where a bounding coupled system
+            acceleration level is used for the free-acceleration,
+            application of the NT equations will likely result in
+            responses that exceed the bound. To avoid excessive
+            conservatism, it may be prudent in these cases to accept
+            any notching down, but to not allow "notching up". That
+            is; do not let :math:`A(\Omega)` exceed
+            :math:`As(\Omega)`.
 
     - The apparent mass of a structure can be used to perform
       frequency domain base-drive analyses instead of using a seismic
@@ -508,7 +540,7 @@ def ntfl(Source, Load, As, freq):
         from pyyeti.nastran op2, n2p, op4
         import pickle
 
-        # load free acceleration of LV
+        # load free-acceleration of LV
         dct = pickle.load('ifresults_free.p')
         As = dct['As']
         freq = dct['freq']
@@ -550,12 +582,12 @@ def ntfl(Source, Load, As, freq):
       1. Setup a coupled system of a SOURCE and a LOAD
       2. Solve for interface acceleration and force from coupled system
          (frequency domain)
-      3. Calculate free acceleration from SOURCE alone and setup LOAD
+      3. Calculate free-acceleration from SOURCE alone and setup LOAD
       4. Use :func:`ntfl` to couple the system
       5. Plot interface acceleration and force to show :func:`ntfl` can
          be an exact coupling method
       6. Plot apparent masses
-      7. Plot free acceleration and coupled acceleration
+      7. Plot free-acceleration and coupled acceleration
       8. Plot normalized response ratio (can be thought of as force
          limiting factor)
 
@@ -615,7 +647,7 @@ def ntfl(Source, Load, As, freq):
         ...              k2*(fullsol.d[2] - fullsol.d[1]) -
         ...              c2*(fullsol.v[2] - fullsol.v[1]))
 
-        3. Solve for free acceleration; SOURCE setup: [m, b, k, bdof]:
+        3. Solve for free-acceleration; SOURCE setup: [m, b, k, bdof]:
 
         >>> ms = np.array([[M1, 0], [0, M2/2]])
         >>> cs = np.array([[c1, -c1], [-c1, c1]])
@@ -623,7 +655,7 @@ def ntfl(Source, Load, As, freq):
         >>> source = [ms, cs, ks, [[0, 1]]]
         >>> fs_source = ode.SolveUnc(ms, cs, ks, pre_eig=True)
         >>> sourcesol = fs_source.fsolve(F[:2], freq)
-        >>> As = sourcesol.a[1:2]   # free acceleration
+        >>> As = sourcesol.a[1:2]   # free-acceleration
 
         LOAD setup: [m, b, k, bdof]:
 
@@ -703,7 +735,7 @@ def ntfl(Source, Load, As, freq):
         >>> plt.clf()
         >>> _ = plt.subplot(211)
         >>> _ = plt.semilogy(freq, abs(As).T,
-        ...                  label='Free Acce')
+        ...                  label='Free-Acce')
         >>> _ = plt.semilogy(freq, abs(r.A).T,
         ...                  label='Coupled Acce')
         >>> _ = plt.title('Interface Acceleration')
@@ -712,7 +744,7 @@ def ntfl(Source, Load, As, freq):
         >>> _ = plt.subplot(212)
         >>> _ = plt.semilogy(freq, abs(r.R).T)
         >>> _ = plt.title('NT Response Ratio: '
-        ...               'R = Coupled Acce / Free Acce')
+        ...               'R = Coupled Acce / Free-Acce')
         >>> _ = plt.xlabel('Frequency (Hz)')
         >>> plt.tight_layout()
     """

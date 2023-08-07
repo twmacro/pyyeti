@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from io import StringIO
+from pathlib import Path
 import matplotlib.pyplot as plt
 from pyyeti import nastran
 from pyyeti.nastran import op2, n2p, op4
@@ -1480,7 +1481,7 @@ def test_wtinclude():
     values = (
         ((r"c:\direc\bulk.bdf", r"c:\direc"), "INCLUDE 'bulk.bdf'\n"),
         # different capitalization
-        ((r"d:\direc\bulk.bdf", r"D:\direc"), "INCLUDE 'bulk.bdf'\n"),
+        ((Path(r"d:\direc\bulk.bdf"), Path(r"D:\direc")), "INCLUDE 'bulk.bdf'\n"),
         ((r"c:\direc\bulk.bdf", r"c:\\"), "INCLUDE 'direc/bulk.bdf'\n"),
         ((r"c:\dir1\dir2\bulk.bdf", r"c:\dir1\dir3"), "INCLUDE '../dir2/bulk.bdf'\n"),
         (("/dir1/dir2/bulk3.bdf", "/dir1"), "INCLUDE 'dir2/bulk3.bdf'\n"),
@@ -1538,7 +1539,12 @@ def test_wtassign():
         ),
         # params, current_path
         (
-            ("input2", "/direc1/direc2/input.op2", {"unit": 101}, "/direc1/direc3"),
+            (
+                "input2",
+                Path("/direc1/direc2/input.op2"),
+                {"unit": 101},
+                Path("/direc1/direc3"),
+            ),
             "ASSIGN INPUTT2 = '../direc2/input.op2',UNIT=101\n",
         ),
         # params, no curren_path, wrap inside path
