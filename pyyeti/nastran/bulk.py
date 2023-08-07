@@ -2480,10 +2480,10 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
     >>> id_dof_i = np.array([[31, 1], [31, 2], [32, 5]])
     >>> coeffs_i = np.array([0.75, 0.25, 1.65])
     >>> nastran.wtmpc(1, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
-    MPC*                 101              21               1-1.000000000E+00
-    *                     31               1 7.500000000E-01                *
-    *                                     31               2 2.500000000E-01
-    *                     32               5 1.650000000E+00
+    MPC*                 101              21               1-1.0000000000+00
+    *                     31               1 7.5000000000-01                *
+    *                                     31               2 2.5000000000-01
+    *                     32               5 1.6500000000+00
     """
     if not setid > 0:
         raise ValueError("setid must be >0")
@@ -4371,6 +4371,7 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
     f.write("\n")
 
 
+@guitools.write_text_file
 def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
     """
     Write a Nastran TABDMP1 card to a file.
@@ -4385,9 +4386,9 @@ def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
     """
     n_terms = len(freq)
     if n_terms < 2:
-        raise ValueError('freq must have length >=2')
+        raise ValueError("freq must have length >=2")
     if len(damp) != n_terms:
-        raise ValueError('freq and damp must have the same length')
+        raise ValueError("freq and damp must have the same length")
     damping_type = damping_type.upper()
     if damping_type not in ["G", "CRIT", "Q"]:
         msg = "damping_type must be 'g', 'crit', or 'q', got '{}'"
@@ -4401,6 +4402,7 @@ def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
     wtcard16(f, fields)
 
 
+@guitools.write_text_file
 def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
     """
     Write a Nastran TLOAD1 card to a file.
@@ -4417,10 +4419,11 @@ def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
     excite_id : integer
         The ID of the load set definition (LOAD, SPCD, etc cards).
     delay : integer or float
-        The time delay.  If this is a float, it represents the delay in seconds. If
-        it is an integer, it references a DELAY card.
+        The time delay. If this is a float, it represents the delay
+        in seconds. If it is an integer, it references a DELAY card.
     excite_type : string
-        The type of excitation.  Must be one of 'load', 'disp', 'velo', 'acce'.
+        The type of excitation. Must be one of 'load', 'disp', 'velo',
+        or 'acce'.
     tabledi_id : integer
         The ID of a TABLEDi card that defines the transient.
 
@@ -4431,8 +4434,8 @@ def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
     >>> delay = .05
     >>> excite_type = "load"
     >>> tabledi_id = 1501
-    nastran.wttload1(1, setid, excite_id, delay, excite_type, tabledi_id)
-    TLOAD1       201     203    1504LOAD        1502
+    >>> nastran.wttload1(1, setid, excite_id, delay, excite_type, tabledi_id)
+    TLOAD1       201     202 5.00-02LOAD        1501
     """
     excite_type = excite_type.upper()
     if excite_type not in ["LOAD", "DISP", "VELO", "ACCE"]:
@@ -4442,7 +4445,10 @@ def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
     wtcard8(f, fields)
 
 
-def wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f=0.0, p=0.0, c=0.0, b=0.0):
+@guitools.write_text_file
+def wttload2(
+    fobj, setid, excite_id, delay, excite_type, t1, t2, f=0.0, p=0.0, c=0.0, b=0.0
+):
     """
     Write a Nastran TLOAD2 card to a file.
 
@@ -4458,27 +4464,29 @@ def wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f=0.0, p=0.0, c
     excite_id : integer
         The ID of the load set definition (LOAD, SPCD, etc cards).
     delay : integer or float
-        The time delay.  If this is a float, it represents the delay in seconds. If
-        it is an integer, it references a DELAY card.
+        The time delay. If this is a float, it represents the delay
+        in seconds. If it is an integer, it references a DELAY card.
     excite_type : string
-        The type of excitation.  Must be one of 'load', 'disp', 'velo', 'acce'.
+        The type of excitation. Must be one of 'load', 'disp', 'velo',
+        or 'acce'.
     t1 : float
         Time constant 1
     t2 : float
         Time constant 2, must be greater than t1
     f : float; optional
-        Frequency in cycles per unit time.  If not provided, defaults to 0.0.
+        Frequency in cycles per unit time. If not provided, defaults
+        to 0.0.
     p : float; optional
-        Phase angle in degrees.  If not provided, defaults to 0.0.
+        Phase angle in degrees. If not provided, defaults to 0.0.
     c : float; optional
-        Exponential coefficient.  If not provided, defaults to 0.0.
+        Exponential coefficient. If not provided, defaults to 0.0.
     b : float; optional
-        Growth coefficient.  If not provided, defaults to 0.0.
+        Growth coefficient. If not provided, defaults to 0.0.
 
     Notes
     -----
-    This card is useful to add a load set to the P matrix when creating an external
-    superelement using EXTSEOUT.
+    This card is useful to add a load set to the P matrix when
+    creating an external superelement using EXTSEOUT.
 
     Examples
     --------
@@ -4487,7 +4495,7 @@ def wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f=0.0, p=0.0, c
     >>> delay = .05
     >>> excite_type = "load"
     >>> t1, t2 = 0.1, 0.2
-    nastran.wttload2(1, setid, excite_id, delay, excite_type, t1, t2)
+    >>> nastran.wttload2(1, setid, excite_id, delay, excite_type, t1, t2)
     TLOAD2       201     202 5.00-02LOAD     1.00-01 2.00-01 0.00+00 0.00+00
     +        0.00+00 0.00+00
     """
@@ -4503,6 +4511,7 @@ def wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f=0.0, p=0.0, c
     wtcard8(fobj, fields)
 
 
+@guitools.write_text_file
 def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
     """
     Write a Nastran CONM2 card to a file.
@@ -4525,7 +4534,8 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
     I_offdiag : 1d array_like; optional
         The off-diagonal moment of inertia terma, I21, I31, and I32.
     offset : 1d array_like; optional
-        Offset of the mass element from the grid to which it is attached.
+        Offset of the mass element from the grid to which it is
+        attached.
     Notes
     -----
     This card will be written in large-field format.
@@ -4536,7 +4546,7 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
     >>> eid, gid, cid = 1, 2, 3
     >>> mass = 5000.0
     >>> I_diag = [6000.0, 7000.0, 8000.0]
-    nastran.wtconm2(f, eid, gid, cid, mass, I_diag)
+    >>> nastran.wtconm2(1, eid, gid, cid, mass, I_diag)
     CONM2*                 1               2               3 5.0000000000+03
     *        0.0000000000+00 0.0000000000+00 0.0000000000+00                *
     *        6.0000000000+03 0.0000000000+00 7.0000000000+03 0.0000000000+00
@@ -4551,12 +4561,13 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
     wtcard16(f, fields)
 
 
+@guitools.write_text_file
 def wtcard8(f, fields):
     """
     Write a Nastran card formatted in small-field format.
 
-    Line wraps and continuations will be inserted automatically.  Empty fields should be
-    indicated by None.
+    Line wraps and continuations will be inserted automatically.
+    Empty fields should be indicated by None.
 
     Parameters
     ----------
@@ -4570,9 +4581,10 @@ def wtcard8(f, fields):
 
     Notes
     -----
-    The items in fields will be formatted according to their data type.  Python integers
-    will be formated as Nastran integers, and Python floats will be formatted as Nastran
-    reals. Strings will always be left-justified.
+    The items in fields will be formatted according to their data type.
+    Python integers will be formated as Nastran integers, and Python
+    floats will be formatted as Nastran reals. Strings will always be
+    left-justified.
 
     Example
     -------
@@ -4603,12 +4615,13 @@ def wtcard8(f, fields):
     f.write("\n")
 
 
+@guitools.write_text_file
 def wtcard16(f, fields):
     """
     Write a Nastran card formatted in large-field format.
 
-    Line wraps and continuations will be inserted automatically.  Empty fields should be
-    indicated by None.
+    Line wraps and continuations will be inserted automatically.
+    Empty fields should be indicated by None.
 
     Parameters
     ----------
@@ -4622,9 +4635,10 @@ def wtcard16(f, fields):
 
     Notes
     -----
-    The items in fields will be formatted according to their data type.  Python integers
-    will be formated as Nastran integers, and Python floats will be formatted as Nastran
-    reals.  Strings will always be left-justified.
+    The items in fields will be formatted according to their data type.
+    Python integers will be formated as Nastran integers, and Python
+    floats will be formatted as Nastran reals. Strings will always be
+    left-justified.
 
     Example
     -------
@@ -4632,7 +4646,7 @@ def wtcard16(f, fields):
     >>> fields = ["GRID*", 101, 102, 1.0, 2.0, 3.0, 103]
     >>> nastran.wtcard16(1, fields)
     GRID*                101             102 1.0000000000+00 2.0000000000+00
-    *        3.0000000000+02             103
+    *        3.0000000000+00             103
     """
     card_name = fields[0]
     if not card_name.endswith("*"):

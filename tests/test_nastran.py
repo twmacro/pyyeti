@@ -1591,15 +1591,15 @@ def test_wttabdmp1_bad_inputs():
     f = StringIO()
     setid = 101
     # not enough terms in freq/damp
-    freq, damp = [1.0], [.01]
+    freq, damp = [1.0], [0.01]
     with pytest.raises(ValueError, match=r"freq.*length.*\>=2"):
         nastran.wttabdmp1(f, setid, freq, damp)
     # length mismatch
-    freq, damp = [1.0, 10.0], [.01, .01, .01]
+    freq, damp = [1.0, 10.0], [0.01, 0.01, 0.01]
     with pytest.raises(ValueError, match=r"freq.*damp.*same length"):
         nastran.wttabdmp1(f, setid, freq, damp)
     # invalid damping type
-    freq, damp = [1.0, 10.0], [.01, .01]
+    freq, damp = [1.0, 10.0], [0.01, 0.01]
     damping_type = "zzz"
     with pytest.raises(ValueError, match=r"damping_type.*got 'ZZZ'"):
         nastran.wttabdmp1(f, setid, freq, damp, damping_type)
@@ -1608,8 +1608,8 @@ def test_wttabdmp1_bad_inputs():
 def test_wttabdmp1_two_terms():
     f = StringIO()
     setid = 101
-    freq = [.1, 2.5]
-    damp = [.01, .015]
+    freq = [0.1, 2.5]
+    damp = [0.01, 0.015]
     nastran.wttabdmp1(f, setid, freq, damp)
     expected = (
         "TABDMP1*             101CRIT                                            \n"
@@ -1622,10 +1622,10 @@ def test_wttabdmp1_two_terms():
 
 def test_wttabdmp1_three_terms():
     f = StringIO()
-    setid = 101.0 # setid is a float, verify it's written as an integer
-    freq = [.1, 2.5, 3] # freq[2] is an integer, verify it's written as a real
-    damp = [.01, .015, .015]
-    damping_type = 'g'
+    setid = 101.0  # setid is a float, verify it's written as an integer
+    freq = [0.1, 2.5, 3]  # freq[2] is an integer, verify it's written as a real
+    damp = [0.01, 0.015, 0.015]
+    damping_type = "g"
     nastran.wttabdmp1(f, setid, freq, damp, damping_type)
     expected = (
         "TABDMP1*             101G                                               \n"
@@ -1639,9 +1639,9 @@ def test_wttabdmp1_three_terms():
 def test_wttabdmp1_four_terms():
     f = StringIO()
     setid = 101
-    freq = [.1, 2.5, 3.2, 3.4]
-    damp = [.01, .015, .015, .016]
-    damping_type = 'q'
+    freq = [0.1, 2.5, 3.2, 3.4]
+    damp = [0.01, 0.015, 0.015, 0.016]
+    damping_type = "q"
     nastran.wttabdmp1(f, setid, freq, damp, damping_type)
     expected = (
         "TABDMP1*             101Q                                               \n"
@@ -1649,7 +1649,7 @@ def test_wttabdmp1_four_terms():
         "*        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02\n"
         "*        3.2000000000+00 1.5000000000-02 3.4000000000+00 1.6000000000-02*\n"
         "*       ENDT            \n"
-        "*\n" # trailing newline so card had even number of lines
+        "*\n"  # trailing newline so card had even number of lines
     )
     assert f.getvalue() == expected
 
@@ -1657,7 +1657,7 @@ def test_wttabdmp1_four_terms():
 def test_wttload1_bad_input():
     f = StringIO()
     setid, excite_id = 201, 202
-    delay = .05
+    delay = 0.05
     excite_type = "zzz"
     tabledi_id = 1501
     with pytest.raises(ValueError, match=r"excite_type.*got 'ZZZ'"):
@@ -1667,9 +1667,9 @@ def test_wttload1_bad_input():
 def test_wttload1_case1():
     f = StringIO()
     setid, excite_id = 201, 202
-    delay = .05 # float, represents a time value
+    delay = 0.05  # float, represents a time value
     excite_type = "load"
-    tabledi_id = 1501.0 # float, verify it's written as an integer
+    tabledi_id = 1501.0  # float, verify it's written as an integer
     nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
     expected = "TLOAD1       201     202 5.00-02LOAD        1501\n"
     assert f.getvalue() == expected
@@ -1678,7 +1678,7 @@ def test_wttload1_case1():
 def test_wttload1_case2():
     f = StringIO()
     setid, excite_id = 201.0, 203
-    delay = 1504 # integer, represents a DELAY card
+    delay = 1504  # integer, represents a DELAY card
     excite_type = "load"
     tabledi_id = 1502
     nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
@@ -1689,7 +1689,7 @@ def test_wttload1_case2():
 def test_wttload2_bad_input():
     f = StringIO()
     setid, excite_id = 201, 202
-    delay = .05
+    delay = 0.05
     excite_type = "zzz"
     t1, t2 = 0.0, 1.0
     with pytest.raises(ValueError, match=r"excite_type.*got 'ZZZ'"):
@@ -1703,7 +1703,7 @@ def test_wttload2_bad_input():
 def test_wttload2_case1():
     f = StringIO()
     setid, excite_id = 201, 202
-    delay = .05 # float, represents a time value
+    delay = 0.05  # float, represents a time value
     excite_type = "load"
     t1, t2 = 0.1, 0.2
     nastran.wttload2(f, setid, excite_id, delay, excite_type, t1, t2)
@@ -1717,10 +1717,10 @@ def test_wttload2_case1():
 def test_wttload2_case2():
     fobj = StringIO()
     setid, excite_id = 201, 202
-    delay = 2 # integer, represents a DELAY card
+    delay = 2  # integer, represents a DELAY card
     excite_type = "load"
-    t1, t2 = 0.1, 2 # integer, verify it's converted to real
-    f, p, c, b = 11, 12, 13, 14 # integers, verify all are converted to real
+    t1, t2 = 0.1, 2  # integer, verify it's converted to real
+    f, p, c, b = 11, 12, 13, 14  # integers, verify all are converted to real
     nastran.wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f, p, c, b)
     expected = (
         "TLOAD2       201     202       2LOAD     1.00-01 2.00+00 1.10+01 1.20+01\n"
@@ -1748,7 +1748,7 @@ def test_wtconm2_case1():
 
 def test_wtconm2_case2():
     f = StringIO()
-    eid, gid, cid = 1, 2, 3.0 # verify this is written as an integer
+    eid, gid, cid = 1, 2, 3.0  # verify this is written as an integer
     mass = 5000.0
     I_diag = [6000, 7000, 8000]
     nastran.wtconm2(f, eid, gid, cid, mass, I_diag)
@@ -1777,23 +1777,46 @@ def test_wtcard8_bad_inputs():
 def test_wtcard8():
     values = (
         # 3 fields
-        (("ABC", 0, None, 1.5),
-         "ABC            0         1.50+00\n"),
+        (("ABC", 0, None, 1.5), "ABC            0         1.50+00\n"),
         # 4 fields
-        (("ABC", 0, None, 1.5, -2.0),
-         "ABC            0         1.50+00-2.00+00\n"),
+        (("ABC", 0, None, 1.5, -2.0), "ABC            0         1.50+00-2.00+00\n"),
         # 4 fields
-        (("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5),
-         "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"),
+        (
+            ("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5),
+            "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n",
+        ),
         # 9 fields
-        (("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5, -3.4e-12),
-         "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
-         "+       -3.40-12\n"),
+        (
+            ("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5, -3.4e-12),
+            "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
+            "+       -3.40-12\n",
+        ),
         # 17 fields
-        (("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5, -3.4e-12, 0, 0, 0, 0, 0, 0, 0, 0),
-         "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
-         "+       -3.40-12       0       0       0       0       0       0       0\n"
-         "+              0\n"),
+        (
+            (
+                "ABC",
+                0,
+                None,
+                1.5,
+                -2.0,
+                None,
+                "DEF",
+                1.2e5,
+                3.4e-5,
+                -3.4e-12,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ),
+            "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
+            "+       -3.40-12       0       0       0       0       0       0       0\n"
+            "+              0\n",
+        ),
     )
     for fields, expected in values:
         f = StringIO()
@@ -1822,27 +1845,44 @@ def test_wtcard16_bad_inputs():
 def test_wtcard16():
     values = (
         # three fields
-        (("ABC*", 0, None, 1.5),
-         ("ABC*                   0                 1.5000000000+00\n"
-          "*\n")),
+        (
+            ("ABC*", 0, None, 1.5),
+            ("ABC*                   0                 1.5000000000+00\n" "*\n"),
+        ),
         # four fields
-        (("ABC*", 0, None, 1.0, -2.0),
-         ("ABC*                   0                 1.0000000000+00-2.0000000000+00\n"
-          "*\n")),
+        (
+            ("ABC*", 0, None, 1.0, -2.0),
+            (
+                "ABC*                   0                 1.0000000000+00-2.0000000000+00\n"
+                "*\n"
+            ),
+        ),
         # six fields
-        (("GRID*", 7100285, 7100003, 1.24499e3, 5.4e1, -3.94e3, 7100004),
-         ("GRID*            7100285         7100003 1.2449900000+03 5.4000000000+01\n"
-          "*       -3.9400000000+03         7100004\n")),
+        (
+            ("GRID*", 7100285, 7100003, 1.24499e3, 5.4e1, -3.94e3, 7100004),
+            (
+                "GRID*            7100285         7100003 1.2449900000+03 5.4000000000+01\n"
+                "*       -3.9400000000+03         7100004\n"
+            ),
+        ),
         # eight fields
-        (("ABC*", 0, None, 1.0, 2.0, None, 3.0, 4.0e-2, 550),
-         ("ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
-          "*                        3.0000000000+00 4.0000000000-02             550\n")),
+        (
+            ("ABC*", 0, None, 1.0, 2.0, None, 3.0, 4.0e-2, 550),
+            (
+                "ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
+                "*                        3.0000000000+00 4.0000000000-02             550\n"
+            ),
+        ),
         # nine fields
-        (("ABC*", 0, None, 1.0, 2.0, None, 3.0, 4.0, 550, "ABC"),
-         ("ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
-          "*                        3.0000000000+00 4.0000000000+00             550*\n"
-          "*       ABC             \n"
-          "*\n")),
+        (
+            ("ABC*", 0, None, 1.0, 2.0, None, 3.0, 4.0, 550, "ABC"),
+            (
+                "ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
+                "*                        3.0000000000+00 4.0000000000+00             550*\n"
+                "*       ABC             \n"
+                "*\n"
+            ),
+        ),
     )
     for fields, expected in values:
         f = StringIO()
