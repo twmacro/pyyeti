@@ -4378,11 +4378,39 @@ def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
 
     Parameters
     ----------
-
+    fobj : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    setid : integer
+        The tabid ID number.
+    freq : 1d array_like
+        The frequencies, in Hertz, at which the damping is defined.
+    damp : 1d array_like
+        The damping value at each frequency. This array must have the
+        same length as `freq`.
+    damping_type : string; optional
+        The type of damping.  Must be one of 'g', 'crit', or 'q'. If
+        not specified, it defaults to 'crit'.
 
     Notes
     -----
-    The card will be written in large-field format.
+    This card will be written in large-field format.
+
+    The `freq` and `damp` parameters must have a length of at least 2.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> setid = 101
+    >>> freq = [0.1, 2.5, 3.0]
+    >>> damp = [0.01, 0.015, 0.015]
+    >>> nastran.wttabdmp1(1, setid, freq, damp) # doctest: +NORMALIZE_WHITESPACE
+    TABDMP1*             101CRIT
+    *                                                                       *
+    *        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02
+    *        3.0000000000+00 1.5000000000-02ENDT
     """
     n_terms = len(freq)
     if n_terms < 2:

@@ -1733,7 +1733,7 @@ def test_wtconm2_case1():
     f = StringIO()
     eid, gid, cid = 1, 2, 3
     mass = 5000
-    I_diag = [6000, 7000, 8000]
+    I_diag = [6000, 7000, 8000]  # verify these are written as real
     I_offdiag = [6500, 8500, 7500]
     offset = [3, 2, 1]
     nastran.wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag, offset)
@@ -1747,6 +1747,7 @@ def test_wtconm2_case1():
 
 
 def test_wtconm2_case2():
+    # defaults for I_offdiag and offset
     f = StringIO()
     eid, gid, cid = 1, 2, 3.0  # verify this is written as an integer
     mass = 5000.0
