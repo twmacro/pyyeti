@@ -316,19 +316,23 @@ def _handle_comments(comment_list, Vals):
         comment_list.clear()
 
 
-def _next_line(f, name, regex, keep_comments, Vals):
+def _next_line(f, name, regex, keep_comments, follow_includes, Vals):
     if regex:
         prog = re.compile(name, re.IGNORECASE)
 
         def ismatch(line, prog):
-            return prog.match(line) or line.lower().startswith("include")
+            match = prog.match(line)
+            include = follow_includes and line.lower().startswith("include")
+            return match or include
 
     else:
         prog = name.lower()
 
         def ismatch(line, prog):
             line = line.lower()
-            return line.find(prog) == 0 or line.startswith("include")
+            match = line.find(prog) == 0
+            include = follow_includes and line.startswith("include")
+            return match or include
 
     do_match = True
     if not keep_comments:
@@ -401,7 +405,9 @@ def _rdinclude(fiter, s, args):
                 break
             else:  # end not found, add entire line
                 path_parts.append(s.strip())
-    path = "".join(path_parts)
+    rel_path = "".join(path_parts)
+    *_, base_path = args
+    path = os.path.abspath(os.path.join(base_path, rel_path))
     # read next line, which will be returned by next fiter.send(True) call
     fiter.send(False)
     return rdcards(path, *args)
@@ -514,6 +520,8 @@ def rdcards(
     regex=False,
     keep_name=False,
     keep_comments=False,
+    follow_includes=True,
+    include_root_dir=None,
 ):
     r"""
     Read Nastran cards (lines) into a matrix, dictionary, or list.
@@ -576,6 +584,12 @@ def rdcards(
         retain all comment cards in the output. This option is ignored
         if not reading into a list. Note that only the comments that
         start at the beginning of the line are retained.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+    include_root_dir : None; optional
+        This parameter is only used when this function is called
+        recursively while following INCLUDE statements. Users should
+        keep it as the default value of None.
 
     Returns
     -------
@@ -681,12 +695,17 @@ def rdcards(
     ['dti', 'seload', 5, 6]
     ['DTI', 'SELOAD', '', 8.0, "'a'"]
     """
-
     if return_var not in ("array", "list", "dict"):
         raise ValueError(
             'invalid `return_var` setting; must be one of: ("array", "list", "dict")'
         )
-    args = (  # save arguments for use in _rdinclude
+    # save root dir from original call, pass through for recursive calls
+    include_root_dir = (
+        os.path.dirname(os.path.abspath(f.name))
+        if include_root_dir is None
+        else include_root_dir
+    )
+    args = (  # save args for _rdinclude
         name,
         blank,
         return_var,
@@ -695,6 +714,8 @@ def rdcards(
         regex,
         keep_name,
         keep_comments,
+        follow_includes,
+        include_root_dir,
     )
 
     if return_var == "dict":
@@ -711,8 +732,7 @@ def rdcards(
 
     mxlen = 0
     f.seek(0, 0)
-
-    fiter = _next_line(f, name, regex, tolist and keep_comments, Vals)
+    fiter = _next_line(f, name, regex, tolist and keep_comments, follow_includes, Vals)
     s = next(fiter)
     while s is not None:
         # if here, have matching line
