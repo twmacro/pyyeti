@@ -586,6 +586,9 @@ def rdcards(
         start at the beginning of the line are retained.
     follow_includes : bool; optional
         If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
     include_root_dir : None; optional
         This parameter is only used when this function is called
         recursively while following INCLUDE statements. Users should
@@ -700,11 +703,16 @@ def rdcards(
             'invalid `return_var` setting; must be one of: ("array", "list", "dict")'
         )
     # save root dir from original call, pass through for recursive calls
-    include_root_dir = (
-        os.path.dirname(os.path.abspath(f.name))
-        if include_root_dir is None
-        else include_root_dir
-    )
+    try:
+        include_root_dir = (
+            os.path.dirname(os.path.abspath(f.name))
+            if include_root_dir is None
+            else include_root_dir
+        )
+    except AttributeError:
+        # StringIO object, doesn't make sense to follow includes
+        follow_includes = False
+        include_root_dir = None
     args = (  # save args for _rdinclude
         name,
         blank,
@@ -736,7 +744,7 @@ def rdcards(
     s = next(fiter)
     while s is not None:
         # if here, have matching line
-        if s.lower().find("include") > -1:
+        if follow_includes and s.lower().find("include") > -1:
             vals = _rdinclude(fiter, s, args)
         elif s.find(",") > -1:
             vals = [_rdcomma(fiter, s, " +,", blank, tolist, keep_name)]
