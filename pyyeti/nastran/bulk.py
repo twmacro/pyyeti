@@ -321,13 +321,14 @@ def _next_line(f, name, regex, keep_comments, Vals):
         prog = re.compile(name, re.IGNORECASE)
 
         def ismatch(line, prog):
-            return prog.match(line)
+            return prog.match(line) or line.lower().startswith("include")
 
     else:
         prog = name.lower()
 
         def ismatch(line, prog):
-            return line.lower().find(prog) == 0
+            line = line.lower()
+            return line.find(prog) == 0 or line.startswith("include")
 
     do_match = True
     if not keep_comments:
@@ -373,6 +374,37 @@ def _next_line(f, name, regex, keep_comments, Vals):
 
         do_match = yield None  # mark the end of input
         _handle_comments(comment_list, Vals)
+
+
+def _rdinclude(fiter, s, args):
+    """
+    Read and then recursively follow an INCLUDE statement.
+    fiter : file iterator
+    s : The first line containing the INCLUDE statement.
+    args : All the arguments to the original rdcards call (except for
+           the path).
+    """
+    start = s.find("'")
+    if start < 0:
+        raise ValueError
+    end = s[start + 1 :].find("'")
+    if end >= 0:
+        path_parts = [s[start + 1 : start + end + 1]]
+    else:
+        # end of INCLUDE not found, continue to next line
+        path_parts = [s[start + 1 :].strip()]
+        while 1:
+            s = fiter.send(False)
+            end = s.find("'")
+            if end >= 0:  # end found on this line
+                path_parts.append(s[0:end])
+                break
+            else:  # end not found, add entire line
+                path_parts.append(s.strip())
+    path = "".join(path_parts)
+    # read next line, which will be returned by next fiter.send(True) call
+    fiter.send(False)
+    return rdcards(path, *args)
 
 
 def _rdfixed(fiter, s, n, conchar, blank, tolist, keep_name):
@@ -654,6 +686,16 @@ def rdcards(
         raise ValueError(
             'invalid `return_var` setting; must be one of: ("array", "list", "dict")'
         )
+    args = (  # save arguments for use in _rdinclude
+        name,
+        blank,
+        return_var,
+        dtype,
+        no_data_return,
+        regex,
+        keep_name,
+        keep_comments,
+    )
 
     if return_var == "dict":
         Vals = {}
@@ -674,24 +716,27 @@ def rdcards(
     s = next(fiter)
     while s is not None:
         # if here, have matching line
-        if s.find(",") > -1:
-            vals = _rdcomma(fiter, s, " +,", blank, tolist, keep_name)
+        if s.lower().find("include") > -1:
+            vals = _rdinclude(fiter, s, args)
+        elif s.find(",") > -1:
+            vals = [_rdcomma(fiter, s, " +,", blank, tolist, keep_name)]
         else:
             s = s[:72].rstrip()
             p = s[:8].find("*")
             field, continuation = (16, "*") if p > -1 else (8, " +")
-            vals = _rdfixed(fiter, s, field, continuation, blank, tolist, keep_name)
+            vals = [_rdfixed(fiter, s, field, continuation, blank, tolist, keep_name)]
         if tolist:
-            Vals.append(vals)
+            Vals.extend(vals)
         else:
-            cur = len(vals)
-            mxlen = max(mxlen, cur)
-            key = vals[0]  # before it gets turned into dtype
-            vals = np.array(vals).astype(dtype)
-            if todict:
-                Vals[key] = vals
-            else:
-                Vals.append(vals)
+            for val in vals:
+                cur = len(val)
+                mxlen = max(mxlen, cur)
+                key = val[0]  # before it gets turned into dtype
+                val = np.array(val).astype(dtype)
+                if todict:
+                    Vals[key] = val
+                else:
+                    Vals.append(val)
         try:
             s = fiter.send(True)
         except StopIteration:
