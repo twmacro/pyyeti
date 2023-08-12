@@ -390,7 +390,8 @@ def _rdinclude(fiter, s, args):
     """
     start = s.find("'")
     if start < 0:
-        raise ValueError
+        msg = "Invalid INCLUDE statment, no quote found: {}"
+        raise ValueError(msg.format(s))
     end = s[start + 1 :].find("'")
     if end >= 0:
         path_parts = [s[start + 1 : start + end + 1]]
@@ -399,6 +400,9 @@ def _rdinclude(fiter, s, args):
         path_parts = [s[start + 1 :].strip()]
         while 1:
             s = fiter.send(False)
+            if s is None:
+                msg = "Invalid INCLUDE statement, no ending quote found: {}"
+                raise ValueError(msg.format("".join(path_parts)))
             end = s.find("'")
             if end >= 0:  # end found on this line
                 path_parts.append(s[0:end])
@@ -406,11 +410,34 @@ def _rdinclude(fiter, s, args):
             else:  # end not found, add entire line
                 path_parts.append(s.strip())
     rel_path = "".join(path_parts)
-    *_, base_path = args
-    path = os.path.abspath(os.path.join(base_path, rel_path))
+    *_, symbols, base_path = args
+    path, symbol_found = _check_for_symbols(rel_path, symbols)
+    if not symbol_found:
+        path = os.path.abspath(os.path.join(base_path, rel_path))
     # read next line, which will be returned by next fiter.send(True) call
     fiter.send(False)
     return rdcards(path, *args)
+
+
+def _check_for_symbols(rel_path, symbols):
+    """
+    Check a path for Nastran symbols, which define a base path.
+    rel_path : The quoted path parsed from and INCLUDE statement.
+    symbols : A dictionary mapping symbols to base paths.
+    """
+    index = rel_path.find(":")
+    # if a colon is found in position 1, assume this is a Windows absolute path
+    if index >= 2:  #
+        symbol = rel_path[0:index].lower()
+        rel_path = rel_path[index + 1 :]
+        try:
+            base_path = symbols[symbol]
+        except:
+            msg = f"Symbol found in INCLUDE, but it is not defined: {symbol:}"
+            raise ValueError(msg)
+        return os.path.join(base_path, rel_path), True
+    else:
+        return None, False
 
 
 def _rdfixed(fiter, s, n, conchar, blank, tolist, keep_name):
@@ -521,6 +548,7 @@ def rdcards(
     keep_name=False,
     keep_comments=False,
     follow_includes=True,
+    include_symbols=None,
     include_root_dir=None,
 ):
     r"""
@@ -589,6 +617,9 @@ def rdcards(
         Note that if f is a StringIO object, or another object that
         does not have a `name` property, this parameter will be set
         to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These symbols are typically defined in a nastran.rcf file.
     include_root_dir : None; optional
         This parameter is only used when this function is called
         recursively while following INCLUDE statements. Users should
@@ -713,6 +744,14 @@ def rdcards(
         # StringIO object, doesn't make sense to follow includes
         follow_includes = False
         include_root_dir = None
+    include_symbols = (
+        {symbol.lower(): path for symbol, path in include_symbols.items()}
+        if include_symbols is not None
+        else {}
+    )
+    for symbol in include_symbols:
+        if not len(symbol) > 2:
+            raise ValueError(f"Symbols must have a length >1, got {symbol:}")
     args = (  # save args for _rdinclude
         name,
         blank,
@@ -723,6 +762,7 @@ def rdcards(
         keep_name,
         keep_comments,
         follow_includes,
+        include_symbols,
         include_root_dir,
     )
 
@@ -744,7 +784,7 @@ def rdcards(
     s = next(fiter)
     while s is not None:
         # if here, have matching line
-        if follow_includes and s.lower().find("include") > -1:
+        if follow_includes and s.lower().startswith("include"):
             vals = _rdinclude(fiter, s, args)
         elif s.find(",") > -1:
             vals = [_rdcomma(fiter, s, " +,", blank, tolist, keep_name)]

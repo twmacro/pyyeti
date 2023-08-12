@@ -1,5 +1,7 @@
+import math
 import numpy as np
 import os
+import tempfile
 from io import StringIO
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -105,6 +107,162 @@ $ ending comment
         "$ ending comment\n",
     ]
     assert sbe == lst
+
+
+def _write_file(path, contents):
+    with open(path, "wt") as fobj:
+        fobj.write(contents)
+
+
+def test_rdcards_with_includes_errors():
+    file1 = "GRID,1,0,10.0,0.0,0.0\nINCLUDE 'file2.bdf'\nGRID,3,0,30.0,0.0,0.0\n"
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+
+        # INCLUDE has no quotes
+        _write_file(file1_path, file1.replace("'file2.bdf'", "file2.bdf"))
+        with pytest.raises(ValueError, match=r"Invalid INCLU.*no quote.*file2"):
+            nastran.rdcards(file1_path, "grid", follow_includes=True)
+
+        # INCLUDE has opening but no closing quote
+        _write_file(file1_path, file1.replace("'file2.bdf'", "'file2.bdf"))
+        with pytest.raises(ValueError, match=r"Invalid INCLU.*no ending quote.*file2"):
+            nastran.rdcards(file1_path, "grid", follow_includes=True)
+
+        # Symbol used in INCLUDE, but not defined
+        _write_file(file1_path, file1.replace("file2.bdf", "MODEL_DIR:file2.bdf"))
+        regex = r"Symbol.*in INCLUDE.*not defined.*model_dir"
+        with pytest.raises(ValueError, match=regex):
+            nastran.rdcards(file1_path, "grid", follow_includes=True)
+
+        # Symbol doesn't have a length >1 so it cannot be distinguished from a Windows
+        # drive letter
+        symbols = {"C": r"C:\dirC"}
+        with pytest.raises(ValueError, match=r"Symbols.*length >1.*got c"):
+            nastran.rdcards(file1_path, "grid", include_symbols=symbols)
+
+        # Path on INCLUDE statement does not exist
+        _write_file(file1_path, file1.replace("file2.bdf", "zzzz.bdf"))
+        with pytest.raises(FileNotFoundError, match=r"zzzz.bdf"):
+            nastran.rdcards(file1_path, "grid")
+
+
+def test_rdcards_with_includes():
+    file1 = (
+        "GRID,1,0,10.0,0.0,0.0\n"
+        "GRID         101\n"  # not a proper grid, just testing a multi-line card
+        "+       ABC\n"
+        "$ This is a comment\n"
+        "\n"
+        "INCLUDE 'file2.\n"  # include statement spans multiple lines
+        "bdf'\n"
+        "GRID,3,0,30.0,0.0,0.0\n"
+    )
+    file2 = "GRID,2,0,20.0,0.0,0.0\nINCLUDE 'file3.bdf'"
+    file3 = "GRID,201,0,2001.0,0.0,0.0"
+
+    def check_results(cards):
+        assert len(cards) == 5
+        for card in cards:
+            assert card[0] == "GRID"
+        assert cards[0][1] == 1
+        assert cards[1][1] == 101
+        assert cards[1][9] == "ABC"
+        assert cards[2][1] == 2
+        assert cards[3][1] == 201
+        assert cards[4][1] == 3
+        assert math.isclose(cards[4][3], 30.0)
+
+    # all files in same directory
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _write_file(file1_path, file1)
+        _write_file(os.path.join(tempdir_path, "file2.bdf"), file2)
+        _write_file(os.path.join(tempdir_path, "file3.bdf"), file3)
+        # follow_includes is True
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+        )
+        check_results(cards)
+
+        # follow_includes is False
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=False,
+        )
+        assert len(cards) == 3
+        assert [card[1] for card in cards] == [1, 101, 3]
+
+        # keep_comments is True
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            None,
+            return_var="list",
+            keep_name=True,
+            keep_comments=True,
+            follow_includes=True,
+        )
+        assert cards[2].startswith("$ This is a comm")
+        check_results([cards[i] for i in [0, 1, 3, 4, 5]])
+
+    # file1 in subdirectory, file2 and file3 in parent dir
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        subdir_path = os.path.join(tempdir_path, "subdir")
+        os.mkdir(subdir_path)
+        file1_path = os.path.join(subdir_path, "file1.bdf")
+        # update to use relative path
+        _write_file(file1_path, file1.replace("file2", "../file2"))
+        # update to use relative path
+        # note that path is relative to file1, even though the statement is in
+        # file2, this is unexpected but is consistent with Nastran
+        _write_file(
+            os.path.join(tempdir_path, "file2.bdf"), file2.replace("file3", "../file3")
+        )
+        _write_file(os.path.join(tempdir_path, "file3.bdf"), file3)
+        # follow_includes is True
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+        )
+        check_results(cards)
+
+    # file1 in parent_dir, file2 and file3 in subdirectory, includes use symbols
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        # update to use symbol
+        _write_file(file1_path, file1.replace("file2", "SUBDIR:file2"))
+        subdir_path = os.path.join(tempdir_path, "subdir")
+        os.mkdir(subdir_path)
+        _write_file(
+            os.path.join(subdir_path, "file2.bdf"),
+            file2.replace("file3", "SUBDIR:../file3"),
+        )
+        _write_file(os.path.join(tempdir_path, "file3.bdf"), file3)
+        symbols = {"SUBDIR": subdir_path}
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+            include_symbols=symbols,
+        )
+        check_results(cards)
 
 
 def test_wtgrids():
