@@ -757,7 +757,7 @@ def rdcards(
         blank,
         return_var,
         dtype,
-        (), # return value from _rdinclude must be iterable (not None)
+        (),  # return value from _rdinclude must be iterable (not None)
         regex,
         keep_name,
         keep_comments,
@@ -4509,7 +4509,8 @@ def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
 
     Notes
     -----
-    This card will be written in large-field format.
+    This card will be written in 16 fixed-field format using the
+    :func:`wtcard16` function.
 
     The `freq` and `damp` parameters must have a length of at least 2.
 
@@ -4567,6 +4568,11 @@ def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
         or 'acce'.
     tabledi_id : integer
         The ID of a TABLEDi card that defines the transient.
+
+    Notes
+    -----
+    This card will be written in 8 fixed-field format using the
+    :func:`wtcard8` function.
 
     Examples
     --------
@@ -4626,6 +4632,9 @@ def wttload2(
 
     Notes
     -----
+    This card will be written in 8 fixed-field format using the
+    :func:`wtcard8` function.
+
     This card is useful to add a load set to the P matrix when
     creating an external superelement using EXTSEOUT.
 
@@ -4679,7 +4688,8 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
         attached.
     Notes
     -----
-    This card will be written in large-field format.
+    This card will be written in 16 fixed-field format using the
+    :func:`wtcard16` function.
 
     Examples
     --------
@@ -4739,16 +4749,19 @@ def wtcard8(f, fields):
         msg = "The first field, the card name, must have a length <8, got {}"
         raise ValueError(msg.format(card_name))
     f.write(f"{card_name:<8s}")
+    strtypes = (str, np.str_)
+    inttypes = (int, np.int32, np.int64, np.uint32, np.uint64)
+    floattypes = (float, np.float32, np.float64)
     for i, field in enumerate(fields[1:]):
         if i > 0 and i % 8 == 0:
             f.write("\n+       ")
         if field is None:
             f.write(" " * 8)
-        elif isinstance(field, str):
+        elif isinstance(field, strtypes):
             f.write(f"{field:<8s}")
-        elif isinstance(field, (int, np.int32, np.int64)):
+        elif isinstance(field, inttypes):
             f.write(f"{field:8d}")
-        elif isinstance(field, (float, np.float32, np.float64)):
+        elif isinstance(field, floattypes):
             # one extra significant figure by eliminating the exponent "E"
             f.write(f"{field:9.2e}".replace("e", ""))
         else:
@@ -4798,6 +4811,9 @@ def wtcard16(f, fields):
         raise ValueError(msg.format(card_name))
     f.write(f"{card_name:<8s}")
     n_lines = 1
+    strtypes = (str, np.str_)
+    inttypes = (int, np.int32, np.int64, np.uint32, np.uint64)
+    floattypes = (float, np.float32, np.float64)
     for i, field in enumerate(fields[1:]):
         if i > 0 and i % 8 == 0:
             f.write("*\n*       ")
@@ -4807,11 +4823,11 @@ def wtcard16(f, fields):
             n_lines += 1
         if field is None:
             f.write(" " * 16)
-        elif isinstance(field, str):
+        elif isinstance(field, strtypes):
             f.write(f"{field:<16s}")
-        elif isinstance(field, (int, np.int32, np.int64)):
+        elif isinstance(field, inttypes):
             f.write(f"{field:16d}")
-        elif isinstance(field, (float, np.float32, np.float64)):
+        elif isinstance(field, floattypes):
             # one extra significant figure by eliminating the exponent "E"
             f.write(f"{field:17.10e}".replace("e", ""))
         else:

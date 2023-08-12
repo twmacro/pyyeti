@@ -1957,6 +1957,19 @@ def test_wtcard8():
     values = (
         # 3 fields
         (("ABC", 0, None, 1.5), "ABC            0         1.50+00\n"),
+        # 7 fields, NumPy types
+        (
+            (
+                np.str_("ABC"),
+                np.uint32(10),
+                np.uint64(11),
+                np.int32(12),
+                np.int64(13),
+                np.float32(1.0),
+                np.float64(2.0),
+            ),
+            "ABC           10      11      12      13 1.00+00 2.00+00\n",
+        ),
         # 4 fields
         (("ABC", 0, None, 1.5, -2.0), "ABC            0         1.50+00-2.00+00\n"),
         # 4 fields
@@ -2027,6 +2040,20 @@ def test_wtcard16():
         (
             ("ABC*", 0, None, 1.5),
             ("ABC*                   0                 1.5000000000+00\n" "*\n"),
+        ),
+        # 7 fields, NumPy types
+        (
+            (
+                np.str_("ABC*"),
+                np.uint32(10),
+                np.uint64(11),
+                np.int32(12),
+                np.int64(13),
+                np.float32(1.0),
+                np.float64(2.0),
+            ),
+            "ABC*                  10              11              12              13\n"
+            "*        1.0000000000+00 2.0000000000+00\n",
         ),
         # four fields
         (
