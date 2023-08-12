@@ -733,7 +733,7 @@ def rdcards(
         raise ValueError(
             'invalid `return_var` setting; must be one of: ("array", "list", "dict")'
         )
-    # save root dir from original call, pass through for recursive calls
+    # save root dir from original call, pass through to _rdinclude for recursive calls
     try:
         include_root_dir = (
             os.path.dirname(os.path.abspath(f.name))
@@ -752,12 +752,12 @@ def rdcards(
     for symbol in include_symbols:
         if not len(symbol) > 2:
             raise ValueError(f"Symbols must have a length >1, got {symbol:}")
-    args = (  # save args for _rdinclude
+    args = (  # save args for use in _rdinclude
         name,
         blank,
         return_var,
         dtype,
-        no_data_return,
+        (), # return value from _rdinclude must be iterable (not None)
         regex,
         keep_name,
         keep_comments,

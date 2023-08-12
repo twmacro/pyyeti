@@ -109,7 +109,7 @@ $ ending comment
     assert sbe == lst
 
 
-def _write_file(path, contents):
+def _wtfile(path, contents):
     with open(path, "wt") as fobj:
         fobj.write(contents)
 
@@ -120,17 +120,17 @@ def test_rdcards_with_includes_errors():
         file1_path = os.path.join(tempdir_path, "file1.bdf")
 
         # INCLUDE has no quotes
-        _write_file(file1_path, file1.replace("'file2.bdf'", "file2.bdf"))
+        _wtfile(file1_path, file1.replace("'file2.bdf'", "file2.bdf"))
         with pytest.raises(ValueError, match=r"Invalid INCLU.*no quote.*file2"):
             nastran.rdcards(file1_path, "grid", follow_includes=True)
 
         # INCLUDE has opening but no closing quote
-        _write_file(file1_path, file1.replace("'file2.bdf'", "'file2.bdf"))
+        _wtfile(file1_path, file1.replace("'file2.bdf'", "'file2.bdf"))
         with pytest.raises(ValueError, match=r"Invalid INCLU.*no ending quote.*file2"):
             nastran.rdcards(file1_path, "grid", follow_includes=True)
 
-        # Symbol used in INCLUDE, but not defined
-        _write_file(file1_path, file1.replace("file2.bdf", "MODEL_DIR:file2.bdf"))
+        # Symbol used in INCLUDE, but is not defined
+        _wtfile(file1_path, file1.replace("file2.bdf", "MODEL_DIR:file2.bdf"))
         regex = r"Symbol.*in INCLUDE.*not defined.*model_dir"
         with pytest.raises(ValueError, match=regex):
             nastran.rdcards(file1_path, "grid", follow_includes=True)
@@ -142,7 +142,7 @@ def test_rdcards_with_includes_errors():
             nastran.rdcards(file1_path, "grid", include_symbols=symbols)
 
         # Path on INCLUDE statement does not exist
-        _write_file(file1_path, file1.replace("file2.bdf", "zzzz.bdf"))
+        _wtfile(file1_path, file1.replace("file2.bdf", "zzzz.bdf"))
         with pytest.raises(FileNotFoundError, match=r"zzzz.bdf"):
             nastran.rdcards(file1_path, "grid")
 
@@ -159,7 +159,7 @@ def test_rdcards_with_includes():
         "GRID,3,0,30.0,0.0,0.0\n"
     )
     file2 = "GRID,2,0,20.0,0.0,0.0\nINCLUDE 'file3.bdf'"
-    file3 = "GRID,201,0,2001.0,0.0,0.0"
+    file3 = "GRID,201,0,2001.0,0.0,0.0\n$ Another comment"
 
     def check_results(cards):
         assert len(cards) == 5
@@ -170,15 +170,16 @@ def test_rdcards_with_includes():
         assert cards[1][9] == "ABC"
         assert cards[2][1] == 2
         assert cards[3][1] == 201
+        assert math.isclose(cards[3][3], 2001.0)
         assert cards[4][1] == 3
         assert math.isclose(cards[4][3], 30.0)
 
     # all files in same directory
     with tempfile.TemporaryDirectory() as tempdir_path:
         file1_path = os.path.join(tempdir_path, "file1.bdf")
-        _write_file(file1_path, file1)
-        _write_file(os.path.join(tempdir_path, "file2.bdf"), file2)
-        _write_file(os.path.join(tempdir_path, "file3.bdf"), file3)
+        _wtfile(file1_path, file1)
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
+        _wtfile(os.path.join(tempdir_path, "file3.bdf"), file3)
         # follow_includes is True
         cards = nastran.rdcards(
             file1_path,
@@ -213,7 +214,8 @@ def test_rdcards_with_includes():
             follow_includes=True,
         )
         assert cards[2].startswith("$ This is a comm")
-        check_results([cards[i] for i in [0, 1, 3, 4, 5]])
+        assert cards[5].startswith("$ Another comm")
+        check_results([cards[i] for i in [0, 1, 3, 4, 6]])
 
     # file1 in subdirectory, file2 and file3 in parent dir
     with tempfile.TemporaryDirectory() as tempdir_path:
@@ -221,14 +223,14 @@ def test_rdcards_with_includes():
         os.mkdir(subdir_path)
         file1_path = os.path.join(subdir_path, "file1.bdf")
         # update to use relative path
-        _write_file(file1_path, file1.replace("file2", "../file2"))
+        _wtfile(file1_path, file1.replace("file2", "../file2"))
         # update to use relative path
         # note that path is relative to file1, even though the statement is in
         # file2, this is unexpected but is consistent with Nastran
-        _write_file(
+        _wtfile(
             os.path.join(tempdir_path, "file2.bdf"), file2.replace("file3", "../file3")
         )
-        _write_file(os.path.join(tempdir_path, "file3.bdf"), file3)
+        _wtfile(os.path.join(tempdir_path, "file3.bdf"), file3)
         # follow_includes is True
         cards = nastran.rdcards(
             file1_path,
@@ -244,14 +246,14 @@ def test_rdcards_with_includes():
     with tempfile.TemporaryDirectory() as tempdir_path:
         file1_path = os.path.join(tempdir_path, "file1.bdf")
         # update to use symbol
-        _write_file(file1_path, file1.replace("file2", "SUBDIR:file2"))
+        _wtfile(file1_path, file1.replace("file2", "SUBDIR:file2"))
         subdir_path = os.path.join(tempdir_path, "subdir")
         os.mkdir(subdir_path)
-        _write_file(
+        _wtfile(
             os.path.join(subdir_path, "file2.bdf"),
             file2.replace("file3", "SUBDIR:../file3"),
         )
-        _write_file(os.path.join(tempdir_path, "file3.bdf"), file3)
+        _wtfile(os.path.join(tempdir_path, "file3.bdf"), file3)
         symbols = {"SUBDIR": subdir_path}
         cards = nastran.rdcards(
             file1_path,
@@ -263,6 +265,24 @@ def test_rdcards_with_includes():
             include_symbols=symbols,
         )
         check_results(cards)
+
+    # file2 is empty
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _wtfile(file1_path, file1)
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), "")
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+        )
+        assert len(cards) == 3
+        assert cards[0][1] == 1
+        assert cards[1][1] == 101
+        assert cards[2][1] == 3
 
 
 def test_wtgrids():
