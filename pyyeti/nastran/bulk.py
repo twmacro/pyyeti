@@ -34,6 +34,7 @@ __all__ = [
     "mkcomment",
     "wtdmig",
     "rdgrids",
+    "rdsymbols",
     "rdcord2cards",
     "wtgrids",
     "rdtabled1",
@@ -619,7 +620,7 @@ def rdcards(
         to False.
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
-        These symbols are typically defined in a nastran.rcf file.
+        These can be read from a file using :func:`rdsymbols`.
     include_root_dir : None; optional
         This parameter is only used when this function is called
         recursively while following INCLUDE statements. Users should
@@ -826,6 +827,49 @@ def rdcards(
             Vals = npVals
         return Vals
     return no_data_return
+
+
+@guitools.read_text_file
+def rdsymbols(f):
+    """
+    Read Nastran logical symbols from a file.
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+
+    Returns
+    -------
+    symbols : dict
+        A dictionary mapping logical symbol names to paths.
+
+    Notes
+    -----
+    These symbols are typically defined in a 'nastran.rcf' configuration file.
+
+    They have the format: SYMBOL=<NAME>='<PATH>'.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> from io import StringIO
+    >>> f = StringIO("SYMBOL=MODEL_DIR='/home/model_dir'")
+    >>> nastran.rdsymbols(f)
+    {'model_dir': '/home/model_dir'}
+    """
+    regex = re.compile(r"^symbol\s*=\s*(\w+)\s*=\s*'([ \w/:\.\-\\]+)'$", re.IGNORECASE)
+    symbols = {}
+    for line in f:
+        match = regex.search(line.strip())
+        if match is None:
+            continue
+        symbol, path = match.groups()
+        symbols[symbol.lower()] = path
+    return symbols
 
 
 def rddmig(f, dmig_names=None, *, expanded=False, square=False):

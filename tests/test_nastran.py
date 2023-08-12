@@ -285,6 +285,35 @@ def test_rdcards_with_includes():
         assert cards[2][1] == 3
 
 
+def test_rdsymbols():
+    # Posix paths
+    f = StringIO(
+        "BUFFSIZE=65535\n"
+        "SYMBOL=FEMDIR='/home/loads/FEM/V1'\n"
+        "SYMBOL=DMAPDIR='/home/cla/cla/nastran_files/alter'"
+    )
+    symbols = nastran.rdsymbols(f)
+    assert len(symbols) == 2
+    assert symbols["femdir"] == "/home/loads/FEM/V1"
+    assert symbols["dmapdir"] == "/home/cla/cla/nastran_files/alter"
+
+    # Windows paths
+    f = StringIO(
+        "BUFFSIZE=65535\n"
+        "SYMBOL=FEMDIR='c:\\home\\loads\\FEM Folder\\V1'\n"  # path includes a space
+        "SYMBOL=DMAPDIR='d:\\home\\cla\\cla\\nastran_files\\alter'"
+    )
+    symbols = nastran.rdsymbols(f)
+    assert len(symbols) == 2
+    assert symbols["femdir"] == "c:\\home\\loads\\FEM Folder\\V1"
+    assert symbols["dmapdir"] == "d:\\home\\cla\\cla\\nastran_files\\alter"
+
+    # Empty file
+    f = StringIO("")
+    symbols = nastran.rdsymbols(f)
+    assert symbols == {}
+
+
 def test_wtgrids():
     xyz = np.array([[0.1, 0.2, 0.3], [1.1, 1.2, 1.3]])
     with StringIO() as f:
