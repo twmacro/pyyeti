@@ -1,3 +1,4 @@
+import math
 import os
 import tempfile
 import numpy as np
@@ -76,7 +77,8 @@ def test_n2c_extseout():
 def test_n2c_error():
     with pytest.raises(ValueError):
         op2.rdnas2cam(
-            "tests/nas2cam_extseout/assemble.op2", "tests/nas2cam_extseout/nas2cam.op2",
+            "tests/nas2cam_extseout/assemble.op2",
+            "tests/nas2cam_extseout/nas2cam.op2",
         )
 
 
@@ -353,6 +355,40 @@ def test_rdop2tload():
         o2._rowsCutoff = 0
         tload = o2.rdop2tload()
     assert np.all(tload[:5] == sbe)
+
+
+def test_rdop2gpwg_not_present():
+    gpwg = op2.OP2("tests/nastran_op2_data/rdop2gpwg_2.op2").rdop2gpwg()
+    assert gpwg is None
+
+
+def test_rdop2gpwg():
+    gpwg = op2.OP2("tests/nastran_op2_data/rdop2gpwg_1.op2").rdop2gpwg()
+    assert isinstance(gpwg, dict)
+    keys = ["m66", "s", "mass3", "mass", "cg33", "cg", "Is", "Iq", "q"]
+    m66, s, mass3, mass, cg33, cg, Is, Iq, q = [gpwg[key] for key in keys]
+    assert m66.dtype == np.dtype("f4")
+    np.testing.assert_allclose(
+        m66[0, :], [5.005019e1, 0.0, 0.0, 0.0, 1.000585e1, -5.004597], atol=1e-5
+    )
+    np.testing.assert_allclose(
+        m66[2, :], [0.0, 0.0, 5.005019e1, 5.004597, -1.711721e2, 0.0], atol=1e-5
+    )
+    np.testing.assert_allclose(
+        m66[5, 3:6], [-1.951159e1, -2.75115e1, 1.122445e3], atol=1e-3
+    )
+    np.testing.assert_allclose(s, np.eye(3))
+    np.testing.assert_allclose(mass3, [5.005019e1] * 3, atol=1e-5)
+    assert math.isclose(mass, 5.005019e1, abs_tol=1e-5)
+    np.testing.assert_allclose(cg33[0, :], [0.0, 9.999156e-2, 1.999163e-1], atol=1e-5)
+    np.testing.assert_allclose(cg33[1, :], [3.42, 0.0, 1.999163e-1], atol=1e-5)
+    np.testing.assert_allclose(cg33[2, :], [3.42, 9.999156e-2, 0.0], atol=1e-5)
+    np.testing.assert_allclose(cg, [3.42, 9.999156e-2, 1.999163e-1], atol=1e-5)
+    np.testing.assert_allclose(Is[0, :], [1.550258e2, -8.106795, -1.47085e1], atol=1e-4)
+    np.testing.assert_allclose(Is[2, 1:3], [2.6511e1, 5.365345e2], atol=1e-5)
+    np.testing.assert_allclose(Iq, [5.02794e2, 1.542326e2, 5.570665e2], atol=1e-4)
+    np.testing.assert_allclose(q[0, 0:2], [-4.41407e-2, 9.98883e-1], atol=1e-5)
+    np.testing.assert_allclose(q[2, 1:3], [-4.016433e-2, 7.950108e-1], atol=1e-5)
 
 
 def test_rdpostop2():
