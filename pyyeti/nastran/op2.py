@@ -21,6 +21,7 @@ import struct
 import warnings
 from collections import namedtuple
 import numpy as np
+import pandas as pd
 from pyyeti import guitools
 from pyyeti.nastran import op4, n2p
 
@@ -898,8 +899,52 @@ class OP2:
     def rdop2opg(self):
         """
         Read the OPG data block, which contains applied forces.
+
+        Returns
+        -------
+        opg : dict or None if OPG not in file
+            A dictionary containing the applied forces from each static
+            subcase. The keys are the subcase IDs and each value is a
+            Pandas data frame.  The rows of the data frame are the grid
+            IDs. There are six columns, which represent three forces
+            and three moments.
+
+        Notes
+        -----
+        The forces are always defined in the grid's output coordinate system.
         """
-        pass
+        try:
+            self.set_position("OPG1")
+        except KeyError:
+            return None
+        self.rdop2nt()
+        output = {}
+        while True:
+            ident = self.rdop2record(form="int")
+            if ident is None:
+                break
+            data = self.rdop2record(form="single")
+            # This uses the generic description of OFP tables, since that matches
+            # the actual op2 file contents, rather than the OPG data block description
+            acode = ident[0] // 10
+            tcode = ident[1] // 1000
+            loadset_id = ident[4]
+            fcode = ident[8]
+            numwde = ident[9]
+            assert data.shape[0] % numwde == 0
+
+            if acode != 1 or tcode != 0 or fcode != 1:  # Statics, Real, not Random
+                msg = "Unsupported data format in OPG: {}"
+                raise ValueError(msg.format((tcode, acode, fcode)))
+
+            n_grids = data.shape[0] // numwde
+            grid_ids = np.frombuffer(data, self._endian + "i4")[::numwde] // 10
+            data.shape = (n_grids, numwde)
+            forces = data[:, 2:]
+            output[loadset_id] = pd.DataFrame(
+                forces, index=grid_ids, columns=[1, 2, 3, 4, 5, 6]
+            )
+        return output
 
     def rdop2record(self, form=None, N=0):
         """

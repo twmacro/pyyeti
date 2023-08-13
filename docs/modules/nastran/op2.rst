@@ -39,6 +39,7 @@ Member functions:
     OP2.rdop2gpwg
     OP2.rdop2matrix
     OP2.rdop2mats
+    OP2.rdop2opg
     OP2.rdop2record
     OP2.rdop2tabheaders
     OP2.rdop2tload
