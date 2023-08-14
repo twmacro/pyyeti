@@ -849,7 +849,8 @@ def rdsymbols(f):
 
     Notes
     -----
-    These symbols are typically defined in a 'nastran.rcf' configuration file.
+    These symbols are typically defined in a 'nastran.rcf'
+    configuration file.
 
     They have the format: SYMBOL=<NAME>='<PATH>'.
 
@@ -4700,8 +4701,7 @@ def wttload2(
     if not t2 > t1:
         raise ValueError("t2 must be greater than t1")
     fields = ["TLOAD2", int(setid), int(excite_id), delay, excite_type]
-    fields.extend([float(t1), float(t2)])
-    fields.extend([float(x) for x in [f, p, c, b]])
+    fields.extend([float(x) for x in [t1, t2, f, p, c, b]])
     wtcard8(fobj, fields)
 
 
@@ -4730,6 +4730,7 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
     offset : 1d array_like; optional
         Offset of the mass element from the grid to which it is
         attached.
+
     Notes
     -----
     This card will be written in 16 fixed-field format using the
