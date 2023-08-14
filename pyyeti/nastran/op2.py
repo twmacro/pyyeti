@@ -905,13 +905,14 @@ class OP2:
         opg : dict or None if OPG not in file
             A dictionary containing the applied forces from each static
             subcase. The keys are the subcase IDs and each value is a
-            Pandas data frame.  The rows of the data frame are the grid
+            Pandas data frame. The rows of the data frame are the grid
             IDs. There are six columns, which represent three forces
             and three moments.
 
         Notes
         -----
-        The forces are always defined in the grid's output coordinate system.
+        The forces are always defined in the grid's output coordinate
+        system.
         """
         try:
             self.set_position("OPG1")
