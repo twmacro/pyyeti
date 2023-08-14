@@ -928,15 +928,16 @@ class OP2:
             # the actual op2 file contents, rather than the OPG data block description
             acode = ident[0] // 10
             tcode = ident[1] // 1000
-            loadset_id = ident[4]
             fcode = ident[8]
             numwde = ident[9]
             assert data.shape[0] % numwde == 0
 
-            if acode != 1 or tcode != 0 or fcode != 1:  # Statics, Real, not Random
+            # Statics, Sort1/Real/Not Random, Real
+            if acode != 1 or tcode != 0 or fcode != 1:
                 msg = "Unsupported data format in OPG: {}"
                 raise ValueError(msg.format((tcode, acode, fcode)))
 
+            loadset_id = ident[4]
             n_grids = data.shape[0] // numwde
             grid_ids = np.frombuffer(data, self._endian + "i4")[::numwde] // 10
             data.shape = (n_grids, numwde)
