@@ -6,6 +6,7 @@ Tools for computing the matrix exponential and the integral.
 import warnings
 import numpy as np
 import scipy.sparse.linalg as spla
+from scipy.sparse import isspmatrix
 import scipy.linalg as la
 
 
@@ -208,8 +209,8 @@ class _ExpmIntPadeHelper(mf._ExpmPadeHelper):
             182.0,
             1.0,
         )
-        B = self.A * 2 ** -s
-        h = h * 2 ** -s
+        B = self.A * 2**-s
+        h = h * 2**-s
         B2 = self.A2 * 2 ** (-2 * s)
         B4 = self.A4 * 2 ** (-4 * s)
         B6 = self.A6 * 2 ** (-6 * s)
@@ -434,7 +435,7 @@ def expmint(A, h, geti2=False):
     eta_5 = min(eta_3, eta_4)
     theta_13 = 4.25
     s = max(int(np.ceil(np.log2(eta_5 / theta_13))), 0)
-    s = s + mf._ell(2 ** -s * H.A, 13)
+    s = s + mf._ell(2**-s * H.A, 13)
     U, V, P, Q = H.pade13_scaled_i(s, h)
     E = mf._solve_P_Q(U, V, structure=structure)
     I = _solve_P_Q_2(P, Q, structure=structure)
@@ -646,7 +647,7 @@ def _solve_P_Q_2(P, Q, structure=None):
     for theano and cvxopt functions.
 
     """
-    if mf.isspmatrix(P):
+    if isspmatrix(P):
         return mf.spsolve(Q, P)
     elif structure is None:
         return mf.solve(Q, P)
@@ -1096,7 +1097,7 @@ class _ExpmPadeHelper_SS(mf._ExpmPadeHelper):
             182.0,
             1.0,
         )
-        B = self.A * 2 ** -s
+        B = self.A * 2**-s
         B2 = self.A2 * 2 ** (-2 * s)
         B4 = self.A4 * 2 ** (-4 * s)
         B6 = self.A6 * 2 ** (-6 * s)
@@ -1141,7 +1142,7 @@ def _expm_SS(A, ssA, order):  # , use_exact_onenorm='auto'):
     eta_5 = min(eta_3, eta_4)
     theta_13 = 4.25
     s = max(int(np.ceil(np.log2(eta_5 / theta_13))), 0)
-    s = s + mf._ell(2 ** -s * h.A, 13)
+    s = s + mf._ell(2**-s * h.A, 13)
     U, V = h.pade13_scaled(s)
     X = mf._solve_P_Q(U, V, structure=structure)
     # X = r_13(A)^(2^s) by repeated squaring.
