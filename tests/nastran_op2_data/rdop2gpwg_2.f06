@@ -1,0 +1,343 @@
+1
+ 
+ 
+ 
+ 
+                                                             
+                 Copyright 2018 Siemens Product Lifecycle    
+                        Management Software Inc.             
+                         All Rights Reserved.                
+                                                             
+               This software and related documentation are   
+                 proprietary to Siemens Product Lifecycle    
+                        Management Software Inc.             
+                                                             
+              Siemens and the Siemens logo are registered    
+           trademarks of Siemens AG. Simcenter is a trademark
+              or registered trademark of Siemens Product     
+               Lifecycle Management Software Inc. or its     
+             subsidiaries in the United States and in other  
+             countries.  NASTRAN is a registered trademark   
+                 of the National Aeronautics and Space       
+                 Administration.  All other trademarks,      
+              registered trademarks or service marks belong  
+                      to their respective holders.           
+                                                             
+           LIMITATIONS TO U.S. GOVERNMENT RIGHTS. UNPUBLISHED
+           - RIGHTS RESERVED UNDER THE COPYRIGHT LAWS OF THE 
+            UNITED STATES. This computer software and related
+               computer software documentation have been     
+            developed exclusively at private expense and are 
+           provided subject to the following rights:  If this
+               computer software and computer  software      
+            documentation qualify as "commercial items" (as  
+             that term is defined in FAR 2.101), their use,  
+            duplication or disclosure by the U.S. Government 
+           is subject to the protections and restrictions as 
+            set forth in the Siemens commercial license for  
+            software and/or documentation, as prescribed in  
+           FAR 12.212 and FAR 27.405(b)(2)(i) (for civilian  
+             agencies) and in DFARS 227.7202-1(a) and DFARS  
+           227.7202-3(a) (for the Department of Defense), or 
+           any successor or similar regulation, as applicable
+           or as amended from time to time.  If this computer
+           software and computer documentation do not qualify
+            as "commercial items", then they are "restricted 
+           computer software" and are provided with "restric-
+            tive rights", and their use, duplication or dis- 
+            closure by the U.S. Government is subject to the 
+            protections and restrictions as set forth in FAR 
+           27.404(b) and FAR 52-227-14 (for civilian agencies
+           ), and DFARS 227.7203-5(c) and DFARS 252.227-7014 
+           (for the Department of Defense), or any successor 
+           or similar regulation, as applicable or as amended
+              from time to time.  Siemens PLM Software Inc.  
+            5800 Granite Parkway, Suite 600, Plano, TX 75024 
+
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *                                 * *
+                * *     Simcenter Nastran 2019.2    * *
+                * *                                 * *
+                * *       VERSION - 1884.0025       * *
+                * *                                 * *
+                * *          AUG  9, 2019           * *
+                * *                                 * *
+                * *                                 * *
+                * *Intel64 Family 6 Model 154 Stepp * *
+                * *                                 * *
+                * *MODEL 12th Gen Intel(R) Core(TM) * *
+                * *                                 * *
+                * *           Windows 10            * *
+                * *                                 * *
+                * *       Compiled for X86-64       * *
+                * *                                 * *
+                * * * * * * * * * * * * * * * * * * * *
+                * * * * * * * * * * * * * * * * * * * *
+1 
+  
+                      Welcome to Simcenter Nastran
+                      ----------------------------
+  
+  
+ This "news" information can be turned off by setting "news=no" in the runtime
+ configuration (RC) file.  The "news" keyword can be set in the system RC file
+ for global, or multi-user control, and in a local file for local control.
+ Individual jobs can be controlled by setting news to yes or no on the command
+ line.
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     1
+                                                                                                                                    
+0        N A S T R A N    F I L E    A N D    S Y S T E M    P A R A M E T E R    E C H O                                           
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     NASTRAN BUFFSIZE=32769 $(C:/PROGRAM FILES/SIEMENS/FEMAP 2020.1/NASTRAN/CONF/NAST
+     NASTRAN BUFFPOOL=23466                                                          
+     NASTRAN DIAGA=128 DIAGB=0 $(C:/PROGRAM FILES/SIEMENS/FEMAP 2020.1/NASTRAN/CONF/N
+     NASTRAN NLINES=100000 $(C:/PROGRAM FILES/SIEMENS/FEMAP 2020.1/NASTRAN/CONF/NASTR
+     NASTRAN REAL=8545239040 $(MEMORY LIMIT FOR MPI AND OTHER SPECIALIZED MODULES)   
+     NASTRAN SYSTEM(442)=-1,SYSTEM(319)=1                                            
+     NASTRAN NLINES=100000                                                           
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     2
+                                                                                                                                    
+0        N A S T R A N    E X E C U T I V E    C O N T R O L    E C H O                                                             
+0                                                                                                                                   
+                                                                                                                                    
+                                                                                                                                    
+     SOL SEMODES                                                                             
+     CEND                                                                                    
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     3
+                                                                                                                                    
+0                                                                                                                                   
+0                                        C A S E    C O N T R O L    E C H O                                                        
+                 COMMAND                                                                                                            
+                 COUNT                                                                                                              
+                  1                                                                                              
+                  2      ECHO = NONE                                                                             
+                  3      WEIGHTCHECK = YES $ OGPWG WILL NOT BE WRITTEN                                           
+                  4      DISPLACEMENT(PLOT) = ALL                                                                
+                  5      METHOD = 1                                                                              
+                  6                                                                                              
+                  7      BEGIN BULK                                                                              
+ *** USER WARNING MESSAGE 324 (XSORSO)
+     BLANK ENTRIES ENCOUNTERED WILL BE IGNORED.
+     User information:
+     Blank Bulk Data entries are ignored by NASTRAN.
+0                             INPUT BULK DATA ENTRY COUNT =          53
+0                       TOTAL COUNT=        44
+
+
+                                        M O D E L   S U M M A R Y
+
+                                   NUMBER OF GRID     POINTS   =       10
+ 
+ 
+                                   NUMBER OF CBEAM    ELEMENTS =        9
+                                   NUMBER OF CONM2    ELEMENTS =        5
+ 
+ *** USER INFORMATION MESSAGE 4109 (OUTPBN2)
+     THE LABEL IS NX2019.2 FOR FORTRAN UNIT 12
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =        7 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =        8 RECORDS.)
+     (TOTAL DATA WRITTEN FOR TAPE LABEL =       17 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPBN2)
+     DATA BLOCK PVT0     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                27                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =    65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       27 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       53 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPBN2)
+     DATA BLOCK CASECC   WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 1                 0              1200                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =    65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =     1200 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       19 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     1226 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPBN2)
+     DATA BLOCK EQEXINS  WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                10                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =    65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =       20 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =       70 WORDS.)
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     4
+                                                                                                                                    
+0                                                                                                                                   
+0 RESULTANTS ABOUT ORIGIN OF SUPERELEMENT BASIC COORDINATE SYSTEM IN SUPERELEMENT BASIC SYSTEM COORDINATES.
+
+0                                                  OLOAD    RESULTANT       
+  SUBCASE/    LOAD
+  DAREA ID    TYPE       T1            T2            T3            R1            R2            R3
+0        1     FX    0.000000E+00     ----          ----          ----       0.000000E+00  0.000000E+00                             
+               FY       ----       0.000000E+00     ----       0.000000E+00     ----       0.000000E+00                             
+               FZ       ----          ----       0.000000E+00  0.000000E+00  0.000000E+00     ----                                  
+               MX       ----          ----          ----       0.000000E+00     ----          ----                                  
+               MY       ----          ----          ----          ----       0.000000E+00     ----                                  
+               MZ       ----          ----          ----          ----          ----       0.000000E+00                             
+             TOTALS  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00  0.000000E+00                             
+ *** USER INFORMATION MESSAGE - SINGULARITIES FOUND USING EIGENVALUE METHOD
+ ***       0 SINGULARITIES FOUND         0 SINGULARITIES ELIMINATED
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     5
+                                                                                                                                    
+0                                                                                                                                   
+                                           O U T P U T   F R O M   W E I G H T   C H E C K
+0                                                     DEGREES OF FREEDOM SET = G       
+0                                                     REFERENCE POINT =        0
+                                                                M O
+                      *  5.005019E+01  0.000000E+00  0.000000E+00  0.000000E+00  1.000585E+01 -5.004597E+00 *
+                      *  0.000000E+00  5.005019E+01  0.000000E+00 -1.000585E+01  0.000000E+00  1.711721E+02 *
+                      *  0.000000E+00  0.000000E+00  5.005019E+01  5.004597E+00 -1.711721E+02  0.000000E+00 *
+                      *  0.000000E+00 -1.000585E+01  5.004597E+00  1.575266E+02 -9.008967E+00 -1.951159E+01 *
+                      *  1.000585E+01  0.000000E+00 -1.711721E+02 -9.008967E+00  1.109943E+03 -2.751150E+01 *
+                      * -5.004597E+00  1.711721E+02  0.000000E+00 -1.951159E+01 -2.751150E+01  1.122445E+03 *
+                                                                 S
+                                           *  1.000000E+00  0.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  1.000000E+00  0.000000E+00 *
+                                           *  0.000000E+00  0.000000E+00  1.000000E+00 *
+                               DIRECTION
+                          MASS AXIS SYSTEM (S)     MASS              X-C.G.        Y-C.G.        Z-C.G.
+                                  X            5.005019E+01      0.000000E+00  9.999156E-02  1.999163E-01
+                                  Y            5.005019E+01      3.420008E+00  0.000000E+00  1.999163E-01
+                                  Z            5.005019E+01      3.420008E+00  9.999156E-02  0.000000E+00
+                                                                I(S)
+                                           *  1.550258E+02 -8.106795E+00 -1.470850E+01 *
+                                           * -8.106795E+00  5.225329E+02  2.651100E+01 *
+                                           * -1.470850E+01  2.651100E+01  5.365345E+02 *
+                                                                I(Q)
+                                           *  5.027940E+02                             *
+                                           *                1.542326E+02               *
+                                           *                              5.570665E+02 *
+                                                                 Q
+                                           * -4.414071E-02  9.988831E-01  1.685849E-02 *
+                                           * -7.947999E-01 -2.488850E-02 -6.063610E-01 *
+                                           * -6.052641E-01 -4.016433E-02  7.950108E-01 *
+
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     6
+                                                                                                                                    
+0                                                                                                                                   
+ *** SYSTEM INFORMATION MESSAGE 6916 (DFMSYN)
+     DECOMP ORDERING METHOD CHOSEN: DEFAULT, ORDERING METHOD USED: MMD
+ *** USER INFORMATION MESSAGE 5010 (LNCILS)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE =  2.503181E+03, CYCLES =  7.962808E+00 NUMBER OF EIGENVALUES BELOW THIS VALUE =     6
+     User information:
+     This message is automatic output during eigenvalue extraction.  This
+     can be used, along with the list of eigenvalues, to identify the modes
+     found. See the NASTRAN Numerical Methods User's Guide.
+ *** USER INFORMATION MESSAGE 5010 (LNCILS)
+     STURM SEQUENCE DATA FOR EIGENVALUE EXTRACTION.
+     TRIAL EIGENVALUE =  3.078402E+05, CYCLES =  8.830449E+01 NUMBER OF EIGENVALUES BELOW THIS VALUE =    18
+     User information:
+     This message is automatic output during eigenvalue extraction.  This
+     can be used, along with the list of eigenvalues, to identify the modes
+     found. See the NASTRAN Numerical Methods User's Guide.
+
+ TABLE OF SHIFTS:  (LNNRIGL)
+ SHIFT #        SHIFT VALUE         FREQUENCY, CYCLES     # EIGENVALUES BELOW    # NEW EIGENVALUES FOUND
+     1.        2.5031806E+03          7.9628076E+00                 6                       21
+     2.        3.0784019E+05          8.8304491E+01                18                        0
+
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     7
+                                                                                                                                    
+0                                                                                                                                   
+0
+
+
+                          E I G E N V A L U E  A N A L Y S I S   S U M M A R Y   (READ MODULE) 
+
+
+
+                                     BLOCK SIZE USED ......................    7
+
+                                     NUMBER OF DECOMPOSITIONS .............    2
+
+                                     NUMBER OF ROOTS FOUND ................   18
+
+                                     NUMBER OF SOLVES REQUIRED ............    6
+
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     8
+                                                                                                                                    
+0                                                                                                                                   
+ 
+                                              R E A L   E I G E N V A L U E S
+   MODE    EXTRACTION      EIGENVALUE            RADIANS             CYCLES            GENERALIZED         GENERALIZED
+    NO.       ORDER                                                                       MASS              STIFFNESS
+        1         1       -2.064553E-10        1.436855E-05        2.286826E-06        1.000000E+00       -2.064553E-10
+        2         2        8.731149E-11        9.344062E-06        1.487154E-06        1.000000E+00        8.731149E-11
+        3         3        1.218723E-10        1.103958E-05        1.757003E-06        1.000000E+00        1.218723E-10
+        4         4        2.150955E-10        1.466613E-05        2.334188E-06        1.000000E+00        2.150955E-10
+        5         5        1.239641E-09        3.520854E-05        5.603613E-06        1.000000E+00        1.239641E-09
+        6         6        2.134584E-09        4.620156E-05        7.353207E-06        1.000000E+00        2.134584E-09
+        7         7        1.958553E+04        1.399483E+02        2.227347E+01        1.000000E+00        1.958553E+04
+        8         8        2.403508E+04        1.550325E+02        2.467419E+01        1.000000E+00        2.403508E+04
+        9         9        3.069632E+04        1.752037E+02        2.788453E+01        1.000000E+00        3.069632E+04
+       10        10        7.734031E+04        2.781013E+02        4.426119E+01        1.000000E+00        7.734031E+04
+       11        11        8.190177E+04        2.861848E+02        4.554773E+01        1.000000E+00        8.190177E+04
+       12        12        9.125468E+04        3.020839E+02        4.807814E+01        1.000000E+00        9.125468E+04
+       13        13        1.161111E+05        3.407507E+02        5.423216E+01        1.000000E+00        1.161111E+05
+       14        14        1.194405E+05        3.456016E+02        5.500421E+01        1.000000E+00        1.194405E+05
+       15        15        1.357980E+05        3.685078E+02        5.864984E+01        1.000000E+00        1.357980E+05
+       16        16        1.476044E+05        3.841931E+02        6.114624E+01        1.000000E+00        1.476044E+05
+       17        17        1.595982E+05        3.994975E+02        6.358200E+01        1.000000E+00        1.595982E+05
+       18        18        1.777241E+05        4.215734E+02        6.709549E+01        1.000000E+00        1.777241E+05
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE     9
+                                                                                                                                    
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 4114 (OUTPBN2)
+     DATA BLOCK LAMA     WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                18                 0                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =    65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =       24 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =      302 WORDS.)
+ *** USER INFORMATION MESSAGE 4114 (OUTPBN2)
+     DATA BLOCK OUGV1    WRITTEN ON FORTRAN UNIT  12, TRL =
+                    101                 0              1440                 0                 0                 0                 0
+     (MAXIMUM POSSIBLE FORTRAN RECORD SIZE =    65538 WORDS.)
+     (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      146 WORDS.)
+     (NUMBER OF FORTRAN RECORDS WRITTEN =      194 RECORDS.)
+     (TOTAL DATA WRITTEN FOR DATA BLOCK =     4239 WORDS.)
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE    10
+                                                                                                                                    
+0                                                                                                                                   
+ *** USER INFORMATION MESSAGE 4110 (OUTPBN2)
+                                 END-OF-DATA SIMULATION ON FORTRAN UNIT 12
+                                 (MAXIMUM SIZE OF FORTRAN RECORDS WRITTEN =      1 WORDS.)
+                                       (NUMBER OF FORTRAN RECORDS WRITTEN =      1 RECORDS.)
+                                       (TOTAL DATA WRITTEN FOR EOF MARKER =      1 WORDS.)
+1                                                                            AUGUST  13, 2023  SIMCENTER NASTRAN  8/ 9/19   PAGE    11
+                                                                                                                                    
+0                                                                                                                                   
+ * * * *  D B D I C T   P R I N T  * * * *      SUBDMAP = PRTSUM  ,  DMAP STATEMENT NO.     28
+
+
+
+0                                   * * * *  A N A L Y S I S  S U M M A R Y  T A B L E  * * * *
+0 SEID  PEID PROJ VERS APRCH      SEMG SEMR SEKR SELG SELR MODES DYNRED SOLLIN PVALID SOLNL LOOPID DESIGN CYCLE SENSITIVITY
+ --------------------------------------------------------------------------------------------------------------------------
+     0     0    1    1 '        '    T    T    T    T    T     T      F      T      0     F     -1            0           F
+0SEID = SUPERELEMENT ID.
+ PEID = PRIMARY SUPERELEMENT ID OF IMAGE SUPERELEMENT.
+ PROJ = PROJECT ID NUMBER.
+ VERS = VERSION ID.
+ APRCH = BLANK FOR STRUCTURAL ANALYSIS.  HEAT FOR HEAT TRANSFER ANALYSIS.
+ SEMG = STIFFNESS AND MASS MATRIX GENERATION STEP.
+ SEMR = MASS MATRIX REDUCTION STEP (INCLUDES EIGENVALUE SOLUTION FOR MODES).
+ SEKR = STIFFNESS MATRIX REDUCTION STEP.
+ SELG = LOAD MATRIX GENERATION STEP.
+ SELR = LOAD MATRIX REDUCTION STEP. 
+ MODES = T (TRUE) IF NORMAL MODES OR BUCKLING MODES CALCULATED.
+ DYNRED = T (TRUE) MEANS GENERALIZED DYNAMIC AND/OR COMPONENT MODE REDUCTION PERFORMED.
+ SOLLIN = T (TRUE) IF LINEAR SOLUTION EXISTS IN DATABASE.
+ PVALID = P-DISTRIBUTION ID OF P-VALUE FOR P-ELEMENTS
+ LOOPID = THE LAST LOOPID VALUE USED IN THE NONLINEAR ANALYSIS.  USEFUL FOR RESTARTS.
+ SOLNL = T (TRUE) IF NONLINEAR SOLUTION EXISTS IN DATABASE.
+ DESIGN CYCLE = THE LAST DESIGN CYCLE (ONLY VALID IN OPTIMIZATION).
+ SENSITIVITY = SENSITIVITY MATRIX GENERATION FLAG.
+1                                        * * * END OF JOB * * *
+ 
+ 

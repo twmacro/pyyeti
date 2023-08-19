@@ -21,6 +21,7 @@ import struct
 import warnings
 from collections import namedtuple
 import numpy as np
+import pandas as pd
 from pyyeti import guitools
 from pyyeti.nastran import op4, n2p
 
@@ -841,6 +842,111 @@ class OP2:
         self._fileh.seek(fpos)
         name, trailer, dbtype = self.rdop2nt()
         return self.rdop2dynamics()
+
+    def rdop2gpwg(self):
+        """
+        Read the OGPWG data block, which contains model mass properties.
+
+        Returns
+        -------
+        dictionary or None if OGPWG not in file
+
+        m66 : 2d ndarray
+            6x6 rigid body mass matrix
+        s : 2d ndarray
+            The 3x3 transformation from principal mass directions to
+            the basic csys. This is usually an identity matrix.
+        mass3 : 1d ndarray
+            A length-3 vector of the model's mass in each principal
+            mass direction.
+        mass : float
+            The model's mass.
+        cg33 : 2d ndarray
+            The 3x3 center of mass matrix.
+        cg : 1d ndarray
+            A length-3 vector of the model's center of mass.
+        Is : 2d ndarray
+            The model's 3x3 inertia matrix at the CG using the
+            principal mass directions.
+        Iq : 2d ndarray
+            A length-3 vector containing the model's inertia matrix
+            using the principal axes.
+        q : 2d ndarray
+            The 3x3 transformation from the basic csys to the principal
+            axes.
+        """
+        try:
+            self.set_position("OGPWG")
+        except KeyError:
+            return None
+        self.rdop2nt()
+        self.skipop2record()
+        gpwg = {}
+        data = self.rdop2record(form="single")
+        gpwg["m66"] = np.array(data[0:36], order="F").reshape((6, 6))
+        gpwg["s"] = np.array(data[36:45], order="F").reshape((3, 3))
+        mass_cg = np.array(data[45:57], order="F").reshape((3, 4))
+        gpwg["mass3"] = mass_cg[:, 0].copy()
+        gpwg["mass"] = mass_cg[0, 0]
+        gpwg["cg33"] = mass_cg[:, 1:4].copy()
+        gpwg["cg"] = np.array([mass_cg[1, 1], mass_cg[0, 2], mass_cg[0, 3]])
+        gpwg["Is"] = np.array(data[57:66], order="F").reshape((3, 3))
+        gpwg["Iq"] = np.array(data[66:69], order="F")
+        gpwg["q"] = np.array(data[69:78], order="F").reshape((3, 3))
+        self.rdop2eot()
+        return gpwg
+
+    def rdop2opg(self):
+        """
+        Read the OPG data block, which contains applied forces.
+
+        Returns
+        -------
+        opg : dict or None if OPG not in file
+            A dictionary containing the applied forces from each static
+            subcase. The keys are the subcase IDs and each value is a
+            Pandas data frame. The rows of the data frame are the grid
+            IDs. There are six columns, which represent three forces
+            and three moments.
+
+        Notes
+        -----
+        The forces are always defined in the grid's output coordinate
+        system.
+        """
+        try:
+            self.set_position("OPG1")
+        except KeyError:
+            return None
+        self.rdop2nt()
+        output = {}
+        while True:
+            ident = self.rdop2record(form="int")
+            if ident is None:
+                break
+            data = self.rdop2record(form="single")
+            # This uses the generic description of OFP tables, since that matches
+            # the actual op2 file contents, rather than the OPG data block description
+            acode = ident[0] // 10
+            tcode = ident[1] // 1000
+            fcode = ident[8]
+            numwde = ident[9]
+            assert data.shape[0] % numwde == 0
+
+            # Statics, Sort1/Real/Not Random, Real
+            if acode != 1 or tcode != 0 or fcode != 1:
+                msg = "Unsupported data format in OPG: {}"
+                raise ValueError(msg.format((tcode, acode, fcode)))
+
+            loadset_id = ident[4]
+            n_grids = data.shape[0] // numwde
+            grid_ids = np.frombuffer(data, self._endian + "i4")[::numwde] // 10
+            data.shape = (n_grids, numwde)
+            forces = data[:, 2:]
+            output[loadset_id] = pd.DataFrame(
+                forces, index=grid_ids, columns=[1, 2, 3, 4, 5, 6]
+            )
+        return output
 
     def rdop2record(self, form=None, N=0):
         """
