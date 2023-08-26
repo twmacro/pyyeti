@@ -104,8 +104,9 @@ class OP4:
     >>> from pyyeti.nastran import op4
     >>> o4 = op4.OP4()
     >>> import numpy as np
-    >>> r = np.random.randn(3, 5)
-    >>> c = 1j*np.random.randn(3, 5) + r
+    >>> rng = np.random.default_rng()
+    >>> r = rng.normal(size=(3, 5))
+    >>> c = r + 1j*rng.normal(size=(3, 5))
 
     Write binary op4 file, with 'r' first:
 

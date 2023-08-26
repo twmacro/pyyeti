@@ -143,8 +143,7 @@ def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
         >>> n = len(data)
         >>> x = np.arange(n)
         >>> upx = np.arange(n*p)/p
-        >>> _ = plt.figure('Example', figsize=(10, 8))
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', figsize=(10, 8), clear=True)
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(x, data, 'o-', label='Original')
         >>> res = {}
@@ -187,18 +186,18 @@ def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
         >>> p = 1
         >>> q = 5
         >>> n = 530
-        >>> np.random.seed(1)
-        >>> data = np.random.randn(n)
+        >>> rng = np.random.default_rng(seed=10)
+        >>> data = rng.normal(size=n)
         >>> x = np.arange(n)
         >>> dndata, dnx = dsp.resample(data, p, q, t=x)
-        >>> fig = plt.figure('Example 2')
-        >>> fig.clf()
+        >>> fig = plt.figure('Example 2', clear=True)
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(x, data, 'o-', label='Original', alpha=0.3)
         >>> _ = plt.plot(dnx, dndata, label='Resample', lw=2)
         >>> resfft = signal.resample(data, int(np.ceil(n/q)))
-        >>> _ = plt.plot(dnx, resfft, label='scipy.signal.resample',
-        ...              lw=2)
+        >>> _ = plt.plot(
+        ...         dnx, resfft, label='scipy.signal.resample', lw=2
+        ...     )
         >>> _ = plt.legend(loc='best')
         >>> _ = plt.title('Signal')
         >>> _ = plt.xlabel('Time')
@@ -206,13 +205,15 @@ def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
         >>> n2 = len(dnx)
         >>> frq = fft.rfftfreq(n, 1)
         >>> frqdn = fft.rfftfreq(n2, q)
-        >>> _ = plt.plot(frq, 2*np.abs(fft.rfft(data))/n, 'o-',
-        ...              alpha=.3)
+        >>> _ = plt.plot(
+        ...         frq, 2*np.abs(fft.rfft(data))/n, 'o-', alpha=.3
+        ...     )
         >>> _ = plt.plot(frqdn, 2*np.abs(fft.rfft(dndata))/n2, lw=2)
         >>> _ = plt.plot(frqdn, 2*np.abs(fft.rfft(resfft))/n2, lw=2)
         >>> _ = plt.title('FFT Mag.')
         >>> xlbl = 'Frequency - fraction of original sample rate'
         >>> _ = plt.xlabel(xlbl)
+        >>> _ = plt.xlim(-0.01, 0.13)
         >>> _ = plt.tight_layout()
     """
     data = np.atleast_1d(data)
@@ -760,8 +761,7 @@ def despike(
         >>> import matplotlib.pyplot as plt
         >>> np.set_printoptions(linewidth=65)
         >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
-        >>> _ = plt.figure('Example', figsize=(8, 11))
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', figsize=(8, 11), clear=True)
         >>> for i in range(5):
         ...     s = dsp.despike(x, n=9, sigma=2, maxiter=1,
         ...                     threshold_sigma=0.1,
@@ -2085,8 +2085,7 @@ def windowends(sig, portion=0.01, ends="front", axis=-1):
         :context: close-figs
 
         >>> import matplotlib.pyplot as plt
-        >>> _ = plt.figure('Example', figsize=[8, 3])
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', figsize=[8, 3], clear=True)
         >>> sig = np.ones(100)
         >>> wesig = dsp.windowends(sig, 5, ends='both')
         >>> _ = plt.plot(sig, label='Original')
@@ -2511,8 +2510,7 @@ def calcenv(
         >>> from pyyeti import dsp
         >>> x = np.arange(1.0, 31.0, 1.0)
         >>> y = np.cos(x)
-        >>> fig = plt.figure('Example', figsize=[10, 8])
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', figsize=[10, 8], clear=True)
         >>>
         >>> ax = plt.subplot(411)
         >>> env = dsp.calcenv(x, y, base=None, makeplot='add')
@@ -2649,8 +2647,7 @@ def fdscale(y, sr, scale, axis=-1):
         ...                   [9., 1.0],
         ...                   [100., 1.0]])
         >>> sig_scaled = dsp.fdscale(sig, 1/t[1], scale)
-        >>> _ = plt.figure('Example')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', clear=True)
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(f, sig)
         >>> _ = plt.title('Sine Sweep vs Frequency')
@@ -2840,10 +2837,8 @@ def fftfilt(
 
         >>> sr = 1/h
         >>> nyq = sr/2
-        >>> _ = plt.figure('Example')
-        >>> plt.clf()
-        >>> _ = plt.figure('Example 2')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', clear=True)
+        >>> _ = plt.figure('Example 2', clear=True)
         >>> for j, (w, pz, yj) in enumerate(((7, None, y1),
         ...                                 ([7, 18], None, y2),
         ...                                 ([18, 45], None, y3),
@@ -3058,11 +3053,11 @@ def fftcoef(
         >>> import matplotlib.pyplot as plt
         >>> from pyyeti import dsp
         >>> n = 23
-        >>> x = np.random.randn(n)
+        >>> rng = np.random.default_rng()
+        >>> x = rng.normal(size=n)
         >>> t = np.arange(n)
         >>> mag, phase, frq = dsp.fftcoef(x, 1.0)
-        >>> _ = plt.figure('Example')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', clear=True)
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(frq, mag)
         >>> _ = plt.ylabel('Magnitude')
@@ -3070,25 +3065,24 @@ def fftcoef(
         >>> _ = plt.plot(frq, np.rad2deg(np.unwrap(phase)))
         >>> _ = plt.ylabel('Phase (deg)')
         >>> _ = plt.xlabel('Frequency (Hz)')
-        >>> #
+        >>>
         >>> w = 2*np.pi*frq[1]
-        >>> #
+        >>>
         >>> # use a finer time vector for reconstructions:
         >>> t2 = np.arange(0., n, .05)
-        >>> #
+        >>>
         >>> # reconstruct with magnitude and phase:
         >>> x2 = 0.0
         >>> for k, (m, p, f) in enumerate(zip(mag, phase, frq)):
         ...     x2 = x2 + m*np.sin(k*w*t2 - p)
-        >>> #
+        >>>
         >>> # reconstruct with A and B:
         >>> A, B, frq = dsp.fftcoef(x, 1.0, coef='ab')
         >>> x3 = 0.0
         >>> for k, (a, b, f) in enumerate(zip(A, B, frq)):
         ...     x3 = x3 + a*np.cos(k*w*t2) + b*np.sin(k*w*t2)
-        >>> #
-        >>> _ = plt.figure('Example 2')
-        >>> plt.clf()
+        >>>
+        >>> _ = plt.figure('Example 2', clear=True)
         >>> _ = plt.plot(t, x, 'o', label='Original')
         >>> _ = plt.plot(t2, x2, label='FFT fit w/ Mag & Phase')
         >>> _ = plt.plot(t2, x3, '--', label='FFT fit w/ A & B')
@@ -3449,8 +3443,7 @@ def transmissibility(
         >>> tr = dsp.transmissibility(
         ...           in_acce, out_acce, sr, getmap=True)
         >>>
-        >>> fig = plt.figure('Example', figsize=(8, 11))
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', figsize=(8, 11), clear=True)
         >>>
         >>> # use GridSpec to make a nice layout with colorbars:
         >>> gs = gridspec.GridSpec(5, 2, width_ratios=[30, 1])
