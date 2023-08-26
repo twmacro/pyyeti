@@ -66,9 +66,12 @@ class SolveUnc(_BaseODE):
     linear forces (if `order` is 1) or piece-wise constant forces (if
     `order` is 0).
 
+    **Uncoupled Equations**
+
     For uncoupled equations, pre-formulated integration coefficients
-    are used (see :func:`get_su_coef`) as follows (think of the
-    coefficients as diagonal matrices):
+    are used as shown in the following displacement and velocity
+    recurrence relations (think of the coefficients as diagonal
+    matrices):
 
     .. math::
         \begin{aligned}
@@ -77,6 +80,62 @@ class SolveUnc(_BaseODE):
         \dot{q}_{i+1} &= F_p q_i + G_p \dot{q}_i +
            A_p P_i + B_p P_{i+1}
         \end{aligned}
+
+    Those coefficients (computed in :func:`get_su_coef` for
+    underdamped, critically-damped, and overdamped systems) can be
+    derived as follows. Consider the equation of motion for a single
+    degree of freedom:
+
+    .. math::
+        \ddot{q}(t) + 2 \zeta \omega_n \dot{q}(t) +
+            {\omega_n}^2 q(t) = \frac{1}{m} P(t)
+
+    For illustration, we'll assume that we have an underdamped system
+    (:math:`\zeta < 1`). The exact solution consists of a free-decay
+    part (the homogeneous solution) and a forced-response part (the
+    particular solution):
+
+    .. math::
+        q(t) = e^{-\zeta \omega_n t}
+           \left [ q_0 \cos(\omega_d t) + \frac{v_0 +
+                   \zeta \omega_n q_0}{\omega_d} \sin(\omega_d t)
+           \right ]
+           + \frac{1}{m \omega_d}
+             \int_0^t {e^{-\zeta \omega_n (t - \tau)}
+                       \sin(\omega_d (t - \tau) P(\tau) d \tau}
+
+    where the displacement and velocity initial conditions are
+    :math:`q_0` and :math:`v_0`, and :math:`\omega_d` is the damped
+    natural frequency:
+
+    .. math::
+        \omega_d = \omega_n \sqrt{1-\zeta^2}
+
+    Consider a single time step, from :math:`t_n` to
+    :math:`t_{n+1}`. If we assume that the force varies linearly
+    within that time step, we can solve the integral in the above
+    equation (Duhamel’s integral) that will be valid from :math:`t_n`
+    to :math:`t_{n+1}` (:math:`\tau` will still range from :math:`0`
+    to :math:`t`). Given the initial conditions :math:`q_n` and
+    :math:`v_n` for the time step, we would then have the solution
+    :math:`q(t)` that would be valid from :math:`t_n` to
+    :math:`t_{n+1}`. Define the time step size as
+    :math:`h`. Therefore:
+
+        1. In the equation above, :math:`t = 0` now represents
+           :math:`t_n` and :math:`t=h` represents :math:`t_{n+1}`
+        2. :math:`q_0` becomes :math:`q_n` and :math:`v_0` becomes
+           :math:`v_n`
+        3. :math:`P(\tau) = P_n + (P_{n+1} - P_n) \tau / h` where
+           :math:`0 \le \tau \le h`
+
+    Solving the integral from :math:`\tau = 0` to :math:`\tau = t` and
+    then setting :math:`t = h` gives the recurrence relation for
+    displacement shown above. For the velocity recurrence relation, we
+    take the derivative of the :math:`q(t)` expression just prior to
+    setting :math:`t = h` and then set :math:`t = h`.
+
+    **Coupled Equations**
 
     For coupled systems, the rigid-body modes are solved as described
     above: using the pre-formulated coefficients. The elastic modes
@@ -146,10 +205,10 @@ class SolveUnc(_BaseODE):
         u_{n+1} = F_e u_{n} + A_e v_{n} + B_e v_{n+1}
 
     .. note::
-
-        The above equations are for the non-residual-flexibility
-        modes. The 'rf' modes are solved statically and any initial
-        conditions are ignored for them.
+        The above equations (for both uncoupled and coupled equations)
+        are for the non-residual-flexibility modes. The 'rf' modes are
+        solved statically and any initial conditions are ignored for
+        them.
 
     For a static solution:
 
