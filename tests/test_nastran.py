@@ -184,7 +184,7 @@ def test_rdcards_with_includes():
         cards = nastran.rdcards(
             file1_path,
             "grid",
-            None,
+            blank=None,
             return_var="list",
             keep_name=True,
             follow_includes=True,
@@ -195,7 +195,7 @@ def test_rdcards_with_includes():
         cards = nastran.rdcards(
             file1_path,
             "grid",
-            None,
+            blank=None,
             return_var="list",
             keep_name=True,
             follow_includes=False,
@@ -207,7 +207,7 @@ def test_rdcards_with_includes():
         cards = nastran.rdcards(
             file1_path,
             "grid",
-            None,
+            blank=None,
             return_var="list",
             keep_name=True,
             keep_comments=True,
@@ -235,7 +235,7 @@ def test_rdcards_with_includes():
         cards = nastran.rdcards(
             file1_path,
             "grid",
-            None,
+            blank=None,
             return_var="list",
             keep_name=True,
             follow_includes=True,
@@ -258,7 +258,7 @@ def test_rdcards_with_includes():
         cards = nastran.rdcards(
             file1_path,
             "grid",
-            None,
+            blank=None,
             return_var="list",
             keep_name=True,
             follow_includes=True,
@@ -274,7 +274,7 @@ def test_rdcards_with_includes():
         cards = nastran.rdcards(
             file1_path,
             "grid",
-            None,
+            blank=None,
             return_var="list",
             keep_name=True,
             follow_includes=True,
@@ -312,6 +312,23 @@ def test_rdsymbols():
     f = StringIO("")
     symbols = nastran.rdsymbols(f)
     assert symbols == {}
+
+
+def test_rdgrids():
+    file1 = "GRID,1,0,10.0,0.0,0.0\nINCLUDE 'file2.bdf'\nGRID,3,0,30.0,0.0,0.0\n"
+    file2 = "GRID,2,0,20.0,0.0,0.0"
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _wtfile(file1_path, file1)
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
+        # follow_includes=False
+        grids = nastran.rdgrids(file1_path, follow_includes=False)
+        np.testing.assert_array_equal(grids[:, 0], [1, 3])  # grid ID
+        np.testing.assert_allclose(grids[:, 2], [10.0, 30.0])  # x coord
+        # follow_includes=True
+        grids = nastran.rdgrids(file1_path)
+        np.testing.assert_array_equal(grids[:, 0], [1, 2, 3])  # grid ID
+        np.testing.assert_allclose(grids[:, 2], [10.0, 20, 30.0])  # x coord
 
 
 def test_wtgrids():
@@ -1985,7 +2002,7 @@ def test_wtcard8_bad_inputs():
 def test_wtcard8():
     values = (
         # 3 fields
-        (("ABC", 0, None, 1.5), "ABC            0         1.50+00\n"),
+        (("ABC", 0, "", 1.5), "ABC            0         1.50+00\n"),
         # 7 fields, NumPy types
         (
             (
@@ -2000,15 +2017,15 @@ def test_wtcard8():
             "ABC           10      11      12      13 1.00+00 2.00+00\n",
         ),
         # 4 fields
-        (("ABC", 0, None, 1.5, -2.0), "ABC            0         1.50+00-2.00+00\n"),
+        (("ABC", 0, "", 1.5, -2.0), "ABC            0         1.50+00-2.00+00\n"),
         # 4 fields
         (
-            ("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5),
+            ("ABC", 0, "", 1.5, -2.0, "", "DEF", 1.2e5, 3.4e-5),
             "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n",
         ),
         # 9 fields
         (
-            ("ABC", 0, None, 1.5, -2.0, None, "DEF", 1.2e5, 3.4e-5, -3.4e-12),
+            ("ABC", 0, "", 1.5, -2.0, "", "DEF", 1.2e5, 3.4e-5, -3.4e-12),
             "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
             "+       -3.40-12\n",
         ),
@@ -2017,10 +2034,10 @@ def test_wtcard8():
             (
                 "ABC",
                 0,
-                None,
+                "",
                 1.5,
                 -2.0,
-                None,
+                "",
                 "DEF",
                 1.2e5,
                 3.4e-5,
@@ -2067,7 +2084,7 @@ def test_wtcard16():
     values = (
         # three fields
         (
-            ("ABC*", 0, None, 1.5),
+            ("ABC*", 0, "", 1.5),
             ("ABC*                   0                 1.5000000000+00\n" "*\n"),
         ),
         # 7 fields, NumPy types
@@ -2086,7 +2103,7 @@ def test_wtcard16():
         ),
         # four fields
         (
-            ("ABC*", 0, None, 1.0, -2.0),
+            ("ABC*", 0, "", 1.0, -2.0),
             (
                 "ABC*                   0                 1.0000000000+00-2.0000000000+00\n"
                 "*\n"
@@ -2102,7 +2119,7 @@ def test_wtcard16():
         ),
         # eight fields
         (
-            ("ABC*", 0, None, 1.0, 2.0, None, 3.0, 4.0e-2, 550),
+            ("ABC*", 0, "", 1.0, 2.0, "", 3.0, 4.0e-2, 550),
             (
                 "ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
                 "*                        3.0000000000+00 4.0000000000-02             550\n"
@@ -2110,7 +2127,7 @@ def test_wtcard16():
         ),
         # nine fields
         (
-            ("ABC*", 0, None, 1.0, 2.0, None, 3.0, 4.0, 550, "ABC"),
+            ("ABC*", 0, "", 1.0, 2.0, "", 3.0, 4.0, 550, "ABC"),
             (
                 "ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
                 "*                        3.0000000000+00 4.0000000000+00             550*\n"

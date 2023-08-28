@@ -381,7 +381,7 @@ def _next_line(f, name, regex, keep_comments, follow_includes, Vals):
         _handle_comments(comment_list, Vals)
 
 
-def _rdinclude(fiter, s, args):
+def _rdinclude(fiter, s, kwargs):
     """
     Read and then recursively follow an INCLUDE statement.
     fiter : file iterator
@@ -411,13 +411,12 @@ def _rdinclude(fiter, s, args):
             else:  # end not found, add entire line
                 path_parts.append(s.strip())
     rel_path = "".join(path_parts)
-    *_, symbols, base_path = args
-    path, symbol_found = _check_for_symbols(rel_path, symbols)
+    path, symbol_found = _check_for_symbols(rel_path, kwargs["include_symbols"])
     if not symbol_found:
-        path = os.path.abspath(os.path.join(base_path, rel_path))
+        path = os.path.abspath(os.path.join(kwargs["include_root_dir"], rel_path))
     # read next line, which will be returned by next fiter.send(True) call
     fiter.send(False)
-    return rdcards(path, *args)
+    return rdcards(path, **kwargs)
 
 
 def _check_for_symbols(rel_path, symbols):
@@ -433,8 +432,8 @@ def _check_for_symbols(rel_path, symbols):
         rel_path = rel_path[index + 1 :]
         try:
             base_path = symbols[symbol]
-        except:
-            msg = f"Symbol found in INCLUDE, but it is not defined: {symbol:}"
+        except KeyError:
+            msg = f"Symbol found in INCLUDE, but it is not defined: {symbol}"
             raise ValueError(msg)
         return os.path.join(base_path, rel_path), True
     else:
@@ -541,6 +540,7 @@ def _rdcomma(fiter, s, conchar, blank, tolist, keep_name):
 def rdcards(
     f,
     name,
+    *,
     blank=None,
     return_var="array",
     dtype=float,
@@ -752,20 +752,20 @@ def rdcards(
     )
     for symbol in include_symbols:
         if not len(symbol) > 2:
-            raise ValueError(f"Symbols must have a length >1, got {symbol:}")
-    args = (  # save args for use in _rdinclude
-        name,
-        blank,
-        return_var,
-        dtype,
-        (),  # return value from _rdinclude must be iterable (not None)
-        regex,
-        keep_name,
-        keep_comments,
-        follow_includes,
-        include_symbols,
-        include_root_dir,
-    )
+            raise ValueError(f"Symbols must have a length >1, got {symbol}")
+    kwargs = {  # save args for use in _rdinclude
+        "name": name,
+        "blank": blank,
+        "return_var": return_var,
+        "dtype": dtype,
+        "no_data_return": (),  # return value from _rdinclude must be iterable (not None)
+        "regex": regex,
+        "keep_name": keep_name,
+        "keep_comments": keep_comments,
+        "follow_includes": follow_includes,
+        "include_symbols": include_symbols,
+        "include_root_dir": include_root_dir,
+    }
 
     if return_var == "dict":
         Vals = {}
@@ -786,7 +786,7 @@ def rdcards(
     while s is not None:
         # if here, have matching line
         if follow_includes and s.lower().startswith("include"):
-            vals = _rdinclude(fiter, s, args)
+            vals = _rdinclude(fiter, s, kwargs)
         elif s.find(",") > -1:
             vals = [_rdcomma(fiter, s, " +,", blank, tolist, keep_name)]
         else:
@@ -873,7 +873,15 @@ def rdsymbols(f):
     return symbols
 
 
-def rddmig(f, dmig_names=None, *, expanded=False, square=False):
+def rddmig(
+    f,
+    dmig_names=None,
+    *,
+    expanded=False,
+    square=False,
+    follow_includes=True,
+    include_symbols=None,
+):
     """
     Read DMIG entries from a Nastran punch (bulk) or output2 file.
 
@@ -898,6 +906,14 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         Only used for "square" matrices (``form=1``). If True, ensures
         that the row and column indices are the same by filling in
         zeros as necessary.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1229,7 +1245,14 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
     if f is not None and not isinstance(f, str):
         # assume file handle, assume punch
-        cards = rdcards(f, name="dmig", return_var="list", blank="")
+        cards = rdcards(
+            f,
+            name="dmig",
+            return_var="list",
+            blank="",
+            follow_includes=follow_includes,
+            include_symbols=include_symbols,
+        )
         return _cards_to_df(cards, dmig_names)
 
     # read op2 or punch ... try op2, if that fails, assume punch:
@@ -1237,7 +1260,14 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     try:
         o2 = op2.OP2(dmigfile)
     except ValueError:
-        cards = rdcards(dmigfile, name="dmig", return_var="list", blank="")
+        cards = rdcards(
+            dmigfile,
+            name="dmig",
+            return_var="list",
+            blank="",
+            follow_includes=follow_includes,
+            include_symbols=include_symbols,
+        )
         dct = _cards_to_df(cards, dmig_names)
     else:
         o2dct = _read_op2_dmig(o2, dmig_names)
@@ -1471,7 +1501,7 @@ def wtdmig(f, dct):
                         f.write(f"{'*':<8s}{gi:16d}{ci:16d}{num_str:s}\n")
 
 
-def rdgrids(f):
+def rdgrids(f, *, follow_includes=True, include_symbols=None):
     """
     Read Nastran GRID cards from a Nastran bulk file.
 
@@ -1482,6 +1512,14 @@ def rdgrids(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1512,7 +1550,9 @@ def rdgrids(f):
     0  100  0  0.1  0.2  0.3  10  0  0
     1  200  0  1.1  1.2  1.3  10  0  0
     """
-    v = rdcards(f, "grid")
+    v = rdcards(
+        f, "grid", follow_includes=follow_includes, include_symbols=include_symbols
+    )
     if v is not None:
         c = np.size(v, 1)
         if c < 8:
@@ -1550,7 +1590,7 @@ def _convert_card(card):
     return card
 
 
-def rdcord2cards(f):
+def rdcord2cards(f, *, follow_includes=True, include_symbols=None):
     """
     Read CORD2* cards from a Nastran bulk file
 
@@ -1561,6 +1601,14 @@ def rdcord2cards(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1585,7 +1633,14 @@ def rdcord2cards(f):
     :func:`pyyeti.nastran.n2p.build_coords`
     """
     cards = rdcards(
-        f, r"(cord2[rcs])\b", return_var="list", regex=True, keep_name=True, blank=0
+        f,
+        r"(cord2[rcs])\b",
+        return_var="list",
+        regex=True,
+        keep_name=True,
+        blank=0,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
     )
 
     if cards is None:
@@ -1687,7 +1742,7 @@ def wtgrids(
         )
 
 
-def rdtabled1(f, name="tabled1"):
+def rdtabled1(f, name="tabled1", follow_includes=True, include_symbols=None):
     """
     Read Nastran TABLED1 or other identically formatted cards from a
     Nastran bulk file.
@@ -1701,6 +1756,14 @@ def rdtabled1(f, name="tabled1"):
         is opened for file selection.
     name : string; optional
         Name of cards to read.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1737,7 +1800,13 @@ def rdtabled1(f, name="tabled1"):
     >>> np.allclose(d, dct[4000][:, 1])
     True
     """
-    d = rdcards(f, name, return_var="dict")
+    d = rdcards(
+        f,
+        name,
+        return_var="dict",
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
     for tid in d:
         vec = d[tid]
         d[tid] = np.vstack([vec[8:-1:2], vec[9:-1:2]]).T
@@ -1854,7 +1923,7 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLE
     f.write("ENDT\n")
 
 
-def bulk2uset(*args):
+def bulk2uset(*args, follow_includes=True, include_symbols=None):
     """
     Read CORD2* and GRID cards from file(s) to make a USET table
 
@@ -1865,6 +1934,14 @@ def bulk2uset(*args):
         referred to by handle are rewound first. A GUI is open for
         file selection if no arguments are provided or if an argument
         is either a directory name or None.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1907,8 +1984,12 @@ def bulk2uset(*args):
 
     for f in args:
         f = guitools.get_file_name(f, read=True)
-        coords.update(rdcord2cards(f))
-        g = rdgrids(f)
+        coords.update(
+            rdcord2cards(
+                f, follow_includes=follow_includes, include_symbols=include_symbols
+            )
+        )
+        g = rdgrids(f, follow_includes=follow_includes, include_symbols=include_symbols)
         if g is not None:
             grids = np.vstack((grids, g))
 
@@ -1976,7 +2057,7 @@ def uset2bulk(f, uset):
     wtgrids(f, grids, 0, xyz, cd)
 
 
-def rdspoints(f):
+def rdspoints(f, *, follow_includes=True, include_symbols=None):
     r"""
     Read Nastran SPOINT cards from a Nastran bulk file.
 
@@ -1987,6 +2068,14 @@ def rdspoints(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -2016,7 +2105,13 @@ def rdspoints(f):
     array([]...)
 
     """
-    spoint_data = rdcards(f, "spoint", return_var="list")
+    spoint_data = rdcards(
+        f,
+        "spoint",
+        return_var="list",
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
     spoints = []
     if spoint_data is not None:
         for card in spoint_data:
@@ -2027,7 +2122,7 @@ def rdspoints(f):
     return np.array(spoints, dtype=np.int64)
 
 
-def rdseconct(f):
+def rdseconct(f, *, follow_includes=True, include_symbols=None):
     r"""
     Read Nastran SECONCT cards from a Nastran bulk file.
 
@@ -2038,6 +2133,14 @@ def rdseconct(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -2076,7 +2179,13 @@ def rdseconct(f):
         for a, b in zip(it, it):
             yield a, b
 
-    seconct_data = rdcards(f, "seconct", return_var="list")
+    seconct_data = rdcards(
+        f,
+        "seconct",
+        return_var="list",
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
     a_ids = []
     b_ids = []
     if seconct_data is not None:
@@ -2096,7 +2205,7 @@ def rdseconct(f):
 
 
 @guitools.read_text_file
-def asm2uset(f, try_rdextrn=True):
+def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
     r"""
     Read CORD2* and GRID cards from a ".asm" file to make a USET table
 
@@ -2112,6 +2221,14 @@ def asm2uset(f, try_rdextrn=True):
         the ".pch" file. If a filename cannot be determined from `f`,
         the attempt to the "EXTRN" card is quietly skipped and each
         b-set node is assumed to have all 6 DOF. See Notes below.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -2207,10 +2324,10 @@ def asm2uset(f, try_rdextrn=True):
             True,  True,  True,  True,  True,  True,  True,
             True,  True,  True,  True,  True], dtype=bool)
     """
-    uset, coords = bulk2uset(f)
+    uset, coords = bulk2uset(f, follow_includes=follow_includes, include_symbols=include_symbols)
 
     # add spoints to uset table:
-    spoints = rdspoints(f)
+    spoints = rdspoints(f, follow_includes=follow_includes, include_symbols=include_symbols)
     if spoints is not None:
         n = len(spoints)
         dof = np.zeros((n, 2), np.int64)
@@ -2224,11 +2341,11 @@ def asm2uset(f, try_rdextrn=True):
         except AttributeError:
             pass
         else:
-            dof = rdextrn(filename.replace(".asm", ".pch"))
+            dof = rdextrn(filename.replace(".asm", ".pch"), follow_includes=follow_includes, include_symbols=include_symbols)
             uset_ordered = uset.loc[list(dof)]
             return uset_ordered, coords, n2p.mksetpv(uset_ordered, "a", "b")
 
-    a_ids = rdseconct(f)[0]
+    a_ids = rdseconct(f, follow_includes=follow_includes, include_symbols=include_symbols)[0]
     uset_ordered = uset.loc[a_ids]
     if uset_ordered.shape[0] != uset.shape[0]:
         raise RuntimeError(
@@ -2454,7 +2571,7 @@ def wtnasints(f, start, ints):
         f.write(("{:8d}" * n + "\n").format(*ints))
 
 
-def rdcsupers(f):
+def rdcsupers(f, *, follow_includes=True, include_symbols=None):
     r"""
     Read CSUPER entries
 
@@ -2465,6 +2582,14 @@ def rdcsupers(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -2492,10 +2617,18 @@ def rdcsupers(f):
     {101: array([    101,       0,       3,      11,      19,      27,
            1995001, 1995002, 1995003,      -1, 1995010]...)}
     """
-    return rdcards(f, "csuper", return_var="dict", dtype=np.int64, blank=-1)
+    return rdcards(
+        f,
+        "csuper",
+        return_var="dict",
+        dtype=np.int64,
+        blank=-1,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
 
 
-def rdextrn(f, expand=True):
+def rdextrn(f, expand=True, follow_includes=True, include_symbols=None):
     r"""
     Read EXTRN entry from .pch file created by Nastran
 
@@ -2519,6 +2652,14 @@ def rdextrn(f, expand=True):
             [100, 4],
             [100, 5],
             [100, 6],
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -2559,7 +2700,13 @@ def rdextrn(f, expand=True):
            [      3,       6],
            [2995001,       0]]...)
     """
-    extrn = rdcards(f, "extrn", dtype=np.int64).reshape(-1, 2)
+    extrn = rdcards(
+        f,
+        "extrn",
+        dtype=np.int64,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    ).reshape(-1, 2)
     if expand:
         extrn = n2p.expanddof(extrn)
     return extrn
@@ -2659,7 +2806,7 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
     fields = ["MPC*", int(setid), int(gid_d), int(dof_d), float(coeff_d)]
     for i, (coeff, (gid, dof)) in enumerate(zip(coeffs_i, gid_dof_i)):
         if (i + 1) % 2 == 0:
-            fields.extend([None, None])
+            fields.extend(["", ""])
         fields.extend([int(gid), int(dof), float(coeff)])
     wtcard16(f, fields)
 
@@ -4234,7 +4381,7 @@ def mknast(
     os.system(f"chmod a+rx '{script}'")
 
 
-def rddtipch(f, name="TUG1"):
+def rddtipch(f, name="TUG1", follow_includes=True, include_symbols=None):
     """
     Read the 2nd record of specific DTIs from a .pch file.
 
@@ -4247,6 +4394,14 @@ def rddtipch(f, name="TUG1"):
         is opened for file selection.
     name : string
         Name of DTI table to read from the .pch file
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -4277,7 +4432,9 @@ def rddtipch(f, name="TUG1"):
         drm = mug1[row, :]
     """
     string = f"DTI     {name:<8s}2"
-    c = rdcards(f, string)
+    c = rdcards(
+        f, string, follow_includes=follow_includes, include_symbols=include_symbols
+    )
     c = c[0, 16:-1].reshape(-1, 4).astype(np.int64)
     m = c[:, 1:]
 
@@ -4581,7 +4738,7 @@ def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
         msg = "damping_type must be 'g', 'crit', or 'q', got '{}'"
         raise ValueError(msg.format(damping_type))
     fields = ["TABDMP1*", int(setid), damping_type]
-    fields.extend([None] * 6)
+    fields.extend([""] * 6)
     for freq_i, damp_i in zip(freq, damp):
         fields.append(float(freq_i))
         fields.append(float(damp_i))
@@ -4752,7 +4909,7 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
     I21, I31, I32 = I_offdiag if I_offdiag is not None else [0.0, 0.0, 0.0]
     x1, x2, x3 = offset if offset is not None else [0.0, 0.0, 0.0]
     fields = ["CONM2*", int(eid), int(gid), int(cid), float(mass)]
-    fields.extend([float(x1), float(x2), float(x3), None])
+    fields.extend([float(x1), float(x2), float(x3), ""])
     fields.extend([float(I) for I in [I11, I21, I22, I31, I32, I33]])
     wtcard16(f, fields)
 
@@ -4763,7 +4920,7 @@ def wtcard8(f, fields):
     Write a Nastran card formatted in small-field format.
 
     Line wraps and continuations will be inserted automatically.
-    Empty fields should be indicated by None.
+    Empty fields should be indicated by an empty string.
 
     Parameters
     ----------
@@ -4800,7 +4957,7 @@ def wtcard8(f, fields):
     for i, field in enumerate(fields[1:]):
         if i > 0 and i % 8 == 0:
             f.write("\n+       ")
-        if field is None:
+        if field == "":
             f.write(" " * 8)
         elif isinstance(field, strtypes):
             f.write(f"{field:<8s}")
@@ -4820,7 +4977,7 @@ def wtcard16(f, fields):
     Write a Nastran card formatted in large-field format.
 
     Line wraps and continuations will be inserted automatically.
-    Empty fields should be indicated by None.
+    Empty fields should be indicated by an empty string.
 
     Parameters
     ----------
@@ -4866,7 +5023,7 @@ def wtcard16(f, fields):
         elif i > 0 and i % 4 == 0:
             f.write("\n*       ")
             n_lines += 1
-        if field is None:
+        if field == "":
             f.write(" " * 16)
         elif isinstance(field, strtypes):
             f.write(f"{field:<16s}")
