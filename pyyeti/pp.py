@@ -66,7 +66,7 @@ class PP:
         >>> from types import SimpleNamespace
         >>> from pyyeti.pp import PP
         >>> r = np.arange(4, dtype=np.int16)
-        >>> s = np.random.randn(4, 4, 4)
+        >>> s = np.zeros((4, 4, 4))
         >>> t = np.array(9, dtype=np.uint8)
         >>> d = {'asdf': 4,
         ...      '34': 'value',

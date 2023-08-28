@@ -697,7 +697,7 @@ def isdiag(A, tol=1e-12):
     --------
     >>> from pyyeti import ytools
     >>> import numpy as np
-    >>> A = np.diag(np.random.randn(5))
+    >>> A = np.diag(np.arange(5.0))
     >>> ytools.isdiag(A)
     True
     >>> A[0, 2] = .01
@@ -997,17 +997,15 @@ def eig_si(
     verbose : bool
         If True, print status message for each iteration.
     rng : :class:`numpy.random.Generator` object or None; optional
-        If not None, uniform deviates are generated via
-        :func:`rng.random`. If None, the singleton generator
-        :func:`numpy.random.rand` is used. The deviates range from
-        ``[-0.5, 0.5)``. Supplying your own `rng` can be handy for
-        parallel applications, for example, when you need
+        Random number generator. If None, a new generator is created
+        via :func:`numpy.random.default_rng`. Uniform deviates are
+        generated via :func:`rng.random`. Supplying your own `rng` can
+        be handy for parallel applications, for example, when you need
         repeatability. For illustration, the following creates a
-        Mersenne Twister generator::
+        PCG-64 DXSM generator and initializes it with a seed of 1::
 
-            from numpy.random import Generator, MT19937
-            seed = 1
-            rng = Generator(MT19937(seed))
+            from numpy.random import Generator, PCG64DXSM
+            rng = Generator(PCG64DXSM(seed=1))
 
     Returns
     -------
@@ -1074,8 +1072,9 @@ def eig_si(
     >>> print(abs(w))
     [  0.   5.  15.]
     >>> import scipy.linalg as linalg
-    >>> k = np.random.randn(40, 40)
-    >>> m = np.random.randn(40, 40)
+    >>> rng = np.random.default_rng()
+    >>> k = rng.normal(size=(40, 40))
+    >>> m = rng.normal(size=(40, 40))
     >>> k = np.dot(k.T, k) * 1000
     >>> m = np.dot(m.T, m) * 10
     >>> w1, phi1 = linalg.eigh(k, m, subset_by_index=(0, 14))
@@ -1122,9 +1121,8 @@ def eig_si(
         c = 0
     if c < q:
         if rng is None:
-            deviates = np.random.rand(n, q - c) - 0.5
-        else:
-            deviates = rng.random((n, q - c)) - 0.5
+            rng = np.random.default_rng()
+        deviates = rng.random((n, q - c)) - 0.5
         if Xk is None:
             Xk = deviates
         else:

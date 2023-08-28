@@ -73,7 +73,11 @@ def _highlight_regions(ax, filterval, max_filt_pdiff):
                 zorder=-2,
             )
             ax.axvline(
-                filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1,
+                filterval,
+                color="gray",
+                linestyle="--",
+                linewidth=2.0,
+                zorder=-1,
             )
             # text added below
         if mn < -filterval:
@@ -85,7 +89,11 @@ def _highlight_regions(ax, filterval, max_filt_pdiff):
                 zorder=-2,
             )
             ax.axvline(
-                -filterval, color="gray", linestyle="--", linewidth=2.0, zorder=-1,
+                -filterval,
+                color="gray",
+                linestyle="--",
+                linewidth=2.0,
+                zorder=-1,
             )
             ax.text(
                 0.02,  # uses axes coordinates for x-axis
@@ -254,10 +262,13 @@ def magpct(
         >>> import numpy as np
         >>> import matplotlib.pyplot as plt
         >>> from pyyeti import cla
+        >>> rng = np.random.default_rng()
         >>> n = 500
-        >>> m1 = (5 + np.arange(-n, n, 2)[:, None] / 5
-        ...       + np.random.randn(n, 2))
-        >>> m2 = m1 + np.random.randn(n, 2)
+        >>> m1 = (
+        ...     5 + np.arange(-n, n, 2)[:, None] / 5
+        ...     + rng.normal(size=(n, 2))
+        ... )
+        >>> m2 = m1 + rng.normal(size=(n, 2))
         >>> fig = plt.figure("Example", figsize=(6.4, 11), clear=True)
         >>> ax = fig.subplots(4, 1)  # , sharex=True)
         >>>
@@ -287,9 +298,9 @@ def magpct(
         :context: close-figs
 
         >>> m1[n - 5 :] *= np.linspace(25, 60, 5)[:, None]
-        >>> m2[n - 5 :] = m1[n - 5 :] + np.random.randn(5, 2)
+        >>> m2[n - 5 :] = m1[n - 5 :] + rng.normal(size=(5, 2))
         >>> m1[:5] *= np.linspace(25, 60, 5)[:, None]
-        >>> m2[:5] = m1[:5] + np.random.randn(5, 2)
+        >>> m2[:5] = m1[:5] + rng.normal(size=(5, 2))
         >>> fig = plt.figure("Example 2", figsize=(6.4, 11),
         ...                  clear=True)
         >>> ax = fig.subplots(4, 1)

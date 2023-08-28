@@ -559,7 +559,8 @@ def rescale(P, F, n_oct=3, freq=None, extendends=True, frange=None):
         >>> from pyyeti import psd
         >>>
         >>> frange = (1.0, np.inf)
-        >>> g = np.random.randn(10000)
+        >>> rng = np.random.default_rng()
+        >>> g = rng.normal(size=10000)
         >>> sr = 400
         >>> f, p = signal.welch(g, sr, nperseg=sr)
         >>> p3, f3, msv3, ms3 = psd.rescale(p, f, frange=frange)
@@ -787,7 +788,8 @@ def spl(
 
         >>> import numpy as np
         >>> from pyyeti import psd
-        >>> x = np.random.randn(100000)
+        >>> rng = np.random.default_rng()
+        >>> x = rng.normal(size=100000)
         >>> sr = 4000
         >>> f, spl, oaspl = psd.spl(x, sr, sr, timeslice=len(x)/sr)
         >>> # oaspl should be around 170.75 (since variance = 1):
@@ -895,16 +897,15 @@ def psd2time(
         the PSD levels on a center-band scale. See :func:`interp` and
         :func:`rescale` for more information.
     rng : :class:`numpy.random.Generator` object or None; optional
-        If not None, uniform deviates are generated via
-        :func:`rng.random`. If None, the singleton generator
-        :func:`numpy.random.rand` is used. Supplying your own `rng`
-        can be handy for parallel applications, for example, when you
-        need repeatability. For illustration, the following creates a
-        Mersenne Twister generator::
+        Random number generator. If None, a new generator is created
+        via :func:`numpy.random.default_rng`. Uniform deviates are
+        generated via :func:`rng.random`. Supplying your own `rng` can
+        be handy for parallel applications, for example, when you need
+        repeatability. For illustration, the following creates a
+        PCG-64 DXSM generator and initializes it with a seed of 1::
 
-            from numpy.random import Generator, MT19937
-            seed = 1
-            rng = Generator(MT19937(seed))
+            from numpy.random import Generator, PCG64DXSM
+            rng = Generator(PCG64DXSM(seed=1))
 
     Returns
     -------
@@ -999,14 +1000,13 @@ def psd2time(
         :context: close-figs
 
         >>> import numpy as np
-        >>> from numpy.random import Generator, MT19937
         >>> from pyyeti import psd
         >>> spec = np.array([[20,  .0768],
         ...                  [50,  .48],
         ...                  [100, .48]])
         >>> we = dict(portion=0.01)
         >>> seed = 1
-        >>> rng = Generator(MT19937(seed))
+        >>> rng = np.random.default_rng(seed)
         >>> sig, sr = psd.psd2time(
         ...     spec, 35, 70, ppc=10, df=.01, winends=we, rng=rng,
         ... )
@@ -1102,9 +1102,8 @@ def psd2time(
     # generate F(t)
     # - use uniformly distributed random phase angle:
     if rng is None:
-        phi = np.random.rand(m) * np.pi * 2
-    else:
-        phi = rng.random(m) * np.pi * 2
+        rng = np.random.default_rng()
+    phi = rng.random(m) * np.pi * 2
 
     # force these terms to be pure cosine
     phi[0] = 0.0

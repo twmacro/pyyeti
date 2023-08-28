@@ -142,7 +142,8 @@ def getmodepart(
     >>> from pyyeti.ode import SolveUnc
     >>> from pyyeti.ode import getmodepart
     >>> import scipy.linalg as la
-    >>> K = 40*np.random.randn(5, 5)
+    >>> rng = np.random.default_rng()
+    >>> K = 40*rng.normal(size=(5, 5))
     >>> K = K @ K.T  # pos-definite K matrix, M is identity
     >>> M = None
     >>> w2, phi = la.eigh(K)
@@ -467,7 +468,8 @@ def modeselect(
     >>> import matplotlib.pyplot as plt
     >>> from pyyeti.ode import SolveUnc, modeselect
     >>> import scipy.linalg as la
-    >>> K = 40*np.random.randn(5, 5)
+    >>> rng = np.random.default_rng()
+    >>> K = 40*rng.normal(size=(5, 5))
     >>> K = K @ K.T       # positive definite K matrix, M is identity
     >>> M = None
     >>> w2, phi = la.eigh(K)

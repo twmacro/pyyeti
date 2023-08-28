@@ -656,9 +656,10 @@ class DR_Results(OrderedDict):
         >>> rows = {'ATM': 34, 'LTM': 29}
         >>> ext_results = {i: {} for i in rows}
         >>> t = np.arange(200)/200
+        >>> rng = np.random.default_rng()
         >>> for event in events:
         ...     for drm, nrows in rows.items():
-        ...         resp = np.random.randn(nrows, len(t))
+        ...         resp = rng.normal(size=(nrows, len(t)))
         ...         mxmn = cla.maxmin(resp, t)
         ...         ext_results[drm][event] = mxmn.ext
         >>>
@@ -1271,7 +1272,15 @@ class DR_Results(OrderedDict):
             print("timers =", timers)
 
     def psd_data_recovery(
-        self, case, DR, n, j, dosrs=True, peak_factor=3.0, resp_time=None, verbose=0,
+        self,
+        case,
+        DR,
+        n,
+        j,
+        dosrs=True,
+        peak_factor=3.0,
+        resp_time=None,
+        verbose=0,
     ):
         """
         PSD data recovery function
@@ -1368,7 +1377,7 @@ class DR_Results(OrderedDict):
             #   af = vel_rms/disp_rms * (1/(2 pi))      (Hz)
             # vel_psd = (2 pi f)**2 * PSD
             # - note that the 2 pi factor cancels after square root
-            vrms = _calc_rms(freqstep, freq ** 2 * psd)
+            vrms = _calc_rms(freqstep, freq**2 * psd)
 
             pk = peak_factor * rms
             pk_freq = vrms / rms
@@ -2045,7 +2054,9 @@ class DR_Results(OrderedDict):
         self.delete_data(("hist", "time", "psd", "freq", "frf", "srs.srs"))
 
     def delete_data(
-        self, attributes, pathfunc=None,
+        self,
+        attributes,
+        pathfunc=None,
     ):
         """
         Recursively deletes data from :class:`DR_Results` structure

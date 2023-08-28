@@ -1,6 +1,8 @@
+import math
 import os
 import tempfile
 import numpy as np
+import pandas as pd
 from pyyeti import ytools, nastran, locate
 from pyyeti.nastran import op4, op2
 from scipy.io import matlab
@@ -76,7 +78,8 @@ def test_n2c_extseout():
 def test_n2c_error():
     with pytest.raises(ValueError):
         op2.rdnas2cam(
-            "tests/nas2cam_extseout/assemble.op2", "tests/nas2cam_extseout/nas2cam.op2",
+            "tests/nas2cam_extseout/assemble.op2",
+            "tests/nas2cam_extseout/nas2cam.op2",
         )
 
 
@@ -353,6 +356,74 @@ def test_rdop2tload():
         o2._rowsCutoff = 0
         tload = o2.rdop2tload()
     assert np.all(tload[:5] == sbe)
+
+
+def test_rdop2gpwg_not_present():
+    gpwg = op2.OP2("tests/nastran_op2_data/rdop2gpwg_2.op2").rdop2gpwg()
+    assert gpwg is None
+
+
+def test_rdop2gpwg():
+    gpwg = op2.OP2("tests/nastran_op2_data/rdop2gpwg_1.op2").rdop2gpwg()
+    assert isinstance(gpwg, dict)
+    keys = ["m66", "s", "mass3", "mass", "cg33", "cg", "Is", "Iq", "q"]
+    m66, s, mass3, mass, cg33, cg, Is, Iq, q = [gpwg[key] for key in keys]
+    assert m66.dtype == np.dtype("f4")
+    np.testing.assert_allclose(
+        m66[0, :], [5.005019e1, 0.0, 0.0, 0.0, 1.000585e1, -5.004597], atol=1e-5
+    )
+    np.testing.assert_allclose(
+        m66[2, :], [0.0, 0.0, 5.005019e1, 5.004597, -1.711721e2, 0.0], atol=1e-5
+    )
+    np.testing.assert_allclose(
+        m66[5, 3:6], [-1.951159e1, -2.75115e1, 1.122445e3], atol=1e-3
+    )
+    np.testing.assert_allclose(s, np.eye(3))
+    np.testing.assert_allclose(mass3, [5.005019e1] * 3, atol=1e-5)
+    assert math.isclose(mass, 5.005019e1, abs_tol=1e-5)
+    np.testing.assert_allclose(cg33[0, :], [0.0, 9.999156e-2, 1.999163e-1], atol=1e-5)
+    np.testing.assert_allclose(cg33[1, :], [3.42, 0.0, 1.999163e-1], atol=1e-5)
+    np.testing.assert_allclose(cg33[2, :], [3.42, 9.999156e-2, 0.0], atol=1e-5)
+    np.testing.assert_allclose(cg, [3.42, 9.999156e-2, 1.999163e-1], atol=1e-5)
+    np.testing.assert_allclose(Is[0, :], [1.550258e2, -8.106795, -1.47085e1], atol=1e-4)
+    np.testing.assert_allclose(Is[2, 1:3], [2.6511e1, 5.365345e2], atol=1e-5)
+    np.testing.assert_allclose(Iq, [5.02794e2, 1.542326e2, 5.570665e2], atol=1e-4)
+    np.testing.assert_allclose(q[0, 0:2], [-4.41407e-2, 9.98883e-1], atol=1e-5)
+    np.testing.assert_allclose(q[2, 1:3], [-4.016433e-2, 7.950108e-1], atol=1e-5)
+
+
+def test_rdop2opg_not_present():
+    opg = op2.OP2("tests/nastran_op2_data/rdop2gpwg_2.op2").rdop2opg()
+    assert opg is None
+
+
+def test_rdop2opg():
+    opg = op2.OP2("tests/nastran_op2_data/rdop2opg_1.op2").rdop2opg()
+    grid_ids = np.array([1, 2, 3, 4, 5, 6, 7, 8, 21, 22])
+    assert isinstance(opg, dict)
+    assert len(opg) == 2
+    # subcase 1001
+    ls1001 = opg[1001]
+    assert isinstance(ls1001, pd.DataFrame)
+    assert ls1001.shape == (grid_ids.shape[0], 6)
+    np.testing.assert_array_equal(ls1001.index, grid_ids)
+    np.testing.assert_array_equal(ls1001.columns, [1, 2, 3, 4, 5, 6])
+    np.testing.assert_allclose(ls1001.loc[[1, 2, 3, 4, 6, 7, 8, 22]], 0.0)
+    # forces applied in csys 0, but reported in csys 11 (grid 5 output csys)
+    # these values were calculated with Femap
+    np.testing.assert_allclose(
+        ls1001.loc[5], [-9.1490, 6.0960, -0.3665, -9.9808, 6.6502, -0.3998], atol=1e-3
+    )
+    np.testing.assert_allclose(ls1001.loc[21], [5.0, 6.0, 0.0, 0.0, 7.0, 8.0])
+    # subcase 1002
+    ls1002 = opg[1002]
+    assert isinstance(ls1002, pd.DataFrame)
+    assert ls1002.shape == (grid_ids.shape[0], 6)
+    np.testing.assert_array_equal(ls1002.index, grid_ids)
+    np.testing.assert_array_equal(ls1002.columns, [1, 2, 3, 4, 5, 6])
+    np.testing.assert_allclose(ls1002.loc[[2, 3, 4, 5, 6, 7, 21, 22]], 0.0)
+    np.testing.assert_allclose(ls1002.loc[1], [0.0, 0.2, 0.0, 100.0, 200.0, 300.0])
+    np.testing.assert_allclose(ls1002.loc[8], [1.1, 1.2, 1.3, 0.0, 0.0, 0.0])
 
 
 def test_rdpostop2():

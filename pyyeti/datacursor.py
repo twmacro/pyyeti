@@ -189,8 +189,9 @@ class DataCursor(object):
         import matplotlib.pyplot as plt
         import numpy as np
         from pyyeti.datacursor import DC
+        rng = np.random.default_rng()
         x = np.arange(500)/250
-        y = np.random.rand(*x.shape)
+        y = rng.uniform(size=x.shape)
         fig = plt.figure('demo')
         fig.clf()
         ax = fig.add_subplot(1, 1, 1)
@@ -219,8 +220,9 @@ class DataCursor(object):
         DC.permdot = dict(s=130, color='black', alpha=0.4,
                           marker='p')
 
-        plt.plot(np.random.randn(50), label='Gaussian')
-        plt.plot(np.random.rand(50), label='Uniform')
+        rng = np.random.default_rng()
+        plt.plot(rng.normal(size=50), label='Gaussian')
+        plt.plot(rng.uniform(size=50), label='Uniform')
         DC.on()
 
     For increased versatility, there are two optional functions the
@@ -245,7 +247,8 @@ class DataCursor(object):
 
         fig = plt.figure()
         ax = fig.add_subplot(projection="3d")
-        coords = np.random.randn(6, 3)
+        rng = np.random.default_rng()
+        coords = rng.normal(size=(6, 3))
         dots = ax.scatter(*coords.T)
         ax.plot(*(coords.T + 0.1), "v")
         DC.on()
@@ -665,7 +668,7 @@ class DataCursor(object):
 
             dx = (xdata_float - x) / np.diff(ax.get_xlim())[0]
             dy = (ydata_float - y) / np.diff(ax.get_ylim())[0]
-            d = dx ** 2.0 + dy ** 2.0
+            d = dx**2.0 + dy**2.0
             ind = np.nanargmin(d)
             if d[ind] < dmin:
                 dmin = d[ind]
