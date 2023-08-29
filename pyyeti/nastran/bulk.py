@@ -74,6 +74,10 @@ __all__ = [
     "wtconm2",
     "wtcard8",
     "wtcard16",
+    "format_scientific8",
+    "format_float8",
+    "format_scientific16",
+    "format_float16",
 ]
 
 
@@ -4959,7 +4963,7 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
 @guitools.write_text_file
 def wtcard8(f, fields):
     """
-    Write a Nastran card formatted in small-field format.
+    Write a Nastran card formatted in 8 fixed-field format.
 
     Line wraps and continuations will be inserted automatically.
     Empty fields should be indicated by an empty string.
@@ -5016,7 +5020,7 @@ def wtcard8(f, fields):
 @guitools.write_text_file
 def wtcard16(f, fields):
     """
-    Write a Nastran card formatted in large-field format.
+    Write a Nastran card formatted in 16 fixed-field format.
 
     Line wraps and continuations will be inserted automatically.
     Empty fields should be indicated by an empty string.
@@ -5080,3 +5084,273 @@ def wtcard16(f, fields):
     if n_lines % 2 != 0:
         f.write("\n*")
     f.write("\n")
+
+
+def format_scientific8(value):
+    """
+    Formats a float in 8-character scientific notation
+    """
+    if value == 0.0:
+        return "{:>8s}".format("0.")
+
+    python_value = f"{value:8.11e}"
+    svalue, sexponent = python_value.strip().split("e")
+    exponent = int(sexponent)  # removes 0s
+
+    sign = "-" if abs(value) < 1.0 else "+"
+
+    # the exponent will be added later...
+    exp2 = str(exponent).strip("-+")
+    value2 = float(svalue)
+
+    leftover = 5 - len(exp2)
+
+    if value < 0:
+        fmt = f"{{:1.{leftover - 1:d}f}}"
+    else:
+        fmt = f"{{:1.{leftover:d}f}}"
+
+    svalue3 = fmt.format(value2)
+    svalue4 = svalue3.strip("0")
+    field = f"{svalue4 + sign + exp2:>8s}"
+    return field
+
+
+def format_float8(value):
+    """
+    Format a float in Nastran 8 fixed-field syntax using the highest
+    precision possbile.
+    """
+    if value >= 0.0:
+        if value < 5e-8:
+            field = format_scientific8(value)
+            return field
+        elif value < 0.001:
+            field = format_scientific8(value)
+            field2 = f"{value:8.7f}".strip("0 ")
+            field1 = field.replace("-", "e-")
+            if field2 == ".":
+                return format_scientific8(value)
+            if len(field2) <= 8 and float(field1) == float(field2):
+                field = field2.strip(" 0")
+        elif value < 1.0:
+            field = f"{value:8.7f}"
+        elif value < 10.0:
+            field = f"{value:8.6f}"
+        elif value < 100.0:
+            field = f"{value:8.5f}"
+        elif value < 1000.0:
+            field = f"{value:8.4f}"
+        elif value < 10000.0:
+            field = f"{value:8.3f}"
+        elif value < 100000.0:
+            field = f"{value:8.2f}"
+        elif value < 1000000.0:
+            field = f"{value:8.1f}"
+        else:
+            field = f"{value:8.1f}"
+            if field.index(".") < 8:
+                field = f"{round(value):8.1f}"[0:8]
+            else:
+                field = format_scientific8(value)
+            return field
+    else:
+        if value > -5e-7:
+            field = format_scientific8(value)
+            return field
+        elif value > -0.01:
+            field = format_scientific8(value)
+            field2 = f"{value:8.6f}".strip("0 ")
+
+            # get rid of the first minus sign, add it on afterwards
+            field1 = "-" + field.strip(" 0-").replace("-", "e-")
+
+            if len(field2) <= 8 and float(field1) == float(field2):
+                field = field2.rstrip(" 0").replace("-0.", "-.")
+        # -0.01 > x > -0.1...should be 5 (maybe scientific...)
+        elif value > -1.0:
+            field = f"{value:8.6f}"
+            field = field.replace("-0.", "-.")
+        elif value > -10.0:
+            field = f"{value:8.5f}"
+        elif value > -100.0:
+            field = f"{value:8.4f}"
+        elif value > -1000.0:
+            field = f"{value:8.3f}"
+        elif value > -10000.0:
+            field = f"{value:8.2f}"
+        elif value > -100000.0:
+            field = f"{value:8.1f}"
+        elif value <= -999999.5:
+            field = format_scientific8(value)
+            return field
+        else:
+            field = f"{value:8.1f}"
+            try:
+                ifield = field.index(".")
+            except ValueError:
+                raise ValueError(
+                    "error printing float; cant find decimal; field=%r value=%s"
+                    % (field, value)
+                )
+            if ifield < 8:
+                field = f"{int(round(value, 0)):7d}."
+            else:
+                field = format_scientific8(value)
+            return field
+    field = f"{field.strip(' 0'):>8s}"
+    return field
+
+
+def format_scientific16(value):
+    """
+    Formats a float in 8-character scientific notation
+    """
+    if value == 0.0:
+        return "{:>16s}".format("0.")
+        # return "%16s" % "0."
+
+    python_value = f"{value:16.14e}"
+    svalue, sexponent = python_value.strip().split("e")
+    exponent = int(sexponent)  # removes 0s
+
+    if abs(value) < 1.0:
+        sign = "-"
+    else:
+        sign = "+"
+
+    # the exponent will be added later...
+    exp2 = str(exponent).strip("-+")
+    value2 = float(svalue)
+
+    # the plus 1 is for the sign
+    len_exp = len(exp2) + 1
+    leftover = 16 - len_exp
+
+    if value < 0.0:
+        fmt = f"{{:1.{leftover - 3:d}f}}"
+    else:
+        fmt = f"{{:1.{leftover - 2:d}f}}"
+
+    svalue3 = fmt.format(value2)
+    svalue4 = svalue3.strip("0")
+    field = f"{svalue4 + sign + exp2:>16s}"
+    return field
+
+
+def format_float16(value):
+    """
+    Format a float in Nastran 16-character width syntax using the
+    highest precision possbile.
+    """
+    if value >= 0.0:  # positive, not perfect...
+        if value < 5e-16:
+            field = format_scientific16(value)
+            return field
+        elif value < 0.001:
+            field = format_scientific16(value)
+            field2 = f"{value:16.15f}".strip("0 ")
+            field1 = field.replace("-", "e-")
+            if field2 == ".":
+                return format_scientific16(value)
+            if len(field2) <= 16 and float(field1) == float(field2):
+                field = field2.strip(" 0")
+            return f"{field:>16s}"
+        elif value < 1.0:
+            field = f"{value:16.15f}"
+        elif value < 10.0:
+            field = f"{value:16.14f}"
+        elif value < 100.0:
+            field = f"{value:16.13f}"
+        elif value < 1000.0:
+            field = f"{value:16.12f}"
+        elif value < 10000.0:
+            field = f"{value:16.11f}"
+        elif value < 100000.0:
+            field = f"{value:16.10f}"
+        elif value < 1000000.0:
+            field = f"{value:16.9f}"
+        elif value < 10000000.0:
+            field = f"{value:16.8f}"
+        elif value < 100000000.0:
+            field = f"{value:16.7f}"
+        elif value < 1000000000.0:
+            field = f"{value:16.6f}"
+        elif value < 10000000000.0:
+            field = f"{value:16.5f}"
+        elif value < 100000000000.0:
+            field = f"{value:16.4f}"
+        elif value < 1000000000000.0:
+            field = f"{value:16.3f}"
+        elif value < 10000000000000.0:
+            field = f"{value:16.2f}"
+        elif value < 100000000000000.0:
+            field = f"{value:16.1f}"
+        else:
+            field = f"{value:16.1f}"
+            if field.index(".") < 16:
+                field = f"{round(value):16.1f}"[0:16]
+            else:
+                field = format_scientific16(value)
+            return field
+    else:
+        if value > -5e-15:
+            field = format_scientific16(value)
+            return field
+        elif value > -0.01:  # -0.001
+            field = format_scientific16(value)
+            field2 = f"{value:16.14f}".strip("0 ")
+
+            # get rid of the first minus sign, add it on afterwards
+            field1 = "-" + field.strip(" 0-").replace("-", "e-")
+
+            if len(field2) <= 16 and float(field1) == float(field2):
+                field = field2.rstrip(" 0").replace("-0.", "-.")
+            return f"{field:>16s}"
+        # -0.01 >x>-0.1...should be 5 (maybe scientific...)
+        elif value > -1.0:
+            field = f"{value:16.14f}"
+            field = field.replace("-0.", "-.")
+        elif value > -10.0:
+            field = f"{value:16.13f}"
+        elif value > -100.0:
+            field = f"{value:16.12f}"
+        elif value > -1000.0:
+            field = f"{value:16.11f}"
+        elif value > -10000.0:
+            field = f"{value:16.10f}"
+        elif value > -100000.0:
+            field = f"{value:16.9f}"
+        elif value > -1000000.0:
+            field = f"{value:16.8f}"
+        elif value > -10000000.0:
+            field = f"{value:16.7f}"
+        elif value > -100000000.0:
+            field = f"{value:16.6f}"
+        elif value > -1000000000.0:
+            field = f"{value:16.5f}"
+        elif value > -10000000000.0:
+            field = f"{value:16.4f}"
+        elif value > -100000000000.0:
+            field = f"{value:16.3f}"
+        elif value > -1000000000000.0:
+            field = f"{value:16.2f}"
+        elif value > -10000000000000.0:
+            field = f"{value:16.1f}"
+        else:
+            field = f"{value:16.1f}"
+            try:
+                ifield = field.index(".")
+            except ValueError:
+                print(
+                    "error printing float; cant find decimal; field=%r value=%s"
+                    % (field, value)
+                )
+                raise
+            if ifield < 16:
+                field = f"{int(round(value, 0)):15d}."
+            else:
+                field = format_scientific16(value)
+            return field
+    field = f"{field.strip(' 0'):>16s}"
+    return field
