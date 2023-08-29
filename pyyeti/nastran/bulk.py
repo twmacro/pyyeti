@@ -2324,10 +2324,14 @@ def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
             True,  True,  True,  True,  True,  True,  True,
             True,  True,  True,  True,  True], dtype=bool)
     """
-    uset, coords = bulk2uset(f, follow_includes=follow_includes, include_symbols=include_symbols)
+    uset, coords = bulk2uset(
+        f, follow_includes=follow_includes, include_symbols=include_symbols
+    )
 
     # add spoints to uset table:
-    spoints = rdspoints(f, follow_includes=follow_includes, include_symbols=include_symbols)
+    spoints = rdspoints(
+        f, follow_includes=follow_includes, include_symbols=include_symbols
+    )
     if spoints is not None:
         n = len(spoints)
         dof = np.zeros((n, 2), np.int64)
@@ -2341,11 +2345,17 @@ def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
         except AttributeError:
             pass
         else:
-            dof = rdextrn(filename.replace(".asm", ".pch"), follow_includes=follow_includes, include_symbols=include_symbols)
+            dof = rdextrn(
+                filename.replace(".asm", ".pch"),
+                follow_includes=follow_includes,
+                include_symbols=include_symbols,
+            )
             uset_ordered = uset.loc[list(dof)]
             return uset_ordered, coords, n2p.mksetpv(uset_ordered, "a", "b")
 
-    a_ids = rdseconct(f, follow_includes=follow_includes, include_symbols=include_symbols)[0]
+    a_ids = rdseconct(
+        f, follow_includes=follow_includes, include_symbols=include_symbols
+    )[0]
     uset_ordered = uset.loc[a_ids]
     if uset_ordered.shape[0] != uset.shape[0]:
         raise RuntimeError(
@@ -2773,7 +2783,8 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
 
     Notes
     -----
-    The card will be written in large-field format.
+    This card will be written in 16 fixed-field format using the
+    :func:`wtcard16` function.
 
     Examples
     --------
@@ -3066,12 +3077,19 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
               DOF_MSET2  : DOF of second grid in M-set
               ...
 
-    alpha : None or string; optional
-        Thermal expansion coefficient in a 8-char string (or less).
+        `UM_List` must be even length.
+
+    alpha : None, string, or float; optional
+        Thermal expansion coefficient in a string of length <= 8 or a float.
 
     Returns
     -------
     None
+
+    Notes
+    -----
+    This card will be written in 8 fixed-field format using the
+    :func:`wtcard8` function.
 
     Examples
     --------
@@ -3079,67 +3097,43 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
     >>> nastran.wtrbe3(1, 100, 9900, 123456,
     ...                [123, [9901, 9902, 9903, 9904],
     ...                 123456, [450001, 200]])
-    RBE3         100            9900  123456   1.000     123    9901    9902
-                9903    9904   1.000  123456  450001     200
-    >>> nastran.wtrbe3(1, 100, 9900, 123456,
+    RBE3         100            9900  123456 1.00+00     123    9901    9902
+    +           9903    9904 1.00+00  123456  450001     200
+    >>> nastran.wtrbe3(1, 100, 9900, 123456, # doctest: +NORMALIZE_WHITESPACE
     ...                [123, [9901, 9902, 9903, 9904],
     ...                 [123456, 1.2], [450001, 200]],
     ...                UM_List=[9901, 12, 9902, 3, 9903, 12, 9904, 3],
     ...                alpha='6.5e-6')
-    RBE3         100            9900  123456   1.000     123    9901    9902
-                9903    9904   1.200  123456  450001     200
-            UM          9901      12    9902       3    9903      12
-                        9904       3
-            ALPHA     6.5e-6
+    RBE3         100            9900  123456 1.00+00     123    9901    9902
+    +           9903    9904 1.20+00  123456  450001     200
+    +       UM          9901      12    9902       3    9903      12
+    +                   9904       3
+    +       ALPHA    6.50-06
     """
     if len(Ind_List) & 1:
         raise ValueError(f"`Ind_List` must have even length (it is {len(Ind_List)})")
 
-    f.write(f"RBE3    {eid:8d}        {GRID_dep:8d}{DOF_dep:8d}")
-    field = 5
-
-    def _Inc_Field(f, field):
-        field += 1
-        if field == 10:
-            f.write("\n        ")
-            field = 2
-        return field
-
-    # loop over independents
-    for j in range(0, len(Ind_List), 2):
-        DOF_ind = np.atleast_1d(Ind_List[j])
-        GRIDS_ind = np.atleast_1d(Ind_List[j + 1])
-        dof = int(DOF_ind[0])
-        if len(DOF_ind) == 2:
-            wt = float(DOF_ind[1])
-        else:
-            wt = 1.0
-        field = _Inc_Field(f, field)
-        f.write(f"{wt:8.3f}")
-        field = _Inc_Field(f, field)
-        f.write(f"{dof:8d}")
-        for g in GRIDS_ind:
-            field = _Inc_Field(f, field)
-            f.write(f"{g:8d}")
-    f.write("\n")
-
-    def _Inc_UM_Field(f, field):
-        field += 1
-        if field == 9:
-            f.write("\n                ")
-            field = 3
-        return field
+    fields = ["RBE3", eid, "", GRID_dep, DOF_dep]
+    for i in range(0, len(Ind_List), 2):
+        DOF_ind = np.atleast_1d(Ind_List[i])
+        GRIDS_ind = np.atleast_1d(Ind_List[i + 1])
+        fields.extend([float(DOF_ind[1]) if len(DOF_ind) > 1 else 1.0, int(DOF_ind[0])])
+        fields.extend([int(gid) for gid in GRIDS_ind])
+    wtcard8(f, fields)
 
     if UM_List is not None:
-        f.write("        UM      ")
-        field = 2
-        for j in UM_List:
-            field = _Inc_UM_Field(f, field)
-            f.write("{:8d}".format(j))
-        f.write("\n")
+        if len(UM_List) & 1:
+            raise ValueError(f"`UM_List` must have even length (it is {len(UM_List)})")
+        fields = ["+", "UM"]
+        for i, gid in enumerate(UM_List):
+            if i > 0 and i % 6 == 0:
+                fields.extend(["", ""])
+            fields.append(int(gid))
+        wtcard8(f, fields)
 
     if alpha is not None:
-        f.write(f"        ALPHA   {alpha:>8s}\n")
+        fields = ["+", "ALPHA", float(alpha)]
+        wtcard8(f, fields)
 
 
 @guitools.write_text_file

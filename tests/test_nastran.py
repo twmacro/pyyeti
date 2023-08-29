@@ -1026,9 +1026,81 @@ def test_wtqcset():
         assert f.getvalue() == ("QSET1     123456  990001 THRU     990002\n")
 
 
-def test_wtrbe3():
-    with pytest.raises(ValueError):
+def test_wtrbe3_errors():
+    # Ind_List has an odd length
+    with pytest.raises(ValueError, match=r"Ind_List.*even length"):
         nastran.wtrbe3(1, 100, 9900, 123456, [1, 2, 3])
+    # UM_List has an odd length
+    with pytest.raises(ValueError, match=r"UM_List.*even length"):
+        nastran.wtrbe3(1, 100, 9900, 123456, [1, 2], [101, 1, 102])
+
+
+def test_wtrbe3():
+    eid = 100
+    GRID_dep, DOF_dep = 9900, 123456
+    Ind_List = [123, [9901, 9902, 9903, 9904]]
+    with StringIO() as f:
+        nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List)
+        expected = (
+            "RBE3         100            9900  123456 1.00+00     123    9901    9902\n"
+            "+           9903    9904\n"
+        )
+        assert f.getvalue() == expected
+
+    eid = 100
+    GRID_dep, DOF_dep = 9900, 123456
+    Ind_List = [[123, 0.8], [9901, 9902, 9903, 9904], 23456, 9905]
+    alpha = "1.0E-6"
+    with StringIO() as f:
+        nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, alpha=alpha)
+        expected = (
+            "RBE3         100            9900  123456 8.00-01     123    9901    9902\n"
+            "+           9903    9904 1.00+00   23456    9905\n"
+            "+       ALPHA    1.00-06\n"
+        )
+        assert f.getvalue() == expected
+
+    eid = 100
+    GRID_dep, DOF_dep = 9900, 123456
+    Ind_List = [
+        123,  # DOF
+        [9901, 9902, 9903, 9904],  # grids
+    ]
+    UM_List = [9901, 12, 9902, 3, 9903, 12]
+    alpha = 2.0e-5
+    with StringIO() as f:
+        nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List, alpha)
+        expected = (
+            "RBE3         100            9900  123456 1.00+00     123    9901    9902\n"
+            "+           9903    9904\n"
+            "+       UM          9901      12    9902       3    9903      12\n"
+            "+       ALPHA    2.00-05\n"
+        )
+        assert f.getvalue() == expected
+
+    eid = 100
+    GRID_dep, DOF_dep = 9900, 123456
+    Ind_List = [
+        123,  # DOF
+        [9901, 9902, 9903, 9904],  # grids
+        [123456, 1.2],  # DOF and weight
+        [450001, 200],  # grids
+        345,  # DOF
+        [9905],  # grids
+    ]
+    UM_List = [9901, 12, 9902, 3, 9903, 12, 904, 3]
+    alpha = "6.5e-6"
+    with StringIO() as f:
+        nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List, alpha)
+        expected = (
+            "RBE3         100            9900  123456 1.00+00     123    9901    9902\n"
+            "+           9903    9904 1.20+00  123456  450001     200 1.00+00     345\n"
+            "+           9905\n"
+            "+       UM          9901      12    9902       3    9903      12        \n"
+            "+                    904       3\n"
+            "+       ALPHA    6.50-06\n"
+        )
+        assert f.getvalue() == expected
 
 
 def test_rdgpwg():
