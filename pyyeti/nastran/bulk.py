@@ -2822,6 +2822,46 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
     wtcard16(f, fields)
 
 
+def _find_sequence(array, start):
+    """
+    Find an increasing sequence within array, starting at the specified index.
+    """
+    length = len(array)
+    if start == length - 1:
+        return start
+    current_val = array[start]
+    i = start + 1
+    while i < length and array[i] == current_val + 1:
+        current_val += 1
+        i += 1
+    return i - 1
+
+
+def _wt_with_thru(f, seq, init_func):
+    """
+    Writes a Nastran card, using THRU statements where possible.
+    """
+    length = len(seq)
+    start = 0
+    fields = init_func([], False)
+    init_length = len(fields)
+    while start < length:
+        end = _find_sequence(seq, start)
+        if end > start:
+            if len(fields) > init_length:
+                fields = init_func(fields)
+            fields.extend([seq[start], "THRU", seq[end]])
+            start = end + 1
+            fields = init_func(fields)
+        else:
+            fields.append(seq[start])
+            start += 1
+        if len(fields) == 9:
+            fields = init_func(fields)
+    if len(fields) > init_length:
+        wtcard8(f, fields)
+
+
 @guitools.write_text_file
 def wtspoints(f, spoints):
     """
@@ -2841,16 +2881,18 @@ def wtspoints(f, spoints):
     >>> from pyyeti import nastran
     >>> spoints = [1001, 1002, 1003]
     >>> nastran.wtspoints(1, spoints)
-    SPOINT      1001    1002    1003
+    SPOINT      1001THRU        1003
     """
-    if not len(spoints) > 0:
+    length = len(spoints)
+    if not length > 0:
         raise ValueError("spoints must have length >0")
-    f.write("SPOINT  ")
-    for i, spoint in enumerate(spoints):
-        if i > 0 and i % 8 == 0:
-            f.write("\nSPOINT  ")
-        f.write(f"{spoint:8d}")
-    f.write("\n")
+
+    def init(fields, write=True):
+        if write:
+            wtcard8(f, fields)
+        return ["SPOINT"]
+
+    _wt_with_thru(f, spoints, init)
 
 
 @guitools.write_text_file
@@ -2926,14 +2968,20 @@ def wtxset1(f, dof, grids, name="BSET1"):
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtxset1(1, 123456, np.arange(1, 11))
-    BSET1     123456       1       2       3       4       5       6       7
-                   8       9      10
-    >>> nastran.wtxset1(1, 0, np.arange(2001, 2013), 'QSET1')
-    QSET1          0    2001    2002    2003    2004    2005    2006    2007
-                2008    2009    2010    2011    2012
+    BSET1     123456       1THRU          10
+    >>> nastran.wtxset1(1, 0, np.arange(2001, 2013), "QSET1")
+    QSET1          0    2001THRU        2012
     """
-    f.write(f"{name:<8s}{dof:8d}")
-    wtnasints(f, 3, grids)
+    length = len(grids)
+    if not length > 0:
+        raise ValueError("grids must have length >0")
+
+    def init(fields, write=True):
+        if write:
+            wtcard8(f, fields)
+        return [name, int(dof)]
+
+    _wt_with_thru(f, grids, init)
 
 
 @guitools.write_text_file

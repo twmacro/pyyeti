@@ -1286,16 +1286,7 @@ def test_wtspoints_bad_inputs():
         nastran.wtspoints(f, spoints)
 
 
-def test_wtspoints_1line():
-    with StringIO() as f:
-        spoints = [1001, 1002, 1003]
-        nastran.wtspoints(f, spoints)
-        s = f.getvalue()
-    sbe = "SPOINT      1001    1002    1003\n"
-    assert s == sbe
-
-
-def test_wtspoints_2line():
+def test_wtspoints():
     with StringIO() as f:
         spoints = list(range(1001, 1016))
         nastran.wtspoints(f, spoints)
@@ -1304,18 +1295,89 @@ def test_wtspoints_2line():
         "SPOINT      1001    1002    1003    1004    1005    1006    1007    1008\n"
         "SPOINT      1009    1010    1011    1012    1013    1014    1015\n"
     )
+    sbe = "SPOINT      1001THRU        1015\n"
     assert s == sbe
 
-
-def test_wtspoints_3line():
     with StringIO() as f:
-        spoints = list(range(1001, 1018))
+        spoints = [1001, 1003, 1004, 1005, 1007, 1009]
         nastran.wtspoints(f, spoints)
         s = f.getvalue()
     sbe = (
-        "SPOINT      1001    1002    1003    1004    1005    1006    1007    1008\n"
-        "SPOINT      1009    1010    1011    1012    1013    1014    1015    1016\n"
-        "SPOINT      1017\n"
+        "SPOINT      1001\n"
+        "SPOINT      1003THRU        1005\n"
+        "SPOINT      1007    1009\n"
+    )
+    assert s == sbe
+
+    with StringIO() as f:
+        spoints = [1001, 1002, 1004, 1006, 1007, 1009]
+        nastran.wtspoints(f, spoints)
+        s = f.getvalue()
+    sbe = (
+        "SPOINT      1001THRU        1002\n"
+        "SPOINT      1004\n"
+        "SPOINT      1006THRU        1007\n"
+        "SPOINT      1009\n"
+    )
+    assert s == sbe
+
+    with StringIO() as f:
+        spoints = list(reversed(range(1001, 1018)))
+        nastran.wtspoints(f, spoints)
+        s = f.getvalue()
+    sbe = (
+        "SPOINT      1017    1016    1015    1014    1013    1012    1011    1010\n"
+        "SPOINT      1009    1008    1007    1006    1005    1004    1003    1002\n"
+        "SPOINT      1001\n"
+    )
+    assert s == sbe
+
+
+def test_wtxset1_bad_inputs():
+    f = StringIO()
+    dof = 123456
+    grids = []
+    with pytest.raises(ValueError, match=r"grids.*length.*>0"):
+        nastran.wtxset1(f, dof, grids)
+
+
+def test_wtxset1():
+    with StringIO() as f:
+        dof = 123456
+        grids = [1001, 1003, 1005]
+        nastran.wtxset1(f, dof, grids)
+        s = f.getvalue()
+    sbe = "BSET1     123456    1001    1003    1005\n"
+    assert s == sbe
+
+    with StringIO() as f:
+        dof = 123456
+        grids = [1001, 1002, 1003]
+        nastran.wtxset1(f, dof, grids)
+        s = f.getvalue()
+    sbe = "BSET1     123456    1001THRU        1003\n"
+    assert s == sbe
+
+    with StringIO() as f:
+        dof = 123456
+        grids = [1001, 1003, 1005, 1006, 1007, 1009]
+        nastran.wtxset1(f, dof, grids, name="QSET1")
+        s = f.getvalue()
+    sbe = (
+        "QSET1     123456    1001    1003\n"
+        "QSET1     123456    1005THRU        1007\n"
+        "QSET1     123456    1009\n"
+    )
+    assert s == sbe
+
+    with StringIO() as f:
+        dof = 123
+        grids = list(reversed(range(1001, 1010)))
+        nastran.wtxset1(f, dof, grids)
+        s = f.getvalue()
+    sbe = (
+        "BSET1        123    1009    1008    1007    1006    1005    1004    1003\n"
+        "BSET1        123    1002    1001\n"
     )
     assert s == sbe
 
