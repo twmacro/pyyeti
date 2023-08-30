@@ -34,6 +34,7 @@ __all__ = [
     "mkcomment",
     "wtdmig",
     "rdgrids",
+    "rdsymbols",
     "rdcord2cards",
     "wtgrids",
     "rdtabled1",
@@ -67,6 +68,14 @@ __all__ = [
     "rddtipch",
     "wtinclude",
     "wtassign",
+    "wttabdmp1",
+    "wttload1",
+    "wttload2",
+    "wtconm2",
+    "wtcard8",
+    "wtcard16",
+    "format_float8",
+    "format_float16",
 ]
 
 
@@ -310,18 +319,23 @@ def _handle_comments(comment_list, Vals):
         comment_list.clear()
 
 
-def _next_line(f, name, regex, keep_comments, Vals):
+def _next_line(f, name, regex, keep_comments, follow_includes, Vals):
     if regex:
         prog = re.compile(name, re.IGNORECASE)
 
         def ismatch(line, prog):
-            return prog.match(line)
+            match = prog.match(line)
+            include = follow_includes and line.lower().startswith("include")
+            return match or include
 
     else:
         prog = name.lower()
 
         def ismatch(line, prog):
-            return line.lower().find(prog) == 0
+            line = line.lower()
+            match = line.find(prog) == 0
+            include = follow_includes and line.startswith("include")
+            return match or include
 
     do_match = True
     if not keep_comments:
@@ -367,6 +381,65 @@ def _next_line(f, name, regex, keep_comments, Vals):
 
         do_match = yield None  # mark the end of input
         _handle_comments(comment_list, Vals)
+
+
+def _rdinclude(fiter, s, kwargs):
+    """
+    Read and then recursively follow an INCLUDE statement.
+    fiter : file iterator
+    s : The first line containing the INCLUDE statement.
+    kwargs : All the arguments to the original rdcards call (except for
+             the path).
+    """
+    start = s.find("'")
+    if start < 0:
+        msg = "Invalid INCLUDE statment, no quote found: {}"
+        raise ValueError(msg.format(s))
+    end = s[start + 1 :].find("'")
+    if end >= 0:
+        path_parts = [s[start + 1 : start + end + 1]]
+    else:
+        # end of INCLUDE not found, continue to next line
+        path_parts = [s[start + 1 :].strip()]
+        while 1:
+            s = fiter.send(False)
+            if s is None:
+                msg = "Invalid INCLUDE statement, no ending quote found: {}"
+                raise ValueError(msg.format("".join(path_parts)))
+            end = s.find("'")
+            if end >= 0:  # end found on this line
+                path_parts.append(s[0:end])
+                break
+            else:  # end not found, add entire line
+                path_parts.append(s.strip())
+    rel_path = "".join(path_parts)
+    path, symbol_found = _check_for_symbols(rel_path, kwargs["include_symbols"])
+    if not symbol_found:
+        path = os.path.abspath(os.path.join(kwargs["include_root_dir"], rel_path))
+    # read next line, which will be returned by next fiter.send(True) call
+    fiter.send(False)
+    return rdcards(path, **kwargs)
+
+
+def _check_for_symbols(rel_path, symbols):
+    """
+    Check a path for Nastran symbols, which define a base path.
+    rel_path : The quoted path parsed from and INCLUDE statement.
+    symbols : A dictionary mapping symbols to base paths.
+    """
+    index = rel_path.find(":")
+    # if a colon is found in position 1, assume this is a Windows absolute path
+    if index >= 2:  #
+        symbol = rel_path[0:index].lower()
+        rel_path = rel_path[index + 1 :]
+        try:
+            base_path = symbols[symbol]
+        except KeyError:
+            msg = f"Symbol found in INCLUDE, but it is not defined: {symbol}"
+            raise ValueError(msg)
+        return os.path.join(base_path, rel_path), True
+    else:
+        return None, False
 
 
 def _rdfixed(fiter, s, n, conchar, blank, tolist, keep_name):
@@ -469,6 +542,7 @@ def _rdcomma(fiter, s, conchar, blank, tolist, keep_name):
 def rdcards(
     f,
     name,
+    *,
     blank=None,
     return_var="array",
     dtype=float,
@@ -476,6 +550,9 @@ def rdcards(
     regex=False,
     keep_name=False,
     keep_comments=False,
+    follow_includes=True,
+    include_symbols=None,
+    include_root_dir=None,
 ):
     r"""
     Read Nastran cards (lines) into a matrix, dictionary, or list.
@@ -538,6 +615,18 @@ def rdcards(
         retain all comment cards in the output. This option is ignored
         if not reading into a list. Note that only the comments that
         start at the beginning of the line are retained.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
+    include_root_dir : None; optional
+        This parameter is only used when this function is called
+        recursively while following INCLUDE statements. Users should
+        keep it as the default value of None.
 
     Returns
     -------
@@ -643,11 +732,42 @@ def rdcards(
     ['dti', 'seload', 5, 6]
     ['DTI', 'SELOAD', '', 8.0, "'a'"]
     """
-
     if return_var not in ("array", "list", "dict"):
         raise ValueError(
             'invalid `return_var` setting; must be one of: ("array", "list", "dict")'
         )
+    # save root dir from original call, pass through to _rdinclude for recursive calls
+    try:
+        include_root_dir = (
+            os.path.dirname(os.path.abspath(f.name))
+            if include_root_dir is None
+            else include_root_dir
+        )
+    except AttributeError:
+        # StringIO object, doesn't make sense to follow includes
+        follow_includes = False
+        include_root_dir = None
+    include_symbols = (
+        {symbol.lower(): path for symbol, path in include_symbols.items()}
+        if include_symbols is not None
+        else {}
+    )
+    for symbol in include_symbols:
+        if not len(symbol) > 2:
+            raise ValueError(f"Symbols must have a length >1, got {symbol}")
+    kwargs = {  # save args for use in _rdinclude
+        "name": name,
+        "blank": blank,
+        "return_var": return_var,
+        "dtype": dtype,
+        "no_data_return": (),  # return value from _rdinclude must be iterable (not None)
+        "regex": regex,
+        "keep_name": keep_name,
+        "keep_comments": keep_comments,
+        "follow_includes": follow_includes,
+        "include_symbols": include_symbols,
+        "include_root_dir": include_root_dir,
+    }
 
     if return_var == "dict":
         Vals = {}
@@ -663,29 +783,31 @@ def rdcards(
 
     mxlen = 0
     f.seek(0, 0)
-
-    fiter = _next_line(f, name, regex, tolist and keep_comments, Vals)
+    fiter = _next_line(f, name, regex, tolist and keep_comments, follow_includes, Vals)
     s = next(fiter)
     while s is not None:
         # if here, have matching line
-        if s.find(",") > -1:
-            vals = _rdcomma(fiter, s, " +,", blank, tolist, keep_name)
+        if follow_includes and s.lower().startswith("include"):
+            vals = _rdinclude(fiter, s, kwargs)
+        elif s.find(",") > -1:
+            vals = [_rdcomma(fiter, s, " +,", blank, tolist, keep_name)]
         else:
             s = s[:72].rstrip()
             p = s[:8].find("*")
             field, continuation = (16, "*") if p > -1 else (8, " +")
-            vals = _rdfixed(fiter, s, field, continuation, blank, tolist, keep_name)
+            vals = [_rdfixed(fiter, s, field, continuation, blank, tolist, keep_name)]
         if tolist:
-            Vals.append(vals)
+            Vals.extend(vals)
         else:
-            cur = len(vals)
-            mxlen = max(mxlen, cur)
-            key = vals[0]  # before it gets turned into dtype
-            vals = np.array(vals).astype(dtype)
-            if todict:
-                Vals[key] = vals
-            else:
-                Vals.append(vals)
+            for val in vals:
+                cur = len(val)
+                mxlen = max(mxlen, cur)
+                key = val[0]  # before it gets turned into dtype
+                val = np.array(val).astype(dtype)
+                if todict:
+                    Vals[key] = val
+                else:
+                    Vals.append(val)
         try:
             s = fiter.send(True)
         except StopIteration:
@@ -709,7 +831,59 @@ def rdcards(
     return no_data_return
 
 
-def rddmig(f, dmig_names=None, *, expanded=False, square=False):
+@guitools.read_text_file
+def rdsymbols(f):
+    """
+    Read Nastran logical symbols from a file.
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+
+    Returns
+    -------
+    symbols : dict
+        A dictionary mapping logical symbol names to paths.
+
+    Notes
+    -----
+    These symbols are typically defined in a 'nastran.rcf'
+    configuration file.
+
+    They have the format: SYMBOL=<NAME>='<PATH>'.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> from io import StringIO
+    >>> f = StringIO("SYMBOL=MODEL_DIR='/home/model_dir'")
+    >>> nastran.rdsymbols(f)
+    {'model_dir': '/home/model_dir'}
+    """
+    regex = re.compile(r"^symbol\s*=\s*(\w+)\s*=\s*'([ \w/:\.\-\\]+)'$", re.IGNORECASE)
+    symbols = {}
+    for line in f:
+        match = regex.search(line.strip())
+        if match is None:
+            continue
+        symbol, path = match.groups()
+        symbols[symbol.lower()] = path
+    return symbols
+
+
+def rddmig(
+    f,
+    dmig_names=None,
+    *,
+    expanded=False,
+    square=False,
+    follow_includes=True,
+    include_symbols=None,
+):
     """
     Read DMIG entries from a Nastran punch (bulk) or output2 file.
 
@@ -734,6 +908,14 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
         Only used for "square" matrices (``form=1``). If True, ensures
         that the row and column indices are the same by filling in
         zeros as necessary.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1065,7 +1247,14 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
 
     if f is not None and not isinstance(f, str):
         # assume file handle, assume punch
-        cards = rdcards(f, name="dmig", return_var="list", blank="")
+        cards = rdcards(
+            f,
+            name="dmig",
+            return_var="list",
+            blank="",
+            follow_includes=follow_includes,
+            include_symbols=include_symbols,
+        )
         return _cards_to_df(cards, dmig_names)
 
     # read op2 or punch ... try op2, if that fails, assume punch:
@@ -1073,7 +1262,14 @@ def rddmig(f, dmig_names=None, *, expanded=False, square=False):
     try:
         o2 = op2.OP2(dmigfile)
     except ValueError:
-        cards = rdcards(dmigfile, name="dmig", return_var="list", blank="")
+        cards = rdcards(
+            dmigfile,
+            name="dmig",
+            return_var="list",
+            blank="",
+            follow_includes=follow_includes,
+            include_symbols=include_symbols,
+        )
         dct = _cards_to_df(cards, dmig_names)
     else:
         o2dct = _read_op2_dmig(o2, dmig_names)
@@ -1307,7 +1503,7 @@ def wtdmig(f, dct):
                         f.write(f"{'*':<8s}{gi:16d}{ci:16d}{num_str:s}\n")
 
 
-def rdgrids(f):
+def rdgrids(f, *, follow_includes=True, include_symbols=None):
     """
     Read Nastran GRID cards from a Nastran bulk file.
 
@@ -1318,6 +1514,14 @@ def rdgrids(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1348,7 +1552,9 @@ def rdgrids(f):
     0  100  0  0.1  0.2  0.3  10  0  0
     1  200  0  1.1  1.2  1.3  10  0  0
     """
-    v = rdcards(f, "grid")
+    v = rdcards(
+        f, "grid", follow_includes=follow_includes, include_symbols=include_symbols
+    )
     if v is not None:
         c = np.size(v, 1)
         if c < 8:
@@ -1386,7 +1592,7 @@ def _convert_card(card):
     return card
 
 
-def rdcord2cards(f):
+def rdcord2cards(f, *, follow_includes=True, include_symbols=None):
     """
     Read CORD2* cards from a Nastran bulk file
 
@@ -1397,6 +1603,14 @@ def rdcord2cards(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1421,7 +1635,14 @@ def rdcord2cards(f):
     :func:`pyyeti.nastran.n2p.build_coords`
     """
     cards = rdcards(
-        f, r"(cord2[rcs])\b", return_var="list", regex=True, keep_name=True, blank=0
+        f,
+        r"(cord2[rcs])\b",
+        return_var="list",
+        regex=True,
+        keep_name=True,
+        blank=0,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
     )
 
     if cards is None:
@@ -1523,7 +1744,7 @@ def wtgrids(
         )
 
 
-def rdtabled1(f, name="tabled1"):
+def rdtabled1(f, name="tabled1", follow_includes=True, include_symbols=None):
     """
     Read Nastran TABLED1 or other identically formatted cards from a
     Nastran bulk file.
@@ -1537,6 +1758,14 @@ def rdtabled1(f, name="tabled1"):
         is opened for file selection.
     name : string; optional
         Name of cards to read.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1573,7 +1802,13 @@ def rdtabled1(f, name="tabled1"):
     >>> np.allclose(d, dct[4000][:, 1])
     True
     """
-    d = rdcards(f, name, return_var="dict")
+    d = rdcards(
+        f,
+        name,
+        return_var="dict",
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
     for tid in d:
         vec = d[tid]
         d[tid] = np.vstack([vec[8:-1:2], vec[9:-1:2]]).T
@@ -1690,7 +1925,7 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLE
     f.write("ENDT\n")
 
 
-def bulk2uset(*args):
+def bulk2uset(*args, follow_includes=True, include_symbols=None):
     """
     Read CORD2* and GRID cards from file(s) to make a USET table
 
@@ -1701,6 +1936,14 @@ def bulk2uset(*args):
         referred to by handle are rewound first. A GUI is open for
         file selection if no arguments are provided or if an argument
         is either a directory name or None.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1743,8 +1986,12 @@ def bulk2uset(*args):
 
     for f in args:
         f = guitools.get_file_name(f, read=True)
-        coords.update(rdcord2cards(f))
-        g = rdgrids(f)
+        coords.update(
+            rdcord2cards(
+                f, follow_includes=follow_includes, include_symbols=include_symbols
+            )
+        )
+        g = rdgrids(f, follow_includes=follow_includes, include_symbols=include_symbols)
         if g is not None:
             grids = np.vstack((grids, g))
 
@@ -1812,7 +2059,7 @@ def uset2bulk(f, uset):
     wtgrids(f, grids, 0, xyz, cd)
 
 
-def rdspoints(f):
+def rdspoints(f, *, follow_includes=True, include_symbols=None):
     r"""
     Read Nastran SPOINT cards from a Nastran bulk file.
 
@@ -1823,6 +2070,14 @@ def rdspoints(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1852,7 +2107,13 @@ def rdspoints(f):
     array([]...)
 
     """
-    spoint_data = rdcards(f, "spoint", return_var="list")
+    spoint_data = rdcards(
+        f,
+        "spoint",
+        return_var="list",
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
     spoints = []
     if spoint_data is not None:
         for card in spoint_data:
@@ -1863,7 +2124,7 @@ def rdspoints(f):
     return np.array(spoints, dtype=np.int64)
 
 
-def rdseconct(f):
+def rdseconct(f, *, follow_includes=True, include_symbols=None):
     r"""
     Read Nastran SECONCT cards from a Nastran bulk file.
 
@@ -1874,6 +2135,14 @@ def rdseconct(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -1912,7 +2181,13 @@ def rdseconct(f):
         for a, b in zip(it, it):
             yield a, b
 
-    seconct_data = rdcards(f, "seconct", return_var="list")
+    seconct_data = rdcards(
+        f,
+        "seconct",
+        return_var="list",
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
     a_ids = []
     b_ids = []
     if seconct_data is not None:
@@ -1932,7 +2207,7 @@ def rdseconct(f):
 
 
 @guitools.read_text_file
-def asm2uset(f, try_rdextrn=True):
+def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
     r"""
     Read CORD2* and GRID cards from a ".asm" file to make a USET table
 
@@ -1948,6 +2223,14 @@ def asm2uset(f, try_rdextrn=True):
         the ".pch" file. If a filename cannot be determined from `f`,
         the attempt to the "EXTRN" card is quietly skipped and each
         b-set node is assumed to have all 6 DOF. See Notes below.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -2043,10 +2326,14 @@ def asm2uset(f, try_rdextrn=True):
             True,  True,  True,  True,  True,  True,  True,
             True,  True,  True,  True,  True], dtype=bool)
     """
-    uset, coords = bulk2uset(f)
+    uset, coords = bulk2uset(
+        f, follow_includes=follow_includes, include_symbols=include_symbols
+    )
 
     # add spoints to uset table:
-    spoints = rdspoints(f)
+    spoints = rdspoints(
+        f, follow_includes=follow_includes, include_symbols=include_symbols
+    )
     if spoints is not None:
         n = len(spoints)
         dof = np.zeros((n, 2), np.int64)
@@ -2060,11 +2347,17 @@ def asm2uset(f, try_rdextrn=True):
         except AttributeError:
             pass
         else:
-            dof = rdextrn(filename.replace(".asm", ".pch"))
+            dof = rdextrn(
+                filename.replace(".asm", ".pch"),
+                follow_includes=follow_includes,
+                include_symbols=include_symbols,
+            )
             uset_ordered = uset.loc[list(dof)]
             return uset_ordered, coords, n2p.mksetpv(uset_ordered, "a", "b")
 
-    a_ids = rdseconct(f)[0]
+    a_ids = rdseconct(
+        f, follow_includes=follow_includes, include_symbols=include_symbols
+    )[0]
     uset_ordered = uset.loc[a_ids]
     if uset_ordered.shape[0] != uset.shape[0]:
         raise RuntimeError(
@@ -2290,7 +2583,7 @@ def wtnasints(f, start, ints):
         f.write(("{:8d}" * n + "\n").format(*ints))
 
 
-def rdcsupers(f):
+def rdcsupers(f, *, follow_includes=True, include_symbols=None):
     r"""
     Read CSUPER entries
 
@@ -2301,6 +2594,14 @@ def rdcsupers(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -2328,10 +2629,18 @@ def rdcsupers(f):
     {101: array([    101,       0,       3,      11,      19,      27,
            1995001, 1995002, 1995003,      -1, 1995010]...)}
     """
-    return rdcards(f, "csuper", return_var="dict", dtype=np.int64, blank=-1)
+    return rdcards(
+        f,
+        "csuper",
+        return_var="dict",
+        dtype=np.int64,
+        blank=-1,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
 
 
-def rdextrn(f, expand=True):
+def rdextrn(f, expand=True, follow_includes=True, include_symbols=None):
     r"""
     Read EXTRN entry from .pch file created by Nastran
 
@@ -2355,6 +2664,14 @@ def rdextrn(f, expand=True):
             [100, 4],
             [100, 5],
             [100, 6],
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -2395,7 +2712,13 @@ def rdextrn(f, expand=True):
            [      3,       6],
            [2995001,       0]]...)
     """
-    extrn = rdcards(f, "extrn", dtype=np.int64).reshape(-1, 2)
+    extrn = rdcards(
+        f,
+        "extrn",
+        dtype=np.int64,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    ).reshape(-1, 2)
     if expand:
         extrn = n2p.expanddof(extrn)
     return extrn
@@ -2437,7 +2760,7 @@ def wtcsuper(f, superid, grids):
 @guitools.write_text_file
 def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
     """
-    Writes a Nastran MPC card to a file
+    Writes a Nastran MPC card to a file.
 
     Parameters
     ----------
@@ -2460,6 +2783,11 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
         DOF.  This array much have the same length as the number of rows
         in gid_dof_i.
 
+    Notes
+    -----
+    This card will be written in 16 fixed-field format using the
+    :func:`wtcard16` function.
+
     Examples
     --------
     >>> import numpy as np
@@ -2470,10 +2798,10 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
     >>> id_dof_i = np.array([[31, 1], [31, 2], [32, 5]])
     >>> coeffs_i = np.array([0.75, 0.25, 1.65])
     >>> nastran.wtmpc(1, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
-    MPC*                 101              21               1-1.000000000E+00
-    *                     31               1 7.500000000E-01                *
-    *                                     31               2 2.500000000E-01
-    *                     32               5 1.650000000E+00
+    MPC*                 101              21               1             -1.
+    *                     31               1             .75                *
+    *                                     31               2             .25
+    *                     32               5            1.65
     """
     if not setid > 0:
         raise ValueError("setid must be >0")
@@ -2488,17 +2816,60 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
         raise ValueError("gid_dof_i must have two columns")
 
     gid_d, dof_d = gid_dof_d
-    f.write(f"MPC*    {setid:16d}{gid_d:16d}{dof_d:16d}{coeff_d:16.9E}\n")
+    fields = ["MPC*", int(setid), int(gid_d), int(dof_d), float(coeff_d)]
     for i, (coeff, (gid, dof)) in enumerate(zip(coeffs_i, gid_dof_i)):
-        f.write("*       ")
-        if i % 2 != 0:
-            f.write(" " * 16)
-        f.write(f"{gid:16d}{dof:16d}{coeff:16.9E}")
-        if i % 2 == 0 and n_coeff > i + 1:
-            f.write(" " * 16 + "*")
-        f.write("\n")
-    if i % 2 != 0:
-        f.write("*\n")
+        if (i + 1) % 2 == 0:
+            fields.extend(["", ""])
+        fields.extend([int(gid), int(dof), float(coeff)])
+    wtcard16(f, fields)
+
+
+def _find_sequence(seq, start):
+    """
+    Find an increasing sequence within array, starting at the specified index.
+    seq : iterable sequency to search
+    start : index at which to start
+    """
+    length = len(seq)
+    if start < 0 or start >= length:
+        raise ValueError(f"start out of bounds, length is {length}, start is {start}")
+    if start == length - 1:
+        return start
+    current_val = seq[start]
+    i = start + 1
+    while i < length and seq[i] == current_val + 1:
+        current_val += 1
+        i += 1
+    return i - 1
+
+
+def _wt_with_thru(f, seq, init_func):
+    """
+    Writes a Nastran card, using THRU statements where possible.
+    f : file object
+    seq : iterable sequence of IDs to write
+    init_func : function to create the first Nastrn fields when
+                starting a new line
+    """
+    length = len(seq)
+    start = 0
+    fields = init_func([], False)
+    init_length = len(fields)
+    while start < length:
+        end = _find_sequence(seq, start)
+        if end > start:
+            if len(fields) > init_length:
+                fields = init_func(fields)
+            fields.extend([seq[start], "THRU", seq[end]])
+            start = end + 1
+            fields = init_func(fields)
+        else:
+            fields.append(seq[start])
+            start += 1
+        if len(fields) == 9:
+            fields = init_func(fields)
+    if len(fields) > init_length:
+        wtcard8(f, fields)
 
 
 @guitools.write_text_file
@@ -2514,22 +2885,28 @@ def wtspoints(f, spoints):
     spoints : 1d array_like
         Vector of SPOINT IDs.
 
+    Notes
+    -----
+    Where possible, THRU statements will be used.
+
     Examples
     --------
     >>> import numpy as np
     >>> from pyyeti import nastran
     >>> spoints = [1001, 1002, 1003]
     >>> nastran.wtspoints(1, spoints)
-    SPOINT      1001    1002    1003
+    SPOINT      1001THRU        1003
     """
-    if not len(spoints) > 0:
+    length = len(spoints)
+    if not length > 0:
         raise ValueError("spoints must have length >0")
-    f.write("SPOINT  ")
-    for i, spoint in enumerate(spoints):
-        if i > 0 and i % 8 == 0:
-            f.write("\nSPOINT  ")
-        f.write(f"{spoint:8d}")
-    f.write("\n")
+
+    def init(fields, write=True):
+        if write:
+            wtcard8(f, fields)
+        return ["SPOINT"]
+
+    _wt_with_thru(f, spoints, init)
 
 
 @guitools.write_text_file
@@ -2600,19 +2977,29 @@ def wtxset1(f, dof, grids, name="BSET1"):
     -------
     None
 
+    Notes
+    -----
+    Where possible, THRU statements will be used.
+
     Examples
     --------
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtxset1(1, 123456, np.arange(1, 11))
-    BSET1     123456       1       2       3       4       5       6       7
-                   8       9      10
-    >>> nastran.wtxset1(1, 0, np.arange(2001, 2013), 'QSET1')
-    QSET1          0    2001    2002    2003    2004    2005    2006    2007
-                2008    2009    2010    2011    2012
+    BSET1     123456       1THRU          10
+    >>> nastran.wtxset1(1, 0, np.arange(2001, 2013), "QSET1")
+    QSET1          0    2001THRU        2012
     """
-    f.write(f"{name:<8s}{dof:8d}")
-    wtnasints(f, 3, grids)
+    length = len(grids)
+    if not length > 0:
+        raise ValueError("grids must have length >0")
+
+    def init(fields, write=True):
+        if write:
+            wtcard8(f, fields)
+        return [name, int(dof)]
+
+    _wt_with_thru(f, grids, init)
 
 
 @guitools.write_text_file
@@ -2756,12 +3143,19 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
               DOF_MSET2  : DOF of second grid in M-set
               ...
 
-    alpha : None or string; optional
-        Thermal expansion coefficient in a 8-char string (or less).
+        `UM_List` must be even length.
+
+    alpha : None, string, or float; optional
+        Thermal expansion coefficient in a string of length <= 8 or a float.
 
     Returns
     -------
     None
+
+    Notes
+    -----
+    This card will be written in 8 fixed-field format using the
+    :func:`wtcard8` function.
 
     Examples
     --------
@@ -2769,67 +3163,43 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
     >>> nastran.wtrbe3(1, 100, 9900, 123456,
     ...                [123, [9901, 9902, 9903, 9904],
     ...                 123456, [450001, 200]])
-    RBE3         100            9900  123456   1.000     123    9901    9902
-                9903    9904   1.000  123456  450001     200
-    >>> nastran.wtrbe3(1, 100, 9900, 123456,
+    RBE3         100            9900  123456      1.     123    9901    9902
+    +           9903    9904      1.  123456  450001     200
+    >>> nastran.wtrbe3(1, 100, 9900, 123456, # doctest: +NORMALIZE_WHITESPACE
     ...                [123, [9901, 9902, 9903, 9904],
     ...                 [123456, 1.2], [450001, 200]],
     ...                UM_List=[9901, 12, 9902, 3, 9903, 12, 9904, 3],
-    ...                alpha='6.5e-6')
-    RBE3         100            9900  123456   1.000     123    9901    9902
-                9903    9904   1.200  123456  450001     200
-            UM          9901      12    9902       3    9903      12
-                        9904       3
-            ALPHA     6.5e-6
+    ...                alpha='6.5e-8')
+    RBE3         100            9900  123456      1.     123    9901    9902
+    +           9903    9904     1.2  123456  450001     200
+    +       UM          9901      12    9902       3    9903      12
+    +                   9904       3
+    +       ALPHA      6.5-8
     """
     if len(Ind_List) & 1:
         raise ValueError(f"`Ind_List` must have even length (it is {len(Ind_List)})")
 
-    f.write(f"RBE3    {eid:8d}        {GRID_dep:8d}{DOF_dep:8d}")
-    field = 5
-
-    def _Inc_Field(f, field):
-        field += 1
-        if field == 10:
-            f.write("\n        ")
-            field = 2
-        return field
-
-    # loop over independents
-    for j in range(0, len(Ind_List), 2):
-        DOF_ind = np.atleast_1d(Ind_List[j])
-        GRIDS_ind = np.atleast_1d(Ind_List[j + 1])
-        dof = int(DOF_ind[0])
-        if len(DOF_ind) == 2:
-            wt = float(DOF_ind[1])
-        else:
-            wt = 1.0
-        field = _Inc_Field(f, field)
-        f.write(f"{wt:8.3f}")
-        field = _Inc_Field(f, field)
-        f.write(f"{dof:8d}")
-        for g in GRIDS_ind:
-            field = _Inc_Field(f, field)
-            f.write(f"{g:8d}")
-    f.write("\n")
-
-    def _Inc_UM_Field(f, field):
-        field += 1
-        if field == 9:
-            f.write("\n                ")
-            field = 3
-        return field
+    fields = ["RBE3", eid, "", GRID_dep, DOF_dep]
+    for i in range(0, len(Ind_List), 2):
+        DOF_ind = np.atleast_1d(Ind_List[i])
+        GRIDS_ind = np.atleast_1d(Ind_List[i + 1])
+        fields.extend([float(DOF_ind[1]) if len(DOF_ind) > 1 else 1.0, int(DOF_ind[0])])
+        fields.extend([int(gid) for gid in GRIDS_ind])
+    wtcard8(f, fields)
 
     if UM_List is not None:
-        f.write("        UM      ")
-        field = 2
-        for j in UM_List:
-            field = _Inc_UM_Field(f, field)
-            f.write("{:8d}".format(j))
-        f.write("\n")
+        if len(UM_List) & 1:
+            raise ValueError(f"`UM_List` must have even length (it is {len(UM_List)})")
+        fields = ["+", "UM"]
+        for i, gid in enumerate(UM_List):
+            if i > 0 and i % 6 == 0:
+                fields.extend(["", ""])
+            fields.append(int(gid))
+        wtcard8(f, fields)
 
     if alpha is not None:
-        f.write(f"        ALPHA   {alpha:>8s}\n")
+        fields = ["+", "ALPHA", float(alpha)]
+        wtcard8(f, fields)
 
 
 @guitools.write_text_file
@@ -2853,30 +3223,25 @@ def wtseset(f, superid, grids):
     -------
     None
 
+    Notes
+    -----
+    Where possible, THRU statements will be used.
+
     Examples
     --------
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtseset(1, 100, np.arange(1, 26))
-    SESET        100       1       2       3       4       5       6       7
-    SESET        100       8       9      10      11      12      13      14
-    SESET        100      15      16      17      18      19      20      21
-    SESET        100      22      23      24      25
+    SESET        100       1THRU          25
+    >>> nastran.wtseset(1, 100, list(reversed(range(1, 11))))
+    SESET        100      10       9       8       7       6       5       4
+    SESET        100       3       2       1
     """
-    n = len(grids)
-    # 7 grids per SESET:
-    frm = "SESET   {:8d}" + "{:8d}" * 7 + "\n"
-    i = 0
-    while i + 7 <= n:
-        f.write(frm.format(superid, *grids[i : i + 7]))
-        i += 7
-    if i < n:
-        frm = "SESET   {:8d}" + "{:8d}" * (n - i) + "\n"
-        f.write(frm.format(superid, *grids[i:]))
+    wtxset1(f, superid, grids, "SESET")
 
 
 @guitools.write_text_file
-def wtset(f, setid, ids):
+def wtset(f, setid, ids, max_length=72):
     """
     Writes a Nastran case-control SET card to a file.
 
@@ -2891,31 +3256,43 @@ def wtset(f, setid, ids):
         Set ID
     ids : 1d array_like
         Vector of IDs
+    max_length : integer; optional
+        The max length of each line of the SET card.
 
     Returns
     -------
     None
+
+    Notes
+    -----
+    Where possible, THRU statements will be used.
 
     Examples
     --------
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtset(1, 100, np.arange(1, 26))
-    SET 100 = 1, 2, 3, 4, 5, 6, 7,
-     8, 9, 10, 11, 12, 13, 14,
-     15, 16, 17, 18, 19, 20, 21,
-     22, 23, 24, 25
+    SET 100 = 1 THRU 25
+    >>> nastran.wtset(1, 100, [1, 3, 5, 7])
+    SET 100 = 1, 3, 5, 7
     """
-    f.write(f"SET {setid} =")
-    n = len(ids)
-    # 7 ids per line:
-    frm = " {:d}," * 7 + "\n"
-    i = 0
-    while i + 7 < n:
-        f.write(frm.format(*ids[i : i + 7]))
-        i += 7
-    frm = " {:d}," * (n - i - 1) + " {:d}\n"
-    f.write(frm.format(*ids[i:]))
+    length = len(ids)
+    if not length > 0:
+        raise ValueError("ids must have length >0")
+
+    output = [f"SET {setid:d} = "]
+    start = 0
+    while start < length:
+        end = _find_sequence(ids, start)
+        if end > start:
+            output.append(f"{ids[start]:d} THRU {ids[end]:d}, ")
+            start = end + 1
+        else:
+            output.append(f"{ids[start]:d}, ")
+            start += 1
+    output[-1] = output[-1].rstrip(", ")  # strip the trailing comma from the last item
+    output = _wrap_text_lines(output, max_length, "")
+    f.write("\n".join(output))
 
 
 @guitools.write_text_file
@@ -4071,7 +4448,7 @@ def mknast(
     os.system(f"chmod a+rx '{script}'")
 
 
-def rddtipch(f, name="TUG1"):
+def rddtipch(f, name="TUG1", follow_includes=True, include_symbols=None):
     """
     Read the 2nd record of specific DTIs from a .pch file.
 
@@ -4084,6 +4461,14 @@ def rddtipch(f, name="TUG1"):
         is opened for file selection.
     name : string
         Name of DTI table to read from the .pch file
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
 
     Returns
     -------
@@ -4114,7 +4499,9 @@ def rddtipch(f, name="TUG1"):
         drm = mug1[row, :]
     """
     string = f"DTI     {name:<8s}2"
-    c = rdcards(f, string)
+    c = rdcards(
+        f, string, follow_includes=follow_includes, include_symbols=include_symbols
+    )
     c = c[0, 16:-1].reshape(-1, 4).astype(np.int64)
     m = c[:, 1:]
 
@@ -4364,3 +4751,689 @@ def wtassign(f, assign_type, path, params=None, current_path=None, max_length=72
     lines = _wrap_text_lines(lines, max_length, ",")
     f.write("\n".join(lines))
     f.write("\n")
+
+
+@guitools.write_text_file
+def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
+    """
+    Write a Nastran TABDMP1 card to a file.
+
+    Parameters
+    ----------
+    fobj : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    setid : integer
+        The tabid ID number.
+    freq : 1d array_like
+        The frequencies, in Hertz, at which the damping is defined.
+    damp : 1d array_like
+        The damping value at each frequency. This array must have the
+        same length as `freq`.
+    damping_type : string; optional
+        The type of damping.  Must be one of 'g', 'crit', or 'q'. If
+        not specified, it defaults to 'crit'.
+
+    Notes
+    -----
+    This card will be written in 16 fixed-field format using the
+    :func:`wtcard16` function.
+
+    The `freq` and `damp` parameters must have a length of at least 2.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> setid = 101
+    >>> freq = [0.1, 2.5, 3.0]
+    >>> damp = [0.01, 0.015, 0.015]
+    >>> nastran.wttabdmp1(1, setid, freq, damp) # doctest: +NORMALIZE_WHITESPACE
+    TABDMP1*             101CRIT
+    *                                                                       *
+    *                     .1          .01                2.5            .015
+    *                     3.         .015ENDT
+    """
+    n_terms = len(freq)
+    if n_terms < 2:
+        raise ValueError("freq must have length >=2")
+    if len(damp) != n_terms:
+        raise ValueError("freq and damp must have the same length")
+    damping_type = damping_type.upper()
+    if damping_type not in ["G", "CRIT", "Q"]:
+        msg = "damping_type must be 'g', 'crit', or 'q', got '{}'"
+        raise ValueError(msg.format(damping_type))
+    fields = ["TABDMP1*", int(setid), damping_type]
+    fields.extend([""] * 6)
+    for freq_i, damp_i in zip(freq, damp):
+        fields.append(float(freq_i))
+        fields.append(float(damp_i))
+    fields.append("ENDT")
+    wtcard16(f, fields)
+
+
+@guitools.write_text_file
+def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
+    """
+    Write a Nastran TLOAD1 card to a file.
+
+    Parameters
+    ----------
+    fobj : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    setid : integer
+        The load set ID number
+    excite_id : integer
+        The ID of the load set definition (LOAD, SPCD, etc cards).
+    delay : integer or float
+        The time delay. If this is a float, it represents the delay
+        in seconds. If it is an integer, it references a DELAY card.
+    excite_type : string
+        The type of excitation. Must be one of 'load', 'disp', 'velo',
+        or 'acce'.
+    tabledi_id : integer
+        The ID of a TABLEDi card that defines the transient.
+
+    Notes
+    -----
+    This card will be written in 8 fixed-field format using the
+    :func:`wtcard8` function.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> setid, excite_id = 201, 202
+    >>> delay = .05
+    >>> excite_type = "load"
+    >>> tabledi_id = 1501
+    >>> nastran.wttload1(1, setid, excite_id, delay, excite_type, tabledi_id)
+    TLOAD1       201     202     .05LOAD        1501
+    """
+    excite_type = excite_type.upper()
+    if excite_type not in ["LOAD", "DISP", "VELO", "ACCE"]:
+        msg = "excite_type must be one of 'load', 'disp', 'velo', 'acce', got '{}'"
+        raise ValueError(msg.format(excite_type))
+    fields = ["TLOAD1", int(setid), int(excite_id), delay, excite_type, int(tabledi_id)]
+    wtcard8(f, fields)
+
+
+@guitools.write_text_file
+def wttload2(
+    fobj, setid, excite_id, delay, excite_type, t1, t2, f=0.0, p=0.0, c=0.0, b=0.0
+):
+    """
+    Write a Nastran TLOAD2 card to a file.
+
+    Parameters
+    ----------
+    fobj : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    setid : integer
+        The load set ID number
+    excite_id : integer
+        The ID of the load set definition (LOAD, SPCD, etc cards).
+    delay : integer or float
+        The time delay. If this is a float, it represents the delay
+        in seconds. If it is an integer, it references a DELAY card.
+    excite_type : string
+        The type of excitation. Must be one of 'load', 'disp', 'velo',
+        or 'acce'.
+    t1 : float
+        Time constant 1
+    t2 : float
+        Time constant 2, must be greater than t1
+    f : float; optional
+        Frequency in cycles per unit time. If not provided, defaults
+        to 0.0.
+    p : float; optional
+        Phase angle in degrees. If not provided, defaults to 0.0.
+    c : float; optional
+        Exponential coefficient. If not provided, defaults to 0.0.
+    b : float; optional
+        Growth coefficient. If not provided, defaults to 0.0.
+
+    Notes
+    -----
+    This card will be written in 8 fixed-field format using the
+    :func:`wtcard8` function.
+
+    This card is useful to add a load set to the P matrix when
+    creating an external superelement using EXTSEOUT.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> setid, excite_id = 201, 202
+    >>> delay = .05
+    >>> excite_type = "load"
+    >>> t1, t2 = 0.1, 0.2
+    >>> nastran.wttload2(1, setid, excite_id, delay, excite_type, t1, t2)
+    TLOAD2       201     202     .05LOAD          .1      .2      0.      0.
+    +             0.      0.
+    """
+    excite_type = excite_type.upper()
+    if excite_type not in ["LOAD", "DISP", "VELO", "ACCE"]:
+        msg = "excite_type must be one of 'load', 'disp', 'velo', 'acce', got '{}'"
+        raise ValueError(msg.format(excite_type))
+    if not t2 > t1:
+        raise ValueError("t2 must be greater than t1")
+    fields = ["TLOAD2", int(setid), int(excite_id), delay, excite_type]
+    fields.extend([float(x) for x in [t1, t2, f, p, c, b]])
+    wtcard8(fobj, fields)
+
+
+@guitools.write_text_file
+def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
+    """
+    Write a Nastran CONM2 card to a file.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    eid : integer
+        The element ID.
+    gid : integer
+        The ID of the grid to which the mass element is attached.
+    cid : integer
+        The coordinate system ID used to define the mass element.
+    I_diag : 1d array_like
+        The diagonal moment of inertia terms, I11, I22, and I33.
+    I_offdiag : 1d array_like; optional
+        The off-diagonal moment of inertia terma, I21, I31, and I32.
+    offset : 1d array_like; optional
+        Offset of the mass element from the grid to which it is
+        attached.
+
+    Notes
+    -----
+    This card will be written in 16 fixed-field format using the
+    :func:`wtcard16` function.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> eid, gid, cid = 1, 2, 3
+    >>> mass = 5000.0
+    >>> I_diag = [6000.0, 7000.0, 8000.0]
+    >>> nastran.wtconm2(1, eid, gid, cid, mass, I_diag)
+    CONM2*                 1               2               3           5000.
+    *                     0.              0.              0.                *
+    *                  6000.              0.           7000.              0.
+    *                     0.           8000.
+    """
+    I11, I22, I33 = I_diag
+    I21, I31, I32 = I_offdiag if I_offdiag is not None else [0.0, 0.0, 0.0]
+    x1, x2, x3 = offset if offset is not None else [0.0, 0.0, 0.0]
+    fields = ["CONM2*", int(eid), int(gid), int(cid), float(mass)]
+    fields.extend([float(x1), float(x2), float(x3), ""])
+    fields.extend([float(I) for I in [I11, I21, I22, I31, I32, I33]])
+    wtcard16(f, fields)
+
+
+@guitools.write_text_file
+def wtcard8(f, fields):
+    """
+    Write a Nastran card formatted in 8 fixed-field format.
+
+    Line wraps and continuations will be inserted automatically.
+    Empty fields should be indicated by an empty string.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    fields : 1d array_like
+        List of fields in the card.
+
+    Notes
+    -----
+    The items in fields will be formatted according to their data type.
+    Python integers will be formated as Nastran integers, and Python
+    floats will be formatted as Nastran reals, using `format_float8`.
+    Strings will always be left-justified.
+
+    Example
+    -------
+    >>> from pyyeti import nastran
+    >>> fields = ["GRID", 101, 102, 1.0, 2.0, 3.0]
+    >>> nastran.wtcard8(1, fields)
+    GRID         101     102      1.      2.      3.
+    """
+    card_name = fields[0]
+    if len(card_name) > 8:
+        msg = "The first field, the card name, must have a length <8, got {}"
+        raise ValueError(msg.format(card_name))
+    f.write(f"{card_name:<8s}")
+    strtypes = (str, np.str_)
+    inttypes = (int, np.int32, np.int64, np.uint32, np.uint64)
+    floattypes = (float, np.float32, np.float64)
+    for i, field in enumerate(fields[1:]):
+        if i > 0 and i % 8 == 0:
+            f.write("\n+       ")
+        if field == "":
+            f.write(" " * 8)
+        elif isinstance(field, strtypes):
+            f.write(f"{field:<8s}")
+        elif isinstance(field, inttypes):
+            f.write(f"{field:8d}")
+        elif isinstance(field, floattypes):
+            f.write(format_float8(field))
+        else:
+            raise TypeError("unsupported field type: {}".format(type(field)))
+    f.write("\n")
+
+
+@guitools.write_text_file
+def wtcard16(f, fields):
+    """
+    Write a Nastran card formatted in 16 fixed-field format.
+
+    Line wraps and continuations will be inserted automatically.
+    Empty fields should be indicated by an empty string.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    fields : 1d array_like
+        List of fields in the card.
+
+    Notes
+    -----
+    The items in fields will be formatted according to their data type.
+    Python integers will be formated as Nastran integers, and Python
+    floats will be formatted as Nastran reals, using `format_float16`.
+    Strings will always be left-justified.
+
+    Example
+    -------
+    >>> from pyyeti import nastran
+    >>> fields = ["GRID*", 101, 102, 1.0, 2.0, 3.0, 103]
+    >>> nastran.wtcard16(1, fields)
+    GRID*                101             102              1.              2.
+    *                     3.             103
+    """
+    card_name = fields[0]
+    if not card_name.endswith("*"):
+        msg = "In large-field format, the card name must end in an asterisk, got {}"
+        raise ValueError(msg.format(card_name))
+    if len(card_name) > 8:
+        msg = "The first field, the card name, must have a length <8, got {}"
+        raise ValueError(msg.format(card_name))
+    f.write(f"{card_name:<8s}")
+    n_lines = 1
+    strtypes = (str, np.str_)
+    inttypes = (int, np.int32, np.int64, np.uint32, np.uint64)
+    floattypes = (float, np.float32, np.float64)
+    for i, field in enumerate(fields[1:]):
+        if i > 0 and i % 8 == 0:
+            f.write("*\n*       ")
+            n_lines += 1
+        elif i > 0 and i % 4 == 0:
+            f.write("\n*       ")
+            n_lines += 1
+        if field == "":
+            f.write(" " * 16)
+        elif isinstance(field, strtypes):
+            f.write(f"{field:<16s}")
+        elif isinstance(field, inttypes):
+            f.write(f"{field:16d}")
+        elif isinstance(field, floattypes):
+            f.write(format_float16(field))
+        else:
+            raise TypeError("unsupported field type: {}".format(type(field)))
+    # large-field cards must have an even number of lines
+    if n_lines % 2 != 0:
+        f.write("\n*")
+    f.write("\n")
+
+
+def _format_scientific8(value):
+    """
+    Format a float in 8-character scientific notation.
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
+    """
+    if value == 0.0:
+        return "{:>8s}".format("0.")
+
+    python_value = f"{value:8.11e}"
+    svalue, sexponent = python_value.strip().split("e")
+    exponent = int(sexponent)  # removes 0s
+
+    sign = "-" if abs(value) < 1.0 else "+"
+
+    # the exponent will be added later...
+    exp2 = str(exponent).strip("-+")
+    value2 = float(svalue)
+
+    leftover = 5 - len(exp2)
+
+    if value < 0:
+        fmt = f"{{:1.{leftover - 1:d}f}}"
+    else:
+        fmt = f"{{:1.{leftover:d}f}}"
+
+    svalue3 = fmt.format(value2)
+    svalue4 = svalue3.strip("0")
+    field = f"{svalue4 + sign + exp2:>8s}"
+    return field
+
+
+def format_float8(value):
+    """
+    Format a float in Nastran 8 fixed-field syntax using max precision.
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> print(nastran.format_float8(1.0))
+          1.
+    >>> print(nastran.format_float8(1.2345678))
+    1.234568
+    >>> print(nastran.format_float8(-123456.78))
+    -123457.
+    >>> print(nastran.format_float8(12345678.0))
+    1.2346+7
+    >>> print(nastran.format_float8(-12345678.0))
+    -1.235+7
+    """
+    if value >= 0.0:
+        if value < 5e-8:
+            field = _format_scientific8(value)
+            return field
+        elif value < 0.001:
+            field = _format_scientific8(value)
+            field2 = f"{value:8.7f}".strip("0 ")
+            field1 = field.replace("-", "e-")
+            if field2 == ".":
+                return _format_scientific8(value)
+            if len(field2) <= 8 and float(field1) == float(field2):
+                field = field2.strip(" 0")
+        elif value < 1.0:
+            field = f"{value:8.7f}"
+        elif value < 10.0:
+            field = f"{value:8.6f}"
+        elif value < 100.0:
+            field = f"{value:8.5f}"
+        elif value < 1000.0:
+            field = f"{value:8.4f}"
+        elif value < 10000.0:
+            field = f"{value:8.3f}"
+        elif value < 100000.0:
+            field = f"{value:8.2f}"
+        elif value < 1000000.0:
+            field = f"{value:8.1f}"
+        else:
+            field = f"{value:8.1f}"
+            if field.index(".") < 8:
+                field = f"{round(value):8.1f}"[0:8]
+            else:
+                field = _format_scientific8(value)
+            return field
+    else:
+        if value > -5e-7:
+            field = _format_scientific8(value)
+            return field
+        elif value > -0.01:
+            field = _format_scientific8(value)
+            field2 = f"{value:8.6f}".strip("0 ")
+
+            # get rid of the first minus sign, add it on afterwards
+            field1 = "-" + field.strip(" 0-").replace("-", "e-")
+
+            if len(field2) <= 8 and float(field1) == float(field2):
+                field = field2.rstrip(" 0").replace("-0.", "-.")
+        # -0.01 > x > -0.1...should be 5 (maybe scientific...)
+        elif value > -1.0:
+            field = f"{value:8.6f}"
+            field = field.replace("-0.", "-.")
+        elif value > -10.0:
+            field = f"{value:8.5f}"
+        elif value > -100.0:
+            field = f"{value:8.4f}"
+        elif value > -1000.0:
+            field = f"{value:8.3f}"
+        elif value > -10000.0:
+            field = f"{value:8.2f}"
+        elif value > -100000.0:
+            field = f"{value:8.1f}"
+        elif value <= -999999.5:
+            field = _format_scientific8(value)
+            return field
+        else:
+            field = f"{value:8.1f}"
+            try:
+                ifield = field.index(".")
+            except ValueError:
+                raise ValueError(
+                    "error printing float; can't find decimal; field=%r value=%s"
+                    % (field, value)
+                )
+            if ifield < 8:
+                field = f"{int(round(value, 0)):7d}."
+            else:
+                field = _format_scientific8(value)
+            return field
+    field = f"{field.strip(' 0'):>8s}"
+    return field
+
+
+def _format_scientific16(value):
+    """
+    Formats a float in 16-character scientific notation
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
+    """
+    if value == 0.0:
+        return "{:>16s}".format("0.")
+        # return "%16s" % "0."
+
+    python_value = f"{value:16.14e}"
+    svalue, sexponent = python_value.strip().split("e")
+    exponent = int(sexponent)  # removes 0s
+
+    if abs(value) < 1.0:
+        sign = "-"
+    else:
+        sign = "+"
+
+    # the exponent will be added later...
+    exp2 = str(exponent).strip("-+")
+    value2 = float(svalue)
+
+    # the plus 1 is for the sign
+    len_exp = len(exp2) + 1
+    leftover = 16 - len_exp
+
+    if value < 0.0:
+        fmt = f"{{:1.{leftover - 3:d}f}}"
+    else:
+        fmt = f"{{:1.{leftover - 2:d}f}}"
+
+    svalue3 = fmt.format(value2)
+    svalue4 = svalue3.strip("0")
+    field = f"{svalue4 + sign + exp2:>16s}"
+    return field
+
+
+def format_float16(value):
+    """
+    Format a float in Nastran 16 fixed-field syntax using max precision.
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> print(nastran.format_float16(1.0))
+                  1.
+    >>> print(nastran.format_float16(1.2345678))
+           1.2345678
+    >>> print(nastran.format_float16(-123456.78e8))
+    -12345678000000.
+    >>> print(nastran.format_float16(1234567898769.0e5))
+    1.23456789877+17
+    """
+    if value >= 0.0:
+        if value < 5e-16:
+            field = _format_scientific16(value)
+            return field
+        elif value < 0.001:
+            field = _format_scientific16(value)
+            field2 = f"{value:16.15f}".strip("0 ")
+            field1 = field.replace("-", "e-")
+            if field2 == ".":
+                return _format_scientific16(value)
+            if len(field2) <= 16 and float(field1) == float(field2):
+                field = field2.strip(" 0")
+            return f"{field:>16s}"
+        elif value < 1.0:
+            field = f"{value:16.15f}"
+        elif value < 10.0:
+            field = f"{value:16.14f}"
+        elif value < 100.0:
+            field = f"{value:16.13f}"
+        elif value < 1000.0:
+            field = f"{value:16.12f}"
+        elif value < 10000.0:
+            field = f"{value:16.11f}"
+        elif value < 100000.0:
+            field = f"{value:16.10f}"
+        elif value < 1000000.0:
+            field = f"{value:16.9f}"
+        elif value < 10000000.0:
+            field = f"{value:16.8f}"
+        elif value < 100000000.0:
+            field = f"{value:16.7f}"
+        elif value < 1000000000.0:
+            field = f"{value:16.6f}"
+        elif value < 10000000000.0:
+            field = f"{value:16.5f}"
+        elif value < 100000000000.0:
+            field = f"{value:16.4f}"
+        elif value < 1000000000000.0:
+            field = f"{value:16.3f}"
+        elif value < 10000000000000.0:
+            field = f"{value:16.2f}"
+        elif value < 100000000000000.0:
+            field = f"{value:16.1f}"
+        else:
+            field = f"{value:16.1f}"
+            if field.index(".") < 16:
+                field = f"{round(value):16.1f}"[0:16]
+            else:
+                field = _format_scientific16(value)
+            return field
+    else:
+        if value > -5e-15:
+            field = _format_scientific16(value)
+            return field
+        elif value > -0.01:  # -0.001
+            field = _format_scientific16(value)
+            field2 = f"{value:16.14f}".strip("0 ")
+
+            # get rid of the first minus sign, add it on afterwards
+            field1 = "-" + field.strip(" 0-").replace("-", "e-")
+
+            if len(field2) <= 16 and float(field1) == float(field2):
+                field = field2.rstrip(" 0").replace("-0.", "-.")
+            return f"{field:>16s}"
+        # -0.01 > x > -0.1...should be 5 (maybe scientific...)
+        elif value > -1.0:
+            field = f"{value:16.14f}"
+            field = field.replace("-0.", "-.")
+        elif value > -10.0:
+            field = f"{value:16.13f}"
+        elif value > -100.0:
+            field = f"{value:16.12f}"
+        elif value > -1000.0:
+            field = f"{value:16.11f}"
+        elif value > -10000.0:
+            field = f"{value:16.10f}"
+        elif value > -100000.0:
+            field = f"{value:16.9f}"
+        elif value > -1000000.0:
+            field = f"{value:16.8f}"
+        elif value > -10000000.0:
+            field = f"{value:16.7f}"
+        elif value > -100000000.0:
+            field = f"{value:16.6f}"
+        elif value > -1000000000.0:
+            field = f"{value:16.5f}"
+        elif value > -10000000000.0:
+            field = f"{value:16.4f}"
+        elif value > -100000000000.0:
+            field = f"{value:16.3f}"
+        elif value > -1000000000000.0:
+            field = f"{value:16.2f}"
+        elif value > -10000000000000.0:
+            field = f"{value:16.1f}"
+        else:
+            field = f"{value:16.1f}"
+            try:
+                ifield = field.index(".")
+            except ValueError:
+                print(
+                    "error printing float; can't find decimal; field=%r value=%s"
+                    % (field, value)
+                )
+                raise
+            if ifield < 16:
+                field = f"{int(round(value, 0)):15d}."
+            else:
+                field = _format_scientific16(value)
+            return field
+    field = f"{field.strip(' 0'):>16s}"
+    return field

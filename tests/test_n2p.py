@@ -1008,7 +1008,9 @@ def test_formrbe3_1():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_1.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_1.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(
@@ -1053,7 +1055,9 @@ def test_formrbe3_2():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_2.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_2.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(
@@ -1098,7 +1102,9 @@ def test_formrbe3_3():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_3.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_3.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(
@@ -1140,7 +1146,9 @@ def test_formrbe3_4():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_4.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_4.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(pyuset, 124, 1346, [[123, 2.6], 100, [456, 1.8], 200])
@@ -1166,7 +1174,9 @@ def test_formrbe3_UM_1():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_um_1.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_1.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(
@@ -1209,7 +1219,9 @@ def test_formrbe3_UM_2():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_um_2.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_2.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(
@@ -1232,7 +1244,9 @@ def test_formrbe3_UM_3():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_um_3.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_3.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(
@@ -1256,7 +1270,9 @@ def test_formrbe3_UM_4():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_4.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_4.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(
@@ -1279,7 +1295,9 @@ def test_formrbe3_UM_5():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_um_5.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_5.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(
@@ -1302,7 +1320,9 @@ def test_formrbe3_UM_6():
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
-    pyuset = nastran.bulk2uset("tests/nastran_gm_data/make_gm_nx9_rbe3_um_6.dat")[0]
+    pyuset = nastran.bulk2uset(
+        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_6.dat", follow_includes=False
+    )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
     pygm = n2p.formrbe3(

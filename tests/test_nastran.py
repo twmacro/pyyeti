@@ -1,5 +1,7 @@
+import math
 import numpy as np
 import os
+import tempfile
 from io import StringIO
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -105,6 +107,228 @@ $ ending comment
         "$ ending comment\n",
     ]
     assert sbe == lst
+
+
+def _wtfile(path, contents):
+    with open(path, "wt") as fobj:
+        fobj.write(contents)
+
+
+def test_rdcards_with_includes_errors():
+    file1 = "GRID,1,0,10.0,0.0,0.0\nINCLUDE 'file2.bdf'\nGRID,3,0,30.0,0.0,0.0\n"
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+
+        # INCLUDE has no quotes
+        _wtfile(file1_path, file1.replace("'file2.bdf'", "file2.bdf"))
+        with pytest.raises(ValueError, match=r"Invalid INCLU.*no quote.*file2"):
+            nastran.rdcards(file1_path, "grid", follow_includes=True)
+
+        # INCLUDE has opening but no closing quote
+        _wtfile(file1_path, file1.replace("'file2.bdf'", "'file2.bdf"))
+        with pytest.raises(ValueError, match=r"Invalid INCLU.*no ending quote.*file2"):
+            nastran.rdcards(file1_path, "grid", follow_includes=True)
+
+        # Symbol used in INCLUDE, but is not defined
+        _wtfile(file1_path, file1.replace("file2.bdf", "MODEL_DIR:file2.bdf"))
+        regex = r"Symbol.*in INCLUDE.*not defined.*model_dir"
+        with pytest.raises(ValueError, match=regex):
+            nastran.rdcards(file1_path, "grid", follow_includes=True)
+
+        # Symbol doesn't have a length >1 so it cannot be distinguished from a Windows
+        # drive letter
+        symbols = {"C": r"C:\dirC"}
+        with pytest.raises(ValueError, match=r"Symbols.*length >1.*got c"):
+            nastran.rdcards(file1_path, "grid", include_symbols=symbols)
+
+        # Path on INCLUDE statement does not exist
+        _wtfile(file1_path, file1.replace("file2.bdf", "zzzz.bdf"))
+        with pytest.raises(FileNotFoundError, match=r"zzzz.bdf"):
+            nastran.rdcards(file1_path, "grid")
+
+
+def test_rdcards_with_includes():
+    file1 = (
+        "GRID,1,0,10.0,0.0,0.0\n"
+        "GRID         101\n"  # not a proper grid, just testing a multi-line card
+        "+       ABC\n"
+        "$ This is a comment\n"
+        "\n"
+        "INCLUDE 'file2.\n"  # include statement spans multiple lines
+        "bdf'\n"
+        "GRID,3,0,30.0,0.0,0.0\n"
+    )
+    file2 = "GRID,2,0,20.0,0.0,0.0\nINCLUDE 'file3.bdf'"
+    file3 = "GRID,201,0,2001.0,0.0,0.0\n$ Another comment"
+
+    def check_results(cards):
+        assert len(cards) == 5
+        for card in cards:
+            assert card[0] == "GRID"
+        assert cards[0][1] == 1
+        assert cards[1][1] == 101
+        assert cards[1][9] == "ABC"
+        assert cards[2][1] == 2
+        assert cards[3][1] == 201
+        assert math.isclose(cards[3][3], 2001.0)
+        assert cards[4][1] == 3
+        assert math.isclose(cards[4][3], 30.0)
+
+    # all files in same directory
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _wtfile(file1_path, file1)
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
+        _wtfile(os.path.join(tempdir_path, "file3.bdf"), file3)
+        # follow_includes is True
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            blank=None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+        )
+        check_results(cards)
+
+        # follow_includes is False
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            blank=None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=False,
+        )
+        assert len(cards) == 3
+        assert [card[1] for card in cards] == [1, 101, 3]
+
+        # keep_comments is True
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            blank=None,
+            return_var="list",
+            keep_name=True,
+            keep_comments=True,
+            follow_includes=True,
+        )
+        assert cards[2].startswith("$ This is a comm")
+        assert cards[5].startswith("$ Another comm")
+        check_results([cards[i] for i in [0, 1, 3, 4, 6]])
+
+    # file1 in subdirectory, file2 and file3 in parent dir
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        subdir_path = os.path.join(tempdir_path, "subdir")
+        os.mkdir(subdir_path)
+        file1_path = os.path.join(subdir_path, "file1.bdf")
+        # update to use relative path
+        _wtfile(file1_path, file1.replace("file2", "../file2"))
+        # update to use relative path
+        # note that path is relative to file1, even though the statement is in
+        # file2, this is unexpected but is consistent with Nastran
+        _wtfile(
+            os.path.join(tempdir_path, "file2.bdf"), file2.replace("file3", "../file3")
+        )
+        _wtfile(os.path.join(tempdir_path, "file3.bdf"), file3)
+        # follow_includes is True
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            blank=None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+        )
+        check_results(cards)
+
+    # file1 in parent_dir, file2 and file3 in subdirectory, includes use symbols
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        # update to use symbol
+        _wtfile(file1_path, file1.replace("file2", "SUBDIR:file2"))
+        subdir_path = os.path.join(tempdir_path, "subdir")
+        os.mkdir(subdir_path)
+        _wtfile(
+            os.path.join(subdir_path, "file2.bdf"),
+            file2.replace("file3", "SUBDIR:../file3"),
+        )
+        _wtfile(os.path.join(tempdir_path, "file3.bdf"), file3)
+        symbols = {"SUBDIR": subdir_path}
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            blank=None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+            include_symbols=symbols,
+        )
+        check_results(cards)
+
+    # file2 is empty
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _wtfile(file1_path, file1)
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), "")
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            blank=None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+        )
+        assert len(cards) == 3
+        assert cards[0][1] == 1
+        assert cards[1][1] == 101
+        assert cards[2][1] == 3
+
+
+def test_rdsymbols():
+    # Posix paths
+    f = StringIO(
+        "BUFFSIZE=65535\n"
+        "SYMBOL=FEMDIR='/home/loads/FEM/V1'\n"
+        "SYMBOL=DMAPDIR='/home/cla/cla/nastran_files/alter'"
+    )
+    symbols = nastran.rdsymbols(f)
+    assert len(symbols) == 2
+    assert symbols["femdir"] == "/home/loads/FEM/V1"
+    assert symbols["dmapdir"] == "/home/cla/cla/nastran_files/alter"
+
+    # Windows paths
+    f = StringIO(
+        "BUFFSIZE=65535\n"
+        "SYMBOL=FEMDIR='c:\\home\\loads\\FEM Folder\\V1'\n"  # path includes a space
+        "SYMBOL=DMAPDIR='d:\\home\\cla\\cla\\nastran_files\\alter'"
+    )
+    symbols = nastran.rdsymbols(f)
+    assert len(symbols) == 2
+    assert symbols["femdir"] == "c:\\home\\loads\\FEM Folder\\V1"
+    assert symbols["dmapdir"] == "d:\\home\\cla\\cla\\nastran_files\\alter"
+
+    # Empty file
+    f = StringIO("")
+    symbols = nastran.rdsymbols(f)
+    assert symbols == {}
+
+
+def test_rdgrids():
+    file1 = "GRID,1,0,10.0,0.0,0.0\nINCLUDE 'file2.bdf'\nGRID,3,0,30.0,0.0,0.0\n"
+    file2 = "GRID,2,0,20.0,0.0,0.0"
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _wtfile(file1_path, file1)
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
+        # follow_includes=False
+        grids = nastran.rdgrids(file1_path, follow_includes=False)
+        np.testing.assert_array_equal(grids[:, 0], [1, 3])  # grid ID
+        np.testing.assert_allclose(grids[:, 2], [10.0, 30.0])  # x coord
+        # follow_includes=True
+        grids = nastran.rdgrids(file1_path)
+        np.testing.assert_array_equal(grids[:, 0], [1, 2, 3])  # grid ID
+        np.testing.assert_allclose(grids[:, 2], [10.0, 20, 30.0])  # x coord
 
 
 def test_wtgrids():
@@ -802,9 +1026,114 @@ def test_wtqcset():
         assert f.getvalue() == ("QSET1     123456  990001 THRU     990002\n")
 
 
-def test_wtrbe3():
-    with pytest.raises(ValueError):
+def test_wtrbe3_errors():
+    # Ind_List has an odd length
+    with pytest.raises(ValueError, match=r"Ind_List.*even length"):
         nastran.wtrbe3(1, 100, 9900, 123456, [1, 2, 3])
+    # UM_List has an odd length
+    with pytest.raises(ValueError, match=r"UM_List.*even length"):
+        nastran.wtrbe3(1, 100, 9900, 123456, [1, 2], [101, 1, 102])
+
+
+def test_wtrbe3():
+    eid = 100
+    GRID_dep, DOF_dep = 9900, 123456
+    Ind_List = [123, [9901, 9902, 9903, 9904]]
+    with StringIO() as f:
+        nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List)
+        expected = (
+            "RBE3         100            9900  123456      1.     123    9901    9902\n"
+            "+           9903    9904\n"
+        )
+        assert f.getvalue() == expected
+
+    eid = 100
+    GRID_dep, DOF_dep = 9900, 123456
+    Ind_List = [[123, 0.8], [9901, 9902, 9903, 9904], 23456, 9905]
+    alpha = "1.0E-8"
+    with StringIO() as f:
+        nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, alpha=alpha)
+        expected = (
+            "RBE3         100            9900  123456      .8     123    9901    9902\n"
+            "+           9903    9904      1.   23456    9905\n"
+            "+       ALPHA       1.-8\n"
+        )
+        assert f.getvalue() == expected
+
+    eid = 100
+    GRID_dep, DOF_dep = 9900, 123456
+    Ind_List = [
+        123,  # DOF
+        [9901, 9902, 9903, 9904],  # grids
+    ]
+    UM_List = [9901, 12, 9902, 3, 9903, 12]
+    alpha = 2.0e-8
+    with StringIO() as f:
+        nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List, alpha)
+        expected = (
+            "RBE3         100            9900  123456      1.     123    9901    9902\n"
+            "+           9903    9904\n"
+            "+       UM          9901      12    9902       3    9903      12\n"
+            "+       ALPHA       2.-8\n"
+        )
+        assert f.getvalue() == expected
+
+    eid = 100
+    GRID_dep, DOF_dep = 9900, 123456
+    Ind_List = [
+        123,  # DOF
+        [9901, 9902, 9903, 9904],  # grids
+        [123456, 1.2],  # DOF and weight
+        [450001, 200],  # grids
+        345,  # DOF
+        [9905],  # grids
+    ]
+    UM_List = [9901, 12, 9902, 3, 9903, 12, 904, 3]
+    alpha = "6.5e-8"
+    with StringIO() as f:
+        nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List, alpha)
+        expected = (
+            "RBE3         100            9900  123456      1.     123    9901    9902\n"
+            "+           9903    9904     1.2  123456  450001     200      1.     345\n"
+            "+           9905\n"
+            "+       UM          9901      12    9902       3    9903      12        \n"
+            "+                    904       3\n"
+            "+       ALPHA      6.5-8\n"
+        )
+        assert f.getvalue() == expected
+
+
+def test_wtseset_bad_inputs():
+    f = StringIO()
+    superid = 101
+    grids = []
+    with pytest.raises(ValueError, match=r"grids.*length.*>0"):
+        nastran.wtxset1(f, superid, grids)
+
+
+def test_wtset_bad_inputs():
+    f = StringIO()
+    setid = 101
+    ids = []
+    with pytest.raises(ValueError, match=r"ids.*length.*>0"):
+        nastran.wtxset1(f, setid, ids)
+
+
+def test_wtset():
+    with StringIO() as f:
+        nastran.wtset(f, 101, [1, 2, 3, 4])
+        expected = "SET 101 = 1 THRU 4"
+        assert f.getvalue() == expected
+
+    with StringIO() as f:
+        nastran.wtset(f, 101, [9, 2, 4, 6, 8, 10, 12, 14, 15, 16], max_length=35)
+        expected = "SET 101 = 9, 2, 4, 6, 8, 10, 12, \n" "14 THRU 16"
+        assert f.getvalue() == expected
+
+    with StringIO() as f:
+        nastran.wtset(f, 101, [9, 2, 3, 4, 6, 8, 10, 12, 14, 15, 16], max_length=35)
+        expected = "SET 101 = 9, 2 THRU 4, 6, 8, 10, \n" "12, 14 THRU 16"
+        assert f.getvalue() == expected
 
 
 def test_rdgpwg():
@@ -941,8 +1270,8 @@ def test_wtmpc_1coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.000000000E+00\n"
-        "*                     31               1 7.500000000E-01\n"
+        "MPC*                 101              21               1             -1.\n"
+        "*                     31               1             .75\n"
     )
     assert s == sbe
 
@@ -957,9 +1286,9 @@ def test_wtmpc_2coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.000000000E+00\n"
-        "*                     31               1 7.500000000E-01                *\n"
-        "*                                     31               2 2.500000000E-01\n"
+        "MPC*                 101              21               1             -1.\n"
+        "*                     31               1             .75                *\n"
+        "*                                     31               2             .25\n"
         "*\n"
     )
     assert s == sbe
@@ -975,12 +1304,38 @@ def test_wtmpc_3coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.000000000E+00\n"
-        "*                     31               1 7.500000000E-01                *\n"
-        "*                                     31               2 2.500000000E-01\n"
-        "*                     32               5 1.650000000E+00\n"
+        "MPC*                 101              21               1             -1.\n"
+        "*                     31               1             .75                *\n"
+        "*                                     31               2             .25\n"
+        "*                     32               5            1.65\n"
     )
     assert s == sbe
+
+
+def test_find_sequence_bad_input():
+    from pyyeti.nastran.bulk import _find_sequence
+
+    with pytest.raises(ValueError, match=r"start out of bounds.*4,.*5"):
+        _find_sequence([1, 2, 3, 4], 5)
+    with pytest.raises(ValueError, match=r"start out of bounds.*4,.*-1"):
+        _find_sequence([1, 2, 3, 4], -1)
+
+
+@pytest.mark.parametrize(
+    ("seq", "start", "expected"),
+    [
+        ([1, 2, 3, 5, 7], 0, 2),
+        ([1, 2, 3, 5, 7], 1, 2),
+        ([1, 2, 3, 5, 7], 2, 2),
+        ([1, 2, 3, 5, 7], 3, 3),
+        ([1, 2, 3, 5, 7, 8], 4, 5),
+    ],
+)
+def test_find_sequence(seq, start, expected):
+    from pyyeti.nastran.bulk import _find_sequence
+
+    output = _find_sequence(seq, start)
+    assert output == expected
 
 
 def test_wtspoints_bad_inputs():
@@ -990,36 +1345,94 @@ def test_wtspoints_bad_inputs():
         nastran.wtspoints(f, spoints)
 
 
-def test_wtspoints_1line():
-    with StringIO() as f:
-        spoints = [1001, 1002, 1003]
-        nastran.wtspoints(f, spoints)
-        s = f.getvalue()
-    sbe = "SPOINT      1001    1002    1003\n"
-    assert s == sbe
-
-
-def test_wtspoints_2line():
+def test_wtspoints():
     with StringIO() as f:
         spoints = list(range(1001, 1016))
         nastran.wtspoints(f, spoints)
         s = f.getvalue()
+    sbe = "SPOINT      1001THRU        1015\n"
+    assert s == sbe
+
+    with StringIO() as f:
+        spoints = [1001, 1003, 1004, 1005, 1007, 1009]
+        nastran.wtspoints(f, spoints)
+        s = f.getvalue()
     sbe = (
-        "SPOINT      1001    1002    1003    1004    1005    1006    1007    1008\n"
-        "SPOINT      1009    1010    1011    1012    1013    1014    1015\n"
+        "SPOINT      1001\n"
+        "SPOINT      1003THRU        1005\n"
+        "SPOINT      1007    1009\n"
+    )
+    assert s == sbe
+
+    with StringIO() as f:
+        spoints = [1001, 1002, 1004, 1006, 1007, 1009]
+        nastran.wtspoints(f, spoints)
+        s = f.getvalue()
+    sbe = (
+        "SPOINT      1001THRU        1002\n"
+        "SPOINT      1004\n"
+        "SPOINT      1006THRU        1007\n"
+        "SPOINT      1009\n"
+    )
+    assert s == sbe
+
+    with StringIO() as f:
+        spoints = list(reversed(range(1001, 1018)))
+        nastran.wtspoints(f, spoints)
+        s = f.getvalue()
+    sbe = (
+        "SPOINT      1017    1016    1015    1014    1013    1012    1011    1010\n"
+        "SPOINT      1009    1008    1007    1006    1005    1004    1003    1002\n"
+        "SPOINT      1001\n"
     )
     assert s == sbe
 
 
-def test_wtspoints_3line():
+def test_wtxset1_bad_inputs():
+    f = StringIO()
+    dof = 123456
+    grids = []
+    with pytest.raises(ValueError, match=r"grids.*length.*>0"):
+        nastran.wtxset1(f, dof, grids)
+
+
+def test_wtxset1():
     with StringIO() as f:
-        spoints = list(range(1001, 1018))
-        nastran.wtspoints(f, spoints)
+        dof = 123456
+        grids = [1001, 1003, 1005]
+        nastran.wtxset1(f, dof, grids)
+        s = f.getvalue()
+    sbe = "BSET1     123456    1001    1003    1005\n"
+    assert s == sbe
+
+    with StringIO() as f:
+        dof = 123456
+        grids = [1001, 1002, 1003]
+        nastran.wtxset1(f, dof, grids)
+        s = f.getvalue()
+    sbe = "BSET1     123456    1001THRU        1003\n"
+    assert s == sbe
+
+    with StringIO() as f:
+        dof = 123456
+        grids = [1001, 1003, 1005, 1006, 1007, 1009]
+        nastran.wtxset1(f, dof, grids, name="QSET1")
         s = f.getvalue()
     sbe = (
-        "SPOINT      1001    1002    1003    1004    1005    1006    1007    1008\n"
-        "SPOINT      1009    1010    1011    1012    1013    1014    1015    1016\n"
-        "SPOINT      1017\n"
+        "QSET1     123456    1001    1003\n"
+        "QSET1     123456    1005THRU        1007\n"
+        "QSET1     123456    1009\n"
+    )
+    assert s == sbe
+
+    with StringIO() as f:
+        dof = 123
+        grids = list(reversed(range(1001, 1010)))
+        nastran.wtxset1(f, dof, grids)
+        s = f.getvalue()
+    sbe = (
+        "BSET1        123    1009    1008    1007    1006    1005    1004    1003\n"
+        "BSET1        123    1002    1001\n"
     )
     assert s == sbe
 
@@ -1185,21 +1598,20 @@ def test_wtcoordcards():
 
 def test_mknast():
     name = "_test_mknast_.sh"
-    try:
-        nastran.mknast(
-            name,
-            stoponfatal="yes",
-            files=["tt.py", "tt", "doruns.sh", "subd/t.t"],
-            before="# BEFORE",
-            after="# AFTER",
-            top="# TOP",
-            bottom="# BOTTOM",
-        )
-        with open(name) as f:
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        path = os.path.join(tempdir_path, name)
+        with pytest.warns(RuntimeWarning, match=r"file.*not found"):
+            nastran.mknast(
+                path,
+                stoponfatal="yes",
+                files=["tt.py", "tt", "doruns.sh", "subd/t.t"],
+                before="# BEFORE",
+                after="# AFTER",
+                top="# TOP",
+                bottom="# BOTTOM",
+            )
+        with open(path) as f:
             s = f.read().splitlines()
-    finally:
-        if os.path.exists(name):
-            os.remove(name)
 
     sbe = [
         "#!/bin/sh",
@@ -1585,3 +1997,649 @@ def test_wtassign():
         f = StringIO()
         nastran.wtassign(f, *args)
         assert f.getvalue() == expected
+
+
+def test_wttabdmp1_bad_inputs():
+    f = StringIO()
+    setid = 101
+    # not enough terms in freq/damp
+    freq, damp = [1.0], [0.01]
+    with pytest.raises(ValueError, match=r"freq.*length.*\>=2"):
+        nastran.wttabdmp1(f, setid, freq, damp)
+    # length mismatch
+    freq, damp = [1.0, 10.0], [0.01, 0.01, 0.01]
+    with pytest.raises(ValueError, match=r"freq.*damp.*same length"):
+        nastran.wttabdmp1(f, setid, freq, damp)
+    # invalid damping type
+    freq, damp = [1.0, 10.0], [0.01, 0.01]
+    damping_type = "zzz"
+    with pytest.raises(ValueError, match=r"damping_type.*got 'ZZZ'"):
+        nastran.wttabdmp1(f, setid, freq, damp, damping_type)
+
+
+def test_wttabdmp1_two_terms():
+    f = StringIO()
+    setid = 101
+    freq = [0.1, 2.5]
+    damp = [0.01, 0.015]
+    nastran.wttabdmp1(f, setid, freq, damp)
+    expected = (
+        "TABDMP1*             101CRIT                                            \n"
+        "*                                                                       *\n"
+        "*                     .1             .01             2.5            .015\n"
+        "*       ENDT            \n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wttabdmp1_three_terms():
+    f = StringIO()
+    setid = 101.0  # setid is a float, verify it's written as an integer
+    freq = [0.1, 2.5, 3]  # freq[2] is an integer, verify it's written as a real
+    damp = [0.01, 0.015, 0.015]
+    damping_type = "g"
+    nastran.wttabdmp1(f, setid, freq, damp, damping_type)
+    expected = (
+        "TABDMP1*             101G                                               \n"
+        "*                                                                       *\n"
+        "*                     .1             .01             2.5            .015\n"
+        "*                     3.            .015ENDT            \n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wttabdmp1_four_terms():
+    f = StringIO()
+    setid = 101
+    freq = [0.1, 2.5, 3.2, 3.4]
+    damp = [0.01, 0.015, 0.015, 0.016]
+    damping_type = "q"
+    nastran.wttabdmp1(f, setid, freq, damp, damping_type)
+    expected = (
+        "TABDMP1*             101Q                                               \n"
+        "*                                                                       *\n"
+        "*                     .1             .01             2.5            .015\n"
+        "*                    3.2            .015             3.4            .016*\n"
+        "*       ENDT            \n"
+        "*\n"  # trailing newline so card had even number of lines
+    )
+    assert f.getvalue() == expected
+
+
+def test_wttload1_bad_input():
+    f = StringIO()
+    setid, excite_id = 201, 202
+    delay = 0.05
+    excite_type = "zzz"
+    tabledi_id = 1501
+    with pytest.raises(ValueError, match=r"excite_type.*got 'ZZZ'"):
+        nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
+
+
+def test_wttload1_case1():
+    f = StringIO()
+    setid, excite_id = 201, 202
+    delay = 0.05  # float, represents a time value
+    excite_type = "load"
+    tabledi_id = 1501.0  # float, verify it's written as an integer
+    nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
+    expected = "TLOAD1       201     202     .05LOAD        1501\n"
+    assert f.getvalue() == expected
+
+
+def test_wttload1_case2():
+    f = StringIO()
+    setid, excite_id = 201.0, 203
+    delay = 1504  # integer, represents a DELAY card
+    excite_type = "load"
+    tabledi_id = 1502
+    nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
+    expected = "TLOAD1       201     203    1504LOAD        1502\n"
+    assert f.getvalue() == expected
+
+
+def test_wttload2_bad_input():
+    f = StringIO()
+    setid, excite_id = 201, 202
+    delay = 0.05
+    excite_type = "zzz"
+    t1, t2 = 0.0, 1.0
+    with pytest.raises(ValueError, match=r"excite_type.*got 'ZZZ'"):
+        nastran.wttload2(f, setid, excite_id, delay, excite_type, t1, t2)
+    excite_type = "load"
+    t1, t2 = 1.0, 1.0
+    with pytest.raises(ValueError, match=r"t2 must.*greater.*t1"):
+        nastran.wttload2(f, setid, excite_id, delay, excite_type, t1, t2)
+
+
+def test_wttload2_case1():
+    f = StringIO()
+    setid, excite_id = 201, 202
+    delay = 0.05  # float, represents a time value
+    excite_type = "load"
+    t1, t2 = 0.1, 0.2
+    nastran.wttload2(f, setid, excite_id, delay, excite_type, t1, t2)
+    expected = (
+        "TLOAD2       201     202     .05LOAD          .1      .2      0.      0.\n"
+        "+             0.      0.\n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wttload2_case2():
+    fobj = StringIO()
+    setid, excite_id = 201, 202
+    delay = 2  # integer, represents a DELAY card
+    excite_type = "load"
+    t1, t2 = 0.1, 2  # integer, verify it's converted to real
+    f, p, c, b = 11, 12, 13, 14  # integers, verify all are converted to real
+    nastran.wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f, p, c, b)
+    expected = (
+        "TLOAD2       201     202       2LOAD          .1      2.     11.     12.\n"
+        "+            13.     14.\n"
+    )
+    assert fobj.getvalue() == expected
+
+
+def test_wtconm2_case1():
+    f = StringIO()
+    eid, gid, cid = 1, 2, 3
+    mass = 5000
+    I_diag = [6000, 7000, 8000]  # verify these are written as real
+    I_offdiag = [6500, 8500, 7500]
+    offset = [3, 2, 1]
+    nastran.wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag, offset)
+    expected = (
+        "CONM2*                 1               2               3           5000.\n"
+        "*                     3.              2.              1.                *\n"
+        "*                  6000.           6500.           7000.           8500.\n"
+        "*                  7500.           8000.\n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wtconm2_case2():
+    # defaults for I_offdiag and offset
+    f = StringIO()
+    eid, gid, cid = 1, 2, 3.0  # verify this is written as an integer
+    mass = 5000.0
+    I_diag = [6000, 7000, 8000]
+    nastran.wtconm2(f, eid, gid, cid, mass, I_diag)
+    expected = (
+        "CONM2*                 1               2               3           5000.\n"
+        "*                     0.              0.              0.                *\n"
+        "*                  6000.              0.           7000.              0.\n"
+        "*                     0.           8000.\n"
+    )
+    assert f.getvalue() == expected
+
+
+def test_wtcard8_bad_inputs():
+    f = StringIO()
+    # card name too long
+    fields = ("ABCDEFGHI", 0, 0)
+    with pytest.raises(ValueError, match=r"card name.*\<8.*ABCDEFGHI"):
+        nastran.wtcard8(f, fields)
+
+    # unsupported field type
+    fields = ("ABC", 0, [1, 2, 3])
+    with pytest.raises(TypeError, match=r"unsupported field type.*list"):
+        nastran.wtcard8(f, fields)
+
+
+def test_wtcard8():
+    values = (
+        # 3 fields
+        (("ABC", 0, "", 1.5), "ABC            0             1.5\n"),
+        # 7 fields, NumPy types
+        (
+            (
+                np.str_("ABC"),
+                np.uint32(10),
+                np.uint64(11),
+                np.int32(12),
+                np.int64(13),
+                np.float32(1.0),
+                np.float64(2.0),
+            ),
+            "ABC           10      11      12      13      1.      2.\n",
+        ),
+        # 4 fields
+        (("ABC", 0, "", 1.5, -2.0), "ABC            0             1.5     -2.\n"),
+        # 4 fields
+        (
+            ("ABC", 0, "", 1.5, -2.0, "", "DEF", 1.2e7, 3.4e-5),
+            "ABC            0             1.5     -2.        DEF        1.2+7 .000034\n",
+        ),
+        # 9 fields
+        (
+            ("ABC", 0, "", 1.5, -2.0, "", "DEF", 1.2e7, 3.4e-5, -3.4e-12),
+            "ABC            0             1.5     -2.        DEF        1.2+7 .000034\n"
+            "+        -3.4-12\n",
+        ),
+        # 17 fields
+        (
+            (
+                "ABC",
+                0,
+                "",
+                1.5,
+                -2.0,
+                "",
+                "DEF",
+                1.2e7,
+                3.4e-5,
+                -3.4e-12,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ),
+            "ABC            0             1.5     -2.        DEF        1.2+7 .000034\n"
+            "+        -3.4-12       0       0       0       0       0       0       0\n"
+            "+              0\n",
+        ),
+    )
+    for fields, expected in values:
+        f = StringIO()
+        nastran.wtcard8(f, fields)
+        assert f.getvalue() == expected
+
+
+def test_wtcard16_bad_inputs():
+    f = StringIO()
+    # card name doesn't end in asterisk
+    fields = ("GRID", 0, 0)
+    with pytest.raises(ValueError, match=r"card name.*asterisk"):
+        nastran.wtcard16(f, fields)
+
+    # card name too long
+    fields = ("ABCDEFGHI*", 0, 0)
+    with pytest.raises(ValueError, match=r"card name.*\<8.*ABCDEFGHI"):
+        nastran.wtcard16(f, fields)
+
+    # unsupported field type
+    fields = ("ABC*", 0, [1, 2, 3])
+    with pytest.raises(TypeError, match=r"unsupported field type.*list"):
+        nastran.wtcard16(f, fields)
+
+
+def test_wtcard16():
+    values = (
+        # three fields
+        (
+            ("ABC*", 0, "", 1.5),
+            ("ABC*                   0                             1.5\n" "*\n"),
+        ),
+        # 7 fields, NumPy types
+        (
+            (
+                np.str_("ABC*"),
+                np.uint32(10),
+                np.uint64(11),
+                np.int32(12),
+                np.int64(13),
+                np.float32(1.0),
+                np.float64(2.0),
+            ),
+            "ABC*                  10              11              12              13\n"
+            "*                     1.              2.\n",
+        ),
+        # four fields
+        (
+            ("ABC*", 0, "", 1.0, -2.0),
+            (
+                "ABC*                   0                              1.             -2.\n"
+                "*\n"
+            ),
+        ),
+        # six fields
+        (
+            ("GRID*", 7100285, 7100003, 1.24499e3, 5.4e1, -3.94e3, 7100004),
+            (
+                "GRID*            7100285         7100003         1244.99             54.\n"
+                "*                 -3940.         7100004\n"
+            ),
+        ),
+        # eight fields
+        (
+            ("ABC*", 0, "", 1.0, 2.0, "", 3.0, 4.0e-2, 550),
+            (
+                "ABC*                   0                              1.              2.\n"
+                "*                                     3.             .04             550\n"
+            ),
+        ),
+        # nine fields
+        (
+            ("ABC*", 0, "", 1.0, 2.0, "", 3.0, 4.0, 550, "ABC"),
+            (
+                "ABC*                   0                              1.              2.\n"
+                "*                                     3.              4.             550*\n"
+                "*       ABC             \n"
+                "*\n"
+            ),
+        ),
+    )
+    for fields, expected in values:
+        f = StringIO()
+        nastran.wtcard16(f, fields)
+        assert f.getvalue() == expected
+
+
+def test_format_scientific8():
+    from pyyeti.nastran.bulk import _format_scientific8
+
+    small_exponent = -17
+    large_exponent = 17
+    nums = (
+        [
+            0.0,
+            -0.0,
+            1.0,
+            -1.0,
+            0.1,
+            0.11,
+            0.123451,
+            0.123459,
+            -0.123431,
+            -0.123459,
+            0.000034,
+            -0.000034,
+            -0.009,
+            0.000000000000000000000001,
+            -0.000000000000000000000001,
+        ]
+        + [9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+        + [-9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+    )
+    expecteds = (
+        [
+            "      0.",
+            "      0.",
+            "    1.+0",
+            "   -1.+0",
+            "    1.-1",
+            "   1.1-1",
+            "1.2345-1",
+            "1.2346-1",
+            "-1.234-1",
+            "-1.235-1",
+            "   3.4-5",
+            "  -3.4-5",
+            "   -9.-3",
+            "   1.-24",
+            "  -1.-24",
+        ]
+        + [f"8.182{i:+d}" for i in range(-18, -9)]
+        + [f"8.1818{i:+d}" for i in range(-9, 10)]
+        + [f"8.182{i:+d}" for i in range(10, 17)]
+        + [f"-8.18{i:+d}" for i in range(-18, -9)]
+        + [f"-8.182{i:+d}" for i in range(-9, 10)]
+        + [f"-8.18{i:+d}" for i in range(10, 17)]
+    )
+    assert len(nums) == len(expecteds)
+    for num, expected in zip(nums, expecteds):
+        output = _format_scientific8(num)
+        assert len(output) == 8
+        assert output == expected
+
+
+def test_format_float8():
+    small_exponent = -17
+    large_exponent = 17
+    nums = (
+        [
+            0.0,
+            -0.0,
+            1.0,
+            -1.0,
+            0.1,
+            0.11,
+            0.123451,
+            0.123459,
+            -0.123431,
+            -0.123459,
+            0.000034,
+            -0.000034,
+            -0.009,
+            0.000000000000000000000001,
+            -0.000000000000000000000001,
+        ]
+        + [9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+        + [-9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+    )
+    expecteds = (
+        [
+            "      0.",
+            "      0.",
+            "      1.",
+            "     -1.",
+            "      .1",
+            "     .11",
+            " .123451",
+            " .123459",
+            "-.123431",
+            "-.123459",
+            " .000034",
+            "  -3.4-5",
+            "   -.009",
+            "   1.-24",
+            "  -1.-24",
+        ]
+        + [f"8.182{i:+d}" for i in range(-18, -9)]
+        + [f"8.1818{i:+d}" for i in range(-9, -3)]
+        + [
+            ".0081818",
+            ".0818182",
+            ".8181818",
+            "8.181818",
+            "81.81818",
+            "818.1818",
+            "8181.818",
+            "81818.18",
+            "818181.8",
+            "8181818.",
+        ]
+        + [f"8.1818{i:+d}" for i in range(7, 10)]
+        + [f"8.182{i:+d}" for i in range(10, 17)]
+        + [f"-8.18{i:+d}" for i in range(-18, -9)]
+        + [f"-8.182{i:+d}" for i in range(-9, -2)]
+        + [
+            "-.081818",
+            "-.818182",
+            "-8.18182",
+            "-81.8182",
+            "-818.182",
+            "-8181.82",
+            "-81818.2",
+            "-818182.",
+        ]
+        + [f"-8.182{i:+d}" for i in range(6, 10)]
+        + [f"-8.18{i:+d}" for i in range(10, 17)]
+    )
+    assert len(nums) == len(expecteds)
+    for num, expected in zip(nums, expecteds):
+        output = nastran.format_float8(num)
+        assert len(output) == 8
+        assert output == expected
+
+
+def test_format_float8_many():
+    for start in range(-13, 13):
+        nums = np.logspace(
+            start, start + 1, num=1000, endpoint=True, base=10.0, dtype="f8"
+        )
+        for num in nums:
+            output = nastran.format_float8(num)
+            assert len(output) == 8
+            assert "." in output
+
+
+def test_format_scientific16():
+    from pyyeti.nastran.bulk import _format_scientific16
+
+    small_exponent = -17
+    large_exponent = 17
+    nums = (
+        [
+            0.0,
+            -0.0,
+            1.0,
+            -1.0,
+            0.1,
+            0.11,
+            0.123451,
+            0.123459,
+            -0.123431,
+            -0.123459,
+            0.000034,
+            -0.000034,
+            -0.009,
+            0.000000000000000000000001,
+            -0.000000000000000000000001,
+        ]
+        + [9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+        + [-9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+    )
+    expecteds = (
+        [
+            "              0.",
+            "              0.",
+            "            1.+0",
+            "           -1.+0",
+            "            1.-1",
+            "           1.1-1",
+            "       1.23451-1",
+            "       1.23459-1",
+            "      -1.23431-1",
+            "      -1.23459-1",
+            "           3.4-5",
+            "          -3.4-5",
+            "           -9.-3",
+            "           1.-24",
+            "          -1.-24",
+        ]
+        + [f"8.18181818182{i:+d}" for i in range(-18, -9)]
+        + [f"8.181818181818{i:+d}" for i in range(-9, 10)]
+        + [f"8.18181818182{i:+d}" for i in range(10, 17)]
+        + [f"-8.1818181818{i:+d}" for i in range(-18, -9)]
+        + [f"-8.18181818182{i:+d}" for i in range(-9, 10)]
+        + [f"-8.1818181818{i:+d}" for i in range(10, 17)]
+    )
+    assert len(nums) == len(expecteds)
+    for num, expected in zip(nums, expecteds):
+        output = _format_scientific16(num)
+        assert len(output) == 16
+        assert output == expected
+
+
+def test_format_float16():
+    small_exponent = -17
+    large_exponent = 17
+    nums = (
+        [
+            0.0,
+            -0.0,
+            1.0,
+            -1.0,
+            0.1,
+            0.11,
+            0.123451,
+            0.123459,
+            -0.123431,
+            -0.123459,
+            0.000034,
+            -0.000034,
+            -0.009,
+            0.000000000000000000000001,
+            -0.000000000000000000000001,
+        ]
+        + [9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+        + [-9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+    )
+    expecteds = (
+        [
+            "              0.",
+            "              0.",
+            "              1.",
+            "             -1.",
+            "              .1",
+            "             .11",
+            "         .123451",
+            "         .123459",
+            "        -.123431",
+            "        -.123459",
+            "         .000034",
+            "        -.000034",
+            "           -.009",
+            "           1.-24",
+            "          -1.-24",
+        ]
+        + [f"8.18181818182{i:+d}" for i in range(-18, -9)]
+        + [f"8.181818181818{i:+d}" for i in range(-9, -3)]
+        + [
+            ".008181818181818",
+            ".081818181818182",
+            ".818181818181818",
+            "8.18181818181818",
+            "81.8181818181818",
+            "818.181818181818",
+            "8181.81818181818",
+            "81818.1818181818",
+            "818181.818181818",
+            "8181818.18181818",
+            "81818181.8181818",
+            "818181818.181818",
+            "8181818181.81818",
+            "81818181818.1818",
+            "818181818181.818",
+            "8181818181818.18",
+            "81818181818181.8",
+            "818181818181818.",
+            "8.18181818182+15",
+            "8.18181818182+16",
+        ]
+        + [f"-8.1818181818{i:+d}" for i in range(-18, -9)]
+        + [f"-8.18181818182{i:+d}" for i in range(-9, -2)]
+        + [
+            "-.08181818181818",
+            "-.81818181818182",
+            "-8.1818181818182",
+            "-81.818181818182",
+            "-818.18181818182",
+            "-8181.8181818182",
+            "-81818.181818182",
+            "-818181.81818182",
+            "-8181818.1818182",
+            "-81818181.818182",
+            "-818181818.18182",
+            "-8181818181.8182",
+            "-81818181818.182",
+            "-818181818181.82",
+            "-8181818181818.2",
+            "-81818181818182.",
+            "-8.1818181818+14",
+            "-8.1818181818+15",
+            "-8.1818181818+16",
+        ]
+    )
+    assert len(nums) == len(expecteds)
+    for num, expected in zip(nums, expecteds):
+        output = nastran.format_float16(num)
+        assert len(output) == 16
+        assert output == expected
+
+
+def test_format_float16_many():
+    for start in range(-13, 13):
+        nums = np.logspace(
+            start, start + 1, num=1000, endpoint=True, base=10.0, dtype="f8"
+        )
+        for num in nums:
+            output = nastran.format_float16(num)
+            assert len(output) == 16
+            assert "." in output
