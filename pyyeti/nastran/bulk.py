@@ -5303,7 +5303,7 @@ def format_float16(value):
     >>> print(nastran.format_float16(1234567898769.0e5))
     1.23456789877+17
     """
-    if value >= 0.0:  # positive, not perfect...
+    if value >= 0.0:
         if value < 5e-16:
             field = _format_scientific16(value)
             return field
@@ -5367,7 +5367,7 @@ def format_float16(value):
             if len(field2) <= 16 and float(field1) == float(field2):
                 field = field2.rstrip(" 0").replace("-0.", "-.")
             return f"{field:>16s}"
-        # -0.01 >x>-0.1...should be 5 (maybe scientific...)
+        # -0.01 > x > -0.1...should be 5 (maybe scientific...)
         elif value > -1.0:
             field = f"{value:16.14f}"
             field = field.replace("-0.", "-.")
