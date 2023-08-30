@@ -1042,7 +1042,7 @@ def test_wtrbe3():
     with StringIO() as f:
         nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List)
         expected = (
-            "RBE3         100            9900  123456 1.00+00     123    9901    9902\n"
+            "RBE3         100            9900  123456      1.     123    9901    9902\n"
             "+           9903    9904\n"
         )
         assert f.getvalue() == expected
@@ -1050,13 +1050,13 @@ def test_wtrbe3():
     eid = 100
     GRID_dep, DOF_dep = 9900, 123456
     Ind_List = [[123, 0.8], [9901, 9902, 9903, 9904], 23456, 9905]
-    alpha = "1.0E-6"
+    alpha = "1.0E-8"
     with StringIO() as f:
         nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, alpha=alpha)
         expected = (
-            "RBE3         100            9900  123456 8.00-01     123    9901    9902\n"
-            "+           9903    9904 1.00+00   23456    9905\n"
-            "+       ALPHA    1.00-06\n"
+            "RBE3         100            9900  123456      .8     123    9901    9902\n"
+            "+           9903    9904      1.   23456    9905\n"
+            "+       ALPHA       1.-8\n"
         )
         assert f.getvalue() == expected
 
@@ -1067,14 +1067,14 @@ def test_wtrbe3():
         [9901, 9902, 9903, 9904],  # grids
     ]
     UM_List = [9901, 12, 9902, 3, 9903, 12]
-    alpha = 2.0e-5
+    alpha = 2.0e-8
     with StringIO() as f:
         nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List, alpha)
         expected = (
-            "RBE3         100            9900  123456 1.00+00     123    9901    9902\n"
+            "RBE3         100            9900  123456      1.     123    9901    9902\n"
             "+           9903    9904\n"
             "+       UM          9901      12    9902       3    9903      12\n"
-            "+       ALPHA    2.00-05\n"
+            "+       ALPHA       2.-8\n"
         )
         assert f.getvalue() == expected
 
@@ -1089,16 +1089,16 @@ def test_wtrbe3():
         [9905],  # grids
     ]
     UM_List = [9901, 12, 9902, 3, 9903, 12, 904, 3]
-    alpha = "6.5e-6"
+    alpha = "6.5e-8"
     with StringIO() as f:
         nastran.wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List, alpha)
         expected = (
-            "RBE3         100            9900  123456 1.00+00     123    9901    9902\n"
-            "+           9903    9904 1.20+00  123456  450001     200 1.00+00     345\n"
+            "RBE3         100            9900  123456      1.     123    9901    9902\n"
+            "+           9903    9904     1.2  123456  450001     200      1.     345\n"
             "+           9905\n"
             "+       UM          9901      12    9902       3    9903      12        \n"
             "+                    904       3\n"
-            "+       ALPHA    6.50-06\n"
+            "+       ALPHA      6.5-8\n"
         )
         assert f.getvalue() == expected
 
@@ -1237,8 +1237,8 @@ def test_wtmpc_1coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.0000000000+00\n"
-        "*                     31               1 7.5000000000-01\n"
+        "MPC*                 101              21               1             -1.\n"
+        "*                     31               1             .75\n"
     )
     assert s == sbe
 
@@ -1253,9 +1253,9 @@ def test_wtmpc_2coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.0000000000+00\n"
-        "*                     31               1 7.5000000000-01                *\n"
-        "*                                     31               2 2.5000000000-01\n"
+        "MPC*                 101              21               1             -1.\n"
+        "*                     31               1             .75                *\n"
+        "*                                     31               2             .25\n"
         "*\n"
     )
     assert s == sbe
@@ -1271,10 +1271,10 @@ def test_wtmpc_3coeff():
         nastran.wtmpc(f, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
         s = f.getvalue()
     sbe = (
-        "MPC*                 101              21               1-1.0000000000+00\n"
-        "*                     31               1 7.5000000000-01                *\n"
-        "*                                     31               2 2.5000000000-01\n"
-        "*                     32               5 1.6500000000+00\n"
+        "MPC*                 101              21               1             -1.\n"
+        "*                     31               1             .75                *\n"
+        "*                                     31               2             .25\n"
+        "*                     32               5            1.65\n"
     )
     assert s == sbe
 
@@ -1972,7 +1972,7 @@ def test_wttabdmp1_two_terms():
     expected = (
         "TABDMP1*             101CRIT                                            \n"
         "*                                                                       *\n"
-        "*        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02\n"
+        "*                     .1             .01             2.5            .015\n"
         "*       ENDT            \n"
     )
     assert f.getvalue() == expected
@@ -1988,8 +1988,8 @@ def test_wttabdmp1_three_terms():
     expected = (
         "TABDMP1*             101G                                               \n"
         "*                                                                       *\n"
-        "*        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02\n"
-        "*        3.0000000000+00 1.5000000000-02ENDT            \n"
+        "*                     .1             .01             2.5            .015\n"
+        "*                     3.            .015ENDT            \n"
     )
     assert f.getvalue() == expected
 
@@ -2004,8 +2004,8 @@ def test_wttabdmp1_four_terms():
     expected = (
         "TABDMP1*             101Q                                               \n"
         "*                                                                       *\n"
-        "*        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02\n"
-        "*        3.2000000000+00 1.5000000000-02 3.4000000000+00 1.6000000000-02*\n"
+        "*                     .1             .01             2.5            .015\n"
+        "*                    3.2            .015             3.4            .016*\n"
         "*       ENDT            \n"
         "*\n"  # trailing newline so card had even number of lines
     )
@@ -2029,7 +2029,7 @@ def test_wttload1_case1():
     excite_type = "load"
     tabledi_id = 1501.0  # float, verify it's written as an integer
     nastran.wttload1(f, setid, excite_id, delay, excite_type, tabledi_id)
-    expected = "TLOAD1       201     202 5.00-02LOAD        1501\n"
+    expected = "TLOAD1       201     202     .05LOAD        1501\n"
     assert f.getvalue() == expected
 
 
@@ -2066,8 +2066,8 @@ def test_wttload2_case1():
     t1, t2 = 0.1, 0.2
     nastran.wttload2(f, setid, excite_id, delay, excite_type, t1, t2)
     expected = (
-        "TLOAD2       201     202 5.00-02LOAD     1.00-01 2.00-01 0.00+00 0.00+00\n"
-        "+        0.00+00 0.00+00\n"
+        "TLOAD2       201     202     .05LOAD          .1      .2      0.      0.\n"
+        "+             0.      0.\n"
     )
     assert f.getvalue() == expected
 
@@ -2081,8 +2081,8 @@ def test_wttload2_case2():
     f, p, c, b = 11, 12, 13, 14  # integers, verify all are converted to real
     nastran.wttload2(fobj, setid, excite_id, delay, excite_type, t1, t2, f, p, c, b)
     expected = (
-        "TLOAD2       201     202       2LOAD     1.00-01 2.00+00 1.10+01 1.20+01\n"
-        "+        1.30+01 1.40+01\n"
+        "TLOAD2       201     202       2LOAD          .1      2.     11.     12.\n"
+        "+            13.     14.\n"
     )
     assert fobj.getvalue() == expected
 
@@ -2096,10 +2096,10 @@ def test_wtconm2_case1():
     offset = [3, 2, 1]
     nastran.wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag, offset)
     expected = (
-        "CONM2*                 1               2               3 5.0000000000+03\n"
-        "*        3.0000000000+00 2.0000000000+00 1.0000000000+00                *\n"
-        "*        6.0000000000+03 6.5000000000+03 7.0000000000+03 8.5000000000+03\n"
-        "*        7.5000000000+03 8.0000000000+03\n"
+        "CONM2*                 1               2               3           5000.\n"
+        "*                     3.              2.              1.                *\n"
+        "*                  6000.           6500.           7000.           8500.\n"
+        "*                  7500.           8000.\n"
     )
     assert f.getvalue() == expected
 
@@ -2112,10 +2112,10 @@ def test_wtconm2_case2():
     I_diag = [6000, 7000, 8000]
     nastran.wtconm2(f, eid, gid, cid, mass, I_diag)
     expected = (
-        "CONM2*                 1               2               3 5.0000000000+03\n"
-        "*        0.0000000000+00 0.0000000000+00 0.0000000000+00                *\n"
-        "*        6.0000000000+03 0.0000000000+00 7.0000000000+03 0.0000000000+00\n"
-        "*        0.0000000000+00 8.0000000000+03\n"
+        "CONM2*                 1               2               3           5000.\n"
+        "*                     0.              0.              0.                *\n"
+        "*                  6000.              0.           7000.              0.\n"
+        "*                     0.           8000.\n"
     )
     assert f.getvalue() == expected
 
@@ -2136,7 +2136,7 @@ def test_wtcard8_bad_inputs():
 def test_wtcard8():
     values = (
         # 3 fields
-        (("ABC", 0, "", 1.5), "ABC            0         1.50+00\n"),
+        (("ABC", 0, "", 1.5), "ABC            0             1.5\n"),
         # 7 fields, NumPy types
         (
             (
@@ -2148,20 +2148,20 @@ def test_wtcard8():
                 np.float32(1.0),
                 np.float64(2.0),
             ),
-            "ABC           10      11      12      13 1.00+00 2.00+00\n",
+            "ABC           10      11      12      13      1.      2.\n",
         ),
         # 4 fields
-        (("ABC", 0, "", 1.5, -2.0), "ABC            0         1.50+00-2.00+00\n"),
+        (("ABC", 0, "", 1.5, -2.0), "ABC            0             1.5     -2.\n"),
         # 4 fields
         (
-            ("ABC", 0, "", 1.5, -2.0, "", "DEF", 1.2e5, 3.4e-5),
-            "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n",
+            ("ABC", 0, "", 1.5, -2.0, "", "DEF", 1.2e7, 3.4e-5),
+            "ABC            0             1.5     -2.        DEF        1.2+7 .000034\n",
         ),
         # 9 fields
         (
-            ("ABC", 0, "", 1.5, -2.0, "", "DEF", 1.2e5, 3.4e-5, -3.4e-12),
-            "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
-            "+       -3.40-12\n",
+            ("ABC", 0, "", 1.5, -2.0, "", "DEF", 1.2e7, 3.4e-5, -3.4e-12),
+            "ABC            0             1.5     -2.        DEF        1.2+7 .000034\n"
+            "+        -3.4-12\n",
         ),
         # 17 fields
         (
@@ -2173,7 +2173,7 @@ def test_wtcard8():
                 -2.0,
                 "",
                 "DEF",
-                1.2e5,
+                1.2e7,
                 3.4e-5,
                 -3.4e-12,
                 0,
@@ -2185,8 +2185,8 @@ def test_wtcard8():
                 0,
                 0,
             ),
-            "ABC            0         1.50+00-2.00+00        DEF      1.20+05 3.40-05\n"
-            "+       -3.40-12       0       0       0       0       0       0       0\n"
+            "ABC            0             1.5     -2.        DEF        1.2+7 .000034\n"
+            "+        -3.4-12       0       0       0       0       0       0       0\n"
             "+              0\n",
         ),
     )
@@ -2219,7 +2219,7 @@ def test_wtcard16():
         # three fields
         (
             ("ABC*", 0, "", 1.5),
-            ("ABC*                   0                 1.5000000000+00\n" "*\n"),
+            ("ABC*                   0                             1.5\n" "*\n"),
         ),
         # 7 fields, NumPy types
         (
@@ -2233,13 +2233,13 @@ def test_wtcard16():
                 np.float64(2.0),
             ),
             "ABC*                  10              11              12              13\n"
-            "*        1.0000000000+00 2.0000000000+00\n",
+            "*                     1.              2.\n",
         ),
         # four fields
         (
             ("ABC*", 0, "", 1.0, -2.0),
             (
-                "ABC*                   0                 1.0000000000+00-2.0000000000+00\n"
+                "ABC*                   0                              1.             -2.\n"
                 "*\n"
             ),
         ),
@@ -2247,24 +2247,24 @@ def test_wtcard16():
         (
             ("GRID*", 7100285, 7100003, 1.24499e3, 5.4e1, -3.94e3, 7100004),
             (
-                "GRID*            7100285         7100003 1.2449900000+03 5.4000000000+01\n"
-                "*       -3.9400000000+03         7100004\n"
+                "GRID*            7100285         7100003         1244.99             54.\n"
+                "*                 -3940.         7100004\n"
             ),
         ),
         # eight fields
         (
             ("ABC*", 0, "", 1.0, 2.0, "", 3.0, 4.0e-2, 550),
             (
-                "ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
-                "*                        3.0000000000+00 4.0000000000-02             550\n"
+                "ABC*                   0                              1.              2.\n"
+                "*                                     3.             .04             550\n"
             ),
         ),
         # nine fields
         (
             ("ABC*", 0, "", 1.0, 2.0, "", 3.0, 4.0, 550, "ABC"),
             (
-                "ABC*                   0                 1.0000000000+00 2.0000000000+00\n"
-                "*                        3.0000000000+00 4.0000000000+00             550*\n"
+                "ABC*                   0                              1.              2.\n"
+                "*                                     3.              4.             550*\n"
                 "*       ABC             \n"
                 "*\n"
             ),
@@ -2294,6 +2294,8 @@ def test_format_scientific8():
             0.000034,
             -0.000034,
             -0.009,
+            0.000000000000000000000001,
+            -0.000000000000000000000001,
         ]
         + [9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
         + [-9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
@@ -2313,6 +2315,8 @@ def test_format_scientific8():
             "   3.4-5",
             "  -3.4-5",
             "   -9.-3",
+            "   1.-24",
+            "  -1.-24",
         ]
         + [f"8.182{i:+d}" for i in range(-18, -9)]
         + [f"8.1818{i:+d}" for i in range(-9, 10)]
@@ -2346,6 +2350,8 @@ def test_format_float8():
             0.000034,
             -0.000034,
             -0.009,
+            0.000000000000000000000001,
+            -0.000000000000000000000001,
         ]
         + [9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
         + [-9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
@@ -2365,6 +2371,8 @@ def test_format_float8():
             " .000034",
             "  -3.4-5",
             "   -.009",
+            "   1.-24",
+            "  -1.-24",
         ]
         + [f"8.182{i:+d}" for i in range(-18, -9)]
         + [f"8.1818{i:+d}" for i in range(-9, -3)]

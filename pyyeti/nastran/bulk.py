@@ -2800,10 +2800,10 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
     >>> id_dof_i = np.array([[31, 1], [31, 2], [32, 5]])
     >>> coeffs_i = np.array([0.75, 0.25, 1.65])
     >>> nastran.wtmpc(1, setid, id_dof_d, coeff_d, id_dof_i, coeffs_i)
-    MPC*                 101              21               1-1.0000000000+00
-    *                     31               1 7.5000000000-01                *
-    *                                     31               2 2.5000000000-01
-    *                     32               5 1.6500000000+00
+    MPC*                 101              21               1             -1.
+    *                     31               1             .75                *
+    *                                     31               2             .25
+    *                     32               5            1.65
     """
     if not setid > 0:
         raise ValueError("setid must be >0")
@@ -3149,18 +3149,18 @@ def wtrbe3(f, eid, GRID_dep, DOF_dep, Ind_List, UM_List=None, alpha=None):
     >>> nastran.wtrbe3(1, 100, 9900, 123456,
     ...                [123, [9901, 9902, 9903, 9904],
     ...                 123456, [450001, 200]])
-    RBE3         100            9900  123456 1.00+00     123    9901    9902
-    +           9903    9904 1.00+00  123456  450001     200
+    RBE3         100            9900  123456      1.     123    9901    9902
+    +           9903    9904      1.  123456  450001     200
     >>> nastran.wtrbe3(1, 100, 9900, 123456, # doctest: +NORMALIZE_WHITESPACE
     ...                [123, [9901, 9902, 9903, 9904],
     ...                 [123456, 1.2], [450001, 200]],
     ...                UM_List=[9901, 12, 9902, 3, 9903, 12, 9904, 3],
-    ...                alpha='6.5e-6')
-    RBE3         100            9900  123456 1.00+00     123    9901    9902
-    +           9903    9904 1.20+00  123456  450001     200
+    ...                alpha='6.5e-8')
+    RBE3         100            9900  123456      1.     123    9901    9902
+    +           9903    9904     1.2  123456  450001     200
     +       UM          9901      12    9902       3    9903      12
     +                   9904       3
-    +       ALPHA    6.50-06
+    +       ALPHA      6.5-8
     """
     if len(Ind_List) & 1:
         raise ValueError(f"`Ind_List` must have even length (it is {len(Ind_List)})")
@@ -4771,8 +4771,8 @@ def wttabdmp1(f, setid, freq, damp, damping_type="crit"):
     >>> nastran.wttabdmp1(1, setid, freq, damp) # doctest: +NORMALIZE_WHITESPACE
     TABDMP1*             101CRIT
     *                                                                       *
-    *        1.0000000000-01 1.0000000000-02 2.5000000000+00 1.5000000000-02
-    *        3.0000000000+00 1.5000000000-02ENDT
+    *                     .1          .01                2.5            .015
+    *                     3.         .015ENDT
     """
     n_terms = len(freq)
     if n_terms < 2:
@@ -4830,7 +4830,7 @@ def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
     >>> excite_type = "load"
     >>> tabledi_id = 1501
     >>> nastran.wttload1(1, setid, excite_id, delay, excite_type, tabledi_id)
-    TLOAD1       201     202 5.00-02LOAD        1501
+    TLOAD1       201     202     .05LOAD        1501
     """
     excite_type = excite_type.upper()
     if excite_type not in ["LOAD", "DISP", "VELO", "ACCE"]:
@@ -4894,8 +4894,8 @@ def wttload2(
     >>> excite_type = "load"
     >>> t1, t2 = 0.1, 0.2
     >>> nastran.wttload2(1, setid, excite_id, delay, excite_type, t1, t2)
-    TLOAD2       201     202 5.00-02LOAD     1.00-01 2.00-01 0.00+00 0.00+00
-    +        0.00+00 0.00+00
+    TLOAD2       201     202     .05LOAD          .1      .2      0.      0.
+    +             0.      0.
     """
     excite_type = excite_type.upper()
     if excite_type not in ["LOAD", "DISP", "VELO", "ACCE"]:
@@ -4946,10 +4946,10 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
     >>> mass = 5000.0
     >>> I_diag = [6000.0, 7000.0, 8000.0]
     >>> nastran.wtconm2(1, eid, gid, cid, mass, I_diag)
-    CONM2*                 1               2               3 5.0000000000+03
-    *        0.0000000000+00 0.0000000000+00 0.0000000000+00                *
-    *        6.0000000000+03 0.0000000000+00 7.0000000000+03 0.0000000000+00
-    *        0.0000000000+00 8.0000000000+03
+    CONM2*                 1               2               3           5000.
+    *                     0.              0.              0.                *
+    *                  6000.              0.           7000.              0.
+    *                     0.           8000.
     """
     I11, I22, I33 = I_diag
     I21, I31, I32 = I_offdiag if I_offdiag is not None else [0.0, 0.0, 0.0]
@@ -4990,7 +4990,7 @@ def wtcard8(f, fields):
     >>> from pyyeti import nastran
     >>> fields = ["GRID", 101, 102, 1.0, 2.0, 3.0]
     >>> nastran.wtcard8(1, fields)
-    GRID         101     102 1.00+00 2.00+00 3.00+00
+    GRID         101     102      1.      2.      3.
     """
     card_name = fields[0]
     if len(card_name) > 8:
@@ -5010,8 +5010,7 @@ def wtcard8(f, fields):
         elif isinstance(field, inttypes):
             f.write(f"{field:8d}")
         elif isinstance(field, floattypes):
-            # one extra significant figure by eliminating the exponent "E"
-            f.write(f"{field:9.2e}".replace("e", ""))
+            f.write(format_float8(field))
         else:
             raise TypeError("unsupported field type: {}".format(type(field)))
     f.write("\n")
@@ -5047,8 +5046,8 @@ def wtcard16(f, fields):
     >>> from pyyeti import nastran
     >>> fields = ["GRID*", 101, 102, 1.0, 2.0, 3.0, 103]
     >>> nastran.wtcard16(1, fields)
-    GRID*                101             102 1.0000000000+00 2.0000000000+00
-    *        3.0000000000+00             103
+    GRID*                101             102              1.              2.
+    *                     3.             103
     """
     card_name = fields[0]
     if not card_name.endswith("*"):
@@ -5076,8 +5075,7 @@ def wtcard16(f, fields):
         elif isinstance(field, inttypes):
             f.write(f"{field:16d}")
         elif isinstance(field, floattypes):
-            # one extra significant figure by eliminating the exponent "E"
-            f.write(f"{field:17.10e}".replace("e", ""))
+            f.write(format_float16(field))
         else:
             raise TypeError("unsupported field type: {}".format(type(field)))
     # large-field cards must have an even number of lines
@@ -5190,7 +5188,7 @@ def format_float8(value):
                 ifield = field.index(".")
             except ValueError:
                 raise ValueError(
-                    "error printing float; cant find decimal; field=%r value=%s"
+                    "error printing float; can't find decimal; field=%r value=%s"
                     % (field, value)
                 )
             if ifield < 8:
@@ -5343,7 +5341,7 @@ def format_float16(value):
                 ifield = field.index(".")
             except ValueError:
                 print(
-                    "error printing float; cant find decimal; field=%r value=%s"
+                    "error printing float; can't find decimal; field=%r value=%s"
                     % (field, value)
                 )
                 raise
