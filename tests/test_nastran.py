@@ -2276,6 +2276,8 @@ def test_wtcard16():
 
 
 def test_format_scientific8():
+    from pyyeti.nastran.bulk import _format_scientific8
+
     small_exponent = -17
     large_exponent = 17
     nums = (
@@ -2326,7 +2328,7 @@ def test_format_scientific8():
     )
     assert len(nums) == len(expecteds)
     for num, expected in zip(nums, expecteds):
-        output = nastran.format_scientific8(num)
+        output = _format_scientific8(num)
         assert len(output) == 8
         assert output == expected
 
@@ -2423,6 +2425,8 @@ def test_format_float8_many():
 
 
 def test_format_scientific16():
+    from pyyeti.nastran.bulk import _format_scientific16
+
     small_exponent = -17
     large_exponent = 17
     nums = (
@@ -2473,7 +2477,7 @@ def test_format_scientific16():
     )
     assert len(nums) == len(expecteds)
     for num, expected in zip(nums, expecteds):
-        output = nastran.format_scientific16(num)
+        output = _format_scientific16(num)
         assert len(output) == 16
         assert output == expected
 

@@ -74,9 +74,7 @@ __all__ = [
     "wtconm2",
     "wtcard8",
     "wtcard16",
-    "format_scientific8",
     "format_float8",
-    "format_scientific16",
     "format_float16",
 ]
 
@@ -5084,9 +5082,19 @@ def wtcard16(f, fields):
     f.write("\n")
 
 
-def format_scientific8(value):
+def _format_scientific8(value):
     """
-    Formats a float in 8-character scientific notation
+    Format a float in 8-character scientific notation.
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
     """
     if value == 0.0:
         return "{:>8s}".format("0.")
@@ -5116,19 +5124,42 @@ def format_scientific8(value):
 
 def format_float8(value):
     """
-    Format a float in Nastran 8 fixed-field syntax using the highest
-    precision possbile.
+    Format a float in Nastran 8 fixed-field syntax using max precision.
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> print(nastran.format_float8(1.0))
+          1.
+    >>> print(nastran.format_float8(1.2345678))
+    1.234568
+    >>> print(nastran.format_float8(-123456.78))
+    -123457.
+    >>> print(nastran.format_float8(12345678.0))
+    1.2346+7
+    >>> print(nastran.format_float8(-12345678.0))
+    -1.235+7
     """
     if value >= 0.0:
         if value < 5e-8:
-            field = format_scientific8(value)
+            field = _format_scientific8(value)
             return field
         elif value < 0.001:
-            field = format_scientific8(value)
+            field = _format_scientific8(value)
             field2 = f"{value:8.7f}".strip("0 ")
             field1 = field.replace("-", "e-")
             if field2 == ".":
-                return format_scientific8(value)
+                return _format_scientific8(value)
             if len(field2) <= 8 and float(field1) == float(field2):
                 field = field2.strip(" 0")
         elif value < 1.0:
@@ -5150,14 +5181,14 @@ def format_float8(value):
             if field.index(".") < 8:
                 field = f"{round(value):8.1f}"[0:8]
             else:
-                field = format_scientific8(value)
+                field = _format_scientific8(value)
             return field
     else:
         if value > -5e-7:
-            field = format_scientific8(value)
+            field = _format_scientific8(value)
             return field
         elif value > -0.01:
-            field = format_scientific8(value)
+            field = _format_scientific8(value)
             field2 = f"{value:8.6f}".strip("0 ")
 
             # get rid of the first minus sign, add it on afterwards
@@ -5180,7 +5211,7 @@ def format_float8(value):
         elif value > -100000.0:
             field = f"{value:8.1f}"
         elif value <= -999999.5:
-            field = format_scientific8(value)
+            field = _format_scientific8(value)
             return field
         else:
             field = f"{value:8.1f}"
@@ -5194,15 +5225,25 @@ def format_float8(value):
             if ifield < 8:
                 field = f"{int(round(value, 0)):7d}."
             else:
-                field = format_scientific8(value)
+                field = _format_scientific8(value)
             return field
     field = f"{field.strip(' 0'):>8s}"
     return field
 
 
-def format_scientific16(value):
+def _format_scientific16(value):
     """
-    Formats a float in 8-character scientific notation
+    Formats a float in 16-character scientific notation
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
     """
     if value == 0.0:
         return "{:>16s}".format("0.")
@@ -5238,19 +5279,40 @@ def format_scientific16(value):
 
 def format_float16(value):
     """
-    Format a float in Nastran 16-character width syntax using the
-    highest precision possbile.
+    Format a float in Nastran 16 fixed-field syntax using max precision.
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> print(nastran.format_float16(1.0))
+                  1.
+    >>> print(nastran.format_float16(1.2345678))
+           1.2345678
+    >>> print(nastran.format_float16(-123456.78e8))
+    -12345678000000.
+    >>> print(nastran.format_float16(1234567898769.0e5))
+    1.23456789877+17
     """
     if value >= 0.0:  # positive, not perfect...
         if value < 5e-16:
-            field = format_scientific16(value)
+            field = _format_scientific16(value)
             return field
         elif value < 0.001:
-            field = format_scientific16(value)
+            field = _format_scientific16(value)
             field2 = f"{value:16.15f}".strip("0 ")
             field1 = field.replace("-", "e-")
             if field2 == ".":
-                return format_scientific16(value)
+                return _format_scientific16(value)
             if len(field2) <= 16 and float(field1) == float(field2):
                 field = field2.strip(" 0")
             return f"{field:>16s}"
@@ -5289,14 +5351,14 @@ def format_float16(value):
             if field.index(".") < 16:
                 field = f"{round(value):16.1f}"[0:16]
             else:
-                field = format_scientific16(value)
+                field = _format_scientific16(value)
             return field
     else:
         if value > -5e-15:
-            field = format_scientific16(value)
+            field = _format_scientific16(value)
             return field
         elif value > -0.01:  # -0.001
-            field = format_scientific16(value)
+            field = _format_scientific16(value)
             field2 = f"{value:16.14f}".strip("0 ")
 
             # get rid of the first minus sign, add it on afterwards
@@ -5348,7 +5410,7 @@ def format_float16(value):
             if ifield < 16:
                 field = f"{int(round(value, 0)):15d}."
             else:
-                field = format_scientific16(value)
+                field = _format_scientific16(value)
             return field
     field = f"{field.strip(' 0'):>16s}"
     return field

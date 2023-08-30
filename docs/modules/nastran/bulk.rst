@@ -8,6 +8,8 @@ Limited set of read/write routines for Nastran bulk data
 
     asm2uset
     bulk2uset
+    format_float8
+    format_float16
     fsearch
     mkcomment
     mknast
