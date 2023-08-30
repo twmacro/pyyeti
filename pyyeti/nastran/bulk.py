@@ -3223,30 +3223,25 @@ def wtseset(f, superid, grids):
     -------
     None
 
+    Notes
+    -----
+    Where possible, THRU statements will be used.
+
     Examples
     --------
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtseset(1, 100, np.arange(1, 26))
-    SESET        100       1       2       3       4       5       6       7
-    SESET        100       8       9      10      11      12      13      14
-    SESET        100      15      16      17      18      19      20      21
-    SESET        100      22      23      24      25
+    SESET        100       1THRU          25
+    >>> nastran.wtseset(1, 100, list(reversed(range(1, 11))))
+    SESET        100      10       9       8       7       6       5       4
+    SESET        100       3       2       1
     """
-    n = len(grids)
-    # 7 grids per SESET:
-    frm = "SESET   {:8d}" + "{:8d}" * 7 + "\n"
-    i = 0
-    while i + 7 <= n:
-        f.write(frm.format(superid, *grids[i : i + 7]))
-        i += 7
-    if i < n:
-        frm = "SESET   {:8d}" + "{:8d}" * (n - i) + "\n"
-        f.write(frm.format(superid, *grids[i:]))
+    wtxset1(f, superid, grids, "SESET")
 
 
 @guitools.write_text_file
-def wtset(f, setid, ids):
+def wtset(f, setid, ids, max_length=72):
     """
     Writes a Nastran case-control SET card to a file.
 
@@ -3261,31 +3256,43 @@ def wtset(f, setid, ids):
         Set ID
     ids : 1d array_like
         Vector of IDs
+    max_length : integer; optional
+        The max length of each line of the SET card.
 
     Returns
     -------
     None
+
+    Notes
+    -----
+    Where possible, THRU statements will be used.
 
     Examples
     --------
     >>> from pyyeti import nastran
     >>> import numpy as np
     >>> nastran.wtset(1, 100, np.arange(1, 26))
-    SET 100 = 1, 2, 3, 4, 5, 6, 7,
-     8, 9, 10, 11, 12, 13, 14,
-     15, 16, 17, 18, 19, 20, 21,
-     22, 23, 24, 25
+    SET 100 = 1 THRU 25
+    >>> nastran.wtset(1, 100, [1, 3, 5, 7])
+    SET 100 = 1, 3, 5, 7
     """
-    f.write(f"SET {setid} =")
-    n = len(ids)
-    # 7 ids per line:
-    frm = " {:d}," * 7 + "\n"
-    i = 0
-    while i + 7 < n:
-        f.write(frm.format(*ids[i : i + 7]))
-        i += 7
-    frm = " {:d}," * (n - i - 1) + " {:d}\n"
-    f.write(frm.format(*ids[i:]))
+    length = len(ids)
+    if not length > 0:
+        raise ValueError("ids must have length >0")
+
+    output = [f"SET {setid:d} = "]
+    start = 0
+    while start < length:
+        end = _find_sequence(ids, start)
+        if end > start:
+            output.append(f"{ids[start]:d} THRU {ids[end]:d}, ")
+            start = end + 1
+        else:
+            output.append(f"{ids[start]:d}, ")
+            start += 1
+    output[-1] = output[-1].rstrip(", ")  # strip the trailing comma from the last item
+    output = _wrap_text_lines(output, max_length, "")
+    f.write("\n".join(output))
 
 
 @guitools.write_text_file

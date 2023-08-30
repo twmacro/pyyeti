@@ -1103,6 +1103,39 @@ def test_wtrbe3():
         assert f.getvalue() == expected
 
 
+def test_wtseset_bad_inputs():
+    f = StringIO()
+    superid = 101
+    grids = []
+    with pytest.raises(ValueError, match=r"grids.*length.*>0"):
+        nastran.wtxset1(f, superid, grids)
+
+
+def test_wtset_bad_inputs():
+    f = StringIO()
+    setid = 101
+    ids = []
+    with pytest.raises(ValueError, match=r"ids.*length.*>0"):
+        nastran.wtxset1(f, setid, ids)
+
+
+def test_wtset():
+    with StringIO() as f:
+        nastran.wtset(f, 101, [1, 2, 3, 4])
+        expected = "SET 101 = 1 THRU 4"
+        assert f.getvalue() == expected
+
+    with StringIO() as f:
+        nastran.wtset(f, 101, [9, 2, 4, 6, 8, 10, 12, 14, 15, 16], max_length=35)
+        expected = "SET 101 = 9, 2, 4, 6, 8, 10, 12, \n" "14 THRU 16"
+        assert f.getvalue() == expected
+
+    with StringIO() as f:
+        nastran.wtset(f, 101, [9, 2, 3, 4, 6, 8, 10, 12, 14, 15, 16], max_length=35)
+        expected = "SET 101 = 9, 2 THRU 4, 6, 8, 10, \n" "12, 14 THRU 16"
+        assert f.getvalue() == expected
+
+
 def test_rdgpwg():
     # get third table:
     s1 = "W E I G H T"
