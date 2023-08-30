@@ -388,8 +388,8 @@ def _rdinclude(fiter, s, kwargs):
     Read and then recursively follow an INCLUDE statement.
     fiter : file iterator
     s : The first line containing the INCLUDE statement.
-    args : All the arguments to the original rdcards call (except for
-           the path).
+    kwargs : All the arguments to the original rdcards call (except for
+             the path).
     """
     start = s.find("'")
     if start < 0:
@@ -2824,16 +2824,20 @@ def wtmpc(f, setid, gid_dof_d, coeff_d, gid_dof_i, coeffs_i):
     wtcard16(f, fields)
 
 
-def _find_sequence(array, start):
+def _find_sequence(seq, start):
     """
     Find an increasing sequence within array, starting at the specified index.
+    seq : iterable sequency to search
+    start : index at which to start
     """
-    length = len(array)
+    length = len(seq)
+    if start < 0 or start >= length:
+        raise ValueError(f"start out of bounds, length is {length}, start is {start}")
     if start == length - 1:
         return start
-    current_val = array[start]
+    current_val = seq[start]
     i = start + 1
-    while i < length and array[i] == current_val + 1:
+    while i < length and seq[i] == current_val + 1:
         current_val += 1
         i += 1
     return i - 1
@@ -2842,6 +2846,10 @@ def _find_sequence(array, start):
 def _wt_with_thru(f, seq, init_func):
     """
     Writes a Nastran card, using THRU statements where possible.
+    f : file object
+    seq : iterable sequence of IDs to write
+    init_func : function to create the first Nastrn fields when
+                starting a new line
     """
     length = len(seq)
     start = 0
@@ -2876,6 +2884,10 @@ def wtspoints(f, spoints):
         in these cases, a GUI is opened for file selection.
     spoints : 1d array_like
         Vector of SPOINT IDs.
+
+    Notes
+    -----
+    Where possible, THRU statements will be used.
 
     Examples
     --------
@@ -2964,6 +2976,10 @@ def wtxset1(f, dof, grids, name="BSET1"):
     Returns
     -------
     None
+
+    Notes
+    -----
+    Where possible, THRU statements will be used.
 
     Examples
     --------
@@ -4980,8 +4996,8 @@ def wtcard8(f, fields):
     -----
     The items in fields will be formatted according to their data type.
     Python integers will be formated as Nastran integers, and Python
-    floats will be formatted as Nastran reals. Strings will always be
-    left-justified.
+    floats will be formatted as Nastran reals, using `format_float8`.
+    Strings will always be left-justified.
 
     Example
     -------
@@ -5036,8 +5052,8 @@ def wtcard16(f, fields):
     -----
     The items in fields will be formatted according to their data type.
     Python integers will be formated as Nastran integers, and Python
-    floats will be formatted as Nastran reals. Strings will always be
-    left-justified.
+    floats will be formatted as Nastran reals, using `format_float16`.
+    Strings will always be left-justified.
 
     Example
     -------
