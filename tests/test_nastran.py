@@ -1279,6 +1279,32 @@ def test_wtmpc_3coeff():
     assert s == sbe
 
 
+def test_find_sequence_bad_input():
+    from pyyeti.nastran.bulk import _find_sequence
+
+    with pytest.raises(ValueError, match=r"start out of bounds.*4,.*5"):
+        _find_sequence([1, 2, 3, 4], 5)
+    with pytest.raises(ValueError, match=r"start out of bounds.*4,.*-1"):
+        _find_sequence([1, 2, 3, 4], -1)
+
+
+@pytest.mark.parametrize(
+    ("seq", "start", "expected"),
+    [
+        ([1, 2, 3, 5, 7], 0, 2),
+        ([1, 2, 3, 5, 7], 1, 2),
+        ([1, 2, 3, 5, 7], 2, 2),
+        ([1, 2, 3, 5, 7], 3, 3),
+        ([1, 2, 3, 5, 7, 8], 4, 5),
+    ],
+)
+def test_find_sequence(seq, start, expected):
+    from pyyeti.nastran.bulk import _find_sequence
+
+    output = _find_sequence(seq, start)
+    assert output == expected
+
+
 def test_wtspoints_bad_inputs():
     f = StringIO()
     spoints = []
@@ -1291,10 +1317,6 @@ def test_wtspoints():
         spoints = list(range(1001, 1016))
         nastran.wtspoints(f, spoints)
         s = f.getvalue()
-    sbe = (
-        "SPOINT      1001    1002    1003    1004    1005    1006    1007    1008\n"
-        "SPOINT      1009    1010    1011    1012    1013    1014    1015\n"
-    )
     sbe = "SPOINT      1001THRU        1015\n"
     assert s == sbe
 
