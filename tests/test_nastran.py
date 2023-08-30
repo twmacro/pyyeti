@@ -1543,21 +1543,20 @@ def test_wtcoordcards():
 
 def test_mknast():
     name = "_test_mknast_.sh"
-    try:
-        nastran.mknast(
-            name,
-            stoponfatal="yes",
-            files=["tt.py", "tt", "doruns.sh", "subd/t.t"],
-            before="# BEFORE",
-            after="# AFTER",
-            top="# TOP",
-            bottom="# BOTTOM",
-        )
-        with open(name) as f:
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        path = os.path.join(tempdir_path, name)
+        with pytest.warns(RuntimeWarning, match=r"file.*not found"):
+            nastran.mknast(
+                path,
+                stoponfatal="yes",
+                files=["tt.py", "tt", "doruns.sh", "subd/t.t"],
+                before="# BEFORE",
+                after="# AFTER",
+                top="# TOP",
+                bottom="# BOTTOM",
+            )
+        with open(path) as f:
             s = f.read().splitlines()
-    finally:
-        if os.path.exists(name):
-            os.remove(name)
 
     sbe = [
         "#!/bin/sh",
