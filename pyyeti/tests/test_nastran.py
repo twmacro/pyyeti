@@ -12,13 +12,13 @@ import pytest
 
 def test_rdcards():
     a = nastran.rdcards(
-        "tests/nas2cam_extseout/assemble.out", "CCC", no_data_return="no CCC"
+        "pyyeti/tests/nas2cam_extseout/assemble.out", "CCC", no_data_return="no CCC"
     )
     assert a == "no CCC"
 
     with pytest.raises(ValueError):
         nastran.rdcards(
-            "tests/nas2cam_extseout/assemble.out",
+            "pyyeti/tests/nas2cam_extseout/assemble.out",
             "grid",
             return_var="bad option",
         )
@@ -444,16 +444,16 @@ def test_rdtabled1_2():
 
 def test_rdwtbulk():
     with StringIO() as f:
-        nastran.rdwtbulk("tests/nas2cam_csuper/inboard.out", f)
+        nastran.rdwtbulk("pyyeti/tests/nas2cam_csuper/inboard.out", f)
         s = f.getvalue()
-    with open("tests/nas2cam_csuper/yeti_outputs/inboard_yeti.bulk") as f:
+    with open("pyyeti/tests/nas2cam_csuper/yeti_outputs/inboard_yeti.bulk") as f:
         sy = f.read()
     assert s == sy
 
     with StringIO() as f:
-        nastran.rdwtbulk("tests/nas2cam_csuper/fake_bulk.out", f)
+        nastran.rdwtbulk("pyyeti/tests/nas2cam_csuper/fake_bulk.out", f)
         s = f.getvalue()
-    with open("tests/nas2cam_csuper/yeti_outputs/fake_bulk.blk") as f:
+    with open("pyyeti/tests/nas2cam_csuper/yeti_outputs/fake_bulk.blk") as f:
         sy = f.read()
     assert s == sy
 
@@ -652,8 +652,8 @@ SPOINT   110
 
 
 def test_asm2uset_2():
-    u, c, b = nastran.asm2uset("tests/nas2cam_extseout/reduced_bset_notall6.asm")
-    m = op4.read("tests/nas2cam_extseout/reduced_bset_notall6.op4")
+    u, c, b = nastran.asm2uset("pyyeti/tests/nas2cam_extseout/reduced_bset_notall6.asm")
+    m = op4.read("pyyeti/tests/nas2cam_extseout/reduced_bset_notall6.op4")
 
     assert u.shape[0] == 29
 
@@ -773,7 +773,7 @@ CORD2C*           400001                0.000000000000000.00000000000000
 
 
 def test_wtextseout():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -877,8 +877,8 @@ def test_wtextseout():
 
 
 def test_rdeigen():
-    e1 = nastran.rdeigen("tests/nas2cam_csuper/assemble.out")
-    e2 = nastran.rdeigen("tests/nas2cam_csuper/assemble.out", use_pandas=False)
+    e1 = nastran.rdeigen("pyyeti/tests/nas2cam_csuper/assemble.out")
+    e2 = nastran.rdeigen("pyyeti/tests/nas2cam_csuper/assemble.out", use_pandas=False)
 
     sbe = np.array(
         [
@@ -1139,7 +1139,9 @@ def test_wtset():
 def test_rdgpwg():
     # get third table:
     s1 = "W E I G H T"
-    mass, cg, ref, Is = nastran.rdgpwg("tests/nas2cam_extseout/assemble.out", [s1, s1])
+    mass, cg, ref, Is = nastran.rdgpwg(
+        "pyyeti/tests/nas2cam_extseout/assemble.out", [s1, s1]
+    )
     r = 0
     m = np.array(
         [
@@ -1212,17 +1214,19 @@ def test_rdgpwg():
     assert r == ref
     assert np.allclose(i, Is)
 
-    a = nastran.rdgpwg("tests/nas2cam_extseout/assemble.out", "asdfsadfasdf")
+    a = nastran.rdgpwg("pyyeti/tests/nas2cam_extseout/assemble.out", "asdfsadfasdf")
     for i in a:
         assert i is None
 
-    a = nastran.rdgpwg("tests/nas2cam_extseout/assemble.out", (s1, s1, "END OF JOB"))
+    a = nastran.rdgpwg(
+        "pyyeti/tests/nas2cam_extseout/assemble.out", (s1, s1, "END OF JOB")
+    )
     for i in a:
         assert i is None
 
 
 def test_fsearch():
-    with open("tests/nas2cam_extseout/assemble.out") as f:
+    with open("pyyeti/tests/nas2cam_extseout/assemble.out") as f:
         a, p = nastran.fsearch(f, "asdfadfadfadsfasf")
     assert a is None
     assert p is None
@@ -1667,7 +1671,7 @@ def test_mknast():
 
 
 def test_rddtipch():
-    d = nastran.rddtipch("tests/nas2cam_csuper/fake_dtipch.pch", "TEF1")
+    d = nastran.rddtipch("pyyeti/tests/nas2cam_csuper/fake_dtipch.pch", "TEF1")
     dof = [
         (10, 8),
         (97, 8),
@@ -1691,8 +1695,8 @@ def test_rddtipch():
 
 
 def test_rddmig():
-    dct = nastran.rddmig("tests/nastran_dmig_data/matrix_factory.pch")
-    dct2 = nastran.rddmig("tests/nastran_dmig_data/matrix.op2")
+    dct = nastran.rddmig("pyyeti/tests/nastran_dmig_data/matrix_factory.pch")
+    dct2 = nastran.rddmig("pyyeti/tests/nastran_dmig_data/matrix.op2")
 
     for key, val in dct.items():
         val2 = dct2["m" + key]
@@ -1707,9 +1711,11 @@ def test_rddmig():
     assert sorted(dct.keys()) == ["cmplx", "ident", "patrn", "randm"]
 
     dct = nastran.rddmig(
-        "tests/nastran_dmig_data/matrix_factory.pch", ("patrn", "randm")
+        "pyyeti/tests/nastran_dmig_data/matrix_factory.pch", ("patrn", "randm")
     )
-    dct2 = nastran.rddmig("tests/nastran_dmig_data/matrix.op2", ("mpatrn", "mrandm"))
+    dct2 = nastran.rddmig(
+        "pyyeti/tests/nastran_dmig_data/matrix.op2", ("mpatrn", "mrandm")
+    )
 
     for key, val in dct.items():
         val2 = dct2["m" + key]
@@ -1719,7 +1725,7 @@ def test_rddmig():
 
 
 def test_rddmig2():
-    dct = nastran.rddmig("tests/nastran_dmig_data/matrix.op2", "mrandm")
+    dct = nastran.rddmig("pyyeti/tests/nastran_dmig_data/matrix.op2", "mrandm")
 
     # chop out some DOF so we can test 'expanded':
     slc = (slice(None), slice(3))

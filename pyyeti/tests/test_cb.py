@@ -5,7 +5,7 @@ from io import StringIO
 import tempfile
 import os
 import inspect
-from pyyeti import cb, ytools, locate, nastran
+from pyyeti import cb, ytools, nastran
 from pyyeti.nastran import op2, n2p, op4
 import pytest
 
@@ -63,7 +63,7 @@ def test_cbconvert_2():
 
 
 def test_cbtf():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     maa = nas["maa"][102]
     kaa = nas["kaa"][102]
     uset = nas["uset"][102]
@@ -347,7 +347,7 @@ def compare_cbcheck_output(s, sy):
 
 
 def test_cbcheck_indeterminate():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -391,7 +391,7 @@ def test_cbcheck_indeterminate():
     sfile = sfile.splitlines()
     compare_cbcheck_output(s, sfile)
 
-    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101.out") as f:
+    with open("pyyeti/tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101.out") as f:
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
@@ -414,7 +414,7 @@ def test_cbcheck_indeterminate():
 
 
 def test_cbcheck_determinate():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -452,7 +452,9 @@ def test_cbcheck_determinate():
         s = f.getvalue()
 
     s = s.splitlines()
-    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_single.out") as f:
+    with open(
+        "pyyeti/tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_single.out"
+    ) as f:
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
@@ -507,7 +509,7 @@ def test_cbcheck_determinate():
 
 
 def test_cbcheck_unit_convert():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -542,7 +544,9 @@ def test_cbcheck_unit_convert():
         s = f.getvalue()
 
     s = s.splitlines()
-    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_unitconv.out") as f:
+    with open(
+        "pyyeti/tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_unitconv.out"
+    ) as f:
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
@@ -552,7 +556,7 @@ def test_cbcheck_unit_convert():
 
 
 def test_cbcheck_reorder():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -575,7 +579,7 @@ def test_cbcheck_reorder():
         out = cb.cbcheck(f, maa, kaa, b, b[:6], usetb, em_filt=2)
         s = f.getvalue()
     s = s.splitlines()
-    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101.out") as f:
+    with open("pyyeti/tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101.out") as f:
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
@@ -585,7 +589,7 @@ def test_cbcheck_reorder():
 
 
 def test_cbcheck_indeterminate_rb_norm():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -609,7 +613,9 @@ def test_cbcheck_indeterminate_rb_norm():
         s = f.getvalue()
     s = s.splitlines()
 
-    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_rbnorm.out") as f:
+    with open(
+        "pyyeti/tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_101_rbnorm.out"
+    ) as f:
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
@@ -620,7 +626,7 @@ def test_cbcheck_indeterminate_rb_norm():
 
 
 def test_cbcheck_indeterminate_rb_norm2():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 102
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -644,7 +650,9 @@ def test_cbcheck_indeterminate_rb_norm2():
         s = f.getvalue()
     s = s.splitlines()
 
-    with open("tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_102_rbnorm.out") as f:
+    with open(
+        "pyyeti/tests/nas2cam_csuper/yeti_outputs/cbcheck_yeti_102_rbnorm.out"
+    ) as f:
         sy = f.read().splitlines()
 
     assert s[0] == "Mass matrix is symmetric."
@@ -655,8 +663,8 @@ def test_cbcheck_indeterminate_rb_norm2():
     compare_cbcheck_output(s, sy)
 
 
-def test_cbcoordchk2():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+def test_cbcoordchk():
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -691,7 +699,7 @@ def test_cbcoordchk2():
 
 
 def test_rbmultchk():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -800,7 +808,7 @@ def test_rbmultchk():
     assert s2 == s3
 
     s = s.splitlines()
-    with open("tests/nas2cam_csuper/yeti_outputs/rbmultchk_yeti_101.out") as f:
+    with open("pyyeti/tests/nas2cam_csuper/yeti_outputs/rbmultchk_yeti_101.out") as f:
         sy = f.read().splitlines()
 
     j = [2]
@@ -993,7 +1001,7 @@ def test_rbdispchk():
             cb.rbdispchk(f, rbtrimmed[:5, :])
 
 
-def test_cbcoordchk():
+def test_cbcoordchk2():
     k = np.random.randn(14, 14)
     k = k.dot(k.T)
     b = np.arange(4)
@@ -1005,8 +1013,8 @@ def test_cbcoordchk():
         cb.cbcoordchk(k, b2, b)
 
 
-def test_cbcoordchk2():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+def test_cbcoordchk3():
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]
@@ -1050,9 +1058,7 @@ def compare_nets(net, net2):
 
 def test_mk_net_drms():
     pth = os.path.dirname(inspect.getfile(cb))
-    pth = os.path.join(pth, "..")
-    pth = os.path.join(pth, "tests")
-    pth = os.path.join(pth, "nas2cam_csuper")
+    pth = os.path.join(pth, "tests", "nas2cam_csuper")
 
     # Load the mass and stiffness from the .op4 file
     # This loads the data into a dict:
@@ -1283,9 +1289,7 @@ def test_mk_net_drms():
 def test_mk_net_drms_6dof():
     # same as above, but reduced to single point interface
     pth = os.path.dirname(inspect.getfile(cb))
-    pth = os.path.join(pth, "..")
-    pth = os.path.join(pth, "tests")
-    pth = os.path.join(pth, "nas2cam_csuper")
+    pth = os.path.join(pth, "tests", "nas2cam_csuper")
     mk = op4.load(os.path.join(pth, "inboard.op4"))
     maa = mk["mxx"][0]
     kaa = mk["kxx"][0]
@@ -1362,10 +1366,7 @@ def test_mk_net_drms_6dof():
 
 
 def test_cglf_moment_signs():
-    pth = os.path.dirname(inspect.getfile(cb))
-    pth = os.path.join(pth, "..")
-    pth = os.path.join(pth, "tests")
-    pth = os.path.join(pth, "cla_test_data")
+    pth = "pyyeti/tests/cla_test_data"
 
     se = 101
     uset, coords = nastran.bulk2uset(os.path.join(pth, "outboard.asm"))

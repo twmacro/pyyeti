@@ -311,13 +311,15 @@ def test_form_extreme():
         results["extreme"].rpttab(direc="./temp_tab")
         results["FDLC"]["extreme"].rpttab(direc="./temp_fdlc_tab")
         # check results:
-        compresults("./temp_tab/ATM.tab", "tests/cla_test_data/fake_cla/ATM.tab")
-        compresults("./temp_tab/LTM.tab", "tests/cla_test_data/fake_cla/LTM.tab")
+        compresults("./temp_tab/ATM.tab", "pyyeti/tests/cla_test_data/fake_cla/ATM.tab")
+        compresults("./temp_tab/LTM.tab", "pyyeti/tests/cla_test_data/fake_cla/LTM.tab")
         compresults(
-            "./temp_fdlc_tab/ATM.tab", "tests/cla_test_data/fake_cla/ATM_fdlc.tab"
+            "./temp_fdlc_tab/ATM.tab",
+            "pyyeti/tests/cla_test_data/fake_cla/ATM_fdlc.tab",
         )
         compresults(
-            "./temp_fdlc_tab/LTM.tab", "tests/cla_test_data/fake_cla/LTM_fdlc.tab"
+            "./temp_fdlc_tab/LTM.tab",
+            "pyyeti/tests/cla_test_data/fake_cla/LTM_fdlc.tab",
         )
     finally:
         shutil.rmtree("./temp_tab", ignore_errors=True)
@@ -728,7 +730,14 @@ def owlab(pth):
             else:
                 with pytest.raises(ValueError):
                     results2.solvepsd(
-                        nas, caseid, DR, fs, F, T, freq2, verbose=verbose,
+                        nas,
+                        caseid,
+                        DR,
+                        fs,
+                        F,
+                        T,
+                        freq2,
+                        verbose=verbose,
                     )
 
         # test for incompatibly sized ValueError:
@@ -1013,7 +1022,7 @@ def compare(pth):
 
 
 def confirm():
-    for (direc, cnt) in (("compare", 3), ("absmax_compare", 1)):
+    for direc, cnt in (("compare", 3), ("absmax_compare", 1)):
         cmp_files = glob("summary/{}/*.cmp".format(direc))
         assert len(cmp_files) == 6
         png_files = glob("summary/{}/*.png".format(direc))
@@ -1132,7 +1141,9 @@ def do_srs_plots():
 
         with pytest.raises(ValueError):
             results["extreme"].srs_plots(
-                Q=[10, 33], showall=True, direc="srs2",
+                Q=[10, 33],
+                showall=True,
+                direc="srs2",
             )
 
         results["extreme"].srs_plots(
@@ -1174,7 +1185,8 @@ def do_time_plots():
         results = cla.load("results.pgz")
         with pytest.raises(ValueError):
             results.resp_plots(
-                direc="time2", cases=["TOECO  1", "bad case name"],
+                direc="time2",
+                cases=["TOECO  1", "bad case name"],
             )
 
 
@@ -1183,7 +1195,7 @@ def test_transfer_orbit_cla():
         if os.path.exists("temp_cla"):
             shutil.rmtree("./temp_cla", ignore_errors=True)
         os.mkdir("temp_cla")
-        pth = "../tests/cla_test_data/"
+        pth = "../pyyeti/tests/cla_test_data/"
         with cd("temp_cla"):
             plt.close("all")
             prepare_4_cla(pth)
@@ -1788,7 +1800,10 @@ def test_event_add_uf_reds_update():
     DR = cla.DR_Event()
     with pytest.raises(ValueError):
         DR.add(
-            nas, drdefs, uf_reds=(None, 1, 4, 7), method="bad method string",
+            nas,
+            drdefs,
+            uf_reds=(None, 1, 4, 7),
+            method="bad method string",
         )
 
 
@@ -1863,37 +1878,37 @@ def test_merge():
 
 def mass_spring_system():
     r"""
-                    |--> x1       |--> x2        |--> x3
+                |--> x1       |--> x2        |--> x3
 
 
-                 |----|    k1   |----|    k2   |----|
-              f  |    |--\/\/\--|    |--\/\/\--|    |
-            ====>| m1 |         | m2 |         | m3 |
-                 |    |---| |---|    |---| |---|    |
-                 |----|    c1   |----|    c2   |----|
-                   |                             |
-                   |             k3              |
-                   |-----------\/\/\-------------|
-                   |                             |
-                   |------------| |--------------|
-                                 c3
+             |----|    k1   |----|    k2   |----|
+          f  |    |--\/\/\--|    |--\/\/\--|    |
+        ====>| m1 |         | m2 |         | m3 |
+             |    |---| |---|    |---| |---|    |
+             |----|    c1   |----|    c2   |----|
+               |                             |
+               |             k3              |
+               |-----------\/\/\-------------|
+               |                             |
+               |------------| |--------------|
+                             c3
 
-        m1 = 2 kg
-        m2 = 4 kg
-        m3 = 6 kg
+    m1 = 2 kg
+    m2 = 4 kg
+    m3 = 6 kg
 
-        k1 = 12000 N/m
-        k2 = 16000 N/m
-        k3 = 10000 N/m
+    k1 = 12000 N/m
+    k2 = 16000 N/m
+    k3 = 10000 N/m
 
-        c1 = 70 N s/m
-        c2 = 75 N s/m
-        c3 = 30 N s/m
+    c1 = 70 N s/m
+    c2 = 75 N s/m
+    c3 = 30 N s/m
 
-        h = 0.001
-        t = np.arange(0, 1.0, h)
-        f = np.zeros((3, len(t)))
-        f[0, 20:250] = 10.0  # N
+    h = 0.001
+    t = np.arange(0, 1.0, h)
+    f = np.zeros((3, len(t)))
+    f[0, 20:250] = 10.0  # N
 
     """
     m1 = 2.0
@@ -2037,7 +2052,7 @@ def test_PSD_consistent():
     sbe = np.zeros((6, 5))
     sbe[1:3] = 1.0
     sbe[3] = 2.0
-    sbe[4:] = 1.0 + 0.5 ** 2
+    sbe[4:] = 1.0 + 0.5**2
     assert np.allclose(drmres._psd[case], sbe)
 
 
@@ -3085,7 +3100,7 @@ def test_reldisp_dtm():
     OUTBOARD = 101
 
     event = "TOES"
-    pth = "tests/cla_test_data/"
+    pth = "pyyeti/tests/cla_test_data/"
 
     # load nastran data:
     nas = op2.rdnas2cam(pth + "nas2cam")
@@ -3353,7 +3368,9 @@ def test_dr_def_merge():
         ValueError, match=r"there were duplicate categories:\n.*atm0.*ltm1"
     ):
         cla.DR_Def.merge(
-            drdefs[0], drdefs[1], drdefs[2],
+            drdefs[0],
+            drdefs[1],
+            drdefs[2],
         )
 
     drdefs = [
@@ -3372,7 +3389,9 @@ def test_dr_def_merge():
         match=(r'there were duplicate "drms" names. By SE:\n102:.*ltm1_d.*'),
     ):
         cla.DR_Def.merge(
-            drdefs[0], drdefs[1], drdefs[2],
+            drdefs[0],
+            drdefs[1],
+            drdefs[2],
         )
 
     drdefs = [
@@ -3391,7 +3410,9 @@ def test_dr_def_merge():
         match=(r'there were duplicate "nondrms" names. By SE:\n102:.*ltm1_n.*'),
     ):
         cla.DR_Def.merge(
-            drdefs[0], drdefs[1], drdefs[2],
+            drdefs[0],
+            drdefs[1],
+            drdefs[2],
         )
 
 
@@ -3476,39 +3497,39 @@ def test_dr_def_amend():
 
 def grounded_mass_spring_system():
     r"""
-                    |--> x1       |--> x2        |--> x3
+                |--> x1       |--> x2        |--> x3
 
 
-                 |----|    k1   |----|    k2   |----|    k4   |/
-              f  |    |--\/\/\--|    |--\/\/\--|    |--\/\/\--|/
-            ====>| m1 |         | m2 |         | m3 |         |/
-                 |    |---| |---|    |---| |---|    |---| |---|/
-                 |----|    c1   |----|    c2   |----|    c4   |/
-                   |                             |
-                   |             k3              |
-                   |-----------\/\/\-------------|
-                   |                             |
-                   |------------| |--------------|
-                                 c3
+             |----|    k1   |----|    k2   |----|    k4   |/
+          f  |    |--\/\/\--|    |--\/\/\--|    |--\/\/\--|/
+        ====>| m1 |         | m2 |         | m3 |         |/
+             |    |---| |---|    |---| |---|    |---| |---|/
+             |----|    c1   |----|    c2   |----|    c4   |/
+               |                             |
+               |             k3              |
+               |-----------\/\/\-------------|
+               |                             |
+               |------------| |--------------|
+                             c3
 
-        m1 = 2 kg
-        m2 = 4 kg
-        m3 = 6 kg
+    m1 = 2 kg
+    m2 = 4 kg
+    m3 = 6 kg
 
-        k1 = 12000 N/m
-        k2 = 16000 N/m
-        k3 = 10000 N/m
-        k4 = 15000 N/m
+    k1 = 12000 N/m
+    k2 = 16000 N/m
+    k3 = 10000 N/m
+    k4 = 15000 N/m
 
-        c1 = 70 N s/m
-        c2 = 75 N s/m
-        c3 = 30 N s/m
-        c4 = 50 N s/m
+    c1 = 70 N s/m
+    c2 = 75 N s/m
+    c3 = 30 N s/m
+    c4 = 50 N s/m
 
-        h = 0.001
-        t = np.arange(0, 1.0, h)
-        f = np.zeros((3, len(t)))
-        f[0, 20:250] = 10.0  # N
+    h = 0.001
+    t = np.arange(0, 1.0, h)
+    f = np.zeros((3, len(t)))
+    f[0, 20:250] = 10.0  # N
 
     """
     m1 = 2.0

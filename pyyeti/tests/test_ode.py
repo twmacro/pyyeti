@@ -453,7 +453,6 @@ def test_newmark_rbdamp_coupled():
     f[:, :win] = np.ones((N, 1)) * np.hanning(win) * 20
 
     for d0, v0 in ((None, np.random.randn(N)), (np.random.randn(N), None)):
-
         for b in (np.zeros(N), 10 * np.ones(N)):
             su = ode.SolveUnc(m, b, k, h)
             solu = su.tsolve(f, d0=d0, v0=v0)
@@ -1882,7 +1881,7 @@ def test_getfsucoef():
 def test_no_h():
     m = 1
     b = 2 * 35 * 0.05
-    k = 35 ** 2
+    k = 35**2
     A = ode.make_A(m, b, k)
     h = None
 
@@ -2134,7 +2133,7 @@ def test_ode_coupled_freq():
                 m2, b2, k2 = decouple_rf((m, b, k), rf)
                 d = np.zeros((4, freqw.size), complex)
                 for i, w in enumerate(freqw):
-                    H = (k2 - m2 * w ** 2) + 1j * (b2 * w)
+                    H = (k2 - m2 * w**2) + 1j * (b2 * w)
                     if w == 0.0:
                         H[rb, 0] = 1.0
                     d[:, i] = la.solve(H, f[:, i])
@@ -2218,7 +2217,7 @@ def test_ode_coupled_freq_mNone():
             b2, k2 = decouple_rf((b, k), rf)
             d = np.zeros((4, freqw.size), complex)
             for i, w in enumerate(freqw):
-                H = (k2 - np.eye(4) * w ** 2) + 1j * (b2 * w)
+                H = (k2 - np.eye(4) * w**2) + 1j * (b2 * w)
                 if w == 0.0:
                     H[rb, 0] = 1.0
                 d[:, i] = la.solve(H, f[:, i])
@@ -2775,7 +2774,7 @@ def test_approx_rbmodes():
     from pyyeti.ode import SolveUnc as su
     from pyyeti.ode import SolveExp2 as se2
 
-    nas = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam/with_se_nas2cam")
 
     # setup mass, stiffness, damping:
     m = None  # treated as identity
@@ -4296,7 +4295,6 @@ def test_henkel_mar():
             rfcut = 1e6
             # rfcut = 1.0
             for solver in (ode.SolveUnc, ode.SolveExp2):
-
                 # full system:
                 full = SimpleNamespace()
                 full.M = np.array([[M1, 0, 0], [0, M2, 0], [0, 0, M3]])
@@ -5474,7 +5472,7 @@ def get_nas2():
     }
 
 
-def test_newmark_nonlinear2():
+def test_newmark_nonlinear3():
     # mass and stiffness:
     m = np.diag([10.1321, 12, 0])
     k = np.array([[50, -50, 0], [-50, 50, 0], [-1, 1, 1]])  # x3 = x1 - x2
@@ -5647,7 +5645,6 @@ def test_solveunc_cd_as_force():
         for el in (0, 8):  # 0 or 8 rb modes
             for rf in ([], np.arange(13)):
                 for rbdamp in (False, True):
-
                     m = _ensure_minmax(np.random.randn(n), minm, 12.0)
                     zeta = _ensure_minmax(np.random.randn(n), 0.01, 1.2)
                     k = _ensure_minmax(np.random.randn(n), 3.0e4, maxk)
@@ -5672,7 +5669,7 @@ def test_solveunc_cd_as_force():
 
 
 def test_ode_pre_eig_diagdamp():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     se = 101
     maa = nas["maa"][se]
     kaa = nas["kaa"][se]

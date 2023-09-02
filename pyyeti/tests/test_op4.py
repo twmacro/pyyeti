@@ -24,8 +24,8 @@ def _check_badname_cm(cm):
 
 
 def _rdop4_tst(o4):
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
-    filenames = glob("tests/nastran_op4_data/*.op4")
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
+    filenames = glob("pyyeti/tests/nastran_op4_data/*.op4")
     nocomp = [
         "cdbin",
         "rdbin",
@@ -122,7 +122,7 @@ def test_rdop4_zero_rowscutoff():
 
 
 def test_rdop4_partb():
-    filenames = glob("tests/nastran_op4_data/*other")
+    filenames = glob("pyyeti/tests/nastran_op4_data/*other")
     file1 = filenames[0]
     filenames = filenames[1:]
     o4 = op4.OP4()
@@ -136,7 +136,7 @@ def test_rdop4_partb():
 
 
 def test_wtop4():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
     o4 = op4.OP4()
     m = matlab.loadmat(matfile)
     names = ["rmat", "cmat", "rcmat"]
@@ -148,9 +148,9 @@ def test_wtop4():
     # write(filename, names, matrices=None,
     #       binary=True, digits=16, endian='')
     filenames = [
-        ["tests/nastran_op4_data/temp_ascii.op4", False, ""],
-        ["tests/nastran_op4_data/temp_le.op4", True, "<"],
-        ["tests/nastran_op4_data/temp_be.op4", True, ">"],
+        ["pyyeti/tests/nastran_op4_data/temp_ascii.op4", False, ""],
+        ["pyyeti/tests/nastran_op4_data/temp_le.op4", True, "<"],
+        ["pyyeti/tests/nastran_op4_data/temp_be.op4", True, ">"],
     ]
     for item in filenames:
         filename = item[0]
@@ -172,7 +172,7 @@ def test_wtop4():
 
 
 def test_wtop4_2():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
     m = matlab.loadmat(matfile)
     names = ["rmat", "cmat", "rcmat"]
     mats = []
@@ -183,9 +183,9 @@ def test_wtop4_2():
     # write(filename, names, matrices=None,
     #       binary=True, digits=16, endian='')
     filenames = [
-        ["tests/nastran_op4_data/temp_ascii.op4", False, ""],
-        ["tests/nastran_op4_data/temp_le.op4", True, "<"],
-        ["tests/nastran_op4_data/temp_be.op4", True, ">"],
+        ["pyyeti/tests/nastran_op4_data/temp_ascii.op4", False, ""],
+        ["pyyeti/tests/nastran_op4_data/temp_le.op4", True, "<"],
+        ["pyyeti/tests/nastran_op4_data/temp_be.op4", True, ">"],
     ]
     for item in filenames:
         filename = item[0]
@@ -216,14 +216,14 @@ def test_wtop4_2():
 
 
 def test_wtop4_single():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
     o4 = op4.OP4()
     m = matlab.loadmat(matfile)
     name = "rmat"
     mat = m[name]
     # write(filename, names, matrices=None,
     #       binary=True, digits=16, endian='')
-    filenames = [["tests/nastran_op4_data/temp_ascii.op4", False, ""]]
+    filenames = [["pyyeti/tests/nastran_op4_data/temp_ascii.op4", False, ""]]
     for item in filenames:
         filename = item[0]
         binary = item[1]
@@ -243,8 +243,8 @@ def test_wtop4_single():
 
 
 def test_wtop4_nonbigmat_binary():
-    filenames = glob("tests/nastran_op4_data/*.op4") + glob(
-        "tests/nastran_op4_data/*.op4.other"
+    filenames = glob("pyyeti/tests/nastran_op4_data/*.op4") + glob(
+        "pyyeti/tests/nastran_op4_data/*.op4.other"
     )
     o4 = op4.OP4()
     for name in filenames:
@@ -262,8 +262,8 @@ def test_wtop4_nonbigmat_binary():
 
 
 def test_wtop4_bigmat_binary():
-    filenames = glob("tests/nastran_op4_data/*.op4") + glob(
-        "tests/nastran_op4_data/*.op4.other"
+    filenames = glob("pyyeti/tests/nastran_op4_data/*.op4") + glob(
+        "pyyeti/tests/nastran_op4_data/*.op4.other"
     )
     o4 = op4.OP4()
     for name in filenames:
@@ -281,8 +281,8 @@ def test_wtop4_bigmat_binary():
 
 
 def test_wtop4_nonbigmat_ascii():
-    filenames = glob("tests/nastran_op4_data/*.op4") + glob(
-        "tests/nastran_op4_data/*.op4.other"
+    filenames = glob("pyyeti/tests/nastran_op4_data/*.op4") + glob(
+        "pyyeti/tests/nastran_op4_data/*.op4.other"
     )
     o4 = op4.OP4()
     for name in filenames:
@@ -300,8 +300,8 @@ def test_wtop4_nonbigmat_ascii():
 
 
 def test_wtop4_bigmat_ascii():
-    filenames = glob("tests/nastran_op4_data/*.op4") + glob(
-        "tests/nastran_op4_data/*.op4.other"
+    filenames = glob("pyyeti/tests/nastran_op4_data/*.op4") + glob(
+        "pyyeti/tests/nastran_op4_data/*.op4.other"
     )
     o4 = op4.OP4()
     for name in filenames:
@@ -319,8 +319,8 @@ def test_wtop4_bigmat_ascii():
 
 
 def test_wtop4_bigmat_ascii_1():
-    filenames = glob("tests/nastran_op4_data/*.op4") + glob(
-        "tests/nastran_op4_data/*.op4.other"
+    filenames = glob("pyyeti/tests/nastran_op4_data/*.op4") + glob(
+        "pyyeti/tests/nastran_op4_data/*.op4.other"
     )
     o4 = op4.OP4()
     for name in filenames[:1]:
@@ -338,8 +338,8 @@ def test_wtop4_bigmat_ascii_1():
 
 
 def test_wtop4_bigmat_ascii_2():
-    filenames = glob("tests/nastran_op4_data/*.op4") + glob(
-        "tests/nastran_op4_data/*.op4.other"
+    filenames = glob("pyyeti/tests/nastran_op4_data/*.op4") + glob(
+        "pyyeti/tests/nastran_op4_data/*.op4.other"
     )
     for name in filenames[:1]:
         if "badname" in name:
@@ -371,14 +371,14 @@ def test_non_float64():
 
 
 def test_wtop4_single_save():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
     o4 = op4.OP4()
     m = matlab.loadmat(matfile)
     name = "rmat"
     mat = m[name]
     # write(filename, names, matrices=None,
     #       binary=True, digits=16, endian='')
-    filenames = [["tests/nastran_op4_data/temp_ascii.op4", False, ""]]
+    filenames = [["pyyeti/tests/nastran_op4_data/temp_ascii.op4", False, ""]]
     for item in filenames:
         filename = item[0]
         binary = item[1]
@@ -393,14 +393,14 @@ def test_wtop4_single_save():
 
 
 def test_wtop4_single_save_1():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
     o4 = op4.OP4()
     m = matlab.loadmat(matfile)
     name = "rmat"
     mat = m[name]
     # write(filename, names, matrices=None,
     #       binary=True, digits=16, endian='')
-    filenames = [["tests/nastran_op4_data/temp_ascii.op4", False, ""]]
+    filenames = [["pyyeti/tests/nastran_op4_data/temp_ascii.op4", False, ""]]
     for item in filenames:
         filename = item[0]
         binary = item[1]
@@ -415,13 +415,13 @@ def test_wtop4_single_save_1():
 
 
 def test_wtop4_single_2():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
     m = matlab.loadmat(matfile)
     name = "rmat"
     mat = m[name]
     # write(filename, names, matrices=None,
     #       binary=True, digits=16, endian='')
-    filenames = [["tests/nastran_op4_data/temp_ascii.op4", False, ""]]
+    filenames = [["pyyeti/tests/nastran_op4_data/temp_ascii.op4", False, ""]]
     for item in filenames:
         filename = item[0]
         binary = item[1]
@@ -436,13 +436,13 @@ def test_wtop4_single_2():
 
 
 def test_wtop4_single_3():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
     with pytest.raises(ValueError):
         op4.load(matfile, into="badstring")
 
 
 def test_wtop4_single_4():
-    matfile = "tests/nastran_op4_data/r_c_rc.mat"
+    matfile = "pyyeti/tests/nastran_op4_data/r_c_rc.mat"
     o4 = op4.OP4()
     with pytest.raises(ValueError):
         o4.load(matfile, into="badstring")
@@ -465,8 +465,8 @@ def test_i64():
     filenames1 = ["cdbin", "rdbin", "csbin", "rsbin"]
     filenames2 = ["cd", "rd", "cs", "rs"]
     for f1, f2 in zip(filenames1, filenames2):
-        dct1 = op4.load("tests/nastran_op4_data/" + f1 + ".op4")
-        dct2 = op4.load("tests/nastran_op4_data/" + f2 + ".op4")
+        dct1 = op4.load("pyyeti/tests/nastran_op4_data/" + f1 + ".op4")
+        dct2 = op4.load("pyyeti/tests/nastran_op4_data/" + f2 + ".op4")
         assert set(dct1.keys()) == set(dct2.keys())
         for nm in dct1:
             for j in range(2):
@@ -490,7 +490,7 @@ def test_bad_dimensions():
 
 
 def test_sparse_read():
-    direc = "tests/nastran_op4_data/"
+    direc = "pyyeti/tests/nastran_op4_data/"
     fnames = glob(direc + "*.op4") + glob(direc + "*.other")
 
     for fname in fnames:
@@ -541,20 +541,20 @@ def write_read(m, binary, sparse):
 
 def test_sparse_write():
     fnames = [
-        "tests/nastran_op4_data/cdbin.op4",
-        "tests/nastran_op4_data/rs.op4",
-        "tests/nastran_op4_data/r_c_rc.op4",
-        "tests/nastran_op4_data/double_bigmat_le.op4",
-        "tests/nastran_op4_data/double_nonbigmat_be.op4",
-        "tests/nastran_op4_data/single_dense_be.op4",
+        "pyyeti/tests/nastran_op4_data/cdbin.op4",
+        "pyyeti/tests/nastran_op4_data/rs.op4",
+        "pyyeti/tests/nastran_op4_data/r_c_rc.op4",
+        "pyyeti/tests/nastran_op4_data/double_bigmat_le.op4",
+        "pyyeti/tests/nastran_op4_data/double_nonbigmat_be.op4",
+        "pyyeti/tests/nastran_op4_data/single_dense_be.op4",
         # the nx nastran v9 version of the following files does not
         # make NR negative ...  not really a big deal, but the tests
         # below would need to be changed. So, just using the pyYeti
         # versions directly (nastran read them fine)
-        "tests/nastran_op4_data/big_bigmat_ascii.op4",
-        "tests/nastran_op4_data/big_bigmat_binary.op4",
-        "tests/nastran_op4_data/big_dense_ascii.op4",
-        "tests/nastran_op4_data/big_dense_binary.op4",
+        "pyyeti/tests/nastran_op4_data/big_bigmat_ascii.op4",
+        "pyyeti/tests/nastran_op4_data/big_bigmat_binary.op4",
+        "pyyeti/tests/nastran_op4_data/big_dense_ascii.op4",
+        "pyyeti/tests/nastran_op4_data/big_dense_binary.op4",
     ]
 
     for fname in fnames:
@@ -633,7 +633,7 @@ def test_large_sparse():
 
 
 def test_large_rows_dense():
-    fname = "tests/nastran_op4_data/x100000.op4"
+    fname = "pyyeti/tests/nastran_op4_data/x100000.op4"
     m = op4.read(fname)
     x = np.zeros((100000, 1))
     x[45678] = 1.0
@@ -706,8 +706,8 @@ def test_empty_file_error():
 
 
 def test_fabiola_op4():
-    fname1 = "tests/nastran_op4_data/ascii_fabiola.op4"
-    fname2 = "tests/nastran_op4_data/binary_fabiola.op4"
+    fname1 = "pyyeti/tests/nastran_op4_data/ascii_fabiola.op4"
+    fname2 = "pyyeti/tests/nastran_op4_data/binary_fabiola.op4"
     ma = op4.read(fname1)
     mb = op4.read(fname2)
     assert np.allclose(ma["maa"], mb["maa"])
@@ -722,9 +722,9 @@ def test_fabiola_op4():
 
 def test_large_dimension_op4():
     for which in ("binary", "ascii"):
-        fname1 = f"tests/nastran_op4_data/nas_large_dim_bigmat_{which}.op4"
-        fname2 = f"tests/nastran_op4_data/nas_large_dim_nonbigmat_{which}.op4"
-        fname3 = f"tests/nastran_op4_data/nas_large_dim_dense_{which}.op4"
+        fname1 = f"pyyeti/tests/nastran_op4_data/nas_large_dim_bigmat_{which}.op4"
+        fname2 = f"pyyeti/tests/nastran_op4_data/nas_large_dim_nonbigmat_{which}.op4"
+        fname3 = f"pyyeti/tests/nastran_op4_data/nas_large_dim_dense_{which}.op4"
 
         b = op4.read(fname1, sparse=True)
         n = op4.read(fname2, sparse=True)

@@ -1,11 +1,11 @@
 import numpy as np
-from pyyeti import cb, ytools, frclim, ode
+from pyyeti import frclim, ode
 from pyyeti.nastran import op2, n2p
 import pytest
 
 
 def test_calcAM():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     maa = nas["maa"][101]
     kaa = nas["kaa"][101]
     uset = nas["uset"][101]

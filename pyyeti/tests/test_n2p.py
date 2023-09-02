@@ -431,9 +431,7 @@ def test_rbmove():
 
 def test_replace_basic_cs():
     pth = os.path.dirname(inspect.getfile(cb))
-    pth = os.path.join(pth, "..")
-    pth = os.path.join(pth, "tests")
-    pth = os.path.join(pth, "nas2cam_csuper")
+    pth = os.path.join(pth, "tests", "nas2cam_csuper")
 
     # define new basic (so that old basic is at origin 100, 100, 100)
     """
@@ -1002,14 +1000,14 @@ def test_formrbe3_1():
     #         102     103     4.2     123456  111     112     113     .05
     #         25      121     122     123
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_1.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_1.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_1.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_1.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1049,14 +1047,14 @@ def test_formrbe3_2():
     #         102     103     4.2     123456  111     112     113     .05
     #         25      121     122     123
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_2.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_2.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_2.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_2.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1096,14 +1094,14 @@ def test_formrbe3_3():
     #         102     103     4.2     123456  111     112     113     .05
     #         25      121     122     123
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_3.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_3.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_3.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_3.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1140,14 +1138,14 @@ def test_formrbe3_4():
     # RBE3    1               124     1346    2.6     123     100
     #         1.8     456     200
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_4.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_4.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_4.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_4.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1168,14 +1166,14 @@ def test_formrbe3_UM_1():
     #         4       112     5       113     6
 
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_um_1.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_1.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_1.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_1.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1213,14 +1211,14 @@ def test_formrbe3_UM_2():
     # RBE3    1               124     123456  1.0     123456  100
     #         UM      124     123     200     456
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_um_2.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_2.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_2.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_2.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1238,14 +1236,14 @@ def test_formrbe3_UM_3():
     #         1.8     456     200
     #         UM      124     152346
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_um_3.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_3.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_3.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_3.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1264,14 +1262,14 @@ def test_formrbe3_UM_4():
     #         UM      124     6341
     # load the data from above modes run:
     # same as test 4:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_4.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_4.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_4.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_4.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1289,14 +1287,14 @@ def test_formrbe3_UM_5():
     #         1.8     456     200
     #         UM      100     12      200     56
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_um_5.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_5.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_5.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_5.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1314,14 +1312,14 @@ def test_formrbe3_UM_6():
     #         1.8     456     200
     #         UM      100     12      200     5       124     5
     # load the data from above modes run:
-    nasdata = matlab.loadmat("tests/nastran_gm_data/make_gm_nx9_rbe3_um_6.mat")
+    nasdata = matlab.loadmat("pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_6.mat")
     uset = conv_uset(nasdata["uset"][0][0][0])
     gm = nasdata["gm"][0][0][0]
     pv = np.any(gm, axis=0)
     gmmod = gm[:, pv]
     drg = nasdata["drg"][0][0][0].T
     pyuset = nastran.bulk2uset(
-        "tests/nastran_gm_data/make_gm_nx9_rbe3_um_6.dat", follow_includes=False
+        "pyyeti/tests/nastran_gm_data/make_gm_nx9_rbe3_um_6.dat", follow_includes=False
     )[0]
     pydrg = n2p.rbgeom_uset(pyuset, 124)
     assert np.allclose(drg, pydrg)
@@ -1334,7 +1332,7 @@ def test_formrbe3_UM_6():
 
 
 def test_upasetpv():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     pv = n2p.upasetpv(nas, 102)
     # csuper is:
     #   CSUPER, 102, 0, 103, 111, 19, 27, 9990001, 9990002
@@ -1401,7 +1399,7 @@ def test_upasetpv():
 
 
 def test_upasetpv_2():
-    nas = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam")
     pv = n2p.upasetpv(nas, 102)
     # se 102 seconct is:
     #    SECONCT      102       0              NO
@@ -1427,13 +1425,13 @@ def test_upasetpv_2():
 
 
 def test_upqsetpv():
-    nas_extseout = nastran.rdnas2cam("tests/nas2cam_extseout/nas2cam")
+    nas_extseout = nastran.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam")
     pv_extseout = nastran.upqsetpv(nas_extseout, 0)
 
     ue = nas_extseout["uset"][0].index.get_level_values(0)
     assert np.all((ue > 200) == pv_extseout)
 
-    nas_csuper = nastran.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas_csuper = nastran.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     pv_csuper = nastran.upqsetpv(nas_csuper)
 
     uc = nas_csuper["uset"][0].index.get_level_values(0)
@@ -1460,7 +1458,7 @@ def test_upa_upq_not_all_6():
     # to:
     # DBVIEW   MAPSX = MAPS       (WHERE SEID=CSEID AND WILDCARD=TRUE) $
 
-    n1 = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam_notall6_msc2017")
+    n1 = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam_notall6_msc2017")
 
     # 'n2' is from nx nastran version 2021
     # - missing EMAP but have MAPS
@@ -1470,7 +1468,7 @@ def test_upa_upq_not_all_6():
     #         NOT SUPPORTED BY BYTE SWAPPING.
     #      THIS DATABLOCK WILL NOT BE BYTE SWAPPED
 
-    n2 = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam_notall6_nx2021")
+    n2 = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam_notall6_nx2021")
 
     # So, patch them together to get one that works:
     n1["maps"][75] = n2["maps"][75]
@@ -1506,7 +1504,7 @@ def test_upa_upq_not_all_6_2():
     # include all 6 DOF for all boundary grids in the b-set. Test
     # that:
 
-    n1 = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam_notall6_msc2017_b")
+    n1 = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam_notall6_msc2017_b")
 
     up_a = n2p.upasetpv(n1, 75)
     assert up_a.shape == (29,)
@@ -1536,12 +1534,12 @@ def test_upa_upq_not_all_6_2():
 
 def test_formtran1_seup():
     o4 = op4.OP4()
-    tug1 = nastran.rddtipch("tests/nas2cam_extseout/outboard.pch")
-    mug1 = o4.listload("tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
+    tug1 = nastran.rddtipch("pyyeti/tests/nas2cam_extseout/outboard.pch")
+    mug1 = o4.listload("pyyeti/tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
     grids = [[11, 123456], [45, 123456], [60, 123456], [1995002, 1]]
     pv, exp_dof = n2p.mkdofpv(tug1, "p", grids)
     MUG1 = mug1[pv, :]
-    nas_csuper = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas_csuper = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     exp_dof0 = exp_dof
     exp_dof0[-1, 1] = 0
     drm101, dof101 = n2p.formtran(nas_csuper, 101, exp_dof0)
@@ -1550,44 +1548,44 @@ def test_formtran1_seup():
 
 def test_formtran2_seup():
     o4 = op4.OP4()
-    tug1 = nastran.rddtipch("tests/nas2cam_extseout/outboard.pch")
-    mug1 = o4.listload("tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
+    tug1 = nastran.rddtipch("pyyeti/tests/nas2cam_extseout/outboard.pch")
+    mug1 = o4.listload("pyyeti/tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
     grids = [11, 45, 60]
     pv, exp_dof = n2p.mkdofpv(tug1, "p", grids)
     MUG1 = mug1[pv, :]
-    nas_csuper = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas_csuper = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     drm101, dof101 = n2p.formtran(nas_csuper, 101, exp_dof)
     assert np.allclose(np.abs(drm101), np.abs(MUG1))
 
 
 def test_formtran3_seup():
     o4 = op4.OP4()
-    tug1 = nastran.rddtipch("tests/nas2cam_extseout/outboard.pch")
-    mug1 = o4.listload("tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
+    tug1 = nastran.rddtipch("pyyeti/tests/nas2cam_extseout/outboard.pch")
+    mug1 = o4.listload("pyyeti/tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
     grids = [[11, 45]]
     pv, exp_dof = n2p.mkdofpv(tug1, "p", grids)
     MUG1 = mug1[pv, :]
-    nas_csuper = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas_csuper = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     drm101, dof101 = n2p.formtran(nas_csuper, 101, exp_dof)
     assert np.allclose(np.abs(drm101), np.abs(MUG1))
 
 
 def test_formtran4_seup():
     o4 = op4.OP4()
-    tug1 = nastran.rddtipch("tests/nas2cam_extseout/outboard.pch")
-    mug1 = o4.listload("tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
+    tug1 = nastran.rddtipch("pyyeti/tests/nas2cam_extseout/outboard.pch")
+    mug1 = o4.listload("pyyeti/tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
     grids = [[60, 4]]
     pv, exp_dof = n2p.mkdofpv(tug1, "p", grids)
     MUG1 = mug1[pv, :]
-    nas_csuper = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas_csuper = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     drm101, dof101 = n2p.formtran(nas_csuper, 101, exp_dof)
     assert np.allclose(np.abs(drm101), np.abs(MUG1))
 
 
 def test_formtran5_seup():
     o4 = op4.OP4()
-    tug1 = nastran.rddtipch("tests/nas2cam_extseout/outboard.pch")
-    mug1 = o4.listload("tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
+    tug1 = nastran.rddtipch("pyyeti/tests/nas2cam_extseout/outboard.pch")
+    mug1 = o4.listload("pyyeti/tests/nas2cam_extseout/outboard.op4", "mug1")[1][0]
     # put recovery in non-ascending order:
     grids = [
         [11, 3],
@@ -1615,14 +1613,14 @@ def test_formtran5_seup():
     exp_dof0 = exp_dof.copy()
     pv = exp_dof0[:, 0] == 1995002
     exp_dof0[pv, 1] = 0
-    nas_csuper = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas_csuper = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     drm101, dof101 = n2p.formtran(nas_csuper, 101, exp_dof0)
     assert np.allclose(np.abs(drm101), np.abs(MUG1))
     assert np.all(exp_dof == np.array(grids))
 
 
 def test_formtran1_se0():
-    nas = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam")
     grids = [[3, 123456], [27, 123456], [70, 123456], [2995004, 0], [2995005, 0]]
     drm_a, dof_a = n2p.formtran(nas, 0, grids)  # use phg
     nas.pop("phg", None)
@@ -1656,7 +1654,7 @@ def test_formtran1_se0():
 
 
 def test_formtran2_se0():
-    nas = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam")
     grids = [
         [2995004, 0],
         [70, 3],
@@ -1679,7 +1677,7 @@ def test_formtran2_se0():
 
 
 def test_formtran3_se0():
-    nas = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam")
     grids = [
         [2995004, 0],
         [70, 3],
@@ -1702,7 +1700,7 @@ def test_formtran3_se0():
 
 
 def test_formulvs_1():
-    nas = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam")
     ulvs = n2p.formulvs(nas, 101, 101)
     assert ulvs == 1.0
     ulvs = n2p.formulvs(nas, 101)
@@ -1732,7 +1730,7 @@ def test_formulvs_1():
 
 
 def test_formulvs_2():
-    nas = op2.rdnas2cam("tests/nas2cam_extseout/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_extseout/nas2cam")
     ulvsgset = n2p.formulvs(nas, 101, gset=True)
     ulvs = np.dot(ulvsgset, nas["phg"][0])
     assert np.allclose(ulvs, nas["ulvs"][101])
@@ -1743,12 +1741,12 @@ def test_formulvs_2():
 
 
 def test_rdnas2cam_no_se():
-    nas = op2.rdnas2cam("tests/nas2cam/no_se_nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam/no_se_nas2cam")
     assert np.all(nas["selist"] == [0, 0])
 
 
 def test_formulvs_multilevel():
-    nas = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam/with_se_nas2cam")
     old = nas["ulvs"]
     del nas["ulvs"]
     ses = [100, 200, 300, 400]
@@ -1763,8 +1761,8 @@ def test_formulvs_multilevel():
 
 
 def test_new_dnids_entry():
-    nas_old = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
-    nas_new = op2.rdnas2cam("tests/nas2cam/with_se_convemap_nas2cam")
+    nas_old = op2.rdnas2cam("pyyeti/tests/nas2cam/with_se_nas2cam")
+    nas_new = op2.rdnas2cam("pyyeti/tests/nas2cam/with_se_convemap_nas2cam")
     assert len(nas_new["dnids"]) == len(nas_old["dnids"])
     for k, v in nas_old["dnids"].items():
         assert np.allclose(nas_new["dnids"][k], v)
@@ -1772,7 +1770,7 @@ def test_new_dnids_entry():
 
 def test_formdrm_1():
     grids = [[11, 123456], [45, 123456], [60, 123456], [1995002, 0]]
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     drm101, dof101 = n2p.formtran(nas, 101, grids)
     ulvs = n2p.formulvs(nas, 101)
     DRM_A = np.dot(drm101, ulvs)
@@ -1790,7 +1788,7 @@ def test_formdrm_1():
 
 def test_formdrm_2():
     grids = [[11, 123456], [45, 123456], [60, 123456], [1995002, 0]]
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     drm101, dof101 = n2p.formtran(nas, 101, grids, gset=True)
     ulvs = n2p.formulvs(nas, 101, gset=True)
     DRM_A = np.dot(drm101, ulvs)
@@ -1801,7 +1799,7 @@ def test_formdrm_2():
 
 
 def test_formdrm_oset_sset():
-    nas = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam/with_se_nas2cam")
     drm, dof = n2p.formdrm(nas, 100, 11)  # just o-set
     pv = n2p.mksetpv(nas["uset"][0], "g", "a")
     pha = nas["phg"][0][pv]
@@ -1811,7 +1809,7 @@ def test_formdrm_oset_sset():
 
 
 def test_formdrm_noqset():
-    nas = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam/with_se_nas2cam")
     # modify 100 so it is a static reduction only:
     del nas["lambda"][100]
     del nas["goq"]
@@ -1823,12 +1821,12 @@ def test_formdrm_noqset():
 
 
 def test_fromdrm_null_cset():
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     ulvs = n2p.formulvs(nas, 102, keepcset=1, shortcut=0)
     nas["ulvs"] = {102: ulvs}
     drm1, dof = n2p.formdrm(nas, seup=102, sedn=0, dof=3)
 
-    nas = op2.rdnas2cam("tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
     ulvs = n2p.formulvs(nas, 102, keepcset=0, shortcut=0)
     nas["ulvs"] = {102: ulvs}
     drm2, dof = n2p.formdrm(nas, seup=102, sedn=0, dof=3)
@@ -1892,7 +1890,7 @@ def test_rbmodes_allq():
 
 
 def test_formdrm_go_warnings():
-    nas = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam/with_se_nas2cam")
     # make sure that got and goq is not present for se 300
     try:
         del nas["got"][300]
@@ -1965,7 +1963,7 @@ def test_rbe3_badum():
 
 
 def test_bad_se():
-    nas = op2.rdnas2cam("tests/nas2cam/with_se_nas2cam")
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam/with_se_nas2cam")
     with pytest.raises(ValueError):
         n2p._findse(nas, 345)
 
