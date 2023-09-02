@@ -219,8 +219,13 @@ def test_compmat():
 
     with pytest.raises(ValueError):
         ytools.compmat(A, A[:2, :2])
+
     with pytest.raises(ValueError):
         ytools.compmat(A, B, method="badmethod")
+
+    a = np.zeros((3, 3, 3))
+    with pytest.raises(ValueError):
+        ytools.compmat(a, a)
 
 
 def test_max_complex_vector_sum():

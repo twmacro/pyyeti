@@ -1568,6 +1568,8 @@ def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
     ------
     ValueError
         If `a` and `b` are different sizes
+    ValueError
+        If number of dimensions of `a` and `b` > 2
 
     Notes
     -----
@@ -1644,6 +1646,9 @@ def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
         raise ValueError(
             f"matrix sizes do not match: a.shape={a.shape}, b.shape={b.shape}"
         )
+
+    if a.ndim > 2:
+        raise ValueError(f"arrays have {a.ndim} dimensions; must be <= 2")
 
     if np.iscomplexobj(a) ^ np.iscomplexobj(b):
         # if only one is complex:
