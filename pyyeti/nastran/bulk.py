@@ -34,6 +34,7 @@ __all__ = [
     "mkcomment",
     "wtdmig",
     "rdgrids",
+    "rdsets",
     "rdsymbols",
     "rdcord2cards",
     "wtgrids",
@@ -829,6 +830,68 @@ def rdcards(
             Vals = npVals
         return Vals
     return no_data_return
+
+
+def _rd_set_line(items):
+    values = []
+    for item in items:
+        thru_match = re.search(r"(\d+)\s*THRU\s*(\d+)", item, re.IGNORECASE)
+        if thru_match is not None:
+            values.extend(range(int(thru_match[1]), int(thru_match[2]) + 1))
+        else:
+            values.append(int(item))
+    return values
+
+
+def _rdset(fiter, s):
+    """ """
+    start_match = re.search(r"[ ]*set[ ]*([0-9]+)[ ]*=", s, re.IGNORECASE)
+    if start_match is None:
+        raise ValueError
+    set_id = int(start_match[1])
+    values = []
+    line = s[start_match.end() + 1 :].strip()
+    another_line = True
+    while another_line:
+        if line == "":
+            items = []
+        elif line.endswith(","):
+            items = line.rstrip(",").split(",")
+        else:
+            items = line.split(",")
+            another_line = False
+        values.extend(_rd_set_line(items))
+        line = fiter.send(False)
+        if line is None:
+            msg = f"Invalid SET statement, EOF before set ended, set ID {set_id:d}"
+            raise ValueError(msg)
+        line = line.strip()
+    return set_id, values
+
+
+@guitools.read_text_file
+def rdsets(f, follow_includes=True, include_symbols=None):
+    """
+    Read case control SET statements from a file.
+    """
+    sets = {}
+    name = r"(^[ ]*set[ ]*[0-9]+[ ]*=)|(^[ ]*begin bulk)"
+    f.seek(0, 0)
+    fiter = _next_line(f, name, True, False, follow_includes, None)
+    s = next(fiter)
+    while s is not None:
+        if follow_includes and s.lower().startswith("include"):
+            raise NotImplementedError
+        elif s.lower().startswith("begin bulk"):
+            break
+        set_id, values = _rdset(fiter, s)
+        sets[set_id] = values
+
+        try:
+            s = fiter.send(True)
+        except StopIteration:
+            break
+    return sets
 
 
 @guitools.read_text_file

@@ -9,6 +9,9 @@ __pycache__/
 # temporary emacs files
 *~
 
+# Microsoft VSCode configuration
+.vscode
+
 # Distribution / packaging
 .Python
 env/

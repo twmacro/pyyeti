@@ -285,6 +285,54 @@ def test_rdcards_with_includes():
         assert cards[2][1] == 3
 
 
+@pytest.mark.parametrize(
+    ("string", "match"),
+    [
+        ("SET 1111 = 1,2,3,", r"Invalid SET.*EOF before.*1111"),
+        ("SET 1112 = 1,2,3,\n4,5,6,", r"Invalid SET.*EOF before.*1112"),
+        ("SET 1113 = 1,2,3,\n4,5,6,\n\n", r"Invalid SET.*EOF before.*1113"),
+    ],
+)
+def test_rdsets_errors(string, match):
+    with pytest.raises(ValueError, match=match):
+        nastran.rdsets(StringIO(string))
+
+
+@pytest.mark.parametrize(
+    ("string", "expected"),
+    [
+        (
+            "SET 101 = 1, 3, 6 THRU 8\n" "BEGIN BULK\n" "SET 102 = 99",
+            {101: [1, 3, 6, 7, 8]},
+        ),
+        (
+            (
+                "SET 111 = 1,3 , 6 THRU 8, 10,\n"
+                "  11,13 thru   15\n"
+                "   set 112=  10101,10102\n"
+                "BEGIN BULK\n"
+                "SET 113 = 99"
+            ),
+            {111: [1, 3, 6, 7, 8, 10, 11, 13, 14, 15], 112: [10101, 10102]},
+        ),
+        (
+            (
+                " SET 111 = 1,3 , 10,  \n"  # leading and trailing spaces
+                "  11,13 thru 15,\n"
+                "\n"  # embedded blank line
+                " 18, 19 \n" # trailing space
+                "BEGIN BULK\n"
+                "SET 113 = 99"
+            ),
+            {111: [1, 3, 10, 11, 13, 14, 15, 18, 19]},
+        ),
+    ],
+)
+def test_rdsets(string, expected):
+    sets = nastran.rdsets(StringIO(string))
+    assert sets == expected
+
+
 def test_rdsymbols():
     # Posix paths
     f = StringIO(
