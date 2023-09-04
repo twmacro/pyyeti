@@ -919,20 +919,18 @@ def compare(pth):
         results["extreme"]["ifa2"] = results["extreme"]["net_ifatm"]
 
         plt.close("all")
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
+        regex = re.compile(r"Some comp.*skipped.*ifa2", re.DOTALL)
+        with pytest.warns(RuntimeWarning, match=regex):
             results["extreme"].rptpct(lvc, names=("LSP", "Contractor"))
-            assert issubclass(w[-1].category, RuntimeWarning)
-            assert "Some comparisons" in str(w[-1].message)
-            assert "ifa2" in str(w[-1].message)
 
         plt.close("all")
         # modify lvc['cglf'] for testing:
         lvc["cglf"].ext[0, 0] = 0.57  # cause a -7.3% diff
         lvc["cglf"].ext[5, 0] = 0.449  # cause a 17.7% diff
-        results["extreme"].rptpct(
-            lvc, names=("LSP", "Contractor"), direc="absmax_compare", doabsmax=True
-        )
+        with pytest.warns(RuntimeWarning, match=r"Some compar.*skipped"):
+            results["extreme"].rptpct(
+                lvc, names=("LSP", "Contractor"), direc="absmax_compare", doabsmax=True
+            )
 
         plt.close("all")
         results["extreme"].rptpct(
