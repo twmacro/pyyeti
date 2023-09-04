@@ -1,5 +1,6 @@
 import math
 import os
+import re
 import tempfile
 import numpy as np
 import pandas as pd
@@ -475,7 +476,11 @@ def test_rdpostop2():
 
 
 def test_rdpostop2_assemble():
-    post = op2.rdpostop2("pyyeti/tests/nas2cam_extseout/assemble.op2", 1, 1)
+    with pytest.warns(RuntimeWarning) as record:
+        post = op2.rdpostop2("pyyeti/tests/nas2cam_extseout/assemble.op2", 1, 1)
+        assert len(record) >= 2
+        assert re.search(r"ACODE.*52.*not accept", record[0].message.args[0])
+        assert re.search(r"TCODE.*1001.*not accept", record[1].message.args[0])
     assert np.all(post["selist"] == [[101, 0], [102, 0], [0, 0]])
     sebulk = np.array(
         [[101, 5, -1, 2, 0.0, 1, 3, 101], [102, 5, -1, 2, 0.0, 1, 3, 102]]
