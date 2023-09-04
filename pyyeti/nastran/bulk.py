@@ -920,7 +920,7 @@ def rdsets(f, follow_includes=True, include_symbols=None, include_root_dir=None)
     >>> from pyyeti import nastran
     >>> f = StringIO("SET 101 = 11, 21 THRU 23")
     >>> print(nastran.rdsets(f))
-    {101: [11, 21, 22, 23,]}
+    {101: [11, 21, 22, 23]}
     """
     # save root dir from original call, pass through to _rdinclude for recursive calls
     try:
