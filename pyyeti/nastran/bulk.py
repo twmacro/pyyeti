@@ -1224,9 +1224,9 @@ def rddmig(
                     val.dtype = dtype
                     j += ints_per_number
                     ri = np.searchsorted(r_id_dof, nid * 10 + dof)
-                    mat[ri, ci] = val
+                    mat[ri, ci] = val[0]
                     if form == 6:
-                        mat[ci, ri] = val
+                        mat[ci, ri] = val[0]
                     nid = rec[j]
                 j += 2
             dct[name] = pd.DataFrame(mat, index=rowindex, columns=colindex)
