@@ -1,3 +1,4 @@
+import re
 import numpy as np
 import scipy.linalg as la
 from pyyeti import era, ode
@@ -30,6 +31,17 @@ def get_model_data():
     return M, K, D, freq_hz, zeta, phi
 
 
+def verify_one_match(records, regexes):
+    """Verify that at least one warning matches each regex."""
+    for regex in regexes:
+        match_found = False
+        for record in records:
+            match_found = (
+                re.search(regex, record.message.args[0]) is not None or match_found
+            )
+        assert match_found, f"No matching warning found: {regex}"
+
+
 def test_era():
     M, K, D, freq_hz, zeta, phi = get_model_data()
 
@@ -39,18 +51,19 @@ def test_era():
     ts = ode.SolveExp2(M, D, K, dt)
     sol = ts.tsolve(force=F, v0=[1, 1, 1])
 
-    era_fit = era.ERA(
-        sol.v,
-        sr=1 / dt,
-        auto=True,
-        input_labels=["x", "y", "z"],
-        all_lower_limits=0.1,
-        FFT=True,
-        # FFT_range=(0.0, 25.0),
-        # show_plot=False,
-        verbose=False,
-    )
-
+    with pytest.warns(UserWarning) as records:
+        era_fit = era.ERA(
+            sol.v,
+            sr=1 / dt,
+            auto=True,
+            input_labels=["x", "y", "z"],
+            all_lower_limits=0.1,
+            FFT=True,
+            # FFT_range=(0.0, 25.0),
+            # show_plot=False,
+            verbose=False,
+        )
+        verify_one_match(records, [r"Matplotlib.*using agg", r"figure layout.*tight"])
     assert np.allclose(era_fit.freqs_hz, freq_hz)
     assert np.allclose(era_fit.zeta, zeta)
     phi_rat = phi / era_fit.phi
@@ -61,19 +74,20 @@ def test_era():
         assert np.isclose(0.1, val)
 
     # different size H:
-    era_fit = era.ERA(
-        sol.v,
-        sr=1 / dt,
-        auto=True,
-        alpha=65,
-        input_labels=["x", "y", "z"],
-        all_lower_limits=0.1,
-        FFT=True,
-        FFT_range=(0.0, 25.0),
-        # show_plot=False,
-        verbose=False,
-    )
-
+    with pytest.warns(UserWarning) as record:
+        era_fit = era.ERA(
+            sol.v,
+            sr=1 / dt,
+            auto=True,
+            alpha=65,
+            input_labels=["x", "y", "z"],
+            all_lower_limits=0.1,
+            FFT=True,
+            FFT_range=(0.0, 25.0),
+            # show_plot=False,
+            verbose=False,
+        )
+        verify_one_match(records, [r"Matplotlib.*using agg", r"figure layout.*tight"])
     assert np.allclose(era_fit.freqs_hz, freq_hz)
     assert np.allclose(era_fit.zeta, zeta)
     phi_rat = phi / era_fit.phi
