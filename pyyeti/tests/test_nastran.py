@@ -1532,9 +1532,10 @@ def test_wtrspline_rings():
         rsplines1 = nastran.rdcards(f, "RSPLINE")
 
     with StringIO() as f:
-        nastran.wtrspline_rings(
-            f, uset1, uset2, 1001, 2001, makeplot=ax, independent="n amE 2"
-        )
+        with pytest.warns(UserWarning, match=r"figure layout.*changed.*tight"):
+            nastran.wtrspline_rings(
+                f, uset1, uset2, 1001, 2001, makeplot=ax, independent="n amE 2"
+            )
         u2, c2 = nastran.bulk2uset(f)
         rsplines2 = nastran.rdcards(f, "RSPLINE")
 
