@@ -1,3 +1,4 @@
+import warnings
 from types import SimpleNamespace
 import numpy as np
 import scipy.linalg as la
@@ -415,10 +416,19 @@ def test_rbdamped_modes_coupled():
     f = np.zeros((N, len(t)))
     f[:, :win] = np.ones((N, 1)) * np.hanning(win) * 20
 
-    for b in (np.zeros(N), 10 * np.ones(N)):
+    for i, b in enumerate((np.zeros(N), 10 * np.ones(N))):
         se2 = ode.SolveExp2(m, b, k, h)
-        su = ode.SolveUnc(m, b, k, h)  # , rb=[])
         sole = se2.tsolve(f)
+
+        with warnings.catch_warnings(record=True) as records:
+            warnings.simplefilter("always")
+            su = ode.SolveUnc(m, b, k, h)  # , rb=[])
+            if i == 1:
+                assert len(records) == 1
+                assert issubclass(records[0].category, RuntimeWarning)
+                assert "invalid value" in str(records[0].message)
+            else:
+                assert len(records) == 0
         solu = su.tsolve(f)
 
         assert np.allclose(sole.a, solu.a)
@@ -453,8 +463,16 @@ def test_newmark_rbdamp_coupled():
     f[:, :win] = np.ones((N, 1)) * np.hanning(win) * 20
 
     for d0, v0 in ((None, np.random.randn(N)), (np.random.randn(N), None)):
-        for b in (np.zeros(N), 10 * np.ones(N)):
-            su = ode.SolveUnc(m, b, k, h)
+        for i, b in enumerate((np.zeros(N), 10 * np.ones(N))):
+            with warnings.catch_warnings(record=True) as records:
+                warnings.simplefilter("always")
+                su = ode.SolveUnc(m, b, k, h)
+                if i == 1:
+                    assert len(records) == 1
+                    assert issubclass(records[0].category, RuntimeWarning)
+                    assert "invalid value" in str(records[0].message)
+                else:
+                    assert len(records) == 0
             solu = su.tsolve(f, d0=d0, v0=v0)
 
             nb = ode.SolveNewmark(m, b, k, h)
