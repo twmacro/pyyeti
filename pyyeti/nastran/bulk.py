@@ -42,6 +42,7 @@ __all__ = [
     "wttabled1",
     "bulk2uset",
     "uset2bulk",
+    "rdrvdof",
     "rdspoints",
     "rdseconct",
     "asm2uset",
@@ -2194,6 +2195,96 @@ def uset2bulk(f, uset):
     # Write Grid data:
     f.write("$\n$ GRID DATA\n$\n")
     wtgrids(f, grids, 0, xyz, cd)
+
+
+def _integer_to_dofs(c: int) -> list:
+    """
+    Convert a Nastran component number into a list of DOFs.
+    c: Component number, containing up to 6 unique integers between 0 and 6.
+
+    Returns a list of DOFs specified by the component number.
+    """
+    if c == 0:
+        return [0]
+    output = set()
+    while c > 0:
+        output.add(c % 10)
+        c = c // 10
+    if len(output) > 6:
+        msg = "invalid input"
+        raise ValueError(msg)
+    return sorted(output)
+
+
+def rdrvdof(f, follow_includes=True, include_symbols=None):
+    """
+    Read RVDOF and RVDOF1 cards from a file.
+
+    This supports both RVDOF and RVDOF1 cards, with and without a "THRU" field.
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
+
+    Returns
+    -------
+    rvdofs: list
+        The RVDOF entries.  This is a sorted list of (ID, DOF) tuples.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> from io import StringIO
+    >>> f = StringIO("RVDOF1,13,1001,THRU,1002")
+    >>> print(nastran.rdrvdof(f))
+    [(1001, 1), (1001, 3), (1002, 1), (1002, 3)]
+    """
+    cards = rdcards(
+        f,
+        "rvdof",
+        blank="",
+        return_var="list",
+        keep_name=True,
+        no_data_return=[],
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
+    rvdofs = []
+    for card in cards:
+        if card[0].lower() == "rvdof":
+            for i in range(1, len(card), 2):
+                nid = card[i + 0]
+                if nid == "":
+                    break
+                dofs = _integer_to_dofs(card[i + 1])
+                rvdofs.extend([(nid, dof) for dof in dofs])
+        if card[0].lower() == "rvdof1":
+            dofs = _integer_to_dofs(card[1])
+            if isinstance(card[3], str) and card[3].lower() == "thru":
+                id_start = card[2]
+                id_end = card[4]
+                rvdofs.extend(
+                    [(nid, dof) for nid in range(id_start, id_end + 1) for dof in dofs]
+                )
+            else:
+                for nid in card[2:]:
+                    if nid == "":
+                        break
+                    rvdofs.extend([(nid, dof) for dof in dofs])
+    rvdofs.sort()
+    return rvdofs
 
 
 def rdspoints(f, *, follow_includes=True, include_symbols=None):

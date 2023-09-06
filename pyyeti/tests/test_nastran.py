@@ -1924,6 +1924,90 @@ def test_rddmig2():
     )
 
 
+@pytest.mark.parametrize(
+    ("c", "match"),
+    [
+        (1234567, r"invalid input"),
+        (1023456, r"invalid input"),
+    ],
+)
+def test_integer_to_dofs_errors(c: int, match: str):
+    from pyyeti.nastran import bulk
+
+    with pytest.raises(ValueError, match=match):
+        bulk._integer_to_dofs(c)
+
+
+@pytest.mark.parametrize(
+    ("c", "expected"),
+    [
+        (123456, [1, 2, 3, 4, 5, 6]),
+        (325, [2, 3, 5]),
+        (65421, [1, 2, 4, 5, 6]),
+        (0, [0]),
+    ],
+)
+def test_integer_to_dofs(c: int, expected: list):
+    from pyyeti.nastran import bulk
+
+    output = bulk._integer_to_dofs(c)
+    assert output == expected
+
+
+@pytest.mark.parametrize(
+    ("string", "expected"),
+    [
+        # no errors with empty file
+        ("", []),
+        # RVDOF input, two lines
+        (
+            "RVDOF,1002,456,1001,123\nRVDOF,1003,0",
+            [
+                (1001, 1),
+                (1001, 2),
+                (1001, 3),
+                (1002, 4),
+                (1002, 5),
+                (1002, 6),
+                (1003, 0),
+            ],
+        ),
+        # verify no error when card contains empty fields
+        (
+            "RVDOF,1002,456,1001,123,",
+            [(1001, 1), (1001, 2), (1001, 3), (1002, 4), (1002, 5), (1002, 6)],
+        ),
+        # RVDOF1 without a THRU
+        ("RVDOF1,13,1001,1002", [(1001, 1), (1001, 3), (1002, 1), (1002, 3)]),
+        # RVDOF1 with a THRU
+        ("RVDOF1,0,1001,THRU,1003", [(1001, 0), (1002, 0), (1003, 0)]),
+        # mixed RVDOF and RVDOF1 inputs
+        (
+            "RVDOF,1002,456,1001,123\nRVDOF1,0,1003,THRU,1005",
+            [
+                (1001, 1),
+                (1001, 2),
+                (1001, 3),
+                (1002, 4),
+                (1002, 5),
+                (1002, 6),
+                (1003, 0),
+                (1004, 0),
+                (1005, 0),
+            ],
+        ),
+        (
+            # verify no error when card contains empty fields
+            "RVDOF1,0,1003,1006,1005,,",
+            [(1003, 0), (1005, 0), (1006, 0)],
+        ),
+    ],
+)
+def test_rdrvdof(string: str, expected: list):
+    output = nastran.rdrvdof(StringIO(string))
+    assert output == expected
+
+
 def test_rdseconct():
     s = """
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
