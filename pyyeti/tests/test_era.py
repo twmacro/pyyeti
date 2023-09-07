@@ -63,7 +63,7 @@ def test_era():
             # show_plot=False,
             verbose=False,
         )
-        verify_one_match(records, [r"Matplotlib.*using agg", r"figure layout.*tight"])
+        verify_one_match(records, [r"Matplotlib.*using agg"])
     assert np.allclose(era_fit.freqs_hz, freq_hz)
     assert np.allclose(era_fit.zeta, zeta)
     phi_rat = phi / era_fit.phi

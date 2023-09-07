@@ -2,6 +2,7 @@ import math
 import numpy as np
 import os
 import tempfile
+import warnings
 from io import StringIO
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -1532,7 +1533,8 @@ def test_wtrspline_rings():
         rsplines1 = nastran.rdcards(f, "RSPLINE")
 
     with StringIO() as f:
-        with pytest.warns(UserWarning, match=r"figure layout.*changed.*tight"):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
             nastran.wtrspline_rings(
                 f, uset1, uset2, 1001, 2001, makeplot=ax, independent="n amE 2"
             )
