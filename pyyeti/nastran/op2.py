@@ -1249,7 +1249,7 @@ class OP2:
                 nmodes = (endpos - startpos) // bytes_per_mode
                 keep = lam
                 lam = np.empty(nmodes, float)
-                lam[0] = keep
+                lam[0] = keep[0]
                 keep = ougv1
                 ougv1 = np.empty((keep.shape[0], nmodes), float, order="F")
                 ougv1[:, 0] = keep[:, 0]

@@ -427,7 +427,7 @@ def getbins(bins, mx, mn, right=True, check_bounds=False):
         # raise ValueError("`mx` and `mn` must not be equal")
 
     if bins.size == 1:
-        bins = int(bins)
+        bins = int(bins[0])
         bb = np.linspace(mn, mx, bins + 1)
         p = 0.001 * (mx - mn)
         if right:

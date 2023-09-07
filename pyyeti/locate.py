@@ -303,7 +303,7 @@ def mat_intersect(D1, D2, keep=0):
         switch = True
 
     # to use the byte-string view, types must be the same:
-    out_dtype = np.find_common_type([haystack.dtype, needles.dtype], [])
+    out_dtype = np.result_type(haystack.dtype, needles.dtype)
 
     # view entire rows as a single values:
     haystack = _bytes_view(haystack, out_dtype).ravel()

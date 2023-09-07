@@ -694,7 +694,8 @@ def test_cbcoordchk():
     assert abs(chk0.maxerr).max() < 1e-5
 
     # a case where the refpoint_chk should be 'fail':
-    chk2 = cb.cbcoordchk(kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
+    with pytest.warns(la.LinAlgWarning, match=r"Ill\-conditioned matrix"):
+        chk2 = cb.cbcoordchk(kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
     assert chk2.refpoint_chk == "fail"
 
 
@@ -1044,7 +1045,8 @@ def test_cbcoordchk3():
     assert abs(chk0.maxerr).max() < 1e-5
 
     # a case where the refpoint_chk should be 'fail':
-    chk2 = cb.cbcoordchk(kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
+    with pytest.warns(la.LinAlgWarning, match=r"Ill\-conditioned matrix"):
+        chk2 = cb.cbcoordchk(kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
     assert chk2.refpoint_chk == "fail"
 
 
