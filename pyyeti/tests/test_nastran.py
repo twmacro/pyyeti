@@ -310,6 +310,7 @@ def test_rdsets_errors(string, match):
         ("SET 101 = 1\n", {101: [1]}),  # one item, with newline
         ("SET 101=1", {101: [1]}),  # no spaces around equals sign, no newline
         ("SET 101=1\n", {101: [1]}),  # no spaces around equals sign, with newline
+        ("SET101=1\n", {101: [1]}),  # no spaces anywhere
         ("  SET  101  =  1", {101: [1]}),  # multiple embedded spaces
         ("set 101 = 1", {101: [1]}),  # lower case set
         ("SET 101 = 1,2", {101: [1, 2]}),  # two items, no newline
