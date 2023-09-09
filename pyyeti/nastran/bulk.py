@@ -3163,6 +3163,10 @@ def wtspc1(f, eid, dof, grids, name="SPC1"):
     -------
     None
 
+    Notes
+    -----
+    This function can be used to write SPC1 and SEQSET1 cards.
+
     Examples
     --------
     >>> from pyyeti import nastran
@@ -3208,6 +3212,9 @@ def wtxset1(f, dof, grids, name="BSET1"):
     Notes
     -----
     Where possible, THRU statements will be used.
+
+    This function can be used to write ASET1, BSET1, CSET1, QSET1,
+    SESET, and RVDOF1 cards.
 
     Examples
     --------
@@ -5070,6 +5077,10 @@ def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
     -----
     This card will be written in 8 fixed-field format using the
     :func:`wtcard8` function.
+
+    This card is useful to add a load set to the P matrix when
+    creating an external superelement using EXTSEOUT. In that case,
+    the referenced TABLEDi card does not need to exist.
 
     Examples
     --------
