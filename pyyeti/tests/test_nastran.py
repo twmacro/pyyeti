@@ -1962,6 +1962,8 @@ def test_integer_to_dofs(c: int, expected: list):
     [
         # no errors with empty file
         ("", []),
+        # no errors with invalid card type
+        ("RVDOF2,0,1003,1004", []),
         # RVDOF input, two lines
         (
             "RVDOF,1002,456,1001,123\nRVDOF,1003,0",

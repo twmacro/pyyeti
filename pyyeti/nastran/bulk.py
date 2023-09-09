@@ -2270,7 +2270,7 @@ def rdrvdof(f, follow_includes=True, include_symbols=None):
                     break
                 dofs = _integer_to_dofs(card[i + 1])
                 rvdofs.extend([(nid, dof) for dof in dofs])
-        if card[0].lower() == "rvdof1":
+        elif card[0].lower() == "rvdof1":
             dofs = _integer_to_dofs(card[1])
             if isinstance(card[3], str) and card[3].lower() == "thru":
                 id_start = card[2]
