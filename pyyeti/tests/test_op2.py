@@ -1,5 +1,6 @@
 import math
 import os
+import re
 import tempfile
 import numpy as np
 import pandas as pd
@@ -474,8 +475,23 @@ def test_rdpostop2():
     assert np.all(oug["lambda"] == lam)
 
 
+def verify_one_match(records, regexes):
+    """Verify that at least one warning matches each regex."""
+    for regex in regexes:
+        match_found = False
+        for record in records:
+            match_found = (
+                re.search(regex, record.message.args[0]) is not None or match_found
+            )
+        assert match_found, f"No matching warning found: {regex}"
+
+
 def test_rdpostop2_assemble():
-    post = op2.rdpostop2("pyyeti/tests/nas2cam_extseout/assemble.op2", 1, 1)
+    with pytest.warns(RuntimeWarning) as records:
+        post = op2.rdpostop2("pyyeti/tests/nas2cam_extseout/assemble.op2", 1, 1)
+        verify_one_match(
+            records, [r"ACODE.*52.*not accept", r"TCODE.*1001.*not accept"]
+        )
     assert np.all(post["selist"] == [[101, 0], [102, 0], [0, 0]])
     sebulk = np.array(
         [[101, 5, -1, 2, 0.0, 1, 3, 101], [102, 5, -1, 2, 0.0, 1, 3, 102]]
