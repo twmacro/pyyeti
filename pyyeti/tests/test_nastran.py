@@ -286,6 +286,145 @@ def test_rdcards_with_includes():
         assert cards[2][1] == 3
 
 
+@pytest.mark.parametrize(
+    ("string", "match"),
+    [
+        ("SET 1111 = 1,2,3,", r"Invalid SET.*EOF before.*1111"),
+        ("SET 1112 = 1,2,3,\n4,5,6,", r"Invalid SET.*EOF before.*1112"),
+        ("SET 1113 = 1,2,3,\n4,5,6,\n\n", r"Invalid SET.*EOF before.*1113"),
+        ("SET 1114 = 1,2,3,\nGRID\n4,5,6\n", r"Invalid SET.*cannot.*int.*1114"),
+        ("SET 1115 = 1,2,QQQ", r"Invalid SET.*cannot.*int.*1115"),
+        ("SET 1116 = 1,2,QQQ THRU 5", r"Invalid SET.*cannot.*int.*1116"),
+        ("SET 1117 = 1,2,5 THRU QQQ", r"Invalid SET.*cannot.*int.*1117"),
+    ],
+)
+def test_rdsets_errors(string, match):
+    with pytest.raises(ValueError, match=match):
+        nastran.rdsets(StringIO(string))
+
+
+@pytest.mark.parametrize(
+    ("string", "expected"),
+    [
+        ("SET 101 = 1", {101: [1]}),  # one item, no newline
+        ("SET 101 = 1\n", {101: [1]}),  # one item, with newline
+        ("SET 101=1", {101: [1]}),  # no spaces around equals sign, no newline
+        ("SET 101=1\n", {101: [1]}),  # no spaces around equals sign, with newline
+        ("SET101=1\n", {101: [1]}),  # no spaces anywhere
+        ("  SET  101  =  1", {101: [1]}),  # multiple embedded spaces
+        ("set 101 = 1", {101: [1]}),  # lower case set
+        ("SET 101 = 1,2", {101: [1, 2]}),  # two items, no newline
+        ("SET 101=1,2", {101: [1, 2]}),  # two items, no spaces, no newline
+        ("SET 101=1,2\n", {101: [1, 2]}),  # two items, no spaces, with newline
+        ("SET 101 = 1 thru 3", {101: [1, 2, 3]}),  # thru, no newline
+        ("SET 101=1 thru 3", {101: [1, 2, 3]}),  # thru, no spaces, no newline
+        ("SET 101=1 thru 3\n", {101: [1, 2, 3]}),  # thru, no spaces, with newline
+        (
+            # set in bulk data, should be ignored
+            "SET 101 = 1, 3, 6 THRU 8\nBEGIN BULK\nSET 102 = 99",
+            {101: [1, 3, 6, 7, 8]},
+        ),
+        (
+            # set in bulk data, should be ignored, 'begin bulk' has leading space
+            "SET 101 = 1, 3, 6 THRU 8\n begin bulk\nSET 102 = 99",
+            {101: [1, 3, 6, 7, 8]},
+        ),
+        (
+            # 'begin bulk' is commented out
+            "SET 101 = 1, 3, 6 THRU 8\n$BEGIN BULK\nSET 102 = 99",
+            {101: [1, 3, 6, 7, 8], 102: [99]},
+        ),
+        (
+            # two sets
+            (
+                "SET 111 = 1,3 , 6 THRU 8, 10,\n"
+                "  11,13 thru   15\n"
+                "   set 112=  10101,10102\n"  # leading spaces and lower case
+            ),
+            {111: [1, 3, 6, 7, 8, 10, 11, 13, 14, 15], 112: [10101, 10102]},
+        ),
+        (
+            # embedded blank line in set
+            (
+                " SET 111 = 1,3 , 10,  \n"  # leading and trailing spaces
+                "  11,13 thru 15,\n"
+                "\n"  # embedded blank line
+                " 18, 19 \n"  # trailing space
+            ),
+            {111: [1, 3, 10, 11, 13, 14, 15, 18, 19]},
+        ),
+    ],
+)
+def test_rdsets(string, expected):
+    sets = nastran.rdsets(StringIO(string))
+    assert sets == expected
+
+
+def test_rdsets_with_includes_errors():
+    file1 = "SET 111 = 1,3,5 THRU 8\nINCLUDE 'file2.bdf'\n"
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+
+        # Path on INCLUDE statement does not exist
+        _wtfile(file1_path, file1.replace("file2.bdf", "zzzz.bdf"))
+        with pytest.raises(FileNotFoundError, match=r"zzzz.bdf"):
+            nastran.rdsets(file1_path)
+
+
+def test_rdsets_with_includes():
+    file1 = (
+        "SET 111 = 1,3,5 THRU 8\n"
+        "DISPLACEMENT(PLOT) = 111\n"
+        "INCLUDE 'file2.bdf'\n"
+        "SET 333=1001"
+    )
+    file2 = "SET 222 = 101, 201 THRU 203\n"
+
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _wtfile(file1_path, file1)
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
+
+        # follow_includes is True
+        sets = nastran.rdsets(file1_path)
+        assert sets == {111: [1, 3, 5, 6, 7, 8], 222: [101, 201, 202, 203], 333: [1001]}
+
+        # follow_includes is False
+        sets = nastran.rdsets(file1_path, follow_includes=False)
+        assert sets == {111: [1, 3, 5, 6, 7, 8], 333: [1001]}
+
+    # INCLUDE statement spans two lines
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _wtfile(file1_path, file1.replace("'file1.bdf'", "'file1.\nbdf'"))
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
+        sets = nastran.rdsets(file1_path)
+        assert sets == {111: [1, 3, 5, 6, 7, 8], 222: [101, 201, 202, 203], 333: [1001]}
+
+    # file1 in subdirectory, file2 in parent dir
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        subdir_path = os.path.join(tempdir_path, "subdir")
+        os.mkdir(subdir_path)
+        file1_path = os.path.join(subdir_path, "file1.bdf")
+        # update to use relative path
+        _wtfile(file1_path, file1.replace("file2", "../file2"))
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
+        sets = nastran.rdsets(file1_path)
+        assert sets == {111: [1, 3, 5, 6, 7, 8], 222: [101, 201, 202, 203], 333: [1001]}
+
+    # file1 in subdirectory, file2 in parent dir, includes use symbols
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        subdir_path = os.path.join(tempdir_path, "subdir")
+        os.mkdir(subdir_path)
+        file1_path = os.path.join(subdir_path, "file1.bdf")
+        # update to use symbol
+        _wtfile(file1_path, file1.replace("file2", "SUBDIR:file2"))
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
+        symbols = {"SUBDIR": os.path.abspath(tempdir_path)}
+        sets = nastran.rdsets(file1_path, include_symbols=symbols)
+        assert sets == {111: [1, 3, 5, 6, 7, 8], 222: [101, 201, 202, 203], 333: [1001]}
+
+
 def test_rdsymbols():
     # Posix paths
     f = StringIO(
@@ -1787,6 +1926,92 @@ def test_rddmig2():
         "DMIG*   MRANDM                        12               0\n"
         "*                     12               0 6.122600000D+04\n"
     )
+
+
+@pytest.mark.parametrize(
+    ("c", "match"),
+    [
+        (1234567, r"invalid input"),
+        (1023456, r"invalid input"),
+    ],
+)
+def test_integer_to_dofs_errors(c: int, match: str):
+    from pyyeti.nastran import bulk
+
+    with pytest.raises(ValueError, match=match):
+        bulk._integer_to_dofs(c)
+
+
+@pytest.mark.parametrize(
+    ("c", "expected"),
+    [
+        (123456, [1, 2, 3, 4, 5, 6]),
+        (325, [2, 3, 5]),
+        (65421, [1, 2, 4, 5, 6]),
+        (0, [0]),
+    ],
+)
+def test_integer_to_dofs(c: int, expected: list):
+    from pyyeti.nastran import bulk
+
+    output = bulk._integer_to_dofs(c)
+    assert output == expected
+
+
+@pytest.mark.parametrize(
+    ("string", "expected"),
+    [
+        # no errors with empty file
+        ("", []),
+        # no errors with invalid card type
+        ("RVDOF2,0,1003,1004", []),
+        # RVDOF input, two lines
+        (
+            "RVDOF,1002,456,1001,123\nRVDOF,1003,0",
+            [
+                (1001, 1),
+                (1001, 2),
+                (1001, 3),
+                (1002, 4),
+                (1002, 5),
+                (1002, 6),
+                (1003, 0),
+            ],
+        ),
+        # verify no error when card contains empty fields
+        (
+            "RVDOF,1002,456,1001,123,",
+            [(1001, 1), (1001, 2), (1001, 3), (1002, 4), (1002, 5), (1002, 6)],
+        ),
+        # RVDOF1 without a THRU
+        ("RVDOF1,13,1001,1002", [(1001, 1), (1001, 3), (1002, 1), (1002, 3)]),
+        # RVDOF1 with a THRU
+        ("RVDOF1,0,1001,THRU,1003", [(1001, 0), (1002, 0), (1003, 0)]),
+        # mixed RVDOF and RVDOF1 inputs
+        (
+            "RVDOF,1002,456,1001,123\nRVDOF1,0,1003,THRU,1005",
+            [
+                (1001, 1),
+                (1001, 2),
+                (1001, 3),
+                (1002, 4),
+                (1002, 5),
+                (1002, 6),
+                (1003, 0),
+                (1004, 0),
+                (1005, 0),
+            ],
+        ),
+        (
+            # verify no error when card contains empty fields
+            "RVDOF1,0,1003,1006,1005,,",
+            [(1003, 0), (1005, 0), (1006, 0)],
+        ),
+    ],
+)
+def test_rdrvdof(string: str, expected: list):
+    output = nastran.rdrvdof(StringIO(string))
+    assert output == expected
 
 
 def test_rdseconct():

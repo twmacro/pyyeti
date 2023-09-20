@@ -34,6 +34,7 @@ __all__ = [
     "mkcomment",
     "wtdmig",
     "rdgrids",
+    "rdsets",
     "rdsymbols",
     "rdcord2cards",
     "wtgrids",
@@ -41,6 +42,7 @@ __all__ = [
     "wttabled1",
     "bulk2uset",
     "uset2bulk",
+    "rdrvdof",
     "rdspoints",
     "rdseconct",
     "asm2uset",
@@ -383,12 +385,13 @@ def _next_line(f, name, regex, keep_comments, follow_includes, Vals):
         _handle_comments(comment_list, Vals)
 
 
-def _rdinclude(fiter, s, kwargs):
+def _rdinclude(fiter, s, func, kwargs):
     """
     Read and then recursively follow an INCLUDE statement.
     fiter : file iterator
     s : The first line containing the INCLUDE statement.
-    kwargs : All the arguments to the original rdcards call (except for
+    func: The function to call using the INCLUDE path.
+    kwargs : All the arguments to the original function call (except for
              the path).
     """
     start = s.find("'")
@@ -418,7 +421,7 @@ def _rdinclude(fiter, s, kwargs):
         path = os.path.abspath(os.path.join(kwargs["include_root_dir"], rel_path))
     # read next line, which will be returned by next fiter.send(True) call
     fiter.send(False)
-    return rdcards(path, **kwargs)
+    return func(path, **kwargs)
 
 
 def _check_for_symbols(rel_path, symbols):
@@ -788,7 +791,7 @@ def rdcards(
     while s is not None:
         # if here, have matching line
         if follow_includes and s.lower().startswith("include"):
-            vals = _rdinclude(fiter, s, kwargs)
+            vals = _rdinclude(fiter, s, rdcards, kwargs)
         elif s.find(",") > -1:
             vals = [_rdcomma(fiter, s, " +,", blank, tolist, keep_name)]
         else:
@@ -829,6 +832,141 @@ def rdcards(
             Vals = npVals
         return Vals
     return no_data_return
+
+
+def _rd_set_line(line, set_id):
+    """
+    Read a single line from a SET statement.
+    line: The line from the SET statement.
+    set_id: The ID of this set, used to provide a more useful error message.
+    """
+    values = []
+    items = line.split(",")
+    for item in items:
+        thru_match = re.search(r"(\d+)[ ]*THRU[ ]*(\d+)", item, re.IGNORECASE)
+        if thru_match is not None:
+            values.extend(range(int(thru_match[1]), int(thru_match[2]) + 1))
+        else:
+            try:
+                value = int(item)
+            except ValueError:
+                msg = f"Invalid SET statement, cannot convert to int, set ID {set_id}"
+                raise ValueError(msg)
+            values.append(value)
+    return values
+
+
+def _rdset(fiter, line):
+    """
+    Read an entire SET from a file, which may span multiple lines.
+    fiter: file iterator
+    line: The first line containing the SET statement.
+    """
+    start_match = re.search(r"^[ ]*set[ ]*([0-9]+)[ ]*=[ ]*", line, re.IGNORECASE)
+    if start_match is None:
+        raise ValueError
+    set_id = int(start_match[1])
+    values = []
+    line = line[start_match.end() :].strip()
+    while True:
+        if line == "":  # blank line, skip and continue to next
+            pass
+        elif line.endswith(","):  # set continues on next line
+            values.extend(_rd_set_line(line.rstrip(","), set_id))
+        else:  # last line of set
+            values.extend(_rd_set_line(line, set_id))
+            break
+        line = fiter.send(False)
+        if line is None:
+            msg = f"Invalid SET statement, EOF before set ended, set ID {set_id:d}"
+            raise ValueError(msg)
+        line = line.strip()
+    return set_id, values
+
+
+@guitools.read_text_file
+def rdsets(f, follow_includes=True, include_symbols=None, include_root_dir=None):
+    """
+    Read case control SET statements from a file.
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
+    include_root_dir : None; optional
+        This parameter is only used when this function is called
+        recursively while following INCLUDE statements. Users should
+        keep it as the default value of None.
+
+    Returns
+    -------
+    sets : dict
+        A dictionary of all sets in the file.  The set IDs are the keys,
+        and the values are a list of the set components.
+
+    Examples
+    --------
+    >>> from io import StringIO
+    >>> from pyyeti import nastran
+    >>> f = StringIO("SET 101 = 11, 21 THRU 23")
+    >>> print(nastran.rdsets(f))
+    {101: [11, 21, 22, 23]}
+    """
+    # save root dir from original call, pass through to _rdinclude for recursive calls
+    try:
+        include_root_dir = (
+            os.path.dirname(os.path.abspath(f.name))
+            if include_root_dir is None
+            else include_root_dir
+        )
+    except AttributeError:
+        # StringIO object, doesn't make sense to follow includes
+        follow_includes = False
+        include_root_dir = None
+    include_symbols = (
+        {symbol.lower(): path for symbol, path in include_symbols.items()}
+        if include_symbols is not None
+        else {}
+    )
+    for symbol in include_symbols:
+        if not len(symbol) > 2:
+            raise ValueError(f"Symbols must have a length >1, got {symbol}")
+    kwargs = {
+        "follow_includes": follow_includes,
+        "include_symbols": include_symbols,
+        "include_root_dir": include_root_dir,
+    }
+
+    sets = {}
+    name = r"(^[ ]*set[ ]*[0-9]+[ ]*=)|(^[ ]*begin bulk)"
+    f.seek(0, 0)
+    fiter = _next_line(f, name, True, False, follow_includes, None)
+    s = next(fiter)
+    while s is not None:
+        if follow_includes and s.lower().startswith("include"):
+            sets.update(_rdinclude(fiter, s, rdsets, kwargs))
+        elif s.lower().lstrip().startswith("begin bulk"):
+            break
+        else:
+            set_id, values = _rdset(fiter, s)
+            sets[set_id] = values
+
+        try:
+            s = fiter.send(True)
+        except StopIteration:
+            break
+    return sets
 
 
 @guitools.read_text_file
@@ -2059,6 +2197,96 @@ def uset2bulk(f, uset):
     wtgrids(f, grids, 0, xyz, cd)
 
 
+def _integer_to_dofs(c: int) -> list:
+    """
+    Convert a Nastran component number into a list of DOFs.
+    c: Component number, containing up to 6 unique integers between 0 and 6.
+
+    Returns a list of DOFs specified by the component number.
+    """
+    if c == 0:
+        return [0]
+    output = set()
+    while c > 0:
+        output.add(c % 10)
+        c = c // 10
+    if len(output) > 6:
+        msg = "invalid input"
+        raise ValueError(msg)
+    return sorted(output)
+
+
+def rdrvdof(f, follow_includes=True, include_symbols=None):
+    """
+    Read RVDOF and RVDOF1 cards from a file.
+
+    This supports both RVDOF and RVDOF1 cards, with and without a "THRU" field.
+
+    Parameters
+    ----------
+    f : string or file_like or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open`. If file_like object, it is rewound first. Can
+        also be the name of a directory or None; in these cases, a GUI
+        is opened for file selection.
+    follow_includes : bool; optional
+        If True, INCLUDE statements will be followed recursively.
+        Note that if f is a StringIO object, or another object that
+        does not have a `name` property, this parameter will be set
+        to False.
+    include_symbols : dict; optional
+        A dictionary mapping Nastran symbols to an associated path.
+        These can be read from a file using :func:`rdsymbols`.
+
+    Returns
+    -------
+    rvdofs: list
+        The RVDOF entries.  This is a sorted list of (ID, DOF) tuples.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> from io import StringIO
+    >>> f = StringIO("RVDOF1,13,1001,THRU,1002")
+    >>> print(nastran.rdrvdof(f))
+    [(1001, 1), (1001, 3), (1002, 1), (1002, 3)]
+    """
+    cards = rdcards(
+        f,
+        "rvdof",
+        blank="",
+        return_var="list",
+        keep_name=True,
+        no_data_return=[],
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+    )
+    rvdofs = []
+    for card in cards:
+        if card[0].lower() == "rvdof":
+            for i in range(1, len(card), 2):
+                nid = card[i + 0]
+                if nid == "":
+                    break
+                dofs = _integer_to_dofs(card[i + 1])
+                rvdofs.extend([(nid, dof) for dof in dofs])
+        elif card[0].lower() == "rvdof1":
+            dofs = _integer_to_dofs(card[1])
+            if isinstance(card[3], str) and card[3].lower() == "thru":
+                id_start = card[2]
+                id_end = card[4]
+                rvdofs.extend(
+                    [(nid, dof) for nid in range(id_start, id_end + 1) for dof in dofs]
+                )
+            else:
+                for nid in card[2:]:
+                    if nid == "":
+                        break
+                    rvdofs.extend([(nid, dof) for dof in dofs])
+    rvdofs.sort()
+    return rvdofs
+
+
 def rdspoints(f, *, follow_includes=True, include_symbols=None):
     r"""
     Read Nastran SPOINT cards from a Nastran bulk file.
@@ -2935,6 +3163,10 @@ def wtspc1(f, eid, dof, grids, name="SPC1"):
     -------
     None
 
+    Notes
+    -----
+    This function can be used to write SPC1 and SEQSET1 cards.
+
     Examples
     --------
     >>> from pyyeti import nastran
@@ -2980,6 +3212,9 @@ def wtxset1(f, dof, grids, name="BSET1"):
     Notes
     -----
     Where possible, THRU statements will be used.
+
+    This function can be used to write ASET1, BSET1, CSET1, QSET1,
+    SESET, and RVDOF1 cards.
 
     Examples
     --------
@@ -4842,6 +5077,10 @@ def wttload1(f, setid, excite_id, delay, excite_type, tabledi_id):
     -----
     This card will be written in 8 fixed-field format using the
     :func:`wtcard8` function.
+
+    This card is useful to add a load set to the P matrix when
+    creating an external superelement using EXTSEOUT. In that case,
+    the referenced TABLEDi card does not need to exist.
 
     Examples
     --------

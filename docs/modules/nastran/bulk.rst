@@ -23,7 +23,9 @@ Limited set of read/write routines for Nastran bulk data
     rdextrn
     rdgpwg
     rdgrids
+    rdrvdof
     rdseconct
+    rdsets
     rdspoints
     rdsymbols
     rdtabled1
