@@ -17,7 +17,7 @@ def get_params():
     t = np.arange(0, 0.2, 1 / sr)
     w = 2 * np.pi * freq
     B = 2 * zeta * w
-    K = w ** 2
+    K = w**2
     zdd = np.random.randn(len(t)) + np.sin(2 * np.pi * freq[j] * t) + 1.15
     b, a = signal.butter(3, 30 / (sr / 2))
     zdd = signal.filtfilt(b, a, zdd)
@@ -35,7 +35,7 @@ def get_params_2():
     t = np.arange(0, 0.5, 1 / sr)
     w = 2 * np.pi * freq
     B = 2 * zeta * w
-    K = w ** 2
+    K = w**2
     n = len(t)
     zdd = np.zeros(n, float)
     cut = 80
@@ -967,7 +967,7 @@ def test_srs_rolloff():
 
     # test passing in functions
     def rmsmeth(resp):
-        return np.sqrt(np.mean(resp ** 2, axis=0))
+        return np.sqrt(np.mean(resp**2, axis=0))
 
     sh1 = srs.srs(sig, sr, frq, Q, rolloff=srs.fftroll, peak=rmsmeth)
     sh2 = srs.srs(sig, sr, frq, Q, rolloff="fft", peak="rms")
@@ -1034,6 +1034,16 @@ def test_srs_bad_parallel():
         srs.srs(sig, sr, frq, Q, parallel=12)
 
 
+def test_srs_bad_Q():
+    sr = 20
+    t = np.arange(0, 1, 1 / sr)
+    sig = np.sin(2 * np.pi * 15 * t)
+    Q = 0.1
+    frq = 5
+    with pytest.raises(ValueError):
+        srs.srs(sig, sr, frq, Q)
+
+
 def test_vrs():
     import numpy as np
     from pyyeti import srs
@@ -1098,7 +1108,7 @@ def test_srs_frf():
     Q = 20
     srs_frq = frf_frq
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
-    pks_should_be = np.abs(frf) * np.sqrt(Q ** 2 + 1)
+    pks_should_be = np.abs(frf) * np.sqrt(Q**2 + 1)
     assert np.abs(sh - pks_should_be) < 1e-12
 
     # scalar frequency test, multi frf
@@ -1109,7 +1119,7 @@ def test_srs_frf():
     Q = 20
     srs_frq = frf_frq
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
-    pks_should_be = np.abs(frf) * np.sqrt(Q ** 2 + 1)
+    pks_should_be = np.abs(frf) * np.sqrt(Q**2 + 1)
     assert np.all(np.abs(sh.max(axis=0) - pks_should_be) < 1e-12)
 
     # multiple frequency test, with zeros
@@ -1129,7 +1139,7 @@ def test_srs_frf():
     Q = 20
     srs_frq = frf_frq
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
-    pks_should_be = np.abs(frf).max(axis=0) * np.sqrt(Q ** 2 + 1)
+    pks_should_be = np.abs(frf).max(axis=0) * np.sqrt(Q**2 + 1)
     assert np.all(np.abs(sh.max(axis=0) - pks_should_be) < 1e-12)
 
     # multiple frequency test, without zeros
@@ -1143,7 +1153,7 @@ def test_srs_frf():
     Q = 20
     srs_frq = frf_frq
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
-    pks_should_be = np.abs(frf).max(axis=0) * np.sqrt(Q ** 2 + 1)
+    pks_should_be = np.abs(frf).max(axis=0) * np.sqrt(Q**2 + 1)
     assert np.all(np.abs(sh.max(axis=0) - pks_should_be) < 1e-12)
 
     # test getresp:
@@ -1165,14 +1175,14 @@ def test_srs_frf_2():
     Q = 20
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
 
-    pk_should_be = pk_input * np.sqrt(Q ** 2 + 1)
+    pk_should_be = pk_input * np.sqrt(Q**2 + 1)
     sh = srs.srs_frf(frf, frf_frq, srs_frq, Q)
     assert abs(pk_should_be - sh[0, 0]) < 1e-10
 
-    p_peak = Q * np.sqrt((np.sqrt(1 + 2 / Q ** 2) - 1))
+    p_peak = Q * np.sqrt((np.sqrt(1 + 2 / Q**2) - 1))
     frq_should_be = pk_frq / p_peak
     num = 1 + (p_peak / Q) ** 2
-    den = (1 - p_peak ** 2) ** 2 + num - 1
+    den = (1 - p_peak**2) ** 2 + num - 1
     pk_should_be = pk_input * np.sqrt(num / den)
     sh, frq = srs.srs_frf(frf, frf_frq, None, Q)
     i = sh[:, 0].argmax()
@@ -1196,7 +1206,12 @@ def test_srs_frf_3():
 
     with pytest.raises(ValueError):
         srs.srs_frf(
-            frf, frf_frq, None, Q, scale_by_Q_only=True, getresp=True,
+            frf,
+            frf_frq,
+            None,
+            Q,
+            scale_by_Q_only=True,
+            getresp=True,
         )
 
 
