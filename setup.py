@@ -95,7 +95,7 @@ def run_setup(with_binary):
     install_requires = check_dependencies()
     setup(
         name="pyyeti",
-        version="1.3.4",
+        version="1.3.5",
         url="http://github.com/twmacro/pyyeti/",
         license="BSD",
         author="Tim Widrick",
