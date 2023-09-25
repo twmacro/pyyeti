@@ -183,7 +183,7 @@ def reldisp(Q, dT, wn):
     C = E * cos(B)
     if wn == 0:
         # See notes above for the derivation of these coefficients:
-        b = np.array([-1.0, -4.0, -1.0]) * dT ** 2 / 6
+        b = np.array([-1.0, -4.0, -1.0]) * dT**2 / 6
     else:
         S = E * sin(B)
         f = dT * wn * wn * wn
@@ -299,7 +299,7 @@ def _negsmeth(resp):
 
 
 def _rmsmeth(resp):
-    return np.sqrt((resp ** 2).mean(axis=0))
+    return np.sqrt((resp**2).mean(axis=0))
 
 
 def fftroll(sig, sr, ppc, frq):
@@ -677,7 +677,9 @@ def srs(
         to use.
     Q : scalar > 0.5
         Dynamic amplification factor :math:`Q = 1/(2\zeta)` where
-        :math:`\zeta` is the fraction of critical damping.
+        :math:`\zeta` is the fraction of critical damping. `Q` must be
+        greater than 0.5 because this routine is for underdamped
+        systems only.
     ic : string; optional
         Specifies how to handle the initial conditions:
 
@@ -965,6 +967,8 @@ def srs(
     Raises
     ------
     ValueError
+        When `Q` > 0.5; routine is only for underdamped systems.
+    ValueError
         When `sr` is None but number of time steps is greater than 1
         OR `ic` is set to 'zero'.
 
@@ -1003,6 +1007,9 @@ def srs(
         >>> _ = plt.title(ttl)
         >>> _ = plt.grid(True)
     """
+    if Q <= 0.5:
+        raise ValueError("Q must be > 0.5 since SRS assumes underdamped equations.")
+
     (coeffunc, methfunc, rollfunc, ptr) = _process_inputs(stype, peak, rolloff, time)
     freq = np.atleast_1d(freq)
     wn = 2 * pi * freq
@@ -1280,6 +1287,11 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
            Spectrum - Revision D",
            http://www.vibrationdata.com/tutorials2/vrs.pdf
 
+    Raises
+    ------
+    ValueError
+        When `Q` > 0.5; routine is only for underdamped systems.
+
     Examples
     --------
     Compute response spectra for example shown in reference. The
@@ -1377,7 +1389,7 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
         for i, fn in enumerate(Fn):
             p = freq / fn
             p2z2 = (2 * zeta * p) ** 2
-            t = ((1 + p2z2) / ((1 - p ** 2) ** 2 + p2z2)) * psdfull.T
+            t = ((1 + p2z2) / ((1 - p**2) ** 2 + p2z2)) * psdfull.T
             psd_vrs[i] = t  # npsds x len(freq)
             z_vrs[i] = np.sqrt(np.sum(df * t, axis=1))
         resp = {}
@@ -1390,7 +1402,7 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     for i, fn in enumerate(Fn):
         p = freq / fn
         p2z2 = (2 * zeta * p) ** 2
-        t = ((1 + p2z2) / ((1 - p ** 2) ** 2 + p2z2) * df) * psdfull.T
+        t = ((1 + p2z2) / ((1 - p**2) ** 2 + p2z2) * df) * psdfull.T
         z_vrs[i] = np.sqrt(np.sum(t, axis=1))
 
     if PSD.ndim == 1:
@@ -1919,7 +1931,7 @@ def srs_frf(
         raise ValueError("`getresp` and `scale_by_Q_only` cannot both be True")
 
     # compute maximizing Omega / omega_n ratio (see math in docstr):
-    p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q ** 2) - 1)
+    p_peak = Q * np.sqrt(np.sqrt(1 + 2 / Q**2) - 1)
     frf_frq = np.asarray(frf_frq)
 
     if srs_frq is None:
@@ -1948,7 +1960,7 @@ def srs_frf(
         ws = 2.0 * np.pi * srs_frq
         ms = np.ones(n, float)
         bs = 1 / Q * ws
-        ks = ws ** 2
+        ks = ws**2
 
         # include transfer function peak frequencies in the forcing
         # function (these are close to the natural frequencies):
@@ -1988,7 +2000,7 @@ def srs_frf(
             fw = freqw.reshape(1, -1)
             H = (
                 ks[pvel].reshape(-1, 1)
-                - ms[pvel].reshape(-1, 1) @ fw ** 2
+                - ms[pvel].reshape(-1, 1) @ fw**2
                 + 1j * (bs[pvel].reshape(-1, 1) @ fw)
             )
 
@@ -2003,7 +2015,7 @@ def srs_frf(
             if rb:
                 a[pvrb] = -fs  # / ms ... since ms == 1
             if el:
-                a[pvel] = (fs * freqw ** 2) / H
+                a[pvel] = (fs * freqw**2) / H
             # from relative to absolute acceleration:
             a += fs
             if getresp:
