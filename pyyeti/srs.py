@@ -967,7 +967,7 @@ def srs(
     Raises
     ------
     ValueError
-        When `Q` > 0.5; routine is only for underdamped systems.
+        When `Q` <= 0.5; routine is only for underdamped systems.
     ValueError
         When `sr` is None but number of time steps is greater than 1
         OR `ic` is set to 'zero'.
@@ -1290,7 +1290,7 @@ def vrs(spec, freq, Q, linear, Fn=None, getmiles=False, getresp=False):
     Raises
     ------
     ValueError
-        When `Q` > 0.5; routine is only for underdamped systems.
+        When `Q` <= 0.5; routine is only for underdamped systems.
 
     Examples
     --------
