@@ -1061,7 +1061,7 @@ class OP2:
 
     def rdop2tabheaders(self):
         """
-        Read op2 table headers and echo them to the screen.
+        Read op2 table headers into a list
 
         Notes
         -----
@@ -1075,9 +1075,8 @@ class OP2:
             o2.rdop2tabheaders()
 
         """
-        key = self._getkey()
+        eot, key = self.rdop2eot()
         Frm = struct.Struct(self._intstru % 3)
-        eot = 0
         headers = []
         while not eot:
             while key > 0:
