@@ -2007,6 +2007,11 @@ def test_integer_to_dofs(c: int, expected: list):
             "RVDOF1,0,1003,1006,1005,,",
             [(1003, 0), (1005, 0), (1006, 0)],
         ),
+        (
+            # RVDOF1 card with only one grid
+            "RVDOF1,0,1003",
+            [(1003, 0)],
+        ),
     ],
 )
 def test_rdrvdof(string: str, expected: list):

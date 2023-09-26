@@ -2272,7 +2272,7 @@ def rdrvdof(f, follow_includes=True, include_symbols=None):
                 rvdofs.extend([(nid, dof) for dof in dofs])
         elif card[0].lower() == "rvdof1":
             dofs = _integer_to_dofs(card[1])
-            if isinstance(card[3], str) and card[3].lower() == "thru":
+            if len(card) > 3 and isinstance(card[3], str) and card[3].lower() == "thru":
                 id_start = card[2]
                 id_end = card[4]
                 rvdofs.extend(
