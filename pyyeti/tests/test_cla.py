@@ -968,8 +968,8 @@ def compare(pth):
 
         for ms in (True, False):
             for mf, fv in (
-                ("filterval", None),
-                ("filterval", 10.0),
+                ("same", None),
+                ("same", 10.0),
                 ("filterval", 10.0 + np.zeros(12)),
                 (None, None),
             ):

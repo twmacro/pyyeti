@@ -594,35 +594,28 @@ def rptpct1(
     magpct_options : None or dict; must be named; optional
         If None, it is internally reset to::
 
-            magpct_options = {'filterval': 'filterval'}
+            magpct_options = {'filterval': 'same'}
 
         Use this parameter to provide any options to :func:`magpct`
         but note that the `filterval` option for :func:`magpct` is
         treated specially. Here, in addition to any of the values that
         :func:`magpct` accepts, it can also be set to the string
-        "filterval" as in the default case shown above. In that case,
+        "same" as in the default case shown above. If set to "same",
         ``magpct_options['filterval']`` gets internally reset to the
-        initial value of `filterval` (which is None by default).
+        final value of `filterval` so that the comparison table, the
+        histogram, and the magpct plot all use the same filter value.
+        For backward compatibility, the string "filterval" is accepted
+        as well and works like "same".
 
         .. note::
             The call to :func:`magpct` is *after* applying `ignorepv`
             and doing any data aligning by labels.
 
         .. note::
-           The two filter value options (`filterval` and
-           ``magpct_options['filterval']``) have different defaults:
-           None and 'filterval`, respectively. They also differ on how
-           the ``None`` setting is used: for `filterval`, None is
-           replaced by 1.e-6 while for `magpct_filterval`, None means
-           that the "magpct" plot will not have any filters applied at
-           all.
-
-        .. note::
-            The above means that, if you accept the default values for
-            `filterval` and for ``magpct_options['filterval']``, then
-            tables and the histogram plots will use a `filterval` of
-            1.e-6 while the "magpct" plots will use no filter (it
-            compares everything except perfect zeros).
+           Unless the :func:`magpct` option `plot_all` is set to
+           False, all values (even those smaller than `filterval`) are
+           compared and shown on the :func:`magpct` plot in the shaded
+           region.
 
     doabsmax : bool; must be named; optional
         If True, compare only absolute maximums.
@@ -798,23 +791,25 @@ def rptpct1(
         tight_layout_args = {"pad": 3.0}
 
     if magpct_options is None:
-        magpct_options = {"filterval": "filterval"}
+        magpct_options = {"filterval": "same"}
     else:
         magpct_options = magpct_options.copy()
 
-    # magpct_options['filterval'] get special treatment:
+    # magpct_options['filterval'] gets special treatment:
     magpct_filterval = magpct_options["filterval"]
     del magpct_options["filterval"]
 
+    reset_magpct_filterval = False
     if isinstance(magpct_filterval, str):
-        if magpct_filterval != "filterval":
+        if magpct_filterval in ("same", "filterval"):
+            reset_magpct_filterval = True
+            magpct_filterval = None
+        else:
             raise ValueError(
                 "``magpct_options['filterval']`` is an invalid "
                 f"string: {magpct_filterval!r} (can only "
                 "be 'filterval' if a string)"
             )
-        # copy the initial `filterval` setting:
-        magpct_filterval = filterval
 
     infovars = (
         "desc",
@@ -877,9 +872,12 @@ def rptpct1(
     if filterval is None:
         filterval = 1.0e-6
     filterval = _proc_filterval(filterval, R, "filterval")
-    magpct_filterval = _proc_filterval(
-        magpct_filterval, R, "magpct_options['filterval']"
-    )
+    if reset_magpct_filterval:
+        magpct_filterval = filterval
+    else:
+        magpct_filterval = _proc_filterval(
+            magpct_filterval, R, "magpct_options['filterval']"
+        )
 
     if labels is None:
         labels = [f"Row {i + 1:6d}" for i in range(R)]
