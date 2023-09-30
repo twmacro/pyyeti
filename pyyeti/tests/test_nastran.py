@@ -227,10 +227,33 @@ def test_rdcards_with_includes():
         _wtfile(file1_path, file1.replace("file2", "../file2"))
         # update to use relative path
         # note that path is relative to file1, even though the statement is in
-        # file2, this is unexpected but is consistent with Nastran
+        # file2, this is consistent with Nastran when the INCLUDE has directories
+        # in addition to a filename
         _wtfile(
             os.path.join(tempdir_path, "file2.bdf"), file2.replace("file3", "../file3")
         )
+        _wtfile(os.path.join(tempdir_path, "file3.bdf"), file3)
+        # follow_includes is True
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            blank=None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+        )
+        check_results(cards)
+
+    # file1 in subdirectory, file2 and file3 in parent dir
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        subdir_path = os.path.join(tempdir_path, "subdir")
+        os.mkdir(subdir_path)
+        file1_path = os.path.join(subdir_path, "file1.bdf")
+        # update to use relative path
+        _wtfile(file1_path, file1.replace("file2", "../file2"))
+        # In file2, the "INCLUDE 'file3.bdf'" statement has no directories, so file3 is
+        # treated as if it's in the same directory as file2.
+        _wtfile(os.path.join(tempdir_path, "file2.bdf"), file2)
         _wtfile(os.path.join(tempdir_path, "file3.bdf"), file3)
         # follow_includes is True
         cards = nastran.rdcards(
