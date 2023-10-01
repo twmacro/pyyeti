@@ -266,6 +266,30 @@ def test_rdcards_with_includes():
         )
         check_results(cards)
 
+    # file1 and file3 in parent_dir, file2 in subdirectory
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        file3_path = os.path.join(tempdir_path, "file3.bdf")
+        subdir_path = os.path.join(tempdir_path, "subdir")
+        os.mkdir(subdir_path)
+        file2_path = os.path.join(subdir_path, "file2.bdf")
+        # file2 and file3 are both included from file1
+        file1_mod = file1.replace(
+            "INCLUDE 'file2.\nbdf'", "INCLUDE 'subdir/file2.bdf'\nINCLUDE 'file3.bdf'"
+        )
+        _wtfile(file1_path, file1_mod)
+        _wtfile(file2_path, file2.replace("INCLUDE", "$ INCLUDE"))
+        _wtfile(file3_path, file3)
+        cards = nastran.rdcards(
+            file1_path,
+            "grid",
+            blank=None,
+            return_var="list",
+            keep_name=True,
+            follow_includes=True,
+        )
+        check_results(cards)
+
     # file1 in parent_dir, file2 and file3 in subdirectory, includes use symbols
     with tempfile.TemporaryDirectory() as tempdir_path:
         file1_path = os.path.join(tempdir_path, "file1.bdf")

@@ -426,6 +426,7 @@ def _rdinclude(fiter, s, func, kwargs):
             # rel_path includes directories, it is relative to root directory
             dir_path = root_dir_path
         path = os.path.abspath(os.path.join(dir_path, rel_path))
+    kwargs = kwargs.copy()  # make a copy for recursive call
     kwargs["include_root_dirs"] = (os.path.dirname(path), root_dir_path)
     # read next line, which will be returned by next fiter.send(True) call
     fiter.send(False)
