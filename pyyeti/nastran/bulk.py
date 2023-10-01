@@ -416,9 +416,18 @@ def _rdinclude(fiter, s, func, kwargs):
             else:  # end not found, add entire line
                 path_parts.append(s.strip())
     rel_path = "".join(path_parts)
+    current_dir_path, root_dir_path = kwargs["include_root_dirs"]
     path, symbol_found = _check_for_symbols(rel_path, kwargs["include_symbols"])
     if not symbol_found:
-        path = os.path.abspath(os.path.join(kwargs["include_root_dir"], rel_path))
+        if os.path.dirname(rel_path) == "":
+            # rel_path is just a filename, it is relative to current file
+            dir_path = current_dir_path
+        else:
+            # rel_path includes directories, it is relative to root directory
+            dir_path = root_dir_path
+        path = os.path.abspath(os.path.join(dir_path, rel_path))
+    kwargs = kwargs.copy()  # make a copy for recursive call
+    kwargs["include_root_dirs"] = (os.path.dirname(path), root_dir_path)
     # read next line, which will be returned by next fiter.send(True) call
     fiter.send(False)
     return func(path, **kwargs)
@@ -555,7 +564,7 @@ def rdcards(
     keep_comments=False,
     follow_includes=True,
     include_symbols=None,
-    include_root_dir=None,
+    include_root_dirs=None,
 ):
     r"""
     Read Nastran cards (lines) into a matrix, dictionary, or list.
@@ -626,7 +635,7 @@ def rdcards(
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
-    include_root_dir : None; optional
+    include_root_dirs : None; optional
         This parameter is only used when this function is called
         recursively while following INCLUDE statements. Users should
         keep it as the default value of None.
@@ -741,15 +750,18 @@ def rdcards(
         )
     # save root dir from original call, pass through to _rdinclude for recursive calls
     try:
-        include_root_dir = (
-            os.path.dirname(os.path.abspath(f.name))
-            if include_root_dir is None
-            else include_root_dir
+        include_root_dirs = (
+            (
+                os.path.dirname(os.path.abspath(f.name)),
+                os.path.dirname(os.path.abspath(f.name)),
+            )
+            if include_root_dirs is None
+            else include_root_dirs
         )
     except AttributeError:
         # StringIO object, doesn't make sense to follow includes
         follow_includes = False
-        include_root_dir = None
+        include_root_dirs = None
     include_symbols = (
         {symbol.lower(): path for symbol, path in include_symbols.items()}
         if include_symbols is not None
@@ -769,7 +781,7 @@ def rdcards(
         "keep_comments": keep_comments,
         "follow_includes": follow_includes,
         "include_symbols": include_symbols,
-        "include_root_dir": include_root_dir,
+        "include_root_dirs": include_root_dirs,
     }
 
     if return_var == "dict":
@@ -885,7 +897,7 @@ def _rdset(fiter, line):
 
 
 @guitools.read_text_file
-def rdsets(f, follow_includes=True, include_symbols=None, include_root_dir=None):
+def rdsets(f, follow_includes=True, include_symbols=None, include_root_dirs=None):
     """
     Read case control SET statements from a file.
 
@@ -904,7 +916,7 @@ def rdsets(f, follow_includes=True, include_symbols=None, include_root_dir=None)
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
-    include_root_dir : None; optional
+    include_root_dirs : None; optional
         This parameter is only used when this function is called
         recursively while following INCLUDE statements. Users should
         keep it as the default value of None.
@@ -925,15 +937,18 @@ def rdsets(f, follow_includes=True, include_symbols=None, include_root_dir=None)
     """
     # save root dir from original call, pass through to _rdinclude for recursive calls
     try:
-        include_root_dir = (
-            os.path.dirname(os.path.abspath(f.name))
-            if include_root_dir is None
-            else include_root_dir
+        include_root_dirs = (
+            (
+                os.path.dirname(os.path.abspath(f.name)),
+                os.path.dirname(os.path.abspath(f.name)),
+            )
+            if include_root_dirs is None
+            else include_root_dirs
         )
     except AttributeError:
         # StringIO object, doesn't make sense to follow includes
         follow_includes = False
-        include_root_dir = None
+        include_root_dirs = None
     include_symbols = (
         {symbol.lower(): path for symbol, path in include_symbols.items()}
         if include_symbols is not None
@@ -945,7 +960,7 @@ def rdsets(f, follow_includes=True, include_symbols=None, include_root_dir=None)
     kwargs = {
         "follow_includes": follow_includes,
         "include_symbols": include_symbols,
-        "include_root_dir": include_root_dir,
+        "include_root_dirs": include_root_dirs,
     }
 
     sets = {}
