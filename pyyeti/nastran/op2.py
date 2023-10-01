@@ -1137,8 +1137,8 @@ class OP2:
             ======  ==========================================
 
         where `iand` is the bit-wise AND operation. For example,
-        ACODE,4 means that the ACODE value should be integer divided
-        it by 10.  So, if ACODE is 22, ACODE,4 is 2.
+        ACODE,4 means that the ACODE value should be integer-divided
+        by 10.  So, if ACODE is 22, ACODE,4 is 2 (22 // 10 = 2).
         """
         if len(funcs) != len(vals):
             raise ValueError("len(funcs) != len(vals)!")
@@ -3290,6 +3290,9 @@ def rdpostop2(
         has the same information as 'cstm', but in a different format.
         See description in class OP2, member function
         :func:`OP2.rdn2cop2`.
+    'gpwg' : dictionary; optional
+        Only present if the "OGPWG" table is present in the op2
+        file. The dictionary is the output of :func:`rdop2gpwg`.
     'mats' : dictionary
         Dictionary of matrices read from op2 file and indexed by the
         name. The 'tload' entry is a typical entry. Will also
@@ -3307,7 +3310,7 @@ def rdpostop2(
     'seconct' : 1d ndarray
         output record from GEOM1 of SE 0
     'geom1' : dictionary
-        Dictionary of GEOM1 data blocks; key is SE. Well not be
+        Dictionary of GEOM1 data blocks; key is SE. Will not be
         present if number of GEOM1 data blocks did not line up with
         the `sebulk` array. See 'geom1_list'.
     'geom1_list': list
@@ -3321,6 +3324,7 @@ def rdpostop2(
         geom1 = {}
         geom1_list = []
         uset = None
+        gpwg = None
         se = 0
         o2._fileh.seek(o2._postheaderpos)
 
@@ -3402,6 +3406,12 @@ def rdpostop2(
                     uset = o2._rdop2uset()
                     continue
 
+                if name.find("OGPWG") == 0:
+                    if verbose:
+                        print(f"Reading table {name}...")
+                    gpwg = o2.rdop2gpwg()
+                    continue
+
                 if getougv1 and (
                     name.find("OUGV1") == 0
                     or name.find("BOPHIG") == 0
@@ -3474,6 +3484,8 @@ def rdpostop2(
         "mats": mats,
         "geom1_list": geom1_list,
     }
+    if gpwg is not None:
+        dct["gpwg"] = gpwg
 
     # make geom1 dictionary where the se id is the key:
     # - This method of finding the se id is a guess, but a logical one
