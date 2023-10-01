@@ -3,7 +3,7 @@ from numpy.random import Generator, MT19937
 import tempfile
 import os
 from pyyeti import ytools
-import scipy.linalg as linalg
+from scipy import linalg
 import pytest
 
 
@@ -128,6 +128,36 @@ def test_mattype():
 
     with pytest.raises(ValueError):
         ytools.mattype(c, "badtype")
+
+
+def test_mattype2():
+    # real a
+    a = np.array([[346500.0, 1e-7], [2.1e-7, 1000000.1]])
+    assert 13 == ytools.mattype(a)[0]
+    t, mattypes, ch = ytools.mattype(a, return_cholesky=True)
+    assert t == 13
+    assert np.allclose(ch, linalg.cholesky(a))
+
+    # complex a
+    a = np.array([[346500.0, 1e-7 * (1 + 1j)], [2.1e-7 * (1 - 1j), 1000000.1]])
+    assert 15 == ytools.mattype(a)[0]
+    t, mattypes, ch = ytools.mattype(a, return_cholesky=True)
+    assert t == 15
+    assert np.allclose(ch, linalg.cholesky(a))
+
+    # real a
+    a = np.array([[346500.0, 1e-7], [2000.1e-7, 1000000.1]])
+    assert 0 == ytools.mattype(a)[0]
+    t, mattypes, ch = ytools.mattype(a, return_cholesky=True)
+    assert t == 0
+    assert ch is None
+
+    # complex a
+    a = np.array([[346500.0, 1e-7 * (1 + 1j)], [2000.1e-7 * (1 - 1j), 1000000.1]])
+    assert 0 == ytools.mattype(a)[0]
+    t, mattypes, ch = ytools.mattype(a, return_cholesky=True)
+    assert t == 0
+    assert ch is None
 
 
 def test_save_load():
