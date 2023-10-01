@@ -3292,7 +3292,7 @@ def rdpostop2(
         :func:`OP2.rdn2cop2`.
     'gpwg' : dictionary; optional
         Only present if the "OGPWG" table is present in the op2
-        file. The dictionary is the output of :func:`rdop2gpwg`.
+        file. The dictionary is the output of :func:`OP2.rdop2gpwg`.
     'mats' : dictionary
         Dictionary of matrices read from op2 file and indexed by the
         name. The 'tload' entry is a typical entry. Will also
