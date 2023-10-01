@@ -179,8 +179,8 @@ def cbtf(m, b, k, a, freq, bset, save=None):
 
         >>> a = T @ tf.a
         >>> d = T @ tf.d
-        >>> fig = plt.figure('Example')
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', clear=True,
+        ...                  layout='constrained')
         >>> ax = plt.subplot(211)
         >>> lines = ax.plot(outfreq, np.abs(tf.frc).T, label='Force')
         >>> lines += ax.plot(outfreq, np.abs(a).T)
@@ -199,7 +199,6 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         ...               loc='best')
         >>> _ = ax.set_title('Phase')
         >>> _ = ax.set_xlabel('Freq (Hz)')
-        >>> plt.tight_layout()
     """
     freq = np.atleast_1d(freq).ravel()
     Omega = 2 * math.pi * freq

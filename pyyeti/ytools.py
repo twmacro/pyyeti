@@ -49,7 +49,7 @@ def _check_makeplot(
 
     if makeplot != "no":
         if makeplot == "new" or not plt.get_fignums():
-            plt.figure(figsize=figsize)
+            plt.figure(figsize=figsize, layout="constrained")
 
         if makeplot == "add":
             fig = plt.gcf()
@@ -445,7 +445,6 @@ def fit_circle_3d(basic, makeplot="no"):
         ax.plot(*circle_basic, label="Fit")
         axis_equal_3d(ax)
         ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0))
-        ax.get_figure().tight_layout()
 
     return circ_parms
 
@@ -1265,8 +1264,7 @@ def gensweep(ppc, fstart, fstop, rate):
         >>> from pyyeti import ytools
         >>> import matplotlib.pyplot as plt
         >>> sig, t, f = ytools.gensweep(10, 1, 12, 8)
-        >>> _ = plt.figure('Example')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', clear=True, layout='constrained')
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(t, sig)
         >>> _ = plt.title('Sine Sweep vs Time')
@@ -1277,7 +1275,6 @@ def gensweep(ppc, fstart, fstop, rate):
         >>> _ = plt.title('Sine Sweep vs Frequency')
         >>> _ = plt.xlabel('Frequency (Hz)')
         >>> _ = plt.xlim([f[0], f[-1]])
-        >>> _ = plt.tight_layout()
     """
     # make a unity sine sweep
     rate = rate / 60.0

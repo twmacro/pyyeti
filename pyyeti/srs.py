@@ -991,8 +991,7 @@ def srs(
         Compare the upsampling/rolloff methods:
 
         >>> import matplotlib.pyplot as plt
-        >>> _ = plt.figure('Example')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', clear=True, layout='constrained')
         >>> sr = 200
         >>> t = np.arange(0, 5, 1/sr)
         >>> sig = np.sin(2*np.pi*15*t) + 3*np.sin(2*np.pi*85*t)
@@ -1812,6 +1811,7 @@ def srs_frf(
         ...     num="Example",
         ...     clear=True,
         ...     figsize=(9, 12),
+        ...     layout='constrained',
         ... )
         >>> _ = ax[0].plot(frf_frq, frf)
         >>>
@@ -1861,7 +1861,6 @@ def srs_frf(
         >>> _ = ax[3].set_xlabel(r"$\Omega$ Frequency (Hz)")
         >>> for axis in ax:
         ...    _ = axis.set_xlim(39.5, 49.5)
-        >>> fig.tight_layout()
 
     In the previous example, we saw that the equivalent sine of the
     input did not give us the original input back, but it was closer
@@ -1892,6 +1891,7 @@ def srs_frf(
         ...     num="Example 2",
         ...     clear=True,
         ...     figsize=(9, 5),
+        ...     layout='constrained',
         ... )
         >>> _ = ax.plot(frf_frq, frf, label="Original Input")
         >>>
@@ -1924,8 +1924,6 @@ def srs_frf(
         >>> _ = ax.set_ylabel("Abs-Acce Eq-Sine (G)")
         >>> _ = ax.set_xlabel(r"$\omega_n$ Frequency (Hz)")
         >>> _ = ax.set_xlim(39.5, 49.5)
-        >>>
-        >>> fig.tight_layout()
     """
     if getresp and scale_by_Q_only:
         raise ValueError("`getresp` and `scale_by_Q_only` cannot both be True")
@@ -2113,7 +2111,7 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         >>> Q = 20
         >>> mp, t, f = srs.srsmap(2, .5, sig, sr, frq, Q, .02,
         ...                       eqsine=1)
-        >>> _ = plt.figure('Example', clear=True)
+        >>> _ = plt.figure('Example', clear=True, layout='constrained')
         >>> cs = plt.contour(t, f, mp, 40, cmap=cm.plasma)
         >>> # This doesn't work in matplotlib 3.5.0:
         >>> #   cbar = plt.colorbar()
@@ -2124,7 +2122,7 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
         ...            vmin=cs.cvalues.min(), vmax=cs.cvalues.max()
         ...        )
         >>> sm = plt.cm.ScalarMappable(norm=norm, cmap=cs.cmap)
-        >>> cb = plt.colorbar(sm)  # , ticks=cs.levels)
+        >>> cb = plt.colorbar(sm, ax=plt.gca())  # , ticks=cs.levels)
         >>> #
         >>> _ = plt.xlabel('Time (s)')
         >>> _ = plt.ylabel('Frequency (Hz)')
@@ -2136,7 +2134,8 @@ def srsmap(timeslice, tsoverlap, sig, sr, freq, Q, wep=0, **srsargs):
     .. plot::
         :context: close-figs
 
-        >>> fig = plt.figure("Example 2", clear=True)
+        >>> fig = plt.figure("Example 2", clear=True,
+        ...                  layout='constrained')
         >>> ax = fig.add_subplot(projection="3d")
         >>> x, y = np.meshgrid(t, f)
         >>> surf = ax.plot_surface(x, y, mp, rstride=1, cstride=1,

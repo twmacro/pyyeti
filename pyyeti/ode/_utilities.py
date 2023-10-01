@@ -116,7 +116,7 @@ def get_su_coef(m, b, k, h, rbmodes=None, rfmodes=None):
     else:
         wo2 = k / m
         C = (b / m) / 2
-    w2 = wo2 - C ** 2
+    w2 = wo2 - C**2
 
     if rbmodes is None:
         pvrb = (wo2 < 0.005).astype(int)
@@ -1064,8 +1064,8 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, rbduf=1.0, elduf=1.0, **kwargs)
         Plot the four accelerations PSDs:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure('Example', figsize=[8, 8])
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', figsize=[8, 8], clear=True,
+        ...                  layout='constrained')
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
@@ -1074,7 +1074,6 @@ def solvepsd(fs, forcepsd, t_frc, freq, drmlist, rbduf=1.0, elduf=1.0, **kwargs)
         ...     _ = plt.title(name)
         ...     _ = plt.ylabel(r'Accel PSD ($g^2$/Hz)')
         ...     _ = plt.xlabel('Frequency (Hz)')
-        >>> fig.tight_layout()
     """
     ndrms = len(drmlist)
     forcepsd, t_frc = np.atleast_2d(forcepsd, t_frc)

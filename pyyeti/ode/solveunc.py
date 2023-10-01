@@ -268,8 +268,8 @@ class SolveUnc(_BaseODE):
         Plot the four accelerations:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure('Example', figsize=[8, 8])
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', figsize=[8, 8], clear=True,
+        ...                  layout='constrained')
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
@@ -281,7 +281,6 @@ class SolveUnc(_BaseODE):
         ...     _ = plt.xlabel('Time (s)')
         ...     if j == 0:
         ...         _ = plt.legend(loc='best')
-        >>> fig.tight_layout()
     """
 
     def __init__(
@@ -900,8 +899,8 @@ class SolveUnc(_BaseODE):
             Plot the four accelerations:
 
             >>> import matplotlib.pyplot as plt
-            >>> fig = plt.figure('Example', figsize=[8, 8])
-            >>> fig.clf()
+            >>> fig = plt.figure('Example', figsize=[8, 8], clear=True,
+            ...                  layout='constrained')
             >>> labels = ['Rigid-body', 'Underdamped',
             ...           'Critically Damped', 'Overdamped']
             >>> for j, name in zip(range(4), labels):
@@ -910,7 +909,6 @@ class SolveUnc(_BaseODE):
             ...     _ = plt.title(name)
             ...     _ = plt.ylabel('Acceleration')
             ...     _ = plt.xlabel('Frequency (Hz)')
-            >>> fig.tight_layout()
         """
         incrb = _process_incrb(incrb)  # deprecated in v0.99.9
         force = np.atleast_2d(force)

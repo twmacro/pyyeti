@@ -3921,7 +3921,6 @@ def _plot_rspline(
 
     ytools.axis_equal_3d(ax)
     ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0))
-    ax.get_figure().tight_layout()
 
 
 def wtrspline_rings(

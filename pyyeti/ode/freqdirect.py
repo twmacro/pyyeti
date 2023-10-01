@@ -74,8 +74,8 @@ class FreqDirect(_BaseODE):
         Plot the four accelerations:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure('Example', figsize=[8, 8])
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', figsize=[8, 8], clear=True,
+        ...                  layout='constrained')
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
@@ -84,7 +84,6 @@ class FreqDirect(_BaseODE):
         ...     _ = plt.title(name)
         ...     _ = plt.ylabel('Acceleration')
         ...     _ = plt.xlabel('Frequency (Hz)')
-        >>> fig.tight_layout()
     """
 
     def __init__(self, m, b, k, rb=None, rf=None):
@@ -247,9 +246,9 @@ class FreqDirect(_BaseODE):
             # equations are uncoupled, solve everything in one step:
             Omega = 2 * np.pi * freq[None, :]
             if m is None:
-                H = ((1j * b)[:, None] @ Omega + k[:, None]) - Omega ** 2
+                H = ((1j * b)[:, None] @ Omega + k[:, None]) - Omega**2
             else:
-                H = (1j * b)[:, None] @ Omega + k[:, None] - m[:, None] @ Omega ** 2
+                H = (1j * b)[:, None] @ Omega + k[:, None] - m[:, None] @ Omega**2
             d[kdof] = force / H
         else:
             # equations are coupled, use a loop:
@@ -257,9 +256,9 @@ class FreqDirect(_BaseODE):
             if m is None:
                 m = np.eye(self.ksize)
             for i, O in enumerate(Omega):
-                Hi = 1j * b * O + k - m * O ** 2
+                Hi = 1j * b * O + k - m * O**2
                 d[kdof, i] = la.solve(Hi, force[:, i])
-        a[kdof] = -(Omega ** 2) * d[kdof]
+        a[kdof] = -(Omega**2) * d[kdof]
         v[kdof] = 1j * Omega * d[kdof]
 
         if "d" not in incrb:

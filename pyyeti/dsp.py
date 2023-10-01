@@ -143,7 +143,8 @@ def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
         >>> n = len(data)
         >>> x = np.arange(n)
         >>> upx = np.arange(n*p)/p
-        >>> _ = plt.figure('Example', figsize=(10, 8), clear=True)
+        >>> _ = plt.figure('Example', figsize=(10, 8), clear=True,
+        ...                layout='constrained')
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(x, data, 'o-', label='Original')
         >>> res = {}
@@ -172,7 +173,6 @@ def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
         >>> _ = plt.legend(loc='best')
         >>> _ = plt.title('FFT Mag.')
         >>> _ = plt.xlabel('Frequency - fraction of original sample rate')
-        >>> _ = plt.tight_layout()
         >>> np.allclose(up2, upx)
         True
         >>> np.allclose(res[5][::p], data)  # original data still here
@@ -190,7 +190,8 @@ def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
         >>> data = rng.normal(size=n)
         >>> x = np.arange(n)
         >>> dndata, dnx = dsp.resample(data, p, q, t=x)
-        >>> fig = plt.figure('Example 2', clear=True)
+        >>> fig = plt.figure('Example 2', clear=True,
+        ...                  layout='constrained')
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(x, data, 'o-', label='Original', alpha=0.3)
         >>> _ = plt.plot(dnx, dndata, label='Resample', lw=2)
@@ -214,7 +215,6 @@ def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
         >>> xlbl = 'Frequency - fraction of original sample rate'
         >>> _ = plt.xlabel(xlbl)
         >>> _ = plt.xlim(-0.01, 0.13)
-        >>> _ = plt.tight_layout()
     """
     data = np.atleast_1d(data)
     ln = data.shape[axis]
@@ -761,7 +761,8 @@ def despike(
         >>> import matplotlib.pyplot as plt
         >>> np.set_printoptions(linewidth=65)
         >>> x = [100, 2, 3, -4, 25, -6, 6, 3, -2, 4, -2, -100]
-        >>> _ = plt.figure('Example', figsize=(8, 11), clear=True)
+        >>> _ = plt.figure('Example', figsize=(8, 11), clear=True,
+        ...                layout='constrained')
         >>> for i in range(5):
         ...     s = dsp.despike(x, n=9, sigma=2, maxiter=1,
         ...                     threshold_sigma=0.1,
@@ -772,7 +773,6 @@ def despike(
         ...     _ = plt.plot(s.lolim, 'k--')
         ...     _ = plt.title(f'Iteration {i+1}')
         ...     x = s.x
-        >>> plt.tight_layout()
         >>> s.x
         array([ 2,  3,  6,  3, -2,  4, -2])
 
@@ -2085,7 +2085,8 @@ def windowends(sig, portion=0.01, ends="front", axis=-1):
         :context: close-figs
 
         >>> import matplotlib.pyplot as plt
-        >>> _ = plt.figure('Example', figsize=[8, 3], clear=True)
+        >>> _ = plt.figure('Example', figsize=[8, 3], clear=True,
+        ...                layout='constrained')
         >>> sig = np.ones(100)
         >>> wesig = dsp.windowends(sig, 5, ends='both')
         >>> _ = plt.plot(sig, label='Original')
@@ -2253,7 +2254,7 @@ def waterfall(
         ...                          slicefunc=dsp.windowends,
         ...                          sliceargs=[.02],
         ...                          slicekwargs=dict(ends='front'))
-        >>> _ = plt.figure('Example', clear=True)
+        >>> _ = plt.figure('Example', clear=True, layout='constrained')
         >>> cs = plt.contour(t, f, mp, 40, cmap=cm.plasma_r)
         >>> # This doesn't work in matplotlib 3.5.0:
         >>> #   cbar = plt.colorbar()
@@ -2264,7 +2265,7 @@ def waterfall(
         ...            vmin=cs.cvalues.min(), vmax=cs.cvalues.max()
         ...        )
         >>> sm = plt.cm.ScalarMappable(norm=norm, cmap=cs.cmap)
-        >>> cb = plt.colorbar(sm)  # , ticks=cs.levels)
+        >>> cb = plt.colorbar(sm, ax=plt.gca())  # , ticks=cs.levels)
         >>> #
         >>> _ = plt.xlabel('Time (s)')
         >>> _ = plt.ylabel('Frequency (Hz)')
@@ -2276,7 +2277,8 @@ def waterfall(
 
         Also show results on a 3D surface plot:
 
-        >>> fig = plt.figure("Example 2", clear=True)
+        >>> fig = plt.figure("Example 2", clear=True,
+        ...                  layout='constrained')
         >>> ax = fig.add_subplot(projection="3d")
         >>> x, y = np.meshgrid(t, f)
         >>> surf = ax.plot_surface(x, y, mp, rstride=1, cstride=1,
@@ -2510,7 +2512,8 @@ def calcenv(
         >>> from pyyeti import dsp
         >>> x = np.arange(1.0, 31.0, 1.0)
         >>> y = np.cos(x)
-        >>> fig = plt.figure('Example', figsize=[10, 8], clear=True)
+        >>> fig = plt.figure('Example', figsize=[10, 8], clear=True,
+        ...                  layout='constrained')
         >>>
         >>> ax = plt.subplot(411)
         >>> env = dsp.calcenv(x, y, base=None, makeplot='add')
@@ -2536,7 +2539,6 @@ def calcenv(
         >>> env = dsp.calcenv(x, y, method='min', makeplot='add')
         >>> _ = plt.title('method="min"')
         >>> ax.legend().set_visible(False)
-        >>> fig.subplots_adjust(right=0.7)
     """
     x, y = np.atleast_1d(x, y)
     if np.any(np.diff(x) <= 0):
@@ -2647,7 +2649,7 @@ def fdscale(y, sr, scale, axis=-1):
         ...                   [9., 1.0],
         ...                   [100., 1.0]])
         >>> sig_scaled = dsp.fdscale(sig, 1/t[1], scale)
-        >>> _ = plt.figure('Example', clear=True)
+        >>> _ = plt.figure('Example', clear=True, layout='constrained')
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(f, sig)
         >>> _ = plt.title('Sine Sweep vs Frequency')
@@ -2661,7 +2663,6 @@ def fdscale(y, sr, scale, axis=-1):
         >>> _ = plt.xlabel('Frequency (Hz)')
         >>> _ = plt.xlim([f[0], f[-1]])
         >>> _ = plt.grid(True)
-        >>> _ = plt.tight_layout()
     """
     y = np.atleast_1d(y)
     n = y.shape[axis]
@@ -2837,24 +2838,20 @@ def fftfilt(
 
         >>> sr = 1/h
         >>> nyq = sr/2
-        >>> _ = plt.figure('Example', clear=True)
-        >>> _ = plt.figure('Example 2', clear=True)
+        >>> _ = plt.figure('Ex1', clear=True, layout='constrained')
+        >>> _ = plt.figure('Ex2', clear=True, layout='constrained')
         >>> for j, (w, pz, yj) in enumerate(((7, None, y1),
         ...                                 ([7, 18], None, y2),
         ...                                 ([18, 45], None, y3),
         ...                                 (45, False, y4))):
-        ...     _ = plt.figure('Example')
+        ...     _ = plt.figure('Ex1')
         ...     _ = plt.subplot(4, 1, j+1)
         ...     yf = dsp.fftfilt(y, w, pass_zero=pz, nyq=nyq,
         ...                      makeplot='add')[0]
         ...     _ = plt.xlim(0, 75)
-        ...     _ = plt.figure('Example 2')
+        ...     _ = plt.figure('Ex2')
         ...     _ = plt.subplot(4, 1, j+1)
         ...     _ = plt.plot(t, yj, t, yf)
-        >>> _ = plt.figure('Example')
-        >>> _ = plt.tight_layout()
-        >>> _ = plt.figure('Example 2')
-        >>> _ = plt.tight_layout()
     """
     # main routine:
     sig, w = np.atleast_1d(sig, w)
@@ -3057,7 +3054,7 @@ def fftcoef(
         >>> x = rng.normal(size=n)
         >>> t = np.arange(n)
         >>> mag, phase, frq = dsp.fftcoef(x, 1.0)
-        >>> _ = plt.figure('Example', clear=True)
+        >>> _ = plt.figure('Example', clear=True, layout='constrained')
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(frq, mag)
         >>> _ = plt.ylabel('Magnitude')
@@ -3082,7 +3079,8 @@ def fftcoef(
         >>> for k, (a, b, f) in enumerate(zip(A, B, frq)):
         ...     x3 = x3 + a*np.cos(k*w*t2) + b*np.sin(k*w*t2)
         >>>
-        >>> _ = plt.figure('Example 2', clear=True)
+        >>> _ = plt.figure('Example 2', clear=True,
+        ...                layout='constrained')
         >>> _ = plt.plot(t, x, 'o', label='Original')
         >>> _ = plt.plot(t2, x2, label='FFT fit w/ Mag & Phase')
         >>> _ = plt.plot(t2, x3, '--', label='FFT fit w/ A & B')
@@ -3245,7 +3243,7 @@ def fftmap(
         ...            vmin=cs.cvalues.min(), vmax=cs.cvalues.max()
         ...        )
         >>> sm = plt.cm.ScalarMappable(norm=norm, cmap=cs.cmap)
-        >>> cb = plt.colorbar(sm)  # , ticks=cs.levels)
+        >>> cb = plt.colorbar(sm, ax=plt.gca())  # , ticks=cs.levels)
         >>> #
         >>> _ = plt.xlabel('Time (s)')
         >>> _ = plt.ylabel('Frequency (Hz)')
@@ -3443,7 +3441,8 @@ def transmissibility(
         >>> tr = dsp.transmissibility(
         ...           in_acce, out_acce, sr, getmap=True)
         >>>
-        >>> fig = plt.figure('Example', figsize=(8, 11), clear=True)
+        >>> fig = plt.figure('Example', figsize=(8, 11), clear=True,
+        ...                  layout='tight')
         >>>
         >>> # use GridSpec to make a nice layout with colorbars:
         >>> gs = gridspec.GridSpec(5, 2, width_ratios=[30, 1])
@@ -3527,8 +3526,6 @@ def transmissibility(
         >>> cb = plt.colorbar(sm, cax=ax)  # , ticks=c.levels)
         >>>
         >>> _ = ax.set_title("TR Phase (deg)")
-        >>>
-        >>> fig.tight_layout()
 
     As an aside and for fun, compare the actual root-mean-square
     response to the Miles' equation estimate. Miles' should be a

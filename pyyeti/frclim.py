@@ -119,7 +119,8 @@ def calcAM(S, freq):
         >>> zeta_ff = C_ff[1, 1] / 2 / omega_ff[1]
         >>>
         >>> freq = np.geomspace(0.5, 100.0, 500)
-        >>> fig = plt.figure("apparent mass", clear=True)
+        >>> fig = plt.figure("apparent mass", clear=True,
+        ...                  layout='constrained')
         >>> ax = fig.subplots(1, 1)
         >>>
         >>> fx_frqs = []
@@ -180,8 +181,6 @@ def calcAM(S, freq):
         ...         "\n (free-free)"
         ...     )
         >>> _ = ax.text(frq_ff[1], 2.0, label, va="bottom", ha="left")
-        >>>
-        >>> fig.tight_layout()
     """
 
     lf = len(freq)
@@ -688,8 +687,7 @@ def ntfl(Source, Load, As, freq):
         5. Plot comparisons:
 
         >>> import matplotlib.pyplot as plt
-        >>> _ = plt.figure('Example')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example', clear=True, layout='constrained')
         >>> _ = plt.subplot(211)
         >>> _ = plt.semilogy(freq, abs(A_coupled),
         ...                  label='Coupled')
@@ -706,15 +704,14 @@ def ntfl(Source, Load, As, freq):
         >>> _ = plt.title('Interface Force')
         >>> _ = plt.xlabel('Frequency (Hz)')
         >>> _ = plt.legend(loc='best')
-        >>> plt.tight_layout()
 
     .. plot::
         :context: close-figs
 
         6. Plot apparent masses:
 
-        >>> _ = plt.figure('Example 2')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example 2', clear=True,
+        ...                layout='constrained')
         >>> _ = plt.semilogy(freq, abs(r.TAM[0, :, 0]),
         ...                  label='Total App. Mass')
         >>> _ = plt.semilogy(freq, abs(r.SAM[0, :, 0]),
@@ -731,8 +728,8 @@ def ntfl(Source, Load, As, freq):
         7. Plot accelerations and
         8. Plot force limit factor:
 
-        >>> _ = plt.figure('Example 3')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example 3', clear=True,
+        ...                layout='constrained')
         >>> _ = plt.subplot(211)
         >>> _ = plt.semilogy(freq, abs(As).T,
         ...                  label='Free-Acce')
@@ -746,7 +743,6 @@ def ntfl(Source, Load, As, freq):
         >>> _ = plt.title('NT Response Ratio: '
         ...               'R = Coupled Acce / Free-Acce')
         >>> _ = plt.xlabel('Frequency (Hz)')
-        >>> plt.tight_layout()
     """
     # Calculate apparent masses:
     if isinstance(Source, (list, tuple)):

@@ -163,8 +163,8 @@ class SolveNewmark(_BaseODE):
         Plot the four accelerations:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure('Example', figsize=[8, 8])
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', figsize=[8, 8], clear=True,
+        ...                  layout='constrained')
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
@@ -176,7 +176,6 @@ class SolveNewmark(_BaseODE):
         ...     _ = plt.xlabel('Time (s)')
         ...     if j == 0:
         ...         _ = plt.legend(loc='best')
-        >>> fig.tight_layout()
     """
 
     def __init__(self, m, b, k, h=None, rf=None):
@@ -556,8 +555,8 @@ class SolveNewmark(_BaseODE):
             >>> sol2 = ts2.finalize()
             >>>
             >>> # plot results:
-            >>> _ = plt.figure('Example', figsize=(8, 8))
-            >>> plt.clf()
+            >>> _ = plt.figure('Example', figsize=(8, 8), clear=True,
+            ...                layout='constrained')
             >>>
             >>> _ = plt.subplot(311)
             >>> _ = plt.plot(t, sol.d.T)
@@ -586,7 +585,6 @@ class SolveNewmark(_BaseODE):
             >>> _ = plt.xlabel('Time (s)')
             >>> _ = plt.ylabel('Force')
             >>> _ = plt.legend()
-            >>> _ = plt.tight_layout()
         """
         # apply inv(A) to the transforms while making new dict:
         nl_dct = {}

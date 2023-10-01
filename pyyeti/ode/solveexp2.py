@@ -138,8 +138,8 @@ class SolveExp2(_BaseODE):
         Plot the four accelerations:
 
         >>> import matplotlib.pyplot as plt
-        >>> fig = plt.figure('Example', figsize=[8, 8])
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', figsize=[8, 8], clear=True,
+        ...                  layout='constrained')
         >>> labels = ['Rigid-body', 'Underdamped',
         ...           'Critically Damped', 'Overdamped']
         >>> for j, name in zip(range(4), labels):
@@ -151,7 +151,6 @@ class SolveExp2(_BaseODE):
         ...     _ = plt.xlabel('Time (s)')
         ...     if j == 0:
         ...         _ = plt.legend(loc='best')
-        >>> fig.tight_layout()
     """
 
     def __init__(self, m, b, k, h, rb=None, rf=None, order=1, pre_eig=False):

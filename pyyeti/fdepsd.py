@@ -470,8 +470,8 @@ def fdepsd(
         ...     spec, ppc=10, fstart=20, fstop=50, df=1 / TF,
         ...     winends=dict(portion=10), gettime=True)
         >>>
-        >>> fig = plt.figure('Example', figsize=[9, 6])
-        >>> fig.clf()
+        >>> fig = plt.figure('Example', figsize=[9, 6], clear=True,
+        ...                  layout='constrained')
         >>> _ = plt.subplot(211)
         >>> _ = plt.plot(t, sig)
         >>> _ = plt.title(r'Input Signal - Specification Level = '
@@ -507,16 +507,14 @@ def fdepsd(
         >>> _ = plt.legend(loc='upper left',
         ...                bbox_to_anchor=(1.02, 1.),
         ...                borderaxespad=0.)
-        >>> plt.tight_layout()
-        >>> fig.subplots_adjust(right=0.78)
 
     .. plot::
         :context: close-figs
 
         Compare to theoretical bin counts @ 30 Hz:
 
-        >>> _ = plt.figure('Example 2')
-        >>> plt.clf()
+        >>> _ = plt.figure('Example 2', clear=True,
+        ...                layout='constrained')
         >>> Frq = freq[np.searchsorted(freq, 30)]
         >>> _ = plt.semilogy(fde.binamps.loc[Frq]**2,
         ...                  fde.count.loc[Frq],

@@ -1116,7 +1116,9 @@ class ERA:
 
         # plot each input in its own window
         for j in range(self.n_inputs):
-            fig = plt.figure(f"{self.figure_label}, input {j}", clear=True)
+            fig = plt.figure(
+                f"{self.figure_label}, input {j}", clear=True, layout="constrained"
+            )
 
             if self.FFT:
                 ax1 = fig.add_subplot(211)
@@ -1192,7 +1194,6 @@ class ERA:
                 ax2.set_ylabel("Magnitude")
                 ax2.set_title("Magnitude of Frequency Responses of Data")
 
-            fig.tight_layout()
             fig.canvas.draw()
         plt.show()
 
@@ -1580,7 +1581,8 @@ def NExT(
         >>> t_irf = t[1 : lag_stop + 1]
         >>> irf = era.NExT(sol.a, sr, lag_stop=lag_stop)
         >>>
-        >>> fig = plt.figure("corr comp", clear=True, figsize=(6.4, 6.4))
+        >>> fig = plt.figure("corr comp", clear=True, figsize=(6.4, 6.4),
+        ...                  layout='constrained')
         >>> ax = fig.subplots(4, 1)
         >>>
         >>> _ = ax[0].plot(t, sol.a.T)
@@ -1595,7 +1597,6 @@ def NExT(
         ...     _ = ax[ref + 1].set_title(f"IRFs with reference channel {ref}")
         ...     _ = ax[ref + 1].set_ylabel("X-corr IRFs")
         >>> _ = ax[3].set_xlabel("Time (s)")
-        >>> fig.tight_layout()
 
     .. plot::
         :context: close-figs
