@@ -916,7 +916,7 @@ def rdsets(f, follow_includes=True, include_symbols=None, include_root_dirs=None
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
-    include_root_dir : None; optional
+    include_root_dirs : None; optional
         This parameter is only used when this function is called
         recursively while following INCLUDE statements. Users should
         keep it as the default value of None.
