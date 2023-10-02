@@ -3,13 +3,14 @@
 # Install the documentation requirements with:
 #     pip install -r docs/requirements.txt
 #
-sphinx>=4.0
+sphinx >= 4.0
 numpy
 scipy
 matplotlib
 pandas
+h5py
 ipython
 notebook
-sphinx-toggleprompt
-sphinx-copybutton
+sphinx - toggleprompt
+sphinx - copybutton
 pygments
