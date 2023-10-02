@@ -765,7 +765,7 @@ class OP2:
         """
         Reads the TLOAD data from a DYNAMICS datablock.
 
-        Returns matrix of TLOADS. Rows = 5, 6, or 8, Cols = number
+        Returns matrix of TLOADS. Rows = 5, 6, 8, or 9. Cols = number
         of TLOADs. TLOAD ids are in first row; other data in matrix
         may not be useful.
         """
@@ -796,8 +796,8 @@ class OP2:
 
         if np.any(data):
             L = len(data)
-            rows = (5, 6, 8)
-            match = [0, 0, 0]
+            rows = (5, 6, 8, 9)
+            match = [0] * len(rows)
             # see if each col in matrix would match pattern:
             #   [tloadid, exciteid, -, -, tableid, ...]
             # where:
@@ -816,14 +816,14 @@ class OP2:
             if sum(match) > 1:
                 err = (
                     "Could not determine rows for TLOADs! "
-                    "More than one of 5, 6, or 8 matches. "
+                    f"More than one of {rows} matches. "
                     "Routine needs updating."
                 )
                 raise ValueError(err)
             if sum(match) < 1:
                 err = (
                     "Could not determine rows for TLOADs! "
-                    "None of 5, 6, or 8 matches. "
+                    f"None of {rows} matches. "
                     "Routine needs updating."
                 )
                 raise ValueError(err)
