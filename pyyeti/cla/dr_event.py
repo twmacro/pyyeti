@@ -434,9 +434,10 @@ class DR_Event:
             Modal stiffness; vector or matrix
         nrb : scalar
             Number of rigid-body modes
-        rfmodes : index vector or None
-            Specifies where the res-flex modes are; if None, no
-            resflex
+        rfmodes : 1d array or None
+            Index or bool partition vector specifying where the
+            residual-flexibility modes are; if None, there are no
+            res-flex vectors.
 
         Returns
         -------
@@ -487,6 +488,12 @@ class DR_Event:
         """
         n = k.shape[0]
         use_velo = True
+
+        # ensure that rfmodes is an index type:
+        if rfmodes is not None:
+            rfmodes = np.atleast_1d(rfmodes)
+            if np.issubdtype(rfmodes.dtype, np.bool_):
+                rfmodes = rfmodes.nonzero()[0]
 
         # genforce = m*a + b*v + k*d
         def _comp_genforce(sol, d):
