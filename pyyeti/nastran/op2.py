@@ -3256,7 +3256,12 @@ def procdrm12(op2file=None, op4file=None, dosort=True):
 
 
 def rdpostop2(
-    op2file=None, verbose=False, getougv1=False, getoef1=False, getoes1=False
+    op2file=None,
+    verbose=False,
+    getougv1=False,
+    getoef1=False,
+    getoes1=False,
+    getgpwg=False,
 ):
     """
     Reads PARAM,POST,-1 op2 file and returns dictionary of data.
@@ -3273,6 +3278,8 @@ def rdpostop2(
         If True, read the OEF1* matrices, if any
     getoes1 : bool
         If True, read the OES1* matrices, if any
+    getgpwg : bool
+        If True, read the OGPWG* matrices, if any
 
     Returns
     -------
@@ -3406,7 +3413,7 @@ def rdpostop2(
                     uset = o2._rdop2uset()
                     continue
 
-                if name.find("OGPWG") == 0:
+                if getgpwg and name.find("OGPWG") == 0:
                     if verbose:
                         print(f"Reading table {name}...")
                     gpwg = o2.rdop2gpwg()
