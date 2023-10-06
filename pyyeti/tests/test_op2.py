@@ -338,7 +338,7 @@ def test_rdop2mats():
     assert len(dct) == 2
 
     with op2.OP2(dr + "double_le.op2") as o2:
-        d, l, starts, stops, headers = o2.directory()
+        d = o2.directory()
     assert sorted(d.keys()) == ["CASECC", "ZUZR01", "ZUZR02", "ZUZR03"]
 
 
@@ -465,7 +465,8 @@ def test_rdpostop2():
 
     with op2.OP2("pyyeti/tests/nas2cam_extseout/inboard.op2") as o2:
         o2._rowsCutoff = 0
-        fpos = o2.dbnames["OUGV1"][0][0][0]
+        fpos = o2.dbdct["OUGV1"][0].start
+        assert fpos == o2.dbnames["OUGV1"][0][0][0]
         o2._fileh.seek(fpos)
         name, trailer, dbtype = o2.rdop2nt()
         oug = o2._rdop2ougv1("OUGV1")
@@ -500,8 +501,6 @@ def test_rdpostop2_assemble():
 
     with op2.OP2("pyyeti/tests/nas2cam_extseout/assemble.op2") as o2:
         o2._rowsCutoff = 0
-        # fpos = o2.dbnames['GEOM1S'][2][0][0]
-        # o2._fileh.seek(fpos)
         o2.set_position("GEOM1S", 2)
         name, trailer, dbtype = o2.rdop2nt()
         # (cords, sebulk, selist, seload, seconct) = o2._rdop2geom1cord2()
@@ -548,7 +547,7 @@ def test_rdpostop2_many_nodes():
 
 def test_rdop2record():
     with op2.OP2("pyyeti/tests/nas2cam_extseout/inboard.op2") as o2:
-        fpos = o2.dbnames["DYNAMICS"][0][0][0]
+        fpos = o2.dbdct["DYNAMICS"][0].start
 
         fh = o2.file_handle()
         fh.seek(fpos)
