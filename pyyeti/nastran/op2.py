@@ -31,6 +31,7 @@ __all__ = [
     "rdnas2cam",
     "procdrm12",
     "rdpostop2",
+    "rdparampost",
     "OP2",
     "nastran_dr_descriptions",
 ]
@@ -254,12 +255,19 @@ class OP2:
         dbstrings : list
             See :func:`directory` for description. Contains same info
             as dbdct, but in a list of ordered and formatted strings.
+        names : list
+            File-order list of data block names.
         dbstarts : integer 1d ndarray
-            Ordered list of data block starting byte positions in file.
+            File-order list of data block starting byte positions.
         dbstops : integer 1d ndarray
-            Ordered list of data block stopping byte positions in file.
+            File-order list of data block stopping byte positions.
+        dbtypes : integer 1d ndarray
+            File-order list of data block types (0 for table, 1 for
+            matrix).
+        trailers : list
+            File-order list of data block trailers (tuples).
         headers : list
-            Ordered list of header information for records in
+            File-ordered list of header information for records in
             tables. Each entry that corresponds to a table will be a
             list (the length of which equals the number of records in
             the table) of lists::
@@ -823,7 +831,7 @@ class OP2:
                 s = f"Table  {name:8}"
             cur = self._fileh.tell()
             s += f", bytes = {cur-pos-1:10} [{pos:10} to {cur:10}]"
-            if size != [0, 0]:
+            if size != (0, 0):
                 s += f", {size[0]:6} x {size[1]:<}"
             if name not in self.dbdct:
                 self.dbdct[name] = []
@@ -1806,12 +1814,12 @@ class OP2:
 
     def _proc_bgpdt(self, eqexin1, eqexin, ver68=False, bgpdtin=None):
         """
-        Reads and processes the BGPDT data block for :func:`rdn2cop2`
-        and :func:`rdpostop2`.
+        Reads and processes the BGPDT data block for :func:`rdn2cop2`,
+        :func:`rdparampost`, and :func:`rdpostop2`.
 
         Returns (xyz, cid, dof, doftype, nid, upids)
 
-        See :func:`rdn2cop2`, :func:`rdpostop2`.
+        See :func:`rdn2cop2`, :func:`rdparampost`, :func:`rdpostop2`.
         """
         if ver68:
             bgpdt_rec1 = bgpdtin
@@ -1856,12 +1864,10 @@ class OP2:
         print_warning=True,
     ):
         """
-        Builds the 6-column uset table for :func:`rdn2cop2` and
-        :func:`rdpostop2`.
+        Builds the 6-column uset table for :func:`rdn2cop2`,
+        :func:`rdparampost`, and :func:`rdpostop2`.
 
         Returns: (uset, cstm, cstm2).
-
-        See :func:`rdn2cop2`.
         """
         # Fill in all dof use -1 as default and set dof as
         # appropriate ... make it big enough for grids (6 cols).
@@ -1930,6 +1936,361 @@ class OP2:
         else:
             cstm2 = {**cstm2, **cstm3}
         return uset, cstm, cstm2
+
+    def _build_uset(self, eqexin1, eqexin, bgpdt0, uset, cstm, cstm2):
+        (xyz, cid, dof, doftype, nid, upids) = self._proc_bgpdt(
+            eqexin1,
+            eqexin,
+            True,
+            bgpdt0,
+        )
+        return self._buildUset(
+            0,
+            dof,
+            doftype,
+            nid,
+            uset,
+            xyz,
+            cid,
+            cstm,
+            cstm2,
+            print_warning=False,
+        )
+
+    def _rdgeom1(op2obj):
+        geom1 = op2obj._rdop2geom1cord2()
+        if 0 not in geom1["cords"]:
+            geom1["cords"][0] = np.array(
+                [
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                ]
+            )
+        if -1 not in geom1["cords"]:
+            # dummy for spoints
+            geom1["cords"][-1] = np.zeros((5, 3))
+            geom1["cords"][-1][0, 0] = -1
+        return geom1
+
+    def _rdcstm(self, verbose):
+        if "CSTMS" in self.dbdct:
+            name = "CSTMS"
+        elif "CSTM" in self.dbdct:
+            name = "CSTM"
+        else:
+            return None
+
+        pos = self.set_position(name, which=-1)
+        if verbose:
+            print(f"Reading table {name} at position {pos}...")
+        self.rdop2nt()
+        cstm = self._rdop2cstm68()
+        bc = np.array(
+            [
+                [+0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+                [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ],
+            dtype=float,
+        )
+        return np.vstack((bc, cstm))
+
+    def _rddatablock(
+        self, names, rdfunc, verbose, mats=None, *, which=-1, include_name=False
+    ):
+        # names is a list of acceptable names in priority order:
+        # eg: names = ["DYNAMICS", "DYNAMIC"]
+        # - last name can end with "*" ... that will be treated as a wild
+        #   card; last (if which == -1) matching name in file will be used
+        for name in names:
+            if name in self.dbdct:
+                break
+        else:
+            if names[-1][-1] == "*":
+                namestart = names[-1][:-1]
+                for dbname in self.names[::-1]:  # search in reverse order
+                    if dbname.startswith(namestart):
+                        name = dbname
+                        break
+                else:
+                    return None, None
+            else:
+                return None, None
+
+        pos = self.set_position(name, which=which)
+        if verbose:
+            print(f"Reading table {name} at position {pos}...")
+        self.rdop2nt()
+
+        if include_name:
+            db = rdfunc(name)
+        else:
+            db = rdfunc()
+
+        if mats is not None:
+            if "DYNAMIC" in name:
+                store_name = "tload"
+            elif "GPWG" in name:
+                store_name = "gpwg"
+            else:
+                store_name = name.lower()
+            mats[store_name] = db
+
+        return db, name
+
+    def _rd_dr_table(self, name, pos, verbose):
+        self.rdop2record()
+        rec2 = self.rdop2record("bytes")
+        if rec2[:40] == b"TYPE  IDCOMP ROW    TYPE  IDCOMP ROW    ":
+            if verbose:
+                print(f"Reading table {name} at position {pos}...")
+            type_id_ndof = np.frombuffer(rec2[40:], self._endian + "i4").reshape(-1, 5)[
+                :, :3
+            ]
+            mat = np.array(
+                [
+                    [i, dof, etype]
+                    for etype, i, ndof in type_id_ndof
+                    for dof in range(1, ndof + 1)
+                ]
+            )
+            return mat
+        return None
+
+    def _rd_datarecovery_tables(self, names, verbose):
+        tables = [sns for sns in self.dblist if sns.dbtype == 0]
+        all_names = [sns.name for sns in tables]
+        if not names:
+            names = all_names
+        else:
+            names = [name for name in all_names if self._has_match(name, names)]
+
+        mats = {}
+        for name in set(names):
+            if sns := self._find_datablock_info(name, tables):
+                self.set_position(sns.start)
+                self.rdop2nt()
+                db = self._rd_dr_table(sns.name, sns.start, verbose)
+                mats[sns.name.lower()] = db
+        return mats
+
+    def rdparampost(
+        self,
+        verbose=False,
+        get_all=False,
+        get_mats=True,
+        get_ougv1=False,
+        get_oef1=False,
+        get_oes1=False,
+        get_dr_tables=True,
+    ):
+        """
+        Reads PARAM,POST,-1 op2 file and returns dictionary of data.
+
+        Parameters
+        ----------
+        verbose : bool; optional
+            If True, echo names of tables and matrices to screen
+        get_all; bool; optional
+            If True, sets all other `get_*` parameters to True. Ignored if
+            False. It won't override `get_mats` or `get_dr_tables` if they
+            are lists or tuples.
+        get_mats : bool or list/tuple; optional
+            If True (or False), read (or do not read) matrices. If a
+            list/tuple, it is an iterable of data blocks to look for and
+            read if possible. Each name in the list can end with a "*" for
+            simple wildcard matching. For example::
+
+                get_mats = ["K4HH", "M*"]
+
+            would read in "K4HH" and all matrices that start with "M". In
+            the output dictionary of this routine, each matrix is stored
+            by its name in lower case.
+
+        get_ougv1 : bool; optional
+            If True, read the OUGV1, OUG1, or BOPHIG matrix, if present
+        get_oef1 : bool; optional
+            If True, read the OEF1 matrix, if any
+        get_oes1 : bool; optional
+            If True, read the OES1 matrix, if any
+        get_dr_tables : bool or list/tuple; optional
+            If True (or False), read (or do not read) data recovery
+            tables. Any data block that starts with "T" is checked and if
+            it is a data recovery table, it is read in. If a list/tuple,
+            it is an iterable of data blocks to look for and read if
+            possible. Each name in the list can end with a "*" for
+            simple wildcard matching. For example::
+
+                get_dr_tables = ["TUG*"]
+
+            would read in all data recovery tables that match that
+            pattern, and only those. Setting `get_dr_tables` to True is
+            equivalent to setting to ``["T*"]``. In
+            the output dictionary of this routine, each matrix is stored
+            by its name in lower case. Each matrix is 3-columns::
+
+                [id, dof, type]
+
+        Returns
+        -------
+        Dictionary
+
+        'uset' : pandas DataFrame
+            A DataFrame as output by :func:`OP2.rdn2cop2`
+        'cstm' : array
+            14-column matrix containing the coordinate system
+            transformation matrix for each coordinate system. See
+            description in class OP2, member function
+            :func:`OP2.rdn2cop2`.
+        'cstm2' : dictionary
+            Dictionary indexed by the coordinate system id number. This
+            has the same information as 'cstm', but in a different format.
+            See description in class OP2, member function
+            :func:`OP2.rdn2cop2`.
+        'tload' : ndarray; optional
+            Only present if the "DYNAMICS" data bloack is present.
+        'gpwg' : dictionary; optional
+            Only present if the "OGPWG" table is present in the op2
+            file. The dictionary is the output of :func:`OP2.rdop2gpwg`.
+        'selist' : 2d ndarray
+            2-columns matrix: [ seid, dnseid ] where, for each row, dnseid
+            is the downstream superelement for seid. (dnseid = 0 if seid =
+            0).
+        'sebulk' : 2d ndarray
+            output record from GEOM1 of SE 0
+        'seload' : 2d ndarray
+            output record from GEOM1 of SE 0
+        'seconct' : 1d ndarray
+            output record from GEOM1 of SE 0
+        'geom1' : dictionary
+            Dictionary of GEOM1(S) data blocks; key is SE.
+        'bgpdt' : dictionary
+            Dictionary of BGPDT(S) data blocks; key is SE.
+
+        Notes
+        -----
+        Other data blocks may be present in the output depending on the
+        input parameters and the contents of the op2 file.
+        """
+        # read last geom1s or geom1 data block
+        # - if se tree, this would be for residual and will have "selist"
+        # - if upstream cb creation run, will have "extrn"
+        # - if non-se run, will have neither of those
+        nms = ["GEOM1S", "GEOM1"]
+        geom1_0, name = self._rddatablock(nms, self._rdgeom1, verbose)
+        addon = "S"
+        nsupers = 0
+        ses = []
+        if name == "GEOM1S":
+            if "selist" in geom1_0:
+                # se tree run
+                nsupers = geom1_0["selist"].shape[0]
+                ses = geom1_0["selist"][:, 0]
+            else:
+                # single upstream se run
+                nsupers = 1
+                ses = [0]  # treat as SE 0
+        elif name == "GEOM1":
+            # non-se run
+            nsupers = 1
+            ses = [0]
+            addon = ""
+
+        gname = f"GEOM1{addon}"
+        bname = f"BGPDT{addon}"
+        ng = len(self.dbdct[gname]) if gname in self.dbdct else 0
+        nb = len(self.dbdct[bname]) if bname in self.dbdct else 0
+        if ng != nsupers or nb != nsupers:
+            warnings.warn(
+                f"number of SEs from 'selist' is {nsupers}; however have "
+                f"{ng} {gname!r} data blocks and {nb} {bname!r} data blocks."
+                " Output may be garbled.",
+                RuntimeWarning,
+            )
+
+        geom1 = {}
+        bgpdt = {}
+        build_uset = 0
+        for j, se in enumerate(ses):
+            for dbname, dct, rdfunc in (
+                (gname, geom1, self._rdgeom1),
+                (bname, bgpdt, self._rdop2bgpdt68),
+            ):
+                if se == 0 and dbname.startswith("GEOM1"):
+                    geom1[0] = geom1_0
+                    continue
+                try:
+                    db, name = self._rddatablock([dbname], rdfunc, verbose, which=j)
+                except KeyError:
+                    pass
+                else:
+                    dct[se] = db
+                    if se == 0 and dbname == bname:
+                        build_uset += 1
+
+        cstm = self._rdcstm(verbose)
+        cstm2 = geom1[0]["cords"] if "cords" in geom1[0] else None
+
+        dct = {
+            "cstm": cstm,
+            "cstm2": cstm2,
+            "geom1": geom1,
+            "bgpdt": bgpdt,
+        }
+
+        eqexin, name = self._rddatablock(["EQEXIN*"], self._rdop2eqexin, verbose)
+        if eqexin:
+            eqexin1, eqexin = eqexin
+            build_uset += 1
+
+        uset, name = self._rddatablock(["USET"], self._rdop2uset, verbose)
+
+        if build_uset == 2:
+            Uset, cstm, cstm2 = self._build_uset(
+                eqexin1, eqexin, bgpdt[0], uset, cstm, cstm2
+            )
+            dct["uset"] = Uset
+
+        # read other miscellaneous data blocks:
+        if get_mats or get_all:
+            if isinstance(get_mats, (list, tuple)):
+                names = get_mats
+            else:
+                names = None
+            dct.update(self.rdop2mats(names=names, verbose=verbose, lower=True))
+
+        for names, rdfunc in (
+            (["LAMA*"], self._rdop2lama),
+            (["DYNAMICS", "DYNAMIC"], self.rdop2dynamics),
+            (["OGPWG*"], self._rdop2gpwg),
+        ):
+            self._rddatablock(names, rdfunc, verbose, dct)
+
+        for flag, names, rdfunc in (
+            (get_ougv1, ["OUGV1", "BOPHIG", "OUG1"], self._rdop2ougv1),
+            (get_oef1, ["OEF1*"], self._rdop2drm),
+            (get_oes1, ["OES1*"], self._rdop2drm),
+        ):
+            if flag or get_all:
+                self._rddatablock(names, rdfunc, verbose, dct, include_name=True)
+
+        # read data recovery tables like tug1 and tef1
+        if not isinstance(get_dr_tables, (list, tuple)):
+            if get_dr_tables or get_all:
+                get_dr_tables = ["T*"]
+
+        if get_dr_tables:
+            dct.update(self._rd_datarecovery_tables(get_dr_tables, verbose))
+
+        # some special se 0 data block handling for backward
+        # compatibility:
+        for name in ("selist", "sebulk", "seload", "seconct"):
+            if name in geom1[0]:
+                dct[name] = geom1[0][name]
+
+        return dct
 
     def _rdop2maps(self, trailer, se):
         """
@@ -3368,6 +3729,9 @@ def rdpostop2(
     """
     Reads PARAM,POST,-1 op2 file and returns dictionary of data.
 
+    Note: This routine may be removed in the future in favor of
+    :func:`rdparampost`.
+
     Parameters
     ----------
     op2file : string or None
@@ -3643,147 +4007,7 @@ def rdpostop2(
     return dct
 
 
-def _rdgeom1(op2obj):
-    geom1 = op2obj._rdop2geom1cord2()
-    if 0 not in geom1["cords"]:
-        geom1["cords"][0] = np.array(
-            [
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0],
-            ]
-        )
-    if -1 not in geom1["cords"]:
-        # dummy for spoints
-        geom1["cords"][-1] = np.zeros((5, 3))
-        geom1["cords"][-1][0, 0] = -1
-    return geom1
-
-
-def _rdcstm(o2, verbose):
-    if "CSTMS" in o2.dbdct:
-        name = "CSTMS"
-    elif "CSTM" in o2.dbdct:
-        name = "CSTM"
-    else:
-        return None
-
-    pos = o2.set_position(name, which=-1)
-    if verbose:
-        print(f"Reading table {name} at position {pos}...")
-    name, trailer, dbtype = o2.rdop2nt()
-    cstm = o2._rdop2cstm68()
-    bc = np.array(
-        [
-            [+0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-            [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ],
-        dtype=float,
-    )
-    return np.vstack((bc, cstm))
-
-
-def _rddatablock(o2, names, rdfunc, verbose, mats=None, include_name=False):
-    # names is a list of acceptable names in priority order:
-    # eg: names = ["DYNAMICS", "DYNAMIC"]
-    # - last name can end with "*" ... that will be treated as a wild
-    #   card; last matching name in file will be used
-    for name in names:
-        if name in o2.dbdct:
-            break
-    else:
-        if names[-1][-1] == "*":
-            namestart = names[-1][:-1]
-            for dbname in o2.names[::-1]:  # search in reverse order
-                if dbname.startswith(namestart):
-                    name = dbname
-                    break
-            else:
-                return None, None
-        else:
-            return None, None
-
-    pos = o2.set_position(name, which=-1)
-    if verbose:
-        print(f"Reading table {name} at position {pos}...")
-    o2.rdop2nt()
-
-    if include_name:
-        db = rdfunc(o2, name)
-    else:
-        db = rdfunc(o2)
-
-    if mats is not None:
-        if "DYNAMIC" in name:
-            store_name = "tload"
-        elif "GPWG" in name:
-            store_name = "gpwg"
-        else:
-            store_name = name.lower()
-        mats[store_name] = db
-
-    return db, name
-
-
-def _build_uset(o2, eqexin1, eqexin, bgpdt0, uset, cstm, cstm2):
-    (xyz, cid, dof, doftype, nid, upids) = o2._proc_bgpdt(
-        eqexin1,
-        eqexin,
-        True,
-        bgpdt0,
-    )
-    return o2._buildUset(
-        0,
-        dof,
-        doftype,
-        nid,
-        uset,
-        xyz,
-        cid,
-        cstm,
-        cstm2,
-        print_warning=False,
-    )
-
-
-def _rd_dr_table(o2, name, pos):
-    o2.rdop2record()
-    rec2 = o2.rdop2record("bytes")
-    if rec2[:40] == b"TYPE  IDCOMP ROW    TYPE  IDCOMP ROW    ":
-        print(f"Reading table {name} at position {pos}...")
-        type_id_ndof = np.frombuffer(rec2[40:], o2._endian + "i4").reshape(-1, 5)[:, :3]
-        mat = np.array(
-            [
-                [i, dof, etype]
-                for etype, i, ndof in type_id_ndof
-                for dof in range(1, ndof + 1)
-            ]
-        )
-        return mat
-    return None
-
-
-def _rd_datarecovery_tables(o2, names, verbose):
-    tables = [sns for sns in o2.dblist if sns.dbtype == 0]
-    all_names = [sns.name for sns in tables]
-    if not names:
-        names = all_names
-    else:
-        names = [name for name in all_names if o2._has_match(name, names)]
-
-    mats = {}
-    for name in set(names):
-        if sns := o2._find_datablock_info(name, tables):
-            o2.set_position(sns.start)
-            o2.rdop2nt()
-            db = _rd_dr_table(o2, sns.name, sns.start)
-            mats[sns.name.lower()] = db
-    return mats
-
-
-def rdop2post(
+def rdparampost(
     op2file=None,
     verbose=False,
     get_all=False,
@@ -3844,7 +4068,7 @@ def rdop2post(
 
     Returns
     -------
-    dictionary
+    Dictionary
 
     'uset' : pandas DataFrame
         A DataFrame as output by :func:`OP2.rdn2cop2`
@@ -3881,121 +4105,30 @@ def rdop2post(
     Notes
     -----
     Other data blocks may be present in the output depending on the
-    contents of the op2 file.
+    input parameters and the contents of the op2 file.
+
+    This routine is for convenience; this is what it does::
+
+        op2file = guitools.get_file_name(op2file, read=True)
+        with OP2(op2file) as o2:
+            return o2.rdparampost(
+                verbose,
+                get_all,
+                get_mats,
+                get_ougv1,
+                get_oef1,
+                get_oes1,
+                get_dr_tables,
+            )
     """
     op2file = guitools.get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
-        # read last geom1s or geom1 data block
-        # - if se tree, this would be for residual and will have "selist"
-        # - if upstream cb creation run, will have "extrn"
-        # - if non-se run, will have neither of those
-        nms = ["GEOM1S", "GEOM1"]
-        geom1_0, name = _rddatablock(o2, nms, _rdgeom1, verbose)
-        addon = "S"
-        nsupers = 0
-        ses = []
-        if name == "GEOM1S":
-            if "selist" in geom1_0:
-                # se tree run
-                nsupers = geom1_0["selist"].shape[0]
-                ses = geom1_0["selist"][:, 0]
-            else:
-                # single upstream se run
-                nsupers = 1
-                ses = [0]  # treat as SE 0
-        elif name == "GEOM1":
-            # non-se run
-            nsupers = 1
-            ses = [0]
-            addon = ""
-
-        gname = f"GEOM1{addon}"
-        bname = f"BGPDT{addon}"
-        ng = len(o2.dbdct[gname]) if gname in o2.dbdct else 0
-        nb = len(o2.dbdct[bname]) if bname in o2.dbdct else 0
-        if ng != nsupers or nb != nsupers:
-            warnings.warn(
-                f"number of SEs from 'selist' is {nsupers}; however have "
-                f"{ng} {gname!r} data blocks and {nb} {bname!r} data blocks."
-                " Output may be garbled.",
-                RuntimeWarning,
-            )
-
-        geom1 = {}
-        bgpdt = {}
-        build_uset = 0
-        for j, se in enumerate(ses):
-            for dbname, dct, rdfunc in (
-                (gname, geom1, _rdgeom1),
-                (bname, bgpdt, OP2._rdop2bgpdt68),
-            ):
-                if se == 0 and dbname.startswith("GEOM1"):
-                    geom1[0] = geom1_0
-                    continue
-                try:
-                    db, name = _rddatablock(o2, [dbname], rdfunc, verbose)
-                except KeyError:
-                    pass
-                else:
-                    dct[se] = db
-                    if se == 0 and dbname == bname:
-                        build_uset += 1
-
-        cstm = _rdcstm(o2, verbose)
-        cstm2 = geom1[0]["cords"] if "cords" in geom1[0] else None
-
-        eqexin, name = _rddatablock(o2, ["EQEXIN*"], OP2._rdop2eqexin, verbose)
-        if eqexin:
-            eqexin1, eqexin = eqexin
-            build_uset += 1
-
-        uset, name = _rddatablock(o2, ["USET"], OP2._rdop2uset, verbose)
-
-        if build_uset == 2:
-            Uset, cstm, cstm2 = _build_uset(
-                o2, eqexin1, eqexin, bgpdt[0], uset, cstm, cstm2
-            )
-
-        dct = {
-            "uset": Uset,
-            "cstm": cstm,
-            "cstm2": cstm2,
-            "geom1": geom1,
-            "bgpdt": bgpdt,
-        }
-
-        # read other miscellaneous data blocks:
-        if get_mats or get_all:
-            if isinstance(get_mats, (list, tuple)):
-                names = get_mats
-            else:
-                names = None
-            dct.update(o2.rdop2mats(names=names, verbose=verbose, lower=True))
-
-        nms = ["DYNAMICS", "DYNAMIC"]
-        _rddatablock(o2, nms, OP2.rdop2dynamics, verbose, dct)
-        _rddatablock(o2, ["OGPWG*"], OP2._rdop2gpwg, verbose, dct)
-
-        for flag, names, rdfunc in (
-            (get_ougv1, ["OUGV1", "BOPHIG", "OUG1"], OP2._rdop2ougv1),
-            (get_oef1, ["OEF1*"], OP2._rdop2drm),
-            (get_oes1, ["OES1*"], OP2._rdop2drm),
-        ):
-            if flag or get_all:
-                _rddatablock(o2, names, rdfunc, verbose, dct, include_name=True)
-
-        # read data recovery tables like tug1 and tef1
-        if not isinstance(get_dr_tables, (list, tuple)):
-            if get_dr_tables or get_all:
-                get_dr_tables = ["T*"]
-
-        if get_dr_tables:
-            dct.update(_rd_datarecovery_tables(o2, get_dr_tables, verbose))
-
-    # some special se 0 data block handling for backward
-    # compatibility:
-    for name in ("selist", "sebulk", "seload", "seconct"):
-        if name in geom1[0]:
-            dct[name] = geom1[0][name]
-
-    return dct
+        return o2.rdparampost(
+            verbose,
+            get_all,
+            get_mats,
+            get_ougv1,
+            get_oef1,
+            get_oes1,
+            get_dr_tables,
+        )

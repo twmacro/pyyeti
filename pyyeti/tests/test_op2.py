@@ -5,7 +5,7 @@ import tempfile
 import numpy as np
 import pandas as pd
 from pyyeti import ytools, nastran, locate
-from pyyeti.nastran import op4, op2
+from pyyeti.nastran import op4, op2, bulk
 from scipy.io import matlab
 import pytest
 
@@ -607,3 +607,41 @@ def test_empty_file_error():
             op2.OP2(fname)
     finally:
         os.remove(fname)
+
+
+def test_rdparampost():
+    with pytest.warns(RuntimeWarning) as records:
+        post = op2.rdparampost(
+            "pyyeti/tests/nas2cam_extseout/assemble.op2", get_all=True
+        )
+        verify_one_match(
+            records, [r"ACODE.*52.*not accept", r"TCODE.*1001.*not accept"]
+        )
+
+    assert np.all(post["selist"] == [[101, 0], [102, 0], [0, 0]])
+    sebulk = np.array(
+        [[101, 5, -1, 2, 0.0, 1, 3, 101], [102, 5, -1, 2, 0.0, 1, 3, 102]]
+    )
+    assert np.all(post["sebulk"] == sebulk)
+
+    selist = np.array([[101, 0], [102, 0], [0, 0]])
+    assert np.all(post["geom1"][0]["selist"] == selist)
+    assert np.all(post["geom1"][101]["grid"][:, 0] == [3, 11, 19, 27])
+
+    assert post["khh"].shape == (54, 54)
+    assert post["lama"].shape == (54, 7)
+
+    with pytest.warns(RuntimeWarning) as records:
+        post = op2.rdparampost(
+            "pyyeti/tests/nas2cam_extseout/inboard_v2007.op2", get_all=True
+        )
+        verify_one_match(records, [r"have 1 'GEOM1' data blocks and 0 'BGPDT'"])
+
+    assert np.allclose(post["ougv1"]["lambda"], post["lama"][:, 2])
+    assert np.allclose(
+        post["geom1"][0]["grid"],
+        bulk.rdgrids("pyyeti/tests/nas2cam_extseout/inboard_v2007.dat"),
+    )
+
+    assert post["oes1x1"][0].shape > (0, 0)
+    assert post["oef1x"][0].shape > (0, 0)

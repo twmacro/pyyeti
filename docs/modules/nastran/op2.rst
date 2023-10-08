@@ -13,6 +13,7 @@ Main routines
     nastran_dr_descriptions
     rdmats
     rdnas2cam
+    rdparampost
     rdpostop2
 
 The OP2 Class
@@ -43,6 +44,7 @@ Member functions:
     OP2.rdop2record
     OP2.rdop2tabheaders
     OP2.rdop2tload
+    OP2.rdparampost
     OP2.set_position
     OP2.skipop2matrix
     OP2.skipop2record
