@@ -21,7 +21,7 @@ parser.add_argument(
 parser.add_argument(
     "-t",
     "--with-trailers",
-    dest="with_headers",
+    dest="with_trailers",
     action="store_true",
     default=False,
     help="include data block trailers in print out",

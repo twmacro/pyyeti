@@ -606,14 +606,6 @@ class OP2:
             eot, key = self.rdop2eot()
 
     @staticmethod
-    def _find_datablock_info(name, matrices):
-        # find last matrix named name:
-        for sns in matrices[::-1]:
-            if sns.name == name:
-                return sns
-        return None
-
-    @staticmethod
     def _has_match(name, names):
         for patt in names:
             patt = patt.upper()
@@ -624,7 +616,24 @@ class OP2:
                 return True
         return False
 
-    def rdop2mats(self, names=None, lower=False, verbose=False):
+    def _get_valid_names(self, names, dbtype):
+        dbs = [sns for sns in self.dblist if sns.dbtype == dbtype]
+        all_names = [sns.name for sns in dbs]
+        if not names:
+            names = all_names
+        else:
+            # _has_match handles the wildcard; names will have no wildcards
+            names = [name for name in all_names if self._has_match(name, names)]
+        return names, dbs
+
+    def _rdmat(self, sns, verbose):
+        if verbose:
+            print(f"Reading matrix {sns.name} at position {sns.start}...")
+        self.set_position(sns.start)
+        self.rdop2nt()
+        return self.rdop2matrix(sns.trailer)
+
+    def rdop2mats(self, names=None, lower=False, verbose=False, which=-1):
         """
         Read all matrices from Nastran output2 file.
 
@@ -638,36 +647,46 @@ class OP2:
             If True, returned names will be in lower case.
         verbose : bool; optional
             If True, print matrix names to screen as they are found.
+        which : integer or str; optional
+            If integer, specifies which occurrence of each matrix to
+            read starting at 0. Default is -1; read the last entry for
+            each matrix only. Can also be the string "all". In that
+            case, each entry in the dictionary is a list of all
+            occurrences of each matrix (even if there is only one
+            occurrence).
 
         Returns
         -------
         dict
-            Dictionary containing all matrices in the op2 file:
-            {'NAME1': matrix1, 'NAME2': matrix2, ...}
+
+            Dictionary containing all matrices in the op2 file. If
+            `which` is an integer::
+
+                {'NAME1': matrix1, 'NAME2': matrix2, ...}
+
+            If `which` is "all"::
+
+                {'NAME1': [1st matrix1, 2nd matrix1, ...],
+                 'NAME2': [1st matrix2, 2nd matrix2, ...],
+                 ...}
 
         Notes
         -----
         Unless `lower` is True, the keys are the names as stored
         in the op2 file (upper case).
-
-        Currently, only the last matrix of a given name is read in.
         """
-        matrices = [sns for sns in self.dblist if sns.dbtype == 1]
-        all_names = [sns.name for sns in matrices]
-        if not names:
-            names = all_names
-        else:
-            names = [name for name in all_names if self._has_match(name, names)]
-
+        names, matrices = self._get_valid_names(names, dbtype=1)
         mats = {}
         for name in set(names):
-            if sns := self._find_datablock_info(name, matrices):
-                if verbose:
-                    print(f"Reading matrix {sns.name} at position {sns.start}...")
-                self.set_position(sns.start)
-                self.rdop2nt()
-                store_name = sns.name if not lower else sns.name.lower()
-                mats[store_name] = self.rdop2matrix(sns.trailer)
+            dblist = [sns for sns in matrices if sns.name == name]
+            store_name = name if not lower else name.lower()
+            if which == "all":
+                mats[store_name] = []
+                for sns in dblist:
+                    mats[store_name].append(self._rdmat(sns, verbose))
+            else:
+                sns = dblist[which]
+                mats[store_name] = self._rdmat(sns, verbose)
         return mats
 
     def prtdir(self, with_headers=False, with_trailers=False):
@@ -720,7 +739,7 @@ class OP2:
 
         Returns
         -------
-        dbdct : Dictionary
+        dbdct : dictionary
             Dictionary indexed by data block name. Each value is a
             list, one element per occurrence of the data block in the
             op2 file. Each element is a SimpleNamespace with these
@@ -739,14 +758,14 @@ class OP2:
                          below)
 
         Attributes
-        ------------
+        ----------
         dbdct : dictionary
             Described above.
         dblist : list
             Has the same information as `dbdct`, but in a file-order
             list. Each element is the same SimpleNamespace as in
             `dbdct` (see above).
-        dbnames : Dictionary
+        dbnames : dictionary
             Here only for backward compatibility; new code should use
             `dbdct` instead. Dictionary indexed by data block
             name. Each value is a list, one element per occurrence of
@@ -2000,47 +2019,52 @@ class OP2:
     def _rddatablock(
         self, names, rdfunc, verbose, mats=None, *, which=-1, include_name=False
     ):
-        # names is a list of acceptable names in priority order:
-        # eg: names = ["DYNAMICS", "DYNAMIC"]
-        # - last name can end with "*" ... that will be treated as a wild
-        #   card; last (if which == -1) matching name in file will be used
-        for name in names:
-            if name in self.dbdct:
-                break
-        else:
-            if names[-1][-1] == "*":
-                namestart = names[-1][:-1]
-                for dbname in self.names[::-1]:  # search in reverse order
-                    if dbname.startswith(namestart):
-                        name = dbname
-                        break
+        if which != "all":
+            # names is a list of acceptable names in priority order:
+            # eg: names = ["GEOM1S", "GEOM1"]
+            # - last name can end with "*" ... that will be treated as a wild
+            #   card; last (if which == -1) matching name in file will be used
+            for name in names:
+                if name in self.dbdct:
+                    names = [name]
+                    break
+            else:
+                if names[-1][-1] == "*":
+                    namestart = names[-1][:-1]
+                    names = [name for name in self.names if name.startswith(namestart)]
+                    if len(names) == 0:
+                        return None, None
                 else:
                     return None, None
+
+        names, tables = self._get_valid_names(names, dbtype=0)
+        for name in set(names):
+            dblist = [sns for sns in tables if sns.name == name]
+            if which == "all":
+                lst = []
+                for sns in dblist:
+                    if verbose:
+                        print(f"Reading table {name} at position {sns.start}...")
+                    self.set_position(sns.start)
+                    self.rdop2nt()
+                    db = rdfunc(name) if include_name else rdfunc()
+                    lst.append(db)
+                if mats and len(lst) > 0:
+                    mats[name.lower()] = lst
             else:
-                return None, None
-
-        pos = self.set_position(name, which=which)
-        if verbose:
-            print(f"Reading table {name} at position {pos}...")
-        self.rdop2nt()
-
-        if include_name:
-            db = rdfunc(name)
-        else:
-            db = rdfunc()
-
-        if mats is not None:
-            if "DYNAMIC" in name:
-                store_name = "tload"
-            elif "GPWG" in name:
-                store_name = "gpwg"
-            else:
-                store_name = name.lower()
-            mats[store_name] = db
-
-        return db, name
+                sns = dblist[which]
+                if verbose:
+                    print(f"Reading table {name} at position {sns.start}...")
+                self.set_position(sns.start)
+                self.rdop2nt()
+                db = rdfunc(name) if include_name else rdfunc()
+                if mats:
+                    mats[name.lower()] = db
+                return db, name
 
     def _rd_dr_table(self, name, pos, verbose):
+        self.set_position(pos)
+        self.rdop2nt()
         self.rdop2record()
         rec2 = self.rdop2record("bytes")
         if rec2[:40] == b"TYPE  IDCOMP ROW    TYPE  IDCOMP ROW    ":
@@ -2059,21 +2083,21 @@ class OP2:
             return mat
         return None
 
-    def _rd_datarecovery_tables(self, names, verbose):
-        tables = [sns for sns in self.dblist if sns.dbtype == 0]
-        all_names = [sns.name for sns in tables]
-        if not names:
-            names = all_names
-        else:
-            names = [name for name in all_names if self._has_match(name, names)]
-
+    def _rd_datarecovery_tables(self, names, verbose, which=-1):
+        names, tables = self._get_valid_names(names, dbtype=0)
         mats = {}
         for name in set(names):
-            if sns := self._find_datablock_info(name, tables):
-                self.set_position(sns.start)
-                self.rdop2nt()
-                db = self._rd_dr_table(sns.name, sns.start, verbose)
-                mats[sns.name.lower()] = db
+            dblist = [sns for sns in tables if sns.name == name]
+            store_name = name.lower()
+            if which == "all":
+                mats[store_name] = []
+                for sns in dblist:
+                    mats[store_name].append(
+                        self._rd_dr_table(sns.name, sns.start, verbose)
+                    )
+            else:
+                sns = dblist[which]
+                mats[store_name] = self._rd_dr_table(sns.name, sns.start, verbose)
         return mats
 
     def rdparampost(
@@ -2085,6 +2109,7 @@ class OP2:
         get_oef1=False,
         get_oes1=False,
         get_dr_tables=True,
+        which=-1,
     ):
         """
         Reads PARAM,POST,-1 op2 file and returns dictionary of data.
@@ -2105,16 +2130,18 @@ class OP2:
 
                 get_mats = ["K4HH", "M*"]
 
-            would read in "K4HH" and all matrices that start with "M". In
-            the output dictionary of this routine, each matrix is stored
-            by its name in lower case.
-
+            would read in "K4HH" and all matrices that start with
+            "M". In the output dictionary of this routine, each matrix
+            is stored by its name in lower case. If `which` is "all",
+            then each entry is a list of all the matrices of each
+            name in the file (see :func:`OP2.rdop2mats`)
         get_ougv1 : bool; optional
-            If True, read the OUGV1, OUG1, or BOPHIG matrix, if present
+            If True, read the OUGV1, OUG1, or BOPHIG matrix, if
+            present. See also `which`.
         get_oef1 : bool; optional
-            If True, read the OEF1 matrix, if any
+            If True, read the OEF1 matrix, if any. See also `which`.
         get_oes1 : bool; optional
-            If True, read the OES1 matrix, if any
+            If True, read the OES1 matrix, if any. See also `which`.
         get_dr_tables : bool or list/tuple; optional
             If True (or False), read (or do not read) data recovery
             tables. Any data block that starts with "T" is checked and if
@@ -2133,9 +2160,18 @@ class OP2:
 
                 [id, dof, type]
 
+            See also `which`.
+        which : integer or str; optional
+            If integer, specifies which occurrence of each matrix to
+            read starting at 0. Default is -1; read the last entry for
+            each matrix only. Can also be the string "all". In that
+            case, each entry in the dictionary is a list of all
+            occurrences of each matrix (even if there is only one
+            occurrence).
+
         Returns
         -------
-        Dictionary
+        dictionary
 
         'uset' : pandas DataFrame
             A DataFrame as output by :func:`OP2.rdn2cop2`
@@ -2149,11 +2185,19 @@ class OP2:
             has the same information as 'cstm', but in a different format.
             See description in class OP2, member function
             :func:`OP2.rdn2cop2`.
-        'tload' : ndarray; optional
-            Only present if the "DYNAMICS" data bloack is present.
-        'gpwg' : dictionary; optional
+        'lama' : ndarray or list of ndarrays
+            The "LAMA" table; # modes x 7. List if `which` is "all".
+        'dynamics' : ndarray or list of ndarrays
+            The "tload" part of the DYNAMICS data block. See also
+            "tload". List if `which` is "all".
+        'tload' : ndarray
+            Only present if the "DYNAMICS" data block is present. This
+            is the "tload" part of the last "DYNAMICS" data block read
+            in. (Same as "dynamics" if `which` is not "all".)
+        'ogpwg' : dictionary or list of dictionaries
             Only present if the "OGPWG" table is present in the op2
-            file. The dictionary is the output of :func:`OP2.rdop2gpwg`.
+            file. The dictionary is the output of
+            :func:`OP2.rdop2gpwg`. List if `which` is "all".
         'selist' : 2d ndarray
             2-columns matrix: [ seid, dnseid ] where, for each row, dnseid
             is the downstream superelement for seid. (dnseid = 0 if seid =
@@ -2165,9 +2209,11 @@ class OP2:
         'seconct' : 1d ndarray
             output record from GEOM1 of SE 0
         'geom1' : dictionary
-            Dictionary of GEOM1(S) data blocks; key is SE.
+            Dictionary of GEOM1(S) data blocks; key is SE. Does not
+            depend on `which`.
         'bgpdt' : dictionary
-            Dictionary of BGPDT(S) data blocks; key is SE.
+            Dictionary of BGPDT(S) data blocks; key is SE. Does not
+            depend on `which`.
 
         Notes
         -----
@@ -2240,7 +2286,9 @@ class OP2:
             "bgpdt": bgpdt,
         }
 
-        eqexin, name = self._rddatablock(["EQEXIN*"], self._rdop2eqexin, verbose)
+        eqexin, name = self._rddatablock(
+            ["EQEXINS, EQEXIN"], self._rdop2eqexin, verbose
+        )
         if eqexin:
             eqexin1, eqexin = eqexin
             build_uset += 1
@@ -2259,14 +2307,16 @@ class OP2:
                 names = get_mats
             else:
                 names = None
-            dct.update(self.rdop2mats(names=names, verbose=verbose, lower=True))
+            dct.update(
+                self.rdop2mats(names=names, verbose=verbose, lower=True, which=which)
+            )
 
         for names, rdfunc in (
             (["LAMA*"], self._rdop2lama),
             (["DYNAMICS", "DYNAMIC"], self.rdop2dynamics),
             (["OGPWG*"], self._rdop2gpwg),
         ):
-            self._rddatablock(names, rdfunc, verbose, dct)
+            self._rddatablock(names, rdfunc, verbose, dct, which=which)
 
         for flag, names, rdfunc in (
             (get_ougv1, ["OUGV1", "BOPHIG", "OUG1"], self._rdop2ougv1),
@@ -2274,7 +2324,9 @@ class OP2:
             (get_oes1, ["OES1*"], self._rdop2drm),
         ):
             if flag or get_all:
-                self._rddatablock(names, rdfunc, verbose, dct, include_name=True)
+                self._rddatablock(
+                    names, rdfunc, verbose, dct, which=which, include_name=True
+                )
 
         # read data recovery tables like tug1 and tef1
         if not isinstance(get_dr_tables, (list, tuple)):
@@ -2282,13 +2334,21 @@ class OP2:
                 get_dr_tables = ["T*"]
 
         if get_dr_tables:
-            dct.update(self._rd_datarecovery_tables(get_dr_tables, verbose))
+            dct.update(
+                self._rd_datarecovery_tables(get_dr_tables, verbose, which=which)
+            )
 
         # some special se 0 data block handling for backward
         # compatibility:
         for name in ("selist", "sebulk", "seload", "seconct"):
             if name in geom1[0]:
                 dct[name] = geom1[0][name]
+
+        if "dynamics" in dct:
+            if which == "all":
+                dct["tload"] = dct["dynamics"][-1]
+            else:
+                dct["tload"] = dct["dynamics"]
 
         return dct
 
@@ -4016,14 +4076,13 @@ def rdparampost(
     get_oef1=False,
     get_oes1=False,
     get_dr_tables=True,
+    which=-1,
 ):
     """
     Reads PARAM,POST,-1 op2 file and returns dictionary of data.
 
     Parameters
     ----------
-    op2file : string or None; optional
-        Name of op2 file. If None, a GUI is opened for file selection
     verbose : bool; optional
         If True, echo names of tables and matrices to screen
     get_all; bool; optional
@@ -4038,16 +4097,18 @@ def rdparampost(
 
             get_mats = ["K4HH", "M*"]
 
-        would read in "K4HH" and all matrices that start with "M". In
-        the output dictionary of this routine, each matrix is stored
-        by its name in lower case.
-
+        would read in "K4HH" and all matrices that start with
+        "M". In the output dictionary of this routine, each matrix
+        is stored by its name in lower case. If `which` is "all",
+        then each entry is a list of all the matrices of each
+        name in the file (see :func:`OP2.rdop2mats`)
     get_ougv1 : bool; optional
-        If True, read the OUGV1, OUG1, or BOPHIG matrix, if present
+        If True, read the OUGV1, OUG1, or BOPHIG matrix, if
+        present. See also `which`.
     get_oef1 : bool; optional
-        If True, read the OEF1 matrix, if any
+        If True, read the OEF1 matrix, if any. See also `which`.
     get_oes1 : bool; optional
-        If True, read the OES1 matrix, if any
+        If True, read the OES1 matrix, if any. See also `which`.
     get_dr_tables : bool or list/tuple; optional
         If True (or False), read (or do not read) data recovery
         tables. Any data block that starts with "T" is checked and if
@@ -4066,9 +4127,18 @@ def rdparampost(
 
             [id, dof, type]
 
+        See also `which`.
+    which : integer or str; optional
+        If integer, specifies which occurrence of each matrix to
+        read starting at 0. Default is -1; read the last entry for
+        each matrix only. Can also be the string "all". In that
+        case, each entry in the dictionary is a list of all
+        occurrences of each matrix (even if there is only one
+        occurrence).
+
     Returns
     -------
-    Dictionary
+    dictionary
 
     'uset' : pandas DataFrame
         A DataFrame as output by :func:`OP2.rdn2cop2`
@@ -4082,11 +4152,19 @@ def rdparampost(
         has the same information as 'cstm', but in a different format.
         See description in class OP2, member function
         :func:`OP2.rdn2cop2`.
-    'tload' : ndarray; optional
-        Only present if the "DYNAMICS" data bloack is present.
-    'gpwg' : dictionary; optional
+    'lama' : ndarray or list of ndarrays
+        The "LAMA" table; # modes x 7. List if `which` is "all".
+    'dynamics' : ndarray or list of ndarrays
+        The "tload" part of the DYNAMICS data block. See also
+        "tload". List if `which` is "all".
+    'tload' : ndarray
+        Only present if the "DYNAMICS" data block is present. This
+        is the "tload" part of the last "DYNAMICS" data block read
+        in. (Same as "dynamics" if `which` is not "all".)
+    'ogpwg' : dictionary or list of dictionaries
         Only present if the "OGPWG" table is present in the op2
-        file. The dictionary is the output of :func:`OP2.rdop2gpwg`.
+        file. The dictionary is the output of
+        :func:`OP2.rdop2gpwg`. List if `which` is "all".
     'selist' : 2d ndarray
         2-columns matrix: [ seid, dnseid ] where, for each row, dnseid
         is the downstream superelement for seid. (dnseid = 0 if seid =
@@ -4098,9 +4176,11 @@ def rdparampost(
     'seconct' : 1d ndarray
         output record from GEOM1 of SE 0
     'geom1' : dictionary
-        Dictionary of GEOM1(S) data blocks; key is SE.
+        Dictionary of GEOM1(S) data blocks; key is SE. Does not
+        depend on `which`.
     'bgpdt' : dictionary
-        Dictionary of BGPDT(S) data blocks; key is SE.
+        Dictionary of BGPDT(S) data blocks; key is SE. Does not
+        depend on `which`.
 
     Notes
     -----
@@ -4119,6 +4199,7 @@ def rdparampost(
                 get_oef1,
                 get_oes1,
                 get_dr_tables,
+                which,
             )
     """
     op2file = guitools.get_file_name(op2file, read=True)
@@ -4131,4 +4212,5 @@ def rdparampost(
             get_oef1,
             get_oes1,
             get_dr_tables,
+            which,
         )

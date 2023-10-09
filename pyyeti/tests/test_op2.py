@@ -632,6 +632,25 @@ def test_rdparampost():
     assert post["lama"].shape == (54, 7)
 
     with pytest.warns(RuntimeWarning) as records:
+        pa = op2.rdparampost(
+            "pyyeti/tests/nas2cam_extseout/assemble.op2", get_all=True, which="all"
+        )
+        verify_one_match(
+            records, [r"ACODE.*52.*not accept", r"TCODE.*1001.*not accept"]
+        )
+
+    assert np.all(pa["selist"] == selist)
+    assert np.all(pa["geom1"][0]["selist"] == selist)
+    assert np.all(pa["geom1"][101]["grid"][:, 0] == [3, 11, 19, 27])
+
+    assert len(pa["khh"]) == 1
+    assert pa["khh"][0].shape == (54, 54)
+    assert pa["lama"][0].shape == (54, 7)
+    assert np.allclose(pa["khh"][0], post["khh"])
+    assert len(pa["ougv1"][0]) == 3
+
+    # another test file:
+    with pytest.warns(RuntimeWarning) as records:
         post = op2.rdparampost(
             "pyyeti/tests/nas2cam_extseout/inboard_v2007.op2", get_all=True
         )
@@ -645,3 +664,38 @@ def test_rdparampost():
 
     assert post["oes1x1"][0].shape > (0, 0)
     assert post["oef1x"][0].shape > (0, 0)
+
+    with pytest.warns(RuntimeWarning) as records:
+        pa = op2.rdparampost(
+            "pyyeti/tests/nas2cam_extseout/inboard_v2007.op2", get_all=True, which="all"
+        )
+        verify_one_match(records, [r"have 1 'GEOM1' data blocks and 0 'BGPDT'"])
+
+    assert pa["tload"].shape == (8, 30)
+    assert np.all(pa["tload"] == post["tload"])
+    assert np.all(pa["oef1x"][0][0] == post["oef1x"][0])
+    assert np.all(pa["ougv1"][0]["lambda"] == post["ougv1"]["lambda"])
+
+    # a third test file:
+
+    p = op2.rdparampost(
+        "pyyeti/tests/nastran_op2_data/example_with_tugd.op2",
+        get_all=True,
+    )
+
+    assert np.allclose(p["ogpwg"]["mass"], 625798.31)
+    assert p["tload"].shape == (6, 47)
+    assert np.all(p["tugd"][-1] == [1718, 6, 1])
+    assert np.all(p["tefd"][-1] == [1104, 77, 2])
+
+    pa = op2.rdparampost(
+        "pyyeti/tests/nastran_op2_data/example_with_tugd.op2",
+        get_all=True,
+        verbose=True,
+        which="all",
+    )
+
+    assert np.allclose(pa["ogpwg"][0]["mass"], 625798.31)
+    assert pa["tload"].shape == (6, 47)
+    assert np.all(pa["tugd"][0][-1] == [1718, 6, 1])
+    assert np.all(pa["tefd"][0][-1] == [1104, 77, 2])
