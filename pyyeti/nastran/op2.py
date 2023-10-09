@@ -2875,10 +2875,12 @@ def rdmats(filename=None, names=None, lower=False, verbose=False):
 def _get_op2_op4(op2file, op4file):
     if op2file is None:  # pragma: no cover
         op2file = guitools.get_file_name(None, read=True)
-    elif not os.path.exists(op2file):
-        op2file = op2file + ".op2"
-    if not op4file:
-        op4file = op2file.replace(".op2", ".op4")
+    else:
+        op2file = os.fspath(op2file)
+        if not os.path.exists(op2file):
+            op2file = op2file + ".op2"
+        if not op4file:
+            op4file = op2file.replace(".op2", ".op4")
     return op2file, op4file
 
 

@@ -2,6 +2,7 @@ import math
 import os
 import re
 import tempfile
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from pyyeti import ytools, nastran, locate
@@ -45,7 +46,7 @@ def runcomp(nas, m):
 
 
 def test_n2c_csuper():
-    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
+    nas = op2.rdnas2cam(Path("pyyeti/tests/nas2cam_csuper/nas2cam"))
     # nas.keys()
     # dict_keys(['rfmodes', 'fgravh', 'lambda', 'phg', 'dnids', 'nrb',
     # 'maps', 'kaa', 'cstm', 'maa', 'fgravg', 'uset', 'selist', 'upids',
