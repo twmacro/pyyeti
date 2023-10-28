@@ -1547,7 +1547,7 @@ def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
         Used to filter out small numbers; the exact usage depends on
         `method`. In all cases however, both the `a` and `b` values
         (absolute value wise) have to be below the filter value for
-        the comparison to be ignored.
+        the comparison to be ignored. Must be >= 0.0.
     method : string; optional
         Specifies how to use filter:
 
@@ -1595,6 +1595,9 @@ def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
         If `a` and `b` are different sizes
     ValueError
         If number of dimensions of `a` and `b` > 2
+    ValueError
+        If `filterval` < 0.0
+
 
     Notes
     -----
@@ -1674,6 +1677,9 @@ def compmat(a, b, filterval=0.0, method="abs", pdiff_tol=0, verbose=5):
 
     if a.ndim > 2:
         raise ValueError(f"arrays have {a.ndim} dimensions; must be <= 2")
+
+    if filterval < 0.0:
+        raise ValueError(f"`filterval` is {filterval}, but must be >= 0.0")
 
     if np.iscomplexobj(a) ^ np.iscomplexobj(b):
         # if only one is complex:
