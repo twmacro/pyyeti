@@ -2468,10 +2468,11 @@ def make_uset(dof, nasset=0, xyz=None):
             it: 0 or any combo of digits 1-6; eg, 123456 for all 6.
             For this routine, all 6 DOF are required for each GRID.
 
-    nasset : integer or list_like of integers; optional
-        Specifies the Nastran set membership. The :func:`mkusetmask`
-        can return a suitable value; eg: ``mkusetmask('a')``. Length
-        must be 1 or equal the number of rows in `dof`.
+    nasset : str, integer, or list_like of str or integers; optional
+        Specifies the Nastran set membership. If string type, the
+        function :func:`mkusetmask` is used to get the integer
+        equivalent. Length must be 1 or equal the number of rows in
+        `dof`.
     xyz : 2d array_like or None; optional
         Specifies the ['x', 'y', 'z'] columns of the DataFrame (see
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2` for description). If
@@ -2514,8 +2515,8 @@ def make_uset(dof, nasset=0, xyz=None):
     >>> from pyyeti.nastran import n2p
     >>> n2p.make_uset(dof=[[1, 123456],
     ...                    [2, 0]],
-    ...               nasset=[n2p.mkusetmask('b'),
-    ...                       n2p.mkusetmask('q')],
+    ...               nasset=['b',
+    ...                       'q'],
     ...               xyz=[[1, 2, 3],
     ...                    [0, 0, 0]])        # doctest: +ELLIPSIS
              nasset    x    y    z
@@ -2537,12 +2538,17 @@ def make_uset(dof, nasset=0, xyz=None):
                 f"must match number of rows in `dof` ({dof.shape[0]})"
             )
 
-    nasset = np.atleast_1d(nasset).astype(int)
+    nasset = np.atleast_1d(nasset)
     if nasset.shape[0] not in (1, dof.shape[0]):
         raise ValueError(
             f"number of rows in `nasset` ({nasset.shape[0]}) must either "
             f"be 1 or match number of rows in `dof` ({dof.shape[0]})"
         )
+
+    if np.issubdtype(nasset.dtype, str):
+        nasset = np.array([mkusetmask(row) for row in nasset])
+    else:
+        nasset = nasset.astype(int)
 
     edof = expanddof(dof)
     # ensure that each grid has the full 6 rows:

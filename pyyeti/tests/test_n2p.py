@@ -561,7 +561,7 @@ def test_make_uset():
 
     u = n2p.make_uset(
         dof=[[1, 123456], [2, 0]],
-        nasset=n2p.mkusetmask("b"),
+        nasset="b",
         xyz=[[1, 2, 3], [0, 0, 0]],
     )
 
