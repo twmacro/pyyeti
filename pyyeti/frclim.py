@@ -18,7 +18,7 @@ except TypeError:
     pass
 
 
-def calcAM(S, freq):
+def calcAM(S, freq, fs=None):
     r"""
     Calculate apparent mass
 
@@ -35,6 +35,23 @@ def calcAM(S, freq):
         below.
     freq : 1d array_like
         Frequency vector (Hz)
+    fs : class instance or None; optional
+        If None, this routine will try :class:`pyyeti.ode.SolveUnc`
+        with ``pre_eig=True`` to solve equations of motion in
+        frequency domain. If :class:`pyyeti.ode.SolveUnc` fails, this
+        routine will then try :class:`pyyeti.ode.FreqDirect`. If `fs`
+        is not None, it is excpected to be an instance of
+        :class:`pyyeti.ode.SolveUnc` or :class:`pyyeti.ode.FreqDirect`
+        (or similar ... must have `.fsolve` method)
+
+        .. note::
+            Using the `fs` parameter is the only way to include
+            residual vectors statically with this routine.
+
+        .. note::
+            The `fs` parameter is ignored if `bdof` is 1d; the
+            :func:`pyyeti.cb.cbtf` routine is used to compute apparent
+            mass in that case (see Notes below).
 
     Returns
     -------
@@ -194,14 +211,24 @@ def calcAM(S, freq):
         T = bdof
         Frc = np.zeros((r, lf))
         Acc = np.empty((r, lf, r), dtype=complex)
-        fs = ode.SolveUnc(m, b, k, pre_eig=True)
-        if hasattr(fs.pc, "eig_success") and not fs.pc.eig_success:
-            warnings.warn(
-                "Switching from `SolveUnc` to `FreqDirect` because complex"
-                " eigensolver failed; see messages above. Solution may be slow.",
-                RuntimeWarning,
-            )
-            fs = ode.FreqDirect(m, b, k)
+
+        if fs is None:
+            use_freqdirect = False
+            try:
+                fs = ode.SolveUnc(m, b, k, pre_eig=True)
+            except la.LinAlgError:
+                use_freqdirect = True
+            else:
+                if hasattr(fs.pc, "eig_success") and not fs.pc.eig_success:
+                    use_freqdirect = True
+            if use_freqdirect:
+                warnings.warn(
+                    "Switching from `SolveUnc` to `FreqDirect` because complex"
+                    " eigensolver failed; see messages above. Solution may be slow.",
+                    RuntimeWarning,
+                )
+                fs = ode.FreqDirect(m, b, k)
+
         for direc in range(r):
             Frc[direc, :] = 1.0
             sol = fs.fsolve(T.T @ Frc, freq)

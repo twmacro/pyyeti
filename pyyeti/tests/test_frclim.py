@@ -1,6 +1,9 @@
+import inspect
+from pathlib import Path
 import numpy as np
+from scipy import linalg as la
 from pyyeti import frclim, ode
-from pyyeti.nastran import op2, n2p
+from pyyeti.nastran import op2, n2p, bulk, op4
 import pytest
 
 
@@ -28,6 +31,10 @@ def test_calcAM():
     bdrm[:nb, :nb] = np.eye(nb)
     AM1 = frclim.calcAM((maa, baa, kaa, b), freq)
     AM2 = frclim.calcAM((maa, baa, kaa, bdrm), freq)
+    assert np.allclose(AM1, AM2)
+
+    fs = ode.SolveUnc(maa, baa, kaa, pre_eig=True)
+    AM2 = frclim.calcAM((maa, baa, kaa, b), freq, fs)
     assert np.allclose(AM1, AM2)
 
 
@@ -108,6 +115,131 @@ def test_ntfl():
     assert np.allclose(r.R, r2.R)
     assert np.allclose(r.A, r2.A)
     assert np.allclose(r.F, r2.F)
+
+
+def test_ntfl_indeterminate():
+    srcdir = Path(inspect.getfile(frclim)).parent / "tests" / "nas2cam_extseout"
+
+    # modal damping zeta:
+    zeta = 0.02
+
+    ids = ("out", "in")
+    uset, cords, b = {}, {}, {}
+    mats = {}
+    for id in ids:
+        uset[id], cords[id], b[id] = bulk.asm2uset(srcdir / f"{id}board.asm")
+        mats[id] = op4.read(srcdir / f"{id}board.op4")
+
+        # add damping:
+        bxx = 0 * mats[id]["kxx"]
+        q = ~b[id]
+        lam = np.diag(mats[id]["kxx"])[q]
+        damp = 2 * np.sqrt(lam) * zeta
+        bxx[q, q] = damp
+        mats[id]["bxx"] = bxx
+
+    maa = {
+        "in": mats["in"]["mxx"],
+        "out": mats["out"]["mxx"],
+    }
+    kaa = {
+        "in": mats["in"]["kxx"],
+        "out": mats["out"]["kxx"],
+    }
+    baa = {
+        "in": mats["in"]["bxx"],
+        "out": mats["out"]["bxx"],
+    }
+
+    # couple models together to compute coupled system response:
+    # dep = S indep
+    # dep = {in b; in q; out b; out q}
+    # indep = {in/out b; in q; out q}
+    m = maa["in"].shape[0]
+    n = maa["out"].shape[0]
+    nb = np.count_nonzero(b["in"])
+    S = {}
+    S["in"] = np.block(
+        [
+            [np.eye(nb), np.zeros((nb, m + n - 2 * nb))],
+            [np.zeros((m - nb, nb)), np.eye(m - nb), np.zeros((m - nb, n - nb))],
+        ]
+    )
+    S["out"] = np.block(
+        [
+            [np.eye(nb), np.zeros((nb, m + n - 2 * nb))],
+            [np.zeros((n - nb, m)), np.eye(n - nb)],
+        ]
+    )
+    S["tot"] = np.vstack((S["in"], S["out"]))
+
+    mc = S["tot"].T @ la.block_diag(maa["in"], maa["out"]) @ S["tot"]
+    kc = S["tot"].T @ la.block_diag(kaa["in"], kaa["out"]) @ S["tot"]
+    bc = S["tot"].T @ la.block_diag(baa["in"], baa["out"]) @ S["tot"]
+
+    # check coupling against Nastran:
+    lam, phi = la.eigh(kc, mc)
+    freqsys = np.sqrt(abs(lam)) / 2 / np.pi
+    eigen = bulk.rdeigen(srcdir / "assemble.out")
+    assert np.allclose(freqsys[6:], eigen[0]["cycles"].ravel()[6:])
+
+    # use first tload vector of "inboard" to apply a force to the system
+    pa_in = mats["in"]["px"][:, 0]
+    pc = S["in"].T @ pa_in
+
+    # define freq vector
+    freq = np.geomspace(0.01, 100.0, 4 * 167 + 1)
+    # freq = np.arange(0.1, 100.0, 0.1)
+    # ts = ode.SolveUnc(mc, bc, kc, pre_eig=True)
+    ts = ode.FreqDirect(mc, bc, kc)
+
+    # keep magnitude of force as-is across frequency domain:
+    force = pc[:, None] @ np.ones((1, len(freq)))
+    sol = ts.fsolve(force, freq)
+
+    # recover displacements, velocities, and accelerations for both
+    # components:
+    d, v, a = {}, {}, {}
+    ifforce = {}
+    for id in ids:
+        d[id] = S[id] @ sol.d
+        v[id] = S[id] @ sol.v
+        a[id] = S[id] @ sol.a
+
+        ifforce[id] = (maa[id] @ a[id] + baa[id] @ v[id] + kaa[id] @ d[id])[:nb]
+
+    # some sanity checks:
+    assert abs(ifforce["out"] + (ifforce["in"] - force[:nb])).max() < 1e-3
+    assert np.allclose(a["in"][:nb], a["out"][:nb])
+    assert np.allclose(v["in"][:nb], v["out"][:nb])
+    assert np.allclose(d["in"][:nb], d["out"][:nb])
+
+    # couple via NT:
+
+    # need free-acceleration:
+    ts_in = ode.FreqDirect(maa["in"], baa["in"], kaa["in"])
+    force_in = pa_in[:, None] @ np.ones((1, len(freq)))
+    As = ts_in.fsolve(force_in, freq).a[:nb]
+
+    AM = {}
+    NT = {}
+    with pytest.warns(
+        RuntimeWarning, match="Switching from `SolveUnc` to `FreqDirect`"
+    ):
+        for method in ("cb", "drm"):
+            AM[method] = {}
+            for id in ids:
+                if method == "cb":
+                    drm = np.arange(nb)
+                else:
+                    drm = np.zeros((nb, maa[id].shape[0]))
+                    drm[:, b[id]] = np.eye(nb)
+                AM[method][id] = frclim.calcAM([maa[id], baa[id], kaa[id], drm], freq)
+
+            NT[method] = frclim.ntfl(AM[method]["in"], AM[method]["out"], As, freq)
+
+            assert abs(ifforce["out"] - NT[method].F).max() < 1e-3
+            assert abs(a["out"][:nb] - NT[method].A).max() < 1e-4
 
 
 def test_sefl():
