@@ -79,6 +79,12 @@ def calcAM(S, freq, fs=None):
            in Craig-Bampton form (uses :func:`pyyeti.cb.cbtf` to
            compute apparent mass).
 
+    .. note::
+        In addition to the example shown below, this routine is
+        demonstrated in the pyYeti :ref:`tutorial`:
+        :doc:`/tutorials/ntfl`. There is also a link to the source
+        Jupyter notebook at the top of the tutorial.
+
     See also
     --------
     :func:`ntfl`.
@@ -593,6 +599,12 @@ def ntfl(Source, Load, As, freq):
         # Norton-Thevenin force limit function:
         r = frclim.ntfl([m1, b1, k1, T], [mgen, bgen, kgen,
                         np.arange(6)], As, freq)
+
+    .. note::
+        In addition to the example shown below, this routine is
+        demonstrated in the pyYeti :ref:`tutorial`:
+        :doc:`/tutorials/ntfl`. There is also a link to the source
+        Jupyter notebook at the top of the tutorial.
 
     See also
     --------
