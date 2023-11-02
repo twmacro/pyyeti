@@ -20,12 +20,15 @@ else:
 try:
     import pyyeti.rainflow.c_rain as rain
 except ImportError:
-    warnings.warn(
-        "Compiled C version of rainflow algorithm failed to "
-        "import. Using plain Python version, which can be very "
-        "slow if 'numba' is not installed.",
-        RuntimeWarning,
-    )
+    if not HAVE_NUMBA:
+        warnings.warn(
+            "Compiled C version of rainflow algorithm failed to "
+            "import. Using plain Python version, which can be very "
+            "slow. Recommend installing 'numba': pyYeti will use that "
+            "automatically to speed up the Python version to be on "
+            "par with the C version.",
+            RuntimeWarning,
+        )
     import pyyeti.rainflow.py_rain as rain
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
