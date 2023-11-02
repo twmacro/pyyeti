@@ -24,7 +24,9 @@ except ImportError:
         warnings.warn(
             "Compiled C version of rainflow algorithm failed to "
             "import. Using plain Python version, which can be very "
-            "slow if 'numba' is not installed.",
+            "slow. Recommend installing 'numba': pyYeti will use that "
+            "automatically to speed up the Python version to be on "
+            "par with the C version.",
             RuntimeWarning,
         )
     import pyyeti.rainflow.py_rain as rain
