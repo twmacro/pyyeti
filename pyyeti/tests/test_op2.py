@@ -700,3 +700,16 @@ def test_rdparampost():
     assert pa["tload"].shape == (6, 47)
     assert np.all(pa["tugd"][0][-1] == [1718, 6, 1])
     assert np.all(pa["tefd"][0][-1] == [1104, 77, 2])
+
+    # test rdparampost on a file w/o GEOM1 (not really a param,post,-1
+    # file, but still want it to do what it can):
+    pa = op2.rdparampost(
+        "pyyeti/tests/nastran_op2_data/rdop2gpwg_1.op2",
+        get_all=True,
+    )
+    gpwg = op2.OP2("pyyeti/tests/nastran_op2_data/rdop2gpwg_1.op2").rdop2gpwg()
+    for key, val in gpwg.items():
+        assert np.allclose(pa["ogpwg"][key], val)
+    assert len(pa["geom1"]) == len(pa["bgpdt"]) == 0
+    assert "lama" in pa
+    assert "ougv1" in pa

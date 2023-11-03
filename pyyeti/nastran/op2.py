@@ -2210,10 +2210,12 @@ class OP2:
             output record from GEOM1 of SE 0
         'geom1' : dictionary
             Dictionary of GEOM1(S) data blocks; key is SE. Does not
-            depend on `which`.
+            depend on `which`. Will be empty if no GEOM1(S) data
+            blocks are in the op2 file.
         'bgpdt' : dictionary
             Dictionary of BGPDT(S) data blocks; key is SE. Does not
-            depend on `which`.
+            depend on `which`. Will be empty if no BGPDT(S) data
+            blocks are in the op2 file.
 
         Notes
         -----
@@ -2277,7 +2279,7 @@ class OP2:
                         build_uset += 1
 
         cstm = self._rdcstm(verbose)
-        cstm2 = geom1[0]["cords"] if "cords" in geom1[0] else None
+        cstm2 = geom1[0]["cords"] if 0 in geom1 and "cords" in geom1[0] else None
 
         dct = {
             "cstm": cstm,
@@ -2340,9 +2342,10 @@ class OP2:
 
         # some special se 0 data block handling for backward
         # compatibility:
-        for name in ("selist", "sebulk", "seload", "seconct"):
-            if name in geom1[0]:
-                dct[name] = geom1[0][name]
+        if 0 in geom1:
+            for name in ("selist", "sebulk", "seload", "seconct"):
+                if name in geom1[0]:
+                    dct[name] = geom1[0][name]
 
         if "dynamics" in dct:
             if which == "all":
