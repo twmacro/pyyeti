@@ -525,7 +525,9 @@ def fdepsd(
         >>> y1 = fde.count.loc[Frq, 0]
         >>> peakamp = fde.peakamp.loc[Frq]
         >>> for j, lbl in enumerate(fde.peakamp.columns):
-        ...     _ = plt.plot([0, peakamp[j]**2], [y1, 1], label=lbl)
+        ...     _ = plt.plot(
+        ...         [0, peakamp.iloc[j]**2], [y1, 1], label=lbl
+        ...     )
         >>> _ = plt.title('Bin Count Check for Q=50, Freq=30 Hz')
         >>> _ = plt.xlabel(r'$Amp^2$')
         >>> _ = plt.ylabel('Count')
