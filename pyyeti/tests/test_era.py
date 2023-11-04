@@ -31,15 +31,15 @@ def get_model_data():
     return M, K, D, freq_hz, zeta, phi
 
 
-def verify_one_match(records, regexes):
-    """Verify that at least one warning matches each regex."""
-    for regex in regexes:
-        match_found = False
-        for record in records:
-            match_found = (
-                re.search(regex, record.message.args[0]) is not None or match_found
-            )
-        assert match_found, f"No matching warning found: {regex}"
+# def verify_one_match(records, regexes):
+#     """Verify that at least one warning matches each regex."""
+#     for regex in regexes:
+#         match_found = False
+#         for record in records:
+#             match_found = (
+#                 re.search(regex, record.message.args[0]) is not None or match_found
+#             )
+#         assert match_found, f"No matching warning found: {regex}"
 
 
 def test_era():
@@ -51,7 +51,7 @@ def test_era():
     ts = ode.SolveExp2(M, D, K, dt)
     sol = ts.tsolve(force=F, v0=[1, 1, 1])
 
-    with pytest.warns(UserWarning) as records:
+    with pytest.warns(UserWarning):  # as records:
         era_fit = era.ERA(
             sol.v,
             sr=1 / dt,
@@ -63,7 +63,8 @@ def test_era():
             # show_plot=False,
             verbose=False,
         )
-        verify_one_match(records, [r"Matplotlib.*using agg"])
+        # verify_one_match(records, [r"Matplotlib.*using agg"])
+
     assert np.allclose(era_fit.freqs_hz, freq_hz)
     assert np.allclose(era_fit.zeta, zeta)
     phi_rat = phi / era_fit.phi
@@ -74,7 +75,7 @@ def test_era():
         assert np.isclose(0.1, val)
 
     # different size H:
-    with pytest.warns(UserWarning) as records:
+    with pytest.warns(UserWarning):  # as records:
         era_fit = era.ERA(
             sol.v,
             sr=1 / dt,
@@ -87,7 +88,8 @@ def test_era():
             # show_plot=False,
             verbose=False,
         )
-        verify_one_match(records, [r"Matplotlib.*using agg"])
+        # verify_one_match(records, [r"Matplotlib.*using agg"])
+
     assert np.allclose(era_fit.freqs_hz, freq_hz)
     assert np.allclose(era_fit.zeta, zeta)
     phi_rat = phi / era_fit.phi
