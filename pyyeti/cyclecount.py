@@ -607,13 +607,13 @@ def binify(
     6  3.0   1.0    0.5
     >>> format = lambda x: f"{x:.1f}"
     >>> df = cyclecount.binify(rf, 3, 2)
-    >>> df.applymap(format)                # doctest: +ELLIPSIS
+    >>> df.map(format)                # doctest: +ELLIPSIS
     Amp             (1.497, 2.500] (2.500, 3.500] (3.500, 4.500]
     Mean...
     (-1.002, 0.000]            1.0            0.0            0.5
     (0.000, 1.000]             1.0            0.5            1.0
     >>> df = cyclecount.binify(rf, 3, 2, right=0)
-    >>> df.applymap(format)                # doctest: +ELLIPSIS
+    >>> df.map(format)                # doctest: +ELLIPSIS
     Amp             [1.500, 2.500) [2.500, 3.500) [3.500, 4.503)
     Mean...
     [-1.000, 0.000)            1.0            0.0            0.0

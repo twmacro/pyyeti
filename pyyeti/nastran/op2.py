@@ -2119,22 +2119,22 @@ class OP2:
         verbose : bool; optional
             If True, echo names of tables and matrices to screen
         get_all; bool; optional
-            If True, sets all other `get_*` parameters to True. Ignored if
-            False. It won't override `get_mats` or `get_dr_tables` if they
-            are lists or tuples.
+            If True, sets all other `get_*` parameters to
+            True. Ignored if False. It won't override `get_mats` or
+            `get_dr_tables` if they are lists or tuples.
         get_mats : bool or list/tuple; optional
             If True (or False), read (or do not read) matrices. If a
-            list/tuple, it is an iterable of data blocks to look for and
-            read if possible. Each name in the list can end with a "*" for
-            simple wildcard matching. For example::
+            list/tuple, it is an iterable of data blocks to look for
+            and read if possible. Each name in the list can end with a
+            "*" for simple wildcard matching. For example::
 
                 get_mats = ["K4HH", "M*"]
 
             would read in "K4HH" and all matrices that start with
             "M". In the output dictionary of this routine, each matrix
             is stored by its name in lower case. If `which` is "all",
-            then each entry is a list of all the matrices of each
-            name in the file (see :func:`OP2.rdop2mats`)
+            then each entry is a list of all the matrices of each name
+            in the file (see :func:`OP2.rdop2mats`)
         get_ougv1 : bool; optional
             If True, read the OUGV1, OUG1, or BOPHIG matrix, if
             present. See also `which`.
@@ -2144,19 +2144,19 @@ class OP2:
             If True, read the OES1 matrix, if any. See also `which`.
         get_dr_tables : bool or list/tuple; optional
             If True (or False), read (or do not read) data recovery
-            tables. Any data block that starts with "T" is checked and if
-            it is a data recovery table, it is read in. If a list/tuple,
-            it is an iterable of data blocks to look for and read if
-            possible. Each name in the list can end with a "*" for
-            simple wildcard matching. For example::
+            tables. Any data block that starts with "T" is checked and
+            if it is a data recovery table, it is read in. If a
+            list/tuple, it is an iterable of data blocks to look for
+            and read if possible. Each name in the list can end with a
+            "*" for simple wildcard matching. For example::
 
                 get_dr_tables = ["TUG*"]
 
             would read in all data recovery tables that match that
-            pattern, and only those. Setting `get_dr_tables` to True is
-            equivalent to setting to ``["T*"]``. In
-            the output dictionary of this routine, each matrix is stored
-            by its name in lower case. Each matrix is 3-columns::
+            pattern, and only those. Setting `get_dr_tables` to True
+            is equivalent to setting to ``["T*"]``. In the output
+            dictionary of this routine, each matrix is stored by its
+            name in lower case. Each matrix is 3-columns::
 
                 [id, dof, type]
 
@@ -2181,10 +2181,10 @@ class OP2:
             description in class OP2, member function
             :func:`OP2.rdn2cop2`.
         'cstm2' : dictionary
-            Dictionary indexed by the coordinate system id number. This
-            has the same information as 'cstm', but in a different format.
-            See description in class OP2, member function
-            :func:`OP2.rdn2cop2`.
+            Dictionary indexed by the coordinate system id
+            number. This has the same information as 'cstm', but in a
+            different format.  See description in class OP2, member
+            function :func:`OP2.rdn2cop2`.
         'lama' : ndarray or list of ndarrays
             The "LAMA" table; # modes x 7. List if `which` is "all".
         'dynamics' : ndarray or list of ndarrays
@@ -2199,9 +2199,9 @@ class OP2:
             file. The dictionary is the output of
             :func:`OP2.rdop2gpwg`. List if `which` is "all".
         'selist' : 2d ndarray
-            2-columns matrix: [ seid, dnseid ] where, for each row, dnseid
-            is the downstream superelement for seid. (dnseid = 0 if seid =
-            0).
+            2-columns matrix: [ seid, dnseid ] where, for each row,
+            dnseid is the downstream superelement for seid. (dnseid =
+            0 if seid = 0).
         'sebulk' : 2d ndarray
             output record from GEOM1 of SE 0
         'seload' : 2d ndarray
@@ -4182,10 +4182,12 @@ def rdparampost(
         output record from GEOM1 of SE 0
     'geom1' : dictionary
         Dictionary of GEOM1(S) data blocks; key is SE. Does not
-        depend on `which`.
+        depend on `which`. Will be empty if no GEOM1(S) data
+        blocks are in the op2 file.
     'bgpdt' : dictionary
         Dictionary of BGPDT(S) data blocks; key is SE. Does not
-        depend on `which`.
+        depend on `which`. Will be empty if no BGPDT(S) data
+        blocks are in the op2 file.
 
     Notes
     -----
