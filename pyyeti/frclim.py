@@ -819,7 +819,7 @@ def ntfl(Source, Load, As, freq):
     return SimpleNamespace(F=F, A=A, R=R, LAM=LAM, SAM=SAM, TAM=TAM, freq=freq)
 
 
-def sefl(c, f, f0):
+def sefl(c, f, f0, n=1):
     """
     Semi-empirical normalized force limit.
 
@@ -831,6 +831,11 @@ def sefl(c, f, f0):
         Frequency of interest, typically lower end of band.
     f0 : scalar
         Fundamental frequency in direction of interest.
+    n : scalar; optional
+        The exponent `n` of the rolloff factor ``(f0/f)^n`` is
+        included in the equations to reflect the decrease in the
+        residual mass of the component with frequency.
+
 
     Returns
     -------
@@ -839,8 +844,8 @@ def sefl(c, f, f0):
 
         .. code-block:: none
 
-            nfl = c                 f <= f0
-            nfl = c / (f/f0)        f > f0
+            nfl = c                   f <= f0
+            nfl = c / (f/f0)^n        f > f0
 
     Notes
     -----
@@ -872,7 +877,7 @@ def sefl(c, f, f0):
     """
     if f <= f0:
         return c
-    return f0 * c / f
+    return c / (f / f0) ** n
 
 
 def stdfs(mr, Q):

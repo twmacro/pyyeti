@@ -245,6 +245,7 @@ def test_ntfl_indeterminate():
 def test_sefl():
     assert np.allclose(1.5, frclim.sefl(1.5, 40, 80))
     assert np.allclose(1.5 / 2, frclim.sefl(1.5, 80, 40))
+    assert np.allclose(1.5 * (1 / 2) ** 2, frclim.sefl(1.5, 80, 40, 2))
 
 
 def test_stdfs():
