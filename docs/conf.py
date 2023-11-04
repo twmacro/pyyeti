@@ -62,10 +62,6 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_toggleprompt",
     "sphinx_copybutton",
-    # bug in anaconda package??:
-    #  https://github.com/ContinuumIO/anaconda-issues/issues/1430
-    # could do: conda update ipython -c conda-forge
-    # 'IPython.sphinxext.ipython_console_highlighting',
 ]
 
 highlight_language = "python3"
@@ -100,9 +96,9 @@ plot_formats = [
 plot_html_show_formats = False
 plot_html_show_source_link = False
 
-# Defaults to 0 if not provided. Use 25 so toggleprompt and copybutton
+# Defaults to 0 if not provided. Use 35 so toggleprompt and copybutton
 # work together
-toggleprompt_offset_right = 25
+toggleprompt_offset_right = 35
 
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 copybutton_prompt_is_regexp = True
@@ -125,30 +121,6 @@ master_doc = "index"
 project = "pyYeti"
 copyright = "2015-2023, Tim Widrick"
 author = "Tim Widrick"
-
-# The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
-#
-# # The short X.Y version.
-# version = ""
-# # The full version, including alpha/beta/rc tags.
-# release = ""
-#
-# try:
-#     release = pkg_resources.get_distribution("pyyeti").version
-# except pkg_resources.DistributionNotFound:
-#     print(
-#         "To build the documentation, the distribution information "
-#         "of pyYeti must be available. Either install the package "
-#         'or run "python setup.py develop"'
-#     )
-#     sys.exit(1)
-# del pkg_resources
-# version = ".".join(release.split(".")[:2])
-#
-# print(f"{release=}, {version=}")
-# sys.exit(1)
 
 release = __version__
 version = ".".join(release.split(".")[:2])
