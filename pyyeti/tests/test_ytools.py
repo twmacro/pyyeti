@@ -4,6 +4,7 @@ import tempfile
 import os
 from pyyeti import ytools
 from scipy import linalg
+from scipy import interpolate as sint
 import pytest
 
 
@@ -275,3 +276,47 @@ def test_max_complex_vector_sum():
         for a in np.arange(0.0, np.pi, 0.001):
             mx[i] = max(mx[i], np.abs(np.cos(a) * xi + np.sin(a) * yi))
     assert (np.abs(h) >= mx).all()
+
+try:
+    import numba
+except ImportError:
+    pass
+else:
+
+    def test_numba_interp_32():
+        fp = np.array([[2, 1, 4]])
+        fp = np.tile(fp, (100, 1))
+        xp = np.array([1., 2., 3.])
+        x = np.arange(0, 4, 0.1)
+
+        f = ytools.numba_interp(x, xp, fp.astype(np.float32))
+
+        assert f.dtype == np.float32
+
+        # Compare against SciPy Interpolate, interp1d - with "hold value" extrapolation instead of linear extrapolation
+        interp_func = sint.interp1d(xp, fp, bounds_error=False, fill_value=(fp[:, 0], fp[:, -1]))
+        f_scipy = interp_func(x)
+
+        np.testing.assert_array_almost_equal(f, f_scipy, decimal=7)
+
+
+    def test_numba_interp_64():
+        fp = np.array([[2, 1, 4]])
+        fp = np.tile(fp, (100, 1))
+        xp = np.array([1., 2., 3.])
+        x = np.arange(0, 4, 0.1)
+
+        f = ytools.numba_interp(x, xp, fp.astype(np.int32))
+        assert f.dtype == np.float64
+
+        f = ytools.numba_interp(x, xp, fp.astype(np.int64))
+        assert f.dtype == np.float64
+
+        f = ytools.numba_interp(x, xp, fp.astype(np.float64))
+        assert f.dtype == np.float64
+
+        # Compare against SciPy Interpolate, interp1d - with "hold value" extrapolation instead of linear extrapolation
+        interp_func = sint.interp1d(xp, fp, bounds_error=False, fill_value=(fp[:, 0], fp[:, -1]))
+        f_scipy = interp_func(x)
+
+        np.testing.assert_array_equal(f, f_scipy)
