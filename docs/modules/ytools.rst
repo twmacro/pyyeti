@@ -22,6 +22,7 @@ Math/utility routines
     mkpattvec
     multmd
     np_printoptions
+    numba_interp
     reorder_dict
     sturm
 

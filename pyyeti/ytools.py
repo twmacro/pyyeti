@@ -1848,24 +1848,28 @@ except ImportError:
     pass
 else:
 
-    def numba_interp(x: np.ndarray,
-                     xp: np.ndarray,
-                     fp: np.ndarray) -> np.ndarray:
-        """ Interpolation of entire time history matrices. Uses Numba to parallelize interpolation across rows of fp.
+    def numba_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+        """
+        Apply np.interp to each row of 2d array.
+
+        Uses Numba to parallelize interpolation.
 
         Parameters
         ----------
-        x : numpy.ndarray
-            The x-coordinates at which to evaluate the interpolated values.
-        xp : numpy.ndarray
+        x : 1d ndarray
+            The x-coordinates at which to evaluate the interpolated
+            values.
+        xp : 1d ndarray
             The x-coordinates of the data points. 1-dimensional.
-        fp : numpy.ndarray
-            The y-coordinates of the data points, with shape [Any # rows, xp.shape[0]]
+        fp : 2d ndarray
+            The y-coordinates of the data points, with shape [Any #
+            rows, xp.shape[0]]
 
         Returns
         -------
-        np.ndarray
-            The interpolated values, with shape [fp.shape[0], x.shape[0]]
+        2d ndarray
+            The interpolated values, with shape [fp.shape[0],
+            x.shape[0]]
         """
 
         # Ensure that x and xp are float64
@@ -1880,7 +1884,11 @@ else:
 
         return f
 
-    @numba.njit('float32[:, :](float64[:], float64[:], float32[:, :])', parallel=True, nogil=True)
+    @numba.njit(
+        "float32[:, :](float64[:], float64[:], float32[:, :])",
+        parallel=True,
+        nogil=True,
+    )
     def _numba_interp_32(x, xp, fp):  # pragma: no cover
         n_rows = fp.shape[0]
         n_cols = x.shape[0]
@@ -1890,7 +1898,11 @@ else:
                 f[i_row, :] = np.interp(x, xp, fp[i_row, :])
         return f
 
-    @numba.njit('float64[:, :](float64[:], float64[:], float64[:, :])', parallel=True, nogil=True)
+    @numba.njit(
+        "float64[:, :](float64[:], float64[:], float64[:, :])",
+        parallel=True,
+        nogil=True,
+    )
     def _numba_interp_64(x, xp, fp):  # pragma: no cover
         n_rows = fp.shape[0]
         n_cols = x.shape[0]
