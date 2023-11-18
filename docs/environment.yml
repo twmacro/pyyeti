@@ -11,7 +11,7 @@ dependencies:
   - sphinx>=4.0
   - ipython>=4
   - notebook>=4
+  - numba
   - sphinx-copybutton
+  - sphinx-toggleprompt
   - pygments
-  - pip:
-    - sphinx-toggleprompt
