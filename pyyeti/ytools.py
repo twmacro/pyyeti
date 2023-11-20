@@ -1852,7 +1852,7 @@ else:
         """
         Apply np.interp to each row of 2d array.
 
-        Uses Numba to parallelize interpolation.
+        Uses Numba to parallelize interpolation across rows of `fp`.
 
         Parameters
         ----------
