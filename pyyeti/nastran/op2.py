@@ -2289,7 +2289,7 @@ class OP2:
         }
 
         eqexin, name = self._rddatablock(
-            ["EQEXINS, EQEXIN"], self._rdop2eqexin, verbose
+            ["EQEXINS", "EQEXIN"], self._rdop2eqexin, verbose
         )
         if eqexin:
             eqexin1, eqexin = eqexin

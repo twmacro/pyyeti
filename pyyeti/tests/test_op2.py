@@ -713,3 +713,9 @@ def test_rdparampost():
     assert len(pa["geom1"]) == len(pa["bgpdt"]) == 0
     assert "lama" in pa
     assert "ougv1" in pa
+
+
+def test_rdparampost_uset():
+    p = op2.rdparampost("pyyeti/tests/nas2cam_extseout/inboard.op2")
+    u, c, b = bulk.asm2uset("pyyeti/tests/nas2cam_extseout/inboard.asm")
+    assert np.all(p["uset"].loc[u.loc[b].index] == u.loc[b])
