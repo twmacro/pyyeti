@@ -5,7 +5,7 @@ Collection of tools used for CLA - coupled loads analysis
 
 from ._utilities import *
 from .dr_def import DR_Def
-from .dr_event import DR_Event
+from .dr_event import DR_Event, apply_uf
 from .dr_results_plots import mk_plots
 from .dr_results import DR_Results, get_drfunc
 from ._magpct import magpct

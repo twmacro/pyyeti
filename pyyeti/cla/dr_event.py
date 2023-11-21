@@ -486,124 +486,10 @@ class DR_Event:
 
               F = m*a + b*v + k*d
         """
-        n = k.shape[0]
-        use_velo = True
-
-        # ensure that rfmodes is an index type:
-        if rfmodes is not None:
-            rfmodes = np.atleast_1d(rfmodes)
-            if np.issubdtype(rfmodes.dtype, np.bool_):
-                rfmodes = rfmodes.nonzero()[0]
-
-        # genforce = m*a + b*v + k*d
-        def _comp_genforce(sol, d):
-            if m is None:
-                genforce = sol.a.copy()
-            elif m.ndim == 1:
-                genforce = m[:, None] * sol.a
-            else:
-                genforce = m @ sol.a
-
-            if b.ndim == 1:
-                genforce += b[:, None] * sol.v
-            else:
-                genforce += b @ sol.v
-
-            if k.ndim == 1:
-                genforce += k[:, None] * d
-            else:
-                genforce += k @ d
-            return genforce
-
         solout = {}
-        # This routine will do its work in two loops:
-        # - a copy loop
-        # - an apply ufs loop
-        # The copy loop is separate to be efficient, since copying
-        # from 'F' order to 'C' order is slower than 'C' to 'C'
-        last = None
-        for item in self.UF_reds:
-            if last:
-                solout[item] = copy.deepcopy(last)
-            else:
-                # we want C contiguous a, v, d variables for faster uf
-                # application
-                # - variable 'd' is skipped because it is created
-                #   below
-                solout[item] = SimpleNamespace()
-                for name, value in vars(sol).items():
-                    if name == "d":
-                        continue
-                    try:
-                        valcopy = value.copy()
-                    except AttributeError:
-                        valcopy = copy.deepcopy(value)
-                    setattr(solout[item], name, valcopy)
-                last = solout[item]
-                genforce = _comp_genforce(last, sol.d)
-
-        for item in self.UF_reds:
-            ruf, euf, duf, suf = item
-            SOL = solout[item]
-            SOL.d_static = np.empty_like(SOL.a)
-            SOL.d_dynamic = np.empty_like(SOL.a)
-
-            # apply ufs:
-            if nrb > 0:
-                SOL.a[:nrb] *= ruf * suf
-                SOL.v[:nrb] *= ruf * suf
-                SOL.d_static[:nrb] = 0.0
-                SOL.d_dynamic[:nrb] = 0.0
-
-            if rfmodes is not None:
-                SOL.a[rfmodes] = 0.0
-                SOL.v[rfmodes] = 0.0
-
-            try:
-                SOL.pg *= suf
-            except AttributeError:
-                pass
-
-            if nrb < n:
-                SOL.a[nrb:] *= euf * duf
-                SOL.v[nrb:] *= euf * duf
-
-                if m is None:
-                    avterm = SOL.a[nrb:].copy()
-                elif m.ndim == 1:
-                    avterm = m[nrb:, None] * SOL.a[nrb:]
-                else:
-                    avterm = m[nrb:, nrb:] @ SOL.a[nrb:]
-
-                if not use_velo:  # pragma: no cover
-                    msg = (
-                        "not including velocity term in mode-"
-                        "acceleration formulation for "
-                        "displacements."
-                    )
-                    warnings.warn(msg, RuntimeWarning)
-                else:
-                    if b.ndim == 1:
-                        avterm += b[nrb:, None] * SOL.v[nrb:]
-                    else:
-                        avterm += b[nrb:, nrb:] @ SOL.v[nrb:]
-
-                # in case there is mass coupling between rfmodes and
-                # other modes
-                if rfmodes is not None:
-                    avterm[rfmodes - nrb] = 0.0
-
-                gf = (euf * suf) * genforce[nrb:]
-                if k.ndim == 1:
-                    invk = (1 / k[nrb:])[:, None]
-                    SOL.d_static[nrb:] = invk * gf
-                    SOL.d_dynamic[nrb:, :] = -invk * avterm
-                else:
-                    lup = la.lu_factor(k[nrb:, nrb:])
-                    SOL.d_static[nrb:] = la.lu_solve(lup, gf)
-                    SOL.d_dynamic[nrb:, :] = la.lu_solve(lup, -avterm)
-
-                SOL.d = SOL.d_static + SOL.d_dynamic
+        save = {}
+        for uf_reds in self.UF_reds:
+            solout[uf_reds] = apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save)
         return solout
 
     def frf_apply_uf(self, sol, nrb):
@@ -680,3 +566,190 @@ class DR_Event:
             if v.srsQs is not None:
                 Qs |= set(v.srsQs)  # or: Qs = Qs.union(v.srsQs)
         return sorted(Qs)
+
+
+# genforce = m*a + b*v + k*d
+def _comp_genforce(sol, m, b, k):
+    if m is None:
+        genforce = sol.a.copy()
+    elif m.ndim == 1:
+        genforce = m[:, None] * sol.a
+    else:
+        genforce = m @ sol.a
+
+    if b.ndim == 1:
+        genforce += b[:, None] * sol.v
+    else:
+        genforce += b @ sol.v
+
+    if k.ndim == 1:
+        genforce += k[:, None] * sol.d
+    else:
+        genforce += k @ sol.d
+    return genforce
+
+
+def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
+    """
+    Applies the uncertainty factors to the modal ODE solution
+
+    Parameters
+    ----------
+    sol : SimpleNamespace
+        Solution, input only; expected to have::
+
+            .a = modal acceleration time-history matrix
+            .v = modal velocity time-history matrix
+            .d = modal displacement time-history matrix
+            .pg = g-set forces; optional
+
+    uf_reds : 4-element tuple
+        This is the uncertainty factors in "reds" order: [rigid,
+        elastic, dynamic, static].
+    m : 1d or 2d ndarray or None
+        Modal mass; can be vector or matrix or None (for identity)
+    b : 1d or 2d ndarray
+        Modal damping; vector or matrix
+    k : 1d or 2d ndarray
+        Modal stiffness; vector or matrix
+    nrb : scalar
+        Number of rigid-body modes
+    rfmodes : 1d array or None
+        Index or bool partition vector specifying where the
+        residual-flexibility modes are; if None, there are no
+        res-flex vectors.
+    save : None or dict; optional
+        For efficiency. When calling this routine multiple times to
+        apply different uncertainty factors (that is, only `uf_reds`
+        is changing), set `save` to an empty dict; this routine will
+        put items in `save` to avoid unnecessary calculations.
+
+    Returns
+    -------
+    solout : SimpleNamespace
+
+        The scaled version of `sol`. Additionally, the displacement member is
+        separated into static and dynamic parts::
+
+            .a
+            .v
+            .d
+            .d_static
+            .d_dynamic
+            .pg (optional)
+
+        where::
+
+            solout.d = solout.d_static + solout.d_dynamic
+
+    Notes
+    -----
+    Uncertainty factors are applied as follows (rb=rigid-body,
+    el=elastic, rf=residual-flexibility)::
+
+       ruf = rb uncertainty factor
+       euf = el uncertainty factor
+       duf = dynamic uncertainty factor
+       suf = static uncertainty factor
+
+       .a_rb and .v_rb - scaled by ruf*suf
+       .a_el and .v_el - scaled by euf*duf
+       .a_rf and .v_rf - zeroed out
+
+       .d_rb - zeroed out
+       .d_el - static part:  scaled by euf*suf
+             - dynamic part: scaled by euf*duf
+       .d_rf - scaled by euf*suf
+
+       .pg   - scaled by suf
+
+    Note that d_el is written out as::
+
+          d_el = euf*inv(k_el)*(suf*F_el - duf*(a_el+b_el*v_el))
+
+    where::
+
+          F = m*a + b*v + k*d
+    """
+    # ensure that rfmodes is an index type:
+    if rfmodes is not None:
+        rfmodes = np.atleast_1d(rfmodes)
+        if np.issubdtype(rfmodes.dtype, np.bool_):
+            rfmodes = rfmodes.nonzero()[0]
+
+    try:
+        genforce = save["genforce"]
+    except TypeError:
+        genforce = _comp_genforce(sol, m, b, k)
+    except KeyError:
+        genforce = _comp_genforce(sol, m, b, k)
+        save["genforce"] = genforce
+
+    solout = SimpleNamespace(**vars(sol))
+    # don't change original a, v, d, or pg (d is created below)
+    solout.a = solout.a.copy()
+    solout.v = solout.v.copy()
+    try:
+        solout.pg = sol.pg.copy()
+    except AttributeError:
+        pass
+
+    solout.d_static = np.empty_like(solout.a)
+    solout.d_dynamic = np.empty_like(solout.a)
+
+    # apply ufs:
+    ruf, euf, duf, suf = uf_reds
+    if nrb > 0:
+        solout.a[:nrb] *= ruf * suf
+        solout.v[:nrb] *= ruf * suf
+        solout.d_static[:nrb] = 0.0
+        solout.d_dynamic[:nrb] = 0.0
+
+    if rfmodes is not None:
+        solout.a[rfmodes] = 0.0
+        solout.v[rfmodes] = 0.0
+
+    try:
+        solout.pg *= suf
+    except AttributeError:
+        pass
+
+    if nrb < k.shape[0]:
+        solout.a[nrb:] *= euf * duf
+        solout.v[nrb:] *= euf * duf
+
+        if m is None:
+            avterm = solout.a[nrb:].copy()
+        elif m.ndim == 1:
+            avterm = m[nrb:, None] * solout.a[nrb:]
+        else:
+            avterm = m[nrb:, nrb:] @ solout.a[nrb:]
+
+        if b.ndim == 1:
+            avterm += b[nrb:, None] * solout.v[nrb:]
+        else:
+            avterm += b[nrb:, nrb:] @ solout.v[nrb:]
+
+        # in case there is mass coupling between rfmodes and
+        # other modes
+        if rfmodes is not None:
+            avterm[rfmodes - nrb] = 0.0
+
+        gf = (euf * suf) * genforce[nrb:]
+        if k.ndim == 1:
+            kel = k[nrb:, None]
+            solout.d_static[nrb:] = gf / kel
+            solout.d_dynamic[nrb:, :] = -avterm / kel
+        else:
+            try:
+                lup = save["lup"]
+            except TypeError:
+                lup = la.lu_factor(k[nrb:, nrb:])
+            except KeyError:
+                lup = la.lu_factor(k[nrb:, nrb:])
+                save["lup"] = lup
+            solout.d_static[nrb:] = la.lu_solve(lup, gf)
+            solout.d_dynamic[nrb:, :] = la.lu_solve(lup, -avterm)
+
+        solout.d = solout.d_static + solout.d_dynamic
+    return solout

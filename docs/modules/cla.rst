@@ -66,6 +66,7 @@ Utility routines
 .. autosummary::
     :toctree: generated/
 
+    apply_uf
     extrema
     freq3_augment
     get_drfunc

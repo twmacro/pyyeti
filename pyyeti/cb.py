@@ -47,10 +47,10 @@ def cbtf(m, b, k, a, freq, bset, save=None):
         Frequency vector in Hz for solution.
     bset : 1d ndarray
         Index partition vector for the b-set; eg, np.arange(6)
-    save : None or dict
-        When using multiple `a` inputs, set `save` to an empty dict;
-        this routine will put items in `save` to avoid unnecessary
-        calculations.
+    save : None or dict; optional
+        For efficiency. When using multiple `a` inputs, set `save` to
+        an empty dict; this routine will put items in `save` to avoid
+        unnecessary calculations.
 
     Returns
     -------
