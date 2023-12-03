@@ -3286,10 +3286,12 @@ def test_getmodepart():
         ax = plt.gca()
         # the next line is preferable for normal use ... however,
         # for more complete test coverage, use the 2nd one:
+
         # self.on(ax, callbacks=False)
         self.on()
-        x, y, point = self._snap(ax, 7.0, 0.8)
-        self._add_point(x, y, point)
+
+        point = self._snap(ax, 200.0, 200.0)
+        self._add_point(point)
         self.off()
         return 1
 

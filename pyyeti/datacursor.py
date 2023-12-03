@@ -390,6 +390,7 @@ class DataCursor(object):
         self._bid = {}  # button press event
         self._aid = {}  # axes leave event
         self._fig_layout_engine = {}
+        self._xydata_display = {}
         self._setup_annotations()
         if callbacks:
             for fig in self._figs:
@@ -488,11 +489,12 @@ class DataCursor(object):
     def _is3d(ax):
         return hasattr(ax, "get_proj")
 
-    def _add_point(self, x, y, point):
+    def _add_point(self, point):
         self.points.append(point)
         # if 3d, set visible to False (i don't know how to get proper
         # coordinates for the dot):
         vis = False if self._is3d(point.ax) else True
+        x, y = self._get_annotation_xy(point)
         self.pts.append(self._add_annotation_point(point.ax, x, y, self.permdot, vis))
         self.notes.append(self._annotation[point.ax])
         # make a new annotation box so current one is static
@@ -530,19 +532,18 @@ class DataCursor(object):
         if event.inaxes is None:
             return
         if event.inaxes in self._ax:
-            ax = event.inaxes
-        else:
-            # for overlapping axes, only top axes gets the event, so
-            # check others manually
-            for ax in self._ax:
-                pt = (event.x, event.y)
-                if ax.contains_point(pt):
-                    inv = ax.transData.inverted()
-                    event.xdata, event.ydata = inv.transform_point(pt)
-                    break
-            else:
-                return
-        return ax
+            return event.inaxes
+
+        # this code doesn't make sense ... still only returns one axes ... ?
+        # - commented out on 12/3/2023
+        # # for overlapping axes, only top axes gets the event, so check
+        # # others manually
+        # for ax in self._ax:
+        #     pt = (event.x, event.y)
+        #     if ax.contains_point(pt):
+        #         inv = ax.transData.inverted()
+        #         event.xdata, event.ydata = inv.transform_point(pt)
+        #         return ax
 
     def _key(self, event):
         """
@@ -568,15 +569,21 @@ class DataCursor(object):
         self._dot[ax].set_visible(False)
         event.canvas.draw()
 
+    def _get_annotation_xy(self, point):
+        # get coordinates used by annotation:
+        _, _, x_ann, y_ann = self._xydata_display[point.handle]
+        return x_ann[point.index], y_ann[point.index]
+
     def _follow(self, event):
         """Event handler for when mouse is moved insided axes and for
         left and right clicks."""
         ax = self._get_ax(event)
         if not ax:
             return
-        x, y, point = self._snap(ax, event.xdata, event.ydata)
-        if x is None:
+        point = self._snap(ax, event.x, event.y)
+        if point is None:
             return
+        x, y = self._get_annotation_xy(point)
         annotation = self._annotation[ax]
         dot = self._dot[ax]
         annotation.xy = x, y
@@ -585,7 +592,7 @@ class DataCursor(object):
         if event.name == "button_press_event":
             if event.button == 1:
                 annotation.set_visible(True)
-                self._add_point(x, y, point)
+                self._add_point(point)
             elif event.button == 3 and len(self.points) > 0:
                 self._del_point(ax=ax)
         elif self.hover:
@@ -627,8 +634,28 @@ class DataCursor(object):
             x, y = (*h.get_offsets().data.T,)
         return x, y
 
+    def _get_xy_data_display(self, ax, h):
+        try:
+            return self._xydata_display[h]
+        except KeyError:
+            pass
+
+        if isinstance(h, Line2D):
+            x_ann, y_ann = h.get_xdata(), h.get_ydata()
+            x = ax.convert_xunits(x_ann)
+            y = ax.convert_yunits(y_ann)
+        elif hasattr(h, "_offsets3d"):
+            x, y, _ = proj3d.proj_transform(*np.array(h._offsets3d), ax.get_proj())
+            x_ann, y_ann = x, y
+        else:
+            x, y = (*h.get_offsets().data.T,)
+            x_ann, y_ann = x, y
+        x, y = ax.transData.transform(np.column_stack((x, y))).T
+        self._xydata_display[h] = x, y, x_ann, y_ann
+        return self._xydata_display[h]
+
     @staticmethod
-    def _get_xyz(ax, h, ind):
+    def _get_xyz(h, ind):
         """
         Get original 3D location of a point, instead of the mapped-to-2D
         x, y location
@@ -643,17 +670,10 @@ class DataCursor(object):
         self._annotation = {}
         self._dot = {}
         for ax in self._ax:
-            handles = self._get_data_handles(ax)
-            if len(handles) > 0:
-                x, y = self._get_xy_data(ax, handles[0])
-                xy = x[0], y[0]
-            else:
-                xy = 0, 0
-            self._annotation[ax] = self._new_annotation(ax, xy)
             xl, yl = ax.get_xlim(), ax.get_ylim()
+            xy = sum(xl) / 2, sum(yl) / 2
+            self._annotation[ax] = self._new_annotation(ax, xy)
             self._dot[ax] = self._add_annotation_point(ax, *xy, self.followdot, False)
-            ax.set_xlim(xl)
-            ax.set_ylim(yl)
 
     def _snap(self, ax, x, y):
         """Return the plotted value closest to x, y."""
@@ -661,39 +681,31 @@ class DataCursor(object):
         lines = self._get_data_handles(ax)
         nlines = len(self._get_data_handles(ax))
         if nlines == 0:
-            return None, None, None
+            return None
+        best = None
         for n, h in enumerate(lines):
-            xdata, ydata = self._get_xy_data(ax, h)
-
-            if isinstance(h, Line2D):
-                xdata_float = ax.convert_xunits(xdata)
-                ydata_float = ax.convert_yunits(ydata)
-            else:
-                xdata_float = xdata
-                ydata_float = ydata
-
-            dx = (xdata_float - x) / np.diff(ax.get_xlim())[0]
-            dy = (ydata_float - y) / np.diff(ax.get_ylim())[0]
+            xdata, ydata, *_ = self._get_xy_data_display(ax, h)
+            dx = xdata - x
+            dy = ydata - y
             d = dx**2.0 + dy**2.0
             ind = np.nanargmin(d)
             if d[ind] < dmin:
                 dmin = d[ind]
-                best = xdata[ind], ydata[ind], n, ind, h
+                best = n, ind, h
 
-        # x, y, n, ind, handle = self._snap(ax, x, y)
         if best is None:
-            return None, None, None
-        x, y, n, ind, handle = best
+            return None
+        n, ind, handle = best
+        # get original data coordinates
         if self._is3d(ax):
-            # get original data coordinates
-            xo, yo, zo = self._get_xyz(ax, handle, ind)
+            xo, yo, zo = self._get_xyz(handle, ind)
         else:
-            xo, yo = x, y
+            xo, yo = handle.get_xydata()[ind]
             zo = None
         point = SimpleNamespace(
             x=xo, y=yo, z=zo, ax=ax, n=n, index=ind, handle=handle, nlines=nlines
         )
-        return x, y, point
+        return point
 
     def _fake_getdata(self):
         """
