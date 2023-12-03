@@ -389,6 +389,7 @@ class DataCursor(object):
         self._mid = {}  # motion event
         self._bid = {}  # button press event
         self._aid = {}  # axes leave event
+        self._fig_layout_engine = {}
         self._setup_annotations()
         if callbacks:
             for fig in self._figs:
@@ -399,6 +400,8 @@ class DataCursor(object):
                         self._mid[fig] = cvs.mpl_connect(
                             "motion_notify_event", self._follow
                         )
+                        self._fig_layout_engine[fig] = fig.get_layout_engine()
+                        fig.set_layout_engine("none")
                     else:
                         self._mid[fig] = None
                     self._bid[fig] = cvs.mpl_connect("button_press_event", self._follow)
@@ -435,8 +438,11 @@ class DataCursor(object):
             for fig in self._figs:
                 if fig in self._kid:
                     fig.canvas.mpl_disconnect(self._kid[fig])
-                if self.hover and fig in self._mid and self._mid[fig] is not None:
-                    fig.canvas.mpl_disconnect(self._mid[fig])
+                if self.hover:
+                    if fig in self._mid and self._mid[fig] is not None:
+                        fig.canvas.mpl_disconnect(self._mid[fig])
+                    if fig in self._fig_layout_engine:
+                        fig.set_layout_engine(self._fig_layout_engine[fig])
                 if fig in self._bid:
                     fig.canvas.mpl_disconnect(self._bid[fig])
                     fig.canvas.mpl_disconnect(self._aid[fig])
