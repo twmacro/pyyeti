@@ -401,8 +401,9 @@ class DataCursor(object):
                         self._mid[fig] = cvs.mpl_connect(
                             "motion_notify_event", self._follow
                         )
-                        self._fig_layout_engine[fig] = fig.get_layout_engine()
-                        fig.set_layout_engine("none")
+                        if hasattr(fig, "get_layout_engine"):
+                            self._fig_layout_engine[fig] = fig.get_layout_engine()
+                            fig.set_layout_engine("none")
                     else:
                         self._mid[fig] = None
                     self._bid[fig] = cvs.mpl_connect("button_press_event", self._follow)
