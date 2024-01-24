@@ -4,11 +4,11 @@ DR_Event: Setup data recovery for a specific event or set of modes
 """
 import copy
 from types import SimpleNamespace
-import warnings
 from collections import OrderedDict
 import numpy as np
 import scipy.linalg as la
 from pyyeti.ytools import reorder_dict
+from pyyeti.locate import flippv
 from pyyeti.nastran import n2p
 from .dr_results import DR_Results
 from ._utilities import _merge_uf_reds
@@ -569,7 +569,35 @@ class DR_Event:
 
 
 # genforce = m*a + b*v + k*d
-def _comp_genforce(sol, m, b, k):
+def _comp_genforce(sol, m, b, k, rfmodes):
+    if rfmodes is not None:
+        n = sol.a.shape[0]
+        nonrf = flippv(rfmodes, n)
+        nn = np.ix_(nonrf, nonrf)
+
+        genforce = np.empty((n, sol.a.shape[1]))
+
+        if m is None:
+            genforce[nonrf] = sol.a[nonrf].copy()
+        elif m.ndim == 1:
+            genforce[nonrf] = m[nonrf, None] * sol.a[nonrf]
+        else:
+            genforce[nonrf] = m[nn] @ sol.a[nonrf]
+
+        if b.ndim == 1:
+            genforce[nonrf] += b[nonrf, None] * sol.v[nonrf]
+        else:
+            genforce[nonrf] += b[nn] @ sol.v[nonrf]
+
+        if k.ndim == 1:
+            genforce[nonrf] += k[nonrf, None] * sol.d[nonrf]
+            genforce[rfmodes] = k[rfmodes, None] * sol.d[rfmodes]
+        else:
+            genforce[nonrf] += k[nn] @ sol.d[nonrf]
+            genforce[rfmodes] = k[np.ix_(rfmodes, rfmodes)] @ sol.d[rfmodes]
+
+        return genforce
+
     if m is None:
         genforce = sol.a.copy()
     elif m.ndim == 1:
@@ -586,6 +614,7 @@ def _comp_genforce(sol, m, b, k):
         genforce += k[:, None] * sol.d
     else:
         genforce += k @ sol.d
+
     return genforce
 
 
@@ -680,9 +709,9 @@ def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
     try:
         genforce = save["genforce"]
     except TypeError:
-        genforce = _comp_genforce(sol, m, b, k)
+        genforce = _comp_genforce(sol, m, b, k, rfmodes)
     except KeyError:
-        genforce = _comp_genforce(sol, m, b, k)
+        genforce = _comp_genforce(sol, m, b, k, rfmodes)
         save["genforce"] = genforce
 
     solout = SimpleNamespace(**vars(sol))
@@ -730,8 +759,8 @@ def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
         else:
             avterm += b[nrb:, nrb:] @ solout.v[nrb:]
 
-        # in case there is mass coupling between rfmodes and
-        # other modes
+        # in case there is mass or damping coupling between rfmodes
+        # and other modes
         if rfmodes is not None:
             avterm[rfmodes - nrb] = 0.0
 

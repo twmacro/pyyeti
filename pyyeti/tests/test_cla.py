@@ -1756,7 +1756,7 @@ def test_event_add():
     assert np.all(SOL[(2, 2, 2, 2)].pg == 2 * sol.pg)
 
 
-def test_rfmodes_apply_uf():
+def test_rfmodes_apply_uf_1():
     sol = SimpleNamespace()
     sol.a = np.ones((4, 10))
     sol.v = sol.a + 1.0
@@ -1788,6 +1788,58 @@ def test_rfmodes_apply_uf():
         None,
         np.ones(4, float),
         np.ones(4, float) + 1.0,
+        2,
+        np.array([False, False, False, True]),
+    )
+
+    for attr in sol1[reds].__dict__:
+        assert np.allclose(getattr(sol1[reds], attr), getattr(sol2[reds], attr))
+
+
+def test_rfmodes_apply_uf_2():
+    sol = SimpleNamespace()
+    sol.a = np.ones((4, 10))
+    sol.v = sol.a + 1.0
+    sol.d = sol.a + 2.0
+
+    reds = (1.1, 1.2, 1.3, 1.4)
+
+    defaults = dict(
+        se=0,
+        uf_reds=reds,
+    )
+
+    drdefs = cla.DR_Def(defaults)
+
+    @cla.DR_Def.addcat
+    def _():
+        name = "ATM"
+        desc = "First set of accelerations"
+        labels = 4
+        drfunc = "blah * 4"
+        drdefs.add(**locals())
+
+    DR = cla.DR_Event()
+    DR.add(None, drdefs)
+
+    m = np.ones((4, 4), float)
+    b = np.ones((4, 4), float) + 1.0
+    k = np.ones((4, 4), float) + 2.0
+    k[3, 3] += 3.0
+
+    sol1 = DR.apply_uf(
+        sol,
+        m,
+        b,
+        k,
+        2,
+        3,
+    )
+    sol2 = DR.apply_uf(
+        sol,
+        m,
+        b,
+        k,
         2,
         np.array([False, False, False, True]),
     )
