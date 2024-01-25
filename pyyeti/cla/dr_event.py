@@ -8,7 +8,7 @@ from collections import OrderedDict
 import numpy as np
 import scipy.linalg as la
 from pyyeti.ytools import reorder_dict
-from pyyeti.locate import flippv
+from pyyeti.locate import flippv, index2slice
 from pyyeti.nastran import n2p
 from .dr_results import DR_Results
 from ._utilities import _merge_uf_reds
@@ -618,6 +618,66 @@ def _comp_genforce(sol, m, b, k, rfmodes):
     return genforce
 
 
+# genforce = m*a + b*v + k*d
+# avterm = non-rb part of: m*a + b*v
+# - rfmodes is an index partition vector
+def _comp_genforce_avterm(sol, m, b, k, nrb, rfmodes):
+    if rfmodes is not None:
+        n = sol.a.shape[0]
+        nonrf = index2slice(flippv(rfmodes, n))
+        if isinstance(nonrf, slice):
+            nn = (nonrf, nonrf)
+        else:
+            nn = np.ix_(nonrf, nonrf)
+
+        genforce = np.empty((n, sol.a.shape[1]))
+
+        if m is None:
+            genforce[nonrf] = sol.a[nonrf]
+        elif m.ndim == 1:
+            genforce[nonrf] = m[nonrf, None] * sol.a[nonrf]
+        else:
+            genforce[nonrf] = m[nn] @ sol.a[nonrf]
+
+        if b.ndim == 1:
+            genforce[nonrf] += b[nonrf, None] * sol.v[nonrf]
+        else:
+            genforce[nonrf] += b[nn] @ sol.v[nonrf]
+
+        avterm = genforce[nrb:].copy()
+        avterm[rfmodes - nrb] = 0.0
+
+        if k.ndim == 1:
+            genforce[nonrf] += k[nonrf, None] * sol.d[nonrf]
+            genforce[rfmodes] = k[rfmodes, None] * sol.d[rfmodes]
+        else:
+            genforce[nonrf] += k[nn] @ sol.d[nonrf]
+            genforce[rfmodes] = k[np.ix_(rfmodes, rfmodes)] @ sol.d[rfmodes]
+
+        return genforce, avterm
+
+    if m is None:
+        genforce = sol.a.copy()
+    elif m.ndim == 1:
+        genforce = m[:, None] * sol.a
+    else:
+        genforce = m @ sol.a
+
+    if b.ndim == 1:
+        genforce += b[:, None] * sol.v
+    else:
+        genforce += b @ sol.v
+
+    avterm = genforce[nrb:].copy()
+
+    if k.ndim == 1:
+        genforce += k[:, None] * sol.d
+    else:
+        genforce += k @ sol.d
+
+    return genforce, avterm
+
+
 def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
     """
     Applies the uncertainty factors to the modal ODE solution
@@ -708,11 +768,12 @@ def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
 
     try:
         genforce = save["genforce"]
-    except TypeError:
-        genforce = _comp_genforce(sol, m, b, k, rfmodes)
-    except KeyError:
-        genforce = _comp_genforce(sol, m, b, k, rfmodes)
-        save["genforce"] = genforce
+        avterm = save["avterm"]
+    except (TypeError, KeyError) as err:
+        genforce, avterm = _comp_genforce_avterm(sol, m, b, k, nrb, rfmodes)
+        if isinstance(err, KeyError):
+            save["genforce"] = genforce
+            save["avterm"] = avterm
 
     solout = SimpleNamespace(**vars(sol))
     # don't change original a, v, d, or pg (d is created below)
@@ -743,42 +804,60 @@ def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
     except AttributeError:
         pass
 
-    if nrb < k.shape[0]:
-        solout.a[nrb:] *= euf * duf
-        solout.v[nrb:] *= euf * duf
-
-        if m is None:
-            avterm = solout.a[nrb:].copy()
-        elif m.ndim == 1:
-            avterm = m[nrb:, None] * solout.a[nrb:]
-        else:
-            avterm = m[nrb:, nrb:] @ solout.a[nrb:]
-
-        if b.ndim == 1:
-            avterm += b[nrb:, None] * solout.v[nrb:]
-        else:
-            avterm += b[nrb:, nrb:] @ solout.v[nrb:]
-
-        # in case there is mass or damping coupling between rfmodes
-        # and other modes
-        if rfmodes is not None:
-            avterm[rfmodes - nrb] = 0.0
-
-        gf = (euf * suf) * genforce[nrb:]
-        if k.ndim == 1:
-            kel = k[nrb:, None]
-            solout.d_static[nrb:] = gf / kel
-            solout.d_dynamic[nrb:, :] = -avterm / kel
-        else:
-            try:
-                lup = save["lup"]
-            except TypeError:
-                lup = la.lu_factor(k[nrb:, nrb:])
-            except KeyError:
-                lup = la.lu_factor(k[nrb:, nrb:])
-                save["lup"] = lup
-            solout.d_static[nrb:] = la.lu_solve(lup, gf)
-            solout.d_dynamic[nrb:, :] = la.lu_solve(lup, -avterm)
-
+    if nrb == k.shape[0]:
         solout.d = solout.d_static + solout.d_dynamic
+        return solout
+
+    avterm *= euf * duf
+    solout.a[nrb:] *= euf * duf
+    solout.v[nrb:] *= euf * duf
+
+    gf = (euf * suf) * genforce[nrb:]
+    if k.ndim == 1:
+        kel = k[nrb:, None]
+        solout.d_static[nrb:] = gf / kel
+        solout.d_dynamic[nrb:] = -avterm / kel
+        solout.d = solout.d_static + solout.d_dynamic
+        return solout
+
+    if rfmodes is not None:
+        elastic = flippv(rfmodes, k.shape[0])[nrb:]
+        both = elastic.size > 0
+    else:
+        both = False
+
+    if both:
+        try:
+            lup_elastic = save["lup_elastic"]
+            lup_rf = save["lup_rf"]
+        except (TypeError, KeyError) as err:
+            lup_elastic = la.lu_factor(k[np.ix_(elastic, elastic)], True, False)
+            lup_rf = la.lu_factor(k[np.ix_(rfmodes, rfmodes)], True, False)
+            if isinstance(err, KeyError):
+                save["lup_elastic"] = lup_elastic
+                save["lup_rf"] = lup_rf
+
+        solout.d_static[elastic] = la.lu_solve(lup_elastic, gf[elastic - nrb])
+        solout.d_dynamic[elastic] = la.lu_solve(lup_elastic, -avterm[elastic - nrb])
+        solout.d_static[rfmodes] = la.lu_solve(lup_rf, gf[rfmodes - nrb])
+        solout.d_dynamic[rfmodes] = 0.0
+        solout.d = solout.d_static + solout.d_dynamic
+        return solout
+
+    # have either elastic only or rfmodes only
+    # - whichever it is, it's just called "elastic" here
+    try:
+        lup_elastic = save["lup_elastic"]
+    except (TypeError, KeyError) as err:
+        lup_elastic = la.lu_factor(k[nrb:, nrb:], False, False)
+        if isinstance(err, KeyError):
+            save["lup_elastic"] = lup_elastic
+
+    solout.d_static[rfmodes] = la.lu_solve(lup_elastic, gf)
+    if rfmodes is not None:
+        solout.d_dynamic[nrb:] = 0.0
+    else:
+        solout.d_dynamic[nrb:] = la.lu_solve(lup_elastic, -avterm)
+
+    solout.d = solout.d_static + solout.d_dynamic
     return solout

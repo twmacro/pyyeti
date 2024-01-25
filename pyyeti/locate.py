@@ -344,13 +344,77 @@ def index2bool(pv, n):
     return tf
 
 
+def index2slice(pv, strict=False):
+    """
+    Convert index partition vector `pv` to a slice object
+
+    Parameters
+    ----------
+    pv : 1d ndarray
+        The index partition vector to convert.
+    strict : bool; optional
+        If False (the default) return `pv` unchanged if it cannot be
+        converted to a slice. If True, raise ValueError if `pv` cannot
+        be converted.
+
+    Returns
+    -------
+    Slice object or `pv`
+        If `pv` cannot be converted, output depends on `strict` (see above)
+
+    Raises
+    ------
+    ValueError
+        When `pv` is not 1d.
+    ValueError
+        When `pv` cannot be converted to a slice and `strict` is True
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyyeti.locate import index2slice
+    >>> pv = [3, 4, 5, 6]
+    >>> index2slice(pv)
+    slice(3, 7, 1)
+    >>> pv = [10, 7, 4, 1]
+    >>> index2slice(pv)
+    slice(10, None, -3)
+    >>> pv = [-1]
+    >>> index2slice(pv)
+    slice(-1, None, None)
+    >>> pv = np.array([0, 3, 5])
+    >>> index2slice(pv)  # doctest: +ELLIPSIS
+    array([0, 3, 5]...)
+    """
+    pv = np.atleast_1d(pv)
+    if pv.ndim != 1:
+        raise ValueError(f"`pv` has {pv.ndim} dimensions; must be 1d")
+    if pv.size == 0:
+        return slice(0)
+    if pv.size == 1:
+        stop = pv[0] + 1
+        if stop == 0:
+            stop = None
+        return slice(pv[0], stop)
+    d = np.diff(pv)
+    d0 = d[0]
+    if d0 != 0 and np.all(d == d0) and pv[0] >= 0 and pv[-1] >= 0:
+        stop = pv[-1] + d0
+        if stop < 0:
+            stop = None
+        return slice(pv[0], stop, d0)
+    if not strict:
+        return pv
+    raise ValueError("invalid partition vector for conversion to slice")
+
+
 def flippv(pv, n):
     """Flips the meaning of an index partition vector.
 
     Parameters
     ----------
     pv : 1d ndarray
-        The index partition to flip.
+        The index partition vector to flip.
     n : integer
         The length of the dimension to partition.
 

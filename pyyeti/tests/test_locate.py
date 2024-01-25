@@ -1,5 +1,6 @@
 import numpy as np
 from pyyeti import locate
+import pytest
 
 
 def test_find_rows():
@@ -89,3 +90,39 @@ def test_locate_misc():
     pv = np.array([0, 3, 5])
     tf = locate.index2bool(pv, 8)
     assert np.all(np.array([True, False, False, True, False, True, False, False]) == tf)
+
+
+def test_index2slice():
+    from pyyeti.locate import index2slice
+
+    a = np.arange(50, 100)
+
+    pv = [3, 4, 5, 6]
+    s = index2slice(pv)
+    assert s == slice(3, 7, 1)
+    assert (a[pv] == a[s]).all()
+
+    pv = [10, 7, 4]
+    s = index2slice(pv)
+    assert s == slice(10, 1, -3)
+    assert (a[pv] == a[s]).all()
+
+    pv = [-1]
+    s = index2slice(pv)
+    assert s == slice(-1, None, None)
+    assert (a[pv] == a[s]).all()
+
+    pv = [-3]
+    s = index2slice(pv)
+    assert s == slice(-3, -2, None)
+    assert (a[pv] == a[s]).all()
+
+    pv = np.array([1, 6, 7])
+    s = index2slice(pv)
+    assert s is pv
+
+    with pytest.raises(ValueError, match="invalid partition vector"):
+        index2slice(pv, strict=True)
+
+    with pytest.raises(ValueError, match="`pv` has 2 dimensions"):
+        index2slice([[3]])

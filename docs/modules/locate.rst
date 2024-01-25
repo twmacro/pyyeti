@@ -14,4 +14,5 @@ Tools for locating elements inside arrays/lists
     flippv
     mat_intersect
     index2bool
+    index2slice
     list_intersect
