@@ -1756,13 +1756,14 @@ def test_event_add():
     assert np.all(SOL[(2, 2, 2, 2)].pg == 2 * sol.pg)
 
 
-def test_rfmodes_apply_uf_1():
+def test_apply_uf_1():
     sol = SimpleNamespace()
     sol.a = np.ones((4, 10))
     sol.v = sol.a + 1.0
     sol.d = sol.a + 2.0
 
     reds = (1.1, 1.2, 1.3, 1.4)
+    # reds = (1, 1, 1, 1)
 
     defaults = dict(
         se=0,
@@ -1782,27 +1783,50 @@ def test_rfmodes_apply_uf_1():
     DR = cla.DR_Event()
     DR.add(None, drdefs)
 
-    sol1 = DR.apply_uf(sol, None, np.ones(4, float), np.ones(4, float) + 1.0, 2, 3)
-    sol2 = DR.apply_uf(
-        sol,
-        None,
-        np.ones(4, float),
-        np.ones(4, float) + 1.0,
-        2,
-        np.array([False, False, False, True]),
-    )
+    m = None
+    b = np.ones(4, float)
+    k = np.ones(4, float) + 1.0
+    nrb = 2
+    rf = np.array([False, False, False, True])
+
+    sol1 = DR.apply_uf(sol, m, b, k, nrb, 3)
+    sol2 = DR.apply_uf(sol, m, b, k, nrb, rf)
 
     for attr in sol1[reds].__dict__:
         assert np.allclose(getattr(sol1[reds], attr), getattr(sol2[reds], attr))
 
+    assert np.allclose(sol1[reds].a[:nrb], 1.0 * reds[0] * reds[3])  # rb
+    assert np.allclose(sol1[reds].a[nrb], 1.0 * reds[1] * reds[2])  # el
+    assert np.allclose(sol1[reds].a[rf], 0.0)  # el
 
-def test_rfmodes_apply_uf_2():
+    assert np.allclose(sol1[reds].v[:nrb], 2.0 * reds[0] * reds[3])  # rb
+    assert np.allclose(sol1[reds].v[nrb], 2.0 * reds[1] * reds[2])  # el
+    assert np.allclose(sol1[reds].v[rf], 0.0)  # el
+
+    f = 1 + 2 + 6
+    d_static = f / 2
+    d_dynamic = 3 - d_static
+    ds = d_static * reds[1] * reds[3]
+    dd = d_dynamic * reds[1] * reds[2]
+    assert np.allclose(sol1[reds].d[:nrb], 0.0)  # rb
+    assert np.allclose(sol1[reds].d_static[nrb], ds)  # el
+    assert np.allclose(sol1[reds].d_dynamic[nrb], dd)  # el
+    assert np.allclose(sol1[reds].d[nrb], ds + dd)  # el
+
+    ds = 3 * reds[1] * reds[3]
+    assert np.allclose(sol1[reds].d_static[rf], ds)  # rf
+    assert np.allclose(sol1[reds].d_dynamic[rf], 0.0)  # rf
+    assert np.allclose(sol1[reds].d[rf], ds)  # rf
+
+
+def test_apply_uf_2():
     sol = SimpleNamespace()
     sol.a = np.ones((4, 10))
     sol.v = sol.a + 1.0
     sol.d = sol.a + 2.0
 
-    reds = (1.1, 1.2, 1.3, 1.4)
+    reds = (1, 1, 1, 1)
+    # reds = (1.1, 1.2, 1.3, 1.4)
 
     defaults = dict(
         se=0,
@@ -1823,29 +1847,51 @@ def test_rfmodes_apply_uf_2():
     DR.add(None, drdefs)
 
     m = np.ones((4, 4), float)
-    b = np.ones((4, 4), float) + 1.0
-    k = np.ones((4, 4), float) + 2.0
-    k[3, 3] += 3.0
+    b = np.ones((4, 4), float)
+    k = b + 1.0
+    k[2, 2] += 1.0
+    k[3, 3] += 2.0
+    nrb = 2
+    rf = np.array([False, False, False, True])
 
-    sol1 = DR.apply_uf(
-        sol,
-        m,
-        b,
-        k,
-        2,
-        3,
-    )
-    sol2 = DR.apply_uf(
-        sol,
-        m,
-        b,
-        k,
-        2,
-        np.array([False, False, False, True]),
-    )
+    sol1 = DR.apply_uf(sol, m, b, k, nrb, 3)
+    sol2 = DR.apply_uf(sol, m, b, k, nrb, rf)
 
     for attr in sol1[reds].__dict__:
         assert np.allclose(getattr(sol1[reds], attr), getattr(sol2[reds], attr))
+
+    assert np.allclose(sol1[reds].a[:nrb], 1.0 * reds[0] * reds[3])  # rb
+    assert np.allclose(sol1[reds].a[nrb], 1.0 * reds[1] * reds[2])  # el
+    assert np.allclose(sol1[reds].a[rf], 0.0)  # el
+
+    assert np.allclose(sol1[reds].v[:nrb], 2.0 * reds[0] * reds[3])  # rb
+    assert np.allclose(sol1[reds].v[nrb], 2.0 * reds[1] * reds[2])  # el
+    assert np.allclose(sol1[reds].v[rf], 0.0)  # el
+
+    e = [nrb]
+    ee = np.ix_(e, e)
+    f_e = m[ee] @ sol.a[e] + b[ee] @ sol.v[e] + k[ee] @ sol.d[e]
+
+    d_static = la.solve(k[ee], f_e)
+    d_dynamic = sol.d[nrb] - d_static
+    ds = d_static * reds[1] * reds[3]
+    dd = d_dynamic * reds[1] * reds[2]
+    assert np.allclose(sol1[reds].d[:nrb], 0.0)  # rb
+    assert np.allclose(sol1[reds].d_static[nrb], ds)  # el
+    assert np.allclose(sol1[reds].d_dynamic[nrb], dd)  # el
+    assert np.allclose(sol1[reds].d[nrb], ds + dd)  # el
+
+    ds = sol.d[rf] * reds[1] * reds[3]
+    assert np.allclose(sol1[reds].d_static[rf], ds)  # rf
+    assert np.allclose(sol1[reds].d_dynamic[rf], 0.0)  # rf
+    assert np.allclose(sol1[reds].d[rf], ds)  # rf
+
+
+# more apply_uf testing needed:
+# - all rb modes
+# - all el modes
+# - all rf modes
+# - two sets of reds ... confirm pre_calcs are pristine
 
 
 def test_event_add_uf_reds_update():
