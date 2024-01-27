@@ -583,6 +583,7 @@ def _pre_calcs(sol, m, b, k, nrb, rfmodes, save):
     else:
         elastic = slice(nrb, None)
         elastic_norb = slice(n - nrb)
+        rf_norb = None
 
     if isinstance(elastic, slice):
         ee = (elastic, elastic)
@@ -611,19 +612,24 @@ def _pre_calcs(sol, m, b, k, nrb, rfmodes, save):
         if rfmodes is not None:
             genforce[rf_norb] = k[rfmodes, None] * sol.d[rfmodes]
     else:
-        genforce[elastic_norb] += k[ee] @ sol.d[elastic]
-        save["lup_elastic"] = la.lu_factor(k[ee], check_finite=False)
+        kee = k[ee]
+        genforce[elastic_norb] += kee @ sol.d[elastic]
+        if kee.shape[0] > 0:
+            save["lup_elastic"] = la.lu_factor(kee, check_finite=False)
+        else:
+            save["lup_elastic"] = None
+        save["lup_rf"] = None
         if rfmodes is not None:
             krr = k[np.ix_(rfmodes, rfmodes)]
             genforce[rf_norb] = krr @ sol.d[rfmodes]
-            save["lup_rf"] = la.lu_factor(krr, overwrite_a=True, check_finite=False)
+            if krr.shape[0] > 0:
+                save["lup_rf"] = la.lu_factor(krr, overwrite_a=True, check_finite=False)
 
     save["genforce"] = genforce
     save["avterm"] = avterm
     save["elastic"] = elastic
     save["elastic_norb"] = elastic_norb
-    if rfmodes is not None:
-        save["rf_norb"] = rf_norb
+    save["rf_norb"] = rf_norb
 
 
 def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
@@ -714,12 +720,6 @@ def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
         if np.issubdtype(rfmodes.dtype, np.bool_):
             rfmodes = rfmodes.nonzero()[0]
 
-    if save is None:
-        save = {}
-
-    if "genforce" not in save:
-        _pre_calcs(sol, m, b, k, nrb, rfmodes, save)
-
     ruf, euf, duf, suf = uf_reds
 
     solout = SimpleNamespace(**vars(sol))
@@ -750,6 +750,12 @@ def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
         solout.v[rfmodes] = 0.0
         solout.d_dynamic[rfmodes] = 0.0
 
+    if save is None:
+        save = {}
+
+    if "genforce" not in save:
+        _pre_calcs(sol, m, b, k, nrb, rfmodes, save)
+
     avterm = (euf * duf) * save["avterm"]
     solout.a[nrb:] *= euf * duf
     solout.v[nrb:] *= euf * duf
@@ -764,9 +770,11 @@ def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
         solout.d = solout.d_static + solout.d_dynamic
         return solout
 
-    solout.d_static[elastic] = la.lu_solve(save["lup_elastic"], gf[elastic_norb])
-    solout.d_dynamic[elastic] = la.lu_solve(save["lup_elastic"], -avterm)
-    if rfmodes is not None:
-        solout.d_static[rfmodes] = la.lu_solve(save["lup_rf"], gf[save["rf_norb"]])
+    if (lup := save["lup_elastic"]) is not None:
+        solout.d_static[elastic] = la.lu_solve(lup, gf[elastic_norb])
+        solout.d_dynamic[elastic] = la.lu_solve(lup, -avterm)
+    if (lup := save["lup_rf"]) is not None:
+        solout.d_static[rfmodes] = la.lu_solve(lup, gf[save["rf_norb"]])
+
     solout.d = solout.d_static + solout.d_dynamic
     return solout
