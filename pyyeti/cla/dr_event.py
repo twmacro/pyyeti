@@ -665,7 +665,7 @@ def apply_uf(sol, uf_reds, m, b, k, nrb, rfmodes, save=None):
         For efficiency. When calling this routine multiple times to
         apply different uncertainty factors (that is, only `uf_reds`
         is changing), set `save` to an empty dict; this routine will
-        put items in `save` to avoid unnecessary calculations.
+        put items in `save` for subsequent calls.
 
     Returns
     -------
