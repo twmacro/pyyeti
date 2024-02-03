@@ -18,6 +18,9 @@ from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import proj3d
 
 
+from time import sleep
+
+
 def mk_label(point):
     """Default annotation function"""
 
@@ -26,11 +29,17 @@ def mk_label(point):
             return f"{xyz:.5g}"
         return f"{xyz}"
 
-    label = f"x: {tostr(point.x)}\ny: {tostr(point.y)}"
-    if point.z is not None:
-        label += f"\nz: {tostr(point.z)}"
+    if point.ax.name == "polar":
+        deg = np.rad2deg(point.x % (2 * np.pi))
+        label = f"θ: {tostr(point.x)} ({tostr(deg)}°)\nrad: {tostr(point.y)}"
+    else:
+        label = f"x: {tostr(point.x)}\ny: {tostr(point.y)}"
+        if point.z is not None:
+            label += f"\nz: {tostr(point.z)}"
+
     if point.nlines > 1:
         label += f"\n{point.handle.get_label()}"
+
     return label
 
 
@@ -72,26 +81,43 @@ class DataCursor(object):
                         return f"{xyz:.5g}"
                     return f"{xyz}"
 
-                label = f"x: {tostr(point.x)}\ny: {tostr(point.y)}"
-                if point.z is not None:
-                    label += f"\nz: {tostr(point.z)}"
+                if point.ax.name == "polar":
+                    deg = np.rad2deg(point.x % (2 * np.pi))
+                    label = (
+                        f"θ: {tostr(point.x)} ({tostr(deg)}°)\n"
+                        f"rad: {tostr(point.y)}"
+                    )
+                else:
+                    label = f"x: {tostr(point.x)}\ny: {tostr(point.y)}"
+                    if point.z is not None:
+                        label += f"\nz: {tostr(point.z)}"
+
                 if point.nlines > 1:
                     label += f"\n{point.handle.get_label()}"
+
                 return label
 
         The SimpleNamespace ``point`` contains the following
         attributes:
 
-        ====== ========================================================
-         attr  Description
-        ====== ========================================================
-        ax     Axes handle
-        handle Line2D or PathCollection handle for line
-        index  Index into the data vectors for data point
-        lines  Total number of lines on axes
-        n      Line number starting at 0
-        x,y,z  x, y, z coordinates of data point; z will be None for 2D
-        ====== ========================================================
+        ======= ======================================================
+         attr   Description
+        ======= ======================================================
+        ax      Axes handle
+        handle  Line2D or PathCollection handle for line
+        index   Index into the data vectors for data point
+        lines   Total number of lines on axes
+        n       Line number starting at 0
+        x,y,z   x, y, z coordinates of data point; z is None for 2D
+        dot     The :func:`matplotlib.pyplot.scatter` (PathCollection)
+                object handle. Note that :class:`DataCursor` ignores
+                these added annotation points when moused over; they
+                are identified by the added attribute
+                "_pyyeti_dc_point".
+        note    The annotation object handle from
+                :func:`matplotlib.pyplot.annotate`.
+        xy_note The (x, y) coordinates for the note.
+        ======= ======================================================
 
     offsets : tuple
         Two element tuple containing x and y offsets in points for the
@@ -114,16 +140,13 @@ class DataCursor(object):
     points : list
         Contains list of SimpleNamespace objects. Each "point" is as
         described above under the `mk_label` attribute.
-    pts : list
-        Contains the :func:`matplotlib.pyplot.scatter`
-        (PathCollection) object handles for the selected and annotated
-        points. Same length as `points`. Note that
-        :class:`DataCursor` ignores these added annotation points when
-        moused over; they are identified by the added attribute
-        "_pyyeti_dc_point".
-    notes : list
-        Contains the annotation object handles for the selected points.
-        Same length as `points`.
+    xyz : 2d ndarray or None
+        If points have been selected and the datacursor has been
+        turned off, the `xyz` attribute will be filled with the x, y,
+        z data for the selected points for all axes. If there are no
+        3d plots, only the x and y columns will be present. The order
+        of the rows follows the selection order (same order as
+        `points`; the source of this data).
 
     Notes
     -----
@@ -148,21 +171,18 @@ class DataCursor(object):
     to see selected data points. These operations are available (when
     the mouse is inside the axes):
 
-    ===========  =====================================================
+    ===========  ======================================================
     Action       Description
-    ===========  =====================================================
+    ===========  ======================================================
     left-click   Data point will be stored in the member list
-                 `points`. The `pts` and `notes` attributes are
-                 updated as well.
-    right-click  Last point is deleted from `points` and from the
-                 other members.
+                 `points`.
+    right-click  Last point is deleted from the plot and from `points`.
     typing 't'   Turns off DataCursor. To turn on, use ``DC.on``. Note
-                 that turning on will reset `points` and the other
-                 members.
+                 that turning on will reset `points`.
     typing 'D'   Deletes last point AND removes the line from the plot
                  via ``line_handle.remove()``. Any older annotations
                  are not deleted.
-    ===========  =====================================================
+    ===========  ======================================================
 
     To get data points from plots from within a script, use
     :func:`DataCursor.getdata`. Enter the number of points or press
@@ -383,14 +403,12 @@ class DataCursor(object):
         self._init_all()
         if reset:
             self.points = []
-            self.pts = []
-            self.notes = []
+            self.xyz = None
         self._kid = {}  # key press event
         self._mid = {}  # motion event
         self._bid = {}  # button press event
         self._aid = {}  # axes leave event
         self._fig_layout_engine = {}
-        self._xydata_display = {}
         self._setup_annotations()
         if callbacks:
             for fig in self._figs:
@@ -436,7 +454,7 @@ class DataCursor(object):
             for ax in self._ax:
                 if ax in self._annotation:
                     self._annotation[ax].set_visible(False)
-                    self._dot[ax].set_visible(False)
+                    self._mk_followdot_invisible(ax)
             for fig in self._figs:
                 if fig in self._kid:
                     fig.canvas.mpl_disconnect(self._kid[fig])
@@ -449,14 +467,21 @@ class DataCursor(object):
                     fig.canvas.mpl_disconnect(self._bid[fig])
                     fig.canvas.mpl_disconnect(self._aid[fig])
             # make annotations draggable:
-            for an in self.notes:
-                an.draggable()
+            for pt in self.points:
+                pt.note.draggable()
             self._is_on = False
         for fig in self._figs:
             fig.canvas.draw()
         if self._in_loop and stop_blocking:
             self._figs[0].canvas.stop_event_loop()
             self._in_loop = False
+
+        # make xyz:
+        if any(p.z for p in self.points):
+            xyz = [[p.x, p.y, p.z if p.z is not None else np.nan] for p in self.points]
+        else:
+            xyz = [[p.x, p.y] for p in self.points]
+        self.xyz = np.array(xyz)
 
     def addpt_func(self, func):
         """
@@ -482,22 +507,39 @@ class DataCursor(object):
 
     @staticmethod
     def _add_annotation_point(ax, x, y, dct, vis):
+        # get/set axis limits; this is strange, but ax.scatter will
+        # rescale the plots for some reason in some cases
+        for lim in ("xlim", "ylim", "zlim"):
+            if fnc := getattr(ax, f"get_{lim}", None):
+                getattr(ax, f"set_{lim}")(fnc())
         h = ax.scatter(x, y, **dct, visible=vis)
         h._pyyeti_dc_point = True
         return h
+
+    def _mk_followdot_invisible(self, ax):
+        if self._dot[ax] is not None:
+            self._dot[ax].set_visible(False)
+
+    def _get_followdot_handle(self, ax, x, y):
+        if self._dot[ax] is None:
+            self._dot[ax] = self._add_annotation_point(ax, x, y, self.followdot, False)
+        else:
+            self._dot[ax].set_offsets((x, y))
+        return self._dot[ax]
 
     @staticmethod
     def _is3d(ax):
         return hasattr(ax, "get_proj")
 
     def _add_point(self, point):
-        self.points.append(point)
         # if 3d, set visible to False (i don't know how to get proper
         # coordinates for the dot):
         vis = False if self._is3d(point.ax) else True
-        x, y = self._get_annotation_xy(point)
-        self.pts.append(self._add_annotation_point(point.ax, x, y, self.permdot, vis))
-        self.notes.append(self._annotation[point.ax])
+        x, y = point.xy_note
+        point.dot = self._add_annotation_point(point.ax, x, y, self.permdot, vis)
+        point.note = self._annotation[point.ax]
+        self.points.append(point)
+
         # make a new annotation box so current one is static
         self._annotation[point.ax] = self._new_annotation(point.ax, (x, y))
         if self._in_loop and len(self.points) == self._max_points:
@@ -509,19 +551,25 @@ class DataCursor(object):
         """Deletes last saved point, if any."""
         if len(self.points) == 0:
             return
-        point = self.points.pop()
+
+        if ax:
+            for i in reversed(range(len(self.points))):
+                if self.points[i].ax == ax:
+                    point = self.points.pop(i)
+                    break
+            else:
+                return
+
         if delete_line:
             # line may have been deleted already, so catch exception:
+            line = point.handle
             try:
-                h.remove()
+                line.remove()
             except ValueError:
                 pass
-            else:
-                h = None
-        pt = self.pts.pop()
-        pt.remove()
-        na = self.notes.pop()
-        na.remove()
+
+        point.dot.remove()
+        point.note.remove()
         if self.delptfunc:
             self.delptfunc(point)
 
@@ -534,17 +582,6 @@ class DataCursor(object):
             return
         if event.inaxes in self._ax:
             return event.inaxes
-
-        # this code doesn't make sense ... still only returns one axes ... ?
-        # - commented out on 12/3/2023
-        # # for overlapping axes, only top axes gets the event, so check
-        # # others manually
-        # for ax in self._ax:
-        #     pt = (event.x, event.y)
-        #     if ax.contains_point(pt):
-        #         inv = ax.transData.inverted()
-        #         event.xdata, event.ydata = inv.transform_point(pt)
-        #         return ax
 
     def _key(self, event):
         """
@@ -567,13 +604,8 @@ class DataCursor(object):
         if not ax:
             return
         self._annotation[ax].set_visible(False)
-        self._dot[ax].set_visible(False)
+        self._mk_followdot_invisible(ax)
         event.canvas.draw()
-
-    def _get_annotation_xy(self, point):
-        # get coordinates used by annotation:
-        _, _, x_ann, y_ann = self._xydata_display[point.handle]
-        return x_ann[point.index], y_ann[point.index]
 
     def _follow(self, event):
         """Event handler for when mouse is moved insided axes and for
@@ -584,12 +616,11 @@ class DataCursor(object):
         point = self._snap(ax, event.x, event.y)
         if point is None:
             return
-        x, y = self._get_annotation_xy(point)
+        x, y = point.xy_note
         annotation = self._annotation[ax]
-        dot = self._dot[ax]
         annotation.xy = x, y
         annotation.set_text(self.mk_label(point))
-        dot.set_offsets((x, y))
+        dot = self._get_followdot_handle(ax, x, y)
         if event.name == "button_press_event":
             if event.button == 1:
                 annotation.set_visible(True)
@@ -636,14 +667,9 @@ class DataCursor(object):
         return x, y
 
     def _get_xy_data_display(self, ax, h):
-        try:
-            return self._xydata_display[h]
-        except KeyError:
-            pass
-
         if isinstance(h, Line2D):
             x_ann, y_ann = h.get_xdata(), h.get_ydata()
-            x = ax.convert_xunits(x_ann)
+            x = ax.convert_xunits(x_ann)  # eg, convert dates to floats
             y = ax.convert_yunits(y_ann)
         elif hasattr(h, "_offsets3d"):
             x, y, _ = proj3d.proj_transform(*np.array(h._offsets3d), ax.get_proj())
@@ -651,9 +677,10 @@ class DataCursor(object):
         else:
             x, y = (*h.get_offsets().data.T,)
             x_ann, y_ann = x, y
+
+        # get pixel coordinates:
         x, y = ax.transData.transform(np.column_stack((x, y))).T
-        self._xydata_display[h] = x, y, x_ann, y_ann
-        return self._xydata_display[h]
+        return x, y, x_ann, y_ann
 
     @staticmethod
     def _get_xyz(h, ind):
@@ -670,11 +697,12 @@ class DataCursor(object):
         position will be set for each event."""
         self._annotation = {}
         self._dot = {}
+
         for ax in self._ax:
             xl, yl = ax.get_xlim(), ax.get_ylim()
             xy = sum(xl) / 2, sum(yl) / 2
             self._annotation[ax] = self._new_annotation(ax, xy)
-            self._dot[ax] = self._add_annotation_point(ax, *xy, self.followdot, False)
+            self._dot[ax] = None
 
     def _snap(self, ax, x, y):
         """Return the plotted value closest to x, y."""
@@ -684,14 +712,16 @@ class DataCursor(object):
         if nlines == 0:
             return None
         best = None
+
         for n, h in enumerate(lines):
-            xdata, ydata, *_ = self._get_xy_data_display(ax, h)
-            dx = xdata - x
-            dy = ydata - y
+            x_pix, y_pix, x_ann, y_ann = self._get_xy_data_display(ax, h)
+            dx = x_pix - x
+            dy = y_pix - y
             d = dx**2.0 + dy**2.0
             ind = np.nanargmin(d)
             if d[ind] < dmin:
                 dmin = d[ind]
+                xy_note = x_ann[ind], y_ann[ind]
                 best = n, ind, h
 
         if best is None:
@@ -704,7 +734,15 @@ class DataCursor(object):
             xo, yo = handle.get_xydata()[ind]
             zo = None
         point = SimpleNamespace(
-            x=xo, y=yo, z=zo, ax=ax, n=n, index=ind, handle=handle, nlines=nlines
+            x=xo,
+            y=yo,
+            z=zo,
+            ax=ax,
+            n=n,
+            index=ind,
+            handle=handle,
+            nlines=nlines,
+            xy_note=xy_note,
         )
         return point
 
