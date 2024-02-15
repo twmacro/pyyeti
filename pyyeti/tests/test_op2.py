@@ -611,14 +611,7 @@ def test_empty_file_error():
 
 
 def test_rdparampost():
-    with pytest.warns(RuntimeWarning) as records:
-        post = op2.rdparampost(
-            "pyyeti/tests/nas2cam_extseout/assemble.op2", get_all=True
-        )
-        verify_one_match(
-            records, [r"ACODE.*52.*not accept", r"TCODE.*1001.*not accept"]
-        )
-
+    post = op2.rdparampost("pyyeti/tests/nas2cam_extseout/assemble.op2", get_all=True)
     assert np.all(post["selist"] == [[101, 0], [102, 0], [0, 0]])
     sebulk = np.array(
         [[101, 5, -1, 2, 0.0, 1, 3, 101], [102, 5, -1, 2, 0.0, 1, 3, 102]]
@@ -632,13 +625,9 @@ def test_rdparampost():
     assert post["khh"].shape == (54, 54)
     assert post["lama"].shape == (54, 7)
 
-    with pytest.warns(RuntimeWarning) as records:
-        pa = op2.rdparampost(
-            "pyyeti/tests/nas2cam_extseout/assemble.op2", get_all=True, which="all"
-        )
-        verify_one_match(
-            records, [r"ACODE.*52.*not accept", r"TCODE.*1001.*not accept"]
-        )
+    pa = op2.rdparampost(
+        "pyyeti/tests/nas2cam_extseout/assemble.op2", get_all=True, which="all"
+    )
 
     assert np.all(pa["selist"] == selist)
     assert np.all(pa["geom1"][0]["selist"] == selist)

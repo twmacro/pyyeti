@@ -616,15 +616,39 @@ class OP2:
                 return True
         return False
 
+    @staticmethod
+    def _get_unique(names):
+        added = set()
+        unique_names = []
+        for name in names:
+            if name not in added:
+                added.add(name)
+                unique_names.append(name)
+        return unique_names
+
     def _get_valid_names(self, names, dbtype):
-        dbs = [sns for sns in self.dblist if sns.dbtype == dbtype]
-        all_names = [sns.name for sns in dbs]
-        if not names:
-            names = all_names
+        if names is None or isinstance(next(iter(names)), str):
+            # names is None or an iterable of names
+            dbs = [sns for sns in self.dblist if sns.dbtype == dbtype]
+            all_names = [sns.name for sns in dbs]
+
+            if not names:
+                names = all_names
+            else:
+                # _has_match handles the wildcard; names will have no wildcards
+                names = [name for name in all_names if self._has_match(name, names)]
         else:
-            # _has_match handles the wildcard; names will have no wildcards
-            names = [name for name in all_names if self._has_match(name, names)]
-        return names, dbs
+            # names is an iterable of allowable headers (3-tuples)
+            allowed_headers = set(names)
+            dbs = [
+                sns
+                for sns in self.dblist
+                if len(sns.headers) > 0 and sns.headers[0][0] in allowed_headers
+            ]
+            names = [sns.name for sns in dbs]
+
+        # return list of unique names too ... in the order they appear:
+        return names, dbs, self._get_unique(names)
 
     def _rdmat(self, sns, verbose):
         if verbose:
@@ -675,9 +699,9 @@ class OP2:
         Unless `lower` is True, the keys are the names as stored
         in the op2 file (upper case).
         """
-        names, matrices = self._get_valid_names(names, dbtype=1)
+        names, matrices, unique_names = self._get_valid_names(names, dbtype=1)
         mats = {}
-        for name in set(names):
+        for name in unique_names:
             dblist = [sns for sns in matrices if sns.name == name]
             store_name = name if not lower else name.lower()
             if which == "all":
@@ -2019,26 +2043,8 @@ class OP2:
     def _rddatablock(
         self, names, rdfunc, verbose, mats=None, *, which=-1, include_name=False
     ):
-        if which != "all":
-            # names is a list of acceptable names in priority order:
-            # eg: names = ["GEOM1S", "GEOM1"]
-            # - last name can end with "*" ... that will be treated as a wild
-            #   card; last (if which == -1) matching name in file will be used
-            for name in names:
-                if name in self.dbdct:
-                    names = [name]
-                    break
-            else:
-                if names[-1][-1] == "*":
-                    namestart = names[-1][:-1]
-                    names = [name for name in self.names if name.startswith(namestart)]
-                    if len(names) == 0:
-                        return None, None
-                else:
-                    return None, None
-
-        names, tables = self._get_valid_names(names, dbtype=0)
-        for name in set(names):
+        names, tables, unique_names = self._get_valid_names(names, dbtype=0)
+        for name in unique_names:
             dblist = [sns for sns in tables if sns.name == name]
             if which == "all":
                 lst = []
@@ -2049,7 +2055,7 @@ class OP2:
                     self.rdop2nt()
                     db = rdfunc(name) if include_name else rdfunc()
                     lst.append(db)
-                if mats and len(lst) > 0:
+                if mats is not None and len(lst) > 0:
                     mats[name.lower()] = lst
             else:
                 sns = dblist[which]
@@ -2058,9 +2064,11 @@ class OP2:
                 self.set_position(sns.start)
                 self.rdop2nt()
                 db = rdfunc(name) if include_name else rdfunc()
-                if mats:
+                if mats is not None:
                     mats[name.lower()] = db
-                return db, name
+                else:
+                    return db, name
+        return None, None
 
     def _rd_dr_table(self, name, pos, verbose):
         self.set_position(pos)
@@ -2084,9 +2092,9 @@ class OP2:
         return None
 
     def _rd_datarecovery_tables(self, names, verbose, which=-1):
-        names, tables = self._get_valid_names(names, dbtype=0)
+        names, tables, unique_names = self._get_valid_names(names, dbtype=0)
         mats = {}
-        for name in set(names):
+        for name in unique_names:
             dblist = [sns for sns in tables if sns.name == name]
             store_name = name.lower()
             if which == "all":
@@ -2102,9 +2110,12 @@ class OP2:
 
     def rdparampost(
         self,
+        *,
         verbose=False,
         get_all=False,
         get_mats=True,
+        get_ougs=False,
+        get_drms=False,
         get_ougv1=False,
         get_oef1=False,
         get_oes1=False,
@@ -2135,20 +2146,29 @@ class OP2:
             is stored by its name in lower case. If `which` is "all",
             then each entry is a list of all the matrices of each name
             in the file (see :func:`OP2.rdop2mats`)
-        get_ougv1 : bool; optional
-            If True, read the OUGV1, OUG1, or BOPHIG matrix, if
-            present. See also `which`.
-        get_oef1 : bool; optional
-            If True, read the OEF1 matrix, if any. See also `which`.
-        get_oes1 : bool; optional
-            If True, read the OES1 matrix, if any. See also `which`.
+        get_ougs : bool; optional
+            If True, read all "OUG" formatted datablocks. See also
+            `which`.
+        get_drms : bool; optional
+            If True, read all "OEF" and "OES" formatted datablocks.
+            See also `which`.
+        get_ougv1 : bool; optional; DEPRECATED
+            This will be removed in a future version. Use `get_ougs`
+            instead. If True, `get_ougs` is set to True.
+        get_oef1 : bool; optional; DEPRECATED
+            This will be removed in a future version. Use `get_drms`
+            instead.  If True, `get_drms` is set to True.
+        get_oes1 : bool; optional; DEPRECATED
+            This will be removed in a future version. Use `get_drms`
+            instead.  If True, `get_drms` is set to True.
         get_dr_tables : bool or list/tuple; optional
             If True (or False), read (or do not read) data recovery
-            tables. Any data block that starts with "T" is checked and
-            if it is a data recovery table, it is read in. If a
-            list/tuple, it is an iterable of data blocks to look for
-            and read if possible. Each name in the list can end with a
-            "*" for simple wildcard matching. For example::
+            tables. If True, any data block that starts with "T" is
+            checked and if it is a data recovery table, it is read
+            in. If `get_dr_tables` is a list/tuple, it is an iterable
+            of data blocks to look for and read if possible. Each name
+            in the list can end with a "*" for simple wildcard
+            matching. For example::
 
                 get_dr_tables = ["TUG*"]
 
@@ -2320,10 +2340,25 @@ class OP2:
         ):
             self._rddatablock(names, rdfunc, verbose, dct, which=which)
 
+        if get_ougv1:
+            get_ougs = True
+            warnings.warn(
+                "`get_ougv1` is deprecated and will be removed in a future "
+                " version; use `get_ougs` instead",
+                FutureWarning,
+            )
+
+        if get_oef1 or get_oes1:
+            get_drms = True
+            warnings.warn(
+                "`get_oef1` and `get_eos1` are deprecated and will be removed "
+                "in a future version; use `get_drms` instead",
+                FutureWarning,
+            )
+
         for flag, names, rdfunc in (
-            (get_ougv1, ["OUGV1", "BOPHIG", "OUG1"], self._rdop2ougv1),
-            (get_oef1, ["OEF1*"], self._rdop2drm),
-            (get_oes1, ["OES1*"], self._rdop2drm),
+            (get_ougs, {(22, 7, 0)}, self._rdop2ougv1),
+            (get_drms, {(22, 4, 34), (22, 5, 34)}, self._rdop2drm),
         ):
             if flag or get_all:
                 self._rddatablock(
@@ -4074,9 +4109,12 @@ def rdpostop2(
 
 def rdparampost(
     op2file=None,
+    *,
     verbose=False,
     get_all=False,
     get_mats=True,
+    get_ougs=False,
+    get_drms=False,
     get_ougv1=False,
     get_oef1=False,
     get_oes1=False,
@@ -4107,28 +4145,36 @@ def rdparampost(
         is stored by its name in lower case. If `which` is "all",
         then each entry is a list of all the matrices of each
         name in the file (see :func:`OP2.rdop2mats`)
-    get_ougv1 : bool; optional
-        If True, read the OUGV1, OUG1, or BOPHIG matrix, if
-        present. See also `which`.
-    get_oef1 : bool; optional
-        If True, read the OEF1 matrix, if any. See also `which`.
-    get_oes1 : bool; optional
-        If True, read the OES1 matrix, if any. See also `which`.
+    get_ougs : bool; optional
+        If True, read all "OUG" formatted datablocks. See also
+        `which`.
+    get_drms : bool; optional
+        If True, read all "OEF" and "OES" formatted datablocks.  See
+        also `which`.
+    get_ougv1 : bool; optional; DEPRECATED
+        This will be removed in a future version. Use `get_ougs`
+        instead. If True, `get_ougs` is set to True.
+    get_oef1 : bool; optional; DEPRECATED
+        This will be removed in a future version. Use `get_drms`
+        instead.  If True, `get_drms` is set to True.
+    get_oes1 : bool; optional; DEPRECATED
+        This will be removed in a future version. Use `get_drms`
+        instead.  If True, `get_drms` is set to True.
     get_dr_tables : bool or list/tuple; optional
         If True (or False), read (or do not read) data recovery
-        tables. Any data block that starts with "T" is checked and if
-        it is a data recovery table, it is read in. If a list/tuple,
-        it is an iterable of data blocks to look for and read if
-        possible. Each name in the list can end with a "*" for
-        simple wildcard matching. For example::
+        tables. If True, any data block that starts with "T" is
+        checked and if it is a data recovery table, it is read in. If
+        `get_dr_tables` is a list/tuple, it is an iterable of data
+        blocks to look for and read if possible. Each name in the list
+        can end with a "*" for simple wildcard matching. For example::
 
             get_dr_tables = ["TUG*"]
 
         would read in all data recovery tables that match that
         pattern, and only those. Setting `get_dr_tables` to True is
-        equivalent to setting to ``["T*"]``. In
-        the output dictionary of this routine, each matrix is stored
-        by its name in lower case. Each matrix is 3-columns::
+        equivalent to setting to ``["T*"]``. In the output dictionary
+        of this routine, each matrix is stored by its name in lower
+        case. Each matrix is 3-columns::
 
             [id, dof, type]
 
@@ -4199,25 +4245,29 @@ def rdparampost(
         op2file = guitools.get_file_name(op2file, read=True)
         with OP2(op2file) as o2:
             return o2.rdparampost(
-                verbose,
-                get_all,
-                get_mats,
-                get_ougv1,
-                get_oef1,
-                get_oes1,
-                get_dr_tables,
-                which,
+                verbose=verbose,
+                get_all=get_all,
+                get_mats=get_mats,
+                get_ougs=get_ougs,
+                get_drms=get_drms,
+                get_ougv1=get_ougv1,
+                get_oef1=get_oef1,
+                get_oes1=get_oes1,
+                get_dr_tables=get_dr_tables,
+                which=which,
             )
     """
     op2file = guitools.get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
         return o2.rdparampost(
-            verbose,
-            get_all,
-            get_mats,
-            get_ougv1,
-            get_oef1,
-            get_oes1,
-            get_dr_tables,
-            which,
+            verbose=verbose,
+            get_all=get_all,
+            get_mats=get_mats,
+            get_ougs=get_ougs,
+            get_drms=get_drms,
+            get_ougv1=get_ougv1,
+            get_oef1=get_oef1,
+            get_oes1=get_oes1,
+            get_dr_tables=get_dr_tables,
+            which=which,
         )
