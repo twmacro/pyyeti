@@ -14,6 +14,7 @@ Main routines
     rdmats
     rdnas2cam
     rdparampost
+    rdparampost_old
     rdpostop2
 
 The OP2 Class
@@ -40,11 +41,14 @@ Member functions:
     OP2.rdop2gpwg
     OP2.rdop2matrix
     OP2.rdop2mats
+    OP2.rdop2ogf
     OP2.rdop2opg
+    OP2.rdop2oug
     OP2.rdop2record
     OP2.rdop2tabheaders
     OP2.rdop2tload
     OP2.rdparampost
+    OP2.rdparampost_old
     OP2.set_position
     OP2.skipop2matrix
     OP2.skipop2record

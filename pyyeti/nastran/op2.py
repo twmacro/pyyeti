@@ -32,6 +32,7 @@ __all__ = [
     "procdrm12",
     "rdpostop2",
     "rdparampost",
+    "rdparampost_old",
     "OP2",
     "nastran_dr_descriptions",
 ]
@@ -643,7 +644,7 @@ class OP2:
             dbs = [
                 sns
                 for sns in self.dblist
-                if len(sns.headers) > 0 and sns.headers[0][0] in allowed_headers
+                if len(sns.headers) > 0 and sns.headers[0][0][:2] in allowed_headers
             ]
             names = [sns.name for sns in dbs]
 
@@ -1046,9 +1047,14 @@ class OP2:
         self.rdop2nt()
         return self._rdop2gpwg()
 
-    def rdop2opg(self):
+    def rdop2opg(self, name="OPG1"):
         """
         Read the OPG data block, which contains applied forces.
+
+        Parameters
+        ----------
+        name : string; optional
+            Name of OPG data block
 
         Returns
         -------
@@ -1065,7 +1071,7 @@ class OP2:
         system.
         """
         try:
-            self.set_position("OPG1")
+            self.set_position(name)
         except KeyError:
             return None
         self.rdop2nt()
@@ -1075,8 +1081,9 @@ class OP2:
             if ident is None:
                 break
             data = self.rdop2record(form="single")
-            # This uses the generic description of OFP tables, since that matches
-            # the actual op2 file contents, rather than the OPG data block description
+            # This uses the generic description of OFP tables, since
+            # that matches the actual op2 file contents, rather than
+            # the OPG data block description
             acode = ident[0] // 10
             tcode = ident[1] // 1000
             fcode = ident[8]
@@ -1097,6 +1104,199 @@ class OP2:
                 forces, index=grid_ids, columns=[1, 2, 3, 4, 5, 6]
             )
         return output
+
+    def _rdop2ogf(self, name):
+        startpos = self._fileh.tell()
+        _, endpos = self._get_block_bytes(name, startpos)
+
+        col = 0
+        while True:
+            ident = self.rdop2record(form="int")
+            if ident is None:
+                break
+            data = self.rdop2record(form="single")
+            data = data.reshape(-1, ident[9])  # ident[9] is "numwde"
+
+            if col == 0:
+                # real eigenvalues, Sort1/Real/Not Random, Real
+                acode = ident[0] // 10
+                tcode = ident[1] // 1000
+                fcode = ident[8]
+                if acode != 2 or tcode != 0 or fcode != 1:
+                    msg = "Unsupported data format in OGF: {}"
+                    raise ValueError(msg.format((tcode, acode, fcode)))
+
+                # determine number of columns by using file bytes
+                curpos = self._fileh.tell()
+                ncols = (endpos - startpos) // (curpos - startpos)
+                node_element = data[:, :2]
+                node_element.dtype = np.int32
+                eltype = data[:, 2:4]
+                eltype.dtype = np.dtype("S8")
+                index = [
+                    (g // 10, el, desc[0].decode(), f)
+                    for (g, el), desc in zip(node_element[:, :2], eltype)
+                    for f in ("FX", "FY", "FZ", "MX", "MY", "MZ")
+                ]
+                indexm = pd.MultiIndex.from_tuples(
+                    index, names=("Node", "Element", "Desc", "Comp")
+                )
+                ogf = np.empty((data.shape[0] * 6, ncols), np.float32)
+                freq = np.empty(ncols, np.float32)
+
+            ogf[:, col] = data[:, -6:].ravel()
+            ident.dtype = np.float32
+            freq[col] = ident[15]
+            col += 1
+
+        columns = pd.MultiIndex.from_tuples(
+            ((i, f) for i, f in enumerate(freq, 1)), names=("Mode #", "Freq (Hz)")
+        )
+        return pd.DataFrame(ogf, index=indexm, columns=columns)
+
+    def rdop2ogf(self, name):
+        """
+        Read an OGF-formatted data block
+
+        Parameters
+        ----------
+        name : string
+            Name of OGF data block
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            If data block is present, the output is a pandas DataFrame
+            with multilevel indices. The ``index`` has four levels:
+            ``(node, element id, element name, direction)`` with the
+            names: ``("Node", "Element", "Desc", "Comp")``. The
+            ``columns`` has two levels: ``(mode number, frequency)``
+            with the names: ``("Mode #", "Freq (Hz)"). For example,
+            here are the first two columns of an ``ofg`` associated
+            with node 2693::
+
+                >>> ogf.loc[[2693], :2]
+                Mode #                                 1             2
+                Freq (Hz)                       6.835803      9.240421
+                Node Element Desc     Comp
+                2693 2648    QUAD4    FX   -6.424288e+00  1.881207e+01
+                                      FY   -9.492936e+00  1.947833e+01
+                                      FZ   -6.474704e+00  8.646915e+01
+                                      MX    3.494281e+00 -1.237239e+01
+                                      MY    3.494860e+00 -1.237513e+01
+                                      MZ   -2.012388e+00 -1.778058e+00
+                     2649    QUAD4    FX    6.426482e+00 -1.881229e+01
+                                      FY    9.493129e+00 -1.947879e+01
+                                      FZ    6.474766e+00 -8.646799e+01
+                                      MX   -3.494281e+00  1.237239e+01
+                                      MY   -3.494860e+00  1.237513e+01
+                                      MZ    2.012388e+00  1.778058e+00
+                     0       *TOTALS* FX    2.193109e-03 -2.204326e-04
+                                      FY    1.932395e-04 -4.540352e-04
+                                      FZ    6.194949e-05  1.154103e-03
+                                      MX   -5.434231e-11  3.802825e-11
+                                      MY   -5.434231e-11  3.871037e-11
+                                      MZ    1.273293e-10  9.640644e-11
+        """
+        try:
+            self.set_position(name)
+        except KeyError:
+            return None
+        self.rdop2nt()
+        return self._rdop2ogf(name)
+
+    def _rdop2oug(self, name):
+        startpos = self._fileh.tell()
+        _, endpos = self._get_block_bytes(name, startpos)
+
+        col = 0
+        while True:
+            ident = self.rdop2record(form="int")
+            if ident is None:
+                break
+            data = self.rdop2record(form="single")
+
+            if col == 0:
+                # real eigenvalues, Sort1/Real/Not Random, Real
+                achk = self._check_code(ident[0], [4], [[2]], "ACODE")
+                tchk = self._check_code(
+                    ident[1], [1, 2, 7], [[1], [3, 7], [0, 2]], "TCODE"
+                )
+                if not (achk and tchk):
+                    self._fileh.seek(endpos)
+                    return
+
+                # determine number of columns by using file bytes
+                curpos = self._fileh.tell()
+                ncols = (endpos - startpos) // (curpos - startpos)
+
+                # - there are 8 elements per node:
+                #   id*10, type, x, y, z, rx, ry, rz
+                #   - type == 1 for grids; those have all 6 dof
+                id_dof = data.reshape(-1, 8)[:, :2]
+                id_dof.dtype = np.int32
+                pvgrids = id_dof[:, 1] == 1
+                full_dof = _expanddof(id_dof[:, 0] // 10, pvgrids)
+                indexm = pd.MultiIndex.from_tuples(
+                    (row for row in full_dof), names=("Node", "DOF")
+                )
+
+                V = np.zeros((id_dof.shape[0], 8), bool)
+                V[:, 2] = True  # all nodes have 'x'
+                V[pvgrids, 3:] = True  # only grids have all 6
+                V = V.ravel()
+
+                oug = np.empty((full_dof.shape[0], ncols), np.float32)
+                eigenval = np.empty(ncols, np.float32)
+
+            oug[:, col] = data[V]
+            ident.dtype = np.float32
+            eigenval[col] = ident[5]
+            col += 1
+
+        frq = np.sqrt(eigenval) / (2 * np.pi)
+        columns = pd.MultiIndex.from_tuples(
+            ((i, f) for i, f in enumerate(frq, 1)), names=("Mode #", "Freq (Hz)")
+        )
+        return pd.DataFrame(oug, index=indexm, columns=columns)
+
+    def rdop2oug(self, name):
+        """
+        Read an OUG-formatted data block
+
+        Parameters
+        ----------
+        name : string
+            Name of OUG data block
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            If data block is present, the output is a pandas DataFrame
+            with multilevel indices. The ``index`` has two levels:
+            ``(node, dof)``with the names: ``("Node", "DOF")``. The
+            ``columns`` has two levels: ``(mode number, frequency)``
+            with the names: ``("Mode #", "Freq (Hz)"). For example,
+            here are the first four columns of an ``ougv1`` associated
+            with node 2693::
+
+                >>> ougv1.loc[[2693], :4]
+                Mode #            1         2         3         4
+                Freq (Hz) 6.835803  9.240421  13.516423 15.768772
+                Node DOF
+                2693 1    -0.009917  0.000546 -0.029766  0.030169
+                     2    -0.000877  0.001123 -0.031812 -0.033568
+                     3    -0.000280 -0.002856  0.018068  0.016844
+                     4    -0.000128  0.000018  0.000225  0.001604
+                     5    -0.000563  0.000115 -0.001383  0.001788
+                     6     0.000057  0.000095  0.000393 -0.000192
+        """
+        try:
+            self.set_position(name)
+        except KeyError:
+            return None
+        self.rdop2nt()
+        return self._rdop2oug(name)
 
     def rdop2record(self, form=None, N=0):
         """
@@ -1408,7 +1608,9 @@ class OP2:
             header = i4_Str.unpack(self._fileh.read(i4_bytes))
             # header = (ACODE, TCODE, ...)
             achk = self._check_code(header[0], [4], [[2]], "ACODE")
-            tchk = self._check_code(header[1], [1, 2, 7], [[1], [7], [0, 2]], "TCODE")
+            tchk = self._check_code(
+                header[1], [1, 2, 7], [[1], [3, 7], [0, 2]], "TCODE"
+            )
             if not (achk and tchk):
                 self._fileh.seek(pos)
                 self.skipop2table()
@@ -1479,55 +1681,6 @@ class OP2:
         #   table would put that grid in the dnids of se 500 AND se
         #   100.
         self.skipop2record()
-
-        # read 2nd record and make 'dnids' from it:
-        # words4bits = trailer[4]
-        # key = self._getkey()
-        # if self._ibytes == 4:
-        #     data2 = np.empty(0, dtype="u4")
-        #     frm = self._endian + "u4"
-        #     frmu = self._endian + "%dI"
-        #     intsize = 32
-        # else:
-        #     data2 = np.empty(0, dtype="u8")
-        #     frm = self._endian + "u8"
-        #     frmu = self._endian + "%dQ"
-        #     intsize = 64
-        #
-        # while key > 0:
-        #     self._fileh.read(4)  # reclen
-        #     if key < self._rowsCutoff:
-        #         cur = struct.unpack(frmu % key, self._fileh.read(self._ibytes * key))
-        #     else:
-        #         cur = np.fromfile(self._fileh, frm, key)
-        #     data2 = np.hstack((data2, cur))
-        #     self._fileh.read(4)  # endrec
-        #     key = self._getkey()
-        #
-        # self._skipkey(2)
-        #
-        # # [ grid_id [bitmap] ]
-        # data2 = np.reshape(data2, (-1, words4bits))
-        # # 1 in front need to skip over grid_id (vars are col indices)
-        # word4bit_up = 1 + data1[:, 1] // intsize
-        # word4bit_dn = 1 + data1[:, 4] // intsize
-        #
-        # # word4bit_up[:] = 1
-        #
-        # bitpos_up = ((intsize - 1) - data1[:, 1] % intsize).astype(np.uint64)
-        # bitpos_dn = ((intsize - 1) - data1[:, 4] % intsize).astype(np.uint64)
-        # for j in range(nse - 1):
-        #     se = data1[j, 0]
-        #     bitdn = np.uint64(1) << bitpos_dn[j]
-        #     bitup = np.uint64(1) << bitpos_up[j]
-        #     connected = np.logical_and(
-        #         data2[:, word4bit_dn[j]] & bitdn, data2[:, word4bit_up[j]] & bitup
-        #     )
-        #     grids = data2[connected, 0]
-        #     nas["dnids"][se] = grids
-        #
-        # for se, val in nas["dnids"].items():
-        #     assert np.all(val == dn_ids[se])
 
         # read record 3 and make 'dnids' from it:
         # - this has the list of boundary grids
@@ -2115,10 +2268,8 @@ class OP2:
         get_all=False,
         get_mats=True,
         get_ougs=False,
+        get_ogfs=False,
         get_drms=False,
-        get_ougv1=False,
-        get_oef1=False,
-        get_oes1=False,
         get_dr_tables=True,
         which=-1,
     ):
@@ -2149,18 +2300,12 @@ class OP2:
         get_ougs : bool; optional
             If True, read all "OUG" formatted datablocks. See also
             `which`.
+        get_ogfs : bool; optional
+            If True, read all "OGF" formatted datablocks. See also
+            `which`.
         get_drms : bool; optional
             If True, read all "OEF" and "OES" formatted datablocks.
             See also `which`.
-        get_ougv1 : bool; optional; DEPRECATED
-            This will be removed in a future version. Use `get_ougs`
-            instead. If True, `get_ougs` is set to True.
-        get_oef1 : bool; optional; DEPRECATED
-            This will be removed in a future version. Use `get_drms`
-            instead.  If True, `get_drms` is set to True.
-        get_oes1 : bool; optional; DEPRECATED
-            This will be removed in a future version. Use `get_drms`
-            instead.  If True, `get_drms` is set to True.
         get_dr_tables : bool or list/tuple; optional
             If True (or False), read (or do not read) data recovery
             tables. If True, any data block that starts with "T" is
@@ -2340,25 +2485,275 @@ class OP2:
         ):
             self._rddatablock(names, rdfunc, verbose, dct, which=which)
 
-        if get_ougv1:
-            get_ougs = True
-            warnings.warn(
-                "`get_ougv1` is deprecated and will be removed in a future "
-                " version; use `get_ougs` instead",
-                FutureWarning,
+        # search by (acode, tcode)
+        for flag, names, rdfunc in (
+            (get_ougs, {(22, 7), (22, 3)}, self._rdop2oug),
+            (get_drms, {(22, 4), (22, 5)}, self._rdop2drm),
+            (get_ogfs, {(22, 19)}, self._rdop2ogf),
+        ):
+            if flag or get_all:
+                self._rddatablock(
+                    names, rdfunc, verbose, dct, which=which, include_name=True
+                )
+
+        # read data recovery tables like tug1 and tef1
+        if not isinstance(get_dr_tables, (list, tuple)):
+            if get_dr_tables or get_all:
+                get_dr_tables = ["T*"]
+
+        if get_dr_tables:
+            dct.update(
+                self._rd_datarecovery_tables(get_dr_tables, verbose, which=which)
             )
 
-        if get_oef1 or get_oes1:
-            get_drms = True
+        # some special se 0 data block handling for backward
+        # compatibility:
+        if 0 in geom1:
+            for name in ("selist", "sebulk", "seload", "seconct"):
+                if name in geom1[0]:
+                    dct[name] = geom1[0][name]
+
+        if "dynamics" in dct:
+            if which == "all":
+                dct["tload"] = dct["dynamics"][-1]
+            else:
+                dct["tload"] = dct["dynamics"]
+
+        return dct
+
+    def rdparampost_old(
+        self,
+        verbose=False,
+        get_all=False,
+        get_mats=True,
+        get_ougv1=False,
+        get_oef1=False,
+        get_oes1=False,
+        get_dr_tables=True,
+        which=-1,
+    ):
+        """
+        Reads PARAM,POST,-1 op2 file and returns dictionary of data.
+
+        .. warning::
+            DEPRECATED. This routine will likely be removed in the
+            next release. Use :func:`rdparampost` instead.
+
+        Parameters
+        ----------
+        verbose : bool; optional
+            If True, echo names of tables and matrices to screen
+        get_all; bool; optional
+            If True, sets all other `get_*` parameters to
+            True. Ignored if False. It won't override `get_mats` or
+            `get_dr_tables` if they are lists or tuples.
+        get_mats : bool or list/tuple; optional
+            If True (or False), read (or do not read) matrices. If a
+            list/tuple, it is an iterable of data blocks to look for
+            and read if possible. Each name in the list can end with a
+            "*" for simple wildcard matching. For example::
+
+                get_mats = ["K4HH", "M*"]
+
+            would read in "K4HH" and all matrices that start with
+            "M". In the output dictionary of this routine, each matrix
+            is stored by its name in lower case. If `which` is "all",
+            then each entry is a list of all the matrices of each name
+            in the file (see :func:`OP2.rdop2mats`)
+        get_ougv1 : bool; optional
+            If True, read the OUGV1, OUG1, or BOPHIG matrix, if
+            present. See also `which`.
+        get_oef1 : bool; optional
+            If True, read the OEF1 matrix, if any. See also `which`.
+        get_oes1 : bool; optional
+            If True, read the OES1 matrix, if any. See also `which`.
+        get_dr_tables : bool or list/tuple; optional
+            If True (or False), read (or do not read) data recovery
+            tables. Any data block that starts with "T" is checked and
+            if it is a data recovery table, it is read in. If a
+            list/tuple, it is an iterable of data blocks to look for
+            and read if possible. Each name in the list can end with a
+            "*" for simple wildcard matching. For example::
+
+                get_dr_tables = ["TUG*"]
+
+            would read in all data recovery tables that match that
+            pattern, and only those. Setting `get_dr_tables` to True
+            is equivalent to setting to ``["T*"]``. In the output
+            dictionary of this routine, each matrix is stored by its
+            name in lower case. Each matrix is 3-columns::
+
+                [id, dof, type]
+
+            See also `which`.
+        which : integer or str; optional
+            If integer, specifies which occurrence of each matrix to
+            read starting at 0. Default is -1; read the last entry for
+            each matrix only. Can also be the string "all". In that
+            case, each entry in the dictionary is a list of all
+            occurrences of each matrix (even if there is only one
+            occurrence).
+
+        Returns
+        -------
+        dictionary
+
+        'uset' : pandas DataFrame
+            A DataFrame as output by :func:`OP2.rdn2cop2`
+        'cstm' : array
+            14-column matrix containing the coordinate system
+            transformation matrix for each coordinate system. See
+            description in class OP2, member function
+            :func:`OP2.rdn2cop2`.
+        'cstm2' : dictionary
+            Dictionary indexed by the coordinate system id
+            number. This has the same information as 'cstm', but in a
+            different format.  See description in class OP2, member
+            function :func:`OP2.rdn2cop2`.
+        'lama' : ndarray or list of ndarrays
+            The "LAMA" table; # modes x 7. List if `which` is "all".
+        'dynamics' : ndarray or list of ndarrays
+            The "tload" part of the DYNAMICS data block. See also
+            "tload". List if `which` is "all".
+        'tload' : ndarray
+            Only present if the "DYNAMICS" data block is present. This
+            is the "tload" part of the last "DYNAMICS" data block read
+            in. (Same as "dynamics" if `which` is not "all".)
+        'ogpwg' : dictionary or list of dictionaries
+            Only present if the "OGPWG" table is present in the op2
+            file. The dictionary is the output of
+            :func:`OP2.rdop2gpwg`. List if `which` is "all".
+        'selist' : 2d ndarray
+            2-columns matrix: [ seid, dnseid ] where, for each row,
+            dnseid is the downstream superelement for seid. (dnseid =
+            0 if seid = 0).
+        'sebulk' : 2d ndarray
+            output record from GEOM1 of SE 0
+        'seload' : 2d ndarray
+            output record from GEOM1 of SE 0
+        'seconct' : 1d ndarray
+            output record from GEOM1 of SE 0
+        'geom1' : dictionary
+            Dictionary of GEOM1(S) data blocks; key is SE. Does not
+            depend on `which`. Will be empty if no GEOM1(S) data
+            blocks are in the op2 file.
+        'bgpdt' : dictionary
+            Dictionary of BGPDT(S) data blocks; key is SE. Does not
+            depend on `which`. Will be empty if no BGPDT(S) data
+            blocks are in the op2 file.
+
+        Notes
+        -----
+        Other data blocks may be present in the output depending on the
+        input parameters and the contents of the op2 file.
+        """
+        warnings.warn(
+            "`rdparampost_old` will be removed soon. Use `rdparampost` instead.",
+            FutureWarning,
+        )
+
+        # read last geom1s or geom1 data block
+        # - if se tree, this would be for residual and will have "selist"
+        # - if upstream cb creation run, will have "extrn"
+        # - if non-se run, will have neither of those
+        nms = ["GEOM1S", "GEOM1"]
+        geom1_0, name = self._rddatablock(nms, self._rdgeom1, verbose)
+        addon = "S"
+        nsupers = 0
+        ses = []
+        if name == "GEOM1S":
+            if "selist" in geom1_0:
+                # se tree run
+                nsupers = geom1_0["selist"].shape[0]
+                ses = geom1_0["selist"][:, 0]
+            else:
+                # single upstream se run
+                nsupers = 1
+                ses = [0]  # treat as SE 0
+        elif name == "GEOM1":
+            # non-se run
+            nsupers = 1
+            ses = [0]
+            addon = ""
+
+        gname = f"GEOM1{addon}"
+        bname = f"BGPDT{addon}"
+        ng = len(self.dbdct[gname]) if gname in self.dbdct else 0
+        nb = len(self.dbdct[bname]) if bname in self.dbdct else 0
+        if ng != nsupers or nb != nsupers:
             warnings.warn(
-                "`get_oef1` and `get_eos1` are deprecated and will be removed "
-                "in a future version; use `get_drms` instead",
-                FutureWarning,
+                f"number of SEs from 'selist' is {nsupers}; however have "
+                f"{ng} {gname!r} data blocks and {nb} {bname!r} data blocks."
+                " Output may be garbled.",
+                RuntimeWarning,
             )
+
+        geom1 = {}
+        bgpdt = {}
+        build_uset = 0
+        for j, se in enumerate(ses):
+            for dbname, dct, rdfunc in (
+                (gname, geom1, self._rdgeom1),
+                (bname, bgpdt, self._rdop2bgpdt68),
+            ):
+                if se == 0 and dbname.startswith("GEOM1"):
+                    geom1[0] = geom1_0
+                    continue
+                try:
+                    db, name = self._rddatablock([dbname], rdfunc, verbose, which=j)
+                except KeyError:
+                    pass
+                else:
+                    dct[se] = db
+                    if se == 0 and dbname == bname:
+                        build_uset += 1
+
+        cstm = self._rdcstm(verbose)
+        cstm2 = geom1[0]["cords"] if 0 in geom1 and "cords" in geom1[0] else None
+
+        dct = {
+            "cstm": cstm,
+            "cstm2": cstm2,
+            "geom1": geom1,
+            "bgpdt": bgpdt,
+        }
+
+        eqexin, name = self._rddatablock(
+            ["EQEXINS", "EQEXIN"], self._rdop2eqexin, verbose
+        )
+        if eqexin:
+            eqexin1, eqexin = eqexin
+            build_uset += 1
+
+        uset, name = self._rddatablock(["USET"], self._rdop2uset, verbose)
+
+        if build_uset == 2:
+            Uset, cstm, cstm2 = self._build_uset(
+                eqexin1, eqexin, bgpdt[0], uset, cstm, cstm2
+            )
+            dct["uset"] = Uset
+
+        # read other miscellaneous data blocks:
+        if get_mats or get_all:
+            if isinstance(get_mats, (list, tuple)):
+                names = get_mats
+            else:
+                names = None
+            dct.update(
+                self.rdop2mats(names=names, verbose=verbose, lower=True, which=which)
+            )
+
+        for names, rdfunc in (
+            (["LAMA*"], self._rdop2lama),
+            (["DYNAMICS", "DYNAMIC"], self.rdop2dynamics),
+            (["OGPWG*"], self._rdop2gpwg),
+        ):
+            self._rddatablock(names, rdfunc, verbose, dct, which=which)
 
         for flag, names, rdfunc in (
-            (get_ougs, {(22, 7, 0)}, self._rdop2ougv1),
-            (get_drms, {(22, 4, 34), (22, 5, 34)}, self._rdop2drm),
+            (get_ougv1, ["OUGV1", "BOPHIG", "OUG1"], self._rdop2ougv1),
+            (get_oef1, ["OEF1*"], self._rdop2drm),
+            (get_oes1, ["OES1*"], self._rdop2drm),
         ):
             if flag or get_all:
                 self._rddatablock(
@@ -2451,7 +2846,7 @@ class OP2:
             matrix.dtype = complex
         return matrix
 
-    def _rdop2drm(self, name):
+    def _rdop2drm(self, name, oldstyle=False):
         """
         Read Nastran output2 DRM SORT1 data block (table).
 
@@ -2459,13 +2854,20 @@ class OP2:
         ----------
         name : string
             Name of data block.
+        oldstyle : bool; optional
+            If True, return 2-tuple: ``(drm, elem_info)``, otherwise
+            return pandas.DataFrame where the index is element id and
+            type.
 
         Returns
         -------
-        drm : ndarray
-            The drm matrix.
-        elem_info : ndarray
-            2-column matrix of [id, element_type].
+        drm : ndarray; optional
+            The drm matrix. Returned if `oldstyle` is True.
+        elem_info : ndarray; optional
+            2-column matrix of [id, element_type]. Returned if
+            `oldstyle` is True.
+        drm_df : pandas.DataFrame; optional
+            Returned if `oldstyle` is False (the default).
 
         Notes
         -----
@@ -2540,7 +2942,13 @@ class OP2:
             drm, elem_info = _getdrm(pos, e, s, eids, etypes, self._ibytes)
             drm[:, mode - 1] = column
         drm.dtype = np.float32 if self._ibytes == 4 else np.float64
-        return drm, elem_info
+        if oldstyle:
+            return drm, elem_info
+
+        indexm = pd.MultiIndex.from_tuples(
+            (row for row in elem_info), names=("Eid", "Etype")
+        )
+        return pd.DataFrame(drm, index=indexm)
 
     def rddrm2op2(self, verbose=False):
         """
@@ -3829,8 +4237,9 @@ def rdpostop2(
     """
     Reads PARAM,POST,-1 op2 file and returns dictionary of data.
 
-    Note: This routine may be removed in the future in favor of
-    :func:`rdparampost`.
+    .. warning::
+        This routine may be removed in the future in favor of
+        :func:`rdparampost`.
 
     Parameters
     ----------
@@ -3888,6 +4297,10 @@ def rdpostop2(
         List of all GEOM1 data blocks in order. Data also in 'geom1'
         dictionary.
     """
+    warnings.warn(
+        "`rdpostop2` may be removed in the future; use `rdparampost` instead.",
+        FutureWarning,
+    )
     # read op2 file:
     op2file = guitools.get_file_name(op2file, read=True)
     with OP2(op2file) as o2:
@@ -4004,7 +4417,7 @@ def rdpostop2(
                         mo = mats["oef1"]
                     except KeyError:
                         mo = mats["oef1"] = []
-                    mo += [o2._rdop2drm(name)]
+                    mo += [o2._rdop2drm(name, True)]
                     continue
 
                 if getoes1 and name.startswith("OES1"):
@@ -4014,7 +4427,7 @@ def rdpostop2(
                         mo = mats["oes1"]
                     except KeyError:
                         mo = mats["oes1"] = []
-                    mo += [o2._rdop2drm(name)]
+                    mo += [o2._rdop2drm(name, True)]
                     continue
 
                 if name.find("LAMA") == 0:
@@ -4114,10 +4527,8 @@ def rdparampost(
     get_all=False,
     get_mats=True,
     get_ougs=False,
+    get_ogfs=False,
     get_drms=False,
-    get_ougv1=False,
-    get_oef1=False,
-    get_oes1=False,
     get_dr_tables=True,
     which=-1,
 ):
@@ -4148,18 +4559,12 @@ def rdparampost(
     get_ougs : bool; optional
         If True, read all "OUG" formatted datablocks. See also
         `which`.
+    get_ogfs : bool; optional
+        If True, read all "OGF" formatted datablocks. See also
+        `which`.
     get_drms : bool; optional
         If True, read all "OEF" and "OES" formatted datablocks.  See
         also `which`.
-    get_ougv1 : bool; optional; DEPRECATED
-        This will be removed in a future version. Use `get_ougs`
-        instead. If True, `get_ougs` is set to True.
-    get_oef1 : bool; optional; DEPRECATED
-        This will be removed in a future version. Use `get_drms`
-        instead.  If True, `get_drms` is set to True.
-    get_oes1 : bool; optional; DEPRECATED
-        This will be removed in a future version. Use `get_drms`
-        instead.  If True, `get_drms` is set to True.
     get_dr_tables : bool or list/tuple; optional
         If True (or False), read (or do not read) data recovery
         tables. If True, any data block that starts with "T" is
@@ -4249,10 +4654,8 @@ def rdparampost(
                 get_all=get_all,
                 get_mats=get_mats,
                 get_ougs=get_ougs,
+                get_ogfs=get_ogfs,
                 get_drms=get_drms,
-                get_ougv1=get_ougv1,
-                get_oef1=get_oef1,
-                get_oes1=get_oes1,
                 get_dr_tables=get_dr_tables,
                 which=which,
             )
@@ -4264,10 +4667,167 @@ def rdparampost(
             get_all=get_all,
             get_mats=get_mats,
             get_ougs=get_ougs,
+            get_ogfs=get_ogfs,
             get_drms=get_drms,
-            get_ougv1=get_ougv1,
-            get_oef1=get_oef1,
-            get_oes1=get_oes1,
             get_dr_tables=get_dr_tables,
             which=which,
+        )
+
+
+def rdparampost_old(
+    op2file=None,
+    verbose=False,
+    get_all=False,
+    get_mats=True,
+    get_ougv1=False,
+    get_oef1=False,
+    get_oes1=False,
+    get_dr_tables=True,
+    which=-1,
+):
+    """
+    Reads PARAM,POST,-1 op2 file and returns dictionary of data.
+
+    .. warning::
+        DEPRECATED. This routine will likely be removed in the next
+        release. Use :func:`rdparampost` instead.
+
+    Parameters
+    ----------
+    verbose : bool; optional
+        If True, echo names of tables and matrices to screen
+    get_all; bool; optional
+        If True, sets all other `get_*` parameters to True. Ignored if
+        False. It won't override `get_mats` or `get_dr_tables` if they
+        are lists or tuples.
+    get_mats : bool or list/tuple; optional
+        If True (or False), read (or do not read) matrices. If a
+        list/tuple, it is an iterable of data blocks to look for and
+        read if possible. Each name in the list can end with a "*" for
+        simple wildcard matching. For example::
+
+            get_mats = ["K4HH", "M*"]
+
+        would read in "K4HH" and all matrices that start with
+        "M". In the output dictionary of this routine, each matrix
+        is stored by its name in lower case. If `which` is "all",
+        then each entry is a list of all the matrices of each
+        name in the file (see :func:`OP2.rdop2mats`)
+    get_ougv1 : bool; optional
+        If True, read the OUGV1, OUG1, or BOPHIG matrix, if
+        present. See also `which`.
+    get_oef1 : bool; optional
+        If True, read the OEF1 matrix, if any. See also `which`.
+    get_oes1 : bool; optional
+        If True, read the OES1 matrix, if any. See also `which`.
+    get_dr_tables : bool or list/tuple; optional
+        If True (or False), read (or do not read) data recovery
+        tables. Any data block that starts with "T" is checked and if
+        it is a data recovery table, it is read in. If a list/tuple,
+        it is an iterable of data blocks to look for and read if
+        possible. Each name in the list can end with a "*" for
+        simple wildcard matching. For example::
+
+            get_dr_tables = ["TUG*"]
+
+        would read in all data recovery tables that match that
+        pattern, and only those. Setting `get_dr_tables` to True is
+        equivalent to setting to ``["T*"]``. In
+        the output dictionary of this routine, each matrix is stored
+        by its name in lower case. Each matrix is 3-columns::
+
+            [id, dof, type]
+
+        See also `which`.
+    which : integer or str; optional
+        If integer, specifies which occurrence of each matrix to
+        read starting at 0. Default is -1; read the last entry for
+        each matrix only. Can also be the string "all". In that
+        case, each entry in the dictionary is a list of all
+        occurrences of each matrix (even if there is only one
+        occurrence).
+
+    Returns
+    -------
+    dictionary
+
+    'uset' : pandas DataFrame
+        A DataFrame as output by :func:`OP2.rdn2cop2`
+    'cstm' : array
+        14-column matrix containing the coordinate system
+        transformation matrix for each coordinate system. See
+        description in class OP2, member function
+        :func:`OP2.rdn2cop2`.
+    'cstm2' : dictionary
+        Dictionary indexed by the coordinate system id number. This
+        has the same information as 'cstm', but in a different format.
+        See description in class OP2, member function
+        :func:`OP2.rdn2cop2`.
+    'lama' : ndarray or list of ndarrays
+        The "LAMA" table; # modes x 7. List if `which` is "all".
+    'dynamics' : ndarray or list of ndarrays
+        The "tload" part of the DYNAMICS data block. See also
+        "tload". List if `which` is "all".
+    'tload' : ndarray
+        Only present if the "DYNAMICS" data block is present. This
+        is the "tload" part of the last "DYNAMICS" data block read
+        in. (Same as "dynamics" if `which` is not "all".)
+    'ogpwg' : dictionary or list of dictionaries
+        Only present if the "OGPWG" table is present in the op2
+        file. The dictionary is the output of
+        :func:`OP2.rdop2gpwg`. List if `which` is "all".
+    'selist' : 2d ndarray
+        2-columns matrix: [ seid, dnseid ] where, for each row, dnseid
+        is the downstream superelement for seid. (dnseid = 0 if seid =
+        0).
+    'sebulk' : 2d ndarray
+        output record from GEOM1 of SE 0
+    'seload' : 2d ndarray
+        output record from GEOM1 of SE 0
+    'seconct' : 1d ndarray
+        output record from GEOM1 of SE 0
+    'geom1' : dictionary
+        Dictionary of GEOM1(S) data blocks; key is SE. Does not
+        depend on `which`. Will be empty if no GEOM1(S) data
+        blocks are in the op2 file.
+    'bgpdt' : dictionary
+        Dictionary of BGPDT(S) data blocks; key is SE. Does not
+        depend on `which`. Will be empty if no BGPDT(S) data
+        blocks are in the op2 file.
+
+    Notes
+    -----
+    Other data blocks may be present in the output depending on the
+    input parameters and the contents of the op2 file.
+
+    This routine is for convenience; this is what it does::
+
+        op2file = guitools.get_file_name(op2file, read=True)
+        with OP2(op2file) as o2:
+            return o2.rdparampost_old(
+                verbose,
+                get_all,
+                get_mats,
+                get_ougv1,
+                get_oef1,
+                get_oes1,
+                get_dr_tables,
+                which,
+            )
+    """
+    warnings.warn(
+        "`rdparampost_old` will be removed soon. Use `rdparampost` instead.",
+        FutureWarning,
+    )
+    op2file = guitools.get_file_name(op2file, read=True)
+    with OP2(op2file) as o2:
+        return o2.rdparampost_old(
+            verbose,
+            get_all,
+            get_mats,
+            get_ougv1,
+            get_oef1,
+            get_oes1,
+            get_dr_tables,
+            which,
         )
