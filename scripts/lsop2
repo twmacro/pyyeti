@@ -30,8 +30,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 for name in args.input_file:
-    print()
-    print(name)
-    op2.OP2(name).directory(
-        with_headers=args.with_headers, with_trailers=args.with_trailers
-    )
+    with op2.OP2(name) as o2:
+        print()
+        print(f"{name}: {len(o2.dblist)} data blocks")
+        o2.directory(with_headers=args.with_headers, with_trailers=args.with_trailers)
