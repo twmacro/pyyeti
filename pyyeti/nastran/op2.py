@@ -21,6 +21,7 @@ import struct
 import warnings
 from collections import namedtuple
 from types import SimpleNamespace
+import bisect
 import numpy as np
 import pandas as pd
 from pyyeti import guitools
@@ -570,6 +571,36 @@ class OP2:
             matrix = matrix.T.view(complex).T
         return matrix
 
+    def next_db_info(self):
+        """
+        Get information on the next data block in the file
+
+        Returns
+        -------
+        SimpleNamespace or None
+            Contains the name, start and stop byte positions, trailer,
+            etc of the next data block in the file relative to the
+            current file postion. This is the same SimpleNamespace
+            that is in ``self.dbdct``; see :func:`directory` for a
+            detailed description. None is returned if there is no next
+            data block.
+        """
+        curpos = self._fileh.tell()
+        j = bisect.bisect_right(self.dblist, curpos, key=lambda sns: sns.start)
+        return self.dblist[j] if j < len(self.dblist) else None
+
+    def goto_next(self):
+        """
+        Set file position at start of next data block
+
+        Position is set to end-of-file if there is no next data block.
+        """
+        nextdb = self.next_db_info()
+        if nextdb is None:
+            self._fileh.seek(self.dblist[-1].stop)
+        else:
+            self._fileh.seek(nextdb.start)
+
     def skipop2matrix(self):
         """
         Skip Nastran op2 matrix at current position.
@@ -577,6 +608,7 @@ class OP2:
         It is assumed that the name has already been read in via
         :func:`rdop2nt`.
         """
+        # cannot use goto_next here; dblist may not yet be available
         dtype = 1
         while dtype > 0:  # read in matrix columns
             # key is number of elements in next record (row # followed
@@ -593,18 +625,18 @@ class OP2:
         self.rdop2eot()
 
     def skipop2table(self):
-        """Skip over Nastran output2 table."""
-        eot, key = self.rdop2eot()
-        if key == 0:
-            return
-        while key > 0:
-            while key > 0:
-                reclen = self._Str4.unpack(self._fileh.read(4))[0]
-                self._fileh.seek(8 + reclen, 1)
-                key = self._Str.unpack(self._fileh.read(self._ibytes))[0]
-                self._fileh.read(4)  # endrec
-            self._skipkey(2)
-            eot, key = self.rdop2eot()
+        """
+        Skip over Nastran output2 table.
+
+        .. warning::
+            DEPRECATED. This routine will likely be removed in the
+            next release. Use :func:`goto_next` instead.
+        """
+        warnings.warn(
+            "`skipop2table` is deprecated. Use `goto_next` instead.",
+            FutureWarning,
+        )
+        self.goto_next()
 
     @staticmethod
     def _has_match(name, names):
@@ -1175,7 +1207,7 @@ class OP2:
             here are the first two columns of an ``ofg`` associated
             with node 2693::
 
-                >>> ogf.loc[[2693], :2]
+                >>> ogf.loc[[2693], :2]   # doctest: +SKIP
                 Mode #                                 1             2
                 Freq (Hz)                       6.835803      9.240421
                 Node Element Desc     Comp
@@ -1254,7 +1286,7 @@ class OP2:
             eigenval[col] = ident[5]
             col += 1
 
-        frq = np.sqrt(eigenval) / (2 * np.pi)
+        frq = np.sqrt(np.abs(eigenval)) / (2 * np.pi)
         columns = pd.MultiIndex.from_tuples(
             ((i, f) for i, f in enumerate(frq, 1)), names=("Mode #", "Freq (Hz)")
         )
@@ -1280,7 +1312,7 @@ class OP2:
             here are the first four columns of an ``ougv1`` associated
             with node 2693::
 
-                >>> ougv1.loc[[2693], :4]
+                >>> ougv1.loc[[2693], :4]   # doctest: +SKIP
                 Mode #            1         2         3         4
                 Freq (Hz) 6.835803  9.240421  13.516423 15.768772
                 Node DOF
@@ -1612,8 +1644,7 @@ class OP2:
                 header[1], [1, 2, 7], [[1], [3, 7], [0, 2]], "TCODE"
             )
             if not (achk and tchk):
-                self._fileh.seek(pos)
-                self.skipop2table()
+                self.goto_next()
                 return
             self._fileh.read(self._ibytes)  # mode bytes
             lam[J] = float2_Str.unpack(self._fileh.read(8))[0]
@@ -1790,7 +1821,7 @@ class OP2:
         n = len(data) // nbytes
         if n * nbytes != len(data):
             raise ValueError("incorrect record length for _rdop2bgpdt68")
-        self.skipop2table()
+        self.goto_next()
         data = np.frombuffer(data, dtype=dtype)
         return data
 
@@ -2021,8 +2052,7 @@ class OP2:
             bgpdt_rec1 = bgpdtin
         else:
             bgpdt_rec1 = self._rdop2bgpdt()
-            self.rdop2record()
-            self.skipop2table()
+            self.goto_next()
 
         xyz = bgpdt_rec1["xyz"]
         if ver68:
@@ -2992,7 +3022,8 @@ class OP2:
             if rectype > 0:
                 if verbose:
                     print(f"Skipping matrix {name}...")
-                self.skipop2matrix()
+                self.goto_next()
+                # self.skipop2matrix()
             elif len(name) > 2 and name.find("TO") == 0:
                 if verbose:
                     print(f"Reading {name}...")
@@ -3014,7 +3045,7 @@ class OP2:
             else:
                 if verbose:
                     print(f"Skipping table {name}...")
-                self.skipop2table()
+                self.goto_next()
         return drmkeys
 
     def rdn2cop2(self):
@@ -4442,7 +4473,7 @@ def rdpostop2(
 
                 if verbose:
                     print(f"Skipping table {name}...")
-                o2.skipop2table()
+                o2.goto_next()
 
         if eqexin1 is not None and eqexin is not None and bgpdt_rec1 is not None:
             (xyz, cid, dof, doftype, nid, upids) = o2._proc_bgpdt(

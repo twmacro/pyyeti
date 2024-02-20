@@ -32,6 +32,8 @@ Member functions:
     OP2.directory
     OP2.prtdir
     OP2.file_handle
+    OP2.goto_next
+    OP2.next_db_info
     OP2.rdop2eot
     OP2.rdop2header
     OP2.rdop2nt
