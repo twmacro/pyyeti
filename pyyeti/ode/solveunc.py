@@ -102,7 +102,7 @@ class SolveUnc(_BaseODE):
            \right ]
            + \frac{1}{m \omega_d}
              \int_0^t {e^{-\zeta \omega_n (t - \tau)}
-                       \sin(\omega_d (t - \tau) P(\tau) d \tau}
+                       \sin(\omega_d (t - \tau)) P(\tau) d \tau}
 
     where the displacement and velocity initial conditions are
     :math:`q_0` and :math:`v_0`, and :math:`\omega_d` is the damped
