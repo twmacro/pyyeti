@@ -575,6 +575,8 @@ class OP2:
         """
         Get information on the next data block in the file
 
+        See :func:`goto_next` for an example usage.
+
         Returns
         -------
         SimpleNamespace or None
@@ -594,6 +596,51 @@ class OP2:
         Set file position at start of next data block
 
         Position is set to end-of-file if there is no next data block.
+
+        Examples
+        --------
+        >>> from pathlib import Path
+        >>> import inspect
+        >>> from pyyeti.nastran import op2
+        >>> pth = Path(inspect.getfile(op2))
+        >>> fname = (
+        ...     pth.parent.parent
+        ...     / "tests"
+        ...     / "nas2cam_extseout"
+        ...     / "assemble.op2"
+        ... )
+        >>> with op2.OP2(fname) as o2:
+        ...    o2.set_position(0)
+        ...    while next_info := o2.next_db_info():
+        ...        name, start = next_info.name, next_info.start
+        ...        print(f"{name} starts @ {start} bytes")
+        ...        o2.goto_next()
+        PVT0 starts @ 132 bytes
+        CASECC starts @ 524 bytes
+        GEOM1S starts @ 10548 bytes
+        GEOM2S starts @ 11416 bytes
+        GEOM4S starts @ 11840 bytes
+        BGPDTS starts @ 12384 bytes
+        GEOM1S starts @ 13056 bytes
+        GEOM2S starts @ 13812 bytes
+        GEOM4S starts @ 14180 bytes
+        BGPDTS starts @ 14612 bytes
+        GEOM1S starts @ 15060 bytes
+        GEOM2S starts @ 16440 bytes
+        GEOM3S starts @ 16896 bytes
+        GEOM4S starts @ 17260 bytes
+        DYNAMICS starts @ 17828 bytes
+        BGPDTS starts @ 18428 bytes
+        EQEXINS starts @ 19244 bytes
+        DIT starts @ 20116 bytes
+        LAMA starts @ 20508 bytes
+        OUGV1 starts @ 22916 bytes
+        FRL starts @ 121200 bytes
+        KHH starts @ 121464 bytes
+        LAMA starts @ 125344 bytes
+        OUGV1 starts @ 127752 bytes
+        OUGV1 starts @ 130608 bytes
+        OUGV1 starts @ 131916 bytes
         """
         nextdb = self.next_db_info()
         if nextdb is None:
