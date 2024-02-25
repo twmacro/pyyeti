@@ -610,7 +610,7 @@ class OP2:
         ...     / "assemble.op2"
         ... )
         >>> with op2.OP2(fname) as o2:
-        ...    o2.set_position(0)
+        ...    pos = o2.set_position(0)
         ...    while next_info := o2.next_db_info():
         ...        name, start = next_info.name, next_info.start
         ...        print(f"{name} starts @ {start} bytes")
