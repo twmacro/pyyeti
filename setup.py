@@ -28,8 +28,6 @@ CLASSIFIERS = [
     "Development Status :: 4 - Beta",
     "Programming Language :: C",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3 :: Only",
@@ -95,7 +93,7 @@ def run_setup(with_binary):
     install_requires = check_dependencies()
     setup(
         name="pyyeti",
-        version="1.4.0",
+        version="1.4.1",
         url="http://github.com/twmacro/pyyeti/",
         license="BSD",
         author="Tim Widrick",
