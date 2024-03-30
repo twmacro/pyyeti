@@ -45,8 +45,8 @@ def rainflow(peaks, getoffsets=False, use_pandas=True):
     Parameters
     ----------
     peaks : 1d array_like
-        Vector of alternating peaks (as returned by
-        :func:`pyyeti.findap`, for example)
+        Vector of alternating peaks (as returned by :func:`findap`,
+        for example)
     getoffsets : bool; optional
         If True, the tuple ``(rf, os)`` is returned; otherwise, only
         `rf` is returned.

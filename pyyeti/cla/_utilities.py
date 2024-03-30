@@ -281,8 +281,12 @@ def maxmin(response, x):
 
     Returns
     -------
-    mxmn : 2d ndarray
-        Four column matrix: ``[max, x_of_max, min, x_of_min]``
+    A SimpleNamespace with the members:
+
+    ext : 2d ndarray
+        Two column matrix: ``[max, min]``
+    ext_x : 2d ndarray
+        Two column matrix: ``[x_of_max, x_of_min]``
     """
     r, c = np.shape(response)
     if c != len(x):

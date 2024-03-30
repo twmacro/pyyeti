@@ -5200,6 +5200,8 @@ def wtconm2(f, eid, gid, cid, mass, I_diag, I_offdiag=None, offset=None):
         The ID of the grid to which the mass element is attached.
     cid : integer
         The coordinate system ID used to define the mass element.
+    mass : float
+        Mass
     I_diag : 1d array_like
         The diagonal moment of inertia terms, I11, I22, and I33.
     I_offdiag : 1d array_like; optional
