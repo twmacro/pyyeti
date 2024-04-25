@@ -7,7 +7,11 @@ from io import StringIO
 from types import SimpleNamespace
 import warnings
 import numpy as np
+
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
+
 from pyyeti import ytools, locate, writer, guitools
 from ._utilities import _get_rpt_headers, _get_numform, _proc_filterval
 from ._magpct import magpct
@@ -292,24 +296,27 @@ def _figure_on(name, doabsmax, show_figures):
     if doabsmax:
         figsize[1] /= 3.0
     if show_figures:
-        plt.figure(name, figsize=figsize)
-        plt.clf()
+        fig = plt.figure(name, figsize=figsize, clear=True)
     else:
-        plt.figure(figsize=figsize)
+        fig = Figure(figsize=figsize)
+        FigureCanvasAgg(fig)
+    return fig
 
 
 def _figure_off(show_figures):
-    if not show_figures:
-        plt.close()
+    pass
+    # if not show_figures:
+    #     plt.close()
 
 
-def _prep_subplot(pctinfo, sp):
+def _prep_subplot(pctinfo, fig, sp):
     if "mx" in pctinfo:
         # if not just doing absmax
         if sp > 311:
-            plt.subplot(sp, sharex=plt.gca())
-        else:
-            plt.subplot(sp)
+            prev_axes = fig.gca()
+            return fig.add_subplot(sp, sharex=prev_axes)
+        return fig.add_subplot(sp)
+    return fig.add_subplot()
 
 
 def _plot_magpct(
@@ -329,14 +336,14 @@ def _plot_magpct(
     ptitle = f"{desc} - {{}} Comparison vs Magnitude"
     xl = f"{names[1]} Magnitude"
     yl = f"% Diff of {names[0]} vs {names[1]}"
-    _figure_on("Magpct - " + desc, doabsmax, show_figures)
+    fig = _figure_on("Magpct - " + desc, doabsmax, show_figures)
     try:
         for lbl, hdr, sp, ismax in (
             ("mx", maxhdr, 311, True),
             ("mn", minhdr, 312, False),
             ("amx", absmhdr, 313, True),
         ):
-            _prep_subplot(pctinfo, sp)
+            axes = _prep_subplot(pctinfo, fig, sp)
             if lbl in pctinfo:
                 if use_range:
                     ref = pctinfo["amx"]["mag"][1]
@@ -348,15 +355,16 @@ def _plot_magpct(
                     Ref=ref,
                     ismax=ismax,
                     filterval=pctinfo[lbl]["magfilt"],
+                    ax=axes,
                     **magpct_options,
                 )
-                plt.title(ptitle.format(hdr))
-                plt.xlabel(xl)
-                plt.ylabel(yl)
-            plt.grid(True)
-        plt.tight_layout(**tight_layout_args)
+                axes.set_title(ptitle.format(hdr))
+                axes.set_xlabel(xl)
+                axes.set_ylabel(yl)
+            axes.grid(True)
+        fig.tight_layout(**tight_layout_args)
         if isinstance(filename, str):
-            plt.savefig(filename + ".magpct.png")
+            fig.savefig(filename + ".magpct.png")
     finally:
         _figure_off(show_figures)
 
@@ -377,14 +385,14 @@ def _plot_histogram(
     ptitle = f"{desc} - {{}} Comparison Histogram"
     xl = f"% Diff of {names[0]} vs {names[1]}"
     yl = "Percent Occurrence (%)"
-    _figure_on("Histogram - " + desc, doabsmax, show_figures)
+    fig = _figure_on("Histogram - " + desc, doabsmax, show_figures)
     try:
         for lbl, hdr, sp in (
             ("mx", maxhdr, 311),
             ("mn", minhdr, 312),
             ("amx", absmhdr, 313),
         ):
-            _prep_subplot(pctinfo, sp)
+            axes = _prep_subplot(pctinfo, fig, sp)
             if lbl in pctinfo:
                 width = histogram_inc
                 x = pctinfo[lbl]["hsto"][:, 0]
@@ -396,17 +404,17 @@ def _plot_histogram(
                 for pv, c in ((pv1, "m"), (pv2, "r")):
                     for i in pv:
                         colors[i] = c
-                plt.bar(x, y, width=width, color=colors, align="center")
-                plt.title(ptitle.format(hdr))
-                plt.xlabel(xl)
-                plt.ylabel(yl)
-                x = abs(max(plt.xlim(), key=abs))
+                axes.bar(x, y, width=width, color=colors, align="center")
+                axes.set_title(ptitle.format(hdr))
+                axes.set_xlabel(xl)
+                axes.set_ylabel(yl)
+                x = abs(max(axes.get_xlim(), key=abs))
                 if x < 5:
-                    plt.xlim(-5, 5)
-            plt.grid(True)
-        plt.tight_layout(**tight_layout_args)
+                    axes.set_xlim(-5, 5)
+            axes.grid(True)
+        fig.tight_layout(**tight_layout_args)
         if isinstance(filename, str):
-            plt.savefig(filename + ".histogram.png")
+            fig.savefig(filename + ".histogram.png")
     finally:
         _figure_off(show_figures)
 
