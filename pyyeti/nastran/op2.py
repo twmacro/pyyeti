@@ -2305,12 +2305,20 @@ class OP2:
         self.rdop2nt()
         self.rdop2record()
         rec2 = self.rdop2record("bytes")
-        if rec2[:40] == b"TYPE  IDCOMP ROW    TYPE  IDCOMP ROW    ":
+        if (rec2[:40] == b"TYPE  IDCOMP ROW    TYPE  IDCOMP ROW    ") or (
+            rec2[:40] == b"TYPE      ID    COMP     ROW            "
+        ):
             if verbose:
                 print(f"Reading table {name} at position {pos}...")
-            type_id_ndof = np.frombuffer(rec2[40:], self._endian + "i4").reshape(-1, 5)[
-                :, :3
-            ]
+            if rec2[:8] == b"TYPE  ID":
+                offset = 40
+                iform = "i4"
+            else:
+                offset = 80
+                iform = "i8"
+            type_id_ndof = np.frombuffer(rec2[offset:], self._endian + iform).reshape(
+                -1, 5
+            )[:, :3]
             mat = np.array(
                 [
                     [i, dof, etype]

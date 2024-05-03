@@ -808,3 +808,22 @@ def test_rdparampost_uset():
     p = op2.rdparampost("pyyeti/tests/nas2cam_extseout/inboard.op2")
     u, c, b = bulk.asm2uset("pyyeti/tests/nas2cam_extseout/inboard.asm")
     assert np.all(p["uset"].loc[u.loc[b].index] == u.loc[b])
+
+
+def test_rdparampost_64bit():
+    p32 = op2.rdparampost(
+        "pyyeti/tests/nastran_op2_data/tugd_2020_32bit.op2",
+        get_all=True,
+    )
+    p64 = op2.rdparampost(
+        "pyyeti/tests/nastran_op2_data/tugd_2020_64bit.op2",
+        get_all=True,
+    )
+
+    for name in (
+        "dynamics",
+        "tugd",
+        "tefd",
+        "tload",
+    ):
+        assert (p32[name] == p64[name]).all()
