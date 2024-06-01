@@ -1111,15 +1111,16 @@ class DR_Results(OrderedDict):
         freq : 1d array_like
             Frequency vector at which solution will be computed
         use_apply_uf : bool; optional
+            If True, use :func:`DR_Event.apply_uf` instead of
+            :func:`DR_Event.frf_apply_uf` to apply the uncertainty
+            factors.
 
             .. versionadded:: 1.4.1.3
 
-            If True, use :func:`DR_Event.apply_uf` instead of
-            :func:`DR_Event.frf_apply_uf` to apply the uncertainty
-            factors. The primary difference is in the handling of
-            displacements. Specifically, :func:`DR_Event.apply_uf` does
-            the following things while :func:`DR_Event.frf_apply_uf`
-            does not:
+            The primary difference is in the handling of
+            displacements. Specifically, :func:`DR_Event.apply_uf`
+            does the following things while
+            :func:`DR_Event.frf_apply_uf` does not:
 
                1. Breaks the elastic displacements are broken into
                   static and dynamic parts for uncertainty factor
@@ -1160,8 +1161,8 @@ class DR_Results(OrderedDict):
         :class:`DR_Results` for an example).
 
         This routine calls :func:`DR_Event.frf_apply_uf` or
-        :func:`DR_Event.apply_uf`to apply the uncertainty factors (see
-        `use_apply_uf` above).
+        :func:`DR_Event.apply_uf` to apply the uncertainty factors
+        (see `use_apply_uf` above).
 
         The response PSDs are stored in a temporary dictionary index
         by the case; eg: ``self['SC_atm'][case]._psd``. The routine
