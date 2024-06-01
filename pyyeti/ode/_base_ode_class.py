@@ -317,6 +317,10 @@ class _BaseODE:
         self.mid = id(m)
         self.bid = id(b)
         self.kid = id(k)
+        self.m_orig = m
+        self.b_orig = b
+        self.k_orig = k
+
         if m is None:
             b, k = np.atleast_1d(b, k)
             if np.iscomplexobj(b) or np.iscomplexobj(k):

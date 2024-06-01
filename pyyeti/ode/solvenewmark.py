@@ -210,6 +210,9 @@ class SolveNewmark(_BaseODE):
         m             mass for the non-rf DOF (or None for identity)
         b             damping for the non-rf DOF
         k             stiffness for the non-rf DOF
+        m_orig        original mass
+        b_orig        original damping
+        k_orig        original stiffness
         h             time step
         rb            np.array([])
         el            index vector or slice for the non-rf DOF

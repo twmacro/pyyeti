@@ -231,6 +231,9 @@ class SolveExp2(_BaseODE):
         m          mass for the non-rf modes
         b          damping for the non-rf modes
         k          stiffness for the non-rf modes
+        m_orig     original mass
+        b_orig     original damping
+        k_orig     original stiffness
         h          time step
         rb         index vector or slice for the rb modes
         el         index vector or slice for the el modes
