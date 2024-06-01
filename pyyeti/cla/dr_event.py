@@ -573,7 +573,7 @@ class DR_Event:
 # - rfmodes is an index partition vector
 def _pre_calcs(sol, m, b, k, nrb, rfmodes, save):
     n = sol.a.shape[0]
-    genforce = np.empty((n - nrb, sol.a.shape[1]))
+    genforce = np.empty((n - nrb, sol.a.shape[1]), sol.a.dtype)
 
     if rfmodes is not None:
         elastic = flippv(rfmodes, n)[nrb:]
