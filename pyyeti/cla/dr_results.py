@@ -1058,6 +1058,8 @@ class DR_Results(OrderedDict):
         forcepsd,
         t_frc,
         freq,
+        *,
+        use_apply_uf=False,
         verbose=False,
         allow_force_trimming=False,
         **kwargs,
@@ -1108,6 +1110,28 @@ class DR_Results(OrderedDict):
             `forcepsd`: ``t_frc.shape[1] == forcepsd.shape[0]``
         freq : 1d array_like
             Frequency vector at which solution will be computed
+        use_apply_uf : bool; optional
+
+            .. versionadded:: 1.4.1.3
+
+            If True, use :func:`DR_Event.apply_uf` instead of
+            :func:`DR_Event.frf_apply_uf` to apply the uncertainty
+            factors. The primary difference is in the handling of
+            displacements. Specifically, :func:`DR_Event.apply_uf` does
+            the following things while :func:`DR_Event.frf_apply_uf`
+            does not:
+
+               1. Breaks the elastic displacements are broken into
+                  static and dynamic parts for uncertainty factor
+                  application.
+
+               2. Zeros out the rigid-body displacements. This means
+                  that the displacement setting in `incrb` irrelevant
+                  for :func:`DR_Event.apply_uf` (as if "d" is not
+                  present in `incrb`).
+
+               3. Handles residual flexibility responses statically.
+
         verbose : bool; optional
             If True, print status messages and timer results.
         allow_force_trimming : bool; optional
@@ -1135,8 +1159,9 @@ class DR_Results(OrderedDict):
         The `self` results dictionary is updated (see
         :class:`DR_Results` for an example).
 
-        This routine calls :func:`DR_Event.frf_apply_uf` to apply the
-        uncertainty factors.
+        This routine calls :func:`DR_Event.frf_apply_uf` or
+        :func:`DR_Event.apply_uf`to apply the uncertainty factors (see
+        `use_apply_uf` above).
 
         The response PSDs are stored in a temporary dictionary index
         by the case; eg: ``self['SC_atm'][case]._psd``. The routine
@@ -1249,8 +1274,15 @@ class DR_Results(OrderedDict):
 
             # apply uncertainty factors:
             t1 = time.time()
-            sol = DR.frf_apply_uf(sol, nas["nrb"])
-            # sol = DR.apply_uf(sol, *mbk, nas['nrb'], rfmodes)
+
+            if use_apply_uf:
+                rfmodes = None if fs.rfsize == 0 else np.arange(fs.n)[fs.rf]
+                sol = DR.apply_uf(
+                    sol, fs.m_orig, fs.b_orig, fs.k_orig, nas["nrb"], rfmodes
+                )
+            else:
+                sol = DR.frf_apply_uf(sol, nas["nrb"])
+
             timers[1] += time.time() - t1
 
             # perform data recovery:
