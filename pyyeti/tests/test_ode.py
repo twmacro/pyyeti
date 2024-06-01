@@ -138,8 +138,8 @@ def test_getEPQ_B():
 
 
 def check_true_derivatives(sol, tol=5e-3):
-    d = integrate.cumtrapz(sol.v, sol.t, initial=0, axis=1)
-    v = integrate.cumtrapz(sol.a, sol.t, initial=0, axis=1)
+    d = integrate.cumulative_trapezoid(sol.v, sol.t, initial=0, axis=1)
+    v = integrate.cumulative_trapezoid(sol.a, sol.t, initial=0, axis=1)
     derr = abs((d + sol.d[:, :1]) - sol.d).max() / abs(sol.d).max()
     verr = abs((v + sol.v[:, :1]) - sol.v).max() / abs(sol.v).max()
     assert derr < tol
@@ -2634,8 +2634,8 @@ def test_ode_complex_coefficients_with_rf():
         else:
             fr = m.dot(sol.a) + b.dot(sol.v) + k.dot(sol.d)
 
-        v = integrate.cumtrapz(sol.a, sol.t, initial=0)
-        d = integrate.cumtrapz(sol.v, sol.t, initial=0)
+        v = integrate.cumulative_trapezoid(sol.a, sol.t, initial=0)
+        d = integrate.cumulative_trapezoid(sol.v, sol.t, initial=0)
         d[2] = fr[2] / krf
 
         assert np.allclose(f, fr)

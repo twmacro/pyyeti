@@ -1296,7 +1296,8 @@ def rddmig(
             name = name.lower()
             # print(f'op2: found {name}')
             if dmig_names is not None and name.lower() not in dmig_names:
-                o2.skipop2table()
+                # o2.skipop2table()
+                o2.goto_next()
             else:
                 rec = o2.rdop2record()
                 if np.all(rec[:3] == (114, 1, 120)):

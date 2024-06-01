@@ -3897,7 +3897,7 @@ def test_solvepsd_ltmf():
     caseid = "PSDTest"
     nas = {"nrb": 0}
     results = DR.prepare_results("Spring & Damper Forces", event)
-    results.solvepsd(nas, caseid, DR, ts, fpsd, t_frc, freq)
+    results.solvepsd(nas, caseid, DR, ts, fpsd, t_frc, freq, use_apply_uf=True)
     results.psd_data_recovery(caseid, DR, 1, 0)
 
     # --------------------------------------------
@@ -3911,7 +3911,9 @@ def test_solvepsd_ltmf():
         DR.Vars[0]["ltmf"] = DR.Vars[0]["ltmf_keep"][:, fpv[[i]]]
 
         t_frc = np.eye(stiff.shape[0])[[fpv[i]]].T
-        res_separate[caseid].solvepsd(nas, caseid, DR, ts, fpsdi[None, :], t_frc, freq)
+        res_separate[caseid].solvepsd(
+            nas, caseid, DR, ts, fpsdi[None, :], t_frc, freq, use_apply_uf=False
+        )
         res_separate[caseid].psd_data_recovery(caseid, DR, 1, 0)
 
     # ensure the two methods AND approaches are equivalent:

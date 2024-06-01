@@ -1036,7 +1036,8 @@ class DR_Def(OrderedDict):
         def _issame(old, new):
             if new is old:
                 return True
-            if type(new) != type(old):
+            # if type(new) != type(old):
+            if not isinstance(new, type(old)):
                 return False
             if isinstance(new, np.ndarray):
                 if new.shape != old.shape:
@@ -1066,7 +1067,8 @@ class DR_Def(OrderedDict):
                             pass
                         else:
                             s = f"{slen}: {s}"
-                df[cat].loc[val] = s
+                # df[cat].loc[val] = s
+                df.loc[val, cat] = s
 
         if excel_file is not None:
             with xlsxwriter.Workbook(excel_file) as workbook:

@@ -181,7 +181,7 @@ def test_ntfl_indeterminate():
     lam, phi = la.eigh(kc, mc)
     freqsys = np.sqrt(abs(lam)) / 2 / np.pi
     eigen = bulk.rdeigen(srcdir / "assemble.out")
-    assert np.allclose(freqsys[6:], eigen[0]["cycles"].ravel()[6:])
+    assert np.allclose(freqsys[6:], eigen[0]["cycles"][6:])
 
     # use first tload vector of "inboard" to apply a force to the system
     pa_in = mats["in"]["px"][:, 0]
