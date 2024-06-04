@@ -215,5 +215,5 @@ try:
 except ImportError:
     pass
 else:
-    _rainflow1 = numba.jit(nopython=True)(_rainflow1)
-    _rainflow2 = numba.jit(nopython=True)(_rainflow2)
+    _rainflow1 = numba.jit(nopython=True, cache=True)(_rainflow1)
+    _rainflow2 = numba.jit(nopython=True, cache=True)(_rainflow2)
