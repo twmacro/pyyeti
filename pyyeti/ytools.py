@@ -1888,6 +1888,7 @@ else:
         "float32[:, :](float64[:], float64[:], float32[:, :])",
         parallel=True,
         nogil=True,
+        cache=True,
     )
     def _numba_interp_32(x, xp, fp):  # pragma: no cover
         n_rows = fp.shape[0]
@@ -1902,6 +1903,7 @@ else:
         "float64[:, :](float64[:], float64[:], float64[:, :])",
         parallel=True,
         nogil=True,
+        cache=True,
     )
     def _numba_interp_64(x, xp, fp):  # pragma: no cover
         n_rows = fp.shape[0]
