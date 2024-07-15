@@ -2123,6 +2123,22 @@ def test_wrap_text_lines():
             (["a" * 45, "b" * 8, "c" * 6], 24, ","),
             ["a" * 23, "a" * 22 + ",", "b" * 8 + "," + "c" * 6],
         ),
+        (
+            (["a" * 12, "b" * 11], 24, ","),
+            ["a" * 12 + "," + "b" * 11],
+        ),
+        (
+            (["a" * 12, "b" * 11, "c"], 24, ","),
+            ["a" * 12 + ",", "b" * 11 + ",c"],
+        ),
+        (
+            (["a" * 10, "b" * 10, "c"], 24, "++"),
+            ["a" * 10 + "++" + "b" * 10 + "++", "c"],
+        ),
+        (
+            (["a" * 11, "b" * 10, "c"], 24, "++"),
+            ["a" * 11 + "++", "b" * 10 + "++c"],
+        ),
     )
     for (lines, max_length, sep), expected in values:
         output = _wrap_text_lines(lines, max_length, sep)
@@ -2131,16 +2147,20 @@ def test_wrap_text_lines():
     # paths
     values = (
         (
-            ("/home/abcd/this/is/a/long/path/modes.op4", 14),
-            ["/home/abcd/", "this/is/a/long", "/path/", "modes.op4"],
+            ("/home/abcdefg/this/is/a/long/path/modes.op4", 14),
+            ["/home/abcdefg/", "this/is/a/", "long/path/", "modes.op4"],
         ),
         (
             ("/home/abcd/this/is/a/long/path/modes.op4", 15),
-            ["/home/abcd/this", "/is/a/long/path", "/modes.op4"],
+            ["/home/abcd/", "this/is/a/long/", "path/modes.op4"],
+        ),
+        (
+            ("/home/abcd/this/is/aa/long/path/modes.op4", 15),
+            ["/home/abcd/", "this/is/aa/", "long/path/", "modes.op4"],
         ),
         (
             ("/home/abcd/this/is/a/long/path/modes.op4", 20),
-            ["/home/abcd/this/is/a", "/long/path/modes.op4"],
+            ["/home/abcd/this/is/", "a/long/path/", "modes.op4"],
         ),
     )
     for (path, max_length), expected in values:
@@ -2277,6 +2297,48 @@ def test_wtassign():
                 50,
             ),
             ("ASSIGN OUTPUT4 = '../../dir2/out4.op4',UNIT=102,\nDELETE\n"),
+        ),
+        # UNIT=11 doesn't fit on first line
+        (
+            (
+                "output4",
+                "../../../../../../../tmp/tmp8rjamzez/kdjj.op4",
+                {"unit": 11, "formatted": None},
+                None,
+                71,
+            ),
+            (
+                "ASSIGN OUTPUT4 = '../../../../../../../tmp/tmp8rjamzez/kdjj.op4',"
+                "\nUNIT=11,FORMATTED\n"
+            ),
+        ),
+        # UNIT=11 would fit on first line, but comma does not
+        (
+            (
+                "output4",
+                "../../../../../../../tmp/tmp8rjamzez/kdjj.op4",
+                {"unit": 11, "formatted": None},
+                None,
+                72,
+            ),
+            (
+                "ASSIGN OUTPUT4 = '../../../../../../../tmp/tmp8rjamzez/kdjj.op4',"
+                "\nUNIT=11,FORMATTED\n"
+            ),
+        ),
+        # with max_length=73, the UNIT=11 and comma now fit on first line
+        (
+            (
+                "output4",
+                "../../../../../../../tmp/tmp8rjamzez/kdjj.op4",
+                {"unit": 11, "formatted": None},
+                None,
+                73,
+            ),
+            (
+                "ASSIGN OUTPUT4 = '../../../../../../../tmp/tmp8rjamzez/kdjj.op4',"
+                "UNIT=11,\nFORMATTED\n"
+            ),
         ),
     )
     for args, expected in values:
