@@ -2616,6 +2616,86 @@ def test_wtcard16():
         assert f.getvalue() == expected
 
 
+def test_wtcard16d_bad_inputs():
+    f = StringIO()
+    # card name doesn't end in asterisk
+    fields = ("GRID", 0, 0)
+    with pytest.raises(ValueError, match=r"card name.*asterisk"):
+        nastran.wtcard16d(f, fields)
+
+    # card name too long
+    fields = ("ABCDEFGHI*", 0, 0)
+    with pytest.raises(ValueError, match=r"card name.*\<8.*ABCDEFGHI"):
+        nastran.wtcard16d(f, fields)
+
+    # unsupported field type
+    fields = ("ABC*", 0, [1, 2, 3])
+    with pytest.raises(TypeError, match=r"unsupported field type.*list"):
+        nastran.wtcard16d(f, fields)
+
+
+def test_wtcard16d():
+    values = (
+        # three fields
+        (
+            ("ABC*", 0, "", 1.5),
+            ("ABC*                   0                          1.5D+0\n" "*\n"),
+        ),
+        # 7 fields, NumPy types
+        (
+            (
+                np.str_("ABC*"),
+                np.uint32(10),
+                np.uint64(11),
+                np.int32(12),
+                np.int64(13),
+                np.float32(1.0),
+                np.float64(2.0),
+            ),
+            "ABC*                  10              11              12              13\n"
+            "*                  1.D+0           2.D+0\n",
+        ),
+        # four fields
+        (
+            ("ABC*", 0, "", 1.0, -2.0),
+            (
+                "ABC*                   0                           1.D+0          -2.D+0\n"
+                "*\n"
+            ),
+        ),
+        # six fields
+        (
+            ("GRID*", 7100285, 7100003, 1.24499e3, 5.4e1, -3.94e3, 7100004),
+            (
+                "GRID*            7100285         7100003      1.24499D+3          5.4D+1\n"
+                "*               -3.94D+3         7100004\n"
+            ),
+        ),
+        # eight fields
+        (
+            ("ABC*", 0, "", 1.0, 2.0, "", 3.0, 4.0e-2, 550),
+            (
+                "ABC*                   0                           1.D+0           2.D+0\n"
+                "*                                  3.D+0           4.D-2             550\n"
+            ),
+        ),
+        # nine fields
+        (
+            ("ABC*", 0, "", 1.0, 2.0, "", 3.0, 4.0, 550, "ABC"),
+            (
+                "ABC*                   0                           1.D+0           2.D+0\n"
+                "*                                  3.D+0           4.D+0             550*\n"
+                "*       ABC             \n"
+                "*\n"
+            ),
+        ),
+    )
+    for fields, expected in values:
+        f = StringIO()
+        nastran.wtcard16d(f, fields)
+        assert f.getvalue() == expected
+
+
 def test_format_scientific8():
     from pyyeti.nastran.bulk import _format_scientific8
 
@@ -2929,3 +3009,71 @@ def test_format_float16_many():
             output = nastran.format_float16(num)
             assert len(output) == 16
             assert "." in output
+
+
+def test_format_double16():
+    small_exponent = -17
+    large_exponent = 17
+    nums = (
+        [
+            0.0,
+            -0.0,
+            1.0,
+            -1.0,
+            0.1,
+            0.11,
+            0.123451,
+            0.123459,
+            -0.123431,
+            -0.123459,
+            0.000034,
+            -0.000034,
+            -0.009,
+            0.000000000000000000000001,
+            -0.000000000000000000000001,
+        ]
+        + [9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+        + [-9.0 / 11.0 * 10**x for x in range(small_exponent, large_exponent + 1)]
+    )
+    expecteds = (
+        [
+            "           0.D+0",
+            "           0.D+0",
+            "           1.D+0",
+            "          -1.D+0",
+            "           1.D-1",
+            "          1.1D-1",
+            "      1.23451D-1",
+            "      1.23459D-1",
+            "     -1.23431D-1",
+            "     -1.23459D-1",
+            "          3.4D-5",
+            "         -3.4D-5",
+            "          -9.D-3",
+            "          1.D-24",
+            "         -1.D-24",
+        ]
+        + [f"8.1818181818D{i:+d}" for i in range(-18, -9)]
+        + [f"8.18181818182D{i:+d}" for i in range(-9, 10)]
+        + [f"8.1818181818D{i:+d}" for i in range(10, 17)]
+        + [f"-8.181818182D{i:+d}" for i in range(-18, -9)]
+        + [f"-8.1818181818D{i:+d}" for i in range(-9, 10)]
+        + [f"-8.181818182D{i:+d}" for i in range(10, 17)]
+    )
+    assert len(nums) == len(expecteds)
+    for num, expected in zip(nums, expecteds):
+        output = nastran.format_double16(num)
+        assert len(output) == 16
+        assert output == expected
+
+
+def test_format_double16_many():
+    for start in range(-13, 13):
+        nums = np.logspace(
+            start, start + 1, num=1000, endpoint=True, base=10.0, dtype="f8"
+        )
+        for num in nums:
+            output = nastran.format_double16(num)
+            assert len(output) == 16
+            assert "." in output
+            assert "D" in output

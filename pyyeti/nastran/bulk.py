@@ -76,8 +76,10 @@ __all__ = [
     "wtconm2",
     "wtcard8",
     "wtcard16",
+    "wtcard16d",
     "format_float8",
     "format_float16",
+    "format_double16",
 ]
 
 
@@ -5326,6 +5328,53 @@ def wtcard16(f, fields):
     GRID*                101             102              1.              2.
     *                     3.             103
     """
+    _wtcard16(f, fields, format_float16)
+
+
+@guitools.write_text_file
+def wtcard16d(f, fields):
+    """
+    Write a Nastran card formatted in 16 fixed-field double-precision format.
+
+    Line wraps and continuations will be inserted automatically.
+    Empty fields should be indicated by an empty string.
+
+    Parameters
+    ----------
+    f : string or file_like or 1 or None
+        Either a name of a file, or is a file_like object as returned
+        by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
+        write to stdout. Can also be the name of a directory or None;
+        in these cases, a GUI is opened for file selection.
+    fields : 1d array_like
+        List of fields in the card.
+
+    Notes
+    -----
+    The items in fields will be formatted according to their data type.
+    Python integers will be formated as Nastran integers, and Python
+    floats will be formatted as Nastran reals, using `format_float16`.
+    Strings will always be left-justified.
+
+    Example
+    -------
+    >>> from pyyeti import nastran
+    >>> fields = ["DMIG*", "KJJ", 101, 1, '', 1001, 1, 10.0, '', 1001, 2, -15.0, '']
+    >>> nastran.wtcard16d(1, fields) # doctest: +NORMALIZE_WHITESPACE
+    DMIG*   KJJ                          101               1
+    *                   1001               1           1.D+1                *
+    *                   1001               2         -1.5D+1
+    *
+    """
+    _wtcard16(f, fields, format_double16)
+
+
+def _wtcard16(f, fields, float_formatter):
+    """
+    Write a Nastran card in 16 fixed field format.
+
+    Float fields will be formatted by the `float_formatter` function.
+    """
     card_name = fields[0]
     if not card_name.endswith("*"):
         msg = "In large-field format, the card name must end in an asterisk, got {}"
@@ -5352,7 +5401,7 @@ def wtcard16(f, fields):
         elif isinstance(field, inttypes):
             f.write(f"{field:16d}")
         elif isinstance(field, floattypes):
-            f.write(format_float16(field))
+            f.write(float_formatter(field))
         else:
             raise TypeError("unsupported field type: {}".format(type(field)))
     # large-field cards must have an even number of lines
@@ -5537,7 +5586,7 @@ def _format_scientific16(value):
     else:
         sign = "+"
 
-    # the exponent will be added later...
+    # the exponent will be added later.
     exp2 = str(exponent).strip("-+")
     value2 = float(svalue)
 
@@ -5692,4 +5741,61 @@ def format_float16(value):
                 field = _format_scientific16(value)
             return field
     field = f"{field.strip(' 0'):>16s}"
+    return field
+
+
+def format_double16(value):
+    """
+    Format a float in Nastran double-precision 16 fixed-field syntax.
+
+    Parameters
+    ----------
+    value : float
+        The value to be formatted
+
+    Returns
+    -------
+    field : str
+        The formatted value.
+
+    Examples
+    --------
+    >>> from pyyeti import nastran
+    >>> print(nastran.format_double16(1.0))
+               1.D+0
+    >>> print(nastran.format_double16(1.2345678))
+        1.2345678D+0
+    >>> print(nastran.format_double16(-123456.78e8))
+      -1.2345678D+13
+    >>> print(nastran.format_double16(1234567898769.0e5))
+    1.2345678988D+17
+    """
+    if value == 0.0:
+        return "           0.D+0"
+
+    python_value = f"{value:16.14e}"
+    svalue, sexponent = python_value.strip().split("e")
+    exponent = int(sexponent)  # removes 0s
+
+    if abs(value) < 1.0:
+        sign = "-"
+    else:
+        sign = "+"
+
+    # the exponent will be added later.
+    exp2 = str(exponent).strip("-+")
+    value2 = float(svalue)
+
+    # the plus 2 is for the 'D' and the sign
+    len_exp = len(exp2) + 2
+    leftover = 16 - len_exp
+
+    if value < 0.0:
+        fmt = f"{{:1.{leftover - 3:d}f}}"
+    else:
+        fmt = f"{{:1.{leftover - 2:d}f}}"
+
+    svalue3 = fmt.format(value2)
+    svalue4 = svalue3.strip("0")
+    field = f"{svalue4 + 'D' + sign + exp2:>16s}"
     return field
