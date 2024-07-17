@@ -4833,8 +4833,12 @@ def _wrap_text_lines(lines, max_length, separator):
     output_lines = []
     current_line = []
     current_line_length = 0
-    for line in lines:
-        if current_line_length + len(line) > max_length:
+    for i, line in enumerate(lines):
+        if i < len(lines) - 1 and lines[i + 1] == separator:
+            max_length_i = max_length - sep_len
+        else:
+            max_length_i = max_length
+        if current_line_length + len(line) > max_length_i:
             output_lines.append("".join(current_line))
             current_line = [line]
             current_line_length = len(line)
