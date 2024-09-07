@@ -4394,13 +4394,79 @@ def wtextrn(f, ids, dof):
     wtnasints(f, 2, ints)
 
 
+def _make_dti0(tug1, mug1):
+    return [
+        "DTI",
+        "TUG1",
+        0,
+        tug1.shape[0],
+        mug1.shape[1],
+        32767,
+        0,
+        7,
+        0,
+        "PHIP",
+        "",
+        7,
+        "",
+        "",
+        "REAL",
+        1,
+        "ENDREC",
+    ]
+
+
+def _make_dti1(mug1):
+    dti1 = ["DTI", "TUG1", 1]
+    for i in range(1, mug1.shape[1] + 1):
+        dti1.extend([i, 0.0])
+    dti1.append("ENDREC")
+    return dti1
+
+
+def _make_dti2(tug1, spoint_range):
+    dti2 = [
+        "DTI",
+        "TUG1",
+        2,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "TYPE",
+        "ID",
+        "COMP",
+        "ROW",
+        "TYPE",
+        "ID",
+        "COMP",
+        "ROW",
+    ]
+    cur_gid = tug1[0, 0]
+    count = 0
+    for row, (gid, dof) in enumerate(tug1, 1):
+        if gid == cur_gid:
+            count += 1
+            continue
+        gtype = 2 if cur_gid in spoint_range else 1
+        dti2.extend([gtype, cur_gid, count, row - count])
+        cur_gid = gid
+        count = 1
+
+    if count > 0:
+        gtype = 2 if cur_gid in spoint_range else 1
+        dti2.extend([gtype, cur_gid, count, tug1.shape[0] + 1 - count])
+
+    dti2.append("ENDREC")
+    return dti2
+
+
 def wtextseout(
     name,
     *,
     se,
-    maa,
-    baa,
-    kaa,
     bset,
     uset,
     spoint1,
@@ -4446,9 +4512,6 @@ def wtextseout(
     se : integer
         Superelement id; also used as the Fortran unit number on the
         SEBULK entry.
-    maa, baa, kaa : 2d array_like
-        These are the Craig-Bampton mass, damping and stiffness
-        matrices respectively.
     bset : 1d array_like
         Index partition vector for the bset
     uset : pandas DataFrame
@@ -4471,27 +4534,40 @@ def wtextseout(
         Downstream superelement id
     namelist : list; optional
         List, in order, of names to write to the op4 file. Values
-        default to 1x1 zero matrices with these exceptions: "maa",
-        "kaa", "baa", are as input above, "pa" is a vector of zeros
-        and "va" is a vector of ones. The defaults can be overridden
-        in `kwargs`.
+        default to 1x1 zero matrices with these exceptions: mass and
+        stiffness ("maa", "kaa", or "mxx", "kxx") are expected to be
+        input and "va" is a vector of ones. The defaults can be
+        overridden in `kwargs`.
     **kwargs : optional
         Allows user to input other matrices to be written to the op4
         file. Name must in `namelist` to be written.
+
+        Can also contain "tug1"; a two-column ndarray with [Grid_ID,
+        DOF] corresponding to "mug1". Number of rows must match
+        "mug1". If both "tug1" and "mug1" are present, the "DTI,TUG1"
+        card is written to the '.pch' file. Other DTI entries (for
+        "mef1" for example) are not currently supported. Do not add
+        "tug1" to `namelist`.
 
     Returns
     -------
     None
     """
-    maa, baa, kaa = np.atleast_2d(maa, baa, kaa)
+    dct = {**kwargs}
+    if namelist[0] not in dct or namelist[1] not in dct:
+        raise RuntimeError(
+            f"at least one of {namelist[0]} or {namelist[1]} is missing, "
+            "but both must be provided"
+        )
+    stiffness = dct[namelist[0]]
     bset = np.atleast_1d(bset)
-    n = maa.shape[0]
+    n = stiffness.shape[0]
     nq = n - len(bset)
 
     # prepare standard Nastran op4 file:
-    pa = np.zeros((n, 1))
-    va = np.ones((n, 1))
-    dct = {**locals(), **kwargs}
+    if "va" not in kwargs:
+        dct["va"] = np.ones((n, 1))
+
     varlist = [dct.get(i, 0.0) for i in namelist]
     op4.write(name + ".op4", namelist, varlist)
 
@@ -4561,6 +4637,20 @@ def wtextseout(
             f.write(f"QSET1   {0:8d}{spoint1:8d}    THRU{spointn:8d}\n")
             f.write("$\n")
             f.write(f"SPOINT  {spoint1:8d}    THRU{spointn:8d}\n")
+
+        tug1 = dct.get("tug1")
+        mug1 = dct.get("mug1")
+        if tug1 is not None and mug1 is not None:
+            tug1, mug1 = np.atleast_2d(tug1, mug1)
+            if tug1.shape != (mug1.shape[0], 2):
+                raise ValueError(
+                    f"`tug1` shape should be {(mug1.shape[0], 2)} for "
+                    f"compatibility with `mug1`, but its shape is {tug1.shape}"
+                )
+            f.write("$\n$\n")
+            wtcard8(f, _make_dti0(tug1, mug1))
+            wtcard8(f, _make_dti1(mug1))
+            wtcard8(f, _make_dti2(tug1, range(spoint1, spointn)))
 
 
 def mknast(

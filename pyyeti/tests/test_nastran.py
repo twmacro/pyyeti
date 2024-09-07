@@ -1039,28 +1039,124 @@ def test_wtextseout():
                 os.remove(filename + ext)
 
     try:
+        namelist = ["maa", "kxx"]
         nastran.wtextseout(
             filename,
             se=101,
+            kxx=kaa,
             maa=maa,
-            kaa=kaa,
-            baa=baa,
             bset=b,
             uset=usetb,
             spoint1=9900101,
-            namelist=["maa"],
+            namelist=namelist,
             mug1=mug1,
-            mef1=mef1,
         )
         names, mats, f, t = op4.load(filename + ".op4", into="list")
-        all_names = [
-            "maa",
-        ]
-        assert names == all_names
+        assert names == namelist
     finally:
         for ext in (".asm", ".pch", ".op4"):
             if os.path.exists(filename + ext):
                 os.remove(filename + ext)
+
+
+def test_wtextseout2():
+    name = Path("pyyeti/tests/nas2cam_extseout")
+    mats = op4.read(name / "outboard.op4")
+    uset, coords, bset = nastran.asm2uset(name / "outboard.asm")
+
+    pchold = name / "outboard.pch"
+    tug1 = nastran.rddtipch(pchold)
+
+    se = nastran.rdcards(
+        pchold,
+        "begin +super",
+        regex=True,
+        keep_name=True,
+        return_var="list",
+    )[0][-1]
+
+    qset = ~bset
+    spoint1 = uset.iloc[qset].index[0][0]
+
+    filename = "_wtextseout_test_"
+
+    namelist = list(mats)
+
+    # test the DTI write:
+    try:
+        nastran.wtextseout(
+            filename,
+            se=se,
+            bset=bset.nonzero()[0],
+            uset=uset,
+            spoint1=spoint1,
+            namelist=namelist,
+            tug1=tug1,
+            **mats,
+        )
+
+        names, mats2, f, t = op4.load(filename + ".op4", into="list")
+        assert names == namelist
+
+        pchnew = filename + ".pch"
+        for i in range(3):
+            old = nastran.rdcards(
+                pchold,
+                f"DTI +TUG1 +{i}",
+                regex=True,
+                keep_name=True,
+                return_var="list",
+            )
+            new = nastran.rdcards(
+                pchnew,
+                f"DTI +TUG1 +{i}",
+                regex=True,
+                keep_name=True,
+                return_var="list",
+            )
+            assert new == old
+
+        tug1_new = nastran.rddtipch(filename + ".pch")
+        assert (tug1_new == tug1).all()
+
+    finally:
+        for ext in (".asm", ".pch", ".op4"):
+            if os.path.exists(filename + ext):
+                os.remove(filename + ext)
+
+    with pytest.raises(ValueError):
+        mug1 = mats["mug1"]
+        mats["mug1"] = [[33, 12.0]]
+        try:
+            nastran.wtextseout(
+                filename,
+                se=se,
+                bset=bset.nonzero()[0],
+                uset=uset,
+                spoint1=spoint1,
+                namelist=namelist,
+                tug1=tug1,
+                **mats,
+            )
+
+        finally:
+            for ext in (".asm", ".pch", ".op4"):
+                if os.path.exists(filename + ext):
+                    os.remove(filename + ext)
+
+    with pytest.raises(RuntimeError):
+        mats["mug1"] = mug1
+        del mats[namelist[0]]
+        nastran.wtextseout(
+            filename,
+            se=se,
+            bset=bset.nonzero()[0],
+            uset=uset,
+            spoint1=spoint1,
+            namelist=namelist,
+            tug1=tug1,
+            **mats,
+        )
 
 
 def test_rdeigen():
