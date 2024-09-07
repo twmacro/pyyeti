@@ -4750,10 +4750,15 @@ def rddtipch(f, name="TUG1", follow_includes=True, include_symbols=None):
         row = locate.find_rows(tug1, [100, 4])
         drm = mug1[row, :]
     """
-    string = f"DTI     {name:<8s}2"
+    string = f"DTI +{name} *2"
     c = rdcards(
-        f, string, follow_includes=follow_includes, include_symbols=include_symbols
+        f,
+        string,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+        regex=True,
     )
+
     c = c[0, 16:-1].reshape(-1, 4).astype(np.int64)
     m = c[:, 1:]
 
