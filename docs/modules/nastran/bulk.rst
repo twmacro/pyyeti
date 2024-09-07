@@ -8,8 +8,9 @@ Limited set of read/write routines for Nastran bulk data
 
     asm2uset
     bulk2uset
-    format_float8
+    format_double16
     format_float16
+    format_float8
     fsearch
     mkcomment
     mknast
@@ -32,14 +33,15 @@ Limited set of read/write routines for Nastran bulk data
     rdwtbulk
     uset2bulk
     wtassign
-    wtextseout
-    wtcard8
     wtcard16
+    wtcard16d
+    wtcard8
     wtconm2
     wtcoordcards
     wtcsuper
     wtdmig
     wtextrn
+    wtextseout
     wtgrids
     wtinclude
     wtmpc

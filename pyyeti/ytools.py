@@ -1039,9 +1039,9 @@ def eig_si(
     lam : ndarray
         Ideally, `p` converged eigenvalues.
     phi : ndarray
-        Ideally, p converged eigenvectors.
+        Ideally, `p` converged eigenvectors.
     phiv : ndarray
-        First p columns are `phi`, others are leftover iteration
+        First `p` columns are `phi`, others are leftover iteration
         vectors which may be a good starting point for a second call.
 
     Notes
