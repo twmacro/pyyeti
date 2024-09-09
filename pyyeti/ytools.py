@@ -1872,43 +1872,36 @@ else:
             x.shape[0]]
         """
 
+        # Check dimensions of inputs
+        assert x.ndim == 1, f'"x" must be 1-dimensional. ndim = {x.ndim}'
+        assert xp.ndim == 1, f'"xp" must be 1-dimensional. ndim = {xp.ndim}'
+        assert fp.ndim == 2, f'"fp" must be 2-dimensional. ndim = {fp.ndim}'
+
+        # Ensure that shapes of xp and fp agree
+        assert fp.shape[1] == xp.shape[0], f'fp.shape[1] must match xp.shape[0]. {fp.shape[1]} != {xp.shape[0]}'
+
         # Ensure that x and xp are float64
         x = x.astype(np.float64, copy=False)
         xp = xp.astype(np.float64, copy=False)
 
-        # Depending on the data type of fp, call the 32- or 64-bit Numba-compiled Numpy interp
-        if fp.dtype == np.float32:
-            f = _numba_interp_32(x, xp, fp)
+        # Depending on the data type of fp, call the Numba-compiled Numpy interp,
+        # or coerce to float64 and call it.
+        if fp.dtype in ['float32', 'float64', 'complex64', 'complex128']:
+            f = _numba_interp(x, xp, fp)
         else:
-            f = _numba_interp_64(x, xp, fp.astype(np.float64, copy=False))
+            f = _numba_interp(x, xp, fp.astype(np.float64, copy=False))
 
         return f
 
     @numba.njit(
-        "float32[:, :](float64[:], float64[:], float32[:, :])",
         parallel=True,
         nogil=True,
         cache=True,
     )
-    def _numba_interp_32(x, xp, fp):  # pragma: no cover
+    def _numba_interp(x, xp, fp):  # pragma: no cover
         n_rows = fp.shape[0]
         n_cols = x.shape[0]
-        f = np.zeros((n_rows, n_cols), dtype=np.float32)
-        for i_row in numba.prange(n_rows):
-            if fp[i_row, :].any():
-                f[i_row, :] = np.interp(x, xp, fp[i_row, :])
-        return f
-
-    @numba.njit(
-        "float64[:, :](float64[:], float64[:], float64[:, :])",
-        parallel=True,
-        nogil=True,
-        cache=True,
-    )
-    def _numba_interp_64(x, xp, fp):  # pragma: no cover
-        n_rows = fp.shape[0]
-        n_cols = x.shape[0]
-        f = np.zeros((n_rows, n_cols), dtype=np.float64)
+        f = np.zeros((n_rows, n_cols), dtype=fp.dtype)
         for i_row in numba.prange(n_rows):
             if fp[i_row, :].any():
                 f[i_row, :] = np.interp(x, xp, fp[i_row, :])
