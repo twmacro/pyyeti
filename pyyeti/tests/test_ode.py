@@ -5632,7 +5632,7 @@ def run_solvers_cd_as_forces(m, b, k, h, order, rf, f):
 
 def test_solveunc_cd_as_force():
     def _ensure_minmax(a, mn, mx):
-        sc = (mx - mn) / a.ptp()
+        sc = (mx - mn) / np.ptp(a)
         return sc * (a - a.min()) + mn
 
     np.random.seed(0)
