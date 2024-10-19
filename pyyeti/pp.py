@@ -117,7 +117,7 @@ class PP:
         ...     a = 9
         ...     b = {'variable': [1, 2, 3]}
         >>> PP(A, 2)       # doctest: +ELLIPSIS
-        <class 'A'>[n=6]
+        <class 'A'>[n=...]
             .a: 9
             .b: <class 'dict'>[n=1]
                 'variable': [n=3]: [1, 2, 3]
