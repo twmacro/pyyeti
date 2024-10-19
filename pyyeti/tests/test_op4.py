@@ -584,28 +584,28 @@ def test_sparse_write():
                 assert np.all(va == m3[k])
 
                 if sp.issparse(m4[k]):
-                    assert np.all(va == m4[k].A)
+                    assert np.all(va == m4[k].toarray())
                 else:
                     assert np.allclose(va, m4[k])
                     assert np.all(m4[k] == 0.0)
 
                 if sp.issparse(m5[k]):
-                    assert np.all(va == m5[k].A)
+                    assert np.all(va == m5[k].toarray())
                 else:
                     assert np.allclose(va, m5[k])
                     assert np.all(m5[k] == 0.0)
 
                 assert sp.issparse(m6[k])
-                assert np.all(va == m6[k].A)
+                assert np.all(va == m6[k].toarray())
 
                 assert sp.issparse(m7[k])
-                assert np.all(va == m7[k].A)
+                assert np.all(va == m7[k].toarray())
 
                 if rd_sparse or (rd_sparse is None and sp.issparse(v)):
                     assert sp.issparse(m8[k])
-                    assert np.all(va == m8[k].A)
+                    assert np.all(va == m8[k].toarray())
                     assert sp.issparse(m9[k])
-                    assert np.all(va == m9[k].A)
+                    assert np.all(va == m9[k].toarray())
                 else:
                     assert np.all(va == m8[k])
                     assert np.all(va == m9[k])
