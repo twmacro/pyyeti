@@ -5,6 +5,13 @@ import scipy.signal as signal
 import pytest
 
 
+# temporary patch for numpy < 2.0
+try:
+    np.trapezoid
+except AttributeError:
+    np.trapezoid = np.trapz
+
+
 def test_get_freq_oct():
     assert np.allclose(
         np.array(psd.get_freq_oct(1, [1, 5])),
@@ -87,7 +94,7 @@ def test_area():
 
     fi = np.arange(200, 20001) * 0.1
     pi = psd.interp(spec, fi, linear=False)
-    areas3 = np.trapz(pi, fi, axis=0)
+    areas3 = np.trapezoid(pi, fi, axis=0)
 
     assert np.allclose(areas, areas2)
     assert np.allclose(areas, areas3)
@@ -208,7 +215,7 @@ def test_psd2time():
     f1, p1 = psd.psdmod(sig, sr, timeslice=f"{len(sig)}")
     f2, p2 = psd.psdmod(sig2, sr2, timeslice=f"{len(sig)}")
 
-    assert np.trapz(p1, f1) < np.trapz(p2, f2)
+    assert np.trapezoid(p1, f1) < np.trapezoid(p2, f2)
     with pytest.raises(ValueError):
         psd.psd2time(
             spec,
@@ -232,7 +239,7 @@ def test_psd2time():
     psdi = p[pv]
     speci = psd.interp(spec, fi).flatten()
     assert abs(speci - psdi).max() < 0.05
-    assert abs(np.trapz(psdi, fi) - np.trapz(speci, fi)) < 0.25
+    assert abs(np.trapezoid(psdi, fi) - np.trapezoid(speci, fi)) < 0.25
 
     spec = ([0.1, 5], [0.1, 0.1])
     sig, sr = psd.psd2time(
@@ -247,7 +254,7 @@ def test_psd2time():
     psdi = p[pv]
     speci = psd.interp(spec, fi).flatten()
     assert abs(speci - psdi).max() < 0.05
-    assert abs(np.trapz(psdi, fi) - np.trapz(speci, fi)) < 0.065
+    assert abs(np.trapezoid(psdi, fi) - np.trapezoid(speci, fi)) < 0.065
 
     # ppc gets reset to 2 case:
     spec = np.array([[0.1, 2.0], [5, 2.0]])

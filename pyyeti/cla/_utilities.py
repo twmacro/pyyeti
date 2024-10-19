@@ -32,6 +32,13 @@ __all__ = [
 ]
 
 
+# temporary patch for numpy < 2.0
+try:
+    np.trapezoid
+except AttributeError:
+    np.trapezoid = np.trapz
+
+
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
     np.set_printoptions(legacy="1.13")
@@ -676,9 +683,9 @@ def PSD_consistent_rss(resp, xr, yr, rr, freq, forcepsd, drmres, case, i):
     tmp.yresp[i] = y
 
     if i == N - 1:
-        varx = np.trapz(tmp.varx, freq)
-        vary = np.trapz(tmp.vary, freq)
-        covar = np.trapz(tmp.covar, freq)
+        varx = np.trapezoid(tmp.varx, freq)
+        vary = np.trapezoid(tmp.vary, freq)
+        covar = np.trapezoid(tmp.covar, freq)
         s, c = ytools._calc_covariance_sine_cosine(varx, vary, covar)
 
         # now have all sines/cosines, compute consistent vector sum

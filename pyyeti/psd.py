@@ -10,6 +10,13 @@ from scipy.interpolate import interp1d
 from pyyeti import dsp
 
 
+# temporary patch for numpy < 2.0
+try:
+    np.trapezoid
+except AttributeError:
+    np.trapezoid = np.trapz
+
+
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
     np.set_printoptions(legacy="1.13")
@@ -257,7 +264,8 @@ def area(spec):
         This routine is only for specifications with all constant
         db/octave segments. Do not use for general freq vs. psd
         curves, such as output from analysis; use something like
-        :func:`numpy.trapz` instead.
+        :func:`numpy.trapezoid` (or :func:`trapz` for NumPy versions <
+        2.0).
 
     The following derives the equations for computing the area under
     the curve. Each segment is assumed to have a constant db/octave
@@ -335,7 +343,7 @@ def area(spec):
 
     >>> f = np.arange(20, 2000.1, 0.1)
     >>> p = psd.interp(spec, f, linear=False)
-    >>> 3*np.sqrt(np.trapz(p, f, axis=0))   # doctest: +ELLIPSIS
+    >>> 3*np.sqrt(np.trapezoid(p, f, axis=0))   # doctest: +ELLIPSIS
     array([ 18.43...])
     """
     Freq, PSD, _ = proc_psd_spec(spec)
@@ -1024,7 +1032,7 @@ def psd2time(
         >>> speci = psd.interp(spec, fi).ravel()
         >>> abs(speci - psdi).max() < .05
         True
-        >>> abs(np.trapz(psdi, fi) - np.trapz(speci, fi)) < .25
+        >>> abs(np.trapezoid(psdi, fi) - np.trapezoid(speci, fi)) < .25
         True
         >>> fig = plt.figure('Example', clear=True,
         ...                  layout='constrained')
