@@ -5069,7 +5069,7 @@ def test_newmark_nonlinear2():
 
     # compare to nastran:
     def _get_max_err(dct, x):
-        return abs(np.row_stack((dct[2], dct[12])) - x[:2]).max()
+        return abs(np.vstack((dct[2], dct[12])) - x[:2]).max()
 
     for x in "dva":
         assert _get_max_err(nas[x.upper()], getattr(sol, x)) < 0.001
@@ -5086,7 +5086,7 @@ def test_newmark_nonlinear2():
 
     # compare to nastran:
     def _get_max_err(dct, x):
-        return abs(np.row_stack((dct[2], dct[12])) - x[:2]).max()
+        return abs(np.vstack((dct[2], dct[12])) - x[:2]).max()
 
     for x in "dva":
         assert _get_max_err(nas[x.upper()], getattr(sol, x)) < 0.001
@@ -5542,7 +5542,7 @@ def test_newmark_nonlinear3():
     nas = get_nas2()
 
     def _get_max_err(dct, x):
-        return abs(np.row_stack((dct[2], dct[12])) - x[:2]).max()
+        return abs(np.vstack((dct[2], dct[12])) - x[:2]).max()
 
     for x in "dva":
         assert _get_max_err(nas[x.upper()], getattr(sol, x)) < 0.001
