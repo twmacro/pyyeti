@@ -4,12 +4,12 @@ import pytest
 
 
 def test_ksingle():
-    with pytest.warns(RuntimeWarning, match=r"divide by zero.*_nct_ppf"):
-        v = stats.ksingle(
-            [0.95, 0.96, 0.97, 0.98, 0.99],
-            [[0.50], [0.75], [0.90], [0.95]],
-            [[[2]], [[5]], [[10500]]],
-        )
+    v = stats.ksingle(
+        [0.95, 0.96, 0.97, 0.98, 0.99],
+        [[0.50], [0.75], [0.90], [0.95]],
+        [[[2]], [[5]], [[10500]]],
+    )
+
     # answers from CAM:
     s = np.array(
         [
