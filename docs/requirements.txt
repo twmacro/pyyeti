@@ -15,3 +15,4 @@ numba
 sphinx-toggleprompt
 sphinx-copybutton
 pygments
+openpyxl
