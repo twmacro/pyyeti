@@ -78,12 +78,13 @@ Miscellaneous
 .. toctree::
    :maxdepth: 1
 
+   tutorials/cla_tutorial
    tutorials/era
    tutorials/fatigue
    tutorials/ntfl
+   tutorials/ode
    tutorials/op4
    tutorials/srs
-   tutorials/ode
 
 Single sided normal tolerance limits
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -23,6 +23,20 @@ clean:
 	rm -rf tutorials/temp_*
 	rm -rf tutorials/.ipynb_checkpoints
 	rm -rf tutorials/*_files
+	rm -rf tutorials/cla_params.pgz
+	rm -rf tutorials/dr_summary.xlsx
+	rm -rf tutorials/compare
+	rm -rf tutorials/grouped_srs
+	rm -rf tutorials/outboard_cbcheck.out
+	rm -rf tutorials/owlab
+	rm -rf tutorials/srs_plots
+	rm -rf tutorials/summary_results.pgz
+	rm -rf tutorials/tab
+	rm -rf tutorials/timedomain_srs
+	rm -rf tutorials/toburn
+	rm -rf tutorials/toeco
+	rm -rf tutorials/toes
+
 
 cleanish:
 	rm -rf $(BUILDDIR)/*
