@@ -2752,10 +2752,11 @@ def rdeigen(f, use_pandas=True, search_strings=None, regex=False):
         DataFrames.
     search_strings : None, string, or list_like of strings; optional
         If a string, this routine will scan the file until the string
-        is found before reading the next eigenvalue table. If
-        list_like of multiple strings, the routine will scan for each
-        string in the order provided before reading the next table. If
-        None, all eigenvalue tables are read.
+        or regular expression pattern is found before reading the
+        next eigenvalue table. If list_like of multiple strings or
+        patterns, the routine will scan for each string/pattern in the
+        order provided before reading the next table. If None, all
+        eigenvalue tables are read in, but see notes.
 
         .. note::
             If `search_strings` is not None, this routine returns a
@@ -2784,7 +2785,7 @@ def rdeigen(f, use_pandas=True, search_strings=None, regex=False):
         If `search_strings` is not None, this routine returns a single
         eigenvalue table. In that case, the return value is either a
         2d ndarray or a pandas DataFrame depending on `use_pandas`. If
-        `search_strings` is None; a dictionary of 2d ndarrays or
+        `search_strings` is None, a dictionary of 2d ndarrays or
         DataFrames is returned and is indexed by the superelement
         ID. The columns of the the array or DataFrame are: ``[mode
         number, extraction order, eigenvalue, radians, cycles,
@@ -2794,9 +2795,6 @@ def rdeigen(f, use_pandas=True, search_strings=None, regex=False):
 
     Notes
     -----
-    The last table read for a superelement replaces tables previously
-    read in.
-
     If the pandas output is chosen (the default) the mode number is
     used as the `index` and `columns` is::
 
