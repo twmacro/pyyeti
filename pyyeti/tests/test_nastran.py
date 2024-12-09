@@ -1287,6 +1287,38 @@ def test_rdeigen2():
     assert np.allclose(e[0]["cycles"].values, cyc0)
 
 
+def test_rdeigen3():
+    fname = "pyyeti/tests/nas2cam/with_se.out"
+    dct = nastran.rdeigen(fname)
+    eig300_none = nastran.rdeigen(
+        fname, search_strings=("processing of superelement +300", "after augmentation")
+    )
+    eig300 = nastran.rdeigen(
+        fname,
+        search_strings=("processing of superelement +300", "after augmentation"),
+        regex=True,
+    )
+
+    assert eig300_none is None
+    assert eig300.equals(dct[300])
+
+    eig300a = nastran.rdeigen(
+        fname,
+        search_strings=("processing of superelement +300", "after augmentation"),
+        regex=True,
+        use_pandas=False,
+    )
+
+    assert np.allclose(eig300, eig300a)
+    assert isinstance(eig300a, np.ndarray)
+
+    eig200 = nastran.rdeigen(
+        fname,
+        search_strings="AFTER AUGMENTATION",
+    )
+    assert eig200.equals(dct[200])
+
+
 def test_wtqcset():
     with StringIO() as f:
         nastran.wtqcset(f, 990001, 5)

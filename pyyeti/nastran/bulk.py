@@ -618,7 +618,7 @@ def rdcards(
     no_data_return : any variable; optional
         If no data is found, this routine returns `no_data_return`.
     regex : bool; optional
-        If set to True, Use regular expression matching instead of
+        If set to True, use regular expression matching instead of
         literal string matching.
     keep_name : bool; optional
         If reading into a list, `keep_name` can be set to True to
@@ -2676,10 +2676,69 @@ def rdwtbulk(fin, fout):
     _wtbulk(fout, _rdbulk(fin))
 
 
+def _find_eigen(f, search_strings, regex):
+    SE = "SUPERELEMENT "
+    # EIG = "R E A L   E I G E N V A L U E S"
+    EIG = "EIGENVALUE            RADIANS             CYCLES"
+    se = 0
+
+    s_index = 0
+    if search_strings:
+        s_found = False
+        if regex:
+            search_strings = [re.compile(s, re.IGNORECASE) for s in search_strings]
+    else:
+        s_found = True
+
+    for line in f:
+        if search_strings and not s_found:
+            if regex:
+                if search_strings[s_index].search(line):
+                    s_index += 1
+            elif search_strings[s_index] in line:
+                s_index += 1
+            if s_index == len(search_strings):
+                s_found = True
+        if len(line) > 116 and line[104:].startswith(SE):
+            se = int(line[116:])
+        # if s_found and len(line) > 76 and line[46:].startswith(EIG):
+        if s_found and len(line) > 117 and EIG in line:
+            return se
+
+    return None
+
+
+def _rd_eigen_table(f):
+    """Eigenvalue table found, read it."""
+    for line in f:
+        if line.startswith("    NO."):
+            break
+    table = []
+    continued = True
+    while continued:
+        for line in f:
+            try:
+                row = [float(i) for i in line.split()]
+            except ValueError:
+                break
+            if len(row) == 7:
+                table.append(row)
+        for _ in range(8):
+            line = f.readline()
+            if line.startswith("1 "):
+                continued = False
+                break
+            if line.startswith("    NO."):
+                break
+        else:
+            break
+    return np.array(table)
+
+
 @guitools.read_text_file
-def rdeigen(f, use_pandas=True):
+def rdeigen(f, use_pandas=True, search_strings=None, regex=False):
     """
-    Read eigenvalue tables from a Nastran f06 file.
+    Read real eigenvalue tables from a Nastran f06 file.
 
     Parameters
     ----------
@@ -2689,16 +2748,49 @@ def rdeigen(f, use_pandas=True):
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
     use_pandas : bool; optional
-        If True, the values returned in the dictionary will be pandas
-        DataFrames
+        If True, the eigenvalue tables will be returned as pandas
+        DataFrames.
+    search_strings : None, string, or list_like of strings; optional
+        If a string, this routine will scan the file until the string
+        is found before reading the next eigenvalue table. If
+        list_like of multiple strings, the routine will scan for each
+        string in the order provided before reading the next table. If
+        None, all eigenvalue tables are read.
+
+        .. note::
+            If `search_strings` is not None, this routine returns a
+            single eigenvalue table; otherwise, a dictionary is
+            returned.
+
+        .. note::
+            When `search_strings` is None, later eigenvalue tables
+            will overwrite previous ones if the superelement number is
+            the same.
+
+        .. note::
+            All strings in `search_strings` must be found on or before
+            the line that contains
+            "EIGENVALUE            RADIANS             CYCLES".
+
+    regex : bool; optional
+        If set to True, use regular expression matching instead of
+        literal string matching when searching for the strings in
+        `search_strings`. The search is case-insensitive when using
+        regular expressions.
 
     Returns
     -------
-    dictionary
-        The keys are the superelement IDs and the values is the 7
-        column eigenvalue table: [mode number, extraction order,
-        eigenvalue, radians, cycles, generalized mass, generalized
-        stiffness]
+    dictionary or 2d ndarray or pandas DataFrame or None
+        If `search_strings` is not None, this routine returns a single
+        eigenvalue table. In that case, the return value is either a
+        2d ndarray or a pandas DataFrame depending on `use_pandas`. If
+        `search_strings` is None; a dictionary of 2d ndarrays or
+        DataFrames is returned and is indexed by the superelement
+        ID. The columns of the the array or DataFrame are: ``[mode
+        number, extraction order, eigenvalue, radians, cycles,
+        generalized mass, generalized stiffness]``.
+
+        None is returned if there are no eigenvalues tables found.
 
     Notes
     -----
@@ -2711,50 +2803,14 @@ def rdeigen(f, use_pandas=True):
         c = ['Mode #', 'ext #', 'eigenvalue', 'radians',
              'cycles', 'genmass', 'genstif']
     """
-
-    def _find_eigen(f):
-        SE = "SUPERELEMENT "
-        EIG = "R E A L   E I G E N V A L U E S"
-        se = 0
-        for line in f:
-            if len(line) > 116 and line[104:].startswith(SE):
-                se = int(line[116:])
-            if len(line) > 76 and line[46:].startswith(EIG):
-                return se
-        return None
-
-    def _rd_eigen_table(f):
-        """Eigenvalue table found, read it."""
-        for line in f:
-            if line.startswith("    NO."):
-                break
-        table = []
-        continued = True
-        while continued:
-            for line in f:
-                try:
-                    row = [float(i) for i in line.split()]
-                except ValueError:
-                    break
-                if len(row) == 7:
-                    table.append(row)
-            for _ in range(8):
-                line = f.readline()
-                if line.startswith("1 "):
-                    continued = False
-                    break
-                if line.startswith("    NO."):
-                    break
-            else:
-                break
-        return np.array(table)
-
     dct = {}
     f.seek(0, 0)
+    if search_strings is not None and isinstance(search_strings, str):
+        search_strings = (search_strings,)
     while True:
-        se = _find_eigen(f)
+        se = _find_eigen(f, search_strings, regex)
         if se is None:
-            return dct
+            return dct if dct else None
         table = _rd_eigen_table(f)
         if use_pandas:
             i = table[:, 0].astype(int)
@@ -2768,6 +2824,8 @@ def rdeigen(f, use_pandas=True):
                 "genstif",
             ]
             table = pd.DataFrame(table, index=i, columns=c)
+        if search_strings:
+            return table
         dct[se] = table
 
 
