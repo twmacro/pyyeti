@@ -5,6 +5,7 @@ Stackoverflow:
 http://stackoverflow.com/questions/5286093/\
 display-listbox-with-columns-using-tkinter
 """
+
 import os
 import sys
 from functools import wraps
@@ -176,7 +177,9 @@ def asksaveasfilename(title=None, filetypes=None, initialdir=None):  # pragma: n
 
 def read_text_file(rdfunc):
     r"""
-    Decorator that processes the file argument for reading
+    Decorator that processes the file argument for text reading
+
+    Uses the UTF-8 encoding.
 
     Parameters
     ----------
@@ -221,7 +224,7 @@ def read_text_file(rdfunc):
     def mod_func(f, *args, **kwargs):
         f = get_file_name(f, read=True)
         if isinstance(f, str):
-            with open(f, "r") as fin:
+            with open(f, "r", encoding="utf_8") as fin:
                 return rdfunc(fin, *args, **kwargs)
         else:
             return rdfunc(f, *args, **kwargs)

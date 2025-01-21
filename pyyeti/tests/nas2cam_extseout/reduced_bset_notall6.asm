@@ -1,3 +1,6 @@
+$ some special chars for testing the reader (checking for encoding
+$ errors): § π ϕ Ё
+$
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 $
 $ ASSEMBLY PUNCH (.ASM) FILE FOR EXTERNAL SUPERELEMENT       75
