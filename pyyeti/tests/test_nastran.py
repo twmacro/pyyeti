@@ -1159,6 +1159,83 @@ def test_wtextseout2():
         )
 
 
+def test_wtextseout3():
+    nas = op2.rdnas2cam("pyyeti/tests/nas2cam_csuper/nas2cam")
+    se = 101
+    maa = nas["maa"][se]
+    kaa = nas["kaa"][se]
+    pv = np.any(maa, axis=0)
+    pv = np.ix_(pv, pv)
+    maa = maa[pv]
+    kaa = kaa[pv]
+
+    uset = nas["uset"][se]
+    bset = n2p.mksetpv(uset, "p", "b")
+    usetb = nas["uset"][se].iloc[bset]
+    b = n2p.mksetpv(uset, "a", "b")
+
+    q = ~b
+    b = np.nonzero(b)[0]
+    q = np.nonzero(q)[0]
+
+    center = np.mean(usetb.iloc[::6, 1:], axis=0)
+    rb = n2p.rbgeom_uset(usetb, center.values)
+
+    # transform to single pt on centerline:
+    # [b, q]_old = T*[b, q]_new
+    #            = [[rb, 0], [0, I]] * [b, q]_new
+    T = np.zeros((len(b) + len(q), 6 + len(q)))
+    T[: len(b), :6] = rb
+    T[len(b) :, 6:] = np.eye(len(q))
+
+    kaa = T.T @ kaa @ T
+    maa = T.T @ maa @ T
+    b = np.arange(6)
+
+    filename = "_wtextseout_test_"
+    usetnew = n2p.make_uset(999, nasset="b", xyz=center.values)
+    try:
+        nastran.wtextseout(
+            filename,
+            se=101,
+            maa=maa,
+            kaa=kaa,
+            baa=0.01 * kaa,
+            bset=b,
+            uset=usetnew,
+            spoint1=9900101,
+            forms=None,
+        )
+
+        names, mats, fu, t = op4.load(filename + ".op4", into="list")
+    finally:
+        for ext in (".asm", ".pch", ".op4"):
+            if os.path.exists(filename + ext):
+                os.remove(filename + ext)
+
+    try:
+        nastran.wtextseout(
+            filename,
+            se=101,
+            maa=maa,
+            kaa=kaa,
+            baa=0.01 * kaa,
+            bset=b,
+            uset=usetnew,
+            spoint1=9900101,
+            forms="symmetric",
+        )
+
+        names, mats, fs, t = op4.load(filename + ".op4", into="list")
+    finally:
+        for ext in (".asm", ".pch", ".op4"):
+            if os.path.exists(filename + ext):
+                os.remove(filename + ext)
+
+    assert fu[0] == 1
+    assert fs[0] == 6
+
+
 def test_rdeigen():
     e1 = nastran.rdeigen("pyyeti/tests/nas2cam_csuper/assemble.out")
     e2 = nastran.rdeigen("pyyeti/tests/nas2cam_csuper/assemble.out", use_pandas=False)

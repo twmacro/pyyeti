@@ -4552,6 +4552,7 @@ def wtextseout(
         "mqmg1",
         "mqmg1o",
     ],
+    forms="symmetric",
     **kwargs,
 ):
     """
@@ -4594,6 +4595,13 @@ def wtextseout(
         stiffness ("maa", "kaa", or "mxx", "kxx") are expected to be
         input and "va" is a vector of ones. The defaults can be
         overridden in `kwargs`.
+    forms : string or list or None; optional
+        For defining the `forms` input to
+        :func:`pyyeti.nastran.op4.write`.  If "symmetric", then all
+        matrices with a name that ends in "aa" or "xx" are marked as
+        symmetric (form=6). Any other setting is passed unchanged to
+        :func:`pyyeti.nastran.op4.write`. If input as list, must
+        correspond to `namelist`.
     **kwargs : optional
         Allows user to input other matrices to be written to the op4
         file. Name must in `namelist` to be written.
@@ -4625,7 +4633,13 @@ def wtextseout(
         dct["va"] = np.ones((n, 1))
 
     varlist = [dct.get(i, 0.0) for i in namelist]
-    op4.write(name + ".op4", namelist, varlist)
+    if forms == "symmetric":
+        forms = [
+            6 if (nl := name.lower()).endswith("aa") or nl.endswith("xx") else None
+            for name in namelist
+        ]
+
+    op4.write(name + ".op4", namelist, varlist, forms=forms)
 
     # Get some data from the uset table:
     ci = n2p.mkcordcardinfo(uset)
