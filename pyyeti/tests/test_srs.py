@@ -1007,9 +1007,16 @@ def test_auto_parallel():
     sh = srs.srs(sig, sr, frq, Q)
     sh1 = srs.srs(sig, sr, frq, Q, parallel="no", maxcpu=None)
     assert np.allclose(sh, sh1)
-    sh1 = srs.srs(sig, sr, frq, Q, parallel="auto", maxcpu=None)
-    assert np.allclose(sh, sh1)
     sh1 = srs.srs(sig, sr, frq, Q, parallel="yes", maxcpu=2)
+    assert np.allclose(sh, sh1)
+
+    # Note that the following test can fail on systems with a high
+    # number of cpus. Increasing the allowable number of file handles
+    # solves the issue. For example, in one case with a 720 cpus,
+    # resetting ulimit as shown solved the issue:
+    #
+    #     ulimit -n 2048   # ulimit was 1024
+    sh1 = srs.srs(sig, sr, frq, Q, parallel="auto", maxcpu=None)
     assert np.allclose(sh, sh1)
 
 
