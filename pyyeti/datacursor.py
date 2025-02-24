@@ -704,6 +704,10 @@ class DataCursor(object):
             self._annotation[ax] = self._new_annotation(ax, xy)
             self._dot[ax] = None
 
+    @staticmethod
+    def _scalars(*args):
+        return [v.item() if isinstance(v, np.ndarray) else v for v in args]
+
     def _snap(self, ax, x, y):
         """Return the plotted value closest to x, y."""
         dmin = np.inf
@@ -718,11 +722,21 @@ class DataCursor(object):
             dx = x_pix - x
             dy = y_pix - y
             d = dx**2.0 + dy**2.0
-            ind = np.nanargmin(d)
-            if d[ind] < dmin:
-                dmin = d[ind]
-                xy_note = x_ann[ind], y_ann[ind]
-                best = n, ind, h
+
+            # use try block in case data is all NaNs:
+            try:
+                ind = np.nanargmin(d)
+            except ValueError:
+                pass
+            else:
+                if d[ind] < dmin:
+                    try:
+                        xy_note = self._scalars(x_ann[ind], y_ann[ind])
+                    except ValueError:
+                        pass
+                    else:
+                        dmin = d[ind]
+                        best = n, ind, h
 
         if best is None:
             return None
