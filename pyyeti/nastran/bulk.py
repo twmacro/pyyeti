@@ -175,7 +175,7 @@ def fsearch(f, s):
 
 
 @guitools.read_text_file
-def rdgpwg(f, search_strings=None):
+def rdgpwg(f, search_strings=None, *, encoding="utf_8"):
     """
     Read a GPWG table from a Nastran F06 file.
 
@@ -192,6 +192,8 @@ def rdgpwg(f, search_strings=None):
         a list or tuple, the routine will scan for each string, in the
         order provided, before reading the GPWG table. If None, the
         first GPWG table is read.
+    encoding : string; optional
+        Encoding to use when opening Nastran F06 file for reading.
 
     Returns
     -------
@@ -567,6 +569,7 @@ def rdcards(
     follow_includes=True,
     include_symbols=None,
     include_root_dirs=None,
+    encoding="utf_8",
 ):
     r"""
     Read Nastran cards (lines) into a matrix, dictionary, or list.
@@ -641,6 +644,9 @@ def rdcards(
         This parameter is only used when this function is called
         recursively while following INCLUDE statements. Users should
         keep it as the default value of None.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -784,6 +790,7 @@ def rdcards(
         "follow_includes": follow_includes,
         "include_symbols": include_symbols,
         "include_root_dirs": include_root_dirs,
+        "encoding": encoding,
     }
 
     if return_var == "dict":
@@ -899,7 +906,14 @@ def _rdset(fiter, line):
 
 
 @guitools.read_text_file
-def rdsets(f, follow_includes=True, include_symbols=None, include_root_dirs=None):
+def rdsets(
+    f,
+    *,
+    follow_includes=True,
+    include_symbols=None,
+    include_root_dirs=None,
+    encoding="utf_8",
+):
     """
     Read case control SET statements from a file.
 
@@ -922,6 +936,9 @@ def rdsets(f, follow_includes=True, include_symbols=None, include_root_dirs=None
         This parameter is only used when this function is called
         recursively while following INCLUDE statements. Users should
         keep it as the default value of None.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -963,6 +980,7 @@ def rdsets(f, follow_includes=True, include_symbols=None, include_root_dirs=None
         "follow_includes": follow_includes,
         "include_symbols": include_symbols,
         "include_root_dirs": include_root_dirs,
+        "encoding": encoding,
     }
 
     sets = {}
@@ -987,7 +1005,7 @@ def rdsets(f, follow_includes=True, include_symbols=None, include_root_dirs=None
 
 
 @guitools.read_text_file
-def rdsymbols(f):
+def rdsymbols(f, *, encoding="utf_8"):
     """
     Read Nastran logical symbols from a file.
 
@@ -998,6 +1016,8 @@ def rdsymbols(f):
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
+    encoding : string; optional
+        Encoding to use when opening text file.
 
     Returns
     -------
@@ -1038,6 +1058,7 @@ def rddmig(
     square=False,
     follow_includes=True,
     include_symbols=None,
+    encoding="utf_8",
 ):
     """
     Read DMIG entries from a Nastran punch (bulk) or output2 file.
@@ -1071,6 +1092,9 @@ def rddmig(
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -1410,6 +1434,7 @@ def rddmig(
             blank="",
             follow_includes=follow_includes,
             include_symbols=include_symbols,
+            encoding=encoding,
         )
         return _cards_to_df(cards, dmig_names)
 
@@ -1425,6 +1450,7 @@ def rddmig(
             blank="",
             follow_includes=follow_includes,
             include_symbols=include_symbols,
+            encoding=encoding,
         )
         dct = _cards_to_df(cards, dmig_names)
     else:
@@ -1659,7 +1685,7 @@ def wtdmig(f, dct):
                         f.write(f"{'*':<8s}{gi:16d}{ci:16d}{num_str:s}\n")
 
 
-def rdgrids(f, *, follow_includes=True, include_symbols=None):
+def rdgrids(f, *, follow_includes=True, include_symbols=None, encoding="utf_8"):
     """
     Read Nastran GRID cards from a Nastran bulk file.
 
@@ -1678,6 +1704,9 @@ def rdgrids(f, *, follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -1709,7 +1738,11 @@ def rdgrids(f, *, follow_includes=True, include_symbols=None):
     1  200  0  1.1  1.2  1.3  10  0  0
     """
     v = rdcards(
-        f, "grid", follow_includes=follow_includes, include_symbols=include_symbols
+        f,
+        "grid",
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+        encoding=encoding,
     )
     if v is not None:
         c = np.size(v, 1)
@@ -1748,7 +1781,7 @@ def _convert_card(card):
     return card
 
 
-def rdcord2cards(f, *, follow_includes=True, include_symbols=None):
+def rdcord2cards(f, *, follow_includes=True, include_symbols=None, encoding="utf_8"):
     """
     Read CORD2* cards from a Nastran bulk file
 
@@ -1767,6 +1800,9 @@ def rdcord2cards(f, *, follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -1799,6 +1835,7 @@ def rdcord2cards(f, *, follow_includes=True, include_symbols=None):
         blank=0,
         follow_includes=follow_includes,
         include_symbols=include_symbols,
+        encoding=encoding,
     )
 
     if cards is None:
@@ -1900,7 +1937,9 @@ def wtgrids(
         )
 
 
-def rdtabled1(f, name="tabled1", follow_includes=True, include_symbols=None):
+def rdtabled1(
+    f, name="tabled1", *, follow_includes=True, include_symbols=None, encoding="utf_8"
+):
     """
     Read Nastran TABLED1 or other identically formatted cards from a
     Nastran bulk file.
@@ -1922,6 +1961,9 @@ def rdtabled1(f, name="tabled1", follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -1964,6 +2006,7 @@ def rdtabled1(f, name="tabled1", follow_includes=True, include_symbols=None):
         return_var="dict",
         follow_includes=follow_includes,
         include_symbols=include_symbols,
+        encoding=encoding,
     )
     for tid in d:
         vec = d[tid]
@@ -2081,7 +2124,7 @@ def wttabled1(f, tid, t, d, title=None, form="{:16.9E}{:16.9E}", tablestr="TABLE
     f.write("ENDT\n")
 
 
-def bulk2uset(*args, follow_includes=True, include_symbols=None):
+def bulk2uset(*args, follow_includes=True, include_symbols=None, encoding="utf_8"):
     """
     Read CORD2* and GRID cards from file(s) to make a USET table
 
@@ -2089,7 +2132,7 @@ def bulk2uset(*args, follow_includes=True, include_symbols=None):
     ----------
     *args
         File names or file handles as returned by :func:`open`. Files
-        referred to by handle are rewound first. A GUI is open for
+        referred to by handle are rewound first. A GUI is opened for
         file selection if no arguments are provided or if an argument
         is either a directory name or None.
     follow_includes : bool; optional
@@ -2100,6 +2143,9 @@ def bulk2uset(*args, follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -2144,10 +2190,18 @@ def bulk2uset(*args, follow_includes=True, include_symbols=None):
         f = guitools.get_file_name(f, read=True)
         coords.update(
             rdcord2cards(
-                f, follow_includes=follow_includes, include_symbols=include_symbols
+                f,
+                follow_includes=follow_includes,
+                include_symbols=include_symbols,
+                encoding=encoding,
             )
         )
-        g = rdgrids(f, follow_includes=follow_includes, include_symbols=include_symbols)
+        g = rdgrids(
+            f,
+            follow_includes=follow_includes,
+            include_symbols=include_symbols,
+            encoding=encoding,
+        )
         if g is not None:
             grids = np.vstack((grids, g))
 
@@ -2234,7 +2288,7 @@ def _integer_to_dofs(c: int) -> list:
     return sorted(output)
 
 
-def rdrvdof(f, follow_includes=True, include_symbols=None):
+def rdrvdof(f, *, follow_includes=True, include_symbols=None, encoding="utf_8"):
     """
     Read RVDOF and RVDOF1 cards from a file.
 
@@ -2255,6 +2309,9 @@ def rdrvdof(f, follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -2278,6 +2335,7 @@ def rdrvdof(f, follow_includes=True, include_symbols=None):
         no_data_return=[],
         follow_includes=follow_includes,
         include_symbols=include_symbols,
+        encoding=encoding,
     )
     rvdofs = []
     for card in cards:
@@ -2305,7 +2363,7 @@ def rdrvdof(f, follow_includes=True, include_symbols=None):
     return rvdofs
 
 
-def rdspoints(f, *, follow_includes=True, include_symbols=None):
+def rdspoints(f, *, follow_includes=True, include_symbols=None, encoding="utf_8"):
     r"""
     Read Nastran SPOINT cards from a Nastran bulk file.
 
@@ -2324,6 +2382,9 @@ def rdspoints(f, *, follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -2359,6 +2420,7 @@ def rdspoints(f, *, follow_includes=True, include_symbols=None):
         return_var="list",
         follow_includes=follow_includes,
         include_symbols=include_symbols,
+        encoding=encoding,
     )
     spoints = []
     if spoint_data is not None:
@@ -2370,7 +2432,7 @@ def rdspoints(f, *, follow_includes=True, include_symbols=None):
     return np.array(spoints, dtype=np.int64)
 
 
-def rdseconct(f, *, follow_includes=True, include_symbols=None):
+def rdseconct(f, *, follow_includes=True, include_symbols=None, encoding="utf_8"):
     r"""
     Read Nastran SECONCT cards from a Nastran bulk file.
 
@@ -2389,6 +2451,9 @@ def rdseconct(f, *, follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -2433,6 +2498,7 @@ def rdseconct(f, *, follow_includes=True, include_symbols=None):
         return_var="list",
         follow_includes=follow_includes,
         include_symbols=include_symbols,
+        encoding=encoding,
     )
     a_ids = []
     b_ids = []
@@ -2441,7 +2507,6 @@ def rdseconct(f, *, follow_includes=True, include_symbols=None):
             it = iter(_get_pairs(card))
             for a, b in it:
                 if isinstance(b, str):  # it must be "THRU"
-                    # BTA says I'm a jerk if I don't check for "THRU" :)
                     a2, b1 = next(it)
                     thru, b2 = next(it)
                     a_ids.extend([i for i in range(a, a2 + 1)])
@@ -2453,7 +2518,9 @@ def rdseconct(f, *, follow_includes=True, include_symbols=None):
 
 
 @guitools.read_text_file
-def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
+def asm2uset(
+    f, *, try_rdextrn=True, follow_includes=True, include_symbols=None, encoding="utf_8"
+):
     r"""
     Read CORD2* and GRID cards from a ".asm" file to make a USET table
 
@@ -2477,6 +2544,9 @@ def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -2573,12 +2643,18 @@ def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
             True,  True,  True,  True,  True], dtype=bool)
     """
     uset, coords = bulk2uset(
-        f, follow_includes=follow_includes, include_symbols=include_symbols
+        f,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+        encoding=encoding,
     )
 
     # add spoints to uset table:
     spoints = rdspoints(
-        f, follow_includes=follow_includes, include_symbols=include_symbols
+        f,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+        encoding=encoding,
     )
     if spoints is not None:
         n = len(spoints)
@@ -2597,12 +2673,16 @@ def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
                 filename.replace(".asm", ".pch"),
                 follow_includes=follow_includes,
                 include_symbols=include_symbols,
+                encoding=encoding,
             )
             uset_ordered = uset.loc[list(dof)]
             return uset_ordered, coords, n2p.mksetpv(uset_ordered, "a", "b")
 
     a_ids = rdseconct(
-        f, follow_includes=follow_includes, include_symbols=include_symbols
+        f,
+        follow_includes=follow_includes,
+        include_symbols=include_symbols,
+        encoding=encoding,
     )[0]
     uset_ordered = uset.loc[a_ids]
     if uset_ordered.shape[0] != uset.shape[0]:
@@ -2616,7 +2696,7 @@ def asm2uset(f, try_rdextrn=True, follow_includes=True, include_symbols=None):
     return uset_ordered, coords, n2p.mksetpv(uset_ordered, "a", "b")
 
 
-def rdwtbulk(fin, fout):
+def rdwtbulk(fin, fout, *, encoding="utf_8"):
     """
     Get bulk data from a sorted Nastran output file.
 
@@ -2632,6 +2712,9 @@ def rdwtbulk(fin, fout):
         by :func:`open` or :class:`io.StringIO`. Input as integer 1 to
         write to stdout. Can also be the name of a directory or None;
         in these cases, a GUI is opened for file selection.
+    encoding : string; optional
+        Encoding to use when opening Nastran output text file for
+        reading.
 
     Returns
     -------
@@ -2651,7 +2734,7 @@ def rdwtbulk(fin, fout):
     """
 
     @guitools.read_text_file
-    def _rdbulk(f):
+    def _rdbulk(f, *, encoding):
         fsearch(f, "COUNT        .   1  ..   2  ..   3")
         s = []
         prog = re.compile(r"[ ]{13}[ 0-9]{8}-[ ]{8}(.{72})")
@@ -2673,7 +2756,7 @@ def rdwtbulk(fin, fout):
     def _wtbulk(f, blk):
         f.write(blk)
 
-    _wtbulk(fout, _rdbulk(fin))
+    _wtbulk(fout, _rdbulk(fin, encoding=encoding))
 
 
 def _find_eigen(f, search_strings, regex):
@@ -2736,9 +2819,9 @@ def _rd_eigen_table(f):
 
 
 @guitools.read_text_file
-def rdeigen(f, use_pandas=True, search_strings=None, regex=False):
+def rdeigen(f, use_pandas=True, search_strings=None, regex=False, *, encoding="utf_8"):
     """
-    Read real eigenvalue tables from a Nastran f06 file.
+    Read real eigenvalue tables from a Nastran F06 file.
 
     Parameters
     ----------
@@ -2778,6 +2861,8 @@ def rdeigen(f, use_pandas=True, search_strings=None, regex=False):
         literal string matching when searching for the strings in
         `search_strings`. The search is case-insensitive when using
         regular expressions.
+    encoding : string; optional
+        Encoding to use when opening Nastran F06 file for reading.
 
     Returns
     -------
@@ -2885,7 +2970,7 @@ def wtnasints(f, start, ints):
         f.write(("{:8d}" * n + "\n").format(*ints))
 
 
-def rdcsupers(f, *, follow_includes=True, include_symbols=None):
+def rdcsupers(f, *, follow_includes=True, include_symbols=None, encoding="utf_8"):
     r"""
     Read CSUPER entries
 
@@ -2904,6 +2989,9 @@ def rdcsupers(f, *, follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -2939,10 +3027,13 @@ def rdcsupers(f, *, follow_includes=True, include_symbols=None):
         blank=-1,
         follow_includes=follow_includes,
         include_symbols=include_symbols,
+        encoding=encoding,
     )
 
 
-def rdextrn(f, expand=True, follow_includes=True, include_symbols=None):
+def rdextrn(
+    f, expand=True, *, follow_includes=True, include_symbols=None, encoding="utf_8"
+):
     r"""
     Read EXTRN entry from .pch file created by Nastran
 
@@ -3020,6 +3111,7 @@ def rdextrn(f, expand=True, follow_includes=True, include_symbols=None):
         dtype=np.int64,
         follow_includes=follow_includes,
         include_symbols=include_symbols,
+        encoding=encoding,
     ).reshape(-1, 2)
     if expand:
         extrn = n2p.expanddof(extrn)
@@ -4755,7 +4847,7 @@ def mknast(
     nasopt : string; optional
         Options for nastran command
     ext : string; optional
-        The extension of the Nastran output (f06) file; usually 'f06'
+        The extension of the Nastran output (F06) file; usually 'f06'
         or 'out'
     stoponfatal : bool; optional
         Set to True if you want the script to exit on first FATAL
@@ -4860,7 +4952,9 @@ def mknast(
     os.system(f"chmod a+rx '{script}'")
 
 
-def rddtipch(f, name="TUG1", follow_includes=True, include_symbols=None):
+def rddtipch(
+    f, name="TUG1", *, follow_includes=True, include_symbols=None, encoding="utf_8"
+):
     """
     Read the 2nd record of specific DTIs from a .pch file.
 
@@ -4881,6 +4975,9 @@ def rddtipch(f, name="TUG1", follow_includes=True, include_symbols=None):
     include_symbols : dict; optional
         A dictionary mapping Nastran symbols to an associated path.
         These can be read from a file using :func:`rdsymbols`.
+    encoding : string; optional
+        Encoding to use when opening text file. This option will be
+        passed to any files read in via the `follow_includes` option.
 
     Returns
     -------
@@ -4917,6 +5014,7 @@ def rddtipch(f, name="TUG1", follow_includes=True, include_symbols=None):
         follow_includes=follow_includes,
         include_symbols=include_symbols,
         regex=True,
+        encoding=encoding,
     )
 
     c = c[0, 16:-1].reshape(-1, 4).astype(np.int64)

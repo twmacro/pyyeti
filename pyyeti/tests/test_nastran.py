@@ -333,6 +333,44 @@ def test_rdcards_with_includes():
         assert cards[2][1] == 3
 
 
+def _wtfile_x93_x94(path, contents):
+    with open(path, "wt") as fobj:
+        fobj.write(contents)
+    with open(path, "ab") as fobj:
+        fobj.write(b"$ \x93\x94\n")
+
+
+def test_encoding_with_include():
+    # "$ \x93\x94\n" characters will be appended to each file
+    # - These characters cannot be read in using utf8 encoding, but
+    #   latin1 works
+
+    file1 = "GRID,1,0,10.0,0.0,0.0\nINCLUDE 'file2.bdf'\nGRID,4,0,40.0,0.0,0.0\n"
+    file2 = "GRID,2,0,20.0,0.0,0.0\nINCLUDE 'file3.bdf'\n"
+    file3 = "GRID,3,0,30.0,0.0,0.0\n"
+
+    # all files in same directory
+    with tempfile.TemporaryDirectory() as tempdir_path:
+        file1_path = os.path.join(tempdir_path, "file1.bdf")
+        _wtfile_x93_x94(file1_path, file1)
+        _wtfile_x93_x94(os.path.join(tempdir_path, "file2.bdf"), file2)
+        _wtfile_x93_x94(os.path.join(tempdir_path, "file3.bdf"), file3)
+        grids = nastran.rdgrids(file1_path, encoding="latin1")
+        with pytest.raises(
+            UnicodeDecodeError, match=r"'utf-8' codec can't decode byte 0x93"
+        ):
+            grids = nastran.rdgrids(file1_path)
+
+    tf = grids == [
+        [1.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [2.0, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [3.0, 0.0, 30.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [4.0, 0.0, 40.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    ]
+
+    assert tf.all()
+
+
 @pytest.mark.parametrize(
     ("string", "match"),
     [
