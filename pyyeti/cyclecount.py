@@ -163,54 +163,7 @@ def rainflow(peaks, getoffsets=False, use_pandas=True):
 
 if not HAVE_NUMBA:
 
-    def findap(y, tol=1e-6):
-        """
-        Find alternating local maximum and minimum points in a vector.
-
-        Parameters
-        ----------
-        y : ndarray
-            y-axis data vector
-        tol : scalar; optional
-            Tolerance value for detecting unique values; see
-            :func:`pyyeti.locate.find_unique`
-
-        Returns
-        -------
-        pv : ndarray
-            Boolean vector for the alternating peaks in `y`.
-
-        Notes
-        -----
-        `y` is flattened to one dimension before operations.
-
-        When `y` has a series of equal points, the first of the series is
-        considered the peak. The first value in `y` is always considered a
-        peak. The last point is a peak if and only if it is not equal to
-        the point before it.
-
-        This routine is typically used to prepare a signal for cycle
-        counting.
-
-        Examples
-        --------
-        >>> from pyyeti import cyclecount
-        >>> import numpy as np
-        >>> cyclecount.findap(np.array([1]))
-        array([ True], dtype=bool)
-        >>> cyclecount.findap(np.array([1, 1, 1, 1]))
-        array([ True, False, False, False], dtype=bool)
-        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, 0]))
-        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-        array([0, 3, 5, 7]...)
-        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, -2]))
-        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-        array([0, 3, 5]...)
-        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, -2]))
-        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-        array([0, 3, 4]...)
-        """
-        y = y.ravel()
+    def _findap_worker(y, tol):
         # example: [1, 2, 3, 4, 4, -2, -2, -2]
 
         if y.size == 1:
@@ -251,56 +204,7 @@ if not HAVE_NUMBA:
 
 else:
 
-    def findap(y, tol=1e-6):
-        """
-        Find alternating local maximum and minimum points in a vector.
-
-        Parameters
-        ----------
-        y : ndarray
-            y-axis data vector
-        tol : scalar; optional
-            Tolerance value for detecting unique values; see
-            :func:`pyyeti.locate.find_unique`
-
-        Returns
-        -------
-        pv : ndarray
-            Boolean vector for the alternating peaks in `y`.
-
-        Notes
-        -----
-        `y` is flattened to one dimension before operations.
-
-        When `y` has a series of equal points, the first of the series is
-        considered the peak. The first value in `y` is always considered a
-        peak. The last point is a peak if and only if it is not equal to
-        the point before it.
-
-        This routine is typically used to prepare a signal for cycle
-        counting.
-
-        Examples
-        --------
-        >>> from pyyeti import cyclecount
-        >>> import numpy as np
-        >>> cyclecount.findap(np.array([1]))
-        array([ True], dtype=bool)
-        >>> cyclecount.findap(np.array([1, 1, 1, 1]))
-        array([ True, False, False, False], dtype=bool)
-        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, 0]))
-        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-        array([0, 3, 5, 7]...)
-        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, -2]))
-        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-        array([0, 3, 5]...)
-        >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, -2]))
-        >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
-        array([0, 3, 4]...)
-        """
-        y = y.ravel()
-        # example: [1, 2, 3, 4, 4, -2, -2, -2]
-
+    def _findap_worker(y, tol):
         if y.size == 1:
             return np.array([True])
 
@@ -350,6 +254,80 @@ else:
             PV[j] = True
 
         return PV
+
+
+def findap(y, tol=1e-6, nan_check=True):
+    """
+    Find alternating local maximum and minimum points in a vector.
+
+    Parameters
+    ----------
+    y : ndarray
+        y-axis data vector
+    tol : scalar; optional
+        Tolerance value for detecting unique values; see
+        :func:`pyyeti.locate.find_unique`
+    nan_check : bool; optional
+        Whether to check for NaNs. Set to ``False`` for a performance
+        gain if you know there are no NaNs.
+
+    Returns
+    -------
+    pv : ndarray
+        Boolean vector for the alternating peaks in `y`.
+
+    Notes
+    -----
+    `y` is flattened to one dimension before operations.
+
+    When `y` has a series of equal points, the first of the series is
+    considered the peak. The first value in `y` is always considered a
+    peak. The last point is a peak if and only if it is not equal to
+    the point before it.
+
+    This routine is typically used to prepare a signal for cycle
+    counting.
+
+    NaNs are not considered to be peaks and treated as if they are not
+    present when `nan_check` is True (the default).
+
+    Examples
+    --------
+    >>> from pyyeti import cyclecount
+    >>> import numpy as np
+    >>> cyclecount.findap(np.array([1]))
+    array([ True], dtype=bool)
+    >>> cyclecount.findap(np.array([1, 1, 1, 1]))
+    array([ True, False, False, False], dtype=bool)
+    >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, 0]))
+    >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+    array([0, 3, 5, 7]...)
+    >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, 4, -2, -2, -2]))
+    >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+    array([0, 3, 5]...)
+    >>> tf = cyclecount.findap(np.array([1, 2, 3, 4, -2]))
+    >>> np.nonzero(tf)[0]               # doctest: +ELLIPSIS
+    array([0, 3, 4]...)
+    >>> cyclecount.findap(np.array([np.nan, 1, 2, np.nan]))
+    array([False,  True,  True, False], dtype=bool)
+    """
+    y = y.ravel()
+    if nan_check:
+        nans = np.isnan(y)
+        if np.any(nans):
+            full_pv = np.zeros(y.size, bool)
+            non_nans = ~nans
+            y = y[non_nans]
+            if y.size == 0:
+                return full_pv
+
+            pv = _findap_worker(y, tol)
+
+            full_pv[non_nans] = pv
+
+            return full_pv
+
+    return _findap_worker(y, tol)
 
 
 def getbins(bins, mx, mn, right=True, check_bounds=False):
@@ -492,7 +470,7 @@ def _binify(cycles, bins_range, bins_mean, right, ensure_boundaries=True):
 
 
 if HAVE_NUMBA:
-    findap = numba.njit(cache=True)(findap)
+    _findap_worker = numba.njit(cache=True)(_findap_worker)
     _binify = numba.njit(cache=True)(_binify)
 
     @numba.njit(cache=True)

@@ -453,6 +453,10 @@ def find_unique(y, tol=1e-6):
     pv : ndarray
         True/False vector with True for the unique values.
 
+    Notes
+    -----
+    The first element is considered unique unless is a NaN.
+
     Examples
     --------
     >>> from pyyeti import locate
@@ -462,9 +466,14 @@ def find_unique(y, tol=1e-6):
     array([ True, False,  True, False,  True,  True], dtype=bool)
     """
     y = np.atleast_1d(y)
+    if y.size == 1:
+        return np.array([False]) if np.isnan(y[0]) else np.array([True])
     m = np.diff(y)
-    stol = abs(tol * abs(m).max())
-    pv = np.hstack((True, abs(m) > stol))
+    stol = np.abs(tol * np.nanmax(np.abs(m)))
+    if np.isnan(y[0]):
+        pv = np.hstack((False, np.abs(m) > stol))
+    else:
+        pv = np.hstack((True, np.abs(m) > stol))
     return pv
 
 
