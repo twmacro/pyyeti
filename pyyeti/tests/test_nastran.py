@@ -885,6 +885,17 @@ def test_asm2uset_2():
     q = ~b
     assert ((np.diag(m["maa"]) == 1.0) == q).all()
 
+    up, cp, bp, pv = nastran.asm2uset(
+        "pyyeti/tests/nas2cam_extseout/reduced_bset_notall6.asm", try_rdextrn="pv_only"
+    )
+
+    uf, cf, bf = nastran.asm2uset(
+        "pyyeti/tests/nas2cam_extseout/reduced_bset_notall6.asm", try_rdextrn=False
+    )
+
+    assert up.equals(uf)
+    assert up.loc[pv].equals(u)
+
 
 def test_rdcord2cards():
     cylcoord = np.array([[50, 2, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]])

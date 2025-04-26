@@ -2531,11 +2531,12 @@ def asm2uset(
         by :func:`open`. If file_like object, it is rewound first. Can
         also be the name of a directory or None; in these cases, a GUI
         is opened for file selection.
-    try_rdextrn : bool; optional
-        If True, routine will attempt to read the "EXTRN" card from
-        the ".pch" file. If a filename cannot be determined from `f`,
-        the attempt to the "EXTRN" card is quietly skipped and each
-        b-set node is assumed to have all 6 DOF. See Notes below.
+    try_rdextrn : bool or "pv_only"; optional
+        If True (or ``bool(try_rdextrn)`` is True), routine will
+        attempt to read the "EXTRN" card from the ".pch" file. If a
+        filename cannot be determined from `f`, the attempt to read the
+        "EXTRN" card is quietly skipped and each b-set node is assumed
+        to have all 6 DOF. See Notes below.
     follow_includes : bool; optional
         If True, INCLUDE statements will be followed recursively.
         Note that if f is a StringIO object, or another object that
@@ -2554,8 +2555,10 @@ def asm2uset(
         A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`. Contains all GRID and
         SPOINT DOF in the .asm file in the order specified on the
-        SECONCT card. This is compatible with the model matrices (eg,
-        in the .op4 file).
+        SECONCT card. If some GRIDs do not include all DOF, the user
+        has the option of getting a trimmed `uset` or not. If trimmed,
+        it is compatible with the model matrices (eg, in the .op4
+        file). See Notes below.
     coordref : dictionary
         Dictionary with the keys being the coordinate system id and
         the values being the 5x3 matrix::
@@ -2573,6 +2576,11 @@ def asm2uset(
             from pyyeti import nastran
             bset_bool = nastran.mksetpv(uset, 'a', 'b')
 
+    kept_dof : 1d ndarray; optional
+        Only returned if `try_rdextrn` is "pv_only". A boolean
+        partition vector with True for DOF included in the a-set. See
+        Notes below.
+
     Notes
     -----
     This routine will attempt to read the "EXTRN" card from the .pch
@@ -2582,6 +2590,60 @@ def asm2uset(
     second DOF for node 200, the EXTRN card would like this::
 
         EXTRN,100,123456,200,2,1001,0
+
+    This routine can handle cases like this in two different ways
+    depending on the setting of the `try_rdextrn` parameter:
+
+        =============  ===============================================
+        `try_rdextrn`  Description
+        =============  ===============================================
+        True           The `uset` is trimmed to only the retained DOF
+                       (it has the same number of rows as the mass and
+                       stiffness matrices) and `kept_dof` is not
+                       returned.
+
+        "pv_only"      The `uset` retains all 6 DOF per GRID and
+                       `kept_dof` is returned.
+        =============  ===============================================
+
+    For the above example, `uset` would look like this if
+    ``try_rdextrn=True``::
+
+                   nasset    x    y    z
+        id   dof
+        100  1    2097154  0.0  0.0  0.0
+             2    2097154  0.0  1.0  0.0
+             3    2097154  0.0  0.0  0.0
+             4    2097154  1.0  0.0  0.0
+             5    2097154  0.0  1.0  0.0
+             6    2097154  0.0  0.0  1.0
+        200  2    2097154  0.0  1.0  0.0
+        1001 0    4194304  0.0  0.0  0.0
+
+    Notice that the "x", "y" and "z" columns are not that useful,
+    especially for node 200. However, if ``try_rdextrn="pv_only"``,
+    the full `uset` is returned along with `kept_dof`. Utilizing
+    pandas for illustration::
+
+        >>> u, c, b, kept = asm2uset(f, try_rdextrn="pv_only")  # doctest: +SKIP
+        >>> kept = pd.Series(kept, index=u.index, name="a-set")  # doctest: +SKIP
+        >>> pd.concat((u, kept), axis=1)  # doctest: +SKIP
+
+                   nasset    x    y    z  a-set
+        id   dof
+        100  1    2097154  0.0  0.0  0.0   True
+             2    2097154  0.0  1.0  0.0   True
+             3    2097154  0.0  0.0  0.0   True
+             4    2097154  1.0  0.0  0.0   True
+             5    2097154  0.0  1.0  0.0   True
+             6    2097154  0.0  0.0  1.0   True
+        200  1    2097154  1.0  0.0  0.0  False
+             2    2097154  0.0  1.0  0.0   True
+             3    2097154  0.0  0.0  0.0  False
+             4    2097154  1.0  0.0  0.0  False
+             5    2097154  0.0  1.0  0.0  False
+             6    2097154  0.0  0.0  1.0  False
+        1001 0    4194304  0.0  0.0  0.0   True
 
     Examples
     --------
@@ -2675,6 +2737,15 @@ def asm2uset(
                 include_symbols=include_symbols,
                 encoding=encoding,
             )
+
+            if try_rdextrn == "pv_only":
+                dof = [(grid, _dof) for grid, _dof in dof]
+
+                pv = np.zeros(uset.shape[0], bool)
+                pv[uset.index.get_indexer(dof)] = True
+
+                return uset, coords, n2p.mksetpv(uset, "a", "b"), pv
+
             uset_ordered = uset.loc[list(dof)]
             return uset_ordered, coords, n2p.mksetpv(uset_ordered, "a", "b")
 
