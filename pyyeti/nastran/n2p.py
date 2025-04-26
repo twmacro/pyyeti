@@ -1451,20 +1451,20 @@ def mksetpv(uset, major, minor):
     uset : pandas DataFrame
         A DataFrame as output by
         :func:`pyyeti.nastran.op2.OP2.rdn2cop2`
-    majorset : integer or string
+    major : integer or string
         An integer bitmask or a set letter or letters (see below).
-    minorset : integer or string
+    minor : integer or string
         An integer bitmask or a set letter or letters.
 
     Returns
     -------
     pv : 1d ndarray
-        A True/False vector for partitioning `minorset` from
-        `majorset`. Length = number of DOF in `majorset`.
+        A True/False vector for partitioning `minor` from
+        `major`. Length = number of DOF in `major`.
 
     Notes
     -----
-    The inputs majorset and minorset can be specified as a combination
+    The inputs `major` and `minor` can be specified as a combination
     of sets by using the '+' sign. See help in :func:`mkusetmask` for
     more information on how to specify the sets.
 
@@ -1492,7 +1492,7 @@ def mksetpv(uset, major, minor):
     Raises
     ------
     ValueError
-        When `minorset` is not completely contained in `majorset`.
+        When `minor` is not completely contained in `major`.
 
     Examples
     --------
@@ -1530,7 +1530,7 @@ def mksetpv(uset, major, minor):
     pvmajor = (uset_set & major) != 0
     pvminor = (uset_set & minor) != 0
     if np.any(~pvmajor & pvminor):
-        raise ValueError("`minorset` is not completely containedin `majorset`")
+        raise ValueError("`minor` is not completely contained in `major`")
     pv = pvminor[pvmajor]
     return pv
 
