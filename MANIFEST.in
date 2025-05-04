@@ -1,0 +1,17 @@
+recursive-include pyyeti/tests *.tab
+recursive-include pyyeti/tests *.pgz
+recursive-include pyyeti/tests *.mat
+recursive-include pyyeti/tests *.png
+recursive-include pyyeti/tests *.xlsx
+recursive-include pyyeti/tests *.dat
+recursive-include pyyeti/tests *.blk
+recursive-include pyyeti/tests *.op2
+recursive-include pyyeti/tests *.op4
+recursive-include pyyeti/tests *.pch
+recursive-include pyyeti/tests *.out
+recursive-include pyyeti/tests *.v9
+recursive-include pyyeti/tests *.f11
+recursive-include pyyeti/tests *.bulk
+recursive-include pyyeti/tests *.asm
+recursive-include pyyeti/tests *.y
+recursive-include pyyeti/tests README

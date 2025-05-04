@@ -1,6 +1,8 @@
 import numpy as np
 from setuptools import Extension, setup
 
+# This extension module can not be defined in pyproject.toml because of the required call
+# to np.get_include().
 setup(
     ext_modules=[
         Extension(
