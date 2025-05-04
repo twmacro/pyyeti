@@ -1,3 +1,69 @@
+[project]
+name = "pyyeti"
+version = "1.4.3.8"
+description = "Tools mostly related to structural dynamics"
+readme = "README.md"
+authors = [{ name = "Tim Widrick", email = "twmacro@gmail.com" }]
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt"]
+
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "pandas",
+    "xlsxwriter",
+    "h5py",
+    "packaging",
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: C",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Natural Language :: English",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.scripts]
+lsop2 = "pyyeti.scripts.lsop2.py:main"
+lsop4 = "pyyeti.scripts.lsop4.py:main"
+
+[tool.setuptools]
+packages = [
+    "pyyeti",
+    "pyyeti.cla",
+    "pyyeti.nastran",
+    "pyyeti.ode",
+    "pyyeti.rainflow",
+    "pyyeti.scripts",
+    "pyyeti.tests",
+    "pyyeti.tests.cla_test_data",
+    "pyyeti.tests.cla_test_data.fake_cla",
+    "pyyeti.tests.cla_test_data.owlab",
+    "pyyeti.tests.cla_test_data.summary",
+    "pyyeti.tests.cla_test_data.toeco",
+    "pyyeti.tests.cla_test_data.toes",
+    "pyyeti.tests.cla_test_data_2020",
+    "pyyeti.tests.ltmdrfuncs",
+    "pyyeti.tests.nas2cam",
+    "pyyeti.tests.nas2cam_csuper",
+    "pyyeti.tests.nas2cam_extseout",
+    "pyyeti.tests.nastran_dmig_data",
+    "pyyeti.tests.nastran_drm12",
+    "pyyeti.tests.nastran_gm_data",
+    "pyyeti.tests.nastran_op2_data",
+    "pyyeti.tests.nastran_op4_data",
+]
+
+
 [build-system]
-requires = ["setuptools","numpy"]
+requires = ["setuptools", "numpy"]
 build-backend = "setuptools.build_meta"

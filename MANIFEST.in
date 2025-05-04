@@ -1,7 +1,0 @@
-include pyyeti/tests/nas2cam_csuper/nas2cam.op2
-include pyyeti/tests/nas2cam_csuper/nas2cam.op4
-include pyyeti/tests/nas2cam_csuper/inboard.op4
-include pyyeti/tests/nas2cam_csuper/inboard.asm
-include pyyeti/tests/nas2cam_csuper/inboard.pch
-include pyyeti/tests/nastran_drm12/*nas2cam.op*
-include pyyeti/tests/nastran_drm12/drm12.op*
