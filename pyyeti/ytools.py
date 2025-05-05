@@ -5,22 +5,22 @@ this module were originally translated from Yeti (now a dead language)
 to Python.
 """
 
-import bz2
-import contextlib
-import gzip
-import numbers
-import operator
 import pickle
+import gzip
+import bz2
 import sys
+import contextlib
 import warnings
 from types import SimpleNamespace
-
-import matplotlib.pyplot as plt
+import operator
+import numbers
 import numpy as np
 from scipy import linalg
 from scipy.optimize import leastsq
+import matplotlib.pyplot as plt
+from pyyeti import guitools
+from pyyeti import writer
 
-from pyyeti import guitools, writer
 
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
@@ -1397,9 +1397,9 @@ def reorder_dict(ordered_dict, keys, where):
     ...                    ('two', 2),
     ...                    ('three', 3)))
     >>> dct
-    OrderedDict([('one', 1), ('two', 2), ('three', 3)])
+    OrderedDict({'one': 1, 'two': 2, 'three': 3})
     >>> reorder_dict(dct, ['three', 'two'], 'first')
-    OrderedDict([('three', 3), ('two', 2), ('one', 1)])
+    OrderedDict({'three': 3, 'two': 2, 'one': 1})
     """
 
     def reorder_keys(all_keys, keys, where):
@@ -1878,9 +1878,7 @@ else:
         assert fp.ndim == 2, f'"fp" must be 2-dimensional. ndim = {fp.ndim}'
 
         # Ensure that shapes of xp and fp agree
-        assert (
-            fp.shape[1] == xp.shape[0]
-        ), f"fp.shape[1] must match xp.shape[0]. {fp.shape[1]} != {xp.shape[0]}"
+        assert fp.shape[1] == xp.shape[0], f'fp.shape[1] must match xp.shape[0]. {fp.shape[1]} != {xp.shape[0]}'
 
         # Ensure that x and xp are float64
         x = x.astype(np.float64, copy=False)
@@ -1888,7 +1886,7 @@ else:
 
         # Depending on the data type of fp, call the Numba-compiled Numpy interp,
         # or coerce to float64 and call it.
-        if fp.dtype in ["float32", "float64", "complex64", "complex128"]:
+        if fp.dtype in ['float32', 'float64', 'complex64', 'complex128']:
             f = _numba_interp(x, xp, fp)
         else:
             f = _numba_interp(x, xp, fp.astype(np.float64, copy=False))
