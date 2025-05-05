@@ -3,8 +3,7 @@ name: Run unit tests
 on:
   push:
     branches:
-      - main
-      - update_build_config
+      - master
     paths-ignore:
       - 'docs/**'
       - 'MANIFEST.in'
@@ -15,7 +14,7 @@ on:
       - '.gitattributes'
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   tests:
@@ -56,8 +55,9 @@ jobs:
     - name: Install Python dependencies
       shell: bash
       run: |
+        python -m pip install --upgrade pip
         python -m pip install -v -e .[dev]
-    - name: Verify c_rain module successfully compiled
+    - name: Verify c_rain module compiled and importable
       shell: bash
       run: |
         python -c "from pyyeti.rainflow import c_rain; print(c_rain.__file__)"
