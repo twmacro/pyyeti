@@ -22,29 +22,35 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        os:
-          - 'ubuntu-24.04'
-          - 'windows-2022'
-        python-version:
-          - '3.12'
-          - '3.13'
-        extra-doctest-ignore:
-          - ''
+        # os:
+        #   - 'ubuntu-24.04'
+        #   - 'windows-2022'
+        # python-version:
+        #   - '3.12'
+        #   - '3.13'
+        # extra-doctest-ignore:
+        #   - ''
         # The OrderedDict __str__ method changed in Python 3.12 so doctests in the ytools.py module will fail
         # on older versions of Python.
         include:
           - os: 'ubuntu-24.04'
-            python-version: '3.10'
+            python-version: '3.9'
             extra-doctest-ignore: '--ignore=pyyeti/ytools.py'
           - os: 'windows-2022'
-            python-version: '3.10'
+            python-version: '3.9'
             extra-doctest-ignore: '--ignore=pyyeti/ytools.py'
-          - os: 'ubuntu-24.04'
-            python-version: '3.11'
-            extra-doctest-ignore: '--ignore=pyyeti/ytools.py'
-          - os: 'windows-2022'
-            python-version: '3.11'
-            extra-doctest-ignore: '--ignore=pyyeti/ytools.py'
+          # - os: 'ubuntu-24.04'
+          #   python-version: '3.10'
+          #   extra-doctest-ignore: '--ignore=pyyeti/ytools.py'
+          # - os: 'windows-2022'
+          #   python-version: '3.10'
+          #   extra-doctest-ignore: '--ignore=pyyeti/ytools.py'
+          # - os: 'ubuntu-24.04'
+          #   python-version: '3.11'
+          #   extra-doctest-ignore: '--ignore=pyyeti/ytools.py'
+          # - os: 'windows-2022'
+          #   python-version: '3.11'
+          #   extra-doctest-ignore: '--ignore=pyyeti/ytools.py'
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository

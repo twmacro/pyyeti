@@ -7,7 +7,7 @@ authors = [{ name = "Tim Widrick", email = "twmacro@gmail.com" }]
 license = "BSD-3-Clause"
 license-files = ["LICENSE.txt"]
 
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 dependencies = [
     "numpy",
     "scipy",
