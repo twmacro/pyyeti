@@ -1,0 +1,50 @@
+name: Run unit tests
+
+on:
+  push:
+    branches:
+      - main
+      - update_build_config
+    paths-ignore:
+      - 'docs/**'
+      - 'MANIFEST.in'
+      - 'README.rst'
+      - 'THANKS.rst'
+      - 'COPYING.txt'
+      - '.gitignore'
+      - '.gitattributes'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os:
+          - 'ubuntu-24.04'
+          - 'windows-2022'
+        python-version:
+          - '3.10'
+          - '3.11'
+          - '3.12'
+          - '3.13'
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Python dependencies
+      env:
+        H5PY_VERSION: ${{ matrix.h5py-version }}
+        NUMPY_VERSION: ${{ matrix.numpy-version}}
+      shell: bash
+      run: |
+        python -m pip install .[dev]
+    - name: Test with pytest
+      run: |
+        python -m pytest --cov --doctest-modules pyyeti --ignore=pyyeti/tests
+        python -m pytest --cov --cov-append pyyeti/tests
