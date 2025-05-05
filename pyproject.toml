@@ -99,6 +99,7 @@ packages = [
     "pyyeti.tests.ltmdrfuncs",
     "pyyeti.tests.nas2cam",
     "pyyeti.tests.nas2cam_csuper",
+    "pyyeti.tests.nas2cam_csuper.yeti_outputs",
     "pyyeti.tests.nas2cam_extseout",
     "pyyeti.tests.nastran_dmig_data",
     "pyyeti.tests.nastran_drm12",

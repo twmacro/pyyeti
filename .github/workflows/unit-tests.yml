@@ -54,12 +54,13 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Python dependencies
-      env:
-        H5PY_VERSION: ${{ matrix.h5py-version }}
-        NUMPY_VERSION: ${{ matrix.numpy-version}}
       shell: bash
       run: |
-        python -m pip install .[dev]
+        python -m pip install -v .[dev]
+    - name: Verify c_rain module successfully compiled
+      shell: bash
+      run: |
+        python -c "from pyyeti.rainflow import c_rain; print(c_rain.__file__)"
     - name: Test with pytest
       run: |
         python -m pytest --cov --doctest-modules pyyeti --ignore=pyyeti/tests ${{ matrix.extra-doctest-ignore}}
