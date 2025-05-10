@@ -60,6 +60,10 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+docs/modules/**/generated
 
 # PyBuilder
 target/
+
+# Virtual env
+.venv

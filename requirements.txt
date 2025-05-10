@@ -1,7 +1,0 @@
-numpy
-scipy
-matplotlib
-pandas 
-xlsxwriter
-h5py
-packaging
