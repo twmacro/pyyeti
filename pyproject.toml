@@ -1,6 +1,6 @@
 [project]
 name = "pyyeti"
-version = "1.4.3.8"
+version = "1.4.4"
 description = "Tools mostly related to structural dynamics"
 readme = "README.md"
 authors = [{ name = "Tim Widrick", email = "twmacro@gmail.com" }]
