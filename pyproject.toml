@@ -4,8 +4,8 @@ version = "1.4.3.8"
 description = "Tools mostly related to structural dynamics"
 readme = "README.md"
 authors = [{ name = "Tim Widrick", email = "twmacro@gmail.com" }]
-license = "BSD-3-Clause"
-license-files = ["LICENSE.txt"]
+license = {text = "BSD-3-Clause"}
+# license-files = ["LICENSE.txt"]
 
 requires-python = ">=3.10"
 dependencies = [
@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: Implementation :: CPython",
     "Natural Language :: English",
@@ -42,6 +43,7 @@ docs = [
     "sphinx-copybutton",
     "pygments",
     "openpyxl",
+    "xlsxwriter",
 ]
 dev = [
     # Testing
@@ -55,6 +57,7 @@ dev = [
     "sphinx-copybutton",
     "pygments",
     "openpyxl",
+    "xlsxwriter",
     # Linting
     "black",
     "flake8",
