@@ -16,3 +16,4 @@ sphinx-toggleprompt
 sphinx-copybutton
 pygments
 openpyxl
+xlsxwriter
