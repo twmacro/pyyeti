@@ -75,6 +75,14 @@ lsop4 = "pyyeti.scripts.lsop4:main"
 line-length = 88
 
 
+[tool.cibuildwheel]
+build-frontend = "build"
+archs = ["auto64"]
+skip = [
+    "pp*", # PyPy
+]
+
+
 [tool.coverage.report]
 show_missing = true
 

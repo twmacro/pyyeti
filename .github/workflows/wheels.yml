@@ -1,0 +1,48 @@
+---
+name: Build wheels
+
+# Adapted from https://github.com/matplotlib/matplotlib/blob/main/.github/workflows/nightlies.yml
+# and https://cibuildwheel.pypa.io/en/stable/setup/#github-actions
+
+# 1. Move as much as possible to pyproject.toml instead of using env vars
+# 2. Use native compiling for macOS via -13 (Intel) and -14 (arm) runners
+# 3. Use native compiling for aarch64 using public beta runner
+#    https://github.blog/changelog/2025-01-16-linux-arm64-hosted-runners-now-available-for-free-in-public-repositories-public-preview/
+# 4. On pushes, build and test all wheels and push as release artifacts (in
+#    draft mode for main branch pushes).
+# 5. On scheduled runs, build and test all wheels against
+#    scientific-python-nightly-wheels NumPy dev, then upload the resulting wheels there.
+# 6. On PRs, build against NumPy dev if [pip-pre] is in the commit message.
+
+on:
+  # Run on all PRs
+  pull_request:
+  # Run on tags
+  push:
+    branches:
+      - cibw_setup
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  build_wheels:
+    name: "Wheels: ${{ matrix.os }} ${{ matrix.arch }}"
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      matrix:
+        os:
+          - "ubuntu-latest"
+          - "windows-latest"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
+      - uses: pypa/cibuildwheel@v2.23.3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
