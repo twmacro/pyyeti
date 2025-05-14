@@ -20,7 +20,7 @@ on:
   # Run on tags
   push:
     branches:
-      - cibw_setup
+      - add_cibuildwheel
 
 permissions:
   actions: read
