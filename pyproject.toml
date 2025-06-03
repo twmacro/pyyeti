@@ -4,8 +4,8 @@ version = "1.4.4"
 description = "Tools mostly related to structural dynamics"
 readme = "README.md"
 authors = [{ name = "Tim Widrick", email = "twmacro@gmail.com" }]
-license = {text = "BSD-3-Clause"}
-# license-files = ["LICENSE.txt"]
+license = "BSD-3-Clause"
+license-files = ["LICENSE.txt"]
 
 requires-python = ">=3.10"
 dependencies = [
