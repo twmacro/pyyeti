@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   build_wheels:
-    name: "Wheels: ${{ matrix.os }} ${{ matrix.arch }}"
+    name: "Build wheels: ${{ matrix.os }} ${{ matrix.arch }}"
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     strategy:
@@ -40,8 +40,9 @@ jobs:
           path: wheelhouse/*.whl
 
   build_sdist:
-    name: Source dist
+    name: Build source dist and upload all
     runs-on: ubuntu-latest
+    needs: [build_wheels]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,33 +50,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Install dependencies and build
+      - name: Install dependencies and build sdist
         run: |
           export PYTHON_VENV=`mktemp -d`
           python -m venv $PYTHON_VENV --upgrade-deps
           $PYTHON_VENV/bin/python -c "import sys; print(sys.executable)"
           $PYTHON_VENV/bin/pip install -v build
           $PYTHON_VENV/bin/python -m build -s .
-      - name: Upload sdist
-        uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: dist/*
-
-  upload_all:
-    runs-on: ubuntu-latest
-    needs: [build_sdist, build_wheels]
-    steps:
       - name: Download wheels
         uses: actions/download-artifact@v4
         with:
           pattern: cibw-wheels-*
-          merge-multiple: true
-          path: dist/
-      - name: Download sdist
-        uses: actions/download-artifact@v4
-        with:
-          pattern: sdist*
           merge-multiple: true
           path: dist/
       - name: Upload wheels and sdist
