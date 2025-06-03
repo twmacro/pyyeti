@@ -52,10 +52,15 @@ jobs:
       - name: Install dependencies
         run: |
           export PYTHON_VENV=`mktemp -d`
+          echo $PYTHON_VENV
           python -m venv $PYTHON_VENV --upgrade-deps
-          $PYTHON_VENV/bin/pip install build
+          $PYTHON_VENV/bin/python -c "import sys; print(sys.executable)"
+          $PYTHON_VENV/bin/pip install -v build
       - name: Build
-        run: $PYTHON_VENV/bin/python -m build -s .
+        run: |
+          echo $PYTHON_VENV
+          $PYTHON_VENV/bin/python -c "import sys; print(sys.executable)"
+          $PYTHON_VENV/bin/python -m build -s .
       - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
