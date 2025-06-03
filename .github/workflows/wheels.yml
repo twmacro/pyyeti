@@ -24,15 +24,13 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
-          - macos-13
-          - macos-14
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.13
+          python-version: "3.13"
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.23.3
       - name: Upload artifacts
@@ -50,13 +48,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.13
+          python-version: "3.13"
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          python pip install build
+          export PYTHON_VENV=`mktemp -d`
+          python -m venv $PYTHON_VENV --upgrade-deps
+          $PYTHON_VENV/bin/pip install build
       - name: Build
-        run: python -m build -s .
+        run: $PYTHON_VENV/bin/python -m build -s .
       - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:

@@ -25,27 +25,25 @@ jobs:
         os:
           - ubuntu-latest
           - windows-2022
-          - macos-13
-          - macos-14
         python-version:
-          - 3.12
-          - 3.13
+          - "3.12"
+          - "3.13"
         extra-doctest-ignore:
           - ""
         # The OrderedDict __str__ method changed in Python 3.12 so doctests in the ytools.py module will fail
         # on older versions of Python.
         include:
           - os: ubuntu-latest
-            python-version: 3.10
+            python-version: "3.10"
             extra-doctest-ignore: "--ignore=pyyeti/ytools.py"
           - os: windows-2022
-            python-version: 3.10
+            python-version: "3.10"
             extra-doctest-ignore: "--ignore=pyyeti/ytools.py"
           - os: ubuntu-latest
-            python-version: 3.11
+            python-version: "3.11"
             extra-doctest-ignore: "--ignore=pyyeti/ytools.py"
           - os: windows-2022
-            python-version: 3.11
+            python-version: "3.11"
             extra-doctest-ignore: "--ignore=pyyeti/ytools.py"
     runs-on: ${{ matrix.os }}
     steps:
