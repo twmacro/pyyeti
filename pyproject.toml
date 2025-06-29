@@ -79,7 +79,8 @@ line-length = 88
 build-frontend = "build"
 archs = ["auto64"]
 skip = [
-    "pp*", # PyPy
+    "pp*",    # PyPy
+    "*musl*", # musllinux
 ]
 
 
