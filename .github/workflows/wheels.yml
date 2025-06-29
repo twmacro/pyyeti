@@ -2,13 +2,20 @@
 name: Build wheels
 
 on:
-  # Run on all PRs
-  pull_request:
-  # Run on all pushes to master
   push:
     branches:
       - master
-      - add_cibuildwheel
+    paths-ignore:
+      - "docs/**"
+      - "MANIFEST.in"
+      - "README.rst"
+      - "THANKS.rst"
+      - "COPYING.txt"
+      - ".gitignore"
+      - ".gitattributes"
+  pull_request:
+    branches:
+      - master
 
 permissions:
   actions: read
@@ -23,7 +30,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - windows-latest
+          - windows-2022
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
