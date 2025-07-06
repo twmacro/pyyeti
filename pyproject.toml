@@ -15,7 +15,7 @@ dependencies = [
     "pandas",
     "xlsxwriter",
     "h5py",
-    "numba",
+    "numba>=0.54",
 ]
 
 classifiers = [
