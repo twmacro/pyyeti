@@ -276,7 +276,7 @@ def resample(data, p, q, *, axis=-1, beta=14, pts=10, t=None, getfir=False):
         if getfir:
             return RData, fir
         return RData
-    tnew = np.arange(n) * (t[1] - t[0]) * ln / n + t[0]
+    tnew = np.arange(n) * np.mean(np.diff(t)) * ln / n + t[0]
     if getfir:
         return RData, tnew, fir
     return RData, tnew
