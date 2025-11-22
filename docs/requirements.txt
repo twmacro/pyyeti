@@ -12,6 +12,7 @@ h5py
 ipython
 notebook
 numba
+joblib
 sphinx-toggleprompt
 sphinx-copybutton
 pygments
