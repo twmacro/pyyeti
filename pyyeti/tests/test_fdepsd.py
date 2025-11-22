@@ -40,10 +40,13 @@ def test_fdepsd_absacce():
     q = 25
     fde_auto = fdepsd(sig, sr, freq, q)
     fde_no = fdepsd(sig, sr, freq, q, parallel="no")
-    fde_yes = fdepsd(sig, sr, freq, q, parallel="yes")
+    fde_yes = fdepsd(sig, sr, freq, q, parallel="yes", verbose=True)
+    fde_joblib = fdepsd(sig, sr, freq, q, parallel="joblib", verbose=50)
 
     compare(fde_auto, fde_no)
     compare(fde_auto, fde_yes)
+    compare(fde_auto, fde_joblib)
+
     pv = np.logical_and(freq > 32, freq < 45)
     assert abs(np.mean(fde_auto.psd.iloc[pv, :2], axis=0) - sp).max() < 0.22
     assert abs(np.mean(fde_auto.psd.iloc[pv, 2:], axis=0) - sp).max() < 0.12

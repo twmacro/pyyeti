@@ -7,6 +7,7 @@ enhanced from the CAM versions.
 from types import SimpleNamespace
 import itertools as it
 import multiprocessing as mp
+from joblib import Parallel, delayed
 import numpy as np
 import scipy.signal as signal
 import pandas as pd
@@ -56,6 +57,32 @@ def _dofde(args):
     for jj in range(BinAmps_.shape[1]):
         pv = amp >= BinAmps_[j, jj]
         Count_[j, jj] = np.sum(count[pv])
+
+
+def _dofde_joblib(j, coeffunc, Q, dT, wn, sig, nbins, binfracs, verbose):
+    """Utility routine for parallel processing"""
+    if verbose:
+        print(f"Processing frequency {wn[j] / 2 / np.pi:8.2f} Hz")
+    b, a = coeffunc(Q, dT, wn[j])
+    resphist = signal.lfilter(b, a, sig)
+    srsmax = abs(resphist).max()
+    var = np.var(resphist, ddof=1)
+
+    # use rainflow to count cycles:
+    ind = cyclecount.findap(resphist)
+    rf = cyclecount.rainflow(resphist[ind])
+
+    amp = rf["amp"]
+    count = rf["count"]
+    amax = amp.max()
+    binamps = binfracs * amax
+
+    # cumulative bin count:
+    cumcounts = np.zeros(nbins)
+    for jj in range(nbins):
+        pv = amp >= binamps[jj]
+        cumcounts[jj] = np.sum(count[pv])
+    return amax, srsmax, var, cumcounts
 
 
 def fdepsd(
@@ -196,14 +223,20 @@ def fdepsd(
                      On Windows, be sure the :func:`fdepsd` call
                      is contained within:
                      ``if __name__ == "__main__":``
+        'joblib'     Like 'yes' except use ``joblib`` for
+                     parallelization (see
+                     :class:`joblib.Parallel`).
         ==========   ============================================
 
     maxcpu : integer or None; optional
         Specifies maximum number of CPUs to use. If None, it is
         internally set to 4/5 of available CPUs (as determined from
         :func:`multiprocessing.cpu_count`).
-    verbose : bool; optional
-        If True, routine will print some status information.
+    verbose : bool or integer; optional
+        If True (or > 0), routine will print some status
+        information. If using ``joblib`` for parallelization, this
+        value is passed as an integer to :class:`joblib.Parallel` as
+        well.
 
     Returns
     -------
@@ -314,6 +347,8 @@ def fdepsd(
         Specifies the number of CPUs used.
     resp : string
         Same as the input `resp`.
+    use_joblib : bool
+        True if ``joblib`` was used for parallelization.
 
     Notes
     -----
@@ -578,11 +613,32 @@ def fdepsd(
     dT = 1 / sr
     pi = np.pi
     Wn = 2 * pi * freq
+    if parallel == "joblib":
+        use_joblib = True
+        parallel = "yes"
+        binfracs = np.arange(nbins, dtype=float) / nbins
+    else:
+        use_joblib = False
     parallel, ncpu = srs._process_parallel(
         parallel, LF, sig.size, maxcpu, getresp=False
     )
     # allocate RAM:
-    if parallel == "yes":
+    if parallel == "yes" and use_joblib:
+        func = _dofde_joblib
+        Amax, SRSmax, Var, Count = (
+            np.zeros(LF),
+            np.zeros(LF),
+            np.zeros(LF),
+            np.zeros((LF, nbins)),
+        )
+        results = Parallel(n_jobs=ncpu, verbose=int(verbose))(
+            delayed(func)(j, coeffunc, Q, dT, Wn, sig, nbins, binfracs, verbose)
+            for j in range(LF)
+        )
+        for j, (amax, srsmax, var, cumcounts) in enumerate(results):
+            Amax[j], SRSmax[j], Var[j], Count[j] = amax, srsmax, var, cumcounts
+        BinAmps = np.outer(Amax, binfracs)
+    elif parallel == "yes":
         # global shared vars will be: WN, SIG, ASV, BinAmps, Count
         WN = (srs.copyToSharedArray(Wn), Wn.shape)
         SIG = (srs.copyToSharedArray(sig), sig.shape)
@@ -775,4 +831,5 @@ def fdepsd(
         resp=resp,
         sig=sig,
         sr=sr,
+        use_joblib=use_joblib,
     )

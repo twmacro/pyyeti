@@ -1,6 +1,6 @@
 [project]
 name = "pyyeti"
-version = "1.4.5"
+version = "1.4.5.2"
 description = "Tools mostly related to structural dynamics"
 readme = "README.md"
 authors = [{ name = "Tim Widrick", email = "twmacro@gmail.com" }]
@@ -16,15 +16,17 @@ dependencies = [
     "xlsxwriter",
     "h5py",
     "numba>=0.54",
+    "joblib",
 ]
 
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Programming Language :: C",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: Implementation :: CPython",
     "Natural Language :: English",

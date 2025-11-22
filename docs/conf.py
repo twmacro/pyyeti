@@ -497,11 +497,12 @@ epub_exclude_files = ["search.html"]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "h5py": ("https://docs.h5py.org/en/latest/", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master", None),
     "sympy": ("https://docs.sympy.org/latest/", None),
     "numba": ("https://numba.readthedocs.io/en/stable/", None),
+    "joblib": ("https://joblib.readthedocs.io/en/stable/", None),
 }
