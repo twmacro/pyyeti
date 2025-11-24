@@ -74,11 +74,3 @@ jobs:
         with:
           name: wheels-and-sdist
           path: dist/
-      - name: Upload to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          $PYTHON_VENV/bin/pip install -v twine
-          $PYTHON_VENV/bin/python -m twine upload dist/*
- 
