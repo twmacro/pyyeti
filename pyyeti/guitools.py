@@ -9,10 +9,16 @@ display-listbox-with-columns-using-tkinter
 import os
 import sys
 from functools import wraps
-import tkinter as tk
-from tkinter import filedialog
-import tkinter.font as tkFont
-from tkinter import ttk
+
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+    import tkinter.font as tkFont
+    from tkinter import ttk
+except ImportError:
+    HAVE_TKINTER = False
+else:
+    HAVE_TKINTER = True
 
 
 LASTOPENDIR = None
@@ -106,6 +112,9 @@ def askopenfilename(title=None, filetypes=None, initialdir=None):  # pragma: no 
         filename = guitools.askopenfilename(filetypes=filetypes)
 
     """
+    if not HAVE_TKINTER:
+        msg = "tkinter not available, cannot create GUI dialog"
+        raise ImportError(msg)
     global LASTOPENDIR
     root = tk.Tk()
     root.withdraw()
@@ -158,6 +167,9 @@ def asksaveasfilename(title=None, filetypes=None, initialdir=None):  # pragma: n
         filename = guitools.asksaveasfilename(filetypes=filetypes)
 
     """
+    if not HAVE_TKINTER:
+        msg = "tkinter not available, cannot create GUI dialog"
+        raise ImportError(msg)
     global LASTSAVEDIR
     root = tk.Tk()
     root.withdraw()
@@ -357,6 +369,10 @@ class MultiColumnListbox(object):  # pragma: no cover
         topstring : string; optional
             String to print above table
         """
+        if not HAVE_TKINTER:
+            msg = "tkinter not available, cannot create GUI dialog"
+            raise ImportError(msg)
+
         self.root = tk.Tk()
         self.root.title(title)
         self.tree = None
