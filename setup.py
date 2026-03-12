@@ -10,8 +10,6 @@ setup(
             sources=["pyyeti/rainflow/c_rain.c"],
             include_dirs=[np.get_include()],
             optional=True,
-            define_macros=[("Py_LIMITED_API", "0x03100000")],
-            py_limited_api=True,
         ),
     ],
 )
