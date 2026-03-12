@@ -460,7 +460,7 @@ def replace_basic_cs(uset, new_cs_id, new_cs_in_basic=None):
 
     # extract the GRID part of the uset table to a numpy array:
     grids = uset_new.index.get_level_values("dof") > 0
-    xyz = uset_new.loc[grids, "x":"z"].values  # .copy()
+    xyz = uset_new.loc[grids, "x":"z"].values.copy()
     nrows = xyz.shape[0]
 
     current_cs_ids = xyz[1::6, 0].astype(int)
