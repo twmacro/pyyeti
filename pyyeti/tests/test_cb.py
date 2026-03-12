@@ -4,6 +4,7 @@ import scipy.linalg as la
 from io import StringIO
 import tempfile
 import os
+import re
 import inspect
 from pyyeti import cb, ytools, nastran
 from pyyeti.nastran import op2, n2p, op4
@@ -694,7 +695,8 @@ def test_cbcoordchk():
     assert abs(chk0.maxerr).max() < 1e-5
 
     # a case where the refpoint_chk should be 'fail':
-    with pytest.warns(la.LinAlgWarning, match=r"ill\-conditioned matrix"):
+    regex = re.compile(r"ill\-conditioned matrix", re.IGNORECASE)
+    with pytest.warns(la.LinAlgWarning, match=regex):
         chk2 = cb.cbcoordchk(kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
     assert chk2.refpoint_chk == "fail"
 
@@ -1045,7 +1047,8 @@ def test_cbcoordchk3():
     assert abs(chk0.maxerr).max() < 1e-5
 
     # a case where the refpoint_chk should be 'fail':
-    with pytest.warns(la.LinAlgWarning, match=r"ill\-conditioned matrix"):
+    regex = re.compile(r"ill\-conditioned matrix", re.IGNORECASE)
+    with pytest.warns(la.LinAlgWarning, match=regex):
         chk2 = cb.cbcoordchk(kaa, b, [25, 26, 27, 31, 32, 33], verbose=False)
     assert chk2.refpoint_chk == "fail"
 
