@@ -1948,7 +1948,8 @@ def test_badrbe3_warn():
     uset = n2p.addgrid(None, np.arange(1, n + 1), "b", 0, np.column_stack((x, y, z)), 0)
     uset = n2p.addgrid(uset, 100, "b", 0, [5, 5, 5], 0)
     with pytest.warns(RuntimeWarning, match="matrix is poorly conditioned"):
-        rbe3 = n2p.formrbe3(uset, 100, 123456, [123, [1, 2, 3, 4, 5]])
+        with pytest.warns(la.LinAlgWarning, match=r"ill\-conditioned matrix"):
+            rbe3 = n2p.formrbe3(uset, 100, 123456, [123, [1, 2, 3, 4, 5]])
 
 
 def test_rbe3_badum():
