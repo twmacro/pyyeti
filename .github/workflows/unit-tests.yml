@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - tkinter_optional
     paths-ignore:
       - "docs/**"
       - "MANIFEST.in"
