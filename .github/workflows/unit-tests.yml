@@ -28,6 +28,7 @@ jobs:
         python-version:
           - "3.12"
           - "3.13"
+          - "3.14"
         extra-doctest-ignore:
           - ""
         # The OrderedDict __str__ method changed in Python 3.12 so doctests in the ytools.py module will fail
@@ -48,9 +49,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Python dependencies
