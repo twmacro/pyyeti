@@ -23,7 +23,7 @@ def compare(fde1, fde2):
 
 
 def test_fdepsd_absacce():
-    np.random.seed(1)
+    rng = np.random.default_rng(1)
     TF = 60  # make a 60 second signal
     sp = 1.0
     spec = np.array([[20, sp], [50, sp]])
@@ -35,6 +35,7 @@ def test_fdepsd_absacce():
         df=1 / TF,
         winends=dict(portion=10),
         gettime=True,
+        rng=rng,
     )
     freq = np.arange(30.0, 50.1)
     q = 25
@@ -169,9 +170,9 @@ def test_fdepsd_error():
 
 
 def test_ski_slope():
-    # np.random.seed(1)
+    rng = np.random.default_rng(1)
     spec = np.array([[20.0, 1.0], [100.0, 1.0], [150.0, 10.0], [1000.0, 10.0]])
-    sig, sr = psd.psd2time(spec, 20, 1000)
+    sig, sr = psd.psd2time(spec, 20, 1000, rng=rng)
 
     sig[0] = sig.max()
 
