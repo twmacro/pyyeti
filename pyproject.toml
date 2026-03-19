@@ -81,7 +81,8 @@ line-length = 88
 build-frontend = "build"
 archs = ["auto64"]
 skip = [
-    "*musl*", # musllinux
+    "cp3??t-*", # Free-threading on all platforms
+    "*musl*",   # musllinux
 ]
 
 
