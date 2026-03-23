@@ -85,6 +85,7 @@ def test_fdepsd_pvelo():
         df=1 / TF,
         winends=dict(portion=10),
         gettime=True,
+        rng=np.random.default_rng(1),
     )
     freq = np.arange(30.0, 50.1)
     q = 25
@@ -147,6 +148,7 @@ def test_fdepsd_winends():
         df=1 / TF,
         winends=dict(portion=40),
         gettime=True,
+        rng=np.random.default_rng(1),
     )
     sig[0] = 20
     freq = np.arange(1.0, 3.1)
