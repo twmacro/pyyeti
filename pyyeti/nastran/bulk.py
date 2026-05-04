@@ -24,7 +24,6 @@ import matplotlib.pyplot as plt
 from pyyeti import locate, writer, ytools, guitools
 from pyyeti.nastran import n2p, op4, op2
 
-
 __all__ = [
     "nas_sscanf",
     "fsearch",
@@ -2854,8 +2853,7 @@ def _find_eigen(f, search_strings, regex):
             if s_index == len(search_strings):
                 s_found = True
         if len(line) > 116 and line[104:].startswith(SE):
-            se = int(line[116:])
-        # if s_found and len(line) > 76 and line[46:].startswith(EIG):
+            se = int(re.sub(r",.*$", ",", line[116:]))
         if s_found and len(line) > 117 and EIG in line:
             return se
 
@@ -3921,9 +3919,9 @@ def _intersect(circA, circB, xyA, draw=False):
         >>> _intersect(circA, circB, [-1., 0.])
         array([-15.,   0.])
     """
-    (x1, y1, R1) = circA
-    (x2, y2) = xyA
-    (x3, y3, R3) = circB
+    x1, y1, R1 = circA
+    x2, y2 = xyA
+    x3, y3, R3 = circB
     if abs(x2 - x1) > 100 * np.finfo(float).eps:
         m = (y2 - y1) / (x2 - x1)
         b = (x2 * y1 - x1 * y2) / (x2 - x1)
@@ -3951,7 +3949,7 @@ def _intersect(circA, circB, xyA, draw=False):
         plt.figure("intersect")
         plt.clf()
         th = np.arange(0, 361) * np.pi / 180.0
-        (x1, y1, R1) = circA
+        x1, y1, R1 = circA
         plt.plot(x1 + R1 * np.cos(th), y1 + R1 * np.sin(th), label="CircA")
         plt.plot(x3 + R3 * np.cos(th), y3 + R3 * np.sin(th), label="CircB")
         plt.scatter(*xyA, c="g", marker="o", s=60, label="xyA")
