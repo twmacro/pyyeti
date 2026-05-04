@@ -4,7 +4,6 @@ from pyyeti import psd
 import scipy.signal as signal
 import pytest
 
-
 # temporary patch for numpy < 2.0
 try:
     np.trapezoid
@@ -196,6 +195,7 @@ def test_spl():
 
 
 def test_psd2time():
+    np.random.seed(1)  # for repeatability
     spec = np.array([[20, 0.0768], [50, 0.48], [100, 0.48]])
     sig, sr = psd.psd2time(
         spec, ppc=10, fstart=35, fstop=70, df=0.01, winends=dict(portion=0.01)
