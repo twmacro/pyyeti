@@ -1425,9 +1425,15 @@ def test_cglf_moment_signs():
         # sc rows:
         assert np.all(np.sign(rba[1, [1, 5]]) == np.sign(rba[3, [1, 5]]))
         assert np.all(np.sign(rba[2, [2, 4]]) == np.sign(rba[4, [2, 4]]))
+
         # lv rows:
-        assert np.all(np.sign(rba[6, [1, 5]]) == np.sign(rba[8, [1, 5]]))
-        assert np.all(np.sign(rba[7, [2, 4]]) == np.sign(rba[9, [2, 4]]))
+        # - make sure we're comparing meaningful numbers:
+        if np.abs(rba[6, 5]) > 0.001:
+            assert np.all(np.sign(rba[6, [1, 5]]) == np.sign(rba[8, [1, 5]]))
+            assert np.all(np.sign(rba[7, [2, 4]]) == np.sign(rba[9, [2, 4]]))
+        else:
+            assert np.all(np.sign(rba[6, [2, 4]]) == np.sign(rba[8, [2, 4]]))
+            assert np.all(np.sign(rba[7, [1, 5]]) == np.sign(rba[9, [1, 5]]))
 
     wh_sc = nets[0].weight_sc * nets[0].height_sc
     wh_lv = nets[0].weight_lv * nets[0].height_lv

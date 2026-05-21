@@ -15,7 +15,6 @@ import pandas as pd
 from pyyeti import locate, ytools, writer, ode, guitools
 from pyyeti.nastran import n2p
 
-
 # FIXME: We need the str/repr formatting used in Numpy < 1.14.
 try:
     np.set_printoptions(legacy="1.13")
@@ -1395,7 +1394,7 @@ def mk_net_drms(
         replace_lv_cglf_rows = False
 
     # form rigid-body modes relative to CG:
-    rbcg = n2p.rbgeom_uset(uset_if, cg_sc)
+    rbcg = n2p.rbgeom_uset(uset_if, cg_sc + ref)
 
     # for net CG acceleration:
     cgatm_sc = linalg.solve(Mcg, rbcg.T @ Mcb[bset_if])
@@ -1457,7 +1456,7 @@ def mk_net_drms(
     ifltma = np.vstack((ifltma_sc, ifltma_lv))
     ifltmd = np.vstack((ifltmd_sc, ifltmd_lv))
     ifatm = np.vstack((ifatm_sc, ifatm_lv))
-    (ifltm_labels, ifatm_labels, cglf_labels) = _get_labels(
+    ifltm_labels, ifatm_labels, cglf_labels = _get_labels(
         scaxial_sc,
         scaxial_lv,
         tau,
@@ -2966,9 +2965,9 @@ def cbcheck(
     me = rbe.T @ m @ rbe
 
     # cg location, radius of gyration:
-    (mcgs, ds, gyr_s, pgyr_s, I_s, Ip_s) = cgmass(ms, all6=True)
-    (mcgg, dg, gyr_g, pgyr_g, I_g, Ip_g) = cgmass(mg, all6=True)
-    (mcge, de, gyr_e, pgyr_e, I_e, Ip_e) = cgmass(me, all6=True)
+    mcgs, ds, gyr_s, pgyr_s, I_s, Ip_s = cgmass(ms, all6=True)
+    mcgg, dg, gyr_g, pgyr_g, I_g, Ip_g = cgmass(mg, all6=True)
+    mcge, de, gyr_e, pgyr_e, I_e, Ip_e = cgmass(me, all6=True)
 
     f.write("MASS PROPERTIES CHECKS:\n\n")
 
