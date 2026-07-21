@@ -782,7 +782,7 @@ def rdcards(
     kwargs = {  # save args for use in _rdinclude
         "name": name,
         "blank": blank,
-        "return_var": kwargsReturnType,
+        "return_var": return_var,
         "dtype": dtype,
         "no_data_return": (),  # return value from _rdinclude must be iterable (not None)
         "regex": regex,
