@@ -777,10 +777,12 @@ def rdcards(
     for symbol in include_symbols:
         if not len(symbol) > 2:
             raise ValueError(f"Symbols must have a length >1, got {symbol}")
+            
+    kwargsReturnType = "list" if return_var == "list" else array
     kwargs = {  # save args for use in _rdinclude
         "name": name,
         "blank": blank,
-        "return_var": "array",
+        "return_var": kwargsReturnType,
         "dtype": dtype,
         "no_data_return": (),  # return value from _rdinclude must be iterable (not None)
         "regex": regex,
