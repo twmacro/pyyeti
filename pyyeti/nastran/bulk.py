@@ -825,7 +825,7 @@ def rdcards(
             for val in vals:
                 cur = len(val)
                 mxlen = max(mxlen, cur)
-                key = val[0]  # before it gets turned into dtype
+                key = int(val[0])  # before it gets turned into dtype
                 val = np.array(val).astype(dtype)
                 if todict:
                     Vals[key] = val
