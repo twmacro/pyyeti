@@ -778,7 +778,7 @@ def rdcards(
         if not len(symbol) > 2:
             raise ValueError(f"Symbols must have a length >1, got {symbol}")
             
-    kwargsReturnType = "list" if return_var == "list" else array
+    kwargsReturnType = "list" if return_var == "list" else "array"
     kwargs = {  # save args for use in _rdinclude
         "name": name,
         "blank": blank,
