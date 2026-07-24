@@ -2374,7 +2374,7 @@ def getcoordinates(uset, gid, csys, coordref=None):
     if isgrid and np.size(csys) == 1 and csys == 0:
         idx = [(g, 1) for g in gid]
         result = uset.loc[idx, "x":"z"].values
-        return result
+        return result if len(gid) > 1 else result[0]
 
     result = []
     T = None
