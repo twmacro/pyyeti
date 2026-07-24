@@ -2370,6 +2370,12 @@ def getcoordinates(uset, gid, csys, coordref=None):
     else:  # user passed in a higher dimension array
         raise ValueError(f"`gid` is more than 2d (it has {gid.ndim} dimensions)")
 
+    # Faster vectorized lookup for simple requests
+    if isgrid and np.size(csys) == 1 and csys == 0:
+        idx = [(g, 1) for g in gid]
+        result = uset.loc[idx, "x":"z"].values
+        return result
+
     result = []
     T = None
     for igid in gid:
