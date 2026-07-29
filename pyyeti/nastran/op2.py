@@ -3525,9 +3525,9 @@ def rdnas2cam(op2file="nas2cam", op4file=None):
                 nas[name] = {}
             if se == 0 and name == "lambda":
                 # count number of rigid body modes
-                nrb = sum(op4vars[j] < 0.005)[0]
-                nas["nrb"] = nrb
                 nas["lambda"][0] = abs(op4vars[j].ravel())
+                nrb = sum(nas["lambda"][0] < 1)
+                nas["nrb"] = nrb
             elif name == "lambda":
                 nas[name][se] = op4vars[j].ravel()
             elif name == "rfmodes":
