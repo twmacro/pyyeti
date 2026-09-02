@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Some Python tools for reading select data from Nastran .op2 files.
 Converted from the Yeti version.

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Collection of tools for reading/writing Nastran bulk data.
 

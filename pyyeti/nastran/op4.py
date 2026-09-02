@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Python tools for reading/writing Nastran .op4 files. Can read and
 write all formats (as far as I know) with the restrictions that the
