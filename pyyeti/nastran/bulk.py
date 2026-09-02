@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Collection of tools for reading/writing Nastran bulk data.
 
@@ -444,7 +443,7 @@ def _check_for_symbols(rel_path, symbols):
     """
     index = rel_path.find(":")
     # if a colon is found in position 1, assume this is a Windows absolute path
-    if index >= 2:  #
+    if index >= 2:
         symbol = rel_path[0:index].lower()
         rel_path = rel_path[index + 1 :]
         try:
@@ -777,7 +776,7 @@ def rdcards(
     for symbol in include_symbols:
         if not len(symbol) > 2:
             raise ValueError(f"Symbols must have a length >1, got {symbol}")
-            
+
     kwargsReturnType = "list" if return_var == "list" else "array"
     kwargs = {  # save args for use in _rdinclude
         "name": name,
@@ -1402,7 +1401,7 @@ def rddmig(
                     dof = rec[j + 1]
                     j += 2
                     val = rec[j : j + ints_per_number]
-                    val.dtype = dtype
+                    val = val.view(dtype)
                     j += ints_per_number
                     ri = np.searchsorted(r_id_dof, nid * 10 + dof)
                     mat[ri, ci] = val[0]

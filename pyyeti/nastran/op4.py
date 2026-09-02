@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Python tools for reading/writing Nastran .op4 files. Can read and
 write all formats (as far as I know) with the restrictions that the
@@ -765,7 +764,7 @@ class OP4:
         if not isinstance(Y, np.ndarray):
             Y = np.array(Y)
         Y = Y.astype("float", copy=False)
-        Y.dtype = complex
+        Y = Y.view(complex)
         X[r : r + len(Y), c] = Y
 
     @staticmethod
@@ -1265,7 +1264,7 @@ class OP4:
                     e = pv[-1]
                     elems = (e - s + 1) * multiplier
                     v = np.asarray(v[s : e + 1]).ravel()
-                    v.dtype = float
+                    v = v.view(float)
                     _write_col_data(f, v, c, s, elems, perline, numform)
         else:
             # sparse matrix:
@@ -1279,7 +1278,7 @@ class OP4:
                 vec = np.zeros(elems, dt)
                 vec[rs[pv] - s] = vs[pv]
                 elems *= multiplier
-                vec.dtype = float
+                vec = vec.view(float)
                 _write_col_data(f, vec, c, s, elems, perline, numform)
         f.write(f"{cols + 1:8}{1:8}{1:8}\n")
         f.write(numform % 2**0.5)
@@ -1305,7 +1304,7 @@ class OP4:
                     _write_col_header(f, ind, c, multiplier)
                     for r0, r1 in ind:
                         string = v[r0 : r0 + r1]
-                        string.dtype = float
+                        string = string.view(float)
                         _write_data_string(
                             f, string, r0, r1, multiplier, perline, numform
                         )
@@ -1321,7 +1320,7 @@ class OP4:
                 for r0, r1 in ind:
                     string = coldata[j : j + r1]
                     j += r1
-                    string.dtype = float
+                    string = string.view(float)
                     _write_data_string(f, string, r0, r1, multiplier, perline, numform)
         f.write(f"{cols + 1:8}{1:8}{1:8}\n")
         f.write(numform % 2**0.5)
@@ -1523,7 +1522,7 @@ class OP4:
                     e = pv[-1]
                     elems = (e - s + 1) * multiplier
                     v = np.asarray(v[s : e + 1]).ravel()
-                    v.dtype = float
+                    v = v.view(float)
                     _write_col_data(f, v, c, s, elems, endian, colHeader, colTrailer)
         else:
             # sparse matrix:
@@ -1537,7 +1536,7 @@ class OP4:
                 vec = np.zeros(elems, dt)
                 vec[rs[pv] - s] = vs[pv]
                 elems *= multiplier
-                vec.dtype = float
+                vec = vec.view(float)
                 _write_col_data(f, vec, c, s, elems, endian, colHeader, colTrailer)
         reclen = 3 * 4 + 8
         f.write(colHeader.pack(reclen, cols + 1, 1, 2))
@@ -1566,7 +1565,7 @@ class OP4:
                     reclen = _write_col_header(f, ind, c, multiplier, colHeader)
                     for r0, r1 in ind:
                         string = v[r0 : r0 + r1]
-                        string.dtype = float
+                        string = string.view(float)
                         _write_data_string(
                             f, string, r0, r1, multiplier, LrStruct, endian
                         )
@@ -1583,7 +1582,7 @@ class OP4:
                 for r0, r1 in ind:
                     string = coldata[j : j + r1]
                     j += r1
-                    string.dtype = float
+                    string = string.view(float)
                     _write_data_string(f, string, r0, r1, multiplier, LrStruct, endian)
                 f.write(colTrailer.pack(reclen))
         reclen = 3 * 4 + 8
