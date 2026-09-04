@@ -1177,7 +1177,7 @@ class OP2:
             loadset_id = ident[4]
             n_grids = data.shape[0] // numwde
             grid_ids = np.frombuffer(data, self._endian + "i4")[::numwde] // 10
-            data.shape = (n_grids, numwde)
+            data = data.reshape((n_grids, numwde), copy=False)
             forces = data[:, 2:]
             output[loadset_id] = pd.DataFrame(
                 forces, index=grid_ids, columns=[1, 2, 3, 4, 5, 6]
@@ -1313,7 +1313,7 @@ class OP2:
                 #   id*10, type, x, y, z, rx, ry, rz
                 #   - type == 1 for grids; those have all 6 dof
                 id_dof = data.reshape(-1, 8)[:, :2]
-                id_dof.dtype = np.int32
+                id_dof = id_dof.view(np.int32)
                 pvgrids = id_dof[:, 1] == 1
                 full_dof = _expanddof(id_dof[:, 0] // 10, pvgrids)
                 indexm = pd.MultiIndex.from_tuples(
@@ -1329,7 +1329,7 @@ class OP2:
                 eigenval = np.empty(ncols, np.float32)
 
             oug[:, col] = data[V]
-            ident.dtype = np.float32
+            ident = ident.view(np.float32)
             eigenval[col] = ident[5]
             col += 1
 
@@ -1718,7 +1718,7 @@ class OP2:
                 V[pvgrids, 3:] = True  # only grids have all 6
                 V = V.ravel()
                 # initialize ougv1 with first mode shape:
-                data.dtype = np.float32  # reinterpret as floats
+                data = data.view(np.float32) # reinterpret as floats
                 ougv1 = data[V].reshape(-1, 1)
             else:
                 data = self.rdop2record("single", V.shape[0])
@@ -3026,7 +3026,7 @@ class OP2:
         if drm is None:
             drm, elem_info = _getdrm(pos, e, s, eids, etypes, self._ibytes)
             drm[:, mode - 1] = column
-        drm.dtype = np.float32 if self._ibytes == 4 else np.float64
+        drm = drm.view(np.float32) if self._ibytes == 4 else drm.view(np.float64)
         if oldstyle:
             return drm, elem_info
 
