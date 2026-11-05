@@ -36,8 +36,8 @@ pyYeti has tools mostly related to structural dynamics:
 
 pyYeti runs on Python 3.10 or later. The dependencies are NumPy, SciPy,
 Matplotlib, pandas and setuptools. These are all conveniently provided
-by the Anaconda Python distribution:
-https://www.anaconda.com/distribution/.
+by the Miniforge Python distribution:
+https://conda-forge.org/download/.
 
 You can install pyYeti via `pip`:
 
