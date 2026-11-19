@@ -4,7 +4,6 @@ A pretty printer.
 """
 from collections.abc import Mapping
 import numpy as np
-import h5py
 import pandas as pd
 
 
@@ -141,8 +140,8 @@ class PP:
         self._strlen = strlen
         self._show_hidden = show_hidden
         self._functions = {
-            np.ndarray: self._array_string,
-            h5py._hl.dataset.Dataset: self._h5data_string,
+            "<class 'numpy.ndarray'>": self._array_string,
+            "<class 'h5py._hl.dataset.Dataset'>": self._h5data_string,
         }
         if var is not PP_None:
             self.pp(var)
@@ -256,14 +255,14 @@ class PP:
         return [f"pandas {var.__class__.__name__}: {var.shape}\n"]
 
     def _print_var(self, var, level):
+        cls = type(var)
+        if cls is type:
+            typename = f"<class '{var.__name__}'>"
+        else:
+            typename = str(cls)
         try:
-            s = self._functions[type(var)](var, level)
+            s = self._functions[typename](var, level)
         except KeyError:
-            cls = type(var)
-            if cls is type:
-                typename = f"<class '{var.__name__}'>"
-            else:
-                typename = str(cls)
             if isinstance(var, Mapping):
                 s = self._dict_string(var, level, typename=typename)
             elif isinstance(var, pd.core.base.PandasObject):
