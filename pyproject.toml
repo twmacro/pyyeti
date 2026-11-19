@@ -14,7 +14,6 @@ dependencies = [
     "matplotlib",
     "pandas",
     "xlsxwriter",
-    "h5py",
     "numba>=0.54",
     "joblib",
 ]
@@ -36,7 +35,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
+test = ["pytest", "pytest-cov", "h5py"]
 docs = [
     "sphinx>=4.0",
     "ipython",
@@ -51,6 +50,7 @@ dev = [
     # Testing
     "pytest",
     "pytest-cov",
+    "h5py",
     # Documentation
     "sphinx>=4.0",
     "ipython",
